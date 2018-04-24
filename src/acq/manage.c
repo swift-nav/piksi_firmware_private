@@ -94,6 +94,8 @@ static bool track_mask[ARRAY_SIZE(acq_status)];
 /* Refer to SBAS MOPS section A.4.4.1 */
 #define ACQ_SBAS_MSG0_TIMEOUT_SEC (MINUTE_SECS)
 
+#define MANAGE_NO_FREE_CH_MSG_TIMEOUT_S 30
+
 #define MANAGE_ACQ_THREAD_PRIORITY (LOWPRIO)
 #define MANAGE_ACQ_THREAD_STACK (32 * 1024)
 
@@ -521,18 +523,28 @@ void acq_result_send(const me_gnss_signal_t mesid,
  * \return Index of first unused tracking channel.
  */
 static u8 manage_track_new_acq(const me_gnss_signal_t mesid) {
-  /* Decide which (if any) tracking channel to put
-   * a newly acquired satellite into.
-   */
+  /* Loop for free tracking and decoding channels. Decoding channel might be
+     optional based on signal. */
   for (u8 i = 0; i < nap_track_n_channels; i++) {
-    if (code_requires_decoder(mesid.code) && tracker_available(i, mesid) &&
-        decoder_channel_available(i, mesid)) {
+    if (!tracker_available(i, mesid)) {
+      /* This tracking channel is reserved */
+      continue;
+    }
+
+    if (!code_requires_decoder(mesid.code)) {
+      /* Free tracking channel found and no decoder needed -> OK */
       return i;
-    } else if (!code_requires_decoder(mesid.code) &&
-               tracker_available(i, mesid)) {
+    }
+
+    if (decoder_channel_available(i, mesid)) {
+      /* Free tracking and decoder channels found -> OK */
       return i;
     }
   }
+
+  DO_EACH_MS_PER_CONST(mesid_to_constellation(mesid),
+                       MANAGE_NO_FREE_CH_MSG_TIMEOUT_S * SECS_MS,
+                       log_info_mesid(mesid, "No channels available."));
 
   return MANAGE_NO_CHANNELS_FREE;
 }
@@ -1249,8 +1261,6 @@ static void manage_tracking_startup(void) {
           acq->dopp_hint_high = MIN(freq + ACQ_FULL_CF_STEP, doppler_max);
         }
       }
-      log_info_mesid(startup_params.mesid,
-                     "No free tracking channel available.");
       continue;
     }
 

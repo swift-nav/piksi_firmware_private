@@ -50,6 +50,29 @@
     }                                                             \
   } while (0)
 
+#define DO_EACH_MS_PER_CONST(constellation, n, cmd)               \
+  do {                                                            \
+    static bool uninitialized = true;                             \
+    static piksi_systime_t previous[CONSTELLATION_COUNT];         \
+    if (uninitialized) {                                          \
+      for(u8 i = 0; i < CONSTELLATION_COUNT; i++) {               \
+        previous[i] = PIKSI_SYSTIME_INIT;                         \
+      }                                                           \
+      uninitialized = false;                                      \
+    }                                                             \
+    if (0 > constellation ||                                      \
+        CONSTELLATION_COUNT <= constellation) {                   \
+      log_error("DO_EACH_MS_PER_CONST: Invalid constellation");   \
+      break;                                                      \
+    }                                                             \
+    piksi_systime_t *prev = &previous[constellation];             \
+    if (piksi_systime_cmp(&PIKSI_SYSTIME_INIT, prev) == 0 ||      \
+        piksi_systime_elapsed_since_ms(prev) >= n) {              \
+      cmd;                                                        \
+      piksi_systime_get(prev);                                    \
+    }                                                             \
+  } while (0)
+
 /* See gcc.gnu.org/onlinedocs/cpp/Stringification.html for
  * explanation of pre-processing of macros into strings.
  */
