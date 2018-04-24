@@ -71,15 +71,15 @@ static FilterManager *time_matched_filter_manager = NULL;
 static FilterManager *low_latency_filter_manager = NULL;
 static FilterManager *spp_filter_manager = NULL;
 
-MUTEX_DECL(time_matched_filter_manager_lock);
-MUTEX_DECL(low_latency_filter_manager_lock);
-MUTEX_DECL(spp_filter_manager_lock);
+static MUTEX_DECL(time_matched_filter_manager_lock);
+static MUTEX_DECL(low_latency_filter_manager_lock);
+static MUTEX_DECL(spp_filter_manager_lock);
 
-MUTEX_DECL(time_matched_iono_params_lock);
-bool has_time_matched_iono_params = false;
+static MUTEX_DECL(time_matched_iono_params_lock);
+static bool has_time_matched_iono_params = false;
 static ionosphere_t time_matched_iono_params;
 
-MUTEX_DECL(last_sbp_lock);
+static MUTEX_DECL(last_sbp_lock);
 static gps_time_t last_dgnss;
 static gps_time_t last_spp;
 static gps_time_t last_time_matched_rover_obs_post;
