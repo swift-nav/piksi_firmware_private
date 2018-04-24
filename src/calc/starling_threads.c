@@ -32,12 +32,11 @@
 #include "calc_pvt_me.h"
 #include "me_msg/me_msg.h"
 #include "ndb/ndb.h"
-#include "settings/settings.h"
 #include "starling_platform_shim.h"
 #include "starling_threads.h"
 
-/* Maximum CPU time the solution thread is allowed to use. */
-#define SOLN_THD_CPU_MAX (0.60f)
+extern bool send_heading;
+extern double heading_offset;
 
 #define TIME_MATCHED_OBS_THREAD_PRIORITY (NORMALPRIO - 3)
 #define TIME_MATCHED_OBS_THREAD_STACK (6 * 1024 * 1024)
@@ -47,23 +46,26 @@
 
 /* Settings which control the filter behavior of the Starling engine. */
 typedef struct StarlingSettings {
-  /* This comment is here so that clang-format 5.0 and 6.0 behave the same. */
   bool is_glonass_enabled;
+  bool is_time_matched_klobuchar_enabled;
   float glonass_downweight_factor;
+  dgnss_solution_mode_t solution_output_mode;
 } StarlingSettings;
 
 /* Initial settings values (internal to Starling). */
 #define INIT_IS_GLONASS_ENABLED true
+#define INIT_IS_TIME_MATCHED_KLOBUCHAR_ENABLED true
 #define INIT_GLONASS_DOWNWEIGHT_FACTOR 4.0
+#define INIT_SOLUTION_OUTPUT_MODE STARLING_SOLN_MODE_LOW_LATENCY
 
 /* Local settings object and mutex protection. */
 static MUTEX_DECL(global_settings_lock);
 static StarlingSettings global_settings = {
     .is_glonass_enabled = INIT_IS_GLONASS_ENABLED,
+    .is_time_matched_klobuchar_enabled = INIT_IS_TIME_MATCHED_KLOBUCHAR_ENABLED,
     .glonass_downweight_factor = INIT_GLONASS_DOWNWEIGHT_FACTOR,
+    .solution_output_mode = INIT_SOLUTION_OUTPUT_MODE,
 };
-
-dgnss_solution_mode_t dgnss_soln_mode = SOLN_MODE_LOW_LATENCY;
 
 static FilterManager *time_matched_filter_manager = NULL;
 static FilterManager *low_latency_filter_manager = NULL;
@@ -83,12 +85,6 @@ static gps_time_t last_spp;
 static gps_time_t last_time_matched_rover_obs_post;
 
 static double starling_frequency;
-
-bool send_heading = false;
-
-double heading_offset = 0.0;
-
-static bool disable_klobuchar = false;
 
 static u8 current_base_sender_id;
 
@@ -199,7 +195,9 @@ void set_known_glonass_biases(const glo_biases_t biases) {
 
 void reset_rtk_filter(void) {
   platform_mutex_lock(&time_matched_filter_manager_lock);
-  filter_manager_init(time_matched_filter_manager);
+  if (time_matched_filter_manager) {
+    filter_manager_init(time_matched_filter_manager);
+  }
   platform_mutex_unlock(&time_matched_filter_manager_lock);
 }
 
@@ -212,7 +210,7 @@ void reset_rtk_filter(void) {
 bool dgnss_timeout(piksi_systime_t *_last_dgnss,
                    dgnss_solution_mode_t _dgnss_soln_mode) {
   /* No timeout needed in low latency mode */
-  if (SOLN_MODE_LOW_LATENCY == _dgnss_soln_mode) {
+  if (STARLING_SOLN_MODE_LOW_LATENCY == _dgnss_soln_mode) {
     return false;
   }
 
@@ -231,7 +229,7 @@ bool spp_timeout(const gps_time_t *_last_spp,
                  const gps_time_t *_last_dgnss,
                  dgnss_solution_mode_t _dgnss_soln_mode) {
   /* No timeout needed in low latency mode; */
-  if (_dgnss_soln_mode == SOLN_MODE_LOW_LATENCY) {
+  if (_dgnss_soln_mode == STARLING_SOLN_MODE_LOW_LATENCY) {
     return false;
   }
   platform_mutex_lock(&last_sbp_lock);
@@ -364,6 +362,7 @@ static void solution_send_pos_messages(
     const sbp_messages_t *sbp_messages,
     u8 n_meas,
     const navigation_measurement_t nav_meas[]) {
+  dgnss_solution_mode_t dgnss_soln_mode = starling_get_solution_mode();
   if (sbp_messages) {
     sbp_send_msg(SBP_MSG_GPS_TIME,
                  sizeof(sbp_messages->gps_time),
@@ -399,31 +398,31 @@ static void solution_send_pos_messages(
                  sizeof(sbp_messages->vel_ned_cov),
                  (u8 *)&sbp_messages->vel_ned_cov);
 
-    if (dgnss_soln_mode != SOLN_MODE_NO_DGNSS) {
+    if (dgnss_soln_mode != STARLING_SOLN_MODE_NO_DGNSS) {
       sbp_send_msg(SBP_MSG_BASELINE_ECEF,
                    sizeof(sbp_messages->baseline_ecef),
                    (u8 *)&sbp_messages->baseline_ecef);
     }
 
-    if (dgnss_soln_mode != SOLN_MODE_NO_DGNSS) {
+    if (dgnss_soln_mode != STARLING_SOLN_MODE_NO_DGNSS) {
       sbp_send_msg(SBP_MSG_BASELINE_NED,
                    sizeof(sbp_messages->baseline_ned),
                    (u8 *)&sbp_messages->baseline_ned);
     }
 
-    if (dgnss_soln_mode != SOLN_MODE_NO_DGNSS) {
+    if (dgnss_soln_mode != STARLING_SOLN_MODE_NO_DGNSS) {
       sbp_send_msg(SBP_MSG_AGE_CORRECTIONS,
                    sizeof(sbp_messages->age_corrections),
                    (u8 *)&sbp_messages->age_corrections);
     }
 
-    if (dgnss_soln_mode != SOLN_MODE_NO_DGNSS) {
+    if (dgnss_soln_mode != STARLING_SOLN_MODE_NO_DGNSS) {
       sbp_send_msg(SBP_MSG_DGNSS_STATUS,
                    sizeof(sbp_messages->dgnss_status),
                    (u8 *)&sbp_messages->dgnss_status);
     }
 
-    if (send_heading && dgnss_soln_mode != SOLN_MODE_NO_DGNSS) {
+    if (send_heading && dgnss_soln_mode != STARLING_SOLN_MODE_NO_DGNSS) {
       sbp_send_msg(SBP_MSG_BASELINE_HEADING,
                    sizeof(sbp_messages->baseline_heading),
                    (u8 *)&sbp_messages->baseline_heading);
@@ -456,11 +455,12 @@ static void solution_send_low_latency_output(
     const sbp_messages_t *sbp_messages,
     u8 n_meas,
     const navigation_measurement_t nav_meas[]) {
+  dgnss_solution_mode_t dgnss_soln_mode = starling_get_solution_mode();
   /* Work out if we need to wait for a certain period of no time matched
    * positions before we output a SBP position */
   bool wait_for_timeout = false;
   if (!(dgnss_timeout(&last_dgnss_stats.systime, dgnss_soln_mode)) &&
-      SOLN_MODE_TIME_MATCHED == dgnss_soln_mode) {
+      STARLING_SOLN_MODE_TIME_MATCHED == dgnss_soln_mode) {
     wait_for_timeout = true;
   }
 
@@ -530,8 +530,10 @@ void solution_make_baseline_sbp(const pvt_engine_result_t *result,
                         result->propagation_time,
                         result->flags);
 
+  dgnss_solution_mode_t dgnss_soln_mode = starling_get_solution_mode();
+
   if (result->flags == FIXED_POSITION &&
-      dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
+      dgnss_soln_mode == STARLING_SOLN_MODE_TIME_MATCHED) {
     double heading = calc_heading(b_ned);
     sbp_make_heading(&sbp_messages->baseline_heading,
                      &result->time,
@@ -755,6 +757,8 @@ void process_matched_obs(const obss_t *rover_channel_meass,
     }
   }
 
+  dgnss_solution_mode_t dgnss_soln_mode = starling_get_solution_mode();
+
   platform_mutex_lock(&time_matched_filter_manager_lock);
 
   if (!filter_manager_is_initialized(time_matched_filter_manager)) {
@@ -764,6 +768,11 @@ void process_matched_obs(const obss_t *rover_channel_meass,
   if (filter_manager_is_initialized(time_matched_filter_manager)) {
     filter_manager_overwrite_ephemerides(time_matched_filter_manager,
                                          stored_ephs);
+
+    /* Grab the most recent klobuchar enable setting. */
+    platform_mutex_lock(&global_settings_lock);
+    bool disable_klobuchar = !global_settings.is_time_matched_klobuchar_enabled;
+    platform_mutex_unlock(&global_settings_lock);
 
     platform_mutex_lock(&time_matched_iono_params_lock);
     if (has_time_matched_iono_params) {
@@ -791,7 +800,7 @@ void process_matched_obs(const obss_t *rover_channel_meass,
       update_filter_ret = update_filter(time_matched_filter_manager);
     }
 
-    if (dgnss_soln_mode == SOLN_MODE_LOW_LATENCY &&
+    if (dgnss_soln_mode == STARLING_SOLN_MODE_LOW_LATENCY &&
         update_filter_ret == PVT_ENGINE_SUCCESS) {
       /* If we're in low latency mode we need to copy/update the low latency
          filter manager from the time matched filter manager. */
@@ -816,8 +825,8 @@ void process_matched_obs(const obss_t *rover_channel_meass,
 
   /* If we are in time matched mode then calculate and output the baseline
    * for this observation. */
-  if (dgnss_soln_mode == SOLN_MODE_TIME_MATCHED && !simulation_enabled() &&
-      update_filter_ret == PVT_ENGINE_SUCCESS) {
+  if (dgnss_soln_mode == STARLING_SOLN_MODE_TIME_MATCHED &&
+      !simulation_enabled() && update_filter_ret == PVT_ENGINE_SUCCESS) {
     /* Note: in time match mode we send the physically incorrect time of the
      * observation message (which can be receiver clock time, or rounded GPS
      * time) instead of the true GPS time of the solution. */
@@ -894,12 +903,14 @@ static void time_matched_obs_thread(void *arg) {
                                     starling_frequency);
     platform_mutex_unlock(&time_matched_filter_manager_lock);
 
+    dgnss_solution_mode_t dgnss_soln_mode = starling_get_solution_mode();
+
     obss_t *obss;
     /* Look through the mailbox (FIFO queue) of locally generated observations
      * looking for one that matches in time. */
     while (platform_time_matched_obs_mailbox_fetch((msg_t *)&obss,
                                                    TIME_IMMEDIATE) == MSG_OK) {
-      if (dgnss_soln_mode == SOLN_MODE_NO_DGNSS) {
+      if (dgnss_soln_mode == STARLING_SOLN_MODE_NO_DGNSS) {
         /* Not doing any DGNSS.  Toss the obs away. */
         platform_time_matched_obs_free(obss);
         continue;
@@ -924,7 +935,7 @@ static void time_matched_obs_thread(void *arg) {
 
         static gps_time_t last_update_time = {.wn = 0, .tow = 0.0};
         if (update_time_matched(&last_update_time, &obss->tor, obss->n) ||
-            dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
+            dgnss_soln_mode == STARLING_SOLN_MODE_TIME_MATCHED) {
           process_matched_obs(obss, &base_obss_copy, &sbp_messages);
           last_update_time = obss->tor;
         }
@@ -973,71 +984,17 @@ static void time_matched_obs_thread(void *arg) {
   }
 }
 
-void reset_filters_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
-  (void)sender_id;
-  (void)len;
-  (void)context;
-  switch (msg[0]) {
-    case 0:
-      log_info("Filter reset requested");
-      reset_rtk_filter();
-      break;
-    default:
-      break;
-  }
-}
-
 soln_dgnss_stats_t solution_last_dgnss_stats_get(void) {
   return last_dgnss_stats;
 }
 
 soln_pvt_stats_t solution_last_pvt_stats_get(void) { return last_pvt_stats; }
 
-/* Check that -180.0 <= new heading_offset setting value <= 180.0. */
-static bool heading_offset_changed(struct setting *s, const char *val) {
-  double offset = 0;
-  bool ret = s->type->from_string(s->type->priv, &offset, s->len, val);
-  if (!ret) {
-    return ret;
-  }
-
-  if (fabs(offset) > 180.0) {
-    log_error(
-        "Invalid heading offset setting of %3.1f, max is %3.1f, min is %3.1f, "
-        "leaving heading offset at %3.1f",
-        offset,
-        180.0,
-        -180.0,
-        heading_offset);
-    ret = false;
-  }
-  *(double *)s->addr = offset;
-  return ret;
-}
-
 static void init_filters_and_settings(void) {
   /* Set time of last differential solution in the past. */
   last_dgnss = GPS_TIME_UNKNOWN;
   last_spp = GPS_TIME_UNKNOWN;
   last_time_matched_rover_obs_post = GPS_TIME_UNKNOWN;
-
-  static const char *const dgnss_soln_mode_enum[] = {
-      "Low Latency", "Time Matched", "No DGNSS", NULL};
-  static struct setting_type dgnss_soln_mode_setting;
-  int TYPE_GNSS_SOLN_MODE = settings_type_register_enum(
-      dgnss_soln_mode_enum, &dgnss_soln_mode_setting);
-  SETTING(
-      "solution", "dgnss_solution_mode", dgnss_soln_mode, TYPE_GNSS_SOLN_MODE);
-
-  SETTING("solution", "send_heading", send_heading, TYPE_BOOL);
-  SETTING_NOTIFY("solution",
-                 "heading_offset",
-                 heading_offset,
-                 TYPE_FLOAT,
-                 heading_offset_changed);
-
-  SETTING(
-      "solution", "disable_klobuchar_correction", disable_klobuchar, TYPE_BOOL);
 
   platform_time_matched_obs_mailbox_init();
 
@@ -1051,9 +1008,6 @@ static void init_filters_and_settings(void) {
   assert(low_latency_filter_manager);
   platform_mutex_unlock(&low_latency_filter_manager_lock);
 
-  static sbp_msg_callbacks_node_t reset_filters_node;
-  sbp_register_cbk(
-      SBP_MSG_RESET_FILTERS, &reset_filters_callback, &reset_filters_node);
 }
 
 static void starling_thread(void) {
@@ -1251,11 +1205,13 @@ static void starling_thread(void) {
                                &dops);
     platform_mutex_unlock(&spp_filter_manager_lock);
 
+    dgnss_solution_mode_t dgnss_soln_mode = starling_get_solution_mode();
+
     if (spp_call_filter_ret == PVT_ENGINE_SUCCESS) {
       solution_make_sbp(&result_spp, &dops, &sbp_messages);
       successful_spp = true;
     } else {
-      if (dgnss_soln_mode != SOLN_MODE_TIME_MATCHED) {
+      if (dgnss_soln_mode != STARLING_SOLN_MODE_TIME_MATCHED) {
         /* If we can't report a SPP position, something is wrong and no point
          * continuing to process this epoch - send out solution and
          * observation failed messages if not in time matched mode.
@@ -1265,7 +1221,7 @@ static void starling_thread(void) {
       continue;
     }
 
-    if (dgnss_soln_mode == SOLN_MODE_LOW_LATENCY && successful_spp) {
+    if (dgnss_soln_mode == STARLING_SOLN_MODE_LOW_LATENCY && successful_spp) {
       platform_mutex_lock(&low_latency_filter_manager_lock);
 
       pvt_engine_result_t result_rtk;
@@ -1315,6 +1271,13 @@ void starling_set_is_glonass_enabled(bool is_glonass_enabled) {
   platform_mutex_unlock(&global_settings_lock);
 }
 
+/* Enable klobuchar corrections in the time-matched filter. */
+void starling_set_is_time_matched_klobuchar_enabled(bool is_klobuchar_enabled) {
+  platform_mutex_lock(&global_settings_lock);
+  global_settings.is_time_matched_klobuchar_enabled = is_klobuchar_enabled;
+  platform_mutex_unlock(&global_settings_lock);
+}
+
 /* Modify the relative weighting of glonass observations. */
 void starling_set_glonass_downweight_factor(float factor) {
   platform_mutex_lock(&global_settings_lock);
@@ -1350,4 +1313,19 @@ void starling_set_max_correction_age(int max_age) {
     set_max_correction_age(time_matched_filter_manager, max_age);
   }
   platform_mutex_unlock(&time_matched_filter_manager_lock);
+}
+
+/* Set the desired solution mode for the Starling engine. */
+void starling_set_solution_mode(dgnss_solution_mode_t mode) {
+  platform_mutex_lock(&global_settings_lock);
+  global_settings.solution_output_mode = mode;
+  platform_mutex_unlock(&global_settings_lock);
+}
+
+/* Get the current solution mode for the Starling engine. */
+dgnss_solution_mode_t starling_get_solution_mode(void) {
+  platform_mutex_lock(&global_settings_lock);
+  dgnss_solution_mode_t mode = global_settings.solution_output_mode;
+  platform_mutex_unlock(&global_settings_lock);
+  return mode;
 }
