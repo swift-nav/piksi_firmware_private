@@ -54,6 +54,9 @@ extern void starling_integration_solution_make_baseline_sbp(
     const double spp_ecef[SPP_ECEF_SIZE],
     const dops_t *dops,
     sbp_messages_t *sbp_messages);
+extern void starling_integration_sbp_messages_init(sbp_messages_t *sbp_messages, gps_time_t *t); 
+extern void starling_integration_solution_simulation(sbp_messages_t *sbp_messages);
+
 
 #define TIME_MATCHED_OBS_THREAD_PRIORITY (NORMALPRIO - 3)
 #define TIME_MATCHED_OBS_THREAD_STACK (6 * 1024 * 1024)
@@ -274,82 +277,7 @@ static PVT_ENGINE_INTERFACE_RC call_pvt_engine_filter(
   return get_baseline_ret;
 }
 
-static void solution_simulation(sbp_messages_t *sbp_messages) {
-  simulation_step();
 
-  /* TODO: The simulator's handling of time is a bit crazy. This is a hack
-   * for now but the simulator should be refactored so that it can give the
-   * exact correct solution time output without this nonsense. */
-  pvt_engine_result_t *soln = simulation_current_pvt_engine_result_t();
-
-  if (simulation_enabled_for(SIMULATION_MODE_PVT)) {
-    starling_integration_solution_make_sbp(
-        soln, simulation_current_dops_solution(), sbp_messages);
-  }
-
-  if (simulation_enabled_for(SIMULATION_MODE_FLOAT) ||
-      simulation_enabled_for(SIMULATION_MODE_RTK)) {
-    u8 flags = simulation_enabled_for(SIMULATION_MODE_RTK) ? FIXED_POSITION
-                                                           : FLOAT_POSITION;
-
-    pvt_engine_result_t result = {
-        .time = soln->time,
-        .num_sats_used = simulation_current_num_sats(),
-        .num_sigs_used = 0,
-        .flags = flags,
-        .has_known_reference_pos = true,
-        .propagation_time = 0.0,
-    };
-    MEMCPY_S(result.baseline,
-             sizeof(result.baseline),
-             simulation_current_baseline_ecef(),
-             sizeof(result.baseline));
-    MEMCPY_S(result.baseline_covariance,
-             sizeof(result.baseline_covariance),
-             simulation_current_covariance_ecef(),
-             sizeof(result.baseline_covariance));
-    MEMCPY_S(result.known_reference_pos,
-             sizeof(result.known_reference_pos),
-             simulation_ref_ecef(),
-             sizeof(result.known_reference_pos));
-
-    starling_integration_solution_make_baseline_sbp(
-        &result,
-        simulation_ref_ecef(),
-        simulation_current_dops_solution(),
-        sbp_messages);
-
-    double t_check = soln->time.tow * (starling_frequency / obs_output_divisor);
-    if (fabs(t_check - (u32)t_check) < TIME_MATCH_THRESHOLD) {
-      /* RFT_TODO *
-       * SBP_FRAMING_MAX_PAYLOAD_SIZE replaces the setting for now, but
-       * this function will completely go away */
-      send_observations(simulation_current_num_sats(),
-                        SBP_FRAMING_MAX_PAYLOAD_SIZE,
-                        simulation_current_navigation_measurements(),
-                        &(soln->time));
-    }
-  }
-}
-
-void sbp_messages_init(sbp_messages_t *sbp_messages, gps_time_t *t) {
-  sbp_init_gps_time(&sbp_messages->gps_time, t);
-  sbp_init_utc_time(&sbp_messages->utc_time, t);
-  sbp_init_pos_llh(&sbp_messages->pos_llh, t);
-  sbp_init_pos_ecef(&sbp_messages->pos_ecef, t);
-  sbp_init_vel_ned(&sbp_messages->vel_ned, t);
-  sbp_init_vel_ecef(&sbp_messages->vel_ecef, t);
-  sbp_init_sbp_dops(&sbp_messages->sbp_dops, t);
-  sbp_init_age_corrections(&sbp_messages->age_corrections, t);
-  sbp_init_dgnss_status(&sbp_messages->dgnss_status);
-  sbp_init_baseline_ecef(&sbp_messages->baseline_ecef, t);
-  sbp_init_baseline_ned(&sbp_messages->baseline_ned, t);
-  sbp_init_baseline_heading(&sbp_messages->baseline_heading, t);
-  sbp_init_pos_ecef_cov(&sbp_messages->pos_ecef_cov, t);
-  sbp_init_vel_ecef_cov(&sbp_messages->vel_ecef_cov, t);
-  sbp_init_pos_llh_cov(&sbp_messages->pos_llh_cov, t);
-  sbp_init_vel_ned_cov(&sbp_messages->vel_ned_cov, t);
-}
 
 void process_matched_obs(const obss_t *rover_channel_meass,
                          const obss_t *reference_obss,
@@ -546,7 +474,7 @@ static void time_matched_obs_thread(void *arg) {
 
         /* Init the messages we want to send */
         gps_time_t epoch_time = base_obss_copy.tor;
-        sbp_messages_init(&sbp_messages, &epoch_time);
+        starling_integration_sbp_messages_init(&sbp_messages, &epoch_time);
 
         starling_integration_solution_make_sbp(&soln_copy, NULL, &sbp_messages);
 
@@ -699,11 +627,11 @@ static void starling_thread(void) {
       epoch_time = gps_time_round_to_epoch(&epoch_time, soln_freq_setting);
     }
 
-    sbp_messages_init(&sbp_messages, &epoch_time);
+    starling_integration_sbp_messages_init(&sbp_messages, &epoch_time);
 
     /* Here we do all the nice simulation-related stuff. */
     if (platform_simulation_enabled()) {
-      solution_simulation(&sbp_messages);
+      starling_integration_solution_simulation(&sbp_messages);
       const u8 fake_base_sender_id = 1;
       starling_integration_solution_send_low_latency_output(
           fake_base_sender_id,

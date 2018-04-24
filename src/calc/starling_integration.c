@@ -18,6 +18,8 @@
 #include <libswiftnav/linear_algebra.h>
 #include <libswiftnav/memcpy_s.h>
 
+#include "calc/calc_pvt_common.h"
+#include "calc/calc_pvt_me.h"
 #include "calc/starling_integration.h"
 #include "calc/starling_threads.h"
 #include "ndb/ndb.h"
@@ -48,13 +50,13 @@ double heading_offset = 0.0;
 static THD_WORKING_AREA(wa_starling_thread, STARLING_THREAD_STACK);
 
 static MUTEX_DECL(last_sbp_lock);
-static gps_time_t last_dgnss __attribute__((unused));
-static gps_time_t last_spp __attribute__((unused));
+static gps_time_t last_dgnss;
+static gps_time_t last_spp;
 
-static soln_pvt_stats_t last_pvt_stats __attribute__((unused)) = {
+static soln_pvt_stats_t last_pvt_stats = {
     .systime = PIKSI_SYSTIME_INIT, .signals_used = 0};
-static soln_dgnss_stats_t last_dgnss_stats
-    __attribute__((unused)) = {.systime = PIKSI_SYSTIME_INIT, .mode = 0};
+static soln_dgnss_stats_t last_dgnss_stats = {
+    .systime = PIKSI_SYSTIME_INIT, .mode = 0};
 
 /*******************************************************************************
  * Output Callback Helpers
@@ -206,6 +208,25 @@ static void solution_send_pos_messages(
                  &sbp_messages->baseline_heading,
                  n_meas,
                  nav_meas);
+}
+
+void starling_integration_sbp_messages_init(sbp_messages_t *sbp_messages, gps_time_t *t) {
+  sbp_init_gps_time(&sbp_messages->gps_time, t);
+  sbp_init_utc_time(&sbp_messages->utc_time, t);
+  sbp_init_pos_llh(&sbp_messages->pos_llh, t);
+  sbp_init_pos_ecef(&sbp_messages->pos_ecef, t);
+  sbp_init_vel_ned(&sbp_messages->vel_ned, t);
+  sbp_init_vel_ecef(&sbp_messages->vel_ecef, t);
+  sbp_init_sbp_dops(&sbp_messages->sbp_dops, t);
+  sbp_init_age_corrections(&sbp_messages->age_corrections, t);
+  sbp_init_dgnss_status(&sbp_messages->dgnss_status);
+  sbp_init_baseline_ecef(&sbp_messages->baseline_ecef, t);
+  sbp_init_baseline_ned(&sbp_messages->baseline_ned, t);
+  sbp_init_baseline_heading(&sbp_messages->baseline_heading, t);
+  sbp_init_pos_ecef_cov(&sbp_messages->pos_ecef_cov, t);
+  sbp_init_vel_ecef_cov(&sbp_messages->vel_ecef_cov, t);
+  sbp_init_pos_llh_cov(&sbp_messages->pos_llh_cov, t);
+  sbp_init_vel_ned_cov(&sbp_messages->vel_ned_cov, t);
 }
 
 /**
@@ -476,6 +497,64 @@ void starling_integration_solution_make_baseline_sbp(
   piksi_systime_get(&last_dgnss_stats.systime);
   last_dgnss_stats.mode =
       (result->flags == FIXED_POSITION) ? FILTER_FIXED : FILTER_FLOAT;
+}
+
+void starling_integration_solution_simulation(sbp_messages_t *sbp_messages) {
+  simulation_step();
+
+  /* TODO: The simulator's handling of time is a bit crazy. This is a hack
+   * for now but the simulator should be refactored so that it can give the
+   * exact correct solution time output without this nonsense. */
+  pvt_engine_result_t *soln = simulation_current_pvt_engine_result_t();
+
+  if (simulation_enabled_for(SIMULATION_MODE_PVT)) {
+    starling_integration_solution_make_sbp(
+        soln, simulation_current_dops_solution(), sbp_messages);
+  }
+
+  if (simulation_enabled_for(SIMULATION_MODE_FLOAT) ||
+      simulation_enabled_for(SIMULATION_MODE_RTK)) {
+    u8 flags = simulation_enabled_for(SIMULATION_MODE_RTK) ? FIXED_POSITION
+                                                           : FLOAT_POSITION;
+
+    pvt_engine_result_t result = {
+        .time = soln->time,
+        .num_sats_used = simulation_current_num_sats(),
+        .num_sigs_used = 0,
+        .flags = flags,
+        .has_known_reference_pos = true,
+        .propagation_time = 0.0,
+    };
+    MEMCPY_S(result.baseline,
+             sizeof(result.baseline),
+             simulation_current_baseline_ecef(),
+             sizeof(result.baseline));
+    MEMCPY_S(result.baseline_covariance,
+             sizeof(result.baseline_covariance),
+             simulation_current_covariance_ecef(),
+             sizeof(result.baseline_covariance));
+    MEMCPY_S(result.known_reference_pos,
+             sizeof(result.known_reference_pos),
+             simulation_ref_ecef(),
+             sizeof(result.known_reference_pos));
+
+    starling_integration_solution_make_baseline_sbp(
+        &result,
+        simulation_ref_ecef(),
+        simulation_current_dops_solution(),
+        sbp_messages);
+
+    double t_check = soln->time.tow * (soln_freq_setting / obs_output_divisor);
+    if (fabs(t_check - (u32)t_check) < TIME_MATCH_THRESHOLD) {
+      /* RFT_TODO *
+       * SBP_FRAMING_MAX_PAYLOAD_SIZE replaces the setting for now, but
+       * this function will completely go away */
+      send_observations(simulation_current_num_sats(),
+                        SBP_FRAMING_MAX_PAYLOAD_SIZE,
+                        simulation_current_navigation_measurements(),
+                        &(soln->time));
+    }
+  }
 }
 
 /*******************************************************************************
