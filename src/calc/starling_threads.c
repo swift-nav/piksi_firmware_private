@@ -47,6 +47,11 @@ extern void starling_integration_solution_send_low_latency_output(
     const sbp_messages_t *sbp_messages,
     u8 n_meas,
     const navigation_measurement_t nav_meas[]); 
+extern void starling_integration_solution_make_sbp(
+    const pvt_engine_result_t *soln,
+    dops_t *dops,
+    sbp_messages_t *sbp_messages);
+
 
 #define TIME_MATCHED_OBS_THREAD_PRIORITY (NORMALPRIO - 3)
 #define TIME_MATCHED_OBS_THREAD_STACK (6 * 1024 * 1024)
@@ -199,115 +204,6 @@ void reset_rtk_filter(void) {
     filter_manager_init(time_matched_filter_manager);
   }
   platform_mutex_unlock(&time_matched_filter_manager_lock);
-}
-
-void solution_make_sbp(const pvt_engine_result_t *soln,
-                       dops_t *dops,
-                       sbp_messages_t *sbp_messages) {
-  if (soln && soln->valid) {
-    /* Send GPS_TIME message first. */
-    sbp_make_gps_time(&sbp_messages->gps_time, &soln->time, SPP_POSITION);
-    sbp_make_utc_time(&sbp_messages->utc_time, &soln->time, SPP_POSITION);
-
-    /* In SPP, `baseline` is actually absolute position in ECEF. */
-    double pos_ecef[3], pos_llh[3];
-    memcpy(pos_ecef, soln->baseline, 3 * sizeof(double));
-    wgsecef2llh(pos_ecef, pos_llh);
-
-    double accuracy, h_accuracy, v_accuracy;
-    double pos_ecef_cov[6], pos_ned_cov[6];
-    pvt_engine_covariance_to_accuracy(soln->baseline_covariance,
-                                      pos_ecef,
-                                      &accuracy,
-                                      &h_accuracy,
-                                      &v_accuracy,
-                                      pos_ecef_cov,
-                                      pos_ned_cov);
-
-    double vel_accuracy, vel_h_accuracy, vel_v_accuracy;
-    double vel_ecef_cov[6], vel_ned_cov[6];
-    pvt_engine_covariance_to_accuracy(soln->velocity_covariance,
-                                      pos_ecef,
-                                      &vel_accuracy,
-                                      &vel_h_accuracy,
-                                      &vel_v_accuracy,
-                                      vel_ecef_cov,
-                                      vel_ned_cov);
-
-    sbp_make_pos_llh_vect(&sbp_messages->pos_llh,
-                          pos_llh,
-                          h_accuracy,
-                          v_accuracy,
-                          &soln->time,
-                          soln->num_sats_used,
-                          soln->flags);
-
-    sbp_make_pos_llh_cov(&sbp_messages->pos_llh_cov,
-                         pos_llh,
-                         pos_ned_cov,
-                         &soln->time,
-                         soln->num_sats_used,
-                         soln->flags);
-
-    sbp_make_pos_ecef_vect(&sbp_messages->pos_ecef,
-                           pos_ecef,
-                           accuracy,
-                           &soln->time,
-                           soln->num_sats_used,
-                           soln->flags);
-
-    sbp_make_pos_ecef_cov(&sbp_messages->pos_ecef_cov,
-                          pos_ecef,
-                          pos_ecef_cov,
-                          &soln->time,
-                          soln->num_sats_used,
-                          soln->flags);
-
-    if (soln->velocity_valid) {
-      double vel_ned[3];
-      wgsecef2ned(soln->velocity, pos_ecef, vel_ned);
-      sbp_make_vel_ned(&sbp_messages->vel_ned,
-                       vel_ned,
-                       vel_h_accuracy,
-                       vel_v_accuracy,
-                       &soln->time,
-                       soln->num_sats_used,
-                       soln->flags);
-
-      sbp_make_vel_ned_cov(&sbp_messages->vel_ned_cov,
-                           vel_ned,
-                           vel_ned_cov,
-                           &soln->time,
-                           soln->num_sats_used,
-                           soln->flags);
-
-      sbp_make_vel_ecef(&sbp_messages->vel_ecef,
-                        soln->velocity,
-                        vel_accuracy,
-                        &soln->time,
-                        soln->num_sats_used,
-                        soln->flags);
-
-      sbp_make_vel_ecef_cov(&sbp_messages->vel_ecef_cov,
-                            soln->velocity,
-                            vel_ecef_cov,
-                            &soln->time,
-                            soln->num_sats_used,
-                            soln->flags);
-    }
-
-    /* DOP message can be sent even if solution fails to compute */
-    if (dops) {
-      sbp_make_dops(&sbp_messages->sbp_dops,
-                    dops,
-                    sbp_messages->pos_llh.tow,
-                    soln->flags);
-    }
-
-    /* Update stats */
-    piksi_systime_get(&last_pvt_stats.systime);
-    last_pvt_stats.signals_used = soln->num_sigs_used;
-  }
 }
 
 double calc_heading(const double b_ned[3]) {
@@ -505,7 +401,7 @@ static void solution_simulation(sbp_messages_t *sbp_messages) {
   pvt_engine_result_t *soln = simulation_current_pvt_engine_result_t();
 
   if (simulation_enabled_for(SIMULATION_MODE_PVT)) {
-    solution_make_sbp(soln, simulation_current_dops_solution(), sbp_messages);
+    starling_integration_solution_make_sbp(soln, simulation_current_dops_solution(), sbp_messages);
   }
 
   if (simulation_enabled_for(SIMULATION_MODE_FLOAT) ||
@@ -768,7 +664,7 @@ static void time_matched_obs_thread(void *arg) {
         gps_time_t epoch_time = base_obss_copy.tor;
         sbp_messages_init(&sbp_messages, &epoch_time);
 
-        solution_make_sbp(&soln_copy, NULL, &sbp_messages);
+        starling_integration_solution_make_sbp(&soln_copy, NULL, &sbp_messages);
 
         static gps_time_t last_update_time = {.wn = 0, .tow = 0.0};
         if (update_time_matched(&last_update_time, &obss->tor, obss->n) ||
@@ -818,10 +714,7 @@ static void time_matched_obs_thread(void *arg) {
 }
 
 static void init_filters_and_settings(void) {
-  /* Set time of last differential solution in the past. */
-  last_dgnss = GPS_TIME_UNKNOWN;
-  last_spp = GPS_TIME_UNKNOWN;
-  last_time_matched_rover_obs_post = GPS_TIME_UNKNOWN;
+    last_time_matched_rover_obs_post = GPS_TIME_UNKNOWN;
 
   platform_time_matched_obs_mailbox_init();
 
@@ -1035,7 +928,7 @@ static void starling_thread(void) {
     dgnss_solution_mode_t dgnss_soln_mode = starling_get_solution_mode();
 
     if (spp_call_filter_ret == PVT_ENGINE_SUCCESS) {
-      solution_make_sbp(&result_spp, &dops, &sbp_messages);
+      starling_integration_solution_make_sbp(&result_spp, &dops, &sbp_messages);
       successful_spp = true;
     } else {
       if (dgnss_soln_mode != STARLING_SOLN_MODE_TIME_MATCHED) {
