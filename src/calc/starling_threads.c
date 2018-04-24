@@ -31,12 +31,17 @@
 #include "calc_pvt_common.h"
 #include "calc_pvt_me.h"
 #include "me_msg/me_msg.h"
-#include "ndb/ndb.h"
 #include "starling_platform_shim.h"
 #include "starling_threads.h"
 
+/* TODO(kevin) remove these. */
 extern bool send_heading;
 extern double heading_offset;
+extern void starling_integration_solution_send_pos_messages(
+    u8 base_sender_id,
+    const sbp_messages_t *sbp_messages,
+    u8 n_meas,
+    const navigation_measurement_t nav_meas[]);
 
 #define TIME_MATCHED_OBS_THREAD_PRIORITY (NORMALPRIO - 3)
 #define TIME_MATCHED_OBS_THREAD_STACK (6 * 1024 * 1024)
@@ -298,106 +303,6 @@ void solution_make_sbp(const pvt_engine_result_t *soln,
     piksi_systime_get(&last_pvt_stats.systime);
     last_pvt_stats.signals_used = soln->num_sigs_used;
   }
-}
-
-/**
- *
- * @param base_sender_id sender id of base obs
- * @param sbp_messages struct of sbp messages
- * @param n_meas nav_meas len
- * @param nav_meas Valid navigation measurements
- */
-static void solution_send_pos_messages(
-    u8 base_sender_id,
-    const sbp_messages_t *sbp_messages,
-    u8 n_meas,
-    const navigation_measurement_t nav_meas[]) {
-  dgnss_solution_mode_t dgnss_soln_mode = starling_get_solution_mode();
-  if (sbp_messages) {
-    sbp_send_msg(SBP_MSG_GPS_TIME,
-                 sizeof(sbp_messages->gps_time),
-                 (u8 *)&sbp_messages->gps_time);
-    sbp_send_msg(SBP_MSG_UTC_TIME,
-                 sizeof(sbp_messages->utc_time),
-                 (u8 *)&sbp_messages->utc_time);
-    sbp_send_msg(SBP_MSG_POS_LLH,
-                 sizeof(sbp_messages->pos_llh),
-                 (u8 *)&sbp_messages->pos_llh);
-    sbp_send_msg(SBP_MSG_POS_ECEF,
-                 sizeof(sbp_messages->pos_ecef),
-                 (u8 *)&sbp_messages->pos_ecef);
-    sbp_send_msg(SBP_MSG_VEL_NED,
-                 sizeof(sbp_messages->vel_ned),
-                 (u8 *)&sbp_messages->vel_ned);
-    sbp_send_msg(SBP_MSG_VEL_ECEF,
-                 sizeof(sbp_messages->vel_ecef),
-                 (u8 *)&sbp_messages->vel_ecef);
-    sbp_send_msg(SBP_MSG_DOPS,
-                 sizeof(sbp_messages->sbp_dops),
-                 (u8 *)&sbp_messages->sbp_dops);
-    sbp_send_msg(SBP_MSG_POS_ECEF_COV,
-                 sizeof(sbp_messages->pos_ecef_cov),
-                 (u8 *)&sbp_messages->pos_ecef_cov);
-    sbp_send_msg(SBP_MSG_VEL_ECEF_COV,
-                 sizeof(sbp_messages->vel_ecef_cov),
-                 (u8 *)&sbp_messages->vel_ecef_cov);
-    sbp_send_msg(SBP_MSG_POS_LLH_COV,
-                 sizeof(sbp_messages->pos_llh_cov),
-                 (u8 *)&sbp_messages->pos_llh_cov);
-    sbp_send_msg(SBP_MSG_VEL_NED_COV,
-                 sizeof(sbp_messages->vel_ned_cov),
-                 (u8 *)&sbp_messages->vel_ned_cov);
-
-    if (dgnss_soln_mode != STARLING_SOLN_MODE_NO_DGNSS) {
-      sbp_send_msg(SBP_MSG_BASELINE_ECEF,
-                   sizeof(sbp_messages->baseline_ecef),
-                   (u8 *)&sbp_messages->baseline_ecef);
-    }
-
-    if (dgnss_soln_mode != STARLING_SOLN_MODE_NO_DGNSS) {
-      sbp_send_msg(SBP_MSG_BASELINE_NED,
-                   sizeof(sbp_messages->baseline_ned),
-                   (u8 *)&sbp_messages->baseline_ned);
-    }
-
-    if (dgnss_soln_mode != STARLING_SOLN_MODE_NO_DGNSS) {
-      sbp_send_msg(SBP_MSG_AGE_CORRECTIONS,
-                   sizeof(sbp_messages->age_corrections),
-                   (u8 *)&sbp_messages->age_corrections);
-    }
-
-    if (dgnss_soln_mode != STARLING_SOLN_MODE_NO_DGNSS) {
-      sbp_send_msg(SBP_MSG_DGNSS_STATUS,
-                   sizeof(sbp_messages->dgnss_status),
-                   (u8 *)&sbp_messages->dgnss_status);
-    }
-
-    if (send_heading && dgnss_soln_mode != STARLING_SOLN_MODE_NO_DGNSS) {
-      sbp_send_msg(SBP_MSG_BASELINE_HEADING,
-                   sizeof(sbp_messages->baseline_heading),
-                   (u8 *)&sbp_messages->baseline_heading);
-    }
-  }
-
-  utc_params_t utc_params;
-  utc_params_t *p_utc_params = &utc_params;
-  /* read UTC parameters from NDB if they exist*/
-  if (NDB_ERR_NONE != ndb_utc_params_read(&utc_params, NULL)) {
-    p_utc_params = NULL;
-  }
-
-  /* Send NMEA alongside the sbp */
-  double propagation_time = sbp_messages->age_corrections.age * 0.1;
-  nmea_send_msgs(&sbp_messages->pos_llh,
-                 &sbp_messages->vel_ned,
-                 &sbp_messages->sbp_dops,
-                 &sbp_messages->gps_time,
-                 propagation_time,
-                 base_sender_id,
-                 p_utc_params,
-                 &sbp_messages->baseline_heading,
-                 n_meas,
-                 nav_meas);
 }
 
 static void solution_send_low_latency_output(
@@ -890,10 +795,6 @@ static void time_matched_obs_thread(void *arg) {
           last_update_time = obss->tor;
         }
 
-        if (spp_timeout(&last_spp, &last_dgnss, dgnss_soln_mode)) {
-          solution_send_pos_messages(
-              base_obss_copy.sender_id, &sbp_messages, obss->n, obss->nm);
-        }
         platform_time_matched_obs_free(obss);
         break;
       } else {
@@ -933,12 +834,6 @@ static void time_matched_obs_thread(void *arg) {
     }
   }
 }
-
-soln_dgnss_stats_t solution_last_dgnss_stats_get(void) {
-  return last_dgnss_stats;
-}
-
-soln_pvt_stats_t solution_last_pvt_stats_get(void) { return last_pvt_stats; }
 
 static void init_filters_and_settings(void) {
   /* Set time of last differential solution in the past. */
