@@ -38,8 +38,61 @@ double heading_offset = 0.0;
 /* Working area for the main starling thread. */
 static THD_WORKING_AREA(wa_starling_thread, STARLING_THREAD_STACK);
 
+static MUTEX_DECL(last_sbp_lock);
+static gps_time_t last_dgnss __attribute__((unused));
+static gps_time_t last_spp __attribute__((unused));
+
+static soln_pvt_stats_t last_pvt_stats __attribute__((unused)) 
+  = {.systime = PIKSI_SYSTIME_INIT, .signals_used = 0};
+static soln_dgnss_stats_t last_dgnss_stats __attribute__((unused))
+  = {.systime = PIKSI_SYSTIME_INIT, .mode = 0};
+
 /*******************************************************************************
- * Local Helpers
+ * Output Callback Helpers 
+ ******************************************************************************/
+
+/** Determine if we have had a SPP timeout.
+ *
+ * \param _last_spp. Last time of SPP solution
+ * \param _dgnss_soln_mode.  Enumeration of the DGNSS solution mode
+ *
+ */
+bool spp_timeout(const gps_time_t *_last_spp,
+                 const gps_time_t *_last_dgnss,
+                 dgnss_solution_mode_t _dgnss_soln_mode) {
+  /* No timeout needed in low latency mode; */
+  if (_dgnss_soln_mode == STARLING_SOLN_MODE_LOW_LATENCY) {
+    return false;
+  }
+  chMtxLock(&last_sbp_lock);
+  double time_diff = gpsdifftime(_last_dgnss, _last_spp);
+  chMtxUnlock(&last_sbp_lock);
+
+  /* Need to compare timeout threshold in MS to system time elapsed (in system
+   * ticks) */
+  return (time_diff > 0.0);
+}
+
+/** Determine if we have had a DGNSS timeout.
+ *
+ * \param _last_dgnss. Last time of DGNSS solution
+ * \param _dgnss_soln_mode.  Enumeration of the DGNSS solution mode
+ *
+ */
+bool dgnss_timeout(piksi_systime_t *_last_dgnss,
+                   dgnss_solution_mode_t _dgnss_soln_mode) {
+  /* No timeout needed in low latency mode */
+  if (STARLING_SOLN_MODE_LOW_LATENCY == _dgnss_soln_mode) {
+    return false;
+  }
+
+  /* Need to compare timeout threshold in MS to system time elapsed (in system
+   * ticks) */
+  return (piksi_systime_elapsed_since_ms(_last_dgnss) > DGNSS_TIMEOUT_MS);
+}
+
+/*******************************************************************************
+ * Settings Update Helpers
  ******************************************************************************/
 
 /* Check that -180.0 <= new heading_offset setting value <= 180.0. */

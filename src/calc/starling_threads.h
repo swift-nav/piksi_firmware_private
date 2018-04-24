@@ -22,8 +22,6 @@
 #include <libswiftnav/pvt_engine/firmware_binding.h>
 #include <libswiftnav/single_epoch_solver.h>
 
-#include "piksi_systime.h"
-
 /**
  * Various solution output modes supported by the Starling Engine.
  *
@@ -41,11 +39,6 @@ typedef enum {
   FILTER_FLOAT,
   FILTER_FIXED,
 } dgnss_filter_t;
-
-typedef struct {
-  piksi_systime_t systime;
-  dgnss_filter_t mode;
-} soln_dgnss_stats_t;
 
 typedef struct {
   msg_gps_time_t gps_time;
@@ -66,10 +59,8 @@ typedef struct {
   msg_vel_ned_cov_t vel_ned_cov;
 } sbp_messages_t;
 
-typedef struct {
-  piksi_systime_t systime;
-  u8 signals_used;
-} soln_pvt_stats_t;
+/** number of milliseconds before SPP resumes in pseudo-absolute mode */
+#define DGNSS_TIMEOUT_MS 5000
 
 /** Maximum time that an observation will be propagated for to align it with a
  * solution epoch before it is discarded.  */
@@ -85,12 +76,9 @@ void solution_make_sbp(const pvt_engine_result_t *soln,
                        dops_t *dops,
                        sbp_messages_t *sbp_messages);
 
-soln_dgnss_stats_t solution_last_dgnss_stats_get(void);
 void reset_rtk_filter(void);
 void set_known_ref_pos(const double base_pos[3]);
 void set_known_glonass_biases(const glo_biases_t biases);
-
-soln_pvt_stats_t solution_last_pvt_stats_get(void);
 
 /*******************************************************************************
  * Formal Starling API

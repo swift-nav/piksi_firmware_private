@@ -41,9 +41,6 @@ extern double heading_offset;
 #define TIME_MATCHED_OBS_THREAD_PRIORITY (NORMALPRIO - 3)
 #define TIME_MATCHED_OBS_THREAD_STACK (6 * 1024 * 1024)
 
-/** number of milliseconds before SPP resumes in pseudo-absolute mode */
-#define DGNSS_TIMEOUT_MS 5000
-
 /* Settings which control the filter behavior of the Starling engine. */
 typedef struct StarlingSettings {
   bool is_glonass_enabled;
@@ -79,19 +76,12 @@ static MUTEX_DECL(time_matched_iono_params_lock);
 static bool has_time_matched_iono_params = false;
 static ionosphere_t time_matched_iono_params;
 
-static MUTEX_DECL(last_sbp_lock);
-static gps_time_t last_dgnss;
-static gps_time_t last_spp;
 static gps_time_t last_time_matched_rover_obs_post;
 
 static double starling_frequency;
 
 static u8 current_base_sender_id;
 
-static soln_pvt_stats_t last_pvt_stats = {.systime = PIKSI_SYSTIME_INIT,
-                                          .signals_used = 0};
-static soln_dgnss_stats_t last_dgnss_stats = {.systime = PIKSI_SYSTIME_INIT,
-                                              .mode = 0};
 static sbas_system_t current_sbas_system = SBAS_UNKNOWN;
 
 /**
@@ -199,46 +189,6 @@ void reset_rtk_filter(void) {
     filter_manager_init(time_matched_filter_manager);
   }
   platform_mutex_unlock(&time_matched_filter_manager_lock);
-}
-
-/** Determine if we have had a DGNSS timeout.
- *
- * \param _last_dgnss. Last time of DGNSS solution
- * \param _dgnss_soln_mode.  Enumeration of the DGNSS solution mode
- *
- */
-bool dgnss_timeout(piksi_systime_t *_last_dgnss,
-                   dgnss_solution_mode_t _dgnss_soln_mode) {
-  /* No timeout needed in low latency mode */
-  if (STARLING_SOLN_MODE_LOW_LATENCY == _dgnss_soln_mode) {
-    return false;
-  }
-
-  /* Need to compare timeout threshold in MS to system time elapsed (in system
-   * ticks) */
-  return (piksi_systime_elapsed_since_ms(_last_dgnss) > DGNSS_TIMEOUT_MS);
-}
-
-/** Determine if we have had a SPP timeout.
- *
- * \param _last_spp. Last time of SPP solution
- * \param _dgnss_soln_mode.  Enumeration of the DGNSS solution mode
- *
- */
-bool spp_timeout(const gps_time_t *_last_spp,
-                 const gps_time_t *_last_dgnss,
-                 dgnss_solution_mode_t _dgnss_soln_mode) {
-  /* No timeout needed in low latency mode; */
-  if (_dgnss_soln_mode == STARLING_SOLN_MODE_LOW_LATENCY) {
-    return false;
-  }
-  platform_mutex_lock(&last_sbp_lock);
-  double time_diff = gpsdifftime(_last_dgnss, _last_spp);
-  platform_mutex_unlock(&last_sbp_lock);
-
-  /* Need to compare timeout threshold in MS to system time elapsed (in system
-   * ticks) */
-  return (time_diff > 0.0);
 }
 
 void solution_make_sbp(const pvt_engine_result_t *soln,
