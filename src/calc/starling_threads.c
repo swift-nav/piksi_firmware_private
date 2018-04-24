@@ -54,8 +54,10 @@ extern void starling_integration_solution_make_baseline_sbp(
     const double spp_ecef[SPP_ECEF_SIZE],
     const dops_t *dops,
     sbp_messages_t *sbp_messages);
-extern void starling_integration_sbp_messages_init(sbp_messages_t *sbp_messages, gps_time_t *t); 
-extern void starling_integration_solution_simulation(sbp_messages_t *sbp_messages);
+extern void starling_integration_sbp_messages_init(sbp_messages_t *sbp_messages,
+                                                   gps_time_t *t);
+extern void starling_integration_solution_simulation(
+    sbp_messages_t *sbp_messages);
 
 #define TIME_MATCHED_OBS_THREAD_PRIORITY (NORMALPRIO - 3)
 #define TIME_MATCHED_OBS_THREAD_STACK (6 * 1024 * 1024)
@@ -370,7 +372,8 @@ void process_matched_obs(const obss_t *rover_channel_meass,
   /* If we are in time matched mode then calculate and output the baseline
    * for this observation. */
   if (dgnss_soln_mode == STARLING_SOLN_MODE_TIME_MATCHED &&
-      !platform_simulation_enabled() && update_filter_ret == PVT_ENGINE_SUCCESS) {
+      !platform_simulation_enabled() &&
+      update_filter_ret == PVT_ENGINE_SUCCESS) {
     /* Note: in time match mode we send the physically incorrect time of the
      * observation message (which can be receiver clock time, or rounded GPS
      * time) instead of the true GPS time of the solution. */

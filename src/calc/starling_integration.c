@@ -53,10 +53,10 @@ static MUTEX_DECL(last_sbp_lock);
 static gps_time_t last_dgnss;
 static gps_time_t last_spp;
 
-static soln_pvt_stats_t last_pvt_stats = {
-    .systime = PIKSI_SYSTIME_INIT, .signals_used = 0};
-static soln_dgnss_stats_t last_dgnss_stats = {
-    .systime = PIKSI_SYSTIME_INIT, .mode = 0};
+static soln_pvt_stats_t last_pvt_stats = {.systime = PIKSI_SYSTIME_INIT,
+                                          .signals_used = 0};
+static soln_dgnss_stats_t last_dgnss_stats = {.systime = PIKSI_SYSTIME_INIT,
+                                              .mode = 0};
 
 /*******************************************************************************
  * Output Callback Helpers
@@ -210,7 +210,8 @@ static void solution_send_pos_messages(
                  nav_meas);
 }
 
-void starling_integration_sbp_messages_init(sbp_messages_t *sbp_messages, gps_time_t *t) {
+void starling_integration_sbp_messages_init(sbp_messages_t *sbp_messages,
+                                            gps_time_t *t) {
   sbp_init_gps_time(&sbp_messages->gps_time, t);
   sbp_init_utc_time(&sbp_messages->utc_time, t);
   sbp_init_pos_llh(&sbp_messages->pos_llh, t);
