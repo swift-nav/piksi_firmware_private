@@ -42,6 +42,11 @@ extern void starling_integration_solution_send_pos_messages(
     const sbp_messages_t *sbp_messages,
     u8 n_meas,
     const navigation_measurement_t nav_meas[]);
+extern void starling_integration_solution_send_low_latency_output(
+    u8 base_sender_id,
+    const sbp_messages_t *sbp_messages,
+    u8 n_meas,
+    const navigation_measurement_t nav_meas[]); 
 
 #define TIME_MATCHED_OBS_THREAD_PRIORITY (NORMALPRIO - 3)
 #define TIME_MATCHED_OBS_THREAD_STACK (6 * 1024 * 1024)
@@ -302,29 +307,6 @@ void solution_make_sbp(const pvt_engine_result_t *soln,
     /* Update stats */
     piksi_systime_get(&last_pvt_stats.systime);
     last_pvt_stats.signals_used = soln->num_sigs_used;
-  }
-}
-
-static void solution_send_low_latency_output(
-    u8 base_sender_id,
-    const sbp_messages_t *sbp_messages,
-    u8 n_meas,
-    const navigation_measurement_t nav_meas[]) {
-  dgnss_solution_mode_t dgnss_soln_mode = starling_get_solution_mode();
-  /* Work out if we need to wait for a certain period of no time matched
-   * positions before we output a SBP position */
-  bool wait_for_timeout = false;
-  if (!(dgnss_timeout(&last_dgnss_stats.systime, dgnss_soln_mode)) &&
-      STARLING_SOLN_MODE_TIME_MATCHED == dgnss_soln_mode) {
-    wait_for_timeout = true;
-  }
-
-  if (!wait_for_timeout) {
-    solution_send_pos_messages(base_sender_id, sbp_messages, n_meas, nav_meas);
-    platform_mutex_lock(&last_sbp_lock);
-    last_spp.wn = sbp_messages->gps_time.wn;
-    last_spp.tow = sbp_messages->gps_time.tow * 0.001;
-    platform_mutex_unlock(&last_sbp_lock);
   }
 }
 
@@ -946,7 +928,7 @@ static void starling_thread(void) {
     if (platform_simulation_enabled()) {
       solution_simulation(&sbp_messages);
       const u8 fake_base_sender_id = 1;
-      solution_send_low_latency_output(fake_base_sender_id,
+      starling_integration_solution_send_low_latency_output(fake_base_sender_id,
                                        &sbp_messages,
                                        rover_channel_epoch->size,
                                        rover_channel_epoch->obs);
@@ -957,7 +939,7 @@ static void starling_thread(void) {
     if (rover_channel_epoch->size == 0 ||
         !gps_time_valid(&rover_channel_epoch->obs_time)) {
       platform_me_msg_free(me_msg);
-      solution_send_low_latency_output(0, &sbp_messages, 0, nav_meas);
+      starling_integration_solution_send_low_latency_output(0, &sbp_messages, 0, nav_meas);
       continue;
     }
 
@@ -1061,7 +1043,7 @@ static void starling_thread(void) {
          * continuing to process this epoch - send out solution and
          * observation failed messages if not in time matched mode.
          */
-        solution_send_low_latency_output(0, &sbp_messages, n_ready, nav_meas);
+        starling_integration_solution_send_low_latency_output(0, &sbp_messages, n_ready, nav_meas);
       }
       continue;
     }
@@ -1094,7 +1076,7 @@ static void starling_thread(void) {
     /* Post the observations to the mailbox. */
     post_observations(n_ready, nav_meas, &obs_time, &result_spp);
 
-    solution_send_low_latency_output(
+    starling_integration_solution_send_low_latency_output(
         base_station_sender_id, &sbp_messages, n_ready, nav_meas);
   }
 }

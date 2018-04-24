@@ -202,13 +202,39 @@ void starling_integration_solution_send_pos_messages(
     const sbp_messages_t *sbp_messages,
     u8 n_meas,
     const navigation_measurement_t nav_meas[]) {
-  dgnss_solution_mode_t = starling_get_solution_mode();
+  dgnss_solution_mode_t dgnss_soln_mode = starling_get_solution_mode();
   if (spp_timeout(&last_spp, &last_dgnss, dgnss_soln_mode)) {
     solution_send_pos_messages(
         base_sender_id, sbp_messages, n_meas, nav_meas);
   }
 }
 
+/**
+ * Accessed externally from starling_threads.c
+ * TODO(kevin) fix this.
+ */
+void starling_integration_solution_send_low_latency_output(
+    u8 base_sender_id,
+    const sbp_messages_t *sbp_messages,
+    u8 n_meas,
+    const navigation_measurement_t nav_meas[]) {
+  dgnss_solution_mode_t dgnss_soln_mode = starling_get_solution_mode();
+  /* Work out if we need to wait for a certain period of no time matched
+   * positions before we output a SBP position */
+  bool wait_for_timeout = false;
+  if (!(dgnss_timeout(&last_dgnss_stats.systime, dgnss_soln_mode)) &&
+      STARLING_SOLN_MODE_TIME_MATCHED == dgnss_soln_mode) {
+    wait_for_timeout = true;
+  }
+
+  if (!wait_for_timeout) {
+    solution_send_pos_messages(base_sender_id, sbp_messages, n_meas, nav_meas);
+    chMtxLock(&last_sbp_lock);
+    last_spp.wn = sbp_messages->gps_time.wn;
+    last_spp.tow = sbp_messages->gps_time.tow * 0.001;
+    chMtxUnlock(&last_sbp_lock);
+  }
+}
 
 /*******************************************************************************
  * Settings Update Helpers
