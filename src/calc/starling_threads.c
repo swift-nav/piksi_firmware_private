@@ -35,8 +35,6 @@
 #include "starling_threads.h"
 
 /* TODO(kevin) remove these. */
-extern bool send_heading;
-extern double heading_offset;
 extern void starling_integration_solution_send_pos_messages(
     u8 base_sender_id,
     const sbp_messages_t *sbp_messages,
