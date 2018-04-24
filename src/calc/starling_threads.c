@@ -44,7 +44,7 @@ extern void starling_integration_solution_send_low_latency_output(
     u8 base_sender_id,
     const sbp_messages_t *sbp_messages,
     u8 n_meas,
-    const navigation_measurement_t nav_meas[]); 
+    const navigation_measurement_t nav_meas[]);
 extern void starling_integration_solution_make_sbp(
     const pvt_engine_result_t *soln,
     dops_t *dops,
@@ -53,7 +53,7 @@ extern void starling_integration_solution_make_baseline_sbp(
     const pvt_engine_result_t *result,
     const double spp_ecef[SPP_ECEF_SIZE],
     const dops_t *dops,
-    sbp_messages_t *sbp_messages); 
+    sbp_messages_t *sbp_messages);
 
 #define TIME_MATCHED_OBS_THREAD_PRIORITY (NORMALPRIO - 3)
 #define TIME_MATCHED_OBS_THREAD_STACK (6 * 1024 * 1024)
@@ -283,7 +283,8 @@ static void solution_simulation(sbp_messages_t *sbp_messages) {
   pvt_engine_result_t *soln = simulation_current_pvt_engine_result_t();
 
   if (simulation_enabled_for(SIMULATION_MODE_PVT)) {
-    starling_integration_solution_make_sbp(soln, simulation_current_dops_solution(), sbp_messages);
+    starling_integration_solution_make_sbp(
+        soln, simulation_current_dops_solution(), sbp_messages);
   }
 
   if (simulation_enabled_for(SIMULATION_MODE_FLOAT) ||
@@ -312,10 +313,11 @@ static void solution_simulation(sbp_messages_t *sbp_messages) {
              simulation_ref_ecef(),
              sizeof(result.known_reference_pos));
 
-    starling_integration_solution_make_baseline_sbp(&result,
-                               simulation_ref_ecef(),
-                               simulation_current_dops_solution(),
-                               sbp_messages);
+    starling_integration_solution_make_baseline_sbp(
+        &result,
+        simulation_ref_ecef(),
+        simulation_current_dops_solution(),
+        sbp_messages);
 
     double t_check = soln->time.tow * (starling_frequency / obs_output_divisor);
     if (fabs(t_check - (u32)t_check) < TIME_MATCH_THRESHOLD) {
@@ -596,7 +598,7 @@ static void time_matched_obs_thread(void *arg) {
 }
 
 static void init_filters_and_settings(void) {
-    last_time_matched_rover_obs_post = GPS_TIME_UNKNOWN;
+  last_time_matched_rover_obs_post = GPS_TIME_UNKNOWN;
 
   platform_time_matched_obs_mailbox_init();
 
@@ -703,10 +705,11 @@ static void starling_thread(void) {
     if (platform_simulation_enabled()) {
       solution_simulation(&sbp_messages);
       const u8 fake_base_sender_id = 1;
-      starling_integration_solution_send_low_latency_output(fake_base_sender_id,
-                                       &sbp_messages,
-                                       rover_channel_epoch->size,
-                                       rover_channel_epoch->obs);
+      starling_integration_solution_send_low_latency_output(
+          fake_base_sender_id,
+          &sbp_messages,
+          rover_channel_epoch->size,
+          rover_channel_epoch->obs);
       platform_me_msg_free(me_msg);
       continue;
     }
@@ -714,7 +717,8 @@ static void starling_thread(void) {
     if (rover_channel_epoch->size == 0 ||
         !gps_time_valid(&rover_channel_epoch->obs_time)) {
       platform_me_msg_free(me_msg);
-      starling_integration_solution_send_low_latency_output(0, &sbp_messages, 0, nav_meas);
+      starling_integration_solution_send_low_latency_output(
+          0, &sbp_messages, 0, nav_meas);
       continue;
     }
 
@@ -818,7 +822,8 @@ static void starling_thread(void) {
          * continuing to process this epoch - send out solution and
          * observation failed messages if not in time matched mode.
          */
-        starling_integration_solution_send_low_latency_output(0, &sbp_messages, n_ready, nav_meas);
+        starling_integration_solution_send_low_latency_output(
+            0, &sbp_messages, n_ready, nav_meas);
       }
       continue;
     }

@@ -51,13 +51,13 @@ static MUTEX_DECL(last_sbp_lock);
 static gps_time_t last_dgnss __attribute__((unused));
 static gps_time_t last_spp __attribute__((unused));
 
-static soln_pvt_stats_t last_pvt_stats __attribute__((unused)) 
-  = {.systime = PIKSI_SYSTIME_INIT, .signals_used = 0};
-static soln_dgnss_stats_t last_dgnss_stats __attribute__((unused))
-  = {.systime = PIKSI_SYSTIME_INIT, .mode = 0};
+static soln_pvt_stats_t last_pvt_stats __attribute__((unused)) = {
+    .systime = PIKSI_SYSTIME_INIT, .signals_used = 0};
+static soln_dgnss_stats_t last_dgnss_stats
+    __attribute__((unused)) = {.systime = PIKSI_SYSTIME_INIT, .mode = 0};
 
 /*******************************************************************************
- * Output Callback Helpers 
+ * Output Callback Helpers
  ******************************************************************************/
 
 static double calc_heading(const double b_ned[3]) {
@@ -68,7 +68,6 @@ static double calc_heading(const double b_ned[3]) {
   return heading * R2D;
 }
 
-
 /** Determine if we have had a SPP timeout.
  *
  * \param _last_spp. Last time of SPP solution
@@ -76,8 +75,8 @@ static double calc_heading(const double b_ned[3]) {
  *
  */
 static bool spp_timeout(const gps_time_t *_last_spp,
-                 const gps_time_t *_last_dgnss,
-                 dgnss_solution_mode_t _dgnss_soln_mode) {
+                        const gps_time_t *_last_dgnss,
+                        dgnss_solution_mode_t _dgnss_soln_mode) {
   /* No timeout needed in low latency mode; */
   if (_dgnss_soln_mode == STARLING_SOLN_MODE_LOW_LATENCY) {
     return false;
@@ -98,7 +97,7 @@ static bool spp_timeout(const gps_time_t *_last_spp,
  *
  */
 static bool dgnss_timeout(piksi_systime_t *_last_dgnss,
-                   dgnss_solution_mode_t _dgnss_soln_mode) {
+                          dgnss_solution_mode_t _dgnss_soln_mode) {
   /* No timeout needed in low latency mode */
   if (STARLING_SOLN_MODE_LOW_LATENCY == _dgnss_soln_mode) {
     return false;
@@ -209,9 +208,9 @@ static void solution_send_pos_messages(
                  nav_meas);
 }
 
-/** 
+/**
  * Accessed externally from starling_threads.c
- * TODO(kevin) fix this. 
+ * TODO(kevin) fix this.
  */
 void starling_integration_solution_send_pos_messages(
     u8 base_sender_id,
@@ -220,8 +219,7 @@ void starling_integration_solution_send_pos_messages(
     const navigation_measurement_t nav_meas[]) {
   dgnss_solution_mode_t dgnss_soln_mode = starling_get_solution_mode();
   if (spp_timeout(&last_spp, &last_dgnss, dgnss_soln_mode)) {
-    solution_send_pos_messages(
-        base_sender_id, sbp_messages, n_meas, nav_meas);
+    solution_send_pos_messages(base_sender_id, sbp_messages, n_meas, nav_meas);
   }
 }
 
@@ -257,8 +255,8 @@ void starling_integration_solution_send_low_latency_output(
  * TODO(kevin) fix this.
  */
 void starling_integration_solution_make_sbp(const pvt_engine_result_t *soln,
-                       dops_t *dops,
-                       sbp_messages_t *sbp_messages) {
+                                            dops_t *dops,
+                                            sbp_messages_t *sbp_messages) {
   if (soln && soln->valid) {
     /* Send GPS_TIME message first. */
     sbp_make_gps_time(&sbp_messages->gps_time, &soln->time, SPP_POSITION);
@@ -369,10 +367,11 @@ void starling_integration_solution_make_sbp(const pvt_engine_result_t *soln,
  * Accessed externally from starling_threads.c
  * TODO(kevin) fix this.
  */
-void starling_integration_solution_make_baseline_sbp(const pvt_engine_result_t *result,
-                                const double spp_ecef[SPP_ECEF_SIZE],
-                                const dops_t *dops,
-                                sbp_messages_t *sbp_messages) {
+void starling_integration_solution_make_baseline_sbp(
+    const pvt_engine_result_t *result,
+    const double spp_ecef[SPP_ECEF_SIZE],
+    const dops_t *dops,
+    sbp_messages_t *sbp_messages) {
   double ecef_pos[3];
   if (result->has_known_reference_pos) {
     vector_add(3, result->known_reference_pos, result->baseline, ecef_pos);
@@ -478,8 +477,6 @@ void starling_integration_solution_make_baseline_sbp(const pvt_engine_result_t *
   last_dgnss_stats.mode =
       (result->flags == FIXED_POSITION) ? FILTER_FIXED : FILTER_FLOAT;
 }
-
-
 
 /*******************************************************************************
  * Settings Update Helpers
@@ -697,5 +694,3 @@ soln_dgnss_stats_t solution_last_dgnss_stats_get(void) {
 }
 
 soln_pvt_stats_t solution_last_pvt_stats_get(void) { return last_pvt_stats; }
-
-
