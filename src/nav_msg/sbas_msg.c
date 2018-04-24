@@ -359,7 +359,7 @@ static bool sbas_msg_decode(sbas_v27_part_t *part, sbas_msg_t *msg) {
 
     switch (msg_id) {
       case 0:
-        msg->health = SV_UNHEALTHY;
+        //msg->health = SV_UNHEALTHY;
         break;
       case 12:
         msg->wn = getbitu(part->decoded, 141, 10);   /* GPS Week Number */

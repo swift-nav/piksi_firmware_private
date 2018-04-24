@@ -53,7 +53,7 @@
 #define MANAGE_NO_CHANNELS_FREE 255
 
 /** How many SBAS SV can be tracked */
-#define SBAS_SV_NUM_LIMIT 1
+#define SBAS_SV_NUM_LIMIT 5
 
 typedef struct {
   me_gnss_signal_t mesid; /**< ME signal identifier. */
