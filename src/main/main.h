@@ -54,23 +54,23 @@
  * date 2018-04-25). Macro variables have m_ prefix in order to avoid
  * variable shadowing.
  */
-#define DO_EACH_MS_PER_CODE(code, n, cmd)                         \
-  do {                                                            \
-    static bool m_uninitialized = true;                           \
-    static piksi_systime_t m_previous[CODE_COUNT];                \
-    if (m_uninitialized) {                                        \
-      for(u8 i = 0; i < CODE_COUNT; i++) {                        \
-        m_previous[i] = PIKSI_SYSTIME_INIT;                       \
-      }                                                           \
-      m_uninitialized = false;                                    \
-    }                                                             \
-    assert(code_valid(code));                                     \
-    piksi_systime_t *m_prev = &m_previous[code];                  \
-    if (piksi_systime_cmp(&PIKSI_SYSTIME_INIT, m_prev) == 0 ||    \
-        piksi_systime_elapsed_since_ms(m_prev) >= n) {            \
-      cmd;                                                        \
-      piksi_systime_get(m_prev);                                  \
-    }                                                             \
+#define DO_EACH_MS_PER_CODE(code, n, cmd)                      \
+  do {                                                         \
+    static bool m_uninitialized = true;                        \
+    static piksi_systime_t m_previous[CODE_COUNT];             \
+    if (m_uninitialized) {                                     \
+      for (u8 i = 0; i < CODE_COUNT; i++) {                    \
+        m_previous[i] = PIKSI_SYSTIME_INIT;                    \
+      }                                                        \
+      m_uninitialized = false;                                 \
+    }                                                          \
+    assert(code_valid(code));                                  \
+    piksi_systime_t *m_prev = &m_previous[code];               \
+    if (piksi_systime_cmp(&PIKSI_SYSTIME_INIT, m_prev) == 0 || \
+        piksi_systime_elapsed_since_ms(m_prev) >= n) {         \
+      cmd;                                                     \
+      piksi_systime_get(m_prev);                               \
+    }                                                          \
   } while (0)
 
 /* See gcc.gnu.org/onlinedocs/cpp/Stringification.html for
