@@ -18,6 +18,8 @@
 #define CH_KERNEL_PATCH 3
 
 typedef unsigned int systime_t;
+typedef unsigned int binary_semaphore_t;
+typedef unsigned int mutex_t;
 
 void chSysLock(void);
 void chSysUnlock(void);
