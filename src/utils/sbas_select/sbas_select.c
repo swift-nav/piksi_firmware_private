@@ -24,13 +24,13 @@
 #define SBAS_SELECT_LATLON_HYST_DEG 1
 
 /* Do not change SBAS provider if user is closer to a pole than this distance.
-   50km was chosen somewhat arbitrary. It is the distance to horizon if LGF
-   is at altitudes above 150m. */
-#define SBAS_SELECT_LAT_AT_POLE_HYST_KM 50
+   50km was chosen somewhat arbitrary.
+   */
+#define SBAS_SELECT_LAT_POLAR_REGION_KM 50
 
 #define LAT_DEG_PER_KM (360 / (2 * (WGS84_A / 1000.) * M_PI))
-#define SBAS_SELECT_LAT_AT_POLE_HYST_DEG \
-  (SBAS_SELECT_LAT_AT_POLE_HYST_KM * LAT_DEG_PER_KM)
+#define SBAS_SELECT_LAT_POLAR_REGION_DEG \
+  (SBAS_SELECT_LAT_POLAR_REGION_KM * LAT_DEG_PER_KM)
 
 typedef struct {
   s16 lat_deg; /**< Latitude [deg] of SBAS coverage area border */
@@ -42,41 +42,45 @@ typedef struct {
   point_coord_t *borders; /**< Pointer to array of SBAS coverage area borders */
 } sbas_coverage_t;
 
-/* The SBAS range below must follow these rules:
- * 1. A border can be in the range from -180+SBAS_SELECT_LON_HYST_DEG deg
- *    to 180-SBAS_SELECT_LON_HYST_DEG longitude deg
- * 2. Right border has greater longitude
+/* The SBAS rectangular range below must follow these rules:
+ * 1. Longitude border can be in the range from -180 deg to 180 deg
+ * 2. Eastern  border has greater longitude
+ * 3. Latitude border can be in the range from -90 deg to 90 deg
+ * 4. Northern border border has greater latitude
+ * 5. In calculation border can be extended by SBAS_SELECT_LATLON_HYST_DEG
+ *    for hysteresis purposes to avoid jumping between systems
+ * 6. Polar regions need special handling, north pole implemented
  */
 
 /** WAAS coverage area based on http://www.nstb.tc.faa.gov/24Hr_WaasLPV.htm,
- *  for the 1st phase of the implementation the area defined by 2 longitudes --
- *  left and right borders. Latitude is not used for now. */
+ *  we use rectangular definition covering the iono correction grid plus
+ *  some margin and rounded to closest 10 deg. */
 static point_coord_t waas_range[] = {
-    {80, -180}, {0, -50},  // TODO: set correct latitude values
+    {90, -180}, {0, -50},
 };
 
 /** EGNOS coverage area based on
  *  https://egnos-user-support.essp-sas.eu/new_egnos_ops/egnos_system_realtime,
- *  for the 1st phase of the implementation the area defined by 2 longitudes --
- *  left and right borders. Latitude is not used for now */
+ *  we use rectangular definition covering the iono correction grid plus
+ *  some margin and rounded to closest 10 deg. */
 static point_coord_t egnos_range[] = {
-    {80, -50}, {0, 40},  // TODO: set correct latitude values
+    {90, -50}, {0, 40},
 };
 
 /** GAGAN coverage area based on
  *  http://www.insidegnss.com/auto/janfeb16-GAGAN.pdf pg.45,
- *  for the 1st phase of the implementation the area defined by 2 longitudes --
- *  left and right borders. Latitude is not used for now */
+ *  we use rectangular definition covering the iono correction grid plus
+ *  some margin and rounded to closest 10 deg. */
 static point_coord_t gagan_range[] = {
-    {50, 40}, {0, 100},  // TODO: set correct latitude values
+    {50, 40}, {-20, 100},
 };
 
 /** MSAS coverage area based on
  *  http://www.unoosa.org/pdf/icg/2011/icg-6/1-1.pdf,
- *  for the 1st phase of the implementation the area defined by 2 longitudes --
- *  left and right borders. Latitude is not used for now */
+ *  we use rectangular definition covering the iono correction grid plus
+ *  some margin and rounded to closest 10 deg. */
 static point_coord_t msas_range[] = {
-    {60, 100}, {0, 160},  // TODO: set correct latitude values
+    {60, 100}, {20, 160},
 };
 
 static const sbas_coverage_t sbas_coverage[] = {
@@ -87,7 +91,7 @@ static const sbas_coverage_t sbas_coverage[] = {
 };
 
 /** SBAS system currently in use */
-static sbas_system_t used_sbas = SBAS_UNKNOWN;
+static sbas_system_t used_sbas = SBAS_NONE;
 
 /** Convert SBAS system provider ID (type) to a descriptive name */
 static const char *get_sbas_name(sbas_system_t sbas_type) {
@@ -102,12 +106,11 @@ static const char *get_sbas_name(sbas_system_t sbas_type) {
       return "MSAS";
     case SBAS_NONE:
       return "NONE";
-    case SBAS_UNKNOWN:
     case SBAS_COUNT:
     default:
       break;
   }
-  return "UNKNOWN";
+  return "NONE";
 }
 
 /**
@@ -116,7 +119,7 @@ static const char *get_sbas_name(sbas_system_t sbas_type) {
  * \return Index of sbas_map array
  */
 static u8 get_sbas_area_index(sbas_system_t sbas) {
-  if ((SBAS_UNKNOWN == sbas) || (SBAS_NONE == sbas)) {
+  if (SBAS_NONE == sbas) {
     return 0;
   }
   u8 i;
@@ -148,8 +151,6 @@ static bool point_in_region(const point_coord_t *border,
 
   bool within_region = false;
 
-  // TODO: needs cleanup, not very elegant way of doing this
-
   // Check longitude first starting with normal case
   if ((west_deg <= lon_deg) && (lon_deg <= east_deg)) {
     within_region = true;
@@ -163,20 +164,11 @@ static bool point_in_region(const point_coord_t *border,
 
   // If longitude is ok, continue with latitude
   if (within_region) {
-    // Start with normal case
-    if ((south_deg <= lat_deg) && (lat_deg <= north_deg)) {
-      within_region = true;
-    } /* Check if lat_deg from [-90 .. (-90 + hyst_deg)] fall into the
-    region */
-    else if ((south_deg <= (lat_deg + 180)) && ((lat_deg + 180) <= north_deg)) {
-      within_region = true;
-    } /* Check if lat_deg from [(90 - hyst_deg) .. 90] fall into the region
-    */
-    else if ((south_deg <= (lat_deg - 180)) && ((lat_deg - 180) <= north_deg)) {
-      within_region = true;
-    } else {
+    // Check the normal case
+    if ((lat_deg > north_deg) || (lat_deg < south_deg)) {
       within_region = false;
     }
+    // North pole will have special handling outside this function
   }
 
   return within_region;
@@ -191,17 +183,34 @@ static bool point_in_region(const point_coord_t *border,
 sbas_system_t sbas_select_provider(const last_good_fix_t *lgf) {
   assert(lgf != NULL);
   if (lgf->position_quality == POSITION_UNKNOWN) {
-    return SBAS_UNKNOWN;
+    used_sbas = SBAS_NONE;
+    return SBAS_NONE;
   }
 
   double lgf_lat_deg = lgf->position_solution.pos_llh[0] * R2D;
   assert(-90 <= lgf_lat_deg);
   assert(lgf_lat_deg <= 90);
-  bool close_to_pole =
-      double_within(fabs(lgf_lat_deg), 90., SBAS_SELECT_LAT_AT_POLE_HYST_DEG);
-  if (close_to_pole) {
-    /* For robustness default to NONE when close to pole. */
-    return SBAS_NONE;
+
+  /* Design note: code doesn't apply special handling for south pole due
+   * none of the systems extending there at the moment. Once support is needed
+   * both poles need to be handled separately to cover the (artificial) case
+   * where receiver is moved from one pole to another without getting fix in
+   * between.
+   */
+  bool close_to_north_pole =
+      double_within(lgf_lat_deg, 90., SBAS_SELECT_LAT_POLAR_REGION_DEG);
+  if (close_to_north_pole) {
+    /* LGF is close to a pole, where longitudes can change rapidly.
+       If first LGF is acquired close to a pole and no SBAS provider is in
+       use, we want to start using some SBAS provider and stick to
+       it until LGF leaves the #SBAS_SELECT_LAT_AT_POLE_HYST_DEG radius area
+       from the pole. WAAS is a default if no other system has been set yet.
+       This also covers the hysteresis for latitude near pole. */
+
+    if (used_sbas == SBAS_NONE) {
+      used_sbas = SBAS_WAAS;
+    }
+    return used_sbas;
   }
 
   double lgf_lon_deg = lgf->position_solution.pos_llh[1] * R2D;
@@ -248,7 +257,7 @@ sbas_system_t sbas_select_provider(const last_good_fix_t *lgf) {
  */
 u32 sbas_select_prn_mask(sbas_system_t sbas) {
   u32 mask = 0;
-  if (SBAS_UNKNOWN == sbas) {
+  if (SBAS_NONE == sbas) {
     return mask;
   }
   const u8 *prn_list = get_sbas_prn_list(sbas);
