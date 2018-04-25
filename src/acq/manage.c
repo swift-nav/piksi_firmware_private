@@ -787,7 +787,32 @@ bool leap_second_imminent(void) {
  * or bit sync, or is flagged as cross-correlation, etc.
  * Keep tracking unhealthy (except GLO) and low-elevation satellites for
  * cross-correlation purposes. */
+extern bool adel_utc;
 void sanitize_tracker(tracker_t *tracker_channel, u64 now_ms) {
+  if (adel_utc) {
+    static u64 last_ms = 0;
+    static u32 onoff_cnt = 0;
+    if (0 == last_ms) {
+      log_info("adel: started RF on/off sequence");
+      last_ms = now_ms;
+    }
+    if ((now_ms - last_ms) > 60000) {
+      last_ms = now_ms;
+      for (u8 i = 0; i < nap_track_n_channels; i++) {
+        tracker_t *tracker = tracker_get(i);
+        u32 flags = tracker->flags;
+        /* Skip channels that aren't in use */
+        if (0 == (flags & TRACKER_FLAG_ACTIVE)) {
+          continue;
+        }
+        drop_channel(tracker, CH_DROP_REASON_MASKED);
+      }
+      onoff_cnt++;
+      log_info("adel: restarted %" PRIu32 " times", onoff_cnt);
+      return;
+    }
+  }
+
   /*! Addressing the problem where we try to disable a channel that is
    * not in `STATE_ENABLED` in the first place. It remains to check
    * why `TRACKING_CHANNEL_FLAG_ACTIVE` might not be effective here?
