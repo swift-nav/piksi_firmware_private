@@ -103,6 +103,7 @@ typedef struct _bds_d2_decoded_data {
   bool invalid_control_or_data;
 } bds_d2_decoded_data_t;
 
+bool crc_check(nav_msg_bds_t *n);
 void bds_nav_msg_init(nav_msg_bds_t *n, u8 prn);
 void bds_nav_msg_clear_decoded(nav_msg_bds_t *n);
 bool bds_nav_msg_update(nav_msg_bds_t *n, bool bit_val);
