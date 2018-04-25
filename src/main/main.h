@@ -50,18 +50,22 @@
     }                                                             \
   } while (0)
 
-#define DO_EACH_MS_PER_CONST(constellation, n, cmd)               \
+/* Array uses CODE_COUNT * sizeof(piksi_systime_t) bytes (34*8=272,
+ * date 2018-04-25). Macro variables have m_ prefix in order to avoid
+ * variable shadowing.
+ */
+#define DO_EACH_MS_PER_CODE(code, n, cmd)                         \
   do {                                                            \
     static bool m_uninitialized = true;                           \
-    static piksi_systime_t m_previous[CONSTELLATION_COUNT];       \
+    static piksi_systime_t m_previous[CODE_COUNT];                \
     if (m_uninitialized) {                                        \
-      for(u8 i = 0; i < CONSTELLATION_COUNT; i++) {               \
+      for(u8 i = 0; i < CODE_COUNT; i++) {                        \
         m_previous[i] = PIKSI_SYSTIME_INIT;                       \
       }                                                           \
       m_uninitialized = false;                                    \
     }                                                             \
-    assert(constellation_valid(constellation));                   \
-    piksi_systime_t *m_prev = &m_previous[constellation];         \
+    assert(code_valid(code));                                     \
+    piksi_systime_t *m_prev = &m_previous[code];                  \
     if (piksi_systime_cmp(&PIKSI_SYSTIME_INIT, m_prev) == 0 ||    \
         piksi_systime_elapsed_since_ms(m_prev) >= n) {            \
       cmd;                                                        \

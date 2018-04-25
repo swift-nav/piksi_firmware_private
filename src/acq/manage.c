@@ -542,9 +542,9 @@ static u8 manage_track_new_acq(const me_gnss_signal_t mesid) {
     }
   }
 
-  DO_EACH_MS_PER_CONST(mesid_to_constellation(mesid),
-                       MANAGE_NO_FREE_CH_MSG_TIMEOUT_S * SECS_MS,
-                       log_info_mesid(mesid, "No channels available."));
+  DO_EACH_MS_PER_CODE(mesid.code,
+                      MANAGE_NO_FREE_CH_MSG_TIMEOUT_S * SECS_MS,
+                      log_info_mesid(mesid, "No channels available."));
 
   return MANAGE_NO_CHANNELS_FREE;
 }
