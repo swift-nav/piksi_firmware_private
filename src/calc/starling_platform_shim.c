@@ -132,11 +132,11 @@ int32_t platform_base_obs_mailbox_fetch(int32_t *msg, uint32_t timeout) {
 }
 
 /* ME obs messages */
-int32_t platform_me_msg_mailbox_fetch(int32_t *msg, uint32_t timeout) {
-  return chMBFetch(&me_msg_mailbox, (msg_t *)msg, (systime_t)timeout);
+int32_t platform_me_obs_msg_mailbox_fetch(int32_t *msg, uint32_t timeout) {
+  return chMBFetch(&me_obs_msg_mailbox, (msg_t *)msg, (systime_t)timeout);
 }
 
-void platform_me_msg_free(me_msg_obs_t *ptr) { chPoolFree(&me_msg_buff_pool, ptr); }
+void platform_me_obs_msg_free(me_msg_obs_t *ptr) { chPoolFree(&me_obs_msg_buff_pool, ptr); }
 
 
 /* SBAS messages */

@@ -12,18 +12,18 @@
 
 #include "me_msg.h"
 
-#define ME_MSG_N_BUFF 6
+#define ME_OBS_MSG_N_BUFF 6
 
-memory_pool_t me_msg_buff_pool;
-mailbox_t me_msg_mailbox;
+memory_pool_t me_obs_msg_buff_pool;
+mailbox_t me_obs_msg_mailbox;
 
-static msg_t me_msg_mailbox_buff[ME_MSG_N_BUFF];
-static me_msg_obs_t me_msg_buff[ME_MSG_N_BUFF];
+static msg_t me_obs_msg_mailbox_buff[ME_OBS_MSG_N_BUFF];
+static me_msg_obs_t me_obs_msg_buff[ME_OBS_MSG_N_BUFF];
 
-void me_msg_setup(void) {
-  chMBObjectInit(&me_msg_mailbox, me_msg_mailbox_buff, ME_MSG_N_BUFF);
-  chPoolObjectInit(&me_msg_buff_pool, sizeof(me_msg_obs_t), NULL);
-  chPoolLoadArray(&me_msg_buff_pool, me_msg_buff, ME_MSG_N_BUFF);
+void me_obs_msg_setup(void) {
+  chMBObjectInit(&me_obs_msg_mailbox, me_obs_msg_mailbox_buff, ME_OBS_MSG_N_BUFF);
+  chPoolObjectInit(&me_obs_msg_buff_pool, sizeof(me_msg_obs_t), NULL);
+  chPoolLoadArray(&me_obs_msg_buff_pool, me_obs_msg_buff, ME_OBS_MSG_N_BUFF);
 }
 
 #define SBAS_MSG_N_BUFF 6

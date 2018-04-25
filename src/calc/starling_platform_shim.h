@@ -52,8 +52,8 @@ int32_t platform_base_obs_mailbox_fetch(int32_t *msg, uint32_t timeout);
 void platform_base_obs_free(obss_t *ptr);
 
 /* used for receiving me messages */
-int32_t platform_me_msg_mailbox_fetch(int32_t *msg, uint32_t timeout);
-void platform_me_msg_free(me_msg_obs_t *ptr);
+int32_t platform_me_obs_msg_mailbox_fetch(int32_t *msg, uint32_t timeout);
+void platform_me_obs_msg_free(me_msg_obs_t *ptr);
 
 /* used for receiving sbas messages */
 int32_t platform_sbas_msg_mailbox_fetch(int32_t *msg, uint32_t timeout);

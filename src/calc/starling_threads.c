@@ -635,11 +635,11 @@ static void starling_thread(void) {
     process_any_sbas_messages();
 
     me_msg_obs_t *me_msg = NULL;
-    ret = platform_me_msg_mailbox_fetch((msg_t *)&me_msg, DGNSS_TIMEOUT_MS);
+    ret = platform_me_obs_msg_mailbox_fetch((msg_t *)&me_msg, DGNSS_TIMEOUT_MS);
     if (ret != MSG_OK) {
       if (NULL != me_msg) {
         log_error("STARLING: mailbox fetch failed with %" PRIi32, ret);
-        platform_me_msg_free(me_msg);
+        platform_me_obs_msg_free(me_msg);
       }
       continue;
     }
@@ -668,13 +668,13 @@ static void starling_thread(void) {
           &sbp_messages,
           rover_channel_epoch->size,
           rover_channel_epoch->obs);
-      platform_me_msg_free(me_msg);
+      platform_me_obs_msg_free(me_msg);
       continue;
     }
 
     if (rover_channel_epoch->size == 0 ||
         !gps_time_valid(&rover_channel_epoch->obs_time)) {
-      platform_me_msg_free(me_msg);
+      platform_me_obs_msg_free(me_msg);
       starling_integration_solution_send_low_latency_output(
           0, &sbp_messages, 0, nav_meas);
       continue;
@@ -684,7 +684,7 @@ static void starling_thread(void) {
       /* When we change the solution rate down, we sometimes can round the
        * time to an epoch earlier than the previous one processed, in that
        * case we want to ignore any epochs with an earlier timestamp */
-      platform_me_msg_free(me_msg);
+      platform_me_obs_msg_free(me_msg);
       continue;
     }
 
@@ -711,7 +711,7 @@ static void starling_thread(void) {
 
     obs_time = rover_channel_epoch->obs_time;
 
-    platform_me_msg_free(me_msg);
+    platform_me_obs_msg_free(me_msg);
 
     ionosphere_t i_params;
     /* get iono parameters if available, otherwise use default ones */
