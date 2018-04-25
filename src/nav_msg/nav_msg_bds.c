@@ -265,7 +265,7 @@ s32 bds_d1_process_subframe(nav_msg_bds_t *n,
               (double)e->toe.tow,
               k->cic,
               k->omega0,
-              -k->cis);
+              k->cis);
     log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
               k->inc,
               k->crc,
