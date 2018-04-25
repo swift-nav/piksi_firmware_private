@@ -20,7 +20,7 @@
 #include "calc_pvt_me.h"
 #include "peripherals/antenna.h"
 #include "piksi_systime.h"
-#include "starling_threads.h"
+#include "starling_integration.h"
 
 #define MANAGE_PV_THREAD_PERIOD_MS 10
 
