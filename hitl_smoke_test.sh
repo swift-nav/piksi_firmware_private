@@ -28,6 +28,8 @@ if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
     exit
 fi
 
+function join_by { local IFS="$1"; shift; echo "$*"; }
+
 HITL_API_GITHUB_USER="swiftnav-travis"
 HITL_API_URL="https://hitlapi.swiftnav.com"
 # From https://github.com/travis-ci/travis-ci/issues/8557, it is not trivial to
@@ -50,6 +52,7 @@ SCENARIOS=\
 "live-roof-650-townsend-dropouts-zero-baseline"
 "live-roof-650-townsend-skylark"
 )
+SCENARIO_LIST=$(join_by , ${SCENARIOS[@]})
 RUNS=\
 ("1"
 "1"
@@ -96,14 +99,8 @@ hitl_links(){
     done
     echo -n "\n### gnss-analysis results"
     echo -n "\nAt least one run must complete for these links to have data."
-    echo -n "\n#### passfail"
-    for index in ${!SCENARIOS[@]}; do
-      echo -n "\n+ "[${SCENARIOS[$index]}]"(""https://gnss-analysis.swiftnav.com/summary_type=q50&metrics_preset=pass_fail&scenario=${SCENARIOS[$index]}&build_type=pr&firmware_versions=$BUILD_VERSION&groupby_key=firmware&display_type=table)" 
-    done
-    echo -n "\n#### detailed"
-    for index in ${!SCENARIOS[@]}; do
-      echo -n "\n+ "[${SCENARIOS[$index]}]"(""https://gnss-analysis.swiftnav.com/summary_type=q50&metrics_preset=detailed&scenario=${SCENARIOS[$index]}&build_type=pr&firmware_versions=$BUILD_VERSION&groupby_key=firmware&display_type=table)" 
-    done
+    echo -n "\n+ [passfail](""https://gnss-analysis.swiftnav.com/summary_type=q50&metrics_preset=pass_fail&scenario=$SCENARIO_LIST&build_type=pr&firmware_versions=$BUILD_VERSION&groupby_key=scenario_name&display_type=table)"
+    echo -n "\n+ [detailed](""https://gnss-analysis.swiftnav.com/summary_type=q50&metrics_preset=detailed&scenario=$SCENARIO_LIST&build_type=pr&firmware_versions=$BUILD_VERSION&groupby_key=scenario_name&display_type=table)"
 }
 COMMENT="$(hitl_links)"
 echo "PR comment:"
