@@ -64,6 +64,7 @@ int main(void) {
   io_support_init();
   sbp_setup();
   me_msg_setup();
+  sbas_msg_setup();
   settings_setup();
 
   log_info("Piksi Starting...");

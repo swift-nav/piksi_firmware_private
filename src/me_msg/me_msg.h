@@ -40,6 +40,10 @@ typedef struct _me_msg_t {
 extern mailbox_t me_msg_mailbox;
 extern memory_pool_t me_msg_buff_pool;
 
+extern mailbox_t sbas_msg_mailbox;
+extern memory_pool_t sbas_msg_buff_pool;
+
 void me_msg_setup(void);
+void sbas_msg_setup(void);
 
 #endif /* #ifndef ME_MSG_H */

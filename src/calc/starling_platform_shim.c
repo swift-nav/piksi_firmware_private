@@ -136,3 +136,16 @@ int32_t platform_base_obs_mailbox_fetch(int32_t *msg, uint32_t timeout) {
 int32_t platform_me_msg_mailbox_fetch(int32_t *msg, uint32_t timeout) {
   return chMBFetch(&me_msg_mailbox, (msg_t *)msg, (systime_t)timeout);
 }
+
+/* SBAS messages */
+int32_t platform_sbas_msg_mailbox_fetch(int32_t *msg, uint32_t timeout) {
+  (void)msg;
+  (void)timeout;
+  return MSG_OK;  
+}
+
+void platform_sbas_msg_free(msg_sbas_raw_t *ptr) {
+  (void)ptr;
+}
+
+
