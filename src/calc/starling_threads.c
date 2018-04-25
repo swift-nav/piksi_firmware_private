@@ -545,7 +545,7 @@ static void init_filters_and_settings(void) {
 }
 
 /**
- * Perform the appropriate processing and FilterManager 
+ * Perform the appropriate processing and FilterManager
  * updates for a single SBAS message.
  */
 static void process_sbas_message(const msg_sbas_raw_t *sbas_msg) {
@@ -582,7 +582,7 @@ static void process_any_sbas_messages(void) {
   msg_t ret = MSG_OK;
   while (MSG_OK == ret) {
     msg_sbas_raw_t *sbas_msg = NULL;
-    ret = platform_sbas_msg_mailbox_fetch((msg_t *)&sbas_msg, TIME_IMMEDIATE); 
+    ret = platform_sbas_msg_mailbox_fetch((msg_t *)&sbas_msg, TIME_IMMEDIATE);
     if (MSG_OK == ret) {
       /* We have successfully received an SBAS message, forward on to the
        * filter managers. */
@@ -590,7 +590,7 @@ static void process_any_sbas_messages(void) {
     } else {
       /* If the fetch operation failed after assigning to the message pointer,
        * something has gone unexpectedly wrong. */
-       if (NULL != sbas_msg) {
+      if (NULL != sbas_msg) {
         log_error("STARLING: sbas mailbox fetch failed with %" PRIi32, ret);
       }
     }
@@ -599,7 +599,7 @@ static void process_any_sbas_messages(void) {
     if (NULL != sbas_msg) {
       platform_sbas_msg_free(sbas_msg);
     }
-  } 
+  }
 }
 
 static void starling_thread(void) {
