@@ -544,6 +544,64 @@ static void init_filters_and_settings(void) {
 
 }
 
+/**
+ * Perform the appropriate processing and FilterManager 
+ * updates for a single SBAS message.
+ */
+static void process_sbas_message(const msg_sbas_raw_t *sbas_msg) {
+  const gps_time_t current_time = get_current_time();
+  if (gps_time_valid(&current_time)) {
+    sbas_raw_data_t sbas_data;
+    unpack_sbas_raw_data(sbas_msg, &sbas_data);
+
+    /* fill the week number from current time */
+    gps_time_match_weeks(&sbas_data.time_of_transmission, &current_time);
+
+    sbas_system_t sbas_system = get_sbas_system(sbas_data.sid);
+
+    platform_mutex_lock(&spp_filter_manager_lock);
+    if (sbas_system != current_sbas_system &&
+        SBAS_UNKNOWN != current_sbas_system) {
+      /* clear existing SBAS corrections when provider changes */
+      filter_manager_reinitialize_sbas(spp_filter_manager);
+    }
+    filter_manager_process_sbas_message(spp_filter_manager, &sbas_data);
+    platform_mutex_unlock(&spp_filter_manager_lock);
+    current_sbas_system = sbas_system;
+  }
+}
+
+/**
+ * Try and fetch available SBAS messages from the SBAS mailbox.
+ *
+ * NOTE: This function should not block, so we use TIME_IMMEDIATE for
+ * the fetch operation. If a message is there, we take it, otherwise
+ * nevermind.
+ */
+static void process_any_sbas_messages(void) {
+  msg_t ret = MSG_OK;
+  while (MSG_OK == ret) {
+    msg_sbas_raw_t *sbas_msg = NULL;
+    ret = platform_sbas_msg_mailbox_fetch((msg_t *)&sbas_msg, TIME_IMMEDIATE); 
+    if (MSG_OK == ret) {
+      /* We have successfully received an SBAS message, forward on to the
+       * filter managers. */
+      process_sbas_message(sbas_msg);
+    } else {
+      /* If the fetch operation failed after assigning to the message pointer,
+       * something has gone unexpectedly wrong. */
+       if (NULL != sbas_msg) {
+        log_error("STARLING: sbas mailbox fetch failed with %" PRIi32, ret);
+      }
+    }
+    /* Under any circumstances, if the message pointer was assigned to, it
+     * must be released back to the pool. */
+    if (NULL != sbas_msg) {
+      platform_sbas_msg_free(sbas_msg);
+    }
+  } 
+}
+
 static void starling_thread(void) {
   msg_t ret;
 
@@ -574,6 +632,8 @@ static void starling_thread(void) {
   while (TRUE) {
     platform_watchdog_notify_starling_main_thread();
 
+    process_any_sbas_messages();
+
     me_msg_t *me_msg = NULL;
     ret = platform_me_msg_mailbox_fetch((msg_t *)&me_msg, DGNSS_TIMEOUT_MS);
     if (ret != MSG_OK) {
@@ -581,33 +641,6 @@ static void starling_thread(void) {
         log_error("STARLING: mailbox fetch failed with %" PRIi32, ret);
         platform_me_msg_free(me_msg);
       }
-      continue;
-    }
-
-    /* forward SBAS raw message to SPP filter manager*/
-    if (ME_MSG_SBAS_RAW == me_msg->id) {
-      const gps_time_t current_time = get_current_time();
-      if (gps_time_valid(&current_time)) {
-        sbas_raw_data_t sbas_data;
-        unpack_sbas_raw_data(&me_msg->msg.sbas, &sbas_data);
-
-        /* fill the week number from current time */
-        gps_time_match_weeks(&sbas_data.time_of_transmission, &current_time);
-
-        sbas_system_t sbas_system = get_sbas_system(sbas_data.sid);
-
-        platform_mutex_lock(&spp_filter_manager_lock);
-        if (sbas_system != current_sbas_system &&
-            SBAS_UNKNOWN != current_sbas_system) {
-          /* clear existing SBAS corrections when provider changes */
-          filter_manager_reinitialize_sbas(spp_filter_manager);
-        }
-        filter_manager_process_sbas_message(spp_filter_manager, &sbas_data);
-        platform_mutex_unlock(&spp_filter_manager_lock);
-
-        current_sbas_system = sbas_system;
-      }
-      platform_me_msg_free(me_msg);
       continue;
     }
 
