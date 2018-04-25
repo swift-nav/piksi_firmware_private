@@ -634,7 +634,7 @@ static void starling_thread(void) {
 
     process_any_sbas_messages();
 
-    me_msg_t *me_msg = NULL;
+    me_msg_obs_t *me_msg = NULL;
     ret = platform_me_msg_mailbox_fetch((msg_t *)&me_msg, DGNSS_TIMEOUT_MS);
     if (ret != MSG_OK) {
       if (NULL != me_msg) {
@@ -644,12 +644,7 @@ static void starling_thread(void) {
       continue;
     }
 
-    if (ME_MSG_OBS != me_msg->id) {
-      platform_me_msg_free(me_msg);
-      continue;
-    }
-
-    me_msg_obs_t *rover_channel_epoch = &me_msg->msg.obs;
+    me_msg_obs_t *rover_channel_epoch = me_msg;
 
     /* Init the messages we want to send */
 

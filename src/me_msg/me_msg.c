@@ -18,11 +18,11 @@ memory_pool_t me_msg_buff_pool;
 mailbox_t me_msg_mailbox;
 
 static msg_t me_msg_mailbox_buff[ME_MSG_N_BUFF];
-static me_msg_t me_msg_buff[ME_MSG_N_BUFF];
+static me_msg_obs_t me_msg_buff[ME_MSG_N_BUFF];
 
 void me_msg_setup(void) {
   chMBObjectInit(&me_msg_mailbox, me_msg_mailbox_buff, ME_MSG_N_BUFF);
-  chPoolObjectInit(&me_msg_buff_pool, sizeof(me_msg_t), NULL);
+  chPoolObjectInit(&me_msg_buff_pool, sizeof(me_msg_obs_t), NULL);
   chPoolLoadArray(&me_msg_buff_pool, me_msg_buff, ME_MSG_N_BUFF);
 }
 

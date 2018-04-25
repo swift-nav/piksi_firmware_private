@@ -84,14 +84,11 @@ static void me_post_observations(u8 n,
    * pushing the message into the mailbox then we just wasted an
    * observation from the mailbox for no good reason. */
 
-  me_msg_t *me_msg = chPoolAlloc(&me_msg_buff_pool);
-  if (NULL == me_msg) {
+  me_msg_obs_t *me_msg_obs = chPoolAlloc(&me_msg_buff_pool);
+  if (NULL == me_msg_obs) {
     log_error("ME: Could not allocate pool for obs!");
     return;
   }
-
-  me_msg->id = ME_MSG_OBS;
-  me_msg_obs_t *me_msg_obs = &me_msg->msg.obs;
 
   me_msg_obs->size = n;
   if (n) {
@@ -111,7 +108,7 @@ static void me_post_observations(u8 n,
     me_msg_obs->obs_time.tow = TOW_UNKNOWN;
   }
 
-  msg_t ret = chMBPost(&me_msg_mailbox, (msg_t)me_msg, TIME_IMMEDIATE);
+  msg_t ret = chMBPost(&me_msg_mailbox, (msg_t)me_msg_obs, TIME_IMMEDIATE);
   if (ret != MSG_OK) {
     /* We could grab another item from the mailbox, discard it and then
      * post our obs again but if the size of the mailbox and the pool
@@ -119,7 +116,7 @@ static void me_post_observations(u8 n,
      * mailbox is full when we handled the case that the pool was full.
      * */
     log_error("ME: Mailbox should have space for obs!");
-    chPoolFree(&me_msg_buff_pool, me_msg);
+    chPoolFree(&me_msg_buff_pool, me_msg_obs);
   }
 }
 
