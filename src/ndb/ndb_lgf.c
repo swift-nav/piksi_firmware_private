@@ -118,7 +118,6 @@ ndb_op_code_t ndb_lgf_store(const last_good_fix_t *lgf) {
     ndb_lock();
 
     last_good_fix = *lgf;
-    last_good_fix.position_quality = POSITION_FIX;
 
     /* is there a valid LGF stored that did not come from NV on startup */
     if (0 != (last_good_fix_md.nv_data.state & NDB_IE_VALID) &&
