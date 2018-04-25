@@ -52,20 +52,20 @@
 
 #define DO_EACH_MS_PER_CONST(constellation, n, cmd)               \
   do {                                                            \
-    static bool uninitialized = true;                             \
-    static piksi_systime_t previous[CONSTELLATION_COUNT];         \
-    if (uninitialized) {                                          \
+    static bool m_uninitialized = true;                           \
+    static piksi_systime_t m_previous[CONSTELLATION_COUNT];       \
+    if (m_uninitialized) {                                        \
       for(u8 i = 0; i < CONSTELLATION_COUNT; i++) {               \
-        previous[i] = PIKSI_SYSTIME_INIT;                         \
+        m_previous[i] = PIKSI_SYSTIME_INIT;                       \
       }                                                           \
-      uninitialized = false;                                      \
+      m_uninitialized = false;                                    \
     }                                                             \
     assert(constellation_valid(constellation));                   \
-    piksi_systime_t *prev = &previous[constellation];             \
-    if (piksi_systime_cmp(&PIKSI_SYSTIME_INIT, prev) == 0 ||      \
-        piksi_systime_elapsed_since_ms(prev) >= n) {              \
+    piksi_systime_t *m_prev = &m_previous[constellation];         \
+    if (piksi_systime_cmp(&PIKSI_SYSTIME_INIT, m_prev) == 0 ||    \
+        piksi_systime_elapsed_since_ms(m_prev) >= n) {            \
       cmd;                                                        \
-      piksi_systime_get(prev);                                    \
+      piksi_systime_get(m_prev);                                  \
     }                                                             \
   } while (0)
 
