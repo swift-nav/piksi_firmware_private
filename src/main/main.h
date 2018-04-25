@@ -60,11 +60,7 @@
       }                                                           \
       uninitialized = false;                                      \
     }                                                             \
-    if (0 > constellation ||                                      \
-        CONSTELLATION_COUNT <= constellation) {                   \
-      log_error("DO_EACH_MS_PER_CONST: Invalid constellation");   \
-      break;                                                      \
-    }                                                             \
+    assert(constellation_valid(constellation));                   \
     piksi_systime_t *prev = &previous[constellation];             \
     if (piksi_systime_cmp(&PIKSI_SYSTIME_INIT, prev) == 0 ||      \
         piksi_systime_elapsed_since_ms(prev) >= n) {              \
