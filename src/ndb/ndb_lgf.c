@@ -54,7 +54,7 @@ void ndb_lgf_init(void) {
   SETTING("ndb", "lgf_update_s", lgf_update_s, TYPE_INT);
   SETTING("ndb", "lgf_update_m", lgf_update_m, TYPE_INT);
 
-  ndb_load_data(&lgf_file, erase_lgf);
+  ndb_load_data(&lgf_file, erase_lgf || !NDB_USE_NV_LGF);
 
   last_good_fix = last_good_fix_saved;
   if (0 != (last_good_fix_md.nv_data.state & NDB_IE_VALID)) {
@@ -85,8 +85,7 @@ void ndb_lgf_init(void) {
  * \sa ndb_lgf_store
  */
 ndb_op_code_t ndb_lgf_read(last_good_fix_t *lgf) {
-  ndb_op_code_t res =
-      ndb_retrieve(&last_good_fix_md, lgf, sizeof(*lgf), NULL, NDB_USE_NV_LGF);
+  ndb_op_code_t res = ndb_retrieve(&last_good_fix_md, lgf, sizeof(*lgf), NULL);
 
   if (NDB_ERR_NONE == res) {
     /* If NDB read was successful, check that data has not aged out */
@@ -121,7 +120,7 @@ ndb_op_code_t ndb_lgf_store(const last_good_fix_t *lgf) {
     last_good_fix = *lgf;
     last_good_fix.position_quality = POSITION_FIX;
 
-    /* if there's a valid LGF stored that did not come from NV on startup */
+    /* is there a valid LGF stored that did not come from NV on startup */
     if (0 != (last_good_fix_md.nv_data.state & NDB_IE_VALID) &&
         0 == (last_good_fix_md.vflags & NDB_VFLAG_DATA_FROM_NV)) {
       double dist_ecef[3] = {0}; /* Fix distance [ECEF] */

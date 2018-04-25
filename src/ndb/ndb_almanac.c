@@ -12,13 +12,13 @@
 
 #define NDB_WEAK
 
+#include "ndb.h"
 #include <assert.h>
 #include <libswiftnav/constants.h>
 #include <libswiftnav/logging.h>
 #include <sbp.h>
 #include <sbp_utils.h>
 #include <string.h>
-#include "ndb.h"
 #include "ndb_fs_access.h"
 #include "ndb_internal.h"
 #include "settings/settings.h"
@@ -700,8 +700,8 @@ void ndb_almanac_init(void) {
   SETTING("ndb", "erase_almanac", erase_almanac, TYPE_BOOL);
   SETTING("ndb", "erase_almanac_wn", erase_almanac_wn, TYPE_BOOL);
 
-  ndb_load_data(&ndb_alma_file, erase_almanac);
-  ndb_load_data(&ndb_alma_wn_file, erase_almanac_wn);
+  ndb_load_data(&ndb_alma_file, erase_almanac || !NDB_USE_NV_ALMANAC);
+  ndb_load_data(&ndb_alma_wn_file, erase_almanac_wn || !NDB_USE_NV_ALMANAC);
 
   /* After startup check if there are any matching WN entries not yet updated
    * in almanac file. Then do cleanup for duplicate entries */
@@ -743,8 +743,7 @@ ndb_op_code_t ndb_almanac_read(gnss_signal_t sid, almanac_t *a) {
   u16 idx = map_sid_to_index(sid);
 
   assert(idx < ARRAY_SIZE(ndb_almanac_md));
-  ndb_op_code_t ret = ndb_retrieve(
-      &ndb_almanac_md[idx], a, sizeof(*a), NULL, NDB_USE_NV_ALMANAC);
+  ndb_op_code_t ret = ndb_retrieve(&ndb_almanac_md[idx], a, sizeof(*a), NULL);
 
   if (NDB_ERR_NONE == ret) {
     /* If NDB read was successful, check that data has not aged out */
@@ -974,8 +973,8 @@ ndb_op_code_t ndb_almanac_erase_by_src(gnss_signal_t src_sid) {
       continue;
     }
     almanac_t a;
-    ndb_op_code_t ret_internal = ndb_retrieve(
-        &ndb_almanac_md[idx], &a, sizeof(a), NULL, NDB_USE_NV_ALMANAC);
+    ndb_op_code_t ret_internal =
+        ndb_retrieve(&ndb_almanac_md[idx], &a, sizeof(a), NULL);
     if (NDB_ERR_NONE != ret_internal) {
       log_warn("Error %" PRIu8 " reading almanac, ndb_almanac_erase_by_src",
                ret_internal);

@@ -12,10 +12,10 @@
 
 #define NDB_WEAK
 
+#include "ndb.h"
 #include <libsbp/sbp.h>
 #include <libswiftnav/logging.h>
 #include <string.h>
-#include "ndb.h"
 #include "ndb_fs_access.h"
 #include "ndb_internal.h"
 #include "sbp.h"
@@ -43,7 +43,7 @@ void ndb_iono_init(void) {
   static bool erase_iono = false;
   SETTING("ndb", "erase_iono", erase_iono, TYPE_BOOL);
 
-  ndb_load_data(&iono_corr_file, erase_iono);
+  ndb_load_data(&iono_corr_file, erase_iono || !NDB_USE_NV_IONO);
 
   /* register Iono SBP callback */
   sbp_register_cbk(SBP_MSG_IONO, &iono_msg_callback, &iono_callback_node);
@@ -63,8 +63,7 @@ void ndb_iono_init(void) {
  * \sa ndb_iono_corr_store
  */
 ndb_op_code_t ndb_iono_corr_read(ionosphere_t *iono) {
-  ndb_op_code_t ret =
-      ndb_retrieve(&iono_corr_md, iono, sizeof(*iono), NULL, NDB_USE_NV_IONO);
+  ndb_op_code_t ret = ndb_retrieve(&iono_corr_md, iono, sizeof(*iono), NULL);
   if (NDB_ERR_NONE == ret) {
     /* If NDB read was successful, check that data has not aged out */
     ret = ndb_check_age(&iono->toa, NDB_NV_IONO_AGE_SECS);

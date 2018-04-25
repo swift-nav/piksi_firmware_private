@@ -31,7 +31,5 @@ void position_setup(void) {
              lgf.position_solution.pos_llh[0] * (180 / M_PI),
              lgf.position_solution.pos_llh[1] * (180 / M_PI),
              lgf.position_solution.pos_llh[2]);
-  } else {
-    log_info("Not using last good fix from file");
   }
 }
