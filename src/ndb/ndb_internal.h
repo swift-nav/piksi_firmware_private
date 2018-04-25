@@ -43,7 +43,7 @@ typedef struct {
 /** Flags to enable NV usage on individual data elements */
 #define NDB_USE_NV_IONO 1
 #define NDB_USE_NV_L2C_CAP 1
-#define NDB_USE_NV_LGF 0
+#define NDB_USE_NV_LGF 1
 #define NDB_USE_NV_ALMANAC 1
 #define NDB_USE_NV_EPHEMERIS 0
 #define NDB_USE_NV_UTC 1
