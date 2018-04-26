@@ -550,7 +550,9 @@ static void init_filters_and_settings(void) {
  */
 static void process_sbas_message(const msg_sbas_raw_t *sbas_msg) {
   const gps_time_t current_time = get_current_time();
-  if (gps_time_valid(&current_time)) {
+  if (!gps_time_valid(&current_time)) {
+    return;
+  }
     sbas_raw_data_t sbas_data;
     unpack_sbas_raw_data(sbas_msg, &sbas_data);
 
@@ -568,7 +570,6 @@ static void process_sbas_message(const msg_sbas_raw_t *sbas_msg) {
     filter_manager_process_sbas_message(spp_filter_manager, &sbas_data);
     platform_mutex_unlock(&spp_filter_manager_lock);
     current_sbas_system = sbas_system;
-  }
 }
 
 /**
