@@ -299,12 +299,12 @@ static u32 sbas_get_timestamp(u32 delay) {
  */
 static void sbas_post_me_msg(const msg_sbas_raw_t *sbas_raw_msg) {
   msg_sbas_raw_t *sbas_msg = chPoolAlloc(&sbas_msg_buff_pool);
-  *sbas_msg = *sbas_raw_msg;
   if (NULL == sbas_msg) {
     log_error("ME: Could not allocate pool for SBAS!");
     return;
   }
 
+  *sbas_msg = *sbas_raw_msg;
   msg_t ret = chMBPost(&sbas_msg_mailbox, (msg_t)sbas_msg, TIME_IMMEDIATE);
   if (ret != MSG_OK) {
     log_error("ME: Mailbox should have space for SBAS!");
