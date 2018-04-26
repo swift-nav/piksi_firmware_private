@@ -553,23 +553,23 @@ static void process_sbas_message(const msg_sbas_raw_t *sbas_msg) {
   if (!gps_time_valid(&current_time)) {
     return;
   }
-    sbas_raw_data_t sbas_data;
-    unpack_sbas_raw_data(sbas_msg, &sbas_data);
+  sbas_raw_data_t sbas_data;
+  unpack_sbas_raw_data(sbas_msg, &sbas_data);
 
-    /* fill the week number from current time */
-    gps_time_match_weeks(&sbas_data.time_of_transmission, &current_time);
+  /* fill the week number from current time */
+  gps_time_match_weeks(&sbas_data.time_of_transmission, &current_time);
 
-    sbas_system_t sbas_system = get_sbas_system(sbas_data.sid);
+  sbas_system_t sbas_system = get_sbas_system(sbas_data.sid);
 
-    platform_mutex_lock(&spp_filter_manager_lock);
-    if (sbas_system != current_sbas_system &&
-        SBAS_UNKNOWN != current_sbas_system) {
-      /* clear existing SBAS corrections when provider changes */
-      filter_manager_reinitialize_sbas(spp_filter_manager);
-    }
-    filter_manager_process_sbas_message(spp_filter_manager, &sbas_data);
-    platform_mutex_unlock(&spp_filter_manager_lock);
-    current_sbas_system = sbas_system;
+  platform_mutex_lock(&spp_filter_manager_lock);
+  if (sbas_system != current_sbas_system &&
+      SBAS_UNKNOWN != current_sbas_system) {
+    /* clear existing SBAS corrections when provider changes */
+    filter_manager_reinitialize_sbas(spp_filter_manager);
+  }
+  filter_manager_process_sbas_message(spp_filter_manager, &sbas_data);
+  platform_mutex_unlock(&spp_filter_manager_lock);
+  current_sbas_system = sbas_system;
 }
 
 /**
@@ -661,16 +661,12 @@ static void starling_thread(void) {
       starling_integration_solution_simulation(&sbp_messages);
       const u8 fake_base_sender_id = 1;
       starling_integration_solution_send_low_latency_output(
-          fake_base_sender_id,
-          &sbp_messages,
-          me_msg->size,
-          me_msg->obs);
+          fake_base_sender_id, &sbp_messages, me_msg->size, me_msg->obs);
       platform_me_obs_msg_free(me_msg);
       continue;
     }
 
-    if (me_msg->size == 0 ||
-        !gps_time_valid(&me_msg->obs_time)) {
+    if (me_msg->size == 0 || !gps_time_valid(&me_msg->obs_time)) {
       platform_me_obs_msg_free(me_msg);
       starling_integration_solution_send_low_latency_output(
           0, &sbp_messages, 0, nav_meas);
@@ -700,10 +696,8 @@ static void starling_thread(void) {
     memset(e_meas, 0, sizeof(e_meas));
 
     if (n_ready) {
-      MEMCPY_S(e_meas,
-               sizeof(e_meas),
-               me_msg->ephem,
-               n_ready * sizeof(ephemeris_t));
+      MEMCPY_S(
+          e_meas, sizeof(e_meas), me_msg->ephem, n_ready * sizeof(ephemeris_t));
     }
 
     obs_time = me_msg->obs_time;
