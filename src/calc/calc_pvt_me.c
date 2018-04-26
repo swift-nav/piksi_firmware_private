@@ -63,8 +63,8 @@
 #define ME_CALC_PVT_THREAD_PRIORITY (HIGHPRIO - 3)
 #define ME_CALC_PVT_THREAD_STACK (64 * 1024)
 
-double soln_freq_setting = 10.0;
-u32 obs_output_divisor = 2;
+double soln_freq_setting = 1;
+u32 obs_output_divisor = 1;
 
 s16 msg_obs_max_size = SBP_FRAMING_MAX_PAYLOAD_SIZE;
 
