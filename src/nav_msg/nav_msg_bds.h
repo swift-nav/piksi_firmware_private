@@ -67,7 +67,7 @@ typedef struct {
   s8 bit_polarity;
   /**< Decoded subframe data */
   u32 page_words[BDS_WORD_SUBFR * BDS_SUBFRAME_MAX];
-  /**< Successfully decoded words in page */
+  /**< Decoded subframe rx time */
   u64 subfr_times[BDS_SUBFRAME_MAX];
   /**< Successfully decoded words in page */
   u64 goodwords_mask;
