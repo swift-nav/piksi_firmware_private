@@ -588,12 +588,10 @@ static void process_any_sbas_messages(void) {
       /* We have successfully received an SBAS message, forward on to the
        * filter managers. */
       process_sbas_message(sbas_msg);
-    } else {
+    } else if (NULL != sbas_msg) {
       /* If the fetch operation failed after assigning to the message pointer,
        * something has gone unexpectedly wrong. */
-      if (NULL != sbas_msg) {
-        log_error("STARLING: sbas mailbox fetch failed with %" PRIi32, ret);
-      }
+      log_error("STARLING: sbas mailbox fetch failed with %" PRIi32, ret);
     }
     /* Under any circumstances, if the message pointer was assigned to, it
      * must be released back to the pool. */
