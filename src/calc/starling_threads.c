@@ -644,11 +644,9 @@ static void starling_thread(void) {
       continue;
     }
 
-    me_msg_obs_t *rover_channel_epoch = me_msg;
-
     /* Init the messages we want to send */
 
-    gps_time_t epoch_time = rover_channel_epoch->obs_time;
+    gps_time_t epoch_time = me_msg->obs_time;
     if (!gps_time_valid(&epoch_time) && TIME_PROPAGATED <= get_time_quality()) {
       /* observations do not have valid time, but we have a reasonable estimate
        * of current GPS time, so round that to nearest epoch and use it
@@ -666,21 +664,21 @@ static void starling_thread(void) {
       starling_integration_solution_send_low_latency_output(
           fake_base_sender_id,
           &sbp_messages,
-          rover_channel_epoch->size,
-          rover_channel_epoch->obs);
+          me_msg->size,
+          me_msg->obs);
       platform_me_obs_msg_free(me_msg);
       continue;
     }
 
-    if (rover_channel_epoch->size == 0 ||
-        !gps_time_valid(&rover_channel_epoch->obs_time)) {
+    if (me_msg->size == 0 ||
+        !gps_time_valid(&me_msg->obs_time)) {
       platform_me_obs_msg_free(me_msg);
       starling_integration_solution_send_low_latency_output(
           0, &sbp_messages, 0, nav_meas);
       continue;
     }
 
-    if (gpsdifftime(&rover_channel_epoch->obs_time, &obs_time) <= 0.0) {
+    if (gpsdifftime(&me_msg->obs_time, &obs_time) <= 0.0) {
       /* When we change the solution rate down, we sometimes can round the
        * time to an epoch earlier than the previous one processed, in that
        * case we want to ignore any epochs with an earlier timestamp */
@@ -690,13 +688,13 @@ static void starling_thread(void) {
 
     starling_frequency = soln_freq_setting;
 
-    u8 n_ready = rover_channel_epoch->size;
+    u8 n_ready = me_msg->size;
     memset(nav_meas, 0, sizeof(nav_meas));
 
     if (n_ready) {
       MEMCPY_S(nav_meas,
                sizeof(nav_meas),
-               rover_channel_epoch->obs,
+               me_msg->obs,
                n_ready * sizeof(navigation_measurement_t));
     }
 
@@ -705,11 +703,11 @@ static void starling_thread(void) {
     if (n_ready) {
       MEMCPY_S(e_meas,
                sizeof(e_meas),
-               rover_channel_epoch->ephem,
+               me_msg->ephem,
                n_ready * sizeof(ephemeris_t));
     }
 
-    obs_time = rover_channel_epoch->obs_time;
+    obs_time = me_msg->obs_time;
 
     platform_me_obs_msg_free(me_msg);
 
