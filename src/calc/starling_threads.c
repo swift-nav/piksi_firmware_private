@@ -544,6 +544,63 @@ static void init_filters_and_settings(void) {
 
 }
 
+/**
+ * Perform the appropriate processing and FilterManager
+ * updates for a single SBAS message.
+ */
+static void process_sbas_message(const msg_sbas_raw_t *sbas_msg) {
+  const gps_time_t current_time = get_current_time();
+  if (!gps_time_valid(&current_time)) {
+    return;
+  }
+  sbas_raw_data_t sbas_data;
+  unpack_sbas_raw_data(sbas_msg, &sbas_data);
+
+  /* fill the week number from current time */
+  gps_time_match_weeks(&sbas_data.time_of_transmission, &current_time);
+
+  sbas_system_t sbas_system = get_sbas_system(sbas_data.sid);
+
+  platform_mutex_lock(&spp_filter_manager_lock);
+  if (sbas_system != current_sbas_system &&
+      SBAS_UNKNOWN != current_sbas_system) {
+    /* clear existing SBAS corrections when provider changes */
+    filter_manager_reinitialize_sbas(spp_filter_manager);
+  }
+  filter_manager_process_sbas_message(spp_filter_manager, &sbas_data);
+  platform_mutex_unlock(&spp_filter_manager_lock);
+  current_sbas_system = sbas_system;
+}
+
+/**
+ * Try and fetch available SBAS messages from the SBAS mailbox.
+ *
+ * NOTE: This function should not block, so we use TIME_IMMEDIATE for
+ * the fetch operation. If a message is there, we take it, otherwise
+ * nevermind.
+ */
+static void process_any_sbas_messages(void) {
+  msg_t ret = MSG_OK;
+  while (MSG_OK == ret) {
+    msg_sbas_raw_t *sbas_msg = NULL;
+    ret = platform_sbas_msg_mailbox_fetch((msg_t *)&sbas_msg, TIME_IMMEDIATE);
+    if (MSG_OK == ret) {
+      /* We have successfully received an SBAS message, forward on to the
+       * filter managers. */
+      process_sbas_message(sbas_msg);
+    } else if (NULL != sbas_msg) {
+      /* If the fetch operation failed after assigning to the message pointer,
+       * something has gone unexpectedly wrong. */
+      log_error("STARLING: sbas mailbox fetch failed with %" PRIi32, ret);
+    }
+    /* Under any circumstances, if the message pointer was assigned to, it
+     * must be released back to the pool. */
+    if (NULL != sbas_msg) {
+      platform_sbas_msg_free(sbas_msg);
+    }
+  }
+}
+
 static void starling_thread(void) {
   msg_t ret;
 
@@ -574,53 +631,21 @@ static void starling_thread(void) {
   while (TRUE) {
     platform_watchdog_notify_starling_main_thread();
 
-    me_msg_t *me_msg = NULL;
-    ret = platform_me_msg_mailbox_fetch((msg_t *)&me_msg, DGNSS_TIMEOUT_MS);
+    process_any_sbas_messages();
+
+    me_msg_obs_t *me_msg = NULL;
+    ret = platform_me_obs_msg_mailbox_fetch((msg_t *)&me_msg, DGNSS_TIMEOUT_MS);
     if (ret != MSG_OK) {
       if (NULL != me_msg) {
         log_error("STARLING: mailbox fetch failed with %" PRIi32, ret);
-        platform_me_msg_free(me_msg);
+        platform_me_obs_msg_free(me_msg);
       }
       continue;
     }
-
-    /* forward SBAS raw message to SPP filter manager*/
-    if (ME_MSG_SBAS_RAW == me_msg->id) {
-      const gps_time_t current_time = get_current_time();
-      if (gps_time_valid(&current_time)) {
-        sbas_raw_data_t sbas_data;
-        unpack_sbas_raw_data(&me_msg->msg.sbas, &sbas_data);
-
-        /* fill the week number from current time */
-        gps_time_match_weeks(&sbas_data.time_of_transmission, &current_time);
-
-        sbas_system_t sbas_system = get_sbas_system(sbas_data.sid);
-
-        platform_mutex_lock(&spp_filter_manager_lock);
-        if (sbas_system != current_sbas_system &&
-            SBAS_UNKNOWN != current_sbas_system) {
-          /* clear existing SBAS corrections when provider changes */
-          filter_manager_reinitialize_sbas(spp_filter_manager);
-        }
-        filter_manager_process_sbas_message(spp_filter_manager, &sbas_data);
-        platform_mutex_unlock(&spp_filter_manager_lock);
-
-        current_sbas_system = sbas_system;
-      }
-      platform_me_msg_free(me_msg);
-      continue;
-    }
-
-    if (ME_MSG_OBS != me_msg->id) {
-      platform_me_msg_free(me_msg);
-      continue;
-    }
-
-    me_msg_obs_t *rover_channel_epoch = &me_msg->msg.obs;
 
     /* Init the messages we want to send */
 
-    gps_time_t epoch_time = rover_channel_epoch->obs_time;
+    gps_time_t epoch_time = me_msg->obs_time;
     if (!gps_time_valid(&epoch_time) && TIME_PROPAGATED <= get_time_quality()) {
       /* observations do not have valid time, but we have a reasonable estimate
        * of current GPS time, so round that to nearest epoch and use it
@@ -636,54 +661,48 @@ static void starling_thread(void) {
       starling_integration_solution_simulation(&sbp_messages);
       const u8 fake_base_sender_id = 1;
       starling_integration_solution_send_low_latency_output(
-          fake_base_sender_id,
-          &sbp_messages,
-          rover_channel_epoch->size,
-          rover_channel_epoch->obs);
-      platform_me_msg_free(me_msg);
+          fake_base_sender_id, &sbp_messages, me_msg->size, me_msg->obs);
+      platform_me_obs_msg_free(me_msg);
       continue;
     }
 
-    if (rover_channel_epoch->size == 0 ||
-        !gps_time_valid(&rover_channel_epoch->obs_time)) {
-      platform_me_msg_free(me_msg);
+    if (me_msg->size == 0 || !gps_time_valid(&me_msg->obs_time)) {
+      platform_me_obs_msg_free(me_msg);
       starling_integration_solution_send_low_latency_output(
           0, &sbp_messages, 0, nav_meas);
       continue;
     }
 
-    if (gpsdifftime(&rover_channel_epoch->obs_time, &obs_time) <= 0.0) {
+    if (gpsdifftime(&me_msg->obs_time, &obs_time) <= 0.0) {
       /* When we change the solution rate down, we sometimes can round the
        * time to an epoch earlier than the previous one processed, in that
        * case we want to ignore any epochs with an earlier timestamp */
-      platform_me_msg_free(me_msg);
+      platform_me_obs_msg_free(me_msg);
       continue;
     }
 
     starling_frequency = soln_freq_setting;
 
-    u8 n_ready = rover_channel_epoch->size;
+    u8 n_ready = me_msg->size;
     memset(nav_meas, 0, sizeof(nav_meas));
 
     if (n_ready) {
       MEMCPY_S(nav_meas,
                sizeof(nav_meas),
-               rover_channel_epoch->obs,
+               me_msg->obs,
                n_ready * sizeof(navigation_measurement_t));
     }
 
     memset(e_meas, 0, sizeof(e_meas));
 
     if (n_ready) {
-      MEMCPY_S(e_meas,
-               sizeof(e_meas),
-               rover_channel_epoch->ephem,
-               n_ready * sizeof(ephemeris_t));
+      MEMCPY_S(
+          e_meas, sizeof(e_meas), me_msg->ephem, n_ready * sizeof(ephemeris_t));
     }
 
-    obs_time = rover_channel_epoch->obs_time;
+    obs_time = me_msg->obs_time;
 
-    platform_me_msg_free(me_msg);
+    platform_me_obs_msg_free(me_msg);
 
     ionosphere_t i_params;
     /* get iono parameters if available, otherwise use default ones */

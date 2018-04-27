@@ -13,6 +13,7 @@
 #ifndef STARLING_CALC_STARLING_PLATFORM_SHIM_H
 #define STARLING_CALC_STARLING_PLATFORM_SHIM_H
 
+#include <libsbp/sbas.h>
 #include <libswiftnav/ephemeris.h>
 #include <libswiftnav/ionosphere.h>
 #include <libswiftnav/signal.h>
@@ -45,13 +46,17 @@ int32_t platform_time_matched_obs_mailbox_fetch(int32_t *msg, uint32_t timeout);
 /* memory management for internal communication */
 obss_t *platform_time_matched_obs_alloc(void);
 void platform_time_matched_obs_free(obss_t *ptr);
-void platform_base_obs_free(obss_t *ptr);
-void platform_me_msg_free(me_msg_t *ptr);
 
 /* used for receiving obs messages */
 int32_t platform_base_obs_mailbox_fetch(int32_t *msg, uint32_t timeout);
+void platform_base_obs_free(obss_t *ptr);
 
 /* used for receiving me messages */
-int32_t platform_me_msg_mailbox_fetch(int32_t *msg, uint32_t timeout);
+int32_t platform_me_obs_msg_mailbox_fetch(int32_t *msg, uint32_t timeout);
+void platform_me_obs_msg_free(me_msg_obs_t *ptr);
+
+/* used for receiving sbas messages */
+int32_t platform_sbas_msg_mailbox_fetch(int32_t *msg, uint32_t timeout);
+void platform_sbas_msg_free(msg_sbas_raw_t *ptr);
 
 #endif

@@ -20,8 +20,6 @@
 #include <libswiftnav/ephemeris.h>
 #include <libswiftnav/nav_meas.h>
 
-enum { ME_MSG_OBS = 1, ME_MSG_SBAS_RAW = 2 };
-
 typedef struct _me_msg_obs_t {
   size_t size;
   navigation_measurement_t obs[MAX_CHANNELS];
@@ -29,17 +27,13 @@ typedef struct _me_msg_obs_t {
   gps_time_t obs_time;
 } me_msg_obs_t;
 
-typedef struct _me_msg_t {
-  u32 id;
-  union {
-    me_msg_obs_t obs;
-    msg_sbas_raw_t sbas;
-  } msg;
-} me_msg_t;
+extern mailbox_t me_obs_msg_mailbox;
+extern memory_pool_t me_obs_msg_buff_pool;
 
-extern mailbox_t me_msg_mailbox;
-extern memory_pool_t me_msg_buff_pool;
+extern mailbox_t sbas_msg_mailbox;
+extern memory_pool_t sbas_msg_buff_pool;
 
-void me_msg_setup(void);
+void me_obs_msg_setup(void);
+void sbas_msg_setup(void);
 
 #endif /* #ifndef ME_MSG_H */
