@@ -32,11 +32,9 @@
  * NH20 = [0 0 0 0 0  1 0 0 1 1  0 1 0 1 0  0 1 1 1 0]
  * XANS = 0,0,0,0,0, 1,1,0,1,0, 1,1,1,1,1, 0,1,0,0,1
  */
-static const s8 nh20_xans[SYMBOL_LENGTH_NH20_MS] =
-  {+1, +1, +1, +1, +1,
-   -1, -1, +1, -1, +1,
-   -1, -1, -1, -1, -1,
-   +1, -1, +1, +1, -1};
+static const s8 nh20_xans[SYMBOL_LENGTH_NH20_MS] = {+1, +1, +1, +1, +1, -1, -1,
+                                                    +1, -1, +1, -1, -1, -1, -1,
+                                                    -1, +1, -1, +1, +1, -1};
 
 /* Galileo E5aQ transitions array, built per satellite */
 static s8 e5q_xans[NUM_SATS_GAL][GAL_CS100_MS];
@@ -237,7 +235,7 @@ static void histogram_update(bit_sync_t *b,
     for (u8 i = 1; i < SYMBOL_LENGTH_NH20_MS; i++) {
       sum += b->histogram[i] * (nh20_xans[i]);
     }
-    if (sum >= 8*SYMBOL_LENGTH_NH20_MS) {
+    if (sum >= 8 * SYMBOL_LENGTH_NH20_MS) {
       /* We are synchronized! */
       b->bit_phase_ref = b->bit_phase;
     }
