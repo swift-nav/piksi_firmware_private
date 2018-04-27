@@ -110,6 +110,7 @@ static const char *get_sbas_name(sbas_system_t sbas_type) {
     default:
       break;
   }
+  assert(!"Incorrect SBAS type");
   return "NONE";
 }
 
@@ -144,34 +145,31 @@ static bool point_in_region(const point_coord_t *border,
                             const double lat_deg,
                             const double lon_deg,
                             const double hyst_deg) {
-  double west_deg = border[0].lon_deg - hyst_deg;
-  double east_deg = border[1].lon_deg + hyst_deg;
+  /* Check latitude for the normal case */
   double north_deg = border[0].lat_deg + hyst_deg;
   double south_deg = border[1].lat_deg - hyst_deg;
+  if ((lat_deg > north_deg) || (lat_deg < south_deg)) {
+    return false;
+  }
+  /* Note: north pole will have special handling outside this function */
 
-  bool within_region = false;
-
-  // Check longitude first starting with normal case
+  /* Latitude ok, check longitude starting from the normal case */
+  double west_deg = border[0].lon_deg - hyst_deg;
+  double east_deg = border[1].lon_deg + hyst_deg;
   if ((west_deg <= lon_deg) && (lon_deg <= east_deg)) {
-    within_region = true;
-  } /* Check if lon_deg from [-180 .. (-180 + hyst_deg)] fall into the region */
+    return true;
+  }
+  /* Check if lon_deg from [-180 .. (-180 + hyst_deg)] fall into the region */
   else if ((west_deg <= (lon_deg + 360)) && ((lon_deg + 360) <= east_deg)) {
-    within_region = true;
-  } /* Check if lon_deg from [(180 - hyst_deg) .. 180] fall into the region */
+    return true;
+  }
+  /* Check if lon_deg from [(180 - hyst_deg) .. 180] fall into the region */
   else if ((west_deg <= (lon_deg - 360)) && ((lon_deg - 360) <= east_deg)) {
-    within_region = true;
+    return true;
   }
 
-  // If longitude is ok, continue with latitude
-  if (within_region) {
-    // Check the normal case
-    if ((lat_deg > north_deg) || (lat_deg < south_deg)) {
-      within_region = false;
-    }
-    // North pole will have special handling outside this function
-  }
-
-  return within_region;
+  /* All longitude checks failed */
+  return false;
 }
 
 /**
@@ -200,14 +198,14 @@ sbas_system_t sbas_select_provider(const last_good_fix_t *lgf) {
   bool close_to_north_pole =
       double_within(lgf_lat_deg, 90., SBAS_SELECT_LAT_POLAR_REGION_DEG);
   if (close_to_north_pole) {
-    /* LGF is close to a pole, where longitudes can change rapidly.
+    /* LGF is close to north pole, where longitudes can change rapidly.
        If first LGF is acquired close to a pole and no SBAS provider is in
        use, we want to start using some SBAS provider and stick to
-       it until LGF leaves the #SBAS_SELECT_LAT_AT_POLE_HYST_DEG radius area
+       it until LGF leaves the #SBAS_SELECT_LAT_POLAR_REGION_DEG radius area
        from the pole. WAAS is a default if no other system has been set yet.
        This also covers the hysteresis for latitude near pole. */
 
-    if (used_sbas == SBAS_NONE) {
+    if (SBAS_NONE == used_sbas) {
       used_sbas = SBAS_WAAS;
     }
     return used_sbas;
