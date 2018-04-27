@@ -354,8 +354,13 @@ static bool subframe_age_check(const nav_msg_bds_t *n) {
   /* If subframe 1 is newer than subframe 2, or
    * if subframe 2 is newer than subframe 3,
    * then wait. */
-  if ((n->subfr_times[0] >= n->subfr_times[1]) ||
-      (n->subfr_times[1] >= n->subfr_times[2])) {
+  s64 rx_diff1 = (s64)(n->subfr_times[1] - n->subfr_times[0]);
+  s64 rx_diff2 = (s64)(n->subfr_times[2] - n->subfr_times[1]);
+  /* Age threshold is one subframe + 1 second,
+   * to allow millisecond delays in decoder. */
+  s64 age_threshold = (BDS_D1_SUBFRAME_LEN_SECONDS + 1) * SECS_MS;
+
+  if ((rx_diff1 >= age_threshold) || (rx_diff2 >= age_threshold)) {
     return false;
   }
   return true;

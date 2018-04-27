@@ -39,6 +39,8 @@ extern "C" {
 #define BDS_SUBFRAME_AGE_INVALID ((u8)-1)
 /** Special value to marking maximum subframe cache entry age [6 seconds] */
 #define BDS_SUBFRAME_AGE_MAX ((u8)100)
+/** BDS D1 subframe length [seconds] */
+#define BDS_D1_SUBFRAME_LEN_SECONDS (6)
 
 /** TODO: Check Beidou fit_interval definition */
 #define BDS_FIT_INTERVAL_SECONDS (2 * HOUR_SECS)
