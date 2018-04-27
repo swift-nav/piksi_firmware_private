@@ -256,7 +256,7 @@ int IsAcquired3D(const float *vec,
   /* is threshold higher? */
   if (max > (23.0f * mean_clean / (1 + log2f(_iNonCoh)))) {
     /* code */
-    (*_pfCodeMaxI) = (float)imax / _iFreqSh;
+    (*_pfCodeMaxI) = (imax + 1.0f) / _iFreqSh;
 
     /* quadratic fit on freq (it's a sinc actually) */
     u32 max_code_idx = _iFreqSh * (imax / _iFreqSh);
