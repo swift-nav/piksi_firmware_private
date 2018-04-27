@@ -16,6 +16,7 @@
 #include "sbp_utils.h"
 #include "timing/timing.h"
 
+#include <assert.h>
 #include <limits.h>
 #include <string.h>
 
@@ -105,45 +106,39 @@ static u32 sbas_extract_crc(const sbas_v27_part_t *part) {
  */
 static void sbas_rescan_preamble(sbas_v27_part_t *part) {
   part->preamble_seen = false;
-  u8 preamble = 0;
-  u8 preamble_inv = 0;
-  if (0 == part->n_preamble || 1 == part->n_preamble) {
-    preamble = SBAS_PREAMBLE1;
-    preamble_inv = SBAS_PREAMBLE1_INV;
-  } else if (2 == part->n_preamble) {
-    preamble = SBAS_PREAMBLE2;
-    preamble_inv = SBAS_PREAMBLE2_INV;
-  } else if (3 == part->n_preamble) {
-    preamble = SBAS_PREAMBLE3;
-    preamble_inv = SBAS_PREAMBLE3_INV;
-  } else {
-    part->n_preamble = 0;
-    log_debug("SBAS preamble index gone wild!");
+
+  if (part->n_decoded < SBAS_PREAMBLE_LENGTH) {
+    return;
   }
 
-  if (part->n_decoded > SBAS_PREAMBLE_LENGTH + 1) {
-    for (size_t i = 1, j = part->n_decoded - SBAS_PREAMBLE_LENGTH; i < j; ++i) {
-      u32 c = getbitu(part->decoded, i, SBAS_PREAMBLE_LENGTH);
-      if (preamble == c || preamble_inv == c) {
-        part->preamble_seen = true;
-        part->invert = (preamble_inv == c);
-        /* We shift the accumulated bits to the beginning of the buffer */
-        bitshl(part->decoded, sizeof(part->decoded), i);
-        part->n_decoded -= i;
-        part->n_preamble++;
-        if (part->n_preamble > NUM_SBAS_PREAMBLES) {
-          part->n_preamble = 1;
-        }
-        break;
-      }
+  static const u8 direct[] = {SBAS_PREAMBLE1, SBAS_PREAMBLE2, SBAS_PREAMBLE3};
+  static const u8 inverse[] = {
+      SBAS_PREAMBLE1_INV, SBAS_PREAMBLE2_INV, SBAS_PREAMBLE3_INV};
+
+  assert(part->n_preamble < ARRAY_SIZE(direct));
+  u8 preamble = direct[part->n_preamble];
+  u8 preamble_inv = inverse[part->n_preamble];
+
+  for (size_t i = 0; i <= (part->n_decoded - SBAS_PREAMBLE_LENGTH); ++i) {
+    u32 c = getbitu(part->decoded, i, SBAS_PREAMBLE_LENGTH);
+    if ((preamble != c) && (preamble_inv != c)) {
+      continue;
     }
+    part->preamble_seen = true;
+    part->invert = (preamble_inv == c);
+    bitshl(part->decoded, sizeof(part->decoded), i);
+    part->n_decoded -= i;
+    part->n_preamble++;
+    if (part->n_preamble > NUM_SBAS_PREAMBLES) {
+      part->n_preamble = 0;
+    }
+    return;
   }
-  if (!part->preamble_seen && part->n_decoded >= SBAS_PREAMBLE_LENGTH) {
-    bitshl(part->decoded,
-           sizeof(part->decoded),
-           part->n_decoded - SBAS_PREAMBLE_LENGTH + 1);
-    part->n_decoded = SBAS_PREAMBLE_LENGTH - 1;
-  }
+  /* no preable found */
+  bitshl(part->decoded,
+         sizeof(part->decoded),
+         part->n_decoded - SBAS_PREAMBLE_LENGTH + 1);
+  part->n_decoded = SBAS_PREAMBLE_LENGTH - 1;
 }
 
 /**
