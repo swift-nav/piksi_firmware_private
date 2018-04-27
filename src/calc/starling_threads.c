@@ -278,9 +278,7 @@ static PVT_ENGINE_INTERFACE_RC call_pvt_engine_filter(
   return get_baseline_ret;
 }
 
-
-
-void process_matched_obs(const obss_t *rover_channel_meass,
+static void process_matched_obs(const obss_t *rover_channel_meass,
                          const obss_t *reference_obss,
                          sbp_messages_t *sbp_messages) {
   PVT_ENGINE_INTERFACE_RC update_rov_obs = PVT_ENGINE_FAILURE;
