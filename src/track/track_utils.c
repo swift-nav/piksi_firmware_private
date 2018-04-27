@@ -57,7 +57,7 @@ void tracker_measurement_get(u64 ref_tc,
                          NAP_FRONTEND_SAMPLE_RATE_Hz;
 
   meas->cn0 = info->cn0;
-  meas->lock_time = tracker_get_lock_time(time_info, misc_info);
+  meas->lock_time = tracker_get_lock_time(info->mesid, time_info, misc_info);
   meas->time_in_track = time_info->cn0_usable_ms / 1000.0;
   meas->elevation = TRACKING_ELEVATION_UNKNOWN;
   meas->flags = 0;
@@ -97,19 +97,25 @@ bool tracker_calc_pseudorange(u64 ref_tc,
  *
  * \return Lock time [s]
  */
-double tracker_get_lock_time(const tracker_time_info_t *time_info,
+double tracker_get_lock_time(me_gnss_signal_t mesid,
+                             const tracker_time_info_t *time_info,
                              const tracker_misc_info_t *misc_info) {
-  u64 cpo_age_ms = 0;
+  u32 cpo_age_ms = 0;
   if (0 != misc_info->carrier_phase_offset.value) {
     u64 now_ms = timing_getms();
     assert(now_ms >= misc_info->carrier_phase_offset.timestamp_ms);
     cpo_age_ms = now_ms - misc_info->carrier_phase_offset.timestamp_ms;
   }
 
-  u64 lock_time_ms = UINT64_MAX;
+  u32 lock_time_ms = UINT32_MAX;
 
   lock_time_ms = MIN(lock_time_ms, time_info->ld_pess_locked_ms);
   lock_time_ms = MIN(lock_time_ms, cpo_age_ms);
+
+  if ((lock_time_ms < 1000) && (CODE_GPS_L1CA == mesid.code)) {
+    log_info_mesid(mesid, "time_info->ld_pess_locked_ms %" PRIu32 " cpo_age_ms %" PRIu32,
+        time_info->ld_pess_locked_ms, cpo_age_ms);
+  }
 
   return (double)lock_time_ms / SECS_MS;
 }
@@ -164,7 +170,7 @@ u16 tracker_load_cc_data(tracker_cc_data_t *cc_data) {
  * \return None
  */
 void tracker_set_carrier_phase_offset(const tracker_info_t *info,
-                                      s64 carrier_phase_offset) {
+                                      s32 carrier_phase_offset) {
   bool adjusted = false;
   tracker_t *tracker_channel = tracker_get(info->id);
 
@@ -180,9 +186,10 @@ void tracker_set_carrier_phase_offset(const tracker_info_t *info,
   tracker_unlock(tracker_channel);
 
   if (adjusted) {
-    log_debug_mesid(info->mesid,
-                    "Adjusting carrier phase offset to %" PRId64,
-                    carrier_phase_offset);
+    log_info_mesid(info->mesid,
+                   "Adjusting CPO to %" PRId32 " and HCA %s",
+                   carrier_phase_offset,
+                   (0 != (info->flags & TRACKER_FLAG_BIT_POLARITY_KNOWN)) ? "resolved" : "missing");
   }
 }
 
