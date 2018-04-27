@@ -779,7 +779,6 @@ static void starling_thread(void) {
 
     pvt_engine_result_t result_spp;
     result_spp.valid = false;
-    bool successful_spp = false;
 
     platform_mutex_lock(&spp_filter_manager_lock);
     const PVT_ENGINE_INTERFACE_RC spp_call_filter_ret =
@@ -797,7 +796,6 @@ static void starling_thread(void) {
 
     if (spp_call_filter_ret == PVT_ENGINE_SUCCESS) {
       starling_integration_solution_make_sbp(&result_spp, &dops, &sbp_messages);
-      successful_spp = true;
     } else {
       if (dgnss_soln_mode != STARLING_SOLN_MODE_TIME_MATCHED) {
         /* If we can't report a SPP position, something is wrong and no point
@@ -810,7 +808,7 @@ static void starling_thread(void) {
       continue;
     }
 
-    if (dgnss_soln_mode == STARLING_SOLN_MODE_LOW_LATENCY && successful_spp) {
+    if (dgnss_soln_mode == STARLING_SOLN_MODE_LOW_LATENCY) {
       platform_mutex_lock(&low_latency_filter_manager_lock);
 
       pvt_engine_result_t result_rtk;
