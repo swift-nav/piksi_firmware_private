@@ -130,8 +130,16 @@ static void update_tow(tracker_t *tracker_channel,
 
   /* Warn if updated TOW does not match the current value */
   if ((*current_TOW_ms != TOW_INVALID) && (*current_TOW_ms != TOW_ms)) {
-    log_error_mesid(
-        mesid, "TOW mismatch: %" PRId32 ", %" PRId32, *current_TOW_ms, TOW_ms);
+    u8 fifo_length = NAV_BIT_FIFO_INDEX_DIFF(
+    tracker_channel->nav_bit_fifo.write_index, data_sync->read_index);
+    u32 fifo_time_diff_ms = fifo_length * tracker_channel->bit_sync.bit_length;
+
+    log_error_mesid(mesid,
+                    "TOW mismatch: have=%" PRId32 " ms, got=%" PRId32 " ms"
+                    ", fifo=%" PRIu32 " ms, fract=%d ms",
+                    *current_TOW_ms, TOW_ms,
+                    fifo_time_diff_ms,
+                    (int)tracker_channel->nav_bit_TOW_offset_ms);
     /* This is rude, but safe. Do not expect it to happen normally. */
     tracker_flag_drop(tracker_channel, CH_DROP_REASON_OUTLIER);
   }
