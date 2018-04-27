@@ -133,6 +133,40 @@ static void update_filter_manager_settings(FilterManager *fm) {
       fm, settings.glonass_downweight_factor, CODE_GLO_L2OF);
 }
 
+/**
+ * Pass along a time-matched solution to the outside world.
+ * 
+ * The solution pointer may optionally be NULL if there was no
+ * valid solution for this epoch of processing. The observation
+ * pointers are expected to always be valid.
+ *
+ * NOTE: The pointers are only valid within the enclosing scope.
+ *       Any copies of the data must be deep copies.
+ */
+static void send_solution_time_matched(const StarlingFilterSolution *solution,
+                                       const obss_t *obss_base,
+                                       const obss_t *obss_rover) {
+  assert(obss_base);
+  assert(obss_rover);
+  /* Fill in the output messages. We always use the SPP message first.
+   * Then if there is a successful time-matched result, we will
+   * overwrite the relevant messages. */
+  sbp_messages_t sbp_messages;
+  gps_time_t epoch_time = obss_base->tor;
+  starling_integration_sbp_messages_init(&sbp_messages, &epoch_time);
+
+  pvt_engine_result_t soln_copy = obss_rover->soln;
+  starling_integration_solution_make_sbp(&soln_copy, NULL, &sbp_messages);
+
+  if (solution) {
+    starling_integration_solution_make_baseline_sbp(
+        &solution->result, obss_rover->pos_ecef, &solution->dops, &sbp_messages);
+  }
+
+  starling_integration_solution_send_pos_messages(
+      obss_base->sender_id, &sbp_messages, obss_rover->n, obss_rover->nm);
+}
+
 static void post_observations(u8 n,
                               const navigation_measurement_t m[],
                               const gps_time_t *t,
@@ -415,9 +449,6 @@ static void time_matched_obs_thread(void *arg) {
   obss_t *base_obs;
   static obss_t base_obss_copy;
 
-  /* Declare all SBP messages */
-  sbp_messages_t sbp_messages;
-
   while (1) {
     base_obs = NULL;
     const msg_t fetch_ret =
@@ -469,8 +500,7 @@ static void time_matched_obs_thread(void *arg) {
       if (fabs(dt) < TIME_MATCH_THRESHOLD && base_obss_copy.has_pos == 1) {
         /* Local variables to capture the filter result. */
         PVT_ENGINE_INTERFACE_RC time_matched_rc = PVT_ENGINE_FAILURE; 
-        dops_t time_matched_dops;
-        pvt_engine_result_t time_matched_result;
+        StarlingFilterSolution solution;
 
         /* Perform the time-matched filter update. */
         static gps_time_t last_update_time = {.wn = 0, .tow = 0.0};
@@ -478,28 +508,18 @@ static void time_matched_obs_thread(void *arg) {
             dgnss_soln_mode == STARLING_SOLN_MODE_TIME_MATCHED) {
 
           time_matched_rc = process_matched_obs(obss, &base_obss_copy, 
-                                                &time_matched_dops, 
-                                                &time_matched_result);
+                                                &solution.dops, 
+                                                &solution.result);
           last_update_time = obss->tor;
         }
-        
-        /* Fill in the output messages. We always use the SPP message first.
-         * Then if there is a successful time-matched result, we will
-         * overwrite the relevant messages. */
-        gps_time_t epoch_time = base_obss_copy.tor;
-        starling_integration_sbp_messages_init(&sbp_messages, &epoch_time);
 
-        pvt_engine_result_t soln_copy = obss->soln;
-        starling_integration_solution_make_sbp(&soln_copy, NULL, &sbp_messages);
-
+        /* Pass on NULL for the solution if it wasn't successful. */
+        StarlingFilterSolution *p_solution = NULL;
         if (PVT_ENGINE_SUCCESS == time_matched_rc) {
-          starling_integration_solution_make_baseline_sbp(
-              &time_matched_result, obss->pos_ecef, &time_matched_dops, &sbp_messages);
+          p_solution = &solution;
         }
-
-        starling_integration_solution_send_pos_messages(
-            base_obss_copy.sender_id, &sbp_messages, obss->n, obss->nm);
-
+        send_solution_time_matched(p_solution, &base_obss_copy, obss);
+               
         platform_time_matched_obs_free(obss);
         break;
       } else {
