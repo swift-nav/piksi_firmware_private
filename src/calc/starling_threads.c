@@ -278,15 +278,21 @@ static PVT_ENGINE_INTERFACE_RC call_pvt_engine_filter(
   return get_baseline_ret;
 }
 
-static void process_matched_obs(const obss_t *rover_channel_meass,
-                         const obss_t *reference_obss,
-                         sbp_messages_t *sbp_messages) {
+/**
+ * Processed a time-matched pair of rover and reference
+ * observations. Return code indicates the status of
+ * the computation. If successful, the calculated
+ * DOPS and result are returned via the output parameters.
+ */
+static PVT_ENGINE_INTERFACE_RC 
+process_matched_obs(const obss_t *rover_channel_meass,
+                    const obss_t *reference_obss,
+                    dops_t *rtk_dops,
+                    pvt_engine_result_t *rtk_result) {
   PVT_ENGINE_INTERFACE_RC update_rov_obs = PVT_ENGINE_FAILURE;
   PVT_ENGINE_INTERFACE_RC update_ref_obs = PVT_ENGINE_FAILURE;
   PVT_ENGINE_INTERFACE_RC update_filter_ret = PVT_ENGINE_FAILURE;
   PVT_ENGINE_INTERFACE_RC get_baseline_ret = PVT_ENGINE_FAILURE;
-  dops_t RTK_dops;
-  pvt_engine_result_t result;
 
   ephemeris_t ephs[MAX_CHANNELS];
   const ephemeris_t *stored_ephs[MAX_CHANNELS];
@@ -375,18 +381,15 @@ static void process_matched_obs(const obss_t *rover_channel_meass,
     /* Note: in time match mode we send the physically incorrect time of the
      * observation message (which can be receiver clock time, or rounded GPS
      * time) instead of the true GPS time of the solution. */
-    result.time = rover_channel_meass->tor;
-    result.propagation_time = 0;
+    rtk_result->time = rover_channel_meass->tor;
+    rtk_result->propagation_time = 0;
     get_baseline_ret =
-        get_baseline(time_matched_filter_manager, true, &RTK_dops, &result);
+        get_baseline(time_matched_filter_manager, true, rtk_dops, rtk_result);
   }
 
   platform_mutex_unlock(&time_matched_filter_manager_lock);
 
-  if (get_baseline_ret == PVT_ENGINE_SUCCESS) {
-    starling_integration_solution_make_baseline_sbp(
-        &result, rover_channel_meass->pos_ecef, &RTK_dops, sbp_messages);
-  }
+  return get_baseline_ret;
 }
 
 bool update_time_matched(gps_time_t *last_update_time,
@@ -481,7 +484,17 @@ static void time_matched_obs_thread(void *arg) {
         static gps_time_t last_update_time = {.wn = 0, .tow = 0.0};
         if (update_time_matched(&last_update_time, &obss->tor, obss->n) ||
             dgnss_soln_mode == STARLING_SOLN_MODE_TIME_MATCHED) {
-          process_matched_obs(obss, &base_obss_copy, &sbp_messages);
+
+          dops_t rtk_dops;
+          pvt_engine_result_t rtk_result;
+          PVT_ENGINE_INTERFACE_RC rtk_success = 
+            process_matched_obs(obss, &base_obss_copy, &rtk_dops, &rtk_result);
+
+          if (PVT_ENGINE_SUCCESS == rtk_success) {
+            starling_integration_solution_make_baseline_sbp(
+                &rtk_result, obss->pos_ecef, &rtk_dops, &sbp_messages);
+          }
+
           last_update_time = obss->tor;
         }
 
