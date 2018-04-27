@@ -160,11 +160,11 @@ static bool point_in_region(const point_coord_t *border,
     return true;
   }
   /* Check if lon_deg from [-180 .. (-180 + hyst_deg)] fall into the region */
-  else if ((west_deg <= (lon_deg + 360)) && ((lon_deg + 360) <= east_deg)) {
+  if ((west_deg <= (lon_deg + 360)) && ((lon_deg + 360) <= east_deg)) {
     return true;
   }
   /* Check if lon_deg from [(180 - hyst_deg) .. 180] fall into the region */
-  else if ((west_deg <= (lon_deg - 360)) && ((lon_deg - 360) <= east_deg)) {
+  if ((west_deg <= (lon_deg - 360)) && ((lon_deg - 360) <= east_deg)) {
     return true;
   }
 
