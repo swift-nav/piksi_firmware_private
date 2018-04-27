@@ -467,35 +467,34 @@ static void time_matched_obs_thread(void *arg) {
       double dt = gpsdifftime(&obss->tor, &base_obss_copy.tor);
 
       if (fabs(dt) < TIME_MATCH_THRESHOLD && base_obss_copy.has_pos == 1) {
-        /* We need to form the SBP messages derived from the SPP at this
-         * solution time before we
-         * do the differential solution so that the various messages can be
-         * overwritten as appropriate,
-         * the exception is the DOP messages, as we don't have the SPP DOP and
-         * it will always be overwritten by the differential */
-        pvt_engine_result_t soln_copy = obss->soln;
+        /* Local variables to capture the filter result. */
+        PVT_ENGINE_INTERFACE_RC time_matched_rc = PVT_ENGINE_FAILURE; 
+        dops_t time_matched_dops;
+        pvt_engine_result_t time_matched_result;
 
-        /* Init the messages we want to send */
-        gps_time_t epoch_time = base_obss_copy.tor;
-        starling_integration_sbp_messages_init(&sbp_messages, &epoch_time);
-
-        starling_integration_solution_make_sbp(&soln_copy, NULL, &sbp_messages);
-
+        /* Perform the time-matched filter update. */
         static gps_time_t last_update_time = {.wn = 0, .tow = 0.0};
         if (update_time_matched(&last_update_time, &obss->tor, obss->n) ||
             dgnss_soln_mode == STARLING_SOLN_MODE_TIME_MATCHED) {
 
-          dops_t rtk_dops;
-          pvt_engine_result_t rtk_result;
-          PVT_ENGINE_INTERFACE_RC rtk_success = 
-            process_matched_obs(obss, &base_obss_copy, &rtk_dops, &rtk_result);
-
-          if (PVT_ENGINE_SUCCESS == rtk_success) {
-            starling_integration_solution_make_baseline_sbp(
-                &rtk_result, obss->pos_ecef, &rtk_dops, &sbp_messages);
-          }
-
+          time_matched_rc = process_matched_obs(obss, &base_obss_copy, 
+                                                &time_matched_dops, 
+                                                &time_matched_result);
           last_update_time = obss->tor;
+        }
+        
+        /* Fill in the output messages. We always use the SPP message first.
+         * Then if there is a successful time-matched result, we will
+         * overwrite the relevant messages. */
+        gps_time_t epoch_time = base_obss_copy.tor;
+        starling_integration_sbp_messages_init(&sbp_messages, &epoch_time);
+
+        pvt_engine_result_t soln_copy = obss->soln;
+        starling_integration_solution_make_sbp(&soln_copy, NULL, &sbp_messages);
+
+        if (PVT_ENGINE_SUCCESS == time_matched_rc) {
+          starling_integration_solution_make_baseline_sbp(
+              &time_matched_result, obss->pos_ecef, &time_matched_dops, &sbp_messages);
         }
 
         starling_integration_solution_send_pos_messages(
