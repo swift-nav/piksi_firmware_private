@@ -312,6 +312,118 @@ static void sbas_post_me_msg(const msg_sbas_raw_t *sbas_raw_msg) {
   }
 }
 
+/** A bit array. */
+struct bit_arr {
+    uint8_t *ptr;    /**< Bit array pointer */
+    size_t bit_size; /**< Bit array size [bits] */
+    bool l2r;        /**< true: bit array index 0 is at bit index 7 of ptr[0].
+                                    false: it is at bit index 0 of ptr[0] */
+};
+
+struct bit_field {
+    size_t bit_offset; /**< The index of the beginning of the
+                            bit field within a bit array. It is an index
+                            of either LSB or MSB of the field depending on
+                            the value of bit_field::le */
+    size_t bit_size;   /**< The number of bits in the field  */
+    bool le;           /**< The bit field bits are in little endian format */
+};
+
+/* #include <assert.h> */
+/* #define ASSERT assert */
+
+size_t bit_copy(struct bit_arr *dst, const struct bit_field *dst_field,
+                const struct bit_arr *src, const struct bit_field *src_field)
+{
+    size_t bit_num = MIN(dst_field->bit_size, src_field->bit_size);
+    bit_num = MIN(bit_num, dst->bit_size - dst_field->bit_offset);
+    bit_num = MIN(bit_num, src->bit_size - src_field->bit_offset);
+
+    size_t src_offset = src_field->bit_offset;
+    size_t dst_offset = dst_field->bit_offset;
+
+    size_t dst_byte;
+    size_t dst_bit;
+    size_t src_byte;
+    size_t src_bit;
+    bool both_le = dst_field->le && src_field->le;
+    bool both_be = !dst_field->le && !src_field->le;
+    bool same_endian = both_le || both_be;
+
+    for (size_t i = 0; i < bit_num; i++) {
+        dst_byte = (dst_offset + i) / 8;
+        dst_bit = (dst_offset + i) % 8;
+
+        if (dst->l2r) {
+            dst_bit = 7 - dst_bit;
+        }
+
+        if (same_endian) {
+            src_byte = (src_offset + i) / 8;
+            src_bit = (src_offset + i) % 8;
+        } else {
+            src_byte = (src_offset + src_field->bit_size - 1 - i) / 8;
+            src_bit = (src_offset + src_field->bit_size - 1 - i) % 8;
+        }
+
+        if (src->l2r) {
+            src_bit = 7 - src_bit;
+        }
+
+        uint8_t bit_src = (uint8_t)((src->ptr[src_byte] >> src_bit) & 1);
+        uint8_t val = (uint8_t)(1 << dst_bit);
+        if (bit_src) {
+            dst->ptr[dst_byte] = (uint8_t)(dst->ptr[dst_byte] | val);
+        } else {
+            dst->ptr[dst_byte] = (uint8_t)(dst->ptr[dst_byte] & ~val);
+        }
+    }
+    return bit_num;
+}
+
+uint8_t bit_get_u1(const struct bit_arr *arr, size_t offset)
+{
+    uint8_t bit = 0;
+    struct bit_arr dst = {.ptr = &bit, .bit_size = 1, .l2r = false};
+    struct bit_field dst_field = {.bit_offset = 0, .bit_size = 1, .le = true};
+    struct bit_field src_field = {.bit_offset = offset,
+                                  .bit_size = 1,
+                                  .le = true};
+    bit_copy(&dst, &dst_field, arr, &src_field);
+    return bit;
+}
+
+#include <assert.h>
+/**
+   Print the content of a bit field within a bit array.
+   @param arr The bit array.
+   @param field The bit field within \a arr.
+   @param dst Destination buffer
+   @param dst_size The destination buffer size [characters]
+   @return Number of characters printed
+ */
+size_t bit_print_field(const struct bit_arr *arr, const struct bit_field *field,
+                       char *dst, size_t dst_size)
+{
+    uint8_t tmp[32] = {0};
+    struct bit_arr tmp_arr = { .ptr = tmp, .bit_size = 32 * 8, .l2r = true };
+    struct bit_field tmp_field = { .bit_offset = 0, .bit_size = 32 * 8, .le = false };
+    bit_copy(&tmp_arr, &tmp_field, arr, field);
+    size_t j = 0;
+    uint8_t nibble = 0;
+    for (size_t i = 0; i < 256; i++) {
+        uint8_t bit = bit_get_u1(&tmp_arr, tmp_field.bit_offset + i);
+        nibble <<= 1;
+        nibble |= bit;
+        if ((i + 1) % 4 == 0) {
+            snprintf(dst + j, dst_size - j, "%1X", nibble & 0xF);
+            j++;
+        }
+    }
+
+    return j;
+}
+
 /**
  * Performs SBAS message decoding.
  *
@@ -356,6 +468,12 @@ static bool sbas_msg_decode(sbas_v27_part_t *part, sbas_msg_t *msg) {
              SBAS_V27_CONSTRAINT_LENGTH - 1) *
                 2 +
             part->n_symbols;
+
+    char dst[128] = {0};
+    struct bit_arr arr = { .ptr = part->decoded, .bit_size = 250, .l2r = true };
+    struct bit_field field = { .bit_offset = 0, .bit_size = 250, .le = false };
+    bit_print_field(&arr, &field, dst, ARRAY_SIZE(dst));
+    log_info_sid(msg->sid, "%s", dst);
 
     switch (msg_id) {
       case 0:
