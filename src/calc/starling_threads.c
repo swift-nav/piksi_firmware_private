@@ -487,6 +487,9 @@ static void time_matched_obs_thread(void *arg) {
           last_update_time = obss->tor;
         }
 
+        starling_integration_solution_send_pos_messages(
+            base_obss_copy.sender_id, &sbp_messages, obss->n, obss->nm);
+
         platform_time_matched_obs_free(obss);
         break;
       } else {
