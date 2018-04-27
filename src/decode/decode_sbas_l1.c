@@ -26,7 +26,6 @@
 #include "timing/timing.h"
 #include "track/track_decode.h"
 #include "track/track_sid_db.h"
-#include "track/track_state.h"
 
 #include <assert.h>
 #include <string.h>
@@ -86,15 +85,8 @@ static void decoder_sbas_l1_process(const decoder_channel_info_t *channel_info,
 
   /* Process incoming nav bits */
   u8 channel = channel_info->tracking_channel;
-  tracker_t *tracker = tracker_get(channel);
-  nav_data_sync_t *to_tracker = &tracker->nav_data_sync;
   nav_bit_t nav_bit;
-  /* Reading nav bits while the previous decoded data was not handled
-     may result in incorrect TOW as tracker adjusts the decoded TOW by
-     the length of the nav bits FIFO. This is a pecularity of SBAS data
-     decoding as the symbol length is 2ms. We did not need it for longer
-     data bits/symbols. */
-  while (!to_tracker->valid && tracker_nav_bit_get(channel, &nav_bit)) {
+  while (tracker_nav_bit_get(channel, &nav_bit)) {
     /* Don't decode data while in sensitivity mode. */
     if (0 == nav_bit) {
       data->sbas_msg.bit_polarity = BIT_POLARITY_UNKNOWN;
@@ -129,6 +121,6 @@ static void decoder_sbas_l1_process(const decoder_channel_info_t *channel_info,
     from_decoder.TOW_ms = data->sbas_msg.tow_ms;
     from_decoder.bit_polarity = data->sbas_msg.bit_polarity;
     from_decoder.health = data->sbas_msg.health;
-    tracker_data_sync(channel, &from_decoder);
+    tracker_data_sync(channel_info->tracking_channel, &from_decoder);
   }
 }
