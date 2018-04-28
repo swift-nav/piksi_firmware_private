@@ -796,7 +796,7 @@ void sanitize_tracker(tracker_t *tracker_channel, u64 now_ms) {
       log_info("adel: started RF on/off sequence");
       last_ms = now_ms;
     }
-    if ((now_ms - last_ms) > 60000) {
+    if ((now_ms - last_ms) > 300000) {
       last_ms = now_ms;
       for (u8 i = 0; i < nap_track_n_channels; i++) {
         tracker_t *tracker = tracker_get(i);
