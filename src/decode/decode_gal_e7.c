@@ -71,7 +71,7 @@ static void decoder_gal_e7_process(const decoder_channel_info_t *channel_info,
   assert(decoder_data);
 
   gal_inav_decoded_t dd;
-
+  gps_time_t t = GPS_TIME_UNKNOWN;
   nav_msg_gal_inav_t *data = decoder_data;
 
   /* Process incoming nav bits */
@@ -82,7 +82,70 @@ static void decoder_gal_e7_process(const decoder_channel_info_t *channel_info,
     bool upd = gal_inav_msg_update(data, nav_bit);
     if (!upd) continue;
 
-    parse_inav_word(data, &dd);
+    ephemeris_t *e = &(dd.ephemeris);
+    ephemeris_kepler_t *k = &(dd.ephemeris.kepler);
+    utc_tm date;
+
+    inav_data_type_t ret = parse_inav_word(data, &dd, &t);
+    switch (ret) {
+      case INAV_TOW:
+        log_info_mesid(channel_info->mesid, "WN %d TOW %.3f", t.wn, t.tow);
+        break;
+      case INAV_EPH:
+        make_utc_tm(&(k->toc), &date);
+        log_debug("E%02" PRIu8 " %4" PRIu16 " %2" PRIu8 " %2" PRIu8 " %2" PRIu8
+                  " %2" PRIu8 " %2" PRIu8 "%19.11E%19.11E%19.11E  ",
+                  channel_info->mesid.sat,
+                  date.year,
+                  date.month,
+                  date.month_day,
+                  date.hour,
+                  date.minute,
+                  date.second_int,
+                  k->af0,
+                  k->af1,
+                  k->af2);
+        log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
+                  (double)k->iode,
+                  k->crs,
+                  k->dn,
+                  k->m0);
+        log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
+                  k->cuc,
+                  k->ecc,
+                  k->cus,
+                  k->sqrta);
+        log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
+                  (double)e->toe.tow,
+                  k->cic,
+                  k->omega0,
+                  k->cis);
+        log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
+                  k->inc,
+                  k->crc,
+                  k->w,
+                  k->omegadot);
+        log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
+                  k->inc_dot,
+                  1.0,
+                  (double)e->toe.wn,
+                  0.0);
+        log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
+                  e->ura,
+                  (double)e->health_bits,
+                  k->tgd_gal_s[0],
+                  k->tgd_gal_s[1]);
+        log_debug("    %19.11E%19.11E ", rint(t.tow), 0.0);
+        break;
+      case INAV_UTC:
+        log_debug_mesid(channel_info->mesid, "TOW %.3f", t.tow);
+        break;
+      case INAV_ALM:
+        break;
+      case INAV_INCOMPLETE:
+      default:
+        break;
+    }
   }
   return;
 }

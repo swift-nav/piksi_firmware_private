@@ -99,29 +99,25 @@ typedef struct {
   /* last meaningful received data packet */
   u8 raw_content[GAL_INAV_CONTENT_BYTE];
 
-  /* IODnav used to collect ephemeris from different pages */
+  /* IODnav used to collect ephemeris from pages 1, 2, 3, 4 and 5 */
   u16 iod_nav[4];
-  /* Ephemeris from pages 1, 2, 3, and 4*/
-  u8 raw_eph[GAL_INAV_CONTENT_BYTE][4];
+  /* Ephemeris from pages 1, 2, 3, 4 and 5 */
+  u8 raw_eph[5][GAL_INAV_CONTENT_BYTE];
 
   /* IODa used to collect almanac from different pages */
   u16 iod_alm[4];
   /* Almanac from pages 7, 8, 9 and 10 */
-  u8 raw_alm0[GAL_INAV_CONTENT_BYTE];
-  u8 raw_alm1[GAL_INAV_CONTENT_BYTE];
-  u8 raw_alm2[GAL_INAV_CONTENT_BYTE];
-  u8 raw_alm3[GAL_INAV_CONTENT_BYTE];
+  u8 raw_alm[4][GAL_INAV_CONTENT_BYTE];
 
 } nav_msg_gal_inav_t;
 
-typedef enum _inav_content_type {
+typedef enum _inav_data_type_e {
   INAV_INCOMPLETE = -1,
-  INAV_TOWONLY = 0,
+  INAV_TOW = 0,
   INAV_EPH = 1,
-  INAV_TOW = 5,
   INAV_UTC = 6,
   INAV_ALM = 7,
-} inav_content_type;
+} inav_data_type_t;
 
 typedef struct _gal_inav_decoded_t {
   u32 toe;
@@ -136,14 +132,16 @@ typedef struct _gal_inav_decoded_t {
   utc_params_t utc;
   bool utc_params_upd_flag;
 
+  almanac_t alm[3];
 } gal_inav_decoded_t;
 
 void gal_inav_msg_init(nav_msg_gal_inav_t *n, u8 prn);
 void gal_inav_msg_clear_decoded(nav_msg_gal_inav_t *n);
 bool gal_inav_msg_update(nav_msg_gal_inav_t *n, s8 bit_val);
 
-inav_content_type parse_inav_word(nav_msg_gal_inav_t *nav_msg,
-                                  gal_inav_decoded_t *dd);
+inav_data_type_t parse_inav_word(nav_msg_gal_inav_t *nav_msg,
+                                 gal_inav_decoded_t *dd,
+                                 gps_time_t *t);
 
 #ifdef __cplusplus
 } /* extern "C" */

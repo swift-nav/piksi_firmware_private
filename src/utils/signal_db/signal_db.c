@@ -64,6 +64,7 @@ static const u16 code_signal_counts[CODE_COUNT] =
      [CODE_BDS2_B2] = PLATFORM_SIGNAL_COUNT_BDS2_B2,
      [CODE_QZS_L1CA] = PLATFORM_SIGNAL_COUNT_QZS_L1CA,
      [CODE_QZS_L2CM] = PLATFORM_SIGNAL_COUNT_QZS_L2C,
+     [CODE_GAL_E1X] = PLATFORM_SIGNAL_COUNT_GAL_E1,
      [CODE_GAL_E7X] = PLATFORM_SIGNAL_COUNT_GAL_E7};
 
 /** Number of ME signals for each code which are supported on
@@ -80,6 +81,7 @@ static const u16 me_code_signal_counts[CODE_COUNT] =
      [CODE_BDS2_B2] = PLATFORM_SIGNAL_COUNT_BDS2_B2,
      [CODE_QZS_L1CA] = PLATFORM_SIGNAL_COUNT_QZS_L1CA,
      [CODE_QZS_L2CM] = PLATFORM_SIGNAL_COUNT_QZS_L2C,
+     [CODE_GAL_E1X] = PLATFORM_SIGNAL_COUNT_GAL_E1,
      [CODE_GAL_E7X] = PLATFORM_SIGNAL_COUNT_GAL_E7};
 
 /** Initialize the signal module. */
