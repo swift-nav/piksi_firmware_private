@@ -359,7 +359,7 @@ static bool sbas_msg_decode(sbas_v27_part_t *part, sbas_msg_t *msg) {
 
     switch (msg_id) {
       case 0:
-        msg->health = SV_UNHEALTHY;
+        //msg->health = SV_UNHEALTHY;
         break;
       case 12:
         msg->wn = getbitu(part->decoded, 141, 10);   /* GPS Week Number */
@@ -367,6 +367,16 @@ static bool sbas_msg_decode(sbas_v27_part_t *part, sbas_msg_t *msg) {
         msg->tow_ms = tow_s * SECS_MS; /* convert to milliseconds */
         /* Compensate for Viterbi delay. */
         msg->tow_ms += delay * SBAS_L1CA_SYMBOL_LENGTH_MS;
+
+        log_info_sid(msg->sid,
+                     "tow=%" PRIu32 "ms"
+                     " delay=%" PRIu32 "ms"
+                     " decoded=%d, symbols=%d",
+                     msg->tow_ms,
+                     delay * SBAS_L1CA_SYMBOL_LENGTH_MS,
+                     (int)part->n_decoded,
+                     (int)part->n_symbols);
+
         if (msg->tow_ms >= WEEK_MS) {
           msg->tow_ms -= WEEK_MS;
         }
