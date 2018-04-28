@@ -135,7 +135,7 @@ static void update_filter_manager_settings(FilterManager *fm) {
 
 /**
  * Pass along a time-matched solution to the outside world.
- * 
+ *
  * The solution pointer may optionally be NULL if there was no
  * valid solution for this epoch of processing. The observation
  * pointers are expected to always be valid.
@@ -159,8 +159,10 @@ static void send_solution_time_matched(const StarlingFilterSolution *solution,
   starling_integration_solution_make_sbp(&soln_copy, NULL, &sbp_messages);
 
   if (solution) {
-    starling_integration_solution_make_baseline_sbp(
-        &solution->result, obss_rover->pos_ecef, &solution->dops, &sbp_messages);
+    starling_integration_solution_make_baseline_sbp(&solution->result,
+                                                    obss_rover->pos_ecef,
+                                                    &solution->dops,
+                                                    &sbp_messages);
   }
 
   starling_integration_solution_send_pos_messages(
@@ -318,11 +320,11 @@ static PVT_ENGINE_INTERFACE_RC call_pvt_engine_filter(
  * the computation. If successful, the calculated
  * DOPS and result are returned via the output parameters.
  */
-static PVT_ENGINE_INTERFACE_RC 
-process_matched_obs(const obss_t *rover_channel_meass,
-                    const obss_t *reference_obss,
-                    dops_t *rtk_dops,
-                    pvt_engine_result_t *rtk_result) {
+static PVT_ENGINE_INTERFACE_RC process_matched_obs(
+    const obss_t *rover_channel_meass,
+    const obss_t *reference_obss,
+    dops_t *rtk_dops,
+    pvt_engine_result_t *rtk_result) {
   PVT_ENGINE_INTERFACE_RC update_rov_obs = PVT_ENGINE_FAILURE;
   PVT_ENGINE_INTERFACE_RC update_ref_obs = PVT_ENGINE_FAILURE;
   PVT_ENGINE_INTERFACE_RC update_filter_ret = PVT_ENGINE_FAILURE;
@@ -499,17 +501,15 @@ static void time_matched_obs_thread(void *arg) {
 
       if (fabs(dt) < TIME_MATCH_THRESHOLD && base_obss_copy.has_pos == 1) {
         /* Local variables to capture the filter result. */
-        PVT_ENGINE_INTERFACE_RC time_matched_rc = PVT_ENGINE_FAILURE; 
+        PVT_ENGINE_INTERFACE_RC time_matched_rc = PVT_ENGINE_FAILURE;
         StarlingFilterSolution solution;
 
         /* Perform the time-matched filter update. */
         static gps_time_t last_update_time = {.wn = 0, .tow = 0.0};
         if (update_time_matched(&last_update_time, &obss->tor, obss->n) ||
             dgnss_soln_mode == STARLING_SOLN_MODE_TIME_MATCHED) {
-
-          time_matched_rc = process_matched_obs(obss, &base_obss_copy, 
-                                                &solution.dops, 
-                                                &solution.result);
+          time_matched_rc = process_matched_obs(
+              obss, &base_obss_copy, &solution.dops, &solution.result);
           last_update_time = obss->tor;
         }
 
@@ -519,7 +519,7 @@ static void time_matched_obs_thread(void *arg) {
           p_solution = &solution;
         }
         send_solution_time_matched(p_solution, &base_obss_copy, obss);
-               
+
         platform_time_matched_obs_free(obss);
         break;
       } else {
