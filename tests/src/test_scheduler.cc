@@ -18,7 +18,7 @@
 #include "soft_macq_main.h"
 
 #define EXPECTED_COST_DELTA_MS 50
-#define EXPECTED_SLEEP_TIMEOUT_MS 1000
+#define EXPECTED_SLEEP_TIMEOUT_MS 100
 
 extern u32 stubs_now_ms;
 
