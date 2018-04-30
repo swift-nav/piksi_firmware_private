@@ -133,6 +133,42 @@ static void update_filter_manager_settings(FilterManager *fm) {
       fm, settings.glonass_downweight_factor, CODE_GLO_L2OF);
 }
 
+/**
+ * Pass along a time-matched solution to the outside world.
+ *
+ * The solution pointer may optionally be NULL if there was no
+ * valid solution for this epoch of processing. The observation
+ * pointers are expected to always be valid.
+ *
+ * NOTE: The pointers are only valid within the enclosing scope.
+ *       Any copies of the data must be deep copies.
+ */
+static void send_solution_time_matched(const StarlingFilterSolution *solution,
+                                       const obss_t *obss_base,
+                                       const obss_t *obss_rover) {
+  assert(obss_base);
+  assert(obss_rover);
+  /* Fill in the output messages. We always use the SPP message first.
+   * Then if there is a successful time-matched result, we will
+   * overwrite the relevant messages. */
+  sbp_messages_t sbp_messages;
+  gps_time_t epoch_time = obss_base->tor;
+  starling_integration_sbp_messages_init(&sbp_messages, &epoch_time);
+
+  pvt_engine_result_t soln_copy = obss_rover->soln;
+  starling_integration_solution_make_sbp(&soln_copy, NULL, &sbp_messages);
+
+  if (solution) {
+    starling_integration_solution_make_baseline_sbp(&solution->result,
+                                                    obss_rover->pos_ecef,
+                                                    &solution->dops,
+                                                    &sbp_messages);
+  }
+
+  starling_integration_solution_send_pos_messages(
+      obss_base->sender_id, &sbp_messages, obss_rover->n, obss_rover->nm);
+}
+
 static void post_observations(u8 n,
                               const navigation_measurement_t m[],
                               const gps_time_t *t,
@@ -278,17 +314,21 @@ static PVT_ENGINE_INTERFACE_RC call_pvt_engine_filter(
   return get_baseline_ret;
 }
 
-
-
-void process_matched_obs(const obss_t *rover_channel_meass,
-                         const obss_t *reference_obss,
-                         sbp_messages_t *sbp_messages) {
+/**
+ * Processed a time-matched pair of rover and reference
+ * observations. Return code indicates the status of
+ * the computation. If successful, the calculated
+ * DOPS and result are returned via the output parameters.
+ */
+static PVT_ENGINE_INTERFACE_RC process_matched_obs(
+    const obss_t *rover_channel_meass,
+    const obss_t *reference_obss,
+    dops_t *rtk_dops,
+    pvt_engine_result_t *rtk_result) {
   PVT_ENGINE_INTERFACE_RC update_rov_obs = PVT_ENGINE_FAILURE;
   PVT_ENGINE_INTERFACE_RC update_ref_obs = PVT_ENGINE_FAILURE;
   PVT_ENGINE_INTERFACE_RC update_filter_ret = PVT_ENGINE_FAILURE;
   PVT_ENGINE_INTERFACE_RC get_baseline_ret = PVT_ENGINE_FAILURE;
-  dops_t RTK_dops;
-  pvt_engine_result_t result;
 
   ephemeris_t ephs[MAX_CHANNELS];
   const ephemeris_t *stored_ephs[MAX_CHANNELS];
@@ -377,18 +417,15 @@ void process_matched_obs(const obss_t *rover_channel_meass,
     /* Note: in time match mode we send the physically incorrect time of the
      * observation message (which can be receiver clock time, or rounded GPS
      * time) instead of the true GPS time of the solution. */
-    result.time = rover_channel_meass->tor;
-    result.propagation_time = 0;
+    rtk_result->time = rover_channel_meass->tor;
+    rtk_result->propagation_time = 0;
     get_baseline_ret =
-        get_baseline(time_matched_filter_manager, true, &RTK_dops, &result);
+        get_baseline(time_matched_filter_manager, true, rtk_dops, rtk_result);
   }
 
   platform_mutex_unlock(&time_matched_filter_manager_lock);
 
-  if (get_baseline_ret == PVT_ENGINE_SUCCESS) {
-    starling_integration_solution_make_baseline_sbp(
-        &result, rover_channel_meass->pos_ecef, &RTK_dops, sbp_messages);
-  }
+  return get_baseline_ret;
 }
 
 bool update_time_matched(gps_time_t *last_update_time,
@@ -413,9 +450,6 @@ static void time_matched_obs_thread(void *arg) {
 
   obss_t *base_obs;
   static obss_t base_obss_copy;
-
-  /* Declare all SBP messages */
-  sbp_messages_t sbp_messages;
 
   while (1) {
     base_obs = NULL;
@@ -466,29 +500,25 @@ static void time_matched_obs_thread(void *arg) {
       double dt = gpsdifftime(&obss->tor, &base_obss_copy.tor);
 
       if (fabs(dt) < TIME_MATCH_THRESHOLD && base_obss_copy.has_pos == 1) {
-        /* We need to form the SBP messages derived from the SPP at this
-         * solution time before we
-         * do the differential solution so that the various messages can be
-         * overwritten as appropriate,
-         * the exception is the DOP messages, as we don't have the SPP DOP and
-         * it will always be overwritten by the differential */
-        pvt_engine_result_t soln_copy = obss->soln;
+        /* Local variables to capture the filter result. */
+        PVT_ENGINE_INTERFACE_RC time_matched_rc = PVT_ENGINE_FAILURE;
+        StarlingFilterSolution solution = {0};
 
-        /* Init the messages we want to send */
-        gps_time_t epoch_time = base_obss_copy.tor;
-        starling_integration_sbp_messages_init(&sbp_messages, &epoch_time);
-
-        starling_integration_solution_make_sbp(&soln_copy, NULL, &sbp_messages);
-
+        /* Perform the time-matched filter update. */
         static gps_time_t last_update_time = {.wn = 0, .tow = 0.0};
         if (update_time_matched(&last_update_time, &obss->tor, obss->n) ||
             dgnss_soln_mode == STARLING_SOLN_MODE_TIME_MATCHED) {
-          process_matched_obs(obss, &base_obss_copy, &sbp_messages);
+          time_matched_rc = process_matched_obs(
+              obss, &base_obss_copy, &solution.dops, &solution.result);
           last_update_time = obss->tor;
         }
 
-        starling_integration_solution_send_pos_messages(
-            base_obss_copy.sender_id, &sbp_messages, obss->n, obss->nm);
+        /* Pass on NULL for the solution if it wasn't successful. */
+        StarlingFilterSolution *p_solution = NULL;
+        if (PVT_ENGINE_SUCCESS == time_matched_rc) {
+          p_solution = &solution;
+        }
+        send_solution_time_matched(p_solution, &base_obss_copy, obss);
 
         platform_time_matched_obs_free(obss);
         break;
@@ -749,7 +779,6 @@ static void starling_thread(void) {
 
     pvt_engine_result_t result_spp;
     result_spp.valid = false;
-    bool successful_spp = false;
 
     platform_mutex_lock(&spp_filter_manager_lock);
     const PVT_ENGINE_INTERFACE_RC spp_call_filter_ret =
@@ -767,7 +796,6 @@ static void starling_thread(void) {
 
     if (spp_call_filter_ret == PVT_ENGINE_SUCCESS) {
       starling_integration_solution_make_sbp(&result_spp, &dops, &sbp_messages);
-      successful_spp = true;
     } else {
       if (dgnss_soln_mode != STARLING_SOLN_MODE_TIME_MATCHED) {
         /* If we can't report a SPP position, something is wrong and no point
@@ -780,7 +808,7 @@ static void starling_thread(void) {
       continue;
     }
 
-    if (dgnss_soln_mode == STARLING_SOLN_MODE_LOW_LATENCY && successful_spp) {
+    if (STARLING_SOLN_MODE_LOW_LATENCY == dgnss_soln_mode) {
       platform_mutex_lock(&low_latency_filter_manager_lock);
 
       pvt_engine_result_t result_rtk;

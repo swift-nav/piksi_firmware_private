@@ -59,6 +59,14 @@ typedef struct {
   msg_vel_ned_cov_t vel_ned_cov;
 } sbp_messages_t;
 
+/**
+ * Filter result data type returned by various API functions.
+ */
+typedef struct StarlingFilterSolution {
+  dops_t dops;
+  pvt_engine_result_t result;
+} StarlingFilterSolution;
+
 /** number of milliseconds before SPP resumes in pseudo-absolute mode */
 #define DGNSS_TIMEOUT_MS 5000
 
