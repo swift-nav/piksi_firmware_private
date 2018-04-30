@@ -502,7 +502,7 @@ static void time_matched_obs_thread(void *arg) {
       if (fabs(dt) < TIME_MATCH_THRESHOLD && base_obss_copy.has_pos == 1) {
         /* Local variables to capture the filter result. */
         PVT_ENGINE_INTERFACE_RC time_matched_rc = PVT_ENGINE_FAILURE;
-        StarlingFilterSolution solution;
+        StarlingFilterSolution solution = {0};
 
         /* Perform the time-matched filter update. */
         static gps_time_t last_update_time = {.wn = 0, .tow = 0.0};
