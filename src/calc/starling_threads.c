@@ -748,8 +748,6 @@ static void starling_thread(void) {
     filter_manager_update_iono_parameters(spp_filter_manager, &i_params, false);
     platform_mutex_unlock(&spp_filter_manager_lock);
 
-    dops_t dops;
-
     /* This will duplicate pointers to satellites with mutliple frequencies,
      * but this scenario is expected and handled */
     const ephemeris_t *stored_ephs[MAX_CHANNELS];
@@ -790,6 +788,7 @@ static void starling_thread(void) {
     StarlingFilterSolution rtk_solution = {0}; 
     spp_solution.result.valid = false;
     rtk_solution.result.valid = false;
+    dgnss_solution_mode_t dgnss_soln_mode = starling_get_solution_mode();
     /* Always try and run the SPP filter. */
     platform_mutex_lock(&spp_filter_manager_lock);
     spp_rc = call_pvt_engine_filter(spp_filter_manager,
@@ -803,11 +802,12 @@ static void starling_thread(void) {
     platform_mutex_unlock(&spp_filter_manager_lock);
 
     /* Figure out if we want to run the RTK filter. */
-    dgnss_solution_mode_t dgnss_soln_mode = starling_get_solution_mode();
-    const bool should_do_low_latency_rtk = (PVT_ENGINE_SUCCESS == spp_call_filter_ret && 
-        STARLING_SOLN_MODE_LOW_LATENCY == dgnss_soln_mode);
+    const bool should_do_low_latency_rtk = 
+        (PVT_ENGINE_SUCCESS == spp_rc) && 
+        (STARLING_SOLN_MODE_LOW_LATENCY == dgnss_soln_mode);
     /* Run the RTK filter when desired. */
     if (should_do_low_latency_rtk) {
+      platform_mutex_lock(&low_latency_filter_manager_lock);
       rtk_rc = call_pvt_engine_filter(low_latency_filter_manager,
                                       &obs_time,
                                       n_ready,
@@ -837,17 +837,18 @@ static void starling_thread(void) {
       u8 base_station_sender_id = 0;
       if (p_rtk_solution) {
         starling_integration_solution_make_baseline_sbp(&p_rtk_solution->result,
-                                                        p_spp_solution->baseline,
+                                                        p_spp_solution->result.baseline,
                                                         &p_rtk_solution->dops,
                                                         &sbp_messages);
         
         base_station_sender_id = current_base_sender_id;
       } 
+      starling_integration_solution_send_low_latency_output(
+          base_station_sender_id, &sbp_messages, n_ready, nav_meas);
     } else if (STARLING_SOLN_MODE_TIME_MATCHED != dgnss_soln_mode) {
       starling_integration_solution_send_low_latency_output(
           0, &sbp_messages, n_ready, nav_meas); 
     }
-
 
 #if 0
     if (spp_call_filter_ret == PVT_ENGINE_SUCCESS) {
@@ -889,10 +890,14 @@ static void starling_thread(void) {
 #endif
 
     /* TODO(kevin) We only post to time-matched thread on SPP success. */
-    post_observations(n_ready, nav_meas, &obs_time, &result_spp);
+    if (PVT_ENGINE_SUCCESS == spp_rc) {
+      post_observations(n_ready, nav_meas, &obs_time, &spp_solution.result);
+    }
 
+#if 0
     starling_integration_solution_send_low_latency_output(
         base_station_sender_id, &sbp_messages, n_ready, nav_meas);
+#endif
   }
 }
 
