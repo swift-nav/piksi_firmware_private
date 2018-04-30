@@ -808,7 +808,7 @@ static void starling_thread(void) {
       continue;
     }
 
-    if (dgnss_soln_mode == STARLING_SOLN_MODE_LOW_LATENCY) {
+    if (STARLING_SOLN_MODE_LOW_LATENCY == dgnss_soln_mode) {
       platform_mutex_lock(&low_latency_filter_manager_lock);
 
       pvt_engine_result_t result_rtk;
