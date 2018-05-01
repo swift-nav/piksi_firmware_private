@@ -218,7 +218,7 @@ static void decode_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("decode");
 
-  while (TRUE) {
+  while (true) {
     for (u32 i = 0; i < NUM_DECODER_CHANNELS; i++) {
       decoder_channel_t *d = &decoder_channels[i];
       switch (decoder_channel_state_get(d)) {

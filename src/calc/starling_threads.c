@@ -574,7 +574,6 @@ static void init_filters_and_settings(void) {
   low_latency_filter_manager = create_filter_manager_rtk();
   assert(low_latency_filter_manager);
   platform_mutex_unlock(&low_latency_filter_manager_lock);
-
 }
 
 /**

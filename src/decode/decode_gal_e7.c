@@ -27,12 +27,9 @@
 #include "track/track_decode.h"
 #include "track/track_sid_db.h"
 
-/** Galileo decoder data */
-typedef struct { nav_msg_gal_t nav_msg; } gal_e7_decoder_data_t;
-
 static decoder_t gal_e7_decoders[NUM_GAL_E7_DECODERS];
 
-static gal_e7_decoder_data_t gal_e7_decoder_data[ARRAY_SIZE(gal_e7_decoders)];
+static nav_msg_gal_inav_t gal_e7_decoder_data[ARRAY_SIZE(gal_e7_decoders)];
 
 static void decoder_gal_e7_init(const decoder_channel_info_t *channel_info,
                                 decoder_data_t *decoder_data);
@@ -62,10 +59,10 @@ void decode_gal_e7_register(void) {
 
 static void decoder_gal_e7_init(const decoder_channel_info_t *channel_info,
                                 decoder_data_t *decoder_data) {
-  gal_e7_decoder_data_t *data = decoder_data;
+  nav_msg_gal_inav_t *data = decoder_data;
 
   memset(data, 0, sizeof(*data));
-  gal_inav_msg_init(&data->nav_msg, channel_info->mesid.sat);
+  gal_inav_msg_init(data, channel_info->mesid.sat);
 }
 
 static void decoder_gal_e7_process(const decoder_channel_info_t *channel_info,
@@ -73,15 +70,82 @@ static void decoder_gal_e7_process(const decoder_channel_info_t *channel_info,
   assert(channel_info);
   assert(decoder_data);
 
-  gal_e7_decoder_data_t *data = decoder_data;
+  gal_inav_decoded_t dd;
+  gps_time_t t = GPS_TIME_UNKNOWN;
+  nav_msg_gal_inav_t *data = decoder_data;
 
   /* Process incoming nav bits */
   nav_bit_t nav_bit;
   u8 channel = channel_info->tracking_channel;
 
   while (tracker_nav_bit_get(channel, &nav_bit)) {
-    bool bit_val = nav_bit > 0;
-    gal_inav_msg_update(&data->nav_msg, bit_val);
+    bool upd = gal_inav_msg_update(data, nav_bit);
+    if (!upd) continue;
+
+    ephemeris_t *e = &(dd.ephemeris);
+    ephemeris_kepler_t *k = &(dd.ephemeris.kepler);
+    utc_tm date;
+
+    inav_data_type_t ret = parse_inav_word(data, &dd, &t);
+    switch (ret) {
+      case INAV_TOW:
+        log_info_mesid(channel_info->mesid, "WN %d TOW %.3f", t.wn, t.tow);
+        break;
+      case INAV_EPH:
+        make_utc_tm(&(k->toc), &date);
+        log_debug("E%02" PRIu8 " %4" PRIu16 " %2" PRIu8 " %2" PRIu8 " %2" PRIu8
+                  " %2" PRIu8 " %2" PRIu8 "%19.11E%19.11E%19.11E  ",
+                  channel_info->mesid.sat,
+                  date.year,
+                  date.month,
+                  date.month_day,
+                  date.hour,
+                  date.minute,
+                  date.second_int,
+                  k->af0,
+                  k->af1,
+                  k->af2);
+        log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
+                  (double)k->iode,
+                  k->crs,
+                  k->dn,
+                  k->m0);
+        log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
+                  k->cuc,
+                  k->ecc,
+                  k->cus,
+                  k->sqrta);
+        log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
+                  (double)e->toe.tow,
+                  k->cic,
+                  k->omega0,
+                  k->cis);
+        log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
+                  k->inc,
+                  k->crc,
+                  k->w,
+                  k->omegadot);
+        log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
+                  k->inc_dot,
+                  1.0,
+                  (double)e->toe.wn,
+                  0.0);
+        log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
+                  e->ura,
+                  (double)e->health_bits,
+                  k->tgd_gal_s[0],
+                  k->tgd_gal_s[1]);
+        log_debug("    %19.11E%19.11E ", rint(t.tow), 0.0);
+        break;
+      case INAV_UTC:
+        log_debug_mesid(channel_info->mesid, "TOW %.3f", t.tow);
+        break;
+      case INAV_ALM:
+        break;
+      case INAV_INCOMPLETE:
+      default:
+        break;
+    }
   }
   return;
 }
