@@ -59,13 +59,13 @@ void _screaming_death(const char *pos, const char *msg) {
 
 #define SPEAKING_MSG_N 222 /* Maximum length of error message */
 
-  static char err_msg[SPEAKING_MSG_N] = "ERROR: ";
-
-  strncat(err_msg, pos, SPEAKING_MSG_N - 8);
+  static char err_msg[SPEAKING_MSG_N] = " ERROR: ";
+  strncat(err_msg, pos, SPEAKING_MSG_N - 9);
   strncat(err_msg, " : ", SPEAKING_MSG_N - strlen(err_msg) - 1);
   strncat(err_msg, msg, SPEAKING_MSG_N - strlen(err_msg) - 1);
   strncat(err_msg, "\n", SPEAKING_MSG_N - strlen(err_msg) - 1);
   u8 len = strlen(err_msg);
+  err_msg[0] = LOG_ERROR;
 
   static sbp_state_t sbp_state;
   sbp_state_init(&sbp_state);
@@ -77,12 +77,8 @@ void _screaming_death(const char *pos, const char *msg) {
       __asm__("nop");
     }
     /* TODO: Send to other UARTs? */
-    sbp_send_message(&sbp_state,
-                     SBP_MSG_PRINT_DEP,
-                     0,
-                     len,
-                     (u8 *)err_msg,
-                     &fallback_write_ftdi);
+    sbp_send_message(
+        &sbp_state, SBP_MSG_LOG, 0, len, (u8 *)err_msg, &fallback_write_ftdi);
   }
 }
 
