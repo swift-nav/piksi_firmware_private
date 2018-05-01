@@ -37,10 +37,7 @@ static THD_WORKING_AREA(wa_nap_track_irq, NAP_TRACK_IRQ_THREAD_STACK);
 
 void nap_track_irq_thread(void *arg);
 
-typedef enum {
-  EVENT_ENABLE,
-  EVENT_DISABLE
-} event_t;
+typedef enum { EVENT_ENABLE, EVENT_DISABLE } event_t;
 
 static tracker_t trackers[NUM_TRACKER_CHANNELS];
 

@@ -182,10 +182,7 @@ typedef struct {
 
 /** \addtogroup tracking
  * \{ */
-typedef enum {
-  STATE_DISABLED = 0,
-  STATE_ENABLED
-} state_t;
+typedef enum { STATE_DISABLED = 0, STATE_ENABLED } state_t;
 
 /* Bitfield */
 typedef enum {
@@ -347,9 +344,9 @@ typedef struct {
   /* The data to be cleaned-up at init must be placed below */
   int cleanup_region_start;
 
-  u8 nap_channel; /**< Associated NAP channel. */
+  u8 nap_channel;         /**< Associated NAP channel. */
   me_gnss_signal_t mesid; /**< Current ME signal being decoded. */
-  u8 glo_orbit_slot;     /**< GLO orbital slot. */
+  u8 glo_orbit_slot;      /**< GLO orbital slot. */
 
   /** Time at which the channel was disabled. */
   piksi_systime_t disable_time;
