@@ -85,10 +85,6 @@ typedef struct StarlingFilterSolution {
 /* Size of an spp solution in ECEF. */
 #define SPP_ECEF_SIZE 3
 
-void solution_make_sbp(const pvt_engine_result_t *soln,
-                       dops_t *dops,
-                       sbp_messages_t *sbp_messages);
-
 void reset_rtk_filter(void);
 void set_known_ref_pos(const double base_pos[3]);
 void set_known_glonass_biases(const glo_biases_t biases);
