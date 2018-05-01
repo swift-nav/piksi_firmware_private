@@ -47,7 +47,7 @@ extern void starling_integration_solution_send_low_latency_output(
     const navigation_measurement_t nav_meas[]);
 extern void starling_integration_solution_make_sbp(
     const pvt_engine_result_t *soln,
-    dops_t *dops,
+    const dops_t *dops,
     sbp_messages_t *sbp_messages);
 extern void starling_integration_solution_make_baseline_sbp(
     const pvt_engine_result_t *result,
@@ -55,7 +55,7 @@ extern void starling_integration_solution_make_baseline_sbp(
     const dops_t *dops,
     sbp_messages_t *sbp_messages);
 extern void starling_integration_sbp_messages_init(sbp_messages_t *sbp_messages,
-                                                   gps_time_t *t);
+                                                   const gps_time_t *t);
 extern void starling_integration_solution_simulation(
     sbp_messages_t *sbp_messages);
 
@@ -152,8 +152,7 @@ static void send_solution_time_matched(const StarlingFilterSolution *solution,
    * Then if there is a successful time-matched result, we will
    * overwrite the relevant messages. */
   sbp_messages_t sbp_messages;
-  gps_time_t epoch_time = obss_base->tor;
-  starling_integration_sbp_messages_init(&sbp_messages, &epoch_time);
+  starling_integration_sbp_messages_init(&sbp_messages, &obss_base->tor);
 
   pvt_engine_result_t soln_copy = obss_rover->soln;
   starling_integration_solution_make_sbp(&soln_copy, NULL, &sbp_messages);
@@ -167,6 +166,51 @@ static void send_solution_time_matched(const StarlingFilterSolution *solution,
 
   starling_integration_solution_send_pos_messages(
       obss_base->sender_id, &sbp_messages, obss_rover->n, obss_rover->nm);
+}
+
+/**
+ * Pass along a low-latency solution to the outside world.
+ *
+ * At every processing epoch, possible solutions include both
+ * an SPP solution, and an RTK solution. Either one may be invalid,
+ * (indicated by NULL pointer), although existence of an RTK
+ * solution implies existence of an SPP solution.
+ *
+ * NOTE: The pointers are only valid within the enclosing scope.
+ *       Any copies of the data must be deep copies.
+ */
+static void send_solution_low_latency(
+    const StarlingFilterSolution *spp_solution,
+    const StarlingFilterSolution *rtk_solution,
+    const gps_time_t *solution_epoch_time,
+    const navigation_measurement_t *nav_meas,
+    const size_t num_nav_meas) {
+  assert(solution_epoch_time);
+  assert(nav_meas);
+
+  /* Initialize the output messages. If there is an SPP solution, we first
+   * apply that. Then if there is an RTK solution, overwrite the relevant
+   * messages with the RTK baseline result. When there are no valid
+   * solutions, we simply pass on the set of default messages. */
+  sbp_messages_t sbp_messages;
+  starling_integration_sbp_messages_init(&sbp_messages, solution_epoch_time);
+
+  u8 base_station_sender_id = 0;
+  if (spp_solution) {
+    starling_integration_solution_make_sbp(
+        &spp_solution->result, &spp_solution->dops, &sbp_messages);
+    if (rtk_solution) {
+      starling_integration_solution_make_baseline_sbp(
+          &rtk_solution->result,
+          spp_solution->result.baseline,
+          &rtk_solution->dops,
+          &sbp_messages);
+
+      base_station_sender_id = current_base_sender_id;
+    }
+  }
+  starling_integration_solution_send_low_latency_output(
+      base_station_sender_id, &sbp_messages, num_nav_meas, nav_meas);
 }
 
 static void post_observations(u8 n,
@@ -658,8 +702,6 @@ static void starling_thread(void) {
   filter_manager_init(spp_filter_manager);
   platform_mutex_unlock(&spp_filter_manager_lock);
 
-  u8 base_station_sender_id = 0;
-
   while (TRUE) {
     platform_watchdog_notify_starling_main_thread();
 
@@ -749,8 +791,6 @@ static void starling_thread(void) {
     filter_manager_update_iono_parameters(spp_filter_manager, &i_params, false);
     platform_mutex_unlock(&spp_filter_manager_lock);
 
-    dops_t dops;
-
     /* This will duplicate pointers to satellites with mutliple frequencies,
      * but this scenario is expected and handled */
     const ephemeris_t *stored_ephs[MAX_CHANNELS];
@@ -776,67 +816,73 @@ static void starling_thread(void) {
       stored_ephs[i] = e;
     }
 
-    pvt_engine_result_t result_spp;
-    result_spp.valid = false;
-
-    platform_mutex_lock(&spp_filter_manager_lock);
-    const PVT_ENGINE_INTERFACE_RC spp_call_filter_ret =
-        call_pvt_engine_filter(spp_filter_manager,
-                               &obs_time,
-                               n_ready,
-                               nav_meas,
-                               stored_ephs,
-                               starling_frequency,
-                               &result_spp,
-                               &dops);
-    platform_mutex_unlock(&spp_filter_manager_lock);
-
+    /* Here we do the following:
+     * 1. Call SPP filter.
+     * 2. With SPP success call RTK filter.
+     *
+     * The outputs should be as follows.
+     * 1. SPP success & RTK success & LOW_LATENCY enabled = SPP overwritten with
+     * RTK output.
+     * 2. SPP success & RTK failure                       = SPP output.
+     * 3. SPP failure & not TIME_MATCHED enabled          = default output.
+     */
+    PVT_ENGINE_INTERFACE_RC spp_rc = PVT_ENGINE_FAILURE;
+    PVT_ENGINE_INTERFACE_RC rtk_rc = PVT_ENGINE_FAILURE;
+    StarlingFilterSolution spp_solution = {0};
+    StarlingFilterSolution rtk_solution = {0};
+    spp_solution.result.valid = false;
+    rtk_solution.result.valid = false;
     dgnss_solution_mode_t dgnss_soln_mode = starling_get_solution_mode();
 
-    if (spp_call_filter_ret == PVT_ENGINE_SUCCESS) {
-      starling_integration_solution_make_sbp(&result_spp, &dops, &sbp_messages);
-    } else {
-      if (dgnss_soln_mode != STARLING_SOLN_MODE_TIME_MATCHED) {
-        /* If we can't report a SPP position, something is wrong and no point
-         * continuing to process this epoch - send out solution and
-         * observation failed messages if not in time matched mode.
-         */
-        starling_integration_solution_send_low_latency_output(
-            0, &sbp_messages, n_ready, nav_meas);
-      }
-      continue;
+    /* Always try and run the SPP filter. */
+    platform_mutex_lock(&spp_filter_manager_lock);
+    spp_rc = call_pvt_engine_filter(spp_filter_manager,
+                                    &obs_time,
+                                    n_ready,
+                                    nav_meas,
+                                    stored_ephs,
+                                    starling_frequency,
+                                    &spp_solution.result,
+                                    &spp_solution.dops);
+    platform_mutex_unlock(&spp_filter_manager_lock);
+
+    /* We only post to time-matched thread on SPP success. */
+    if (PVT_ENGINE_SUCCESS == spp_rc) {
+      post_observations(n_ready, nav_meas, &obs_time, &spp_solution.result);
     }
 
-    if (STARLING_SOLN_MODE_LOW_LATENCY == dgnss_soln_mode) {
+    /* Figure out if we want to run the RTK filter. */
+    const bool should_do_low_latency_rtk =
+        (PVT_ENGINE_SUCCESS == spp_rc) &&
+        (STARLING_SOLN_MODE_LOW_LATENCY == dgnss_soln_mode);
+
+    /* Run the RTK filter when desired. */
+    if (should_do_low_latency_rtk) {
       platform_mutex_lock(&low_latency_filter_manager_lock);
-
-      pvt_engine_result_t result_rtk;
-      result_rtk.valid = false;
-      const PVT_ENGINE_INTERFACE_RC rtk_call_filter_ret =
-          call_pvt_engine_filter(low_latency_filter_manager,
-                                 &obs_time,
-                                 n_ready,
-                                 nav_meas,
-                                 stored_ephs,
-                                 starling_frequency,
-                                 &result_rtk,
-                                 &dops);
-      base_station_sender_id = current_base_sender_id;
+      rtk_rc = call_pvt_engine_filter(low_latency_filter_manager,
+                                      &obs_time,
+                                      n_ready,
+                                      nav_meas,
+                                      stored_ephs,
+                                      starling_frequency,
+                                      &rtk_solution.result,
+                                      &rtk_solution.dops);
       platform_mutex_unlock(&low_latency_filter_manager_lock);
-
-      if (rtk_call_filter_ret == PVT_ENGINE_SUCCESS) {
-        starling_integration_solution_make_baseline_sbp(
-            &result_rtk, result_spp.baseline, &dops, &sbp_messages);
-      }
     }
 
-    /* This is posting the rover obs to the mailbox to the time matched thread,
-     * we want these sent on at full rate */
-    /* Post the observations to the mailbox. */
-    post_observations(n_ready, nav_meas, &obs_time, &result_spp);
+    /* Generate the output based on which filters ran successfully. */
+    StarlingFilterSolution *p_spp_solution = NULL;
+    if (PVT_ENGINE_SUCCESS == spp_rc) {
+      p_spp_solution = &spp_solution;
+    }
+    StarlingFilterSolution *p_rtk_solution = NULL;
+    if (PVT_ENGINE_SUCCESS == rtk_rc) {
+      p_rtk_solution = &rtk_solution;
+    }
 
-    starling_integration_solution_send_low_latency_output(
-        base_station_sender_id, &sbp_messages, n_ready, nav_meas);
+    /* Forward solutions to outside world. */
+    send_solution_low_latency(
+        p_spp_solution, p_rtk_solution, &epoch_time, nav_meas, n_ready);
   }
 }
 
