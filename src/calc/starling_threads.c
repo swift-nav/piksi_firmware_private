@@ -34,27 +34,15 @@
 #include "starling_platform_shim.h"
 #include "starling_threads.h"
 
-extern void starling_integration_solution_send_pos_messages(
-    u8 base_sender_id,
-    const sbp_messages_t *sbp_messages,
-    u8 n_meas,
-    const navigation_measurement_t nav_meas[]);
 extern void starling_integration_solution_send_low_latency_output(
     u8 base_sender_id,
     const sbp_messages_t *sbp_messages,
     u8 n_meas,
     const navigation_measurement_t nav_meas[]);
-extern void starling_integration_solution_make_sbp(
-    const pvt_engine_result_t *soln,
-    const dops_t *dops,
-    sbp_messages_t *sbp_messages);
-extern void starling_integration_solution_make_baseline_sbp(
-    const pvt_engine_result_t *result,
-    const double spp_ecef[SPP_ECEF_SIZE],
-    const dops_t *dops,
-    sbp_messages_t *sbp_messages);
+
 extern void starling_integration_sbp_messages_init(sbp_messages_t *sbp_messages,
                                                    const gps_time_t *t);
+
 extern void starling_integration_solution_simulation(
     sbp_messages_t *sbp_messages);
 
