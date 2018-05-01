@@ -778,14 +778,15 @@ static void starling_thread(void) {
      * 2. With SPP success call RTK filter.
      *
      * The outputs should be as follows.
-     * 1. SPP success & RTK success & LOW_LATENCY enabled = SPP overwritten with RTK output.
+     * 1. SPP success & RTK success & LOW_LATENCY enabled = SPP overwritten with
+     * RTK output.
      * 2. SPP success & RTK failure                       = SPP output.
-     * 3. SPP failure & not TIME_MATCHED enabled          = default output. 
+     * 3. SPP failure & not TIME_MATCHED enabled          = default output.
      */
     PVT_ENGINE_INTERFACE_RC spp_rc = PVT_ENGINE_FAILURE;
     PVT_ENGINE_INTERFACE_RC rtk_rc = PVT_ENGINE_FAILURE;
     StarlingFilterSolution spp_solution = {0};
-    StarlingFilterSolution rtk_solution = {0}; 
+    StarlingFilterSolution rtk_solution = {0};
     spp_solution.result.valid = false;
     rtk_solution.result.valid = false;
     dgnss_solution_mode_t dgnss_soln_mode = starling_get_solution_mode();
@@ -807,8 +808,8 @@ static void starling_thread(void) {
     }
 
     /* Figure out if we want to run the RTK filter. */
-    const bool should_do_low_latency_rtk = 
-        (PVT_ENGINE_SUCCESS == spp_rc) && 
+    const bool should_do_low_latency_rtk =
+        (PVT_ENGINE_SUCCESS == spp_rc) &&
         (STARLING_SOLN_MODE_LOW_LATENCY == dgnss_soln_mode);
     /* Run the RTK filter when desired. */
     if (should_do_low_latency_rtk) {
@@ -827,7 +828,7 @@ static void starling_thread(void) {
     /* Generate the output based on which filters ran successfully. */
     StarlingFilterSolution *p_spp_solution = NULL;
     if (PVT_ENGINE_SUCCESS == spp_rc) {
-      p_spp_solution = &spp_solution; 
+      p_spp_solution = &spp_solution;
     }
     StarlingFilterSolution *p_rtk_solution = NULL;
     if (PVT_ENGINE_SUCCESS == rtk_rc) {
@@ -836,23 +837,23 @@ static void starling_thread(void) {
 
     /* Do something with the solutions. */
     if (p_spp_solution) {
-      starling_integration_solution_make_sbp(&p_spp_solution->result,
-                                             &p_spp_solution->dops,
-                                             &sbp_messages);
+      starling_integration_solution_make_sbp(
+          &p_spp_solution->result, &p_spp_solution->dops, &sbp_messages);
       u8 base_station_sender_id = 0;
       if (p_rtk_solution) {
-        starling_integration_solution_make_baseline_sbp(&p_rtk_solution->result,
-                                                        p_spp_solution->result.baseline,
-                                                        &p_rtk_solution->dops,
-                                                        &sbp_messages);
-        
+        starling_integration_solution_make_baseline_sbp(
+            &p_rtk_solution->result,
+            p_spp_solution->result.baseline,
+            &p_rtk_solution->dops,
+            &sbp_messages);
+
         base_station_sender_id = current_base_sender_id;
-      } 
+      }
       starling_integration_solution_send_low_latency_output(
           base_station_sender_id, &sbp_messages, n_ready, nav_meas);
     } else if (STARLING_SOLN_MODE_TIME_MATCHED != dgnss_soln_mode) {
       starling_integration_solution_send_low_latency_output(
-          0, &sbp_messages, n_ready, nav_meas); 
+          0, &sbp_messages, n_ready, nav_meas);
     }
 
 #if 0
