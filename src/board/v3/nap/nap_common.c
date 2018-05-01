@@ -177,18 +177,27 @@ static void handle_nap_track_irq(void) {
   trackers_update(irq1, 32);
   NAP->TRK_IRQS1 = irq1;
 
+  u32 irq2 = NAP->TRK_IRQS2;
+  trackers_update(irq2, 64);
+  NAP->TRK_IRQS2 = irq2;
+
   asm("dsb");
 
   u32 err0 = NAP->TRK_IRQ_ERRORS0;
   u32 err1 = NAP->TRK_IRQ_ERRORS1;
-  if (err0 || err1) {
+  u32 err2 = NAP->TRK_IRQ_ERRORS2;
+  if (err0 || err1 || err2) {
     NAP->TRK_IRQ_ERRORS0 = err0;
     NAP->TRK_IRQ_ERRORS1 = err1;
-    log_warn("Too many NAP tracking interrupts: 0x%08" PRIX32 "%08" PRIX32,
+    NAP->TRK_IRQ_ERRORS2 = err2;
+    log_warn("Too many NAP tracking interrupts: 0x%08" PRIX32 "%08" PRIX32
+             "%08" PRIX32,
+             err2,
              err1,
              err0);
     trackers_missed(err0, 0);
     trackers_missed(err1, 32);
+    trackers_missed(err2, 64);
   }
 
   DO_EVERY(4096, watchdog_notify(WD_NOTIFY_NAP_ISR));

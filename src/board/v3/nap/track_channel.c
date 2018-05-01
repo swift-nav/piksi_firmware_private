@@ -549,16 +549,20 @@ void nap_track_read_results(u8 channel,
 void nap_track_enable(u8 channel) {
   if (channel < 32) {
     NAP->TRK_CONTROL0 |= (1 << channel);
-  } else {
+  } else if (channel < 64) {
     NAP->TRK_CONTROL1 |= (1 << (channel - 32));
+  } else {
+    NAP->TRK_CONTROL2 |= (1 << (channel - 64));
   }
 }
 
 void nap_track_disable(u8 channel) {
   if (channel < 32) {
     NAP->TRK_CONTROL0 &= ~(1 << channel);
-  } else {
+  } else if (channel < 64) {
     NAP->TRK_CONTROL1 &= ~(1 << (channel - 32));
+  } else {
+    NAP->TRK_CONTROL2 &= ~(1 << (channel - 64));
   }
 }
 
