@@ -801,6 +801,11 @@ static void starling_thread(void) {
                                     &spp_solution.dops);
     platform_mutex_unlock(&spp_filter_manager_lock);
 
+    /* We only post to time-matched thread on SPP success. */
+    if (PVT_ENGINE_SUCCESS == spp_rc) {
+      post_observations(n_ready, nav_meas, &obs_time, &spp_solution.result);
+    }
+
     /* Figure out if we want to run the RTK filter. */
     const bool should_do_low_latency_rtk = 
         (PVT_ENGINE_SUCCESS == spp_rc) && 
@@ -888,11 +893,6 @@ static void starling_thread(void) {
       }
     }
 #endif
-
-    /* TODO(kevin) We only post to time-matched thread on SPP success. */
-    if (PVT_ENGINE_SUCCESS == spp_rc) {
-      post_observations(n_ready, nav_meas, &obs_time, &spp_solution.result);
-    }
 
 #if 0
     starling_integration_solution_send_low_latency_output(
