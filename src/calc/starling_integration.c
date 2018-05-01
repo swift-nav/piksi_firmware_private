@@ -35,6 +35,8 @@
 #define STARLING_THREAD_PRIORITY (HIGHPRIO - 4)
 #define STARLING_THREAD_STACK (6 * 1024 * 1024)
 
+#define STARLING_BASE_SENDER_ID_DEFAULT 0
+
 /*******************************************************************************
  * Globals
  ******************************************************************************/
@@ -57,6 +59,12 @@ static soln_pvt_stats_t last_pvt_stats = {.systime = PIKSI_SYSTIME_INIT,
                                           .signals_used = 0};
 static soln_dgnss_stats_t last_dgnss_stats = {.systime = PIKSI_SYSTIME_INIT,
                                               .mode = 0};
+
+/* Keeps track of the which base sent us the most recent base
+ * observations so we can appropriately identify who was involved
+ * in any RTK solutions. */
+static MUTEX_DECL(current_base_sender_id_lock);
+static u8 current_base_sender_id = STARLING_BASE_SENDER_ID_DEFAULT;
 
 /*******************************************************************************
  * Output Callback Helpers
@@ -795,9 +803,15 @@ void send_solution_time_matched(const StarlingFilterSolution *solution,
                                                     &solution->dops,
                                                     &sbp_messages);
   }
-
+   
   starling_integration_solution_send_pos_messages(
       obss_base->sender_id, &sbp_messages, obss_rover->n, obss_rover->nm);
+
+  /* Always keep track of which base station is sending in the
+   * base observations. */
+  chMtxLock(&current_base_sender_id_lock);
+  current_base_sender_id = obss_base->sender_id;
+  chMtxUnlock(&current_base_sender_id_lock);
 }
 
 /**
@@ -826,7 +840,7 @@ void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
   sbp_messages_t sbp_messages;
   starling_integration_sbp_messages_init(&sbp_messages, solution_epoch_time);
 
-  u8 base_station_sender_id = 0;
+  u8 base_sender_id = STARLING_BASE_SENDER_ID_DEFAULT;
   if (spp_solution) {
     starling_integration_solution_make_sbp(
         &spp_solution->result, &spp_solution->dops, &sbp_messages);
@@ -837,11 +851,13 @@ void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
           &rtk_solution->dops,
           &sbp_messages);
 
-      base_station_sender_id = current_base_sender_id;
+      chMtxLock(&current_base_sender_id_lock);
+      base_sender_id = current_base_sender_id;
+      chMtxUnlock(&current_base_sender_id_lock);
     }
   }
   starling_integration_solution_send_low_latency_output(
-      base_station_sender_id, &sbp_messages, num_nav_meas, nav_meas);
+      base_sender_id, &sbp_messages, num_nav_meas, nav_meas);
 }
 
 /*******************************************************************************

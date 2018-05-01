@@ -100,8 +100,6 @@ static gps_time_t last_time_matched_rover_obs_post;
 
 static double starling_frequency;
 
-static u8 current_base_sender_id;
-
 static sbas_system_t current_sbas_system = SBAS_UNKNOWN;
 
 /**
@@ -365,7 +363,6 @@ static PVT_ENGINE_INTERFACE_RC process_matched_obs(
                 low_latency_filter_manager,
                 time_matched_filter_manager,
                 (end > begin) ? (end - begin) : (begin + (4294967295U - end)));
-      current_base_sender_id = reference_obss->sender_id;
       platform_mutex_unlock(&base_glonass_biases_lock);
       platform_mutex_unlock(&base_pos_lock);
       platform_mutex_unlock(&low_latency_filter_manager_lock);
