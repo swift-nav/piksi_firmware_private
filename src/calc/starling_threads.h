@@ -22,6 +22,8 @@
 #include <libswiftnav/pvt_engine/firmware_binding.h>
 #include <libswiftnav/single_epoch_solver.h>
 
+#include "calc/calc_base_obs.h"
+
 /**
  * Various solution output modes supported by the Starling Engine.
  *
@@ -83,10 +85,6 @@ typedef struct StarlingFilterSolution {
 /* Size of an spp solution in ECEF. */
 #define SPP_ECEF_SIZE 3
 
-void solution_make_sbp(const pvt_engine_result_t *soln,
-                       dops_t *dops,
-                       sbp_messages_t *sbp_messages);
-
 void reset_rtk_filter(void);
 void set_known_ref_pos(const double base_pos[3]);
 void set_known_glonass_biases(const glo_biases_t biases);
@@ -113,4 +111,19 @@ void starling_set_solution_mode(dgnss_solution_mode_t mode);
 /* Get the current solution mode for the Starling engine. */
 dgnss_solution_mode_t starling_get_solution_mode(void);
 
+/**
+ * These functions must be implemented by the integration layer
+ * in order to process the Starling engine outputs.
+ *
+ * TODO(kevin) Change to more formal callback mechanism.
+ */
+void send_solution_time_matched(const StarlingFilterSolution *solution,
+                                const obss_t *obss_base,
+                                const obss_t *obss_rover);
+
+void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
+                               const StarlingFilterSolution *rtk_solution,
+                               const gps_time_t *solution_epoch_time,
+                               const navigation_measurement_t *nav_meas,
+                               const size_t num_nav_meas);
 #endif

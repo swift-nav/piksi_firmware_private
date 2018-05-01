@@ -35,6 +35,8 @@
 #define STARLING_THREAD_PRIORITY (HIGHPRIO - 4)
 #define STARLING_THREAD_STACK (6 * 1024 * 1024)
 
+#define STARLING_BASE_SENDER_ID_DEFAULT 0
+
 /*******************************************************************************
  * Globals
  ******************************************************************************/
@@ -57,6 +59,12 @@ static soln_pvt_stats_t last_pvt_stats = {.systime = PIKSI_SYSTIME_INIT,
                                           .signals_used = 0};
 static soln_dgnss_stats_t last_dgnss_stats = {.systime = PIKSI_SYSTIME_INIT,
                                               .mode = 0};
+
+/* Keeps track of the which base sent us the most recent base
+ * observations so we can appropriately identify who was involved
+ * in any RTK solutions. */
+static MUTEX_DECL(current_base_sender_id_lock);
+static u8 current_base_sender_id = STARLING_BASE_SENDER_ID_DEFAULT;
 
 /*******************************************************************************
  * Output Callback Helpers
@@ -123,6 +131,11 @@ static void solution_send_pos_messages(
     u8 n_meas,
     const navigation_measurement_t nav_meas[]) {
   dgnss_solution_mode_t dgnss_soln_mode = starling_get_solution_mode();
+  /* Check to see if we have waited long enough since the last SPP update. */
+  if (!spp_timeout(&last_spp, &last_dgnss, dgnss_soln_mode)) {
+    return;
+  }
+
   if (sbp_messages) {
     sbp_send_msg(SBP_MSG_GPS_TIME,
                  sizeof(sbp_messages->gps_time),
@@ -237,21 +250,6 @@ void starling_integration_sbp_messages_init(sbp_messages_t *sbp_messages,
  * Accessed externally from starling_threads.c
  * TODO(kevin) fix this.
  */
-void starling_integration_solution_send_pos_messages(
-    u8 base_sender_id,
-    const sbp_messages_t *sbp_messages,
-    u8 n_meas,
-    const navigation_measurement_t nav_meas[]) {
-  dgnss_solution_mode_t dgnss_soln_mode = starling_get_solution_mode();
-  if (spp_timeout(&last_spp, &last_dgnss, dgnss_soln_mode)) {
-    solution_send_pos_messages(base_sender_id, sbp_messages, n_meas, nav_meas);
-  }
-}
-
-/**
- * Accessed externally from starling_threads.c
- * TODO(kevin) fix this.
- */
 void starling_integration_solution_send_low_latency_output(
     u8 base_sender_id,
     const sbp_messages_t *sbp_messages,
@@ -275,13 +273,9 @@ void starling_integration_solution_send_low_latency_output(
   }
 }
 
-/**
- * Accessed externally from starling_threads.c
- * TODO(kevin) fix this.
- */
-void starling_integration_solution_make_sbp(const pvt_engine_result_t *soln,
-                                            const dops_t *dops,
-                                            sbp_messages_t *sbp_messages) {
+static void solution_make_sbp(const pvt_engine_result_t *soln,
+                              const dops_t *dops,
+                              sbp_messages_t *sbp_messages) {
   if (soln && soln->valid) {
     /* Send GPS_TIME message first. */
     sbp_make_gps_time(&sbp_messages->gps_time, &soln->time, SPP_POSITION);
@@ -388,15 +382,10 @@ void starling_integration_solution_make_sbp(const pvt_engine_result_t *soln,
   }
 }
 
-/**
- * Accessed externally from starling_threads.c
- * TODO(kevin) fix this.
- */
-void starling_integration_solution_make_baseline_sbp(
-    const pvt_engine_result_t *result,
-    const double spp_ecef[SPP_ECEF_SIZE],
-    const dops_t *dops,
-    sbp_messages_t *sbp_messages) {
+static void solution_make_baseline_sbp(const pvt_engine_result_t *result,
+                                       const double spp_ecef[SPP_ECEF_SIZE],
+                                       const dops_t *dops,
+                                       sbp_messages_t *sbp_messages) {
   double ecef_pos[3];
   if (result->has_known_reference_pos) {
     vector_add(3, result->known_reference_pos, result->baseline, ecef_pos);
@@ -512,8 +501,7 @@ void starling_integration_solution_simulation(sbp_messages_t *sbp_messages) {
   pvt_engine_result_t *soln = simulation_current_pvt_engine_result_t();
 
   if (simulation_enabled_for(SIMULATION_MODE_PVT)) {
-    starling_integration_solution_make_sbp(
-        soln, simulation_current_dops_solution(), sbp_messages);
+    solution_make_sbp(soln, simulation_current_dops_solution(), sbp_messages);
   }
 
   if (simulation_enabled_for(SIMULATION_MODE_FLOAT) ||
@@ -542,11 +530,10 @@ void starling_integration_solution_simulation(sbp_messages_t *sbp_messages) {
              simulation_ref_ecef(),
              sizeof(result.known_reference_pos));
 
-    starling_integration_solution_make_baseline_sbp(
-        &result,
-        simulation_ref_ecef(),
-        simulation_current_dops_solution(),
-        sbp_messages);
+    solution_make_baseline_sbp(&result,
+                               simulation_ref_ecef(),
+                               simulation_current_dops_solution(),
+                               sbp_messages);
 
     double t_check = soln->time.tow * (soln_freq_setting / obs_output_divisor);
     if (fabs(t_check - (u32)t_check) < TIME_MATCH_THRESHOLD) {
@@ -757,6 +744,96 @@ static THD_FUNCTION(initialize_and_run_starling, arg) {
   assert(0);
   for (;;) {
   }
+}
+
+/*******************************************************************************
+ * Starling Output Callbacks
+ ******************************************************************************/
+
+/**
+ * Pass along a time-matched solution to the outside world.
+ *
+ * The solution pointer may optionally be NULL if there was no
+ * valid solution for this epoch of processing. The observation
+ * pointers are expected to always be valid.
+ *
+ * NOTE: The pointers are only valid within the enclosing scope.
+ *       Any copies of the data must be deep copies.
+ */
+void send_solution_time_matched(const StarlingFilterSolution *solution,
+                                const obss_t *obss_base,
+                                const obss_t *obss_rover) {
+  assert(obss_base);
+  assert(obss_rover);
+  /* Fill in the output messages. We always use the SPP message first.
+   * Then if there is a successful time-matched result, we will
+   * overwrite the relevant messages. */
+  sbp_messages_t sbp_messages;
+  starling_integration_sbp_messages_init(&sbp_messages, &obss_base->tor);
+
+  pvt_engine_result_t soln_copy = obss_rover->soln;
+  solution_make_sbp(&soln_copy, NULL, &sbp_messages);
+
+  if (solution) {
+    solution_make_baseline_sbp(&solution->result,
+                               obss_rover->pos_ecef,
+                               &solution->dops,
+                               &sbp_messages);
+  }
+
+  solution_send_pos_messages(
+      obss_base->sender_id, &sbp_messages, obss_rover->n, obss_rover->nm);
+
+  /* Always keep track of which base station is sending in the
+   * base observations. */
+  chMtxLock(&current_base_sender_id_lock);
+  current_base_sender_id = obss_base->sender_id;
+  chMtxUnlock(&current_base_sender_id_lock);
+}
+
+/**
+ * Pass along a low-latency solution to the outside world.
+ *
+ * At every processing epoch, possible solutions include both
+ * an SPP solution, and an RTK solution. Either one may be invalid,
+ * (indicated by NULL pointer), although existence of an RTK
+ * solution implies existence of an SPP solution.
+ *
+ * NOTE: The pointers are only valid within the enclosing scope.
+ *       Any copies of the data must be deep copies.
+ */
+void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
+                               const StarlingFilterSolution *rtk_solution,
+                               const gps_time_t *solution_epoch_time,
+                               const navigation_measurement_t *nav_meas,
+                               const size_t num_nav_meas) {
+  assert(solution_epoch_time);
+  assert(nav_meas);
+
+  /* Initialize the output messages. If there is an SPP solution, we first
+   * apply that. Then if there is an RTK solution, overwrite the relevant
+   * messages with the RTK baseline result. When there are no valid
+   * solutions, we simply pass on the set of default messages. */
+  sbp_messages_t sbp_messages;
+  starling_integration_sbp_messages_init(&sbp_messages, solution_epoch_time);
+
+  u8 base_sender_id = STARLING_BASE_SENDER_ID_DEFAULT;
+  if (spp_solution) {
+    solution_make_sbp(
+        &spp_solution->result, &spp_solution->dops, &sbp_messages);
+    if (rtk_solution) {
+      solution_make_baseline_sbp(&rtk_solution->result,
+                                 spp_solution->result.baseline,
+                                 &rtk_solution->dops,
+                                 &sbp_messages);
+
+      chMtxLock(&current_base_sender_id_lock);
+      base_sender_id = current_base_sender_id;
+      chMtxUnlock(&current_base_sender_id_lock);
+    }
+  }
+  starling_integration_solution_send_low_latency_output(
+      base_sender_id, &sbp_messages, num_nav_meas, nav_meas);
 }
 
 /*******************************************************************************

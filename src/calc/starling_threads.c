@@ -34,28 +34,15 @@
 #include "starling_platform_shim.h"
 #include "starling_threads.h"
 
-/* TODO(kevin) remove these. */
-extern void starling_integration_solution_send_pos_messages(
-    u8 base_sender_id,
-    const sbp_messages_t *sbp_messages,
-    u8 n_meas,
-    const navigation_measurement_t nav_meas[]);
 extern void starling_integration_solution_send_low_latency_output(
     u8 base_sender_id,
     const sbp_messages_t *sbp_messages,
     u8 n_meas,
     const navigation_measurement_t nav_meas[]);
-extern void starling_integration_solution_make_sbp(
-    const pvt_engine_result_t *soln,
-    const dops_t *dops,
-    sbp_messages_t *sbp_messages);
-extern void starling_integration_solution_make_baseline_sbp(
-    const pvt_engine_result_t *result,
-    const double spp_ecef[SPP_ECEF_SIZE],
-    const dops_t *dops,
-    sbp_messages_t *sbp_messages);
+
 extern void starling_integration_sbp_messages_init(sbp_messages_t *sbp_messages,
                                                    const gps_time_t *t);
+
 extern void starling_integration_solution_simulation(
     sbp_messages_t *sbp_messages);
 
@@ -101,8 +88,6 @@ static gps_time_t last_time_matched_rover_obs_post;
 
 static double starling_frequency;
 
-static u8 current_base_sender_id;
-
 static sbas_system_t current_sbas_system = SBAS_UNKNOWN;
 
 /**
@@ -131,86 +116,6 @@ static void update_filter_manager_settings(FilterManager *fm) {
       fm, settings.glonass_downweight_factor, CODE_GLO_L1OF);
   set_pvt_engine_obs_downweight_factor(
       fm, settings.glonass_downweight_factor, CODE_GLO_L2OF);
-}
-
-/**
- * Pass along a time-matched solution to the outside world.
- *
- * The solution pointer may optionally be NULL if there was no
- * valid solution for this epoch of processing. The observation
- * pointers are expected to always be valid.
- *
- * NOTE: The pointers are only valid within the enclosing scope.
- *       Any copies of the data must be deep copies.
- */
-static void send_solution_time_matched(const StarlingFilterSolution *solution,
-                                       const obss_t *obss_base,
-                                       const obss_t *obss_rover) {
-  assert(obss_base);
-  assert(obss_rover);
-  /* Fill in the output messages. We always use the SPP message first.
-   * Then if there is a successful time-matched result, we will
-   * overwrite the relevant messages. */
-  sbp_messages_t sbp_messages;
-  starling_integration_sbp_messages_init(&sbp_messages, &obss_base->tor);
-
-  pvt_engine_result_t soln_copy = obss_rover->soln;
-  starling_integration_solution_make_sbp(&soln_copy, NULL, &sbp_messages);
-
-  if (solution) {
-    starling_integration_solution_make_baseline_sbp(&solution->result,
-                                                    obss_rover->pos_ecef,
-                                                    &solution->dops,
-                                                    &sbp_messages);
-  }
-
-  starling_integration_solution_send_pos_messages(
-      obss_base->sender_id, &sbp_messages, obss_rover->n, obss_rover->nm);
-}
-
-/**
- * Pass along a low-latency solution to the outside world.
- *
- * At every processing epoch, possible solutions include both
- * an SPP solution, and an RTK solution. Either one may be invalid,
- * (indicated by NULL pointer), although existence of an RTK
- * solution implies existence of an SPP solution.
- *
- * NOTE: The pointers are only valid within the enclosing scope.
- *       Any copies of the data must be deep copies.
- */
-static void send_solution_low_latency(
-    const StarlingFilterSolution *spp_solution,
-    const StarlingFilterSolution *rtk_solution,
-    const gps_time_t *solution_epoch_time,
-    const navigation_measurement_t *nav_meas,
-    const size_t num_nav_meas) {
-  assert(solution_epoch_time);
-  assert(nav_meas);
-
-  /* Initialize the output messages. If there is an SPP solution, we first
-   * apply that. Then if there is an RTK solution, overwrite the relevant
-   * messages with the RTK baseline result. When there are no valid
-   * solutions, we simply pass on the set of default messages. */
-  sbp_messages_t sbp_messages;
-  starling_integration_sbp_messages_init(&sbp_messages, solution_epoch_time);
-
-  u8 base_station_sender_id = 0;
-  if (spp_solution) {
-    starling_integration_solution_make_sbp(
-        &spp_solution->result, &spp_solution->dops, &sbp_messages);
-    if (rtk_solution) {
-      starling_integration_solution_make_baseline_sbp(
-          &rtk_solution->result,
-          spp_solution->result.baseline,
-          &rtk_solution->dops,
-          &sbp_messages);
-
-      base_station_sender_id = current_base_sender_id;
-    }
-  }
-  starling_integration_solution_send_low_latency_output(
-      base_station_sender_id, &sbp_messages, num_nav_meas, nav_meas);
 }
 
 static void post_observations(u8 n,
@@ -446,7 +351,6 @@ static PVT_ENGINE_INTERFACE_RC process_matched_obs(
                 low_latency_filter_manager,
                 time_matched_filter_manager,
                 (end > begin) ? (end - begin) : (begin + (4294967295U - end)));
-      current_base_sender_id = reference_obss->sender_id;
       platform_mutex_unlock(&base_glonass_biases_lock);
       platform_mutex_unlock(&base_pos_lock);
       platform_mutex_unlock(&low_latency_filter_manager_lock);
