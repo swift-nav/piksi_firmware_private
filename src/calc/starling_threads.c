@@ -855,50 +855,6 @@ static void starling_thread(void) {
       starling_integration_solution_send_low_latency_output(
           0, &sbp_messages, n_ready, nav_meas);
     }
-
-#if 0
-    if (spp_call_filter_ret == PVT_ENGINE_SUCCESS) {
-      starling_integration_solution_make_sbp(&result_spp, &dops, &sbp_messages);
-    } else {
-      if (dgnss_soln_mode != STARLING_SOLN_MODE_TIME_MATCHED) {
-        /* If we can't report a SPP position, something is wrong and no point
-         * continuing to process this epoch - send out solution and
-         * observation failed messages if not in time matched mode.
-         */
-        starling_integration_solution_send_low_latency_output(
-            0, &sbp_messages, n_ready, nav_meas);
-      }
-      continue;
-    }
-
-    if (STARLING_SOLN_MODE_LOW_LATENCY == dgnss_soln_mode) {
-      platform_mutex_lock(&low_latency_filter_manager_lock);
-
-      pvt_engine_result_t result_rtk;
-      result_rtk.valid = false;
-      const PVT_ENGINE_INTERFACE_RC rtk_call_filter_ret =
-          call_pvt_engine_filter(low_latency_filter_manager,
-                                 &obs_time,
-                                 n_ready,
-                                 nav_meas,
-                                 stored_ephs,
-                                 starling_frequency,
-                                 &result_rtk,
-                                 &dops);
-      base_station_sender_id = current_base_sender_id;
-      platform_mutex_unlock(&low_latency_filter_manager_lock);
-
-      if (rtk_call_filter_ret == PVT_ENGINE_SUCCESS) {
-        starling_integration_solution_make_baseline_sbp(
-            &result_rtk, result_spp.baseline, &dops, &sbp_messages);
-      }
-    }
-#endif
-
-#if 0
-    starling_integration_solution_send_low_latency_output(
-        base_station_sender_id, &sbp_messages, n_ready, nav_meas);
-#endif
   }
 }
 
