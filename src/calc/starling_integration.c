@@ -211,7 +211,10 @@ static void solution_send_pos_messages(
 }
 
 void starling_integration_sbp_messages_init(sbp_messages_t *sbp_messages,
-                                            gps_time_t *t) {
+                                            const gps_time_t *epoch_time) {
+  /* Necessary because some of these functions strip the const qualifier. */
+  gps_time_t *t = (gps_time_t *)epoch_time; 
+
   sbp_init_gps_time(&sbp_messages->gps_time, t);
   sbp_init_utc_time(&sbp_messages->utc_time, t);
   sbp_init_pos_llh(&sbp_messages->pos_llh, t);
@@ -277,7 +280,7 @@ void starling_integration_solution_send_low_latency_output(
  * TODO(kevin) fix this.
  */
 void starling_integration_solution_make_sbp(const pvt_engine_result_t *soln,
-                                            dops_t *dops,
+                                            const dops_t *dops,
                                             sbp_messages_t *sbp_messages) {
   if (soln && soln->valid) {
     /* Send GPS_TIME message first. */

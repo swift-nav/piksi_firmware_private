@@ -47,7 +47,7 @@ extern void starling_integration_solution_send_low_latency_output(
     const navigation_measurement_t nav_meas[]);
 extern void starling_integration_solution_make_sbp(
     const pvt_engine_result_t *soln,
-    dops_t *dops,
+    const dops_t *dops,
     sbp_messages_t *sbp_messages);
 extern void starling_integration_solution_make_baseline_sbp(
     const pvt_engine_result_t *result,
@@ -55,7 +55,7 @@ extern void starling_integration_solution_make_baseline_sbp(
     const dops_t *dops,
     sbp_messages_t *sbp_messages);
 extern void starling_integration_sbp_messages_init(sbp_messages_t *sbp_messages,
-                                                   gps_time_t *t);
+                                                   const gps_time_t *t);
 extern void starling_integration_solution_simulation(
     sbp_messages_t *sbp_messages);
 
@@ -152,8 +152,7 @@ static void send_solution_time_matched(const StarlingFilterSolution *solution,
    * Then if there is a successful time-matched result, we will
    * overwrite the relevant messages. */
   sbp_messages_t sbp_messages;
-  gps_time_t epoch_time = obss_base->tor;
-  starling_integration_sbp_messages_init(&sbp_messages, &epoch_time);
+  starling_integration_sbp_messages_init(&sbp_messages, &obss_base->tor);
 
   pvt_engine_result_t soln_copy = obss_rover->soln;
   starling_integration_solution_make_sbp(&soln_copy, NULL, &sbp_messages);
@@ -193,13 +192,11 @@ static void send_solution_low_latency(const StarlingFilterSolution *spp_solution
    * messages with the RTK baseline result. When there are no valid
    * solutions, we simply pass on the set of default messages. */
   sbp_messages_t sbp_messages;
-  /* Remove const qualifier. TODO(kevin) fix this elsewhere. */
-  starling_integration_sbp_messages_init(&sbp_messages, (gps_time_t*)solution_epoch_time);
+  starling_integration_sbp_messages_init(&sbp_messages, solution_epoch_time);
 
   if (spp_solution) {
-    /* TODO(kevin) fix const-ness of this function. */
     starling_integration_solution_make_sbp(
-        &spp_solution->result, (dops_t *)&spp_solution->dops, &sbp_messages);
+        &spp_solution->result, &spp_solution->dops, &sbp_messages);
     u8 base_station_sender_id = 0;
     if (rtk_solution) {
       starling_integration_solution_make_baseline_sbp(
