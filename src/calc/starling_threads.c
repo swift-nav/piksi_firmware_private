@@ -187,7 +187,7 @@ static void send_solution_low_latency(
     const size_t num_nav_meas) {
   assert(solution_epoch_time);
   assert(nav_meas);
-  dgnss_solution_mode_t dgnss_soln_mode = starling_get_solution_mode();
+
   /* Initialize the output messages. If there is an SPP solution, we first
    * apply that. Then if there is an RTK solution, overwrite the relevant
    * messages with the RTK baseline result. When there are no valid
@@ -195,10 +195,10 @@ static void send_solution_low_latency(
   sbp_messages_t sbp_messages;
   starling_integration_sbp_messages_init(&sbp_messages, solution_epoch_time);
 
+  u8 base_station_sender_id = 0;
   if (spp_solution) {
     starling_integration_solution_make_sbp(
         &spp_solution->result, &spp_solution->dops, &sbp_messages);
-    u8 base_station_sender_id = 0;
     if (rtk_solution) {
       starling_integration_solution_make_baseline_sbp(
           &rtk_solution->result,
@@ -208,12 +208,9 @@ static void send_solution_low_latency(
 
       base_station_sender_id = current_base_sender_id;
     }
-    starling_integration_solution_send_low_latency_output(
-        base_station_sender_id, &sbp_messages, num_nav_meas, nav_meas);
-  } else if (STARLING_SOLN_MODE_TIME_MATCHED != dgnss_soln_mode) {
-    starling_integration_solution_send_low_latency_output(
-        0, &sbp_messages, num_nav_meas, nav_meas);
   }
+  starling_integration_solution_send_low_latency_output(
+      base_station_sender_id, &sbp_messages, num_nav_meas, nav_meas);
 }
 
 static void post_observations(u8 n,
