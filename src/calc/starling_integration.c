@@ -213,7 +213,7 @@ static void solution_send_pos_messages(
 void starling_integration_sbp_messages_init(sbp_messages_t *sbp_messages,
                                             const gps_time_t *epoch_time) {
   /* Necessary because some of these functions strip the const qualifier. */
-  gps_time_t *t = (gps_time_t *)epoch_time; 
+  gps_time_t *t = (gps_time_t *)epoch_time;
 
   sbp_init_gps_time(&sbp_messages->gps_time, t);
   sbp_init_utc_time(&sbp_messages->utc_time, t);

@@ -179,11 +179,12 @@ static void send_solution_time_matched(const StarlingFilterSolution *solution,
  * NOTE: The pointers are only valid within the enclosing scope.
  *       Any copies of the data must be deep copies.
  */
-static void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
-                                      const StarlingFilterSolution *rtk_solution,
-                                      const gps_time_t *solution_epoch_time,
-                                      const navigation_measurement_t *nav_meas,
-                                      const size_t num_nav_meas) {
+static void send_solution_low_latency(
+    const StarlingFilterSolution *spp_solution,
+    const StarlingFilterSolution *rtk_solution,
+    const gps_time_t *solution_epoch_time,
+    const navigation_measurement_t *nav_meas,
+    const size_t num_nav_meas) {
   assert(solution_epoch_time);
   assert(nav_meas);
   dgnss_solution_mode_t dgnss_soln_mode = starling_get_solution_mode();
@@ -884,11 +885,8 @@ static void starling_thread(void) {
     }
 
     /* Forward solutions to outside world. */
-    send_solution_low_latency(p_spp_solution, 
-                              p_rtk_solution,
-                              &epoch_time,
-                              nav_meas,
-                              n_ready);
+    send_solution_low_latency(
+        p_spp_solution, p_rtk_solution, &epoch_time, nav_meas, n_ready);
   }
 }
 
