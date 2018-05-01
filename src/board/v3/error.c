@@ -65,7 +65,7 @@ void _screaming_death(const char *pos, const char *msg) {
   strncat(err_msg, msg, SPEAKING_MSG_N - strlen(err_msg) - 1);
   strncat(err_msg, "\n", SPEAKING_MSG_N - strlen(err_msg) - 1);
   u8 len = strlen(err_msg);
-  err_msg[0] = LOG_EMERG;
+  err_msg[0] = LOG_ERROR;
 
   static sbp_state_t sbp_state;
   sbp_state_init(&sbp_state);
