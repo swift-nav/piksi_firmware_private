@@ -39,9 +39,7 @@ void nap_track_irq_thread(void *arg);
 
 typedef enum {
   EVENT_ENABLE,
-  EVENT_DISABLE_REQUEST,
-  EVENT_DISABLE,
-  EVENT_DISABLE_WAIT_COMPLETE
+  EVENT_DISABLE
 } event_t;
 
 static tracker_t trackers[NUM_TRACKER_CHANNELS];
@@ -239,35 +237,23 @@ static void error_flags_clear(tracker_t *tracker_channel) {
  * \param tracker_channel   Tracker channel to use.
  * \param event             Event to process.
  */
-static void event(tracker_t *tracker_channel, event_t event) {
-  switch (event) {
-    case EVENT_ENABLE: {
+static void event(tracker_t *tracker_channel, event_t e) {
+  switch (e) {
+    case EVENT_ENABLE:
       assert(tracker_channel->state == STATE_DISABLED);
-      /* Sequence point for enable is setting channel state = STATE_ENABLED */
       COMPILER_BARRIER(); /* Prevent compiler reordering */
       tracker_channel->state = STATE_ENABLED;
-    } break;
+      break;
 
-    case EVENT_DISABLE_REQUEST: {
+    case EVENT_DISABLE:
       assert(tracker_channel->state == STATE_ENABLED);
-      tracker_channel->state = STATE_DISABLE_REQUESTED;
-    } break;
-
-    case EVENT_DISABLE: {
-      assert(tracker_channel->state == STATE_DISABLE_REQUESTED);
-      tracker_channel->state = STATE_DISABLE_WAIT;
-    } break;
-
-    case EVENT_DISABLE_WAIT_COMPLETE: {
-      assert(tracker_channel->state == STATE_DISABLE_WAIT);
-      /* Sequence point for disable is setting channel state = STATE_DISABLED
-       * and/or tracker active = false (order of these two is irrelevant here)
-       */
       COMPILER_BARRIER(); /* Prevent compiler reordering */
       tracker_channel->state = STATE_DISABLED;
-    } break;
+      break;
 
-    default: { assert(!"Invalid event"); } break;
+    default:
+      assert(!"Invalid event");
+      break;
   }
 }
 
@@ -367,7 +353,7 @@ bool tracker_init(u8 id,
 bool tracker_disable(u8 id) {
   /* Request disable */
   tracker_t *tracker_channel = tracker_get(id);
-  event(tracker_channel, EVENT_DISABLE_REQUEST);
+  event(tracker_channel, EVENT_DISABLE);
   return true;
 }
 
@@ -421,45 +407,24 @@ static void error_flags_add(tracker_t *tracker_channel,
  * \param update_required   True when correlations are pending for the
  *                          tracking channel.
  */
-static void tracker_channel_process(tracker_t *tracker, bool update_required) {
+static void tracker_channel_process(tracker_t *tracker) {
   switch (tracker_state_get(tracker)) {
-    case STATE_ENABLED: {
-      if (update_required) {
-        tracker_lock(tracker);
-        tracker_interface_lookup(tracker->mesid.code)->update(tracker);
-        tracker_unlock(tracker);
-      }
-    } break;
+    case STATE_ENABLED:
+      tracker_lock(tracker);
+      tracker_interface_lookup(tracker->mesid.code)->update(tracker);
+      tracker_unlock(tracker);
+      break;
 
-    case STATE_DISABLE_REQUESTED: {
+    case STATE_DISABLED:
       nap_channel_disable(tracker);
       tracker_lock(tracker);
-      {
-        tracker_interface_lookup(tracker->mesid.code)->disable(tracker);
-        piksi_systime_get(&tracker->disable_time);
-        event(tracker, EVENT_DISABLE);
-      }
+      tracker_interface_lookup(tracker->mesid.code)->disable(tracker);
       tracker_unlock(tracker);
-    } break;
+      break;
 
-    case STATE_DISABLE_WAIT: {
-      if (piksi_systime_elapsed_since_ms(&tracker->disable_time) >=
-          CHANNEL_DISABLE_WAIT_TIME_MS) {
-        event(tracker, EVENT_DISABLE_WAIT_COMPLETE);
-      }
-    } break;
-
-    case STATE_DISABLED: {
-      if (update_required) {
-        /* Tracking channel is not owned by the update thread, but the update
-         * register must be written to clear the interrupt flag. Set error
-         * flag to indicate that NAP is in an unknown state. */
-        nap_channel_disable(tracker);
-        error_flags_add(tracker, ERROR_FLAG_INTERRUPT_WHILE_DISABLED);
-      }
-    } break;
-
-    default: { assert(!"Invalid tracking channel state"); } break;
+    default:
+      assert(!"Invalid tracking channel state");
+      break;
   }
 }
 
@@ -474,9 +439,12 @@ void trackers_update(u32 channels_mask, u8 start_chan) {
        ci++) {
     tracker_t *tracker_channel = tracker_get(start_chan + ci);
     bool update_required = (channels_mask & 1) ? true : false;
-    tracker_channel_process(tracker_channel, update_required);
+    if (update_required) {
+      tracker_channel_process(tracker_channel);
+    } else {
+      sanitize_tracker(tracker_channel, now_ms);
+    }
     channels_mask >>= 1;
-    sanitize_tracker(tracker_channel, now_ms);
   }
 }
 

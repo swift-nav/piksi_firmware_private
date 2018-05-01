@@ -184,9 +184,7 @@ typedef struct {
  * \{ */
 typedef enum {
   STATE_DISABLED = 0,
-  STATE_ENABLED,
-  STATE_DISABLE_REQUESTED,
-  STATE_DISABLE_WAIT
+  STATE_ENABLED
 } state_t;
 
 /* Bitfield */
@@ -346,21 +344,12 @@ typedef struct {
   /** Mutex used to permit atomic reads of channel data. */
   mutex_t mutex;
 
-  /** When tracker is disabled in NAP, all tracker state below
-      cleanup_region_start in this structure is cleaned up.
-      Tracker is not reused immediately. There is time window of
-      about 100ms. If during those 100ms NAP generates an unexpected
-      interrupt, then we disable the tracker channel in NAP again
-      using this parameter. So this parameter should preserve its state
-      over the clean up operation. */
-  u8 nap_channel; /**< Associated NAP channel. */
-
   /* The data to be cleaned-up at init must be placed below */
-
   int cleanup_region_start;
 
+  u8 nap_channel; /**< Associated NAP channel. */
   me_gnss_signal_t mesid; /**< Current ME signal being decoded. */
-  u16 glo_orbit_slot;     /**< GLO orbital slot. */
+  u8 glo_orbit_slot;     /**< GLO orbital slot. */
 
   /** Time at which the channel was disabled. */
   piksi_systime_t disable_time;

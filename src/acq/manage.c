@@ -859,7 +859,7 @@ void sanitize_tracker(tracker_t *tracker_channel, u64 now_ms) {
   }
 
   /* PLL/FLL pessimistic lock detector "unlocked" for a while?
-     We could get rid of this check althogether if not the
+     We could get rid of this check altogether if not the
      observed cases, when tracker could not achieve the pessimistic
      lock state for a long time (minutes?) and yet managed to pass
      CN0 sanity checks.*/
