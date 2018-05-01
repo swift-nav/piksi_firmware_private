@@ -115,19 +115,19 @@ void starling_set_solution_mode(dgnss_solution_mode_t mode);
 /* Get the current solution mode for the Starling engine. */
 dgnss_solution_mode_t starling_get_solution_mode(void);
 
-/** 
- * These functions must be implemented by the integration layer 
+/**
+ * These functions must be implemented by the integration layer
  * in order to process the Starling engine outputs.
  *
- * TODO(kevin) Change to more formal callback mechanism. 
+ * TODO(kevin) Change to more formal callback mechanism.
  */
 void send_solution_time_matched(const StarlingFilterSolution *solution,
                                 const obss_t *obss_base,
-                                const obss_t *obss_rover); 
+                                const obss_t *obss_rover);
 
 void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
                                const StarlingFilterSolution *rtk_solution,
                                const gps_time_t *solution_epoch_time,
                                const navigation_measurement_t *nav_meas,
-                               const size_t num_nav_meas); 
+                               const size_t num_nav_meas);
 #endif

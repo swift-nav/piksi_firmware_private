@@ -569,8 +569,6 @@ void starling_integration_solution_simulation(sbp_messages_t *sbp_messages) {
   }
 }
 
-
-
 /*******************************************************************************
  * Settings Update Helpers
  ******************************************************************************/
@@ -770,7 +768,7 @@ static THD_FUNCTION(initialize_and_run_starling, arg) {
 }
 
 /*******************************************************************************
- * Starling Output Callbacks 
+ * Starling Output Callbacks
  ******************************************************************************/
 
 /**
@@ -803,7 +801,7 @@ void send_solution_time_matched(const StarlingFilterSolution *solution,
                                                     &solution->dops,
                                                     &sbp_messages);
   }
-   
+
   starling_integration_solution_send_pos_messages(
       obss_base->sender_id, &sbp_messages, obss_rover->n, obss_rover->nm);
 
