@@ -87,9 +87,11 @@ static double calc_heading(const double b_ned[3]) {
 static bool spp_timeout(const gps_time_t *_last_spp,
                         const gps_time_t *_last_dgnss,
                         dgnss_solution_mode_t _dgnss_soln_mode) {
-  /* No timeout needed in low latency mode; */
+  /* Because this function is used only on the time-matched thread,
+   * the time-matched output can be considered "indefinitely timed-out"
+   * when in low-latency mode. */
   if (_dgnss_soln_mode == STARLING_SOLN_MODE_LOW_LATENCY) {
-    return true;
+    return false;
   }
   chMtxLock(&last_sbp_lock);
   double time_diff = gpsdifftime(_last_dgnss, _last_spp);
@@ -131,11 +133,6 @@ static void solution_send_pos_messages(
     u8 n_meas,
     const navigation_measurement_t nav_meas[]) {
   dgnss_solution_mode_t dgnss_soln_mode = starling_get_solution_mode();
-  /* Check to see if we have waited long enough since the last SPP update. */
-  if (!spp_timeout(&last_spp, &last_dgnss, dgnss_soln_mode)) {
-    return;
-  }
-
   if (sbp_messages) {
     sbp_send_msg(SBP_MSG_GPS_TIME,
                  sizeof(sbp_messages->gps_time),
@@ -781,8 +778,13 @@ void send_solution_time_matched(const StarlingFilterSolution *solution,
                                &sbp_messages);
   }
 
-  solution_send_pos_messages(
-      obss_base->sender_id, &sbp_messages, obss_rover->n, obss_rover->nm);
+  /* Only send time-matched output if we are not in low-latency mode
+   * and our current time-matched result occurs after the most recent
+   * SPP output. */
+  if (spp_timeout(&last_spp, &last_dgnss, starling_get_solution_mode())) {
+    solution_send_pos_messages(
+        obss_base->sender_id, &sbp_messages, obss_rover->n, obss_rover->nm);
+  }
 
   /* Always keep track of which base station is sending in the
    * base observations. */
