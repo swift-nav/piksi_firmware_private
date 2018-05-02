@@ -89,7 +89,7 @@ static bool spp_timeout(const gps_time_t *_last_spp,
                         dgnss_solution_mode_t _dgnss_soln_mode) {
   /* No timeout needed in low latency mode; */
   if (_dgnss_soln_mode == STARLING_SOLN_MODE_LOW_LATENCY) {
-    return false;
+    return true;
   }
   chMtxLock(&last_sbp_lock);
   double time_diff = gpsdifftime(_last_dgnss, _last_spp);
