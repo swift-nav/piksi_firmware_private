@@ -313,6 +313,31 @@ static void sbas_post_me_msg(const msg_sbas_raw_t *sbas_raw_msg) {
 }
 
 /**
+   Not all SBAS providers send message type 12 (MT12). EGNOS does,
+   WAAS does not seem to send MT12. MT12 it is considered optional according to
+   https://www.gps.gov/multimedia/presentations/2015/03/munich/lawrence1.pdf
+   p.19. This is also according to
+   http://cockpitdata.com/Software/ICAO%20Annex%2010%20Volume%201
+   section 3.5.7.6 "Optional functions" and 3.5.7.6.1 "Timing data":
+   "If UTC parameters are broadcast, they shall be as defined in 3.5.4.8
+   (Type 12 message)."
+   \param part SBAS data bits
+   \param[out] msg SBAS TOW data is stored here
+   \param delay_sym A delay to account for in TOW [symbols].
+*/
+void sbas_decode_msg_type_12(const sbas_v27_part_t *part,
+                             sbas_msg_t *msg,
+                             u32 delay_sym) {
+  msg->wn = getbitu(part->decoded, 141, 10);
+  s32 tow_s = getbitu(part->decoded, 121, 20) + 1;
+  msg->tow_ms = tow_s * SECS_MS;
+  msg->tow_ms += delay_sym * SBAS_L1CA_SYMBOL_LENGTH_MS;
+  if (msg->tow_ms >= WEEK_MS) {
+    msg->tow_ms -= WEEK_MS;
+  }
+}
+
+/**
  * Performs SBAS message decoding.
  *
  * This function decoded SBAS message, if the following conditions are met:
@@ -334,7 +359,6 @@ static void sbas_post_me_msg(const msg_sbas_raw_t *sbas_raw_msg) {
 static bool sbas_msg_decode(sbas_v27_part_t *part, sbas_msg_t *msg) {
   u32 delay = 0;
   u8 msg_id = 0;
-  s32 tow_s;
   bool res = false;
 
   if (SBAS_MSG_LENGTH > part->n_decoded) {
@@ -362,14 +386,8 @@ static bool sbas_msg_decode(sbas_v27_part_t *part, sbas_msg_t *msg) {
         msg->health = SV_UNHEALTHY;
         break;
       case 12:
-        msg->wn = getbitu(part->decoded, 141, 10);   /* GPS Week Number */
-        tow_s = getbitu(part->decoded, 121, 20) + 1; /* GPS TOW [s] */
-        msg->tow_ms = tow_s * SECS_MS; /* convert to milliseconds */
-        /* Compensate for Viterbi delay. */
-        msg->tow_ms += delay * SBAS_L1CA_SYMBOL_LENGTH_MS;
-        if (msg->tow_ms >= WEEK_MS) {
-          msg->tow_ms -= WEEK_MS;
-        }
+        /* We don't use SBAS for ranging. So no need to decode SBAS TOW for now.
+           Otherwise use sbas_decode_msg_type_12(). */
         break;
 
       default:
