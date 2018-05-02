@@ -28,18 +28,13 @@
 #define SYMBOL_LENGTH_NH20_MS 20
 #define GAL_CS100_MS 100
 
-/* The sync hisotgram should be as follows for NH20 code
+/* The sync histogram should be as follows for NH20 code
  * NH20 = [0 0 0 0 0  1 0 0 1 1  0 1 0 1 0  0 1 1 1 0]
  * XANS = 0,0,0,0,0, 1,1,0,1,0, 1,1,1,1,1, 0,1,0,0,1
  */
-static const s8 nh20_xans[20] = {+1, +1, +1, +1, +1, -1, -1, +1, -1, +1,
-                                 -1, -1, -1, -1, -1, +1, -1, +1, +1, -1};
-
-/* The sync histogram should be as follows for CS4 code
- * CS4  = [1 1 1 0]
- * XANS = 1,0,0,1
- */
-//~ static const s8 e7i_xans[4] = {-1, +1, +1, -1};
+static const s8 nh20_xans[SYMBOL_LENGTH_NH20_MS] = {+1, +1, +1, +1, +1, -1, -1,
+                                                    +1, -1, +1, -1, -1, -1, -1,
+                                                    -1, +1, -1, +1, +1, -1};
 
 /* Galileo E5aQ transitions array, built per satellite */
 static s8 e5q_xans[NUM_SATS_GAL][GAL_CS100_MS];
@@ -222,8 +217,8 @@ static void histogram_update(bit_sync_t *b,
       (CODE_GPS_L5I == b->mesid.code) || (CODE_GPS_L5Q == b->mesid.code)) {
     /* Codes with NH20 are a little special */
 
-    /* FIXME: resetting te histogram is a bit brutal.. */
-    if (ABS(b->histogram[0]) > 9) {
+    /* FIXME: resetting the histogram is a bit brutal.. */
+    if (ABS(b->histogram[0]) > 12) {
       memset(b->histogram, 0, sizeof(b->histogram));
     }
     /* rotate the histogram left */
@@ -240,7 +235,7 @@ static void histogram_update(bit_sync_t *b,
     for (u8 i = 1; i < SYMBOL_LENGTH_NH20_MS; i++) {
       sum += b->histogram[i] * (nh20_xans[i]);
     }
-    if (sum >= 100) {
+    if (sum >= 8 * SYMBOL_LENGTH_NH20_MS) {
       /* We are synchronized! */
       b->bit_phase_ref = b->bit_phase;
     }
