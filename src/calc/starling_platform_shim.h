@@ -18,8 +18,9 @@
 #include <libswiftnav/ionosphere.h>
 #include <libswiftnav/signal.h>
 
-/* TODO(kevin) Put required types into separate header. */
-#include "calc_base_obs.h"
+/* TODO(kevin) Ultimately the platform layer should have no dependency
+ * on starling headers. */
+#include "calc/starling_threads.h"
 #include "me_msg/me_msg.h"
 
 /* Mutex */

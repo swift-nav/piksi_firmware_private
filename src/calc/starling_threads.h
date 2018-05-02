@@ -22,8 +22,6 @@
 #include <libswiftnav/pvt_engine/firmware_binding.h>
 #include <libswiftnav/single_epoch_solver.h>
 
-#include "calc/calc_base_obs.h"
-
 /**
  * Various solution output modes supported by the Starling Engine.
  *
@@ -42,6 +40,7 @@ typedef enum {
   FILTER_FIXED,
 } dgnss_filter_t;
 
+/* TODO(kevin) move into integration layer when possible. */
 typedef struct {
   msg_gps_time_t gps_time;
   msg_utc_time_t utc_time;
@@ -60,6 +59,34 @@ typedef struct {
   msg_pos_llh_cov_t pos_llh_cov;
   msg_vel_ned_cov_t vel_ned_cov;
 } sbp_messages_t;
+
+/**
+ * Base observation input type. Starling engine operates
+ * on base observations provided in this format.
+ *
+ * TODO(kevin) for now...
+ */
+typedef struct {
+  /** GPS system time of the observation. */
+  gps_time_t tor;
+  /** Approximate base station position.
+   * This may be the position as reported by the base station itself or the
+   * position obtained from doing a single point solution using the base
+   * station observations. */
+  double pos_ecef[3];
+  /** Is the `pos_ecef` field valid? */
+  u8 has_pos;
+  /** The known, surveyed base position. */
+  double known_pos_ecef[3];
+  /** Observation Solution */
+  pvt_engine_result_t soln;
+
+  /** Number of observations in the set. */
+  u8 n;
+  u8 sender_id;
+  /** Set of observations. */
+  navigation_measurement_t nm[MAX_CHANNELS];
+} obss_t;
 
 /**
  * Filter result data type returned by various API functions.
