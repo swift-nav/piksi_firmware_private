@@ -113,8 +113,6 @@ static void update_polarity(tracker_t *tracker_channel, s8 polarity) {
     if (BIT_POLARITY_UNKNOWN != tracker_channel->bit_polarity) {
       log_warn_mesid(mesid, "Unexpected bit polarity change");
     }
-    /* Reset carrier phase offset on bit polarity change */
-    tracker_channel->reset_cpo = true;
     tracker_channel->bit_polarity = polarity;
   }
 }
