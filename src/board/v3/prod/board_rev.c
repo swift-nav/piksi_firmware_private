@@ -55,10 +55,9 @@ void boardRevInit(void) {
 }
 
 void boardRevUpdateModem(bool modem_enabled) {
-  if(modem_enabled) {
+  if (modem_enabled) {
     palSetLine(MODEM_PWR_EN_LINE);
-  }
-  else {
+  } else {
     palClearLine(MODEM_PWR_EN_LINE);
   }
 }
