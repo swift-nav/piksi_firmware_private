@@ -43,6 +43,7 @@
 extern "C" {
 #endif
 void boardInit(void);
+void board_modem_en_changed(bool);
 void board_send_state(void);
 void hard_reset(void);
 #ifdef __cplusplus

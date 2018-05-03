@@ -48,8 +48,17 @@ void boardRevInit(void) {
   palClearLine(DURO_LED_RST_GPIO_LINE);
 
   palSetLineMode(MODEM_PWR_EN_LINE, PAL_MODE_OUTPUT);
-  palSetLine(MODEM_PWR_EN_LINE);
+  palClearLine(MODEM_PWR_EN_LINE);
 
   palSetLineMode(IMU_EN_GPIO_LINE, PAL_MODE_OUTPUT);
   palSetLine(IMU_EN_GPIO_LINE);
+}
+
+void boardRevUpdateModem(bool modem_enabled) {
+  if(modem_enabled) {
+    palSetLine(MODEM_PWR_EN_LINE);
+  }
+  else {
+    palClearLine(MODEM_PWR_EN_LINE);
+  }
 }
