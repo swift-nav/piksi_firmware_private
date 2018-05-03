@@ -55,6 +55,7 @@ static bool cell_modem_changed(struct setting *s, const char *val) {
   if (!s->type->from_string(s->type->priv, s->addr, s->len, val)) {
     return false;
   }
+  log_info("Updating Modem Power bool to %u", modem_enabled);
   board_modem_en_changed(modem_enabled);
   return true;
 }
