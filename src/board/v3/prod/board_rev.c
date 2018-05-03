@@ -48,7 +48,7 @@ void boardRevInit(void) {
   palClearLine(DURO_LED_RST_GPIO_LINE);
 
   palSetLineMode(MODEM_PWR_EN_LINE, PAL_MODE_OUTPUT);
-  palClearLine(MODEM_PWR_EN_LINE);
+  palSetLine(MODEM_PWR_EN_LINE);
 
   palSetLineMode(IMU_EN_GPIO_LINE, PAL_MODE_OUTPUT);
   palSetLine(IMU_EN_GPIO_LINE);

@@ -49,7 +49,7 @@
 
 extern void ext_setup(void);
 
-static bool modem_enabled;
+static bool modem_enabled = true;
 
 static bool cell_modem_changed(struct setting *s, const char *val) {
   if (!s->type->from_string(s->type->priv, s->addr, s->len, val)) {
