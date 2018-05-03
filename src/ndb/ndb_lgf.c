@@ -54,7 +54,7 @@ void ndb_lgf_init(void) {
   SETTING("ndb", "lgf_update_s", lgf_update_s, TYPE_INT);
   SETTING("ndb", "lgf_update_m", lgf_update_m, TYPE_INT);
 
-  ndb_load_data(&lgf_file, erase_lgf);
+  ndb_load_data(&lgf_file, erase_lgf || !NDB_USE_NV_LGF);
 
   last_good_fix = last_good_fix_saved;
   if (0 != (last_good_fix_md.nv_data.state & NDB_IE_VALID)) {
@@ -62,12 +62,10 @@ void ndb_lgf_init(void) {
     last_good_fix_saved.position_quality = POSITION_GUESS;
     last_good_fix.position_quality = POSITION_GUESS;
     /* TODO check loaded LGF validity */
-    log_info("Position loaded [%.4lf, %.4lf, %.1lf]",
+    log_info("Loaded position [%.4lf, %.4lf, %.1lf]",
              last_good_fix.position_solution.pos_llh[0] * R2D,
              last_good_fix.position_solution.pos_llh[1] * R2D,
              last_good_fix.position_solution.pos_llh[2]);
-  } else {
-    log_info("Position is not available");
   }
 }
 
@@ -87,32 +85,7 @@ void ndb_lgf_init(void) {
  * \sa ndb_lgf_store
  */
 ndb_op_code_t ndb_lgf_read(last_good_fix_t *lgf) {
-  ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
-
-  /* LGF is loaded only on boot, and then periodically saved to NV. Because of
-   * this, use of `ndb_retrieve` here is unnecessary. */
-
-  bool use_valid = true;
-  /* If data has been load from NV and data from NV should not be used,
-   * then mark use_valid false. */
-  if (!NDB_USE_NV_LGF &&
-      (last_good_fix_md.vflags & NDB_VFLAG_DATA_FROM_NV) != 0) {
-    use_valid = false;
-  }
-
-  if (NULL != lgf) {
-    ndb_lock();
-    if (0 != (last_good_fix_md.nv_data.state & NDB_IE_VALID) && use_valid) {
-      *lgf = last_good_fix;
-      res = NDB_ERR_NONE;
-    } else {
-      memset(lgf, 0, sizeof(*lgf));
-      res = NDB_ERR_MISSING_IE;
-    }
-    ndb_unlock();
-  } else {
-    res = NDB_ERR_BAD_PARAM;
-  }
+  ndb_op_code_t res = ndb_retrieve(&last_good_fix_md, lgf, sizeof(*lgf), NULL);
 
   if (NDB_ERR_NONE == res) {
     /* If NDB read was successful, check that data has not aged out */
@@ -145,9 +118,10 @@ ndb_op_code_t ndb_lgf_store(const last_good_fix_t *lgf) {
     ndb_lock();
 
     last_good_fix = *lgf;
-    last_good_fix.position_quality = POSITION_FIX;
 
-    if (0 != (last_good_fix_md.nv_data.state & NDB_IE_VALID)) {
+    /* is there a valid LGF stored that did not come from NV on startup */
+    if (0 != (last_good_fix_md.nv_data.state & NDB_IE_VALID) &&
+        0 == (last_good_fix_md.vflags & NDB_VFLAG_DATA_FROM_NV)) {
       double dist_ecef[3] = {0}; /* Fix distance [ECEF] */
       double dt = 0;             /* Fix time difference [s] */
       double dx = 0;             /* Fix distance [m] */

@@ -145,8 +145,7 @@ ndb_op_code_t ndb_erase(ndb_element_metadata_t *md);
 ndb_op_code_t ndb_retrieve(const ndb_element_metadata_t *md,
                            void *out,
                            size_t out_size,
-                           ndb_data_source_t *src,
-                           bool use_nv_data);
+                           ndb_data_source_t *src);
 ndb_op_code_t ndb_find_retrieve(ndb_file_t *file,
                                 ndb_entry_match_fn match_fn,
                                 void *cookie,

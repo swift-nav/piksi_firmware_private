@@ -84,7 +84,8 @@ void ndb_ephemeris_init(void) {
   SETTING("ndb", "valid_eph_acc", ndb_ephe_config.valid_eph_accuracy, TYPE_INT);
   SETTING("ndb", "valid_alm_days", ndb_ephe_config.alm_fit_interval, TYPE_INT);
 
-  ndb_load_data(&ndb_ephe_file, ndb_ephe_config.erase_ephemeris);
+  ndb_load_data(&ndb_ephe_file,
+                ndb_ephe_config.erase_ephemeris || !NDB_USE_NV_EPHEMERIS);
 }
 
 static bool sid_sibling(const gnss_signal_t sid1, const gnss_signal_t sid2) {
@@ -303,11 +304,9 @@ static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new) {
   }
 
   assert(idx < ARRAY_SIZE(ndb_ephemeris_md));
-  if (NDB_ERR_NONE == ndb_retrieve(&ndb_ephemeris_md[idx],
-                                   &existing_e,
-                                   sizeof(existing_e),
-                                   NULL,
-                                   NDB_USE_NV_EPHEMERIS)) {
+  if (NDB_ERR_NONE ==
+      ndb_retrieve(
+          &ndb_ephemeris_md[idx], &existing_e, sizeof(existing_e), NULL)) {
     pe = &existing_e;
   }
   if (NDB_ERR_NONE == ndb_almanac_read(new->sid, &existing_a) &&
@@ -430,8 +429,7 @@ ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e) {
   }
 
   assert(idx < ARRAY_SIZE(ndb_ephemeris_md));
-  ndb_op_code_t res = ndb_retrieve(
-      &ndb_ephemeris_md[idx], e, sizeof(*e), NULL, NDB_USE_NV_EPHEMERIS);
+  ndb_op_code_t res = ndb_retrieve(&ndb_ephemeris_md[idx], e, sizeof(*e), NULL);
 
   double ndb_eph_age;
   if (IS_GPS(sid)) {

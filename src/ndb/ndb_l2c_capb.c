@@ -45,7 +45,7 @@ void ndb_l2c_capb_init(void) {
   static bool erase_l2c_capb = false;
   SETTING("ndb", "erase_l2c_capb", erase_l2c_capb, TYPE_BOOL);
 
-  ndb_load_data(&gps_l2c_capb_file, erase_l2c_capb);
+  ndb_load_data(&gps_l2c_capb_file, erase_l2c_capb || !NDB_USE_NV_L2C_CAP);
 
   if (0 == (gps_l2c_capabilities_md.nv_data.state & NDB_IE_VALID) ||
       0 == gps_l2c_capabilities) {
@@ -62,11 +62,8 @@ void ndb_l2c_capb_init(void) {
 }
 
 ndb_op_code_t ndb_gps_l2cm_l2c_cap_read(u32 *l2c_cap) {
-  return ndb_retrieve(&gps_l2c_capabilities_md,
-                      l2c_cap,
-                      sizeof(*l2c_cap),
-                      NULL,
-                      NDB_USE_NV_L2C_CAP);
+  return ndb_retrieve(
+      &gps_l2c_capabilities_md, l2c_cap, sizeof(*l2c_cap), NULL);
 }
 
 /**
