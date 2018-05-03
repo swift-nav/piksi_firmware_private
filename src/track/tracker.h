@@ -182,8 +182,6 @@ typedef struct {
 
 /** \addtogroup tracking
  * \{ */
-typedef enum { STATE_DISABLED = 0, STATE_ENABLED } state_t;
-
 /* Bitfield */
 typedef enum {
   ERROR_FLAG_NONE = 0x00,
@@ -336,7 +334,7 @@ typedef struct {
   /* This portion of the structure is not cleaned-up at tracker channel start */
 
   /** State of this channel. */
-  state_t state;
+  bool busy;
 
   /** Mutex used to permit atomic reads of channel data. */
   mutex_t mutex;

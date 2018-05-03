@@ -226,7 +226,7 @@ void tracker_drop_unhealthy_glo(const me_gnss_signal_t mesid) {
   /* Double-check that channel is in enabled state.
    * Similar check exists in manage_track() in manage.c
    */
-  if (STATE_ENABLED != tracker_state_get(tracker_channel)) {
+  if (!(tracker_channel->busy)) {
     return;
   }
   tracker_channel->flags |= TRACKER_FLAG_GLO_HEALTH_DECODED;

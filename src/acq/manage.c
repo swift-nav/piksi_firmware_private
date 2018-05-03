@@ -809,12 +809,10 @@ bool leap_second_imminent(void) {
  * cross-correlation purposes. */
 void sanitize_tracker(tracker_t *tracker_channel, u64 now_ms) {
   /*! Addressing the problem where we try to disable a channel that is
-   * not in `STATE_ENABLED` in the first place. It remains to check
+   * not busy in the first place. It remains to check
    * why `TRACKING_CHANNEL_FLAG_ACTIVE` might not be effective here?
    * */
-  state_t state = tracker_channel->state;
-  COMPILER_BARRIER();
-  if (STATE_ENABLED != state) {
+  if (!(tracker_channel->busy)) {
     return;
   }
 

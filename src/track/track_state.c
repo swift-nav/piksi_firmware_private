@@ -64,7 +64,7 @@ void track_setup(void) {
   track_internal_setup();
 
   for (u32 i = 0; i < NUM_TRACKER_CHANNELS; i++) {
-    trackers[i].state = STATE_DISABLED;
+    trackers[i].busy = false;
     chMtxObjectInit(&trackers[i].mutex);
   }
 
@@ -90,16 +90,6 @@ tracker_t *tracker_get(u8 id) {
   return &trackers[id];
 }
 
-/** Determine if a tracker channel can be started to track the specified mesid.
- *
- * \param tracker_channel_id    ID of the tracker channel to be checked.
- *
- * \return true if the tracker channel is available, false otherwise.
- */
-static bool tracker_idle(const tracker_t *tracker_channel) {
-  return (tracker_state_get(tracker_channel) == STATE_DISABLED);
-}
-
 /** Determine if a tracker channel is available to track the specified sid.
  *
  * \param id      ID of the tracker channel to be checked.
@@ -107,14 +97,14 @@ static bool tracker_idle(const tracker_t *tracker_channel) {
  *
  * \return true if the tracker channel is available, false otherwise.
  */
-bool tracker_available(u8 id, const me_gnss_signal_t mesid) {
-  const tracker_t *tracker_channel = tracker_get(id);
+bool tracker_available(const u8 id, const me_gnss_signal_t mesid) {
+  const tracker_t *tracker = tracker_get(id);
 
   if (!nap_track_supports(id, mesid)) {
     return false;
   }
 
-  return tracker_idle(tracker_channel);
+  return !(tracker->busy);
 }
 
 /**
@@ -248,7 +238,7 @@ static void error_flags_clear(tracker_t *tracker_channel) {
  *
  * \return true if the tracker channel was initialized, false otherwise.
  */
-bool tracker_init(u8 id,
+bool tracker_init(const u8 id,
                   const me_gnss_signal_t mesid,
                   u16 glo_orbit_slot,
                   u64 ref_sample_count,
@@ -258,7 +248,7 @@ bool tracker_init(u8 id,
                   float cn0_init) {
   tracker_t *tracker_channel = tracker_get(id);
 
-  if (!tracker_idle(tracker_channel)) {
+  if (tracker_channel->busy) {
     return false;
   }
 
@@ -307,7 +297,7 @@ bool tracker_init(u8 id,
     error_flags_clear(tracker_channel);
 
     /* Change the channel state to ENABLED. */
-    tracker_channel->state = STATE_ENABLED;
+    tracker_channel->busy = true;
   }
   tracker_unlock(tracker_channel);
 
@@ -321,44 +311,25 @@ bool tracker_init(u8 id,
   return true;
 }
 
-/** Return the state of a tracker channel.
- *
- * \note This function performs an acquire operation, meaning that it ensures
- * the returned state was read before any subsequent memory accesses.
- *
- * \param tracker_channel   Tracker channel to use.
- *
- * \return state of the decoder channel.
- */
-state_t tracker_state_get(const tracker_t *tracker_channel) {
-  state_t state = tracker_channel->state;
-  COMPILER_BARRIER(); /* Prevent compiler reordering */
-  return state;
-}
-
 /** Disable the specified tracker channel.
  *
  * \param id      ID of the tracker channel to be disabled.
  *
- * \return true if the tracker channel was disabled, false otherwise.
  */
-bool tracker_disable(u8 id) {
+void tracker_disable(const u8 id) {
   tracker_t *tracker = tracker_get(id);
-  assert(STATE_ENABLED == tracker->state);
+  assert(tracker->busy);
 
   /* disable NAP */
   nap_track_disable(tracker->nap_channel);
 
   /* set the tracker state to disabled */
-  COMPILER_BARRIER(); /* Prevent compiler reordering */
-  tracker->state = STATE_DISABLED;
+  tracker->busy = false;
 
   /* this does restore_acq() and tracker_cleanup() */
   tracker_lock(tracker);
   tracker_interface_lookup(tracker->mesid.code)->disable(tracker);
   tracker_unlock(tracker);
-
-  return true;
 }
 
 /** Add an error flag to a tracker channel.
@@ -379,20 +350,12 @@ static void error_flags_add(tracker_t *tracker_channel,
  *                          tracking channel.
  */
 static void serve_nap_request(tracker_t *tracker) {
-  switch (tracker_state_get(tracker)) {
-    case STATE_ENABLED:
-      tracker_lock(tracker);
-      tracker_interface_lookup(tracker->mesid.code)->update(tracker);
-      tracker_unlock(tracker);
-      break;
-
-    case STATE_DISABLED:
-      log_error_mesid(tracker->mesid, "tracker is disabled");
-      break;
-
-    default:
-      assert(!"Invalid tracking channel state");
-      break;
+  if (tracker->busy) {
+    tracker_lock(tracker);
+    tracker_interface_lookup(tracker->mesid.code)->update(tracker);
+    tracker_unlock(tracker);
+  } else {
+    log_error_mesid(tracker->mesid, "tracker is disabled");
   }
 }
 
@@ -454,7 +417,7 @@ static void tracking_send_state_63(void) {
         (SBP_FRAMING_MAX_PAYLOAD_SIZE / sizeof(tracking_channel_state_t));
     for (u8 i = 0; (i < nap_track_n_channels) && (i < max_obs); i++) {
       tracker_t *tracker_channel = tracker_get(i);
-      bool running = !tracker_idle(tracker_channel);
+      bool running = tracker_channel->busy;
       me_gnss_signal_t mesid = tracker_channel->mesid;
       u16 glo_slot_id = tracker_channel->glo_orbit_slot;
       float cn0 = tracker_channel->cn0;
@@ -508,7 +471,7 @@ static void tracking_send_state_85(void) {
     u8 max_obs = (SBP_FRAMING_MAX_PAYLOAD_SIZE / sizeof(measurement_state_t));
     for (u8 i = 0; (i < nap_track_n_channels) && (i < max_obs); i++) {
       tracker_t *tracker_channel = tracker_get(i);
-      bool running = !tracker_idle(tracker_channel);
+      bool running = tracker_channel->busy;
       me_gnss_signal_t mesid = tracker_channel->mesid;
       u16 glo_slot_id = tracker_channel->glo_orbit_slot;
       float cn0 = tracker_channel->cn0;
