@@ -346,7 +346,7 @@ typedef struct {
 
   u8 nap_channel;         /**< Associated NAP channel. */
   me_gnss_signal_t mesid; /**< Current ME signal being decoded. */
-  u8 glo_orbit_slot;      /**< GLO orbital slot. */
+  u16 glo_orbit_slot;     /**< GLO orbital slot. */
 
   /** Time at which the channel was disabled. */
   piksi_systime_t disable_time;
