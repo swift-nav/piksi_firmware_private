@@ -719,6 +719,10 @@ void restore_acq(const tracker_t *tracker_channel) {
     bool glo_health_decoded = (0 != (flags & TRACKER_FLAG_GLO_HEALTH_DECODED));
     if (glo_health_decoded && (SV_UNHEALTHY == tracker_channel->health) &&
         (tracker_channel->glo_orbit_slot != GLO_ORBIT_SLOT_UNKNOWN)) {
+      /* GLO acq quarantine timer is only armed for GLO L1OF
+         as it is the only direct acq GLO signal we care about in acq module */
+      mesid = construct_mesid(CODE_GLO_L1OF, mesid.sat);
+      acq = &acq_status[mesid_to_global_index(mesid)];
       acq->state = ACQ_PRN_UNHEALTHY;
       u16 index = tracker_channel->glo_orbit_slot - 1;
       assert(index < ARRAY_SIZE(glo_acq_timer));
