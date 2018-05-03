@@ -69,6 +69,7 @@ static const float bds_ura_table[16] = {[0] = 2.0f,
                                         [14] = 4096.0f,
                                         [15] = 8192.0f};
 
+static bool subframes123_from_same_frame(const nav_msg_bds_t *n);
 static void dw30_1bit_pushr(u32 *words, u8 numel, bool bitval);
 static void pack_buffer(nav_msg_bds_t *n);
 //~ static void dump_navmsg(const nav_msg_bds_t *n, const u8 subfr);
@@ -221,6 +222,17 @@ s32 bds_d1_process_subframe(nav_msg_bds_t *n,
     return TOW_INVALID;
   }
 
+  TOW_s += BDS_SECOND_TO_GPS_SECOND;
+  if (TOW_s >= WEEK_SECS) {
+    TOW_s -= WEEK_SECS;
+  }
+  /* Current time is 330 bits from TOW. */
+  TOW_s = TOW_s * SECS_MS + BDS2_B11_D1NAV_SYMBOL_LENGTH_MS * 330;
+
+  if (!subframes123_from_same_frame(n)) {
+    return TOW_s;
+  }
+
   if (0x3fffffffULL == ((n->goodwords_mask >> 20) & 0x3fffffffULL)) {
     process_d1_fraid1(n, mesid, data);
     process_d1_fraid2(n, mesid, data);
@@ -295,12 +307,7 @@ s32 bds_d1_process_subframe(nav_msg_bds_t *n,
     e->valid = 1;
   }
 
-  TOW_s += BDS_SECOND_TO_GPS_SECOND;
-  if (TOW_s >= WEEK_SECS) {
-    TOW_s -= WEEK_SECS;
-  }
-  /* Current time is 330 bits from TOW. */
-  return TOW_s * SECS_MS + BDS2_B11_D1NAV_SYMBOL_LENGTH_MS * 330;
+  return TOW_s;
 }
 
 /** D2 parsing
@@ -342,6 +349,22 @@ static void dump_navmsg(const nav_msg_bds_t *n, const u8 subfr) {
   log_info("%s", bitstream);
 }
 */
+
+static bool subframes123_from_same_frame(const nav_msg_bds_t *n) {
+  /* If subframe 1 is newer than subframe 2, or
+   * if subframe 2 is newer than subframe 3,
+   * then wait. */
+  u64 rx_diff1 = n->subfr_times[1] - n->subfr_times[0];
+  u64 rx_diff2 = n->subfr_times[2] - n->subfr_times[1];
+  /* Age threshold is one subframe + 1 second,
+   * to allow millisecond delays in decoder. */
+  u64 age_threshold = (BDS_D1_SUBFRAME_LEN_SECONDS + 1) * SECS_MS;
+
+  if ((rx_diff1 >= age_threshold) || (rx_diff2 >= age_threshold)) {
+    return false;
+  }
+  return true;
+}
 
 /** Shifts bits properly in the bit array */
 static void dw30_1bit_pushr(u32 *words, u8 numel, bool bitval) {

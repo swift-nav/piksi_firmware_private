@@ -39,6 +39,8 @@ extern "C" {
 #define BDS_SUBFRAME_AGE_INVALID ((u8)-1)
 /** Special value to marking maximum subframe cache entry age [6 seconds] */
 #define BDS_SUBFRAME_AGE_MAX ((u8)100)
+/** BDS D1 subframe length [seconds] */
+#define BDS_D1_SUBFRAME_LEN_SECONDS (6)
 
 /** TODO: Check Beidou fit_interval definition */
 #define BDS_FIT_INTERVAL_SECONDS (2 * HOUR_SECS)
@@ -67,7 +69,7 @@ typedef struct {
   s8 bit_polarity;
   /**< Decoded subframe data */
   u32 page_words[BDS_WORD_SUBFR * BDS_SUBFRAME_MAX];
-  /**< Successfully decoded words in page */
+  /**< Decoded subframe rx time */
   u64 subfr_times[BDS_SUBFRAME_MAX];
   /**< Successfully decoded words in page */
   u64 goodwords_mask;
