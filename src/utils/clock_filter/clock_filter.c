@@ -16,8 +16,8 @@
 #include <libswiftnav/logging.h>
 
 /** Process noise parameters for clock state Kalman filter */
-#define CLOCK_BIAS_VAR 1e-19
-#define CLOCK_DRIFT_VAR 1e-23
+#define CLOCK_BIAS_VAR 2.1e-18
+#define CLOCK_DRIFT_VAR 1.3e-22
 
 /* Time in which clock state uncertainty does not change significantly */
 #define CLOCK_STATE_MIN_PROPAGATE_TIME_S 1e-3

@@ -402,29 +402,6 @@ eph_new_status_t ephemeris_new(const ephemeris_t *e) {
   switch (oc) {
     case NDB_ERR_NONE:
       log_debug_sid(e->sid, "ephemeris saved");
-      {
-        /* if LGF is available, try to compute azimuth and elevation with the
-         * new ephemeris and save them into track database */
-        last_good_fix_t lgf;
-        if (ndb_lgf_read(&lgf) != NDB_ERR_NONE) {
-          break;
-        }
-        double az, el;
-        gnss_solution *pos = &lgf.position_solution;
-        if (!ephemeris_valid(e, &pos->time) ||
-            calc_sat_az_el(e,
-                           &pos->time,
-                           pos->pos_ecef,
-                           &az,
-                           &el,
-                           /*check_validity=*/false) != 0) {
-          break;
-        }
-        track_sid_db_azel_degrees_set(
-            e->sid, round(az * R2D), round(el * R2D), nap_timing_count());
-        log_debug_sid(
-            e->sid, "Updated elevation from new ephemeris %.1f deg", el * R2D);
-      }
       break;
     case NDB_ERR_NO_CHANGE:
       log_debug_sid(e->sid, "ephemeris is already present");
@@ -451,6 +428,28 @@ eph_new_status_t ephemeris_new(const ephemeris_t *e) {
       return EPH_NEW_ERR;
   }
 
+  /* if satellite's azimuth and elevation are not yet cached, try to compute
+   * them from the newly received ephemeris */
+
+  last_good_fix_t lgf;
+  if (TRACKING_ELEVATION_UNKNOWN ==
+          track_sid_db_elevation_degrees_get(e->sid) &&
+      NDB_ERR_NONE == ndb_lgf_read(&lgf)) {
+    double az, el;
+    const gnss_solution *pos = &lgf.position_solution;
+    if (ephemeris_valid(e, &pos->time) &&
+        0 == calc_sat_az_el(e,
+                            &pos->time,
+                            pos->pos_ecef,
+                            &az,
+                            &el,
+                            /*check_validity=*/false)) {
+      track_sid_db_azel_degrees_set(
+          e->sid, round(az * R2D), round(el * R2D), nap_timing_count());
+      log_debug_sid(
+          e->sid, "Updated elevation from new ephemeris %.1f deg", el * R2D);
+    }
+  }
   return EPH_NEW_OK;
 }
 
