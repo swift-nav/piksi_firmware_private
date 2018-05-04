@@ -543,8 +543,8 @@ void tp_profile_update_config(tracker_t *tracker_channel) {
     profile->ld_phase_params = ld_params_gps[cur_profile->ld_phase_params];
     profile->ld_freq_params = ld_params_gps[cur_profile->ld_freq_params];
   } else if (IS_GLO(mesid)) {
-    profile->ld_phase_params = ld_params_glo[cur_profile->ld_phase_params];
-    profile->ld_freq_params = ld_params_glo[cur_profile->ld_freq_params];
+    profile->ld_phase_params = ld_params_gps[cur_profile->ld_phase_params];
+    profile->ld_freq_params = ld_params_gps[cur_profile->ld_freq_params];
   } else if (IS_SBAS(mesid)) {
     profile->ld_phase_params = ld_params_sbas[cur_profile->ld_phase_params];
     profile->ld_freq_params = ld_params_sbas[cur_profile->ld_freq_params];
