@@ -221,3 +221,8 @@ u8 constellation_track_count(constellation_t gnss) {
   (void)gnss;
   return 0;
 }
+
+u8 track_sid_db_elevation_degrees_get(gnss_signal_t sid) {
+  (void)sid;
+  return 0;
+}
