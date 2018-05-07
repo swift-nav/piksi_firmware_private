@@ -20,8 +20,8 @@
 #include <libswiftnav/gnss_time.h>
 #include <libswiftnav/observation.h>
 #include <libswiftnav/pvt_engine/firmware_binding.h>
-#include <libswiftnav/single_epoch_solver.h>
 #include <libswiftnav/sbas_raw_data.h>
+#include <libswiftnav/single_epoch_solver.h>
 
 /**
  * Various solution output modes supported by the Starling Engine.
@@ -123,7 +123,7 @@ void set_known_glonass_biases(const glo_biases_t biases);
 
 /* Initialize the Starling API.
  *
- * IMPORTANT: 
+ * IMPORTANT:
  * This function should be called *once* at the start of the program.
  * Failure to do so before invoking other Starling API functions will
  * result in undefined behavior. Calling this function multiple times
@@ -134,11 +134,11 @@ void starling_initialize_api(void);
 void starling_run(void);
 
 /*******************************************************************************
- * Starling Data API 
+ * Starling Data API
  ******************************************************************************/
 
 /* Add raw sbas data to the starling engine. */
-void starling_add_sbas_data(const sbas_raw_data_t *sbas_data, 
+void starling_add_sbas_data(const sbas_raw_data_t *sbas_data,
                             const size_t n_sbas_data);
 
 /**
@@ -157,9 +157,8 @@ void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
                                const navigation_measurement_t *nav_meas,
                                const size_t num_nav_meas);
 
-
 /*******************************************************************************
- * Starling Configuration API 
+ * Starling Configuration API
  ******************************************************************************/
 
 /* Enable glonass constellation in the Starling engine. */

@@ -539,7 +539,7 @@ static void process_sbas_data(const sbas_raw_data_t *sbas_data) {
 
   /* Fill the week number from current time.
    * TODO(kevin) do not discard const qualifier. */
-  gps_time_match_weeks((gps_time_t *)&sbas_data->time_of_transmission, 
+  gps_time_match_weeks((gps_time_t *)&sbas_data->time_of_transmission,
                        &current_time);
 
   sbas_system_t sbas_system = get_sbas_system(sbas_data->sid);
@@ -801,7 +801,7 @@ void starling_run(void) { starling_thread(); }
 void starling_initialize_api(void) {
   /* It is invalid to call more than once. */
   assert(!is_starling_api_initialized);
-  
+
   platform_sbas_data_mailbox_setup();
 
   is_starling_api_initialized = true;
@@ -809,7 +809,7 @@ void starling_initialize_api(void) {
 
 /* Add SBAS data to the Starling engine. */
 void starling_add_sbas_data(const sbas_raw_data_t *sbas_data,
-    const size_t n_sbas_data) {
+                            const size_t n_sbas_data) {
   assert(is_starling_api_initialized);
   for (size_t i = 0; i < n_sbas_data; ++i) {
     platform_sbas_data_mailbox_post(sbas_data);

@@ -59,7 +59,7 @@
 static memory_pool_t time_matched_obs_buff_pool;
 static mailbox_t time_matched_obs_mailbox;
 
-/* SBAS Data API data-structures. */ 
+/* SBAS Data API data-structures. */
 #define SBAS_DATA_N_BUFF 6
 static mailbox_t sbas_data_mailbox;
 static memory_pool_t sbas_data_buff_pool;
@@ -164,7 +164,8 @@ void platform_sbas_data_mailbox_post(const sbas_raw_data_t *sbas_data) {
   }
   assert(sbas_data);
   *sbas_data_msg = *sbas_data;
-  msg_t ret = chMBPost(&sbas_data_mailbox, (msg_t)sbas_data_msg, TIME_IMMEDIATE);
+  msg_t ret =
+      chMBPost(&sbas_data_mailbox, (msg_t)sbas_data_msg, TIME_IMMEDIATE);
   if (ret != MSG_OK) {
     log_error("ME: Mailbox should have space for SBAS!");
     chPoolFree(&sbas_data_buff_pool, sbas_data_msg);
