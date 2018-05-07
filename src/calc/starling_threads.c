@@ -30,7 +30,6 @@
 
 #include "calc_pvt_common.h"
 #include "calc_pvt_me.h"
-#include "me_msg/me_msg.h"
 #include "starling_platform_shim.h"
 #include "starling_threads.h"
 
