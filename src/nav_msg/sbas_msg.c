@@ -10,8 +10,8 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "calc/starling_threads.h"
 #include "nav_msg/sbas_msg.h"
-#include "me_msg/me_msg.h"
 #include "nav_msg/nav_msg.h" /* For BIT_POLARITY_... constants */
 #include "sbp_utils.h"
 #include "timing/timing.h"
@@ -298,17 +298,9 @@ static u32 sbas_get_timestamp(u32 delay) {
  * accepted by Starling API.
  */
 static void sbas_post_me_msg(const msg_sbas_raw_t *sbas_raw_msg) {
-  sbas_raw_data_t *sbas_data = chPoolAlloc(&sbas_data_buff_pool);
-  if (NULL == sbas_data) {
-    log_error("ME: Could not allocate pool for SBAS!");
-    return;
-  }
-  unpack_sbas_raw_data(sbas_raw_msg, sbas_data);
-  msg_t ret = chMBPost(&sbas_data_mailbox, (msg_t)sbas_data, TIME_IMMEDIATE);
-  if (ret != MSG_OK) {
-    log_error("ME: Mailbox should have space for SBAS!");
-    chPoolFree(&sbas_data_buff_pool, sbas_data);
-  }
+  sbas_raw_data_t sbas_data;
+  unpack_sbas_raw_data(sbas_raw_msg, &sbas_data);
+  starling_add_sbas_data(&sbas_data, 1);
 }
 
 /**

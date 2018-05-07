@@ -64,8 +64,10 @@ int main(void) {
   io_support_init();
   sbp_setup();
   me_obs_msg_setup();
-  sbas_msg_setup();
   settings_setup();
+
+  /* Must initialize the Starling API prior to any use. */
+  starling_initialize_api();
 
   log_info("Piksi Starting...");
   log_info("pfwp_build_id: " GIT_VERSION "");

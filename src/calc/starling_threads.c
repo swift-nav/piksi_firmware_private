@@ -49,6 +49,9 @@ extern void starling_integration_solution_simulation(
 #define TIME_MATCHED_OBS_THREAD_PRIORITY (NORMALPRIO - 3)
 #define TIME_MATCHED_OBS_THREAD_STACK (6 * 1024 * 1024)
 
+/* Tracks if the API has been properly initialized or not. */
+static bool is_starling_api_initialized = false;
+
 /* Settings which control the filter behavior of the Starling engine. */
 typedef struct StarlingSettings {
   bool is_glonass_enabled;
@@ -792,6 +795,26 @@ static void starling_thread(void) {
 
 /* Run the starling engine on the current thread. Blocks indefinitely. */
 void starling_run(void) { starling_thread(); }
+
+/* Set up all persistent data-structures used by the API. All
+ * API calls should be valid after a call to this function. */
+void starling_initialize_api(void) {
+  /* It is invalid to call more than once. */
+  assert(!is_starling_api_initialized);
+  
+  platform_sbas_data_mailbox_setup();
+
+  is_starling_api_initialized = true;
+}
+
+/* Add SBAS data to the Starling engine. */
+void starling_add_sbas_data(const sbas_raw_data_t *sbas_data,
+    const size_t n_sbas_data) {
+  assert(is_starling_api_initialized);
+  for (size_t i = 0; i < n_sbas_data; ++i) {
+    platform_sbas_data_mailbox_post(sbas_data);
+  }
+}
 
 /*******************************************************************************
  * Settings Update Functions

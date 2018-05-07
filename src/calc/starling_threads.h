@@ -21,6 +21,7 @@
 #include <libswiftnav/observation.h>
 #include <libswiftnav/pvt_engine/firmware_binding.h>
 #include <libswiftnav/single_epoch_solver.h>
+#include <libswiftnav/sbas_raw_data.h>
 
 /**
  * Various solution output modes supported by the Starling Engine.
@@ -120,23 +121,25 @@ void set_known_glonass_biases(const glo_biases_t biases);
  * Formal Starling API
  ******************************************************************************/
 
+/* Initialize the Starling API.
+ *
+ * IMPORTANT: 
+ * This function should be called *once* at the start of the program.
+ * Failure to do so before invoking other Starling API functions will
+ * result in undefined behavior. Calling this function multiple times
+ * also results in undefined behavior. */
+void starling_initialize_api(void);
+
 /* Run the starling engine on the current thread. Blocks indefinitely. */
 void starling_run(void);
-/* Enable glonass constellation in the Starling engine. */
-void starling_set_is_glonass_enabled(bool is_glonass_enabled);
-/* Enable fixed RTK mode in the Starling engine. */
-void starling_set_is_fix_enabled(bool is_fix_enabled);
-/* Enable klobuchar corrections in the time-matched filter. */
-void starling_set_is_time_matched_klobuchar_enabled(bool is_klobuchar_enabled);
-/* Indicate for how long corrections should persist. */
-void starling_set_max_correction_age(int max_age);
-/* Modify the relative weighting of glonass observations. */
-void starling_set_glonass_downweight_factor(float factor);
 
-/* Set the desired solution mode for the Starling engine. */
-void starling_set_solution_mode(dgnss_solution_mode_t mode);
-/* Get the current solution mode for the Starling engine. */
-dgnss_solution_mode_t starling_get_solution_mode(void);
+/*******************************************************************************
+ * Starling Data API 
+ ******************************************************************************/
+
+/* Add raw sbas data to the starling engine. */
+void starling_add_sbas_data(const sbas_raw_data_t *sbas_data, 
+                            const size_t n_sbas_data);
 
 /**
  * These functions must be implemented by the integration layer
@@ -153,4 +156,26 @@ void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
                                const gps_time_t *solution_epoch_time,
                                const navigation_measurement_t *nav_meas,
                                const size_t num_nav_meas);
+
+
+/*******************************************************************************
+ * Starling Configuration API 
+ ******************************************************************************/
+
+/* Enable glonass constellation in the Starling engine. */
+void starling_set_is_glonass_enabled(bool is_glonass_enabled);
+/* Enable fixed RTK mode in the Starling engine. */
+void starling_set_is_fix_enabled(bool is_fix_enabled);
+/* Enable klobuchar corrections in the time-matched filter. */
+void starling_set_is_time_matched_klobuchar_enabled(bool is_klobuchar_enabled);
+/* Indicate for how long corrections should persist. */
+void starling_set_max_correction_age(int max_age);
+/* Modify the relative weighting of glonass observations. */
+void starling_set_glonass_downweight_factor(float factor);
+
+/* Set the desired solution mode for the Starling engine. */
+void starling_set_solution_mode(dgnss_solution_mode_t mode);
+/* Get the current solution mode for the Starling engine. */
+dgnss_solution_mode_t starling_get_solution_mode(void);
+
 #endif

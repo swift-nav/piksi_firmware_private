@@ -28,16 +28,3 @@ void me_obs_msg_setup(void) {
   chPoolObjectInit(&me_obs_msg_buff_pool, sizeof(me_msg_obs_t), NULL);
   chPoolLoadArray(&me_obs_msg_buff_pool, me_obs_msg_buff, ME_OBS_MSG_N_BUFF);
 }
-
-#define SBAS_DATA_N_BUFF 6
-mailbox_t sbas_data_mailbox;
-memory_pool_t sbas_data_buff_pool;
-
-static msg_t sbas_data_mailbox_buff[SBAS_DATA_N_BUFF];
-static sbas_raw_data_t sbas_data_buff[SBAS_DATA_N_BUFF];
-
-void sbas_msg_setup(void) {
-  chMBObjectInit(&sbas_data_mailbox, sbas_data_mailbox_buff, SBAS_DATA_N_BUFF);
-  chPoolObjectInit(&sbas_data_buff_pool, sizeof(sbas_raw_data_t), NULL);
-  chPoolLoadArray(&sbas_data_buff_pool, sbas_data_buff, SBAS_DATA_N_BUFF);
-}
