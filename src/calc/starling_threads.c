@@ -342,15 +342,9 @@ static PVT_ENGINE_INTERFACE_RC process_matched_obs(
       platform_mutex_lock(&low_latency_filter_manager_lock);
       platform_mutex_lock(&base_pos_lock);
       platform_mutex_lock(&base_glonass_biases_lock);
-      u32 begin = NAP->TIMING_COUNT;
       copy_filter_manager_rtk(
           (FilterManagerRTK *)low_latency_filter_manager,
           (const FilterManagerRTK *)time_matched_filter_manager);
-      u32 end = NAP->TIMING_COUNT;
-      log_debug("copy_filter_manager_rtk DST %p   SRC %p in %" PRIu32 " ticks",
-                low_latency_filter_manager,
-                time_matched_filter_manager,
-                (end > begin) ? (end - begin) : (begin + (4294967295U - end)));
       platform_mutex_unlock(&base_glonass_biases_lock);
       platform_mutex_unlock(&base_pos_lock);
       platform_mutex_unlock(&low_latency_filter_manager_lock);
