@@ -141,10 +141,10 @@ void platform_me_obs_msg_free(me_msg_obs_t *ptr) {
 }
 
 /* SBAS messages */
-int32_t platform_sbas_msg_mailbox_fetch(int32_t *msg, uint32_t timeout) {
-  return chMBFetch(&sbas_msg_mailbox, (msg_t *)msg, (systime_t)timeout);
+int32_t platform_sbas_data_mailbox_fetch(int32_t *msg, uint32_t timeout) {
+  return chMBFetch(&sbas_data_mailbox, (msg_t *)msg, (systime_t)timeout);
 }
 
-void platform_sbas_msg_free(msg_sbas_raw_t *ptr) {
-  chPoolFree(&sbas_msg_buff_pool, ptr);
+void platform_sbas_data_free(sbas_raw_data_t *ptr) {
+  chPoolFree(&sbas_data_buff_pool, ptr);
 }
