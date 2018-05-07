@@ -13,9 +13,9 @@
 #ifndef STARLING_CALC_STARLING_PLATFORM_SHIM_H
 #define STARLING_CALC_STARLING_PLATFORM_SHIM_H
 
-#include <libsbp/sbas.h>
 #include <libswiftnav/ephemeris.h>
 #include <libswiftnav/ionosphere.h>
+#include <libswiftnav/sbas_raw_data.h>
 #include <libswiftnav/signal.h>
 
 /* TODO(kevin) Ultimately the platform layer should have no dependency
@@ -57,7 +57,7 @@ int32_t platform_me_obs_msg_mailbox_fetch(int32_t *msg, uint32_t timeout);
 void platform_me_obs_msg_free(me_msg_obs_t *ptr);
 
 /* used for receiving sbas messages */
-int32_t platform_sbas_msg_mailbox_fetch(int32_t *msg, uint32_t timeout);
-void platform_sbas_msg_free(msg_sbas_raw_t *ptr);
+int32_t platform_sbas_data_mailbox_fetch(int32_t *msg, uint32_t timeout);
+void platform_sbas_data_free(sbas_raw_data_t *ptr);
 
 #endif

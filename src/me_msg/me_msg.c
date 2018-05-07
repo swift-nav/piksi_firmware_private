@@ -10,6 +10,8 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include <libswiftnav/sbas_raw_data.h>
+
 #include "me_msg.h"
 
 #define ME_OBS_MSG_N_BUFF 6
@@ -27,15 +29,15 @@ void me_obs_msg_setup(void) {
   chPoolLoadArray(&me_obs_msg_buff_pool, me_obs_msg_buff, ME_OBS_MSG_N_BUFF);
 }
 
-#define SBAS_MSG_N_BUFF 6
-mailbox_t sbas_msg_mailbox;
-memory_pool_t sbas_msg_buff_pool;
+#define SBAS_DATA_N_BUFF 6
+mailbox_t sbas_data_mailbox;
+memory_pool_t sbas_data_buff_pool;
 
-static msg_t sbas_msg_mailbox_buff[SBAS_MSG_N_BUFF];
-static msg_sbas_raw_t sbas_msg_buff[SBAS_MSG_N_BUFF];
+static msg_t sbas_data_mailbox_buff[SBAS_DATA_N_BUFF];
+static sbas_raw_data_t sbas_data_buff[SBAS_DATA_N_BUFF];
 
 void sbas_msg_setup(void) {
-  chMBObjectInit(&sbas_msg_mailbox, sbas_msg_mailbox_buff, SBAS_MSG_N_BUFF);
-  chPoolObjectInit(&sbas_msg_buff_pool, sizeof(msg_sbas_raw_t), NULL);
-  chPoolLoadArray(&sbas_msg_buff_pool, sbas_msg_buff, SBAS_MSG_N_BUFF);
+  chMBObjectInit(&sbas_data_mailbox, sbas_data_mailbox_buff, SBAS_DATA_N_BUFF);
+  chPoolObjectInit(&sbas_data_buff_pool, sizeof(sbas_raw_data_t), NULL);
+  chPoolLoadArray(&sbas_data_buff_pool, sbas_data_buff, SBAS_DATA_N_BUFF);
 }
