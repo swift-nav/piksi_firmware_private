@@ -484,12 +484,7 @@ static void tp_tracker_update_correlators(tracker_t *tracker_channel,
                                          tracker_channel->cycle_no);
 
   if (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED)) {
-    bool locked = (bool)(tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK) ||
-                  (bool)(tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK);
     bool rfoff = rfoff_detected(&tracker_channel->rfoff,
-                       mesid,
-                       tracker_channel->cn0,
-                       locked,
                        int_ms,
                        &cs_now.very_early,
                        &cs_now.early,

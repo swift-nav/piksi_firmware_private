@@ -16,7 +16,6 @@
 #include <libswiftnav/signal.h>
 #include "board/nap/nap_common.h"
 #include "run_stats/run_stats.h"
-#include "hal/piksi_systime.h"
 
 typedef struct rfoff {
   running_stats_t noise;
@@ -25,16 +24,12 @@ typedef struct rfoff {
   double noise_now;
   double signal_tau3_ms;
   u8 int_ms;
-  piksi_systime_t last_systime;
   bool rfoff;
   u8 rfoff_countdown;
 } rfoff_t;
 
 void rfoff_init(rfoff_t *self);
 bool rfoff_detected(rfoff_t *self,
-                   me_gnss_signal_t mesid,
-                   double cn0,
-                   bool locked,
                    u8 int_ms,
                    const corr_t *ve,
                    const corr_t *e,
