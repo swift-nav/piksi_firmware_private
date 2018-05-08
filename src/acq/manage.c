@@ -26,6 +26,7 @@
 #include <libswiftnav/signal.h>
 
 #include "board/nap/track_channel.h"
+#include "calc/starling_threads.h"
 #include "decode.h"
 #include "dum/dum.h"
 #include "ephemeris/ephemeris.h"
@@ -337,6 +338,17 @@ static bool galileo_enable_notify(struct setting *s, const char *val) {
   return true;
 }
 
+/* Update the solution elevation mask used by the ME and by Starling. */
+static bool solution_elevation_mask_notify(struct setting *s, const char *val) {
+  bool res = s->type->from_string(s->type->priv, s->addr, s->len, val);
+  if (!res) {
+    return false;
+  }
+  log_debug("Solution elevation mask: %f", solution_elevation_mask);
+  starling_set_elevation_mask(solution_elevation_mask);
+  return true;
+}
+
 void manage_acq_setup() {
   SETTING("acquisition", "almanacs_enabled", almanacs_enabled, TYPE_BOOL);
   SETTING_NOTIFY("acquisition",
@@ -570,7 +582,11 @@ void check_clear_unhealthy(void) {
 
 void me_settings_setup(void) {
   SETTING("track", "elevation_mask", tracking_elevation_mask, TYPE_FLOAT);
-  SETTING("solution", "elevation_mask", solution_elevation_mask, TYPE_FLOAT);
+  SETTING_NOTIFY("solution",
+                 "elevation_mask",
+                 solution_elevation_mask,
+                 TYPE_FLOAT,
+                 solution_elevation_mask_notify);
 }
 
 /**
