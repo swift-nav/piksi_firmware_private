@@ -811,7 +811,7 @@ void starling_add_sbas_data(const sbas_raw_data_t *sbas_data,
                             const size_t n_sbas_data) {
   assert(is_starling_api_initialized);
   for (size_t i = 0; i < n_sbas_data; ++i) {
-    platform_sbas_data_mailbox_post(sbas_data);
+    platform_sbas_data_mailbox_post(sbas_data + i);
   }
 }
 
