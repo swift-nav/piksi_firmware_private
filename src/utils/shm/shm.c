@@ -104,7 +104,7 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
     almanac_t a;
     ndb_op_code_t oc = ndb_almanac_read(sid, &a);
     if (NDB_ERR_NONE == oc &&
-        !check_6bit_health_word(a.health_bits, sid.code)) {
+        !check_8bit_health_word(a.health_bits, sid.code)) {
       return CODE_NAV_STATE_INVALID;
     }
   }
