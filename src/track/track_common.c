@@ -25,6 +25,7 @@
 #include "track_flags.h"
 #include "track_sid_db.h"
 #include "track_utils.h"
+#include "rfoff/rfoff.h"
 
 #include <assert.h>
 #include <inttypes.h>
@@ -261,6 +262,8 @@ void tp_tracker_init(tracker_t *tracker_channel,
   tp_profile_apply_config(tracker_channel, /* init = */ true);
 
   tracker_channel->flags |= TRACKER_FLAG_ACTIVE;
+
+  rfoff_init(&tracker_channel->rfoff);
 }
 
 void tracker_cleanup(tracker_t *tracker_channel) {
@@ -479,6 +482,28 @@ static void tp_tracker_update_correlators(tracker_t *tracker_channel,
   /* Current cycle duration */
   int_ms = tp_get_current_cycle_duration(tracker_channel->tracking_mode,
                                          tracker_channel->cycle_no);
+
+  if (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED)) {
+    bool locked = (bool)(tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK) ||
+                  (bool)(tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK);
+    bool rfoff = rfoff_detected(&tracker_channel->rfoff,
+                       mesid,
+                       tracker_channel->cn0,
+                       locked,
+                       int_ms,
+                       &cs_now.very_early,
+                       &cs_now.early,
+                       &cs_now.prompt,
+                       &cs_now.late);
+
+    if (0 == tracker_channel->cycle_no) {
+      if (rfoff) {
+        tracker_channel->flags |= TRACKER_FLAG_RFOFF_DETECTED;
+      } else {
+        tracker_channel->flags &= ~TRACKER_FLAG_RFOFF_DETECTED;
+      }
+    }
+  }
 
   u64 now = timing_getms();
   if (tracker_channel->updated_once) {
@@ -785,6 +810,11 @@ static void tp_tracker_update_locks(tracker_t *tracker_channel,
  * \return None
  */
 void tp_tracker_update_fll(tracker_t *tracker_channel, u32 cycle_flags) {
+  bool rfoff = (0 != (tracker_channel->flags & TRACKER_FLAG_RFOFF_DETECTED));
+  if (rfoff) {
+    return;
+  }
+
   bool halfq = (0 != (cycle_flags & TPF_FLL_HALFQ));
 
   if (0 != (cycle_flags & TPF_FLL_USE)) {
@@ -808,6 +838,11 @@ void tp_tracker_update_fll(tracker_t *tracker_channel, u32 cycle_flags) {
  */
 static void tp_tracker_update_pll_dll(tracker_t *tracker_channel,
                                       u32 cycle_flags) {
+  bool rfoff = (0 != (tracker_channel->flags & TRACKER_FLAG_RFOFF_DETECTED));
+  if (rfoff) {
+    return;
+  }
+
   if (0 != (cycle_flags & TPF_EPL_USE)) {
     /* Output I/Q correlations using SBP if enabled for this channel */
     if (tracker_channel->tracking_mode != TP_TM_INITIAL) {

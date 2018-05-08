@@ -22,6 +22,7 @@
 #include "nav_data_sync/nav_data_sync.h"
 #include "track_cfg.h"
 #include "track_cn0.h"
+#include "rfoff/rfoff.h"
 #include "track_loop/trk_loop_common.h"
 
 #define TP_DLL_PLL_MEAS_DIM 5
@@ -432,6 +433,8 @@ typedef struct {
   health_t health;   /**< GLO SV health info */
 
   tracker_misc_info_t misc_info;
+
+  rfoff_t rfoff;
 
   tp_profile_t profile; /**< Profile controller state. */
 

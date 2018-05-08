@@ -10,7 +10,6 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 #include <math.h>
-#include <stdio.h>
 
 #include <libswiftnav/constants.h>
 #include <libswiftnav/logging.h>
@@ -20,26 +19,28 @@
 #include "run_stats/run_stats.h"
 
 TEST(run_stats_test, test_run_stats) {
-  running_stats_t stat = {.n = 1, .sum = 1, .sum_of_squares = 1};
-  double mean, std;
 
-  running_stats_init(&stat);
-  EXPECT_TRUE(stat.n == 0 && stat.sum == 0 && stat.sum_of_squares == 0);
+  running_stats_t stat;
 
-  for (int i = 0; i < 10; i++) {
-    running_stats_update(&stat, (double)i);
+  running_stats_init(&stat, 0.01);
+
+  for (double i = -1.; i < 0; i += 1e-3) {
+    running_stats_update(&stat, i);
   }
-  EXPECT_TRUE(stat.n == 10 && stat.sum == 45 && stat.sum_of_squares == 285);
 
-  running_stats_get_products(&stat, &mean, &std);
-  EXPECT_TRUE((mean - 4.5) <= 1e-6 && (std - 3.027650) <= 1e-6);
+  double mean = running_stats_get_mean(&stat);
+  EXPECT_TRUE(fabs(mean) <= 0.1);
 
-  running_stats_init(&stat);
-  for (int i = 0; i > -10; i--) {
-    running_stats_update(&stat, (double)i);
+  double std = running_stats_get_std(&stat);
+  EXPECT_TRUE(fabs(std) <= 1e-1);
+
+  for (double i = 0; i < 1; i += 1e-3) {
+    running_stats_update(&stat, i);
   }
-  EXPECT_TRUE(stat.n == 10 && stat.sum == -45 && stat.sum_of_squares == 285);
 
-  running_stats_get_products(&stat, &mean, &std);
-  EXPECT_TRUE((mean + 4.5) <= 1e-6 && (std - 3.027650) <= 1e-6);
+  mean = running_stats_get_mean(&stat);
+  EXPECT_TRUE(fabs(mean - 0.9) <= 0.11);
+
+  std = running_stats_get_std(&stat);
+  EXPECT_TRUE(fabs(std) <= 1e-1);
 }

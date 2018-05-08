@@ -35,6 +35,7 @@
 /** Tracker flag: tracker has decoded TOW. */
 #define TRACKER_FLAG_TOW_DECODED (1 << 8)
 #define TRACKER_FLAG_TOW_VALID (1 << 9)
+#define TRACKER_FLAG_RFOFF_DETECTED (1 << 10)
 /** Tracker flag: tracker is a cross-correlate suspect */
 #define TRACKER_FLAG_XCORR_SUSPECT (1 << 11)
 /** Tracker flag: tracker xcorr doppler filter is active */

@@ -1005,7 +1005,8 @@ u32 get_tracking_channel_meas(u8 i,
   if ((0 != (flags & TRACKER_FLAG_ACTIVE)) &&
       (0 != (flags & TRACKER_FLAG_CONFIRMED)) &&
       (0 == (flags & TRACKER_FLAG_DROP_CHANNEL)) &&
-      (0 == (flags & TRACKER_FLAG_XCORR_SUSPECT))) {
+      (0 == (flags & TRACKER_FLAG_XCORR_SUSPECT)) &&
+      (0 == (flags & TRACKER_FLAG_RFOFF_DETECTED))) {
     gnss_signal_t sid = mesid2sid(info.mesid, info.glo_orbit_slot);
     ndb_op_code_t res = ndb_ephemeris_read(sid, ephe);
 

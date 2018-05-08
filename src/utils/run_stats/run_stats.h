@@ -19,16 +19,18 @@
 extern "C" {
 #endif /* __cplusplus */
 
-/** Running statistics */
+/** Running_Stats statistics */
 typedef struct {
-  u64 n;                 /**< number of samples */
-  double sum;            /**< sum of samples */
-  double sum_of_squares; /**< sum of samples' squares */
+  double alpha;
+  double mean;
+  double variance;
+  bool init_done;
 } running_stats_t;
 
-void running_stats_init(running_stats_t *p);
+void running_stats_init(running_stats_t *p, double alpha);
 void running_stats_update(running_stats_t *p, double v);
-void running_stats_get_products(running_stats_t *p, double *mean, double *std);
+double running_stats_get_std(running_stats_t *p);
+double running_stats_get_mean(running_stats_t *p);
 
 #ifdef __cplusplus
 } /* extern "C" */
