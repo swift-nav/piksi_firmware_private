@@ -11,56 +11,56 @@
  */
 
 #include <math.h>
-#include <stdio.h>
-
+#include <string.h>
+#include <assert.h>
 #include "run_stats.h"
 
-/** Running statistics initializaiton
+/* A filter-like adaptation of B. P. Welford running statistics algorithm
+   presented in Donald Knuth’s Art of Computer Programming, Vol 2, page 232,
+   3rd edition.
+   The idea is taken from https://www.embeddedrelated.com/showarticle/785.php */
+
+/**
+ * Running statistics initializaiton
  * \param p Running statistics state
+ * \param alpha First order IIR filter parameter
  */
-void running_stats_init(running_stats_t *p) {
-  p->n = 0;
-  p->sum = 0;
-  p->sum_of_squares = 0;
+void running_stats_init(running_stats_t *p, double alpha) {
+  memset(p, 0, sizeof(*p));
+  p->alpha = alpha;
 }
 
-/** Running statistics update
+/**
+ * Running statistics update
  * \param p Running statistics state
  * \param v New value
  */
 void running_stats_update(running_stats_t *p, double v) {
-  p->n++;
-  if (0 == p->n) {
-    /* Overflow just happened. Reset statistics by intializing it. */
-    running_stats_init(p);
-    p->n = 1;
+  if (!p->init_done) {
+    p->mean = v;
+    p->init_done = true;
+    return;
   }
-
-  p->sum += v;
-  p->sum_of_squares += v * v;
+  double mean = p->mean + p->alpha * (v - p->mean);
+  p->variance += p->alpha * ((v - p->mean) * (v - mean) - p->variance);
+  assert(p->variance >= 0);
+  p->mean = mean;
 }
 
-/** Running statistics update
+/**
+ * Get standard deviation value
  * \param p Running statistics state
- * \param[out] mean Mean value
- * \param[out] std Standard deviation
+ * \return the standard deviation value
  */
-void running_stats_get_products(running_stats_t *p, double *mean, double *std) {
-  if (NULL != mean) {
-    if (0 == p->n) {
-      *mean = 0;
-    } else {
-      *mean = p->sum / p->n;
-    }
-  }
+double running_stats_get_std(running_stats_t *p) {
+  return sqrt(p->variance);
+}
 
-  if (NULL != std) {
-    if (1 >= p->n) {
-      *std = 0;
-    } else {
-      double variance = p->sum_of_squares / (p->n - 1) -
-                        (p->sum * p->sum) / p->n / (p->n - 1);
-      *std = sqrt(variance);
-    }
-  }
+/**
+ * Get mean value
+ * \param p Running statistics state
+ * \return the mean value
+ */
+double running_stats_get_mean(running_stats_t *p) {
+  return p->mean;
 }
