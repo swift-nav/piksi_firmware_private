@@ -56,13 +56,15 @@ typedef struct StarlingSettings {
   bool is_glonass_enabled;
   bool is_time_matched_klobuchar_enabled;
   float glonass_downweight_factor;
+  float elevation_mask;
   dgnss_solution_mode_t solution_output_mode;
 } StarlingSettings;
 
 /* Initial settings values (internal to Starling). */
 #define INIT_IS_GLONASS_ENABLED true
 #define INIT_IS_TIME_MATCHED_KLOBUCHAR_ENABLED true
-#define INIT_GLONASS_DOWNWEIGHT_FACTOR 4.0
+#define INIT_GLONASS_DOWNWEIGHT_FACTOR 4.0f
+#define INIT_ELEVATION_MASK 10.0f
 #define INIT_SOLUTION_OUTPUT_MODE STARLING_SOLN_MODE_LOW_LATENCY
 
 /* Local settings object and mutex protection. */
@@ -71,6 +73,7 @@ static StarlingSettings global_settings = {
     .is_glonass_enabled = INIT_IS_GLONASS_ENABLED,
     .is_time_matched_klobuchar_enabled = INIT_IS_TIME_MATCHED_KLOBUCHAR_ENABLED,
     .glonass_downweight_factor = INIT_GLONASS_DOWNWEIGHT_FACTOR,
+    .elevation_mask = INIT_ELEVATION_MASK,
     .solution_output_mode = INIT_SOLUTION_OUTPUT_MODE,
 };
 
@@ -118,6 +121,7 @@ static void update_filter_manager_settings(FilterManager *fm) {
       fm, settings.glonass_downweight_factor, CODE_GLO_L1OF);
   set_pvt_engine_obs_downweight_factor(
       fm, settings.glonass_downweight_factor, CODE_GLO_L2OF);
+  set_pvt_engine_elevation_mask(fm, settings.elevation_mask);
 }
 
 static void post_observations(u8 n,
@@ -244,8 +248,6 @@ static PVT_ENGINE_INTERFACE_RC call_pvt_engine_filter(
   if (is_initialized) {
     update_filter_manager_settings(filter_manager);
 
-    set_pvt_engine_elevation_mask(filter_manager,
-                                  get_solution_elevation_mask());
     set_pvt_engine_update_frequency(filter_manager, solution_frequency);
 
     filter_manager_overwrite_ephemerides(filter_manager, ephemerides);
@@ -344,15 +346,9 @@ static PVT_ENGINE_INTERFACE_RC process_matched_obs(
       platform_mutex_lock(&low_latency_filter_manager_lock);
       platform_mutex_lock(&base_pos_lock);
       platform_mutex_lock(&base_glonass_biases_lock);
-      u32 begin = NAP->TIMING_COUNT;
       copy_filter_manager_rtk(
           (FilterManagerRTK *)low_latency_filter_manager,
           (const FilterManagerRTK *)time_matched_filter_manager);
-      u32 end = NAP->TIMING_COUNT;
-      log_debug("copy_filter_manager_rtk DST %p   SRC %p in %" PRIu32 " ticks",
-                low_latency_filter_manager,
-                time_matched_filter_manager,
-                (end > begin) ? (end - begin) : (begin + (4294967295U - end)));
       platform_mutex_unlock(&base_glonass_biases_lock);
       platform_mutex_unlock(&base_pos_lock);
       platform_mutex_unlock(&low_latency_filter_manager_lock);
@@ -428,8 +424,6 @@ static void time_matched_obs_thread(void *arg) {
     /* Grab the latest settings. */
     update_filter_manager_settings(time_matched_filter_manager);
 
-    set_pvt_engine_elevation_mask(time_matched_filter_manager,
-                                  get_solution_elevation_mask());
     set_pvt_engine_update_frequency(time_matched_filter_manager,
                                     starling_frequency);
     platform_mutex_unlock(&time_matched_filter_manager_lock);
@@ -840,6 +834,13 @@ void starling_set_is_time_matched_klobuchar_enabled(bool is_klobuchar_enabled) {
 void starling_set_glonass_downweight_factor(float factor) {
   platform_mutex_lock(&global_settings_lock);
   global_settings.glonass_downweight_factor = factor;
+  platform_mutex_unlock(&global_settings_lock);
+}
+
+/* Set the elevation mask used to filter satellites from the solution. */
+void starling_set_elevation_mask(float elevation_mask) {
+  platform_mutex_lock(&global_settings_lock);
+  global_settings.elevation_mask = elevation_mask;
   platform_mutex_unlock(&global_settings_lock);
 }
 
