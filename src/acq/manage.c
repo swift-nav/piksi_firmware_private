@@ -855,12 +855,16 @@ void sanitize_tracker(tracker_t *tracker_channel, u64 now_ms) {
     }
   }
 
-  /* if (0 != (flags & TRACKER_FLAG_RFOFF_DETECTED)) { */
-  /*   if (piksi_systime_elapsed_since_ms(&tracker_channel->rfoff_start) > 500) { */
-  /*     drop_channel(tracker_channel, CH_DROP_REASON_RFOFF); */
-  /*     return; */
-  /*   } */
-  /* } */
+#if 0
+
+  if (0 != (flags & TRACKER_FLAG_RFOFF_DETECTED)) {
+    if (piksi_systime_elapsed_since_ms(&tracker_channel->rfoff_start) > 500) {
+      drop_channel(tracker_channel, CH_DROP_REASON_RFOFF);
+      return;
+    }
+  }
+
+#endif
 
   /* Do we not have nav bit sync yet? */
   if (0 == (flags & TRACKER_FLAG_BIT_SYNC)) {

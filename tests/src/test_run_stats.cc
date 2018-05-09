@@ -19,7 +19,6 @@
 #include "run_stats/run_stats.h"
 
 TEST(run_stats_test, test_run_stats) {
-
   running_stats_t stat;
 
   running_stats_init(&stat, 0.01);
@@ -30,7 +29,6 @@ TEST(run_stats_test, test_run_stats) {
 
   double mean = running_stats_get_mean(&stat);
   EXPECT_TRUE(fabs(mean) <= 0.1);
-
   double std = running_stats_get_std(&stat);
   EXPECT_TRUE(fabs(std) <= 1e-1);
 

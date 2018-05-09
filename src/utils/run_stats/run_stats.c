@@ -10,10 +10,10 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "run_stats.h"
+#include <assert.h>
 #include <math.h>
 #include <string.h>
-#include <assert.h>
-#include "run_stats.h"
 
 /* A filter-like adaptation of B. P. Welford running statistics algorithm
    presented in Donald Knuth’s Art of Computer Programming, Vol 2, page 232,
@@ -52,15 +52,11 @@ void running_stats_update(running_stats_t *p, double v) {
  * \param p Running statistics state
  * \return the standard deviation value
  */
-double running_stats_get_std(running_stats_t *p) {
-  return sqrt(p->variance);
-}
+double running_stats_get_std(running_stats_t *p) { return sqrt(p->variance); }
 
 /**
  * Get mean value
  * \param p Running statistics state
  * \return the mean value
  */
-double running_stats_get_mean(running_stats_t *p) {
-  return p->mean;
-}
+double running_stats_get_mean(running_stats_t *p) { return p->mean; }

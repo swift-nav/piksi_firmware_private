@@ -10,11 +10,11 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <assert.h>
-#include <math.h>
 #include "rfoff.h"
-#include "main.h"
+#include <assert.h>
 #include <libswiftnav/logging.h>
+#include <math.h>
+#include "main.h"
 
 /* RF off detection is run with this rate [ms] */
 #define RFOFF_INT_MS 10
@@ -23,6 +23,7 @@
 
 static u16 snr2tau3(float snr, u16 tau3_prev_ms) {
   assert(snr >= 0);
+  /* clang-format off */
   static struct {
     float snr_min;
     float snr_max;
@@ -31,6 +32,7 @@ static u16 snr2tau3(float snr, u16 tau3_prev_ms) {
     {25., INFINITY, RFOFF_INT_MS},
     {0, 7., 200}
   };
+  /* clang-format on */
 
   u16 tau3_ms = tau3_prev_ms;
   for (size_t i = 0; i < ARRAY_SIZE(lookup); i++) {
@@ -61,11 +63,11 @@ void rfoff_init(rfoff_t *self) {
 }
 
 bool rfoff_detected(rfoff_t *self,
-                   const u8 int_ms,
-                   const corr_t *ve,
-                   const corr_t *e,
-                   const corr_t *p,
-                   const corr_t *l) {
+                    const u8 int_ms,
+                    const corr_t *ve,
+                    const corr_t *e,
+                    const corr_t *p,
+                    const corr_t *l) {
   double noise = ve->I * ve->I + ve->Q * ve->Q;
   self->noise_now += noise;
 
