@@ -639,6 +639,9 @@ static const char *get_ch_drop_reason_str(ch_drop_reason_t reason) {
     case CH_DROP_REASON_RAIM:
       str = "Measurement flagged by RAIM, dropping";
       break;
+    case CH_DROP_REASON_RFOFF:
+      str = "No signal, dropping";
+      break;
     default:
       assert(!"Unknown channel drop reason");
   }
@@ -851,6 +854,13 @@ void sanitize_tracker(tracker_t *tracker_channel, u64 now_ms) {
       return;
     }
   }
+
+  /* if (0 != (flags & TRACKER_FLAG_RFOFF_DETECTED)) { */
+  /*   if (piksi_systime_elapsed_since_ms(&tracker_channel->rfoff_start) > 500) { */
+  /*     drop_channel(tracker_channel, CH_DROP_REASON_RFOFF); */
+  /*     return; */
+  /*   } */
+  /* } */
 
   /* Do we not have nav bit sync yet? */
   if (0 == (flags & TRACKER_FLAG_BIT_SYNC)) {

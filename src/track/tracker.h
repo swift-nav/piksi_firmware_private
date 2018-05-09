@@ -83,7 +83,8 @@ typedef enum {
                                     drop GLO satellites */
   CH_DROP_REASON_OUTLIER,      /**< Doppler outlier */
   CH_DROP_REASON_SBAS_PROVIDER_CHANGE, /**< SBAS provider change */
-  CH_DROP_REASON_RAIM                  /**< Signal removed by RAIM */
+  CH_DROP_REASON_RAIM,                 /**< Signal removed by RAIM */
+  CH_DROP_REASON_RFOFF                 /**< No signal */
 } ch_drop_reason_t;
 
 struct profile_vars {
@@ -435,6 +436,7 @@ typedef struct {
   tracker_misc_info_t misc_info;
 
   rfoff_t rfoff;
+  piksi_systime_t rfoff_start;
 
   tp_profile_t profile; /**< Profile controller state. */
 
