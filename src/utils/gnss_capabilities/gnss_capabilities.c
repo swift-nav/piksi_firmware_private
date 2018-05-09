@@ -33,9 +33,9 @@ gnss_capabilities_t gnss_capab = {.gps_active = 0x0ffffffffULL,
                                   Configuration compliant with to
                                   http://www.csno-tarc.cn/system/basicinfo
                                   retrieved on May 2nd*/
-                                  .bds_active = 0x1ffe0ULL,
-                                  .bds_d2nav = 0x1001fULL,
-                                  .bds_b2 = 0x1ffffULL,
+                                  .bds_active = 0x3fffffe0ULL,
+                                  .bds_d2nav = 0x0001fULL,
+                                  .bds_b2 = 0x3fffffffULL,
 
                                   .qzss_active = 0x3ff,
 
