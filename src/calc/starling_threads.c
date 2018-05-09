@@ -525,16 +525,6 @@ static void init_filters_and_settings(void) {
  * updates for a single SBAS message.
  */
 static void process_sbas_data(const sbas_raw_data_t *sbas_data) {
-  const gps_time_t current_time = get_current_time();
-  if (!gps_time_valid(&current_time)) {
-    return;
-  }
-
-  /* Fill the week number from current time.
-   * TODO(kevin) do not discard const qualifier. */
-  gps_time_match_weeks((gps_time_t *)&sbas_data->time_of_transmission,
-                       &current_time);
-
   sbas_system_t sbas_system = get_sbas_system(sbas_data->sid);
 
   platform_mutex_lock(&spp_filter_manager_lock);
