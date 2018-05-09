@@ -493,6 +493,9 @@ static void tp_tracker_update_correlators(tracker_t *tracker_channel,
 
     if (0 == tracker_channel->cycle_no) {
       if (rfoff) {
+        if (0 == (tracker_channel->flags & TRACKER_FLAG_RFOFF_DETECTED)) {
+          piksi_systime_get(&tracker_channel->rfoff_start);
+        }
         tracker_channel->flags |= TRACKER_FLAG_RFOFF_DETECTED;
       } else {
         tracker_channel->flags &= ~TRACKER_FLAG_RFOFF_DETECTED;
@@ -833,11 +836,6 @@ void tp_tracker_update_fll(tracker_t *tracker_channel, u32 cycle_flags) {
  */
 static void tp_tracker_update_pll_dll(tracker_t *tracker_channel,
                                       u32 cycle_flags) {
-  bool rfoff = (0 != (tracker_channel->flags & TRACKER_FLAG_RFOFF_DETECTED));
-  if (rfoff) {
-    return;
-  }
-
   if (0 != (cycle_flags & TPF_EPL_USE)) {
     /* Output I/Q correlations using SBP if enabled for this channel */
     if (tracker_channel->tracking_mode != TP_TM_INITIAL) {
@@ -882,7 +880,10 @@ static void tp_tracker_update_pll_dll(tracker_t *tracker_channel,
       corr_all.prompt.Q = +corr_all.very_late.I;
       costas = false;
     }
-    tp_tl_update(&tracker_channel->tl_state, &corr_all, costas);
+    bool rfoff = (0 != (tracker_channel->flags & TRACKER_FLAG_RFOFF_DETECTED));
+    if (!rfoff) {
+      tp_tl_update(&tracker_channel->tl_state, &corr_all, costas);
+    }
     tp_tl_get_rates(&tracker_channel->tl_state, &rates);
 
     tracker_channel->carrier_freq = rates.carr_freq;
