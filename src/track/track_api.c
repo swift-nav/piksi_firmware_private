@@ -224,7 +224,7 @@ void tracker_bit_sync_set(tracker_t *tracker, s8 bit_phase_ref) {
 static s8 nav_bit_quantize(s32 bit_integrate) {
   /* compress s32 into a balanced s8, 0 reserved for sensitivity mode */
 
-  return (s8)(((bit_integrate >> 25) << 1) + 1);
+  return (s8)(((bit_integrate >> 17) << 1) + 1);
 }
 
 /** Update bit sync and output navigation message bits for a tracker channel.
