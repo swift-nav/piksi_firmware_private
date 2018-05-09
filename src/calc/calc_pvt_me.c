@@ -321,7 +321,7 @@ static void collect_measurements(u64 rec_tc,
         0 != (flags & TRACKER_FLAG_CONFIRMED) &&
         0 == (flags & TRACKER_FLAG_DROP_CHANNEL) &&
         0 == (flags & TRACKER_FLAG_MASKED) &&
-       (0 == (flags & TRACKER_FLAG_RFOFF_DETECTED))) {
+        (0 == (flags & TRACKER_FLAG_RFOFF_DETECTED))) {
       /* Tracking channel is active & not masked */
       n_active++;
 

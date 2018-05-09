@@ -17,6 +17,7 @@
 
 #include "lock_detector/lock_detector.h"
 #include "manage.h"
+#include "rfoff/rfoff.h"
 #include "signal_db/signal_db.h"
 #include "timing/timing.h"
 #include "track_api.h"
@@ -25,7 +26,6 @@
 #include "track_flags.h"
 #include "track_sid_db.h"
 #include "track_utils.h"
-#include "rfoff/rfoff.h"
 
 #include <assert.h>
 #include <inttypes.h>
@@ -485,11 +485,11 @@ static void tp_tracker_update_correlators(tracker_t *tracker_channel,
 
   if (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED)) {
     bool rfoff = rfoff_detected(&tracker_channel->rfoff,
-                       int_ms,
-                       &cs_now.very_early,
-                       &cs_now.early,
-                       &cs_now.prompt,
-                       &cs_now.late);
+                                int_ms,
+                                &cs_now.very_early,
+                                &cs_now.early,
+                                &cs_now.prompt,
+                                &cs_now.late);
 
     if (0 == tracker_channel->cycle_no) {
       if (rfoff) {

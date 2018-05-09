@@ -30,10 +30,10 @@ typedef struct rfoff {
 
 void rfoff_init(rfoff_t *self);
 bool rfoff_detected(rfoff_t *self,
-                   u8 int_ms,
-                   const corr_t *ve,
-                   const corr_t *e,
-                   const corr_t *p,
-                   const corr_t *l);
+                    u8 int_ms,
+                    const corr_t *ve,
+                    const corr_t *e,
+                    const corr_t *p,
+                    const corr_t *l);
 
 #endif /* SWIFTNAV_RFOFF_H  */
