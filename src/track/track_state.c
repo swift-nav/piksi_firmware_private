@@ -157,14 +157,14 @@ void tracker_get_state(u8 id,
   /* Cross-correlation doppler frequency [hz] */
   info->xcorr_freq = tracker->xcorr_freq;
 
-  time_info->cn0_drop_ms = update_count_diff(
-      tracker, &tracker->cn0_above_drop_thres_count);
-  time_info->cn0_usable_ms = update_count_diff(
-      tracker, &tracker->cn0_below_use_thres_count);
+  time_info->cn0_drop_ms =
+      update_count_diff(tracker, &tracker->cn0_above_drop_thres_count);
+  time_info->cn0_usable_ms =
+      update_count_diff(tracker, &tracker->cn0_below_use_thres_count);
 
   if (0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) {
-    time_info->ld_pess_locked_ms = update_count_diff(
-        tracker, &tracker->ld_pess_change_count);
+    time_info->ld_pess_locked_ms =
+        update_count_diff(tracker, &tracker->ld_pess_change_count);
   } else {
     time_info->ld_pess_locked_ms = 0;
   }
@@ -182,8 +182,8 @@ void tracker_get_state(u8 id,
       0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK)) {
     time_info->ld_pess_unlocked_ms = 0;
   } else {
-    time_info->ld_pess_unlocked_ms = update_count_diff(
-        tracker, &tracker->ld_pess_change_count);
+    time_info->ld_pess_unlocked_ms =
+        update_count_diff(tracker, &tracker->ld_pess_change_count);
   }
 
   /* Current carrier frequency for a tracker channel. */
@@ -274,8 +274,8 @@ bool tracker_init(const u8 id,
     u32 now = timing_getms();
     tracker->init_timestamp_ms = now;
     tracker->settle_time_ms = code_requires_direct_acq(mesid.code)
-                                          ? TRACK_INIT_FROM_ACQ_MS
-                                          : TRACK_INIT_FROM_HANDOVER_MS;
+                                  ? TRACK_INIT_FROM_ACQ_MS
+                                  : TRACK_INIT_FROM_HANDOVER_MS;
     tracker->update_timestamp_ms = now;
     tracker->updated_once = false;
     tracker->cp_sync.polarity = BIT_POLARITY_UNKNOWN;
@@ -337,8 +337,7 @@ void tracker_disable(const u8 id) {
  * \param tracker   Tracker channel to use.
  * \param error_flag        Error flag to add.
  */
-static void error_flags_add(tracker_t *tracker,
-                            error_flag_t error_flag) {
+static void error_flags_add(tracker_t *tracker, error_flag_t error_flag) {
   if (error_flag != ERROR_FLAG_NONE) {
     tracker_flag_drop(tracker, CH_DROP_REASON_ERROR);
   }
@@ -366,15 +365,16 @@ static void serve_nap_request(tracker_t *tracker) {
 void trackers_update(u32 channels_mask, const u8 c0) {
   const u64 now_ms = timing_getms();
 
-  for (u8 ci = 0; (ci < 32) && ((c0 + ci) < nap_track_n_channels); ci++) {
+  /* experiment 3: like this we always clean a tracker if it has to...
+   * and don't clean trackers that are not to be served by NAP */
+  for (u8 ci = 0; channels_mask && ((c0 + ci) < nap_track_n_channels); ci++) {
     tracker_t *tracker = tracker_get(c0 + ci);
     bool update_required = (channels_mask & 1) ? true : false;
     /* if NAP has something to do, serve this channel */
     if (update_required) {
       serve_nap_request(tracker);
+      sanitize_tracker(tracker, now_ms);
     }
-    /* we call this at >=2kHz, should happen before a new NAP update */
-    sanitize_tracker(tracker, now_ms);
     channels_mask >>= 1;
   }
 }

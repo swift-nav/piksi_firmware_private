@@ -653,8 +653,7 @@ static void log_switch(tracker_t *tracker, const char *reason) {
                   get_ctrl_str(next_profile->profile.controller_type));
 }
 
-static bool pll_bw_changed(tracker_t *tracker,
-                           profile_indices_t index) {
+static bool pll_bw_changed(tracker_t *tracker, profile_indices_t index) {
   tp_profile_t *state = &tracker->profile;
   const tp_profile_entry_t *entry = &state->profiles[index];
   float pll_bw;
@@ -687,8 +686,7 @@ static bool pll_bw_changed(tracker_t *tracker,
   return true;
 }
 
-static bool fll_bw_changed(tracker_t *tracker,
-                           profile_indices_t index) {
+static bool fll_bw_changed(tracker_t *tracker, profile_indices_t index) {
   tp_profile_t *state = &tracker->profile;
   const tp_profile_entry_t *entry = &state->profiles[index];
 
@@ -785,27 +783,23 @@ bool tp_profile_has_new_profile(tracker_t *tracker) {
 
   if ((0 != (flags & TP_LOW_CN0)) &&
       (state->filt_cn0 < cur_profile->cn0_low_threshold) &&
-      profile_switch_requested(
-          tracker, cur_profile->next_cn0_low, "low cn0")) {
+      profile_switch_requested(tracker, cur_profile->next_cn0_low, "low cn0")) {
     return true;
   }
 
   bool bsync = (0 != (tracker->flags & TRACKER_FLAG_BIT_SYNC));
   if ((0 != (flags & TP_WAIT_BSYNC)) && !bsync) {
-    return profile_switch_requested(
-        tracker, state->cur.index, "wbsync");
+    return profile_switch_requested(tracker, state->cur.index, "wbsync");
   }
 
   bool flock = (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK));
   if (0 != (flags & TP_WAIT_FLOCK) && !flock) {
-    return profile_switch_requested(
-        tracker, state->cur.index, "wflock");
+    return profile_switch_requested(tracker, state->cur.index, "wflock");
   }
 
   bool plock = (0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK));
   if (0 != (flags & TP_WAIT_PLOCK) && !plock) {
-    return profile_switch_requested(
-        tracker, state->cur.index, "wplock");
+    return profile_switch_requested(tracker, state->cur.index, "wplock");
   }
 
   if (state->lock_time_ms > 0) {
@@ -823,8 +817,7 @@ bool tp_profile_has_new_profile(tracker_t *tracker) {
     assert(cur_profile->next != IDX_NONE);
     return profile_switch_requested(tracker, cur_profile->next, "next");
   } else {
-    return profile_switch_requested(
-        tracker, state->cur.index + 1, "next");
+    return profile_switch_requested(tracker, state->cur.index + 1, "next");
   }
 
   return false;

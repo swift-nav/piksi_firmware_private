@@ -38,8 +38,7 @@ void tracker_set_prn_fail_flag(const me_gnss_signal_t mesid, bool val) {
       tracker_unlock(tracker);
       continue;
     }
-    if (IS_GPS(tracker->mesid) &&
-        tracker->mesid.sat == mesid.sat) {
+    if (IS_GPS(tracker->mesid) && tracker->mesid.sat == mesid.sat) {
       tracker->prn_check_fail = val;
     }
     tracker_unlock(tracker);
@@ -69,9 +68,8 @@ void tracker_set_raim_flag(const gnss_signal_t sid) {
     if (IS_GLO(tracker->mesid)) {
       can_compare &= glo_slot_id_is_valid(tracker->glo_orbit_slot);
     }
-    if (can_compare && sid_is_equal(mesid2sid(tracker->mesid,
-                                              tracker->glo_orbit_slot),
-                                    sid)) {
+    if (can_compare &&
+        sid_is_equal(mesid2sid(tracker->mesid, tracker->glo_orbit_slot), sid)) {
       tracker_flag_drop(tracker, CH_DROP_REASON_RAIM);
     }
     tracker_unlock(tracker);
@@ -186,8 +184,7 @@ void tracker_set_xcorr_suspect_flag(tracker_t *tracker,
   if (xcorr_suspect) {
     tracker->flags |= TRACKER_FLAG_XCORR_SUSPECT;
     if (!sensitivity_mode) {
-      log_debug_mesid(tracker->mesid,
-                      "setting cross-correlation suspect flag");
+      log_debug_mesid(tracker->mesid, "setting cross-correlation suspect flag");
     }
   } else {
     tracker->flags &= ~TRACKER_FLAG_XCORR_SUSPECT;
@@ -249,6 +246,4 @@ bool tracker_get_prn_fail_flag(tracker_t *tracker) {
  *
  * \return Cross-correlation flag value-
  */
-bool tracker_get_xcorr_flag(tracker_t *tracker) {
-  return tracker->xcorr_flag;
-}
+bool tracker_get_xcorr_flag(tracker_t *tracker) { return tracker->xcorr_flag; }

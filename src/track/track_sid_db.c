@@ -358,8 +358,7 @@ bool track_sid_db_update_positions(const gnss_signal_t sid,
   return result;
 }
 
-static bool tow_cache_sid_available(tracker_t *tracker,
-                                    gnss_signal_t *sid) {
+static bool tow_cache_sid_available(tracker_t *tracker, gnss_signal_t *sid) {
   me_gnss_signal_t mesid = tracker->mesid;
   u16 glo_orbit_slot = 0;
 
@@ -394,10 +393,9 @@ void update_tow_in_sid_db(tracker_t *tracker) {
   u64 sample_time_tk = nap_sample_time_to_count(tracker->sample_count);
 
   /* Update TOW cache */
-  tp_tow_entry_t tow_entry = {
-      .TOW_ms = tracker->TOW_ms,
-      .TOW_residual_ns = tracker->TOW_residual_ns,
-      .sample_time_tk = sample_time_tk};
+  tp_tow_entry_t tow_entry = {.TOW_ms = tracker->TOW_ms,
+                              .TOW_residual_ns = tracker->TOW_residual_ns,
+                              .sample_time_tk = sample_time_tk};
   track_sid_db_update_tow(sid, &tow_entry);
 }
 

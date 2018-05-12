@@ -92,13 +92,13 @@ static s32 adjust_tow_by_bit_fifo_delay(tracker_t *tracker,
                                         const nav_data_sync_t *to_tracker) {
   s32 TOW_ms = TOW_INVALID;
   /* Compute time since the pending data was read from the FIFO */
-  u8 fifo_length = NAV_BIT_FIFO_INDEX_DIFF(
-      tracker->nav_bit_fifo.write_index, to_tracker->read_index);
+  u8 fifo_length = NAV_BIT_FIFO_INDEX_DIFF(tracker->nav_bit_fifo.write_index,
+                                           to_tracker->read_index);
   u32 fifo_time_diff_ms = fifo_length * tracker->bit_sync.bit_length;
 
   /* Add full bit times + fractional bit time to the specified TOW */
-  TOW_ms = to_tracker->TOW_ms + fifo_time_diff_ms +
-           tracker->nav_bit_TOW_offset_ms;
+  TOW_ms =
+      to_tracker->TOW_ms + fifo_time_diff_ms + tracker->nav_bit_TOW_offset_ms;
 
   TOW_ms = normalize_tow(TOW_ms);
 
@@ -138,8 +138,7 @@ static void update_tow(tracker_t *tracker,
   *TOW_residual_ns = data_sync->TOW_residual_ns;
 }
 
-static void update_eph(tracker_t *tracker,
-                       const nav_data_sync_t *data_sync) {
+static void update_eph(tracker_t *tracker, const nav_data_sync_t *data_sync) {
   me_gnss_signal_t mesid = tracker->mesid;
 
   if ((GLO_ORBIT_SLOT_UNKNOWN != tracker->glo_orbit_slot) &&
@@ -301,8 +300,7 @@ u8 tracker_bit_length_get(tracker_t *tracker) {
  *         integration is bit aligned, false otherwise.
  */
 bool tracker_bit_aligned(tracker_t *tracker) {
-  return (tracker->bit_sync.bit_phase ==
-          tracker->bit_sync.bit_phase_ref);
+  return (tracker->bit_sync.bit_phase == tracker->bit_sync.bit_phase_ref);
 }
 
 /**
@@ -426,8 +424,7 @@ void tracker_correlations_send(tracker_t *tracker, const corr_t *cs) {
     if (IS_GLO(tracker->mesid)) {
       return;
     }
-    gnss_signal_t sid =
-        mesid2sid(tracker->mesid, tracker->glo_orbit_slot);
+    gnss_signal_t sid = mesid2sid(tracker->mesid, tracker->glo_orbit_slot);
     msg.sid = sid_to_sbp(sid);
     for (u32 i = 0; i < 3; i++) {
       msg.corrs[i].I = cs[i].I;
@@ -451,8 +448,7 @@ void tracker_correlations_send(tracker_t *tracker, const corr_t *cs) {
  */
 update_count_t update_count_diff(const tracker_t *tracker,
                                  const update_count_t *val) {
-  update_count_t result =
-      (update_count_t)(tracker->update_count - *val);
+  update_count_t result = (update_count_t)(tracker->update_count - *val);
   COMPILER_BARRIER(); /* Prevent compiler reordering */
   /* Allow some margin in case values were not read atomically.
    * Treat a difference of [-10000, 0) as zero. */
@@ -466,14 +462,10 @@ update_count_t update_count_diff(const tracker_t *tracker,
  *
  * \param tracker   Tracker channel to use.
  */
-void tracker_lock(tracker_t *tracker) {
-  chMtxLock(&tracker->mutex);
-}
+void tracker_lock(tracker_t *tracker) { chMtxLock(&tracker->mutex); }
 
 /** Unlock a locked tracker channel.
  *
  * \param tracker   Tracker channel to use.
  */
-void tracker_unlock(tracker_t *tracker) {
-  chMtxUnlock(&tracker->mutex);
-}
+void tracker_unlock(tracker_t *tracker) { chMtxUnlock(&tracker->mutex); }

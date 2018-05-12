@@ -110,11 +110,9 @@ void tp_tl_fll_update_second(tp_tl_state_t *s, corr_t cs, bool halfq);
 void tp_tl_fll_update(tp_tl_state_t *s);
 
 /* Generic tracker functions */
-void tp_tracker_init(tracker_t *tracker,
-                     const tp_tracker_config_t *config);
+void tp_tracker_init(tracker_t *tracker, const tp_tracker_config_t *config);
 void tp_tracker_disable(tracker_t *tracker);
-u32 tp_tracker_update(tracker_t *tracker,
-                      const tp_tracker_config_t *config);
+u32 tp_tracker_update(tracker_t *tracker, const tp_tracker_config_t *config);
 
 tp_tm_e tp_profile_get_next_track_mode(const tp_profile_t *profile,
                                        me_gnss_signal_t mesid);
