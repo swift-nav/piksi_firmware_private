@@ -30,11 +30,6 @@ ndb_op_code_t ndb_almanac_erase_by_src(gnss_signal_t src_sid);
 ndb_op_code_t ndb_almanac_wn_read(u32 tow, u16 *wn);
 ndb_op_code_t ndb_almanac_wn_store(
     gnss_signal_t sid, u32 tow, u16 wn, ndb_data_source_t ds, u16 sender_id);
-ndb_op_code_t ndb_almanac_hb_update(gnss_signal_t target_sid,
-                                    u8 health_bits,
-                                    ndb_data_source_t ds,
-                                    const gnss_signal_t *src_sid,
-                                    u16 sender_id);
 void ndb_almanac_sbp_update(void);
 
 #ifdef __cplusplus

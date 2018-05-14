@@ -336,50 +336,7 @@ static void decode_almanac_health_new(gnss_signal_t src_sid,
     gnss_signal_t target_sid = construct_sid(CODE_GPS_L1CA, sv_idx + 1);
 
     u8 health_bits = hflags[sv_idx];
-
-    ndb_op_code_t r = ndb_almanac_hb_update(target_sid,
-                                            health_bits,
-                                            NDB_DS_RECEIVER,
-                                            &src_sid,
-                                            NDB_EVENT_SENDER_ID_VOID);
-
-    switch (r) {
-      case NDB_ERR_NONE:
-        log_debug_sid(target_sid,
-                      "almanac health bits updated (0x%02" PRIX8 ")",
-                      health_bits);
-        break;
-      case NDB_ERR_NO_CHANGE:
-        log_debug_sid(target_sid,
-                      "almanac health bits up to date (0x%02" PRIX8 ")",
-                      health_bits);
-        break;
-      case NDB_ERR_UNCONFIRMED_DATA:
-        log_debug_sid(target_sid,
-                      "almanac health bits are unconfirmed (0x%02" PRIX8 ")",
-                      health_bits);
-        break;
-      case NDB_ERR_NO_DATA:
-        log_debug_sid(target_sid,
-                      "almanac health bits are ignored (0x%02" PRIX8 ")",
-                      health_bits);
-        break;
-      case NDB_ERR_OLDER_DATA:
-      case NDB_ERR_MISSING_IE:
-      case NDB_ERR_UNSUPPORTED:
-      case NDB_ERR_FILE_IO:
-      case NDB_ERR_INIT_DONE:
-      case NDB_ERR_BAD_PARAM:
-      case NDB_ERR_ALGORITHM_ERROR:
-      case NDB_ERR_AGED_DATA:
-      case NDB_ERR_GPS_TIME_MISSING:
-      default:
-        log_error_sid(target_sid,
-                      "error %d updating almanac health bits (0x%02" PRIX8 ")",
-                      (int)r,
-                      health_bits);
-        break;
-    }
+    shm_gps_set_shi3(target_sid.sat, health_bits);
 
     /* Health indicates CODE_NAV_STATE_INVALID */
     if (shm_signal_unhealthy(target_sid)) {
