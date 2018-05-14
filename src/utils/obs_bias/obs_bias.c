@@ -52,6 +52,10 @@ static const double glo_l2_isc[] = {[0] = -7.5,
 
 static const double gps_l2_isc = -1.95;
 
+/* TODO: estimate these properly against e.g. Septentrio  */
+static const double bds2_b11_isc = -6.5;
+static const double bds2_b2_isc = 0.5;
+
 /* These biases are to align the GLONASS carrier phase to the Septentrio
  * receivers carrier phase These biases are in cycles and are proportional to
  * the frequency number
@@ -90,6 +94,14 @@ void apply_isc_table(u8 n_channels, navigation_measurement_t *nav_meas[]) {
                              glo_l2_carrier_phase_bias;
         break;
 
+      case CODE_BDS2_B11:
+        pseudorange_corr = bds2_b11_isc;
+        break;
+
+      case CODE_BDS2_B2:
+        pseudorange_corr = bds2_b2_isc;
+        break;
+
       case CODE_INVALID:
       case CODE_COUNT:
         assert(!"Invalid code.");
@@ -102,8 +114,6 @@ void apply_isc_table(u8 n_channels, navigation_measurement_t *nav_meas[]) {
       case CODE_GPS_L5I:
       case CODE_GPS_L5Q:
       case CODE_GPS_L5X:
-      case CODE_BDS2_B11:
-      case CODE_BDS2_B2:
       case CODE_GAL_E1B:
       case CODE_GAL_E1C:
       case CODE_GAL_E1X:
