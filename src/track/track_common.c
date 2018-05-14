@@ -161,6 +161,8 @@ void tp_profile_apply_config(tracker_t *tracker_channel, bool init) {
 
     tp_tl_init(
         &tracker_channel->tl_state, profile->loop_params.ctrl, &rates, &config);
+    tp_tl_init(
+        &tracker_channel->tl_state_fll_ld, profile->loop_params.ctrl, &rates, &config);
   } else {
     log_debug_mesid(mesid, "Re-tuning TL");
 
@@ -817,8 +819,9 @@ void tp_tracker_update_fll(tracker_t *tracker_channel, u32 cycle_flags) {
       cs.Q = tracker_channel->corrs.corr_fll.Q;
     }
     tp_tl_fll_update_second(&tracker_channel->tl_state, cs, halfq);
+    tp_tl_fll_update_second(&tracker_channel->tl_state_fll_ld, cs, halfq);
     tracker_channel->unfiltered_freq_error =
-        tp_tl_get_fll_error(&tracker_channel->tl_state);
+        tp_tl_get_fll_error(&tracker_channel->tl_state_fll_ld);
   }
 }
 
@@ -886,6 +889,11 @@ static void tp_tracker_update_pll_dll(tracker_t *tracker_channel,
       corr_all.late.I = corr_all.late.Q = 0;
     }
     tp_tl_update(&tracker_channel->tl_state, &corr_all, costas);
+
+    assert(TP_CTRL_PLL3 == tracker_channel->tl_state_fll_ld.ctrl);
+    tracker_channel->tl_state_fll_ld.pll3.discr_sum_hz = 0.f;
+    tracker_channel->tl_state_fll_ld.pll3.discr_cnt = 0;
+
     tp_tl_get_rates(&tracker_channel->tl_state, &rates);
 
     tracker_channel->carrier_freq = rates.carr_freq;

@@ -441,6 +441,7 @@ typedef struct {
   tp_profile_t profile; /**< Profile controller state. */
 
   tp_tl_state_t tl_state;      /**< Tracking loop filter state. */
+  tp_tl_state_t tl_state_fll_ld; /**< FLL loop state for FLL lock detector. */
   tp_corr_state_t corrs;       /**< Correlations */
   track_cn0_state_t cn0_est;   /**< C/N0 estimator state. */
   alias_detect_t alias_detect; /**< Alias lock detector. */
