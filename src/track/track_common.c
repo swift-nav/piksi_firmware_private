@@ -808,16 +808,15 @@ static void tp_tracker_update_locks(tracker_t *tracker_channel,
  * \return None
  */
 void tp_tracker_update_fll(tracker_t *tracker_channel, u32 cycle_flags) {
-  bool rfoff = (0 != (tracker_channel->flags & TRACKER_FLAG_RFOFF_DETECTED));
-  if (rfoff) {
-    return;
-  }
-
-  bool halfq = (0 != (cycle_flags & TPF_FLL_HALFQ));
-
   if (0 != (cycle_flags & TPF_FLL_USE)) {
-    tp_tl_fll_update_second(
-        &tracker_channel->tl_state, tracker_channel->corrs.corr_fll, halfq);
+    bool halfq = (0 != (cycle_flags & TPF_FLL_HALFQ));
+    corr_t cs = {0};
+    bool rfoff = (0 != (tracker_channel->flags & TRACKER_FLAG_RFOFF_DETECTED));
+    if (!rfoff) {
+      cs.I = tracker_channel->corrs.corr_fll.I;
+      cs.Q = tracker_channel->corrs.corr_fll.Q;
+    }
+    tp_tl_fll_update_second(&tracker_channel->tl_state, cs, halfq);
     tracker_channel->unfiltered_freq_error =
         tp_tl_get_fll_error(&tracker_channel->tl_state);
   }
@@ -881,9 +880,12 @@ static void tp_tracker_update_pll_dll(tracker_t *tracker_channel,
       costas = false;
     }
     bool rfoff = (0 != (tracker_channel->flags & TRACKER_FLAG_RFOFF_DETECTED));
-    if (!rfoff) {
-      tp_tl_update(&tracker_channel->tl_state, &corr_all, costas);
+    if (rfoff) {
+      corr_all.early.I = corr_all.early.Q = 0;
+      corr_all.prompt.I = corr_all.prompt.Q = 0;
+      corr_all.late.I = corr_all.late.Q = 0;
     }
+    tp_tl_update(&tracker_channel->tl_state, &corr_all, costas);
     tp_tl_get_rates(&tracker_channel->tl_state, &rates);
 
     tracker_channel->carrier_freq = rates.carr_freq;
