@@ -494,7 +494,8 @@ static void solution_make_baseline_sbp(const pvt_engine_result_t *result,
 /*******************************************************************************
  * Simulation Helpers
  ******************************************************************************/
-static void starling_integration_solution_simulation(sbp_messages_t *sbp_messages) {
+static void starling_integration_solution_simulation(
+    sbp_messages_t *sbp_messages) {
   simulation_step();
 
   /* TODO: The simulator's handling of time is a bit crazy. This is a hack
@@ -567,7 +568,9 @@ void starling_integration_simulation_run(const me_msg_obs_t *me_msg) {
       fake_base_sender_id, &sbp_messages, me_msg->size, me_msg->obs);
 }
 
-bool starling_integration_simulation_enabled(void) { return simulation_enabled(); }
+bool starling_integration_simulation_enabled(void) {
+  return simulation_enabled();
+}
 
 /*******************************************************************************
  * Settings Update Helpers
