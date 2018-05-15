@@ -342,17 +342,17 @@ void nap_track_init(u8 channel,
 
   if (mesid.code == CODE_GAL_E5X) {
     index = mesid.sat - 1;
-    NAP->TRK_SEC_CODE3 = getbitu(gal_e5q_sec_codes[index], 0, 4);
-    NAP->TRK_SEC_CODE2 = getbitu(gal_e5q_sec_codes[index], 4, 32);
-    NAP->TRK_SEC_CODE1 = getbitu(gal_e5q_sec_codes[index], 36, 32);
-    NAP->TRK_SEC_CODE0 = getbitu(gal_e5q_sec_codes[index], 68, 32);
+    NAP->TRK_SEC_CODE[3] = getbitu(gal_e5q_sec_codes[index], 0, 4);
+    NAP->TRK_SEC_CODE[2] = getbitu(gal_e5q_sec_codes[index], 4, 32);
+    NAP->TRK_SEC_CODE[1] = getbitu(gal_e5q_sec_codes[index], 36, 32);
+    NAP->TRK_SEC_CODE[0] = getbitu(gal_e5q_sec_codes[index], 68, 32);
   }
   if (mesid.code == CODE_GAL_E7X) {
     index = mesid.sat - 1;
-    NAP->TRK_SEC_CODE3 = getbitu(gal_e7q_sec_codes[index], 0, 4);
-    NAP->TRK_SEC_CODE2 = getbitu(gal_e7q_sec_codes[index], 4, 32);
-    NAP->TRK_SEC_CODE1 = getbitu(gal_e7q_sec_codes[index], 36, 32);
-    NAP->TRK_SEC_CODE0 = getbitu(gal_e7q_sec_codes[index], 68, 32);
+    NAP->TRK_SEC_CODE[3] = getbitu(gal_e7q_sec_codes[index], 0, 4);
+    NAP->TRK_SEC_CODE[2] = getbitu(gal_e7q_sec_codes[index], 4, 32);
+    NAP->TRK_SEC_CODE[1] = getbitu(gal_e7q_sec_codes[index], 36, 32);
+    NAP->TRK_SEC_CODE[0] = getbitu(gal_e7q_sec_codes[index], 68, 32);
   }
 
   /* port FCN-induced NCO phase to a common receiver clock point */
@@ -449,24 +449,24 @@ void nap_track_read_results(u8 channel,
   *count_snapshot = trk_ch.TIMING_SNAPSHOT;
 
   /* VE correlator */
-  corrs[3].I = (s16)(trk_ch.CORR0 & 0xFFFF);
-  corrs[3].Q = (s16)((trk_ch.CORR0 >> 16) & 0xFFFF);
+  corrs[3].I = (s16)(trk_ch.CORR[0] & 0xFFFF);
+  corrs[3].Q = (s16)((trk_ch.CORR[0] >> 16) & 0xFFFF);
 
   /* E correlator */
-  corrs[0].I = (s16)(trk_ch.CORR1 & 0xFFFF);
-  corrs[0].Q = (s16)((trk_ch.CORR1 >> 16) & 0xFFFF);
+  corrs[0].I = (s16)(trk_ch.CORR[1] & 0xFFFF);
+  corrs[0].Q = (s16)((trk_ch.CORR[1] >> 16) & 0xFFFF);
 
   /* P correlator */
-  corrs[1].I = (s16)(trk_ch.CORR2 & 0xFFFF);
-  corrs[1].Q = (s16)((trk_ch.CORR2 >> 16) & 0xFFFF);
+  corrs[1].I = (s16)(trk_ch.CORR[2] & 0xFFFF);
+  corrs[1].Q = (s16)((trk_ch.CORR[2] >> 16) & 0xFFFF);
 
   /* L correlator */
-  corrs[2].I = (s16)(trk_ch.CORR3 & 0xFFFF);
-  corrs[2].Q = (s16)((trk_ch.CORR3 >> 16) & 0xFFFF);
+  corrs[2].I = (s16)(trk_ch.CORR[3] & 0xFFFF);
+  corrs[2].Q = (s16)((trk_ch.CORR[3] >> 16) & 0xFFFF);
 
   /* VL correlator */
-  corrs[4].I = (s16)(trk_ch.CORR4 & 0xFFFF);
-  corrs[4].Q = (s16)((trk_ch.CORR4 >> 16) & 0xFFFF);
+  corrs[4].I = (s16)(trk_ch.CORR[4] & 0xFFFF);
+  corrs[4].Q = (s16)((trk_ch.CORR[4] >> 16) & 0xFFFF);
 
   /* Spacing between VE and P correlators */
   double prompt_offset = s->spacing[0].chips +
@@ -548,21 +548,21 @@ void nap_track_read_results(u8 channel,
 
 void nap_track_enable(u8 channel) {
   if (channel < 32) {
-    NAP->TRK_CONTROL0 |= (1 << channel);
+    NAP->TRK_CONTROL[0] |= (1 << channel);
   } else if (channel < 64) {
-    NAP->TRK_CONTROL1 |= (1 << (channel - 32));
+    NAP->TRK_CONTROL[1] |= (1 << (channel - 32));
   } else {
-    NAP->TRK_CONTROL2 |= (1 << (channel - 64));
+    NAP->TRK_CONTROL[2] |= (1 << (channel - 64));
   }
 }
 
 void nap_track_disable(u8 channel) {
   if (channel < 32) {
-    NAP->TRK_CONTROL0 &= ~(1 << channel);
+    NAP->TRK_CONTROL[0] &= ~(1 << channel);
   } else if (channel < 64) {
-    NAP->TRK_CONTROL1 &= ~(1 << (channel - 32));
+    NAP->TRK_CONTROL[1] &= ~(1 << (channel - 32));
   } else {
-    NAP->TRK_CONTROL2 &= ~(1 << (channel - 64));
+    NAP->TRK_CONTROL[2] &= ~(1 << (channel - 64));
   }
 }
 
