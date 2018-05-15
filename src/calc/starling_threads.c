@@ -567,7 +567,7 @@ static void process_any_sbas_messages(void) {
   }
 }
 
-static void platform_simulation_run(const me_msg_obs_t *me_msg) {
+static void starling_integration_simulation_run(const me_msg_obs_t *me_msg) {
   gps_time_t epoch_time = me_msg->obs_time;
   if (!gps_time_valid(&epoch_time) && TIME_PROPAGATED <= get_time_quality()) {
     /* observations do not have valid time, but we have a reasonable estimate
@@ -626,7 +626,7 @@ static void starling_thread(void) {
      * TODO(kevin) move all this onto a separate thread
      * somewhere else. */
     if (platform_simulation_enabled()) {
-      platform_simulation_run(me_msg);
+      starling_integration_simulation_run(me_msg);
       platform_me_obs_msg_free(me_msg);
       continue;
     }
