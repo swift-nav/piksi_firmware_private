@@ -222,7 +222,10 @@ void tracker_bit_sync_set(tracker_t *tracker, s8 bit_phase_ref) {
  * \param bit_integrate   Signed bit integration value.
  */
 static s8 nav_bit_quantize(s32 bit_integrate) {
-  /* compress s32 into a balanced s8, 0 reserved for sensitivity mode */
+  /* compress s32 into a balanced s8, 0 reserved for sensitivity mode
+   * We accumulate s16 I&Q correlators on s32 for at best 20 ms,
+   * so the bits we can expect to exercise on `bit_integrate` are [22-16]
+   * hence the reduced scaling which otherwise should be >> 25 */
 
   return (s8)(((bit_integrate >> 17) << 1) + 1);
 }
