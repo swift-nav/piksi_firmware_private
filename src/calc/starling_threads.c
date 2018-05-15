@@ -622,15 +622,15 @@ static void starling_thread(void) {
       continue;
     }
 
-    /* Here we do all the nice simulation-related stuff. 
-     * TODO(kevin) move all this onto a separate thread 
+    /* Here we do all the nice simulation-related stuff.
+     * TODO(kevin) move all this onto a separate thread
      * somewhere else. */
     if (platform_simulation_enabled()) {
       platform_simulation_run(me_msg);
       platform_me_obs_msg_free(me_msg);
       continue;
     }
-    
+
     gps_time_t epoch_time = me_msg->obs_time;
 
     /* If there are no messages, or the observation time is invalid,

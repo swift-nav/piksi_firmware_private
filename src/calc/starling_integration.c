@@ -813,7 +813,7 @@ void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
   assert(solution_epoch_time);
   assert(nav_meas);
 
-  /* Check if observations do not have valid time. We may have locally a 
+  /* Check if observations do not have valid time. We may have locally a
    * reasonable estimate of current GPS time, so we can round that to the
    * nearest epoch and use instead if necessary.
    */
