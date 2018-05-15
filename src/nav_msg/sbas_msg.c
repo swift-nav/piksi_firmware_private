@@ -11,7 +11,7 @@
  */
 
 #include "nav_msg/sbas_msg.h"
-#include "me_msg/me_msg.h"
+#include "calc/starling_threads.h"
 #include "nav_msg/nav_msg.h" /* For BIT_POLARITY_... constants */
 #include "sbp_utils.h"
 #include "timing/timing.h"
@@ -294,22 +294,23 @@ static u32 sbas_get_timestamp(u32 delay) {
 }
 
 /**
- * Posts SBAS raw data message to the mailbox.
- * The processing is expected to be done on the Starling side.
+ * Convert internal ME sbas message type into raw sbas data type
+ * accepted by Starling API. Also use the current time to set the
+ * week number of the SBAS message, if available.
+ *
+ * Do not post SBAS messages when we are unable to get a valid
+ * local GPS time.
  */
 static void sbas_post_me_msg(const msg_sbas_raw_t *sbas_raw_msg) {
-  msg_sbas_raw_t *sbas_msg = chPoolAlloc(&sbas_msg_buff_pool);
-  if (NULL == sbas_msg) {
-    log_error("ME: Could not allocate pool for SBAS!");
+  const gps_time_t current_time = get_current_time();
+  if (!gps_time_valid(&current_time)) {
     return;
   }
 
-  *sbas_msg = *sbas_raw_msg;
-  msg_t ret = chMBPost(&sbas_msg_mailbox, (msg_t)sbas_msg, TIME_IMMEDIATE);
-  if (ret != MSG_OK) {
-    log_error("ME: Mailbox should have space for SBAS!");
-    chPoolFree(&sbas_msg_buff_pool, sbas_msg);
-  }
+  sbas_raw_data_t sbas_data;
+  unpack_sbas_raw_data(sbas_raw_msg, &sbas_data);
+  gps_time_match_weeks(&sbas_data.time_of_transmission, &current_time);
+  starling_add_sbas_data(&sbas_data, 1);
 }
 
 /**
