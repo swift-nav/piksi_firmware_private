@@ -28,6 +28,7 @@
 #include "sbp/sbp_utils.h"
 #include "settings/settings.h"
 #include "simulator/simulator.h"
+#include "utils/timing/timing.h"
 
 /*******************************************************************************
  * Constants
@@ -812,12 +813,22 @@ void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
   assert(solution_epoch_time);
   assert(nav_meas);
 
+  /* Check if observations do not have valid time. We may have locally a 
+   * reasonable estimate of current GPS time, so we can round that to the
+   * nearest epoch and use instead if necessary.
+   */
+  gps_time_t epoch_time = *solution_epoch_time;
+  if (!gps_time_valid(&epoch_time) && TIME_PROPAGATED <= get_time_quality()) {
+    epoch_time = get_current_time();
+    epoch_time = gps_time_round_to_epoch(&epoch_time, soln_freq_setting);
+  }
+
   /* Initialize the output messages. If there is an SPP solution, we first
    * apply that. Then if there is an RTK solution, overwrite the relevant
    * messages with the RTK baseline result. When there are no valid
    * solutions, we simply pass on the set of default messages. */
   sbp_messages_t sbp_messages;
-  starling_integration_sbp_messages_init(&sbp_messages, solution_epoch_time);
+  starling_integration_sbp_messages_init(&sbp_messages, &epoch_time);
 
   u8 base_sender_id = STARLING_BASE_SENDER_ID_DEFAULT;
   if (spp_solution) {

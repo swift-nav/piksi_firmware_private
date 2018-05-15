@@ -608,7 +608,6 @@ static void starling_thread(void) {
     }
 
     /* Init the messages we want to send */
-
     gps_time_t epoch_time = me_msg->obs_time;
     if (!gps_time_valid(&epoch_time) && TIME_PROPAGATED <= get_time_quality()) {
       /* observations do not have valid time, but we have a reasonable estimate
@@ -630,10 +629,11 @@ static void starling_thread(void) {
       continue;
     }
 
+    /* If there are no messages, or the observation time is invalid,
+     * we send an empty solution. */
     if (me_msg->size == 0 || !gps_time_valid(&me_msg->obs_time)) {
       platform_me_obs_msg_free(me_msg);
-      starling_integration_solution_send_low_latency_output(
-          0, &sbp_messages, 0, nav_meas);
+      send_solution_low_latency(NULL, NULL, &me_msg->obs_time, nav_meas, 0);
       continue;
     }
 
