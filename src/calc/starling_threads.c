@@ -33,6 +33,7 @@
 #include "starling_platform_shim.h"
 #include "starling_threads.h"
 
+extern bool starling_integration_simulation_enabled(void);
 extern void starling_integration_simulation_run(const me_msg_obs_t *me_msg);
 
 #define TIME_MATCHED_OBS_THREAD_PRIORITY (NORMALPRIO - 3)
@@ -348,7 +349,7 @@ static PVT_ENGINE_INTERFACE_RC process_matched_obs(
   /* If we are in time matched mode then calculate and output the baseline
    * for this observation. */
   if (dgnss_soln_mode == STARLING_SOLN_MODE_TIME_MATCHED &&
-      !platform_simulation_enabled() &&
+      !starling_integration_simulation_enabled() &&
       update_filter_ret == PVT_ENGINE_SUCCESS) {
     /* Note: in time match mode we send the physically incorrect time of the
      * observation message (which can be receiver clock time, or rounded GPS
@@ -598,7 +599,7 @@ static void starling_thread(void) {
     /* Here we do all the nice simulation-related stuff.
      * TODO(kevin) move all this onto a separate thread
      * somewhere else. */
-    if (platform_simulation_enabled()) {
+    if (starling_integration_simulation_enabled()) {
       starling_integration_simulation_run(me_msg);
       platform_me_obs_msg_free(me_msg);
       continue;

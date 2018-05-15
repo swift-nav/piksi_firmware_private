@@ -35,7 +35,6 @@ bool platform_try_read_ephemeris(const gnss_signal_t sid, ephemeris_t *eph);
 bool platform_try_read_iono_corr(ionosphere_t *params);
 /* Miscellaneous */
 void platform_watchdog_notify_starling_main_thread(void);
-bool platform_simulation_enabled(void);
 
 /* internal communication between threads */
 void platform_time_matched_obs_mailbox_init(void);

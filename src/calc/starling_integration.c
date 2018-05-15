@@ -491,7 +491,10 @@ static void solution_make_baseline_sbp(const pvt_engine_result_t *result,
       (result->flags == FIXED_POSITION) ? FILTER_FIXED : FILTER_FLOAT;
 }
 
-void starling_integration_solution_simulation(sbp_messages_t *sbp_messages) {
+/*******************************************************************************
+ * Simulation Helpers
+ ******************************************************************************/
+static void starling_integration_solution_simulation(sbp_messages_t *sbp_messages) {
   simulation_step();
 
   /* TODO: The simulator's handling of time is a bit crazy. This is a hack
@@ -547,10 +550,6 @@ void starling_integration_solution_simulation(sbp_messages_t *sbp_messages) {
   }
 }
 
-/*******************************************************************************
- * Simulation Helpers
- ******************************************************************************/
-
 void starling_integration_simulation_run(const me_msg_obs_t *me_msg) {
   gps_time_t epoch_time = me_msg->obs_time;
   if (!gps_time_valid(&epoch_time) && TIME_PROPAGATED <= get_time_quality()) {
@@ -567,6 +566,8 @@ void starling_integration_simulation_run(const me_msg_obs_t *me_msg) {
   starling_integration_solution_send_low_latency_output(
       fake_base_sender_id, &sbp_messages, me_msg->size, me_msg->obs);
 }
+
+bool starling_integration_simulation_enabled(void) { return simulation_enabled(); }
 
 /*******************************************************************************
  * Settings Update Helpers
