@@ -336,7 +336,9 @@ static void decode_almanac_health_new(gnss_signal_t src_sid,
     gnss_signal_t target_sid = construct_sid(CODE_GPS_L1CA, sv_idx + 1);
 
     u8 health_bits = hflags[sv_idx];
-    shm_gps_set_shi3(target_sid.sat, health_bits);
+    if (shm_signal_healthy(src_sid)) {
+      shm_gps_set_shi3(target_sid.sat, health_bits);
+    }
 
     /* Health indicates CODE_NAV_STATE_INVALID */
     if (shm_signal_unhealthy(target_sid)) {
