@@ -30,7 +30,6 @@
 
 #include "calc_pvt_common.h"
 #include "calc_pvt_me.h"
-#include "me_msg/me_msg.h"
 #include "starling_platform_shim.h"
 #include "starling_threads.h"
 
@@ -48,6 +47,9 @@ extern void starling_integration_solution_simulation(
 
 #define TIME_MATCHED_OBS_THREAD_PRIORITY (NORMALPRIO - 3)
 #define TIME_MATCHED_OBS_THREAD_STACK (6 * 1024 * 1024)
+
+/* Tracks if the API has been properly initialized or not. */
+static bool is_starling_api_initialized = false;
 
 /* Settings which control the filter behavior of the Starling engine. */
 typedef struct StarlingSettings {
@@ -522,18 +524,18 @@ static void init_filters_and_settings(void) {
  * Perform the appropriate processing and FilterManager
  * updates for a single SBAS message.
  */
-static void process_sbas_message(const msg_sbas_raw_t *sbas_msg) {
+static void process_sbas_data(const sbas_raw_data_t *sbas_data) {
   const gps_time_t current_time = get_current_time();
   if (!gps_time_valid(&current_time)) {
     return;
   }
-  sbas_raw_data_t sbas_data;
-  unpack_sbas_raw_data(sbas_msg, &sbas_data);
 
-  /* fill the week number from current time */
-  gps_time_match_weeks(&sbas_data.time_of_transmission, &current_time);
+  /* Fill the week number from current time.
+   * TODO(kevin) do not discard const qualifier. */
+  gps_time_match_weeks((gps_time_t *)&sbas_data->time_of_transmission,
+                       &current_time);
 
-  sbas_system_t sbas_system = get_sbas_system(sbas_data.sid);
+  sbas_system_t sbas_system = get_sbas_system(sbas_data->sid);
 
   platform_mutex_lock(&spp_filter_manager_lock);
   if (sbas_system != current_sbas_system &&
@@ -541,7 +543,7 @@ static void process_sbas_message(const msg_sbas_raw_t *sbas_msg) {
     /* clear existing SBAS corrections when provider changes */
     filter_manager_reinitialize_sbas(spp_filter_manager);
   }
-  filter_manager_process_sbas_message(spp_filter_manager, &sbas_data);
+  filter_manager_process_sbas_message(spp_filter_manager, sbas_data);
   platform_mutex_unlock(&spp_filter_manager_lock);
   current_sbas_system = sbas_system;
 }
@@ -556,21 +558,21 @@ static void process_sbas_message(const msg_sbas_raw_t *sbas_msg) {
 static void process_any_sbas_messages(void) {
   msg_t ret = MSG_OK;
   while (MSG_OK == ret) {
-    msg_sbas_raw_t *sbas_msg = NULL;
-    ret = platform_sbas_msg_mailbox_fetch((msg_t *)&sbas_msg, TIME_IMMEDIATE);
+    sbas_raw_data_t *sbas_data = NULL;
+    ret = platform_sbas_data_mailbox_fetch((msg_t *)&sbas_data, TIME_IMMEDIATE);
     if (MSG_OK == ret) {
-      /* We have successfully received an SBAS message, forward on to the
+      /* We have successfully received SBAS data, forward on to the
        * filter managers. */
-      process_sbas_message(sbas_msg);
-    } else if (NULL != sbas_msg) {
+      process_sbas_data(sbas_data);
+    } else if (NULL != sbas_data) {
       /* If the fetch operation failed after assigning to the message pointer,
        * something has gone unexpectedly wrong. */
       log_error("STARLING: sbas mailbox fetch failed with %" PRIi32, ret);
     }
     /* Under any circumstances, if the message pointer was assigned to, it
      * must be released back to the pool. */
-    if (NULL != sbas_msg) {
-      platform_sbas_msg_free(sbas_msg);
+    if (NULL != sbas_data) {
+      platform_sbas_data_free(sbas_data);
     }
   }
 }
@@ -786,6 +788,26 @@ static void starling_thread(void) {
 
 /* Run the starling engine on the current thread. Blocks indefinitely. */
 void starling_run(void) { starling_thread(); }
+
+/* Set up all persistent data-structures used by the API. All
+ * API calls should be valid after a call to this function. */
+void starling_initialize_api(void) {
+  /* It is invalid to call more than once. */
+  assert(!is_starling_api_initialized);
+
+  platform_sbas_data_mailbox_setup();
+
+  is_starling_api_initialized = true;
+}
+
+/* Add SBAS data to the Starling engine. */
+void starling_add_sbas_data(const sbas_raw_data_t *sbas_data,
+                            const size_t n_sbas_data) {
+  assert(is_starling_api_initialized);
+  for (size_t i = 0; i < n_sbas_data; ++i) {
+    platform_sbas_data_mailbox_post(sbas_data);
+  }
+}
 
 /*******************************************************************************
  * Settings Update Functions
