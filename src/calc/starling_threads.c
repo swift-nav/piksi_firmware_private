@@ -33,17 +33,7 @@
 #include "starling_platform_shim.h"
 #include "starling_threads.h"
 
-extern void starling_integration_solution_send_low_latency_output(
-    u8 base_sender_id,
-    const sbp_messages_t *sbp_messages,
-    u8 n_meas,
-    const navigation_measurement_t nav_meas[]);
-
-extern void starling_integration_sbp_messages_init(sbp_messages_t *sbp_messages,
-                                                   const gps_time_t *t);
-
-extern void starling_integration_solution_simulation(
-    sbp_messages_t *sbp_messages);
+extern void starling_integration_simulation_run(const me_msg_obs_t *me_msg);
 
 #define TIME_MATCHED_OBS_THREAD_PRIORITY (NORMALPRIO - 3)
 #define TIME_MATCHED_OBS_THREAD_STACK (6 * 1024 * 1024)
@@ -565,23 +555,6 @@ static void process_any_sbas_messages(void) {
       platform_sbas_data_free(sbas_data);
     }
   }
-}
-
-static void starling_integration_simulation_run(const me_msg_obs_t *me_msg) {
-  gps_time_t epoch_time = me_msg->obs_time;
-  if (!gps_time_valid(&epoch_time) && TIME_PROPAGATED <= get_time_quality()) {
-    /* observations do not have valid time, but we have a reasonable estimate
-     * of current GPS time, so round that to nearest epoch and use it
-     */
-    epoch_time = get_current_time();
-    epoch_time = gps_time_round_to_epoch(&epoch_time, soln_freq_setting);
-  }
-  sbp_messages_t sbp_messages;
-  starling_integration_sbp_messages_init(&sbp_messages, &epoch_time);
-  starling_integration_solution_simulation(&sbp_messages);
-  const u8 fake_base_sender_id = 1;
-  starling_integration_solution_send_low_latency_output(
-      fake_base_sender_id, &sbp_messages, me_msg->size, me_msg->obs);
 }
 
 static void starling_thread(void) {

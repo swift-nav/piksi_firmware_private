@@ -22,6 +22,7 @@
 #include "calc/calc_pvt_me.h"
 #include "calc/starling_integration.h"
 #include "calc/starling_threads.h"
+#include "me_msg/me_msg.h"
 #include "ndb/ndb.h"
 #include "nmea/nmea.h"
 #include "sbp/sbp.h"
@@ -544,6 +545,27 @@ void starling_integration_solution_simulation(sbp_messages_t *sbp_messages) {
                         &(soln->time));
     }
   }
+}
+
+/*******************************************************************************
+ * Simulation Helpers
+ ******************************************************************************/
+
+void starling_integration_simulation_run(const me_msg_obs_t *me_msg) {
+  gps_time_t epoch_time = me_msg->obs_time;
+  if (!gps_time_valid(&epoch_time) && TIME_PROPAGATED <= get_time_quality()) {
+    /* observations do not have valid time, but we have a reasonable estimate
+     * of current GPS time, so round that to nearest epoch and use it
+     */
+    epoch_time = get_current_time();
+    epoch_time = gps_time_round_to_epoch(&epoch_time, soln_freq_setting);
+  }
+  sbp_messages_t sbp_messages;
+  starling_integration_sbp_messages_init(&sbp_messages, &epoch_time);
+  starling_integration_solution_simulation(&sbp_messages);
+  const u8 fake_base_sender_id = 1;
+  starling_integration_solution_send_low_latency_output(
+      fake_base_sender_id, &sbp_messages, me_msg->size, me_msg->obs);
 }
 
 /*******************************************************************************
