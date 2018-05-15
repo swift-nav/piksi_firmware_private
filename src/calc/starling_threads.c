@@ -567,6 +567,23 @@ static void process_any_sbas_messages(void) {
   }
 }
 
+static void platform_simulation_run(const me_msg_obs_t *me_msg) {
+  gps_time_t epoch_time = me_msg->obs_time;
+  if (!gps_time_valid(&epoch_time) && TIME_PROPAGATED <= get_time_quality()) {
+    /* observations do not have valid time, but we have a reasonable estimate
+     * of current GPS time, so round that to nearest epoch and use it
+     */
+    epoch_time = get_current_time();
+    epoch_time = gps_time_round_to_epoch(&epoch_time, soln_freq_setting);
+  }
+  sbp_messages_t sbp_messages;
+  starling_integration_sbp_messages_init(&sbp_messages, &epoch_time);
+  starling_integration_solution_simulation(&sbp_messages);
+  const u8 fake_base_sender_id = 1;
+  starling_integration_solution_send_low_latency_output(
+      fake_base_sender_id, &sbp_messages, me_msg->size, me_msg->obs);
+}
+
 static void starling_thread(void) {
   msg_t ret;
 
@@ -604,27 +621,17 @@ static void starling_thread(void) {
       }
       continue;
     }
-    
-    gps_time_t epoch_time = me_msg->obs_time;
 
-    /* Here we do all the nice simulation-related stuff. */
+    /* Here we do all the nice simulation-related stuff. 
+     * TODO(kevin) move all this onto a separate thread 
+     * somewhere else. */
     if (platform_simulation_enabled()) {
-      sbp_messages_t sbp_messages;
-     if (!gps_time_valid(&epoch_time) && TIME_PROPAGATED <= get_time_quality()) {
-        /* observations do not have valid time, but we have a reasonable estimate
-         * of current GPS time, so round that to nearest epoch and use it
-         */
-        epoch_time = get_current_time();
-        epoch_time = gps_time_round_to_epoch(&epoch_time, soln_freq_setting);
-      }
-      starling_integration_sbp_messages_init(&sbp_messages, &epoch_time);
-      starling_integration_solution_simulation(&sbp_messages);
-      const u8 fake_base_sender_id = 1;
-      starling_integration_solution_send_low_latency_output(
-          fake_base_sender_id, &sbp_messages, me_msg->size, me_msg->obs);
+      platform_simulation_run(me_msg);
       platform_me_obs_msg_free(me_msg);
       continue;
     }
+    
+    gps_time_t epoch_time = me_msg->obs_time;
 
     /* If there are no messages, or the observation time is invalid,
      * we send an empty solution. */
