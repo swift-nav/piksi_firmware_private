@@ -10,7 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-/* SwiftNAP v3.14.0 register map */
+/* SwiftNAP v3.15.0 register map */
 
 #ifndef SWIFTNAP_H
 #define SWIFTNAP_H
@@ -18,7 +18,7 @@
 #include <libswiftnav/common.h>
 
 /* Version */
-#define NAP_VERSION (0x030e0000)
+#define NAP_VERSION (0x030f0000)
 
 /* Number of tracking channels */
 #define NAP_NUM_TRACKING_CHANNELS (65U)
@@ -129,6 +129,11 @@ typedef struct {
   volatile u32 TRK_CODE_LFSR1_RESET;
   volatile u32 TRK_CODE_LFSR1_LAST;
   volatile u32 TRK_SEC_CODE[4];
+  const volatile u32 AES_KEY_A[8];
+  const volatile u32 AES_KEY_B[8];
+  const volatile u32 AES_KEY_C[8];
+  const volatile u32 AES_KEY_D[8];
+  volatile u32 AES_KEY_READ_ENABLE;
   const volatile u32 TRK_STATUS[3];
   volatile u32 TRK_CONTROL[3];
   volatile u32 TRK_IRQS[3];
@@ -610,6 +615,48 @@ typedef struct {
 #define SET_NAP_TRK_SEC_CODE_VALUE(REG, VAL) \
   (((REG) & ~NAP_TRK_SEC_CODE_VALUE_Msk) |   \
    ((VAL) << NAP_TRK_SEC_CODE_VALUE_Pos))
+
+/* Register: NAP_AES_KEY_A[N] */
+#define NAP_AES_KEY_A_VALUE_Pos (0U)
+#define NAP_AES_KEY_A_VALUE_Len (32U)
+#define NAP_AES_KEY_A_VALUE_Rst (0x0U)
+#define NAP_AES_KEY_A_VALUE_Msk (0xFFFFFFFFU << NAP_AES_KEY_A_VALUE_Pos)
+#define GET_NAP_AES_KEY_A_VALUE(REG) \
+  (((REG)&NAP_AES_KEY_A_VALUE_Msk) >> NAP_AES_KEY_A_VALUE_Pos)
+
+/* Register: NAP_AES_KEY_B[N] */
+#define NAP_AES_KEY_B_VALUE_Pos (0U)
+#define NAP_AES_KEY_B_VALUE_Len (32U)
+#define NAP_AES_KEY_B_VALUE_Rst (0x0U)
+#define NAP_AES_KEY_B_VALUE_Msk (0xFFFFFFFFU << NAP_AES_KEY_B_VALUE_Pos)
+#define GET_NAP_AES_KEY_B_VALUE(REG) \
+  (((REG)&NAP_AES_KEY_B_VALUE_Msk) >> NAP_AES_KEY_B_VALUE_Pos)
+
+/* Register: NAP_AES_KEY_C[N] */
+#define NAP_AES_KEY_C_VALUE_Pos (0U)
+#define NAP_AES_KEY_C_VALUE_Len (32U)
+#define NAP_AES_KEY_C_VALUE_Rst (0x0U)
+#define NAP_AES_KEY_C_VALUE_Msk (0xFFFFFFFFU << NAP_AES_KEY_C_VALUE_Pos)
+#define GET_NAP_AES_KEY_C_VALUE(REG) \
+  (((REG)&NAP_AES_KEY_C_VALUE_Msk) >> NAP_AES_KEY_C_VALUE_Pos)
+
+/* Register: NAP_AES_KEY_D[N] */
+#define NAP_AES_KEY_D_VALUE_Pos (0U)
+#define NAP_AES_KEY_D_VALUE_Len (32U)
+#define NAP_AES_KEY_D_VALUE_Rst (0x0U)
+#define NAP_AES_KEY_D_VALUE_Msk (0xFFFFFFFFU << NAP_AES_KEY_D_VALUE_Pos)
+#define GET_NAP_AES_KEY_D_VALUE(REG) \
+  (((REG)&NAP_AES_KEY_D_VALUE_Msk) >> NAP_AES_KEY_D_VALUE_Pos)
+
+/* Register: NAP_AES_KEY_READ_ENABLE */
+#define NAP_AES_KEY_READ_ENABLE_VALUE_Pos (0U)
+#define NAP_AES_KEY_READ_ENABLE_VALUE_Len (1U)
+#define NAP_AES_KEY_READ_ENABLE_VALUE_Rst (0x0U)
+#define NAP_AES_KEY_READ_ENABLE_VALUE_Msk \
+  (0x1U << NAP_AES_KEY_READ_ENABLE_VALUE_Pos)
+#define SET_NAP_AES_KEY_READ_ENABLE_VALUE(REG, VAL) \
+  (((REG) & ~NAP_AES_KEY_READ_ENABLE_VALUE_Msk) |   \
+   ((VAL) << NAP_AES_KEY_READ_ENABLE_VALUE_Pos))
 
 /* Register: NAP_TRK_STATUS0 */
 #define NAP_TRK_STATUS0_CH0_RUNNING_Pos (0U)
