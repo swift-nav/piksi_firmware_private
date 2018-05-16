@@ -169,35 +169,32 @@ static void handle_nap_irq(void) {
 }
 
 static void handle_nap_track_irq(void) {
-  u32 irq0 = NAP->TRK_IRQS0;
+  u32 irq0 = NAP->TRK_IRQS[0];
   trackers_update(irq0, 0);
-  NAP->TRK_IRQS0 = irq0;
+  NAP->TRK_IRQS[0] = irq0;
 
-  u32 irq1 = NAP->TRK_IRQS1;
+  u32 irq1 = NAP->TRK_IRQS[1];
   trackers_update(irq1, 32);
-  NAP->TRK_IRQS1 = irq1;
+  NAP->TRK_IRQS[1] = irq1;
 
-  u32 irq2 = NAP->TRK_IRQS2;
+  u32 irq2 = NAP->TRK_IRQS[2];
   trackers_update(irq2, 64);
-  NAP->TRK_IRQS2 = irq2;
+  NAP->TRK_IRQS[2] = irq2;
 
   asm("dsb");
 
-  u32 err0 = NAP->TRK_IRQ_ERRORS0;
-  u32 err1 = NAP->TRK_IRQ_ERRORS1;
-  u32 err2 = NAP->TRK_IRQ_ERRORS2;
-  if (err0 || err1 || err2) {
-    NAP->TRK_IRQ_ERRORS0 = err0;
-    NAP->TRK_IRQ_ERRORS1 = err1;
-    NAP->TRK_IRQ_ERRORS2 = err2;
+  u32 err[3];
+  memcpy(err, (u8 *)NAP->TRK_IRQ_ERRORS, sizeof(err));
+  if (err[0] || err[1] || err[2]) {
+    memcpy((u8 *)NAP->TRK_IRQ_ERRORS, err, sizeof(err));
     log_warn("Too many NAP tracking interrupts: 0x%08" PRIX32 "%08" PRIX32
              "%08" PRIX32,
-             err2,
-             err1,
-             err0);
-    trackers_missed(err0, 0);
-    trackers_missed(err1, 32);
-    trackers_missed(err2, 64);
+             err[2],
+             err[1],
+             err[0]);
+    trackers_missed(err[0], 0);
+    trackers_missed(err[1], 32);
+    trackers_missed(err[2], 64);
   }
 
   DO_EVERY(4096, watchdog_notify(WD_NOTIFY_NAP_ISR));
@@ -274,15 +271,15 @@ u32 nap_get_ext_event(u8 pin, ext_event_trigger_t *trig) {
   switch (pin) {
     case 0:
       *trig = GET_NAP_STATUS_EXT_EVENT_EDGE0(NAP->STATUS);
-      return NAP->EVENT0_TIMING_SNAPSHOT + NAP_EXT_TIMING_COUNT_OFFSET;
+      return NAP->EVENT_TIMING_SNAPSHOT[0] + NAP_EXT_TIMING_COUNT_OFFSET;
 
     case 1:
       *trig = GET_NAP_STATUS_EXT_EVENT_EDGE1(NAP->STATUS);
-      return NAP->EVENT1_TIMING_SNAPSHOT + NAP_EXT_TIMING_COUNT_OFFSET;
+      return NAP->EVENT_TIMING_SNAPSHOT[1] + NAP_EXT_TIMING_COUNT_OFFSET;
 
     case 2:
       *trig = GET_NAP_STATUS_EXT_EVENT_EDGE2(NAP->STATUS);
-      return NAP->EVENT2_TIMING_SNAPSHOT + NAP_EXT_TIMING_COUNT_OFFSET;
+      return NAP->EVENT_TIMING_SNAPSHOT[2] + NAP_EXT_TIMING_COUNT_OFFSET;
 
     default:
       return 0;
@@ -295,7 +292,7 @@ void nap_set_ext_event(u8 pin, ext_event_trigger_t trig, u32 timeout) {
   switch (pin) {
     case 0:
       if (timeout > 0) {
-        NAP->EVENT0_TIMEOUT = gap;
+        NAP->EVENT_TIMEOUT[0] = gap;
         u32 ctrl = NAP->CONTROL;
         NAP->CONTROL = SET_NAP_CONTROL_EXT_EVENT_EDGE0(ctrl, trig) |
                        SET_NAP_CONTROL_EXT_EVENT_TIMEOUT0(ctrl, 1);
@@ -306,7 +303,7 @@ void nap_set_ext_event(u8 pin, ext_event_trigger_t trig, u32 timeout) {
 
     case 1:
       if (timeout > 0) {
-        NAP->EVENT1_TIMEOUT = gap;
+        NAP->EVENT_TIMEOUT[1] = gap;
         u32 ctrl = NAP->CONTROL;
         NAP->CONTROL = SET_NAP_CONTROL_EXT_EVENT_EDGE1(ctrl, trig) |
                        SET_NAP_CONTROL_EXT_EVENT_TIMEOUT1(ctrl, 1);
@@ -317,7 +314,7 @@ void nap_set_ext_event(u8 pin, ext_event_trigger_t trig, u32 timeout) {
 
     case 2:
       if (timeout > 0) {
-        NAP->EVENT2_TIMEOUT = gap;
+        NAP->EVENT_TIMEOUT[2] = gap;
         u32 ctrl = NAP->CONTROL;
         NAP->CONTROL = SET_NAP_CONTROL_EXT_EVENT_EDGE2(ctrl, trig) |
                        SET_NAP_CONTROL_EXT_EVENT_TIMEOUT2(ctrl, 1);
