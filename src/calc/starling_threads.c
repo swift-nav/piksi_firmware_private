@@ -29,7 +29,6 @@
 #include <libswiftnav/troposphere.h>
 
 #include "calc_pvt_common.h"
-#include "calc_pvt_me.h"
 #include "starling_platform_shim.h"
 #include "starling_threads.h"
 
