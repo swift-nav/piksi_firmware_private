@@ -25,11 +25,11 @@
 #include <libswiftnav/troposphere.h>
 
 #include "board/nap/track_channel.h"
+#include "calc/starling_threads.h"
 #include "calc_base_obs.h"
 #include "calc_nav_meas.h"
 #include "calc_pvt_common.h"
 #include "calc_pvt_me.h"
-#include "calc/starling_threads.h"
 #include "main.h"
 #include "manage.h"
 #include "me_msg/me_msg.h"
@@ -731,8 +731,11 @@ static bool soln_freq_setting_notify(struct setting *s, const char *val) {
   }
   /* Certain values are disallowed. */
   if (soln_freq_setting < 0.0 || soln_freq_setting > SOLN_FREQ_SETTING_MAX) {
-    log_warn("Solution frequency setting outside acceptable range: [%lf, %lf]. "
-             "Reverting to previous value.", 0.0, SOLN_FREQ_SETTING_MAX);
+    log_warn(
+        "Solution frequency setting outside acceptable range: [%lf, %lf]. "
+        "Reverting to previous value.",
+        0.0,
+        SOLN_FREQ_SETTING_MAX);
     soln_freq_setting = old_value;
     return false;
   }
@@ -741,9 +744,9 @@ static bool soln_freq_setting_notify(struct setting *s, const char *val) {
 }
 
 void me_calc_pvt_setup() {
-  SETTING_NOTIFY("solution", 
-                 "soln_freq", 
-                 soln_freq_setting, 
+  SETTING_NOTIFY("solution",
+                 "soln_freq",
+                 soln_freq_setting,
                  TYPE_FLOAT,
                  soln_freq_setting_notify);
   SETTING("solution", "output_every_n_obs", obs_output_divisor, TYPE_INT);
