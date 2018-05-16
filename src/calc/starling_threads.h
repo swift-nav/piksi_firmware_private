@@ -173,6 +173,9 @@ void starling_set_max_correction_age(int max_age);
 void starling_set_glonass_downweight_factor(float factor);
 /* Set the elevation mask used to filter satellites from the solution. */
 void starling_set_elevation_mask(float elevation_mask);
+/* Set the rate at which the filter calculates solutions. */
+void starling_set_solution_frequency(double frequency); 
+
 
 /* Set the desired solution mode for the Starling engine. */
 void starling_set_solution_mode(dgnss_solution_mode_t mode);

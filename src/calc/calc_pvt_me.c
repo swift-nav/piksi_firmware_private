@@ -29,6 +29,7 @@
 #include "calc_nav_meas.h"
 #include "calc_pvt_common.h"
 #include "calc_pvt_me.h"
+#include "calc/starling_threads.h"
 #include "main.h"
 #include "manage.h"
 #include "me_msg/me_msg.h"
@@ -62,6 +63,10 @@
 
 #define ME_CALC_PVT_THREAD_PRIORITY (HIGHPRIO - 3)
 #define ME_CALC_PVT_THREAD_STACK (64 * 1024)
+
+/* Arbitrarily set the maximum solution frequency to 1kHz. It almost certainly
+ * can't run this fast anyway. */
+#define SOLN_FREQ_SETTING_MAX 1000.0
 
 double soln_freq_setting = 10.0;
 u32 obs_output_divisor = 2;
@@ -717,8 +722,30 @@ static void me_calc_pvt_thread(void *arg) {
 
 soln_stats_t solution_last_stats_get(void) { return last_stats; }
 
+/* Update the solution frequency used by the ME and by Starling. */
+static bool soln_freq_setting_notify(struct setting *s, const char *val) {
+  double old_value = soln_freq_setting;
+  bool res = s->type->from_string(s->type->priv, s->addr, s->len, val);
+  if (!res) {
+    return false;
+  }
+  /* Certain values are disallowed. */
+  if (soln_freq_setting < 0.0 || soln_freq_setting > SOLN_FREQ_SETTING_MAX) {
+    log_warn("Solution frequency setting outside acceptable range: [%lf, %lf]. "
+             "Reverting to previous value.", 0.0, SOLN_FREQ_SETTING_MAX);
+    soln_freq_setting = old_value;
+    return false;
+  }
+  starling_set_solution_frequency(soln_freq_setting);
+  return true;
+}
+
 void me_calc_pvt_setup() {
-  SETTING("solution", "soln_freq", soln_freq_setting, TYPE_FLOAT);
+  SETTING_NOTIFY("solution", 
+                 "soln_freq", 
+                 soln_freq_setting, 
+                 TYPE_FLOAT,
+                 soln_freq_setting_notify);
   SETTING("solution", "output_every_n_obs", obs_output_divisor, TYPE_INT);
   SETTING("sbp", "obs_msg_max_size", msg_obs_max_size, TYPE_INT);
 
