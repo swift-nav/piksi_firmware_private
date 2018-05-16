@@ -349,7 +349,6 @@ static PVT_ENGINE_INTERFACE_RC process_matched_obs(
   /* If we are in time matched mode then calculate and output the baseline
    * for this observation. */
   if (dgnss_soln_mode == STARLING_SOLN_MODE_TIME_MATCHED &&
-      !starling_integration_simulation_enabled() &&
       update_filter_ret == PVT_ENGINE_SUCCESS) {
     /* Note: in time match mode we send the physically incorrect time of the
      * observation message (which can be receiver clock time, or rounded GPS
@@ -596,7 +595,15 @@ static void starling_thread(void) {
       continue;
     }
 
-    /* Here we do all the nice simulation-related stuff.
+    /* When simulation is enabled, intercept the incoming
+     * observations. No further processing will be performed
+     * by the PVT engine, and the simulation will proceed
+     * to takeover all SBP output generation.
+     *
+     * NOTE: Because we no longer post observations
+     * to the time-matched thread there won't be any
+     * output when in time-matched solution mode.
+     *
      * TODO(kevin) move all this onto a separate thread
      * somewhere else. */
     if (starling_integration_simulation_enabled()) {
