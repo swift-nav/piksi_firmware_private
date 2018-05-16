@@ -68,8 +68,8 @@
  * can't run this fast anyway. */
 #define SOLN_FREQ_SETTING_MAX 1000.0
 
-double soln_freq_setting = 10.0;
-u32 obs_output_divisor = 2;
+double soln_freq_setting = 1.0;
+u32 obs_output_divisor = 1;
 
 s16 msg_obs_max_size = SBP_FRAMING_MAX_PAYLOAD_SIZE;
 
@@ -342,6 +342,15 @@ static void collect_measurements(u64 rec_tc,
         /* Tracking channel is suitable for solution calculation */
         any_gps |= IS_GPS(meas[n_collected].sid);
         n_collected++;
+      } else {
+        log_debug_sid(meas[n_collected].sid,
+                 "HEALTH %s  NAV %s  ELEV %s  TOW %s  EPHE %s  CN0 %s",
+                 (0 != (flags & TRACKER_FLAG_HEALTHY)) ? "Y" : "N",
+                 (0 != (flags & TRACKER_FLAG_NAV_SUITABLE)) ? "Y" : "N",
+                 (0 != (flags & TRACKER_FLAG_ELEVATION)) ? "Y" : "N",
+                 (0 != (flags & TRACKER_FLAG_TOW_VALID)) ? "Y" : "N",
+                 (0 != (flags & TRACKER_FLAG_HAS_EPHE)) ? "Y" : "N",
+                 (0 != (flags & TRACKER_FLAG_CN0_SHORT)) ? "Y" : "N");
       }
     }
   }

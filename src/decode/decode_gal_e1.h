@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2017 Swift Navigation Inc.
- * Contact: Michele Bavaro <michele@swiftnav.com>
+ * Contact: Swift Navigation <dev@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -9,17 +9,17 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
-#ifndef TRACK_BDS2_B11_H
-#define TRACK_BDS2_B11_H
+#ifndef DECODE_GAL_E1_H
+#define DECODE_GAL_E1_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void track_bds2_b11_register(void);
+void decode_gal_e1_register(void);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* TRACK_BDS2_B11_H */
+#endif /* DECODE_GAL_E1_H */

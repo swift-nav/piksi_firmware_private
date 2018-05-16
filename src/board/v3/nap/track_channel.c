@@ -123,6 +123,9 @@ static u8 mesid_to_nap_code(const me_gnss_signal_t mesid) {
     case CODE_GPS_L2P:
       assert(!"Unsupported SID");
       break;
+    case CODE_GAL_E1X:
+      ret = NAP_TRK_CODE_GAL_E1;
+      break;
     case CODE_GAL_E7X:
       ret = NAP_TRK_CODE_GAL_E7;
       break;
@@ -132,7 +135,6 @@ static u8 mesid_to_nap_code(const me_gnss_signal_t mesid) {
     case CODE_GPS_L5X:
     case CODE_GAL_E1B:
     case CODE_GAL_E1C:
-    case CODE_GAL_E1X:
     case CODE_GAL_E6B:
     case CODE_GAL_E6C:
     case CODE_GAL_E6X:
@@ -181,17 +183,26 @@ void nap_track_init(u8 channel,
                     double code_phase,
                     u32 chips_to_correlate) {
   assert((mesid.code == CODE_GPS_L1CA) || (mesid.code == CODE_GPS_L2CM) ||
-         (mesid.code == CODE_GPS_L2CL) || (mesid.code == CODE_GLO_L1OF) ||
-         (mesid.code == CODE_GLO_L2OF) || (mesid.code == CODE_SBAS_L1CA) ||
-         (mesid.code == CODE_BDS2_B11) || (mesid.code == CODE_BDS2_B2) ||
-         (mesid.code == CODE_QZS_L1CA) || (mesid.code == CODE_QZS_L2CM) ||
-         (mesid.code == CODE_QZS_L2CL) || (mesid.code == CODE_GAL_E7X));
+         (mesid.code == CODE_GPS_L2CL) || (mesid.code == CODE_GPS_L5X) ||
+         (mesid.code == CODE_GLO_L1OF) || (mesid.code == CODE_GLO_L2OF) ||
+         (mesid.code == CODE_SBAS_L1CA) || (mesid.code == CODE_BDS2_B11) ||
+         (mesid.code == CODE_BDS2_B2) || (mesid.code == CODE_QZS_L1CA) ||
+         (mesid.code == CODE_QZS_L2CM) || (mesid.code == CODE_QZS_L2CL) ||
+         (mesid.code == CODE_QZS_L5X) || (mesid.code == CODE_GAL_E1X) ||
+         (mesid.code == CODE_GAL_E7X));
 
   swiftnap_tracking_wr_t *t = &NAP->TRK_CH_WR[channel];
   struct nap_ch_state *s = &nap_ch_desc[channel];
 
   if (mesid.code == CODE_BDS2_B2) {
     log_debug("C%02" PRIu8 " channel %" PRIu8 " t %" PRIxPTR " s %" PRIxPTR,
+              mesid.sat,
+              channel,
+              (uintptr_t)t,
+              (uintptr_t)s);
+  }
+  if (mesid.code == CODE_GAL_E1X) {
+    log_debug("E%02" PRIu8 " channel %" PRIu8 " t %" PRIxPTR " s %" PRIxPTR,
               mesid.sat,
               channel,
               (uintptr_t)t,
@@ -215,6 +226,9 @@ void nap_track_init(u8 channel,
   } else if (IS_BDS2(mesid)) {
     s->spacing[0] = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
                                     .samples = NAP_VE_E_BDS2_SPACING_SAMPLES};
+  } else if (CODE_GAL_E1X == mesid.code) {
+    s->spacing[0] = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
+                                    .samples = NAP_VE_E_GPS_SPACING_SAMPLES};
   } else if (CODE_GAL_E7X == mesid.code) {
     s->spacing[0] = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
                                     .samples = NAP_VE_E_GALE7_SPACING_SAMPLES};
@@ -287,25 +301,20 @@ void nap_track_init(u8 channel,
   u32 code_chips = code_to_chip_count(mesid.code);
   double code_samples = (double)code_chips * calc_samples_per_chip(chip_rate);
 
-  bool symbol_synced = !code_requires_direct_acq(mesid.code);
   u32 num_codes = 1;
-  if (symbol_synced) {
-    /* symbol synced code phase must remain symbol synced after propagation */
-    if (CODE_GLO_L2OF == mesid.code) {
-      /* GLO L2OF has the same symbol (meander) length as GLO L1OF */
-      num_codes = GLO_L1CA_SYMBOL_LENGTH_MS / GLO_PRN_PERIOD_MS;
-    } else if (CODE_GPS_L2CM == mesid.code) {
-      num_codes = GPS_L2C_SYMBOL_LENGTH_MS / GPS_L2CM_PRN_PERIOD_MS;
-    } else if (CODE_QZS_L2CM == mesid.code) {
-      num_codes = QZS_L2C_SYMBOL_LENGTH_MS / QZS_L2CM_PRN_PERIOD_MS;
-    } else if (CODE_BDS2_B2 == mesid.code) {
-      if (bds_d2nav(mesid)) {
-        num_codes = BDS2_B11_D2NAV_SYMBOL_LENGTH_MS / BDS2_B11_SYMB_LENGTH_MS;
-      } else {
-        num_codes = BDS2_B11_D1NAV_SYMBOL_LENGTH_MS / BDS2_B11_SYMB_LENGTH_MS;
-      }
+  /* symbol synced code phase must remain symbol synced after propagation */
+  if (CODE_GLO_L2OF == mesid.code) {
+    /* GLO L2OF has the same symbol (meander) length as GLO L1OF */
+    num_codes = GLO_L1CA_SYMBOL_LENGTH_MS / GLO_PRN_PERIOD_MS;
+  } else if (CODE_GPS_L2CM == mesid.code) {
+    num_codes = GPS_L2C_SYMBOL_LENGTH_MS / GPS_L2CM_PRN_PERIOD_MS;
+  } else if (CODE_QZS_L2CM == mesid.code) {
+    num_codes = QZS_L2C_SYMBOL_LENGTH_MS / QZS_L2CM_PRN_PERIOD_MS;
+  } else if (CODE_BDS2_B2 == mesid.code) {
+    if (bds_d2nav(mesid)) {
+      num_codes = BDS2_B11_D2NAV_SYMBOL_LENGTH_MS / BDS2_B11_SYMB_LENGTH_MS;
     } else {
-      assert(0);
+      num_codes = BDS2_B11_D1NAV_SYMBOL_LENGTH_MS / BDS2_B11_SYMB_LENGTH_MS;
     }
   }
 
@@ -332,27 +341,38 @@ void nap_track_init(u8 channel,
     mesid1.code = CODE_GPS_L2CL;
   }
 
-  NAP->TRK_CODE_LFSR0_INIT = mesid_to_lfsr0_init(mesid, 0);
-  NAP->TRK_CODE_LFSR0_RESET = mesid_to_lfsr0_init(mesid, 0);
-  NAP->TRK_CODE_LFSR0_LAST = mesid_to_lfsr0_last(mesid);
-
-  NAP->TRK_CODE_LFSR1_INIT = mesid_to_lfsr1_init(mesid1, index);
-  NAP->TRK_CODE_LFSR1_RESET = mesid_to_lfsr1_init(mesid1, 0);
-  NAP->TRK_CODE_LFSR1_LAST = mesid_to_lfsr1_last(mesid1);
-
-  if (mesid.code == CODE_GAL_E5X) {
+  if (mesid.code == CODE_GAL_E1X) {
     index = mesid.sat - 1;
-    NAP->TRK_SEC_CODE[3] = getbitu(gal_e5q_sec_codes[index], 0, 4);
-    NAP->TRK_SEC_CODE[2] = getbitu(gal_e5q_sec_codes[index], 4, 32);
-    NAP->TRK_SEC_CODE[1] = getbitu(gal_e5q_sec_codes[index], 36, 32);
-    NAP->TRK_SEC_CODE[0] = getbitu(gal_e5q_sec_codes[index], 68, 32);
-  }
-  if (mesid.code == CODE_GAL_E7X) {
-    index = mesid.sat - 1;
-    NAP->TRK_SEC_CODE[3] = getbitu(gal_e7q_sec_codes[index], 0, 4);
-    NAP->TRK_SEC_CODE[2] = getbitu(gal_e7q_sec_codes[index], 4, 32);
-    NAP->TRK_SEC_CODE[1] = getbitu(gal_e7q_sec_codes[index], 36, 32);
-    NAP->TRK_SEC_CODE[0] = getbitu(gal_e7q_sec_codes[index], 68, 32);
+    for (u16 k = 0; k < GAL_E1B_PRN_BYTES; k++) {
+      NAP->TRK_MEMCODE_CFG =
+          (channel << 19) | (0 << 18) | (k << 8) | gal_e1b_codes[index][k];
+    }
+    for (u16 k = 0; k < GAL_E1C_PRN_BYTES; k++) {
+      NAP->TRK_MEMCODE_CFG =
+          (channel << 19) | (1 << 18) | (k << 8) | gal_e1c_codes[index][k];
+    }
+  } else {
+    NAP->TRK_CODE_LFSR0_INIT = mesid_to_lfsr0_init(mesid, 0);
+    NAP->TRK_CODE_LFSR0_RESET = mesid_to_lfsr0_init(mesid, 0);
+    NAP->TRK_CODE_LFSR0_LAST = mesid_to_lfsr0_last(mesid);
+
+    NAP->TRK_CODE_LFSR1_INIT = mesid_to_lfsr1_init(mesid1, index);
+    NAP->TRK_CODE_LFSR1_RESET = mesid_to_lfsr1_init(mesid1, 0);
+    NAP->TRK_CODE_LFSR1_LAST = mesid_to_lfsr1_last(mesid1);
+
+    if (mesid.code == CODE_GAL_E5X) {
+      index = mesid.sat - 1;
+      NAP->TRK_SEC_CODE3 = getbitu(gal_e5q_sec_codes[index], 0, 4);
+      NAP->TRK_SEC_CODE2 = getbitu(gal_e5q_sec_codes[index], 4, 32);
+      NAP->TRK_SEC_CODE1 = getbitu(gal_e5q_sec_codes[index], 36, 32);
+      NAP->TRK_SEC_CODE0 = getbitu(gal_e5q_sec_codes[index], 68, 32);
+    } else if (mesid.code == CODE_GAL_E7X) {
+      index = mesid.sat - 1;
+      NAP->TRK_SEC_CODE3 = getbitu(gal_e7q_sec_codes[index], 0, 4);
+      NAP->TRK_SEC_CODE2 = getbitu(gal_e7q_sec_codes[index], 4, 32);
+      NAP->TRK_SEC_CODE1 = getbitu(gal_e7q_sec_codes[index], 36, 32);
+      NAP->TRK_SEC_CODE0 = getbitu(gal_e7q_sec_codes[index], 68, 32);
+    }
   }
 
   /* port FCN-induced NCO phase to a common receiver clock point */

@@ -12,8 +12,14 @@
 #ifndef SWIFTNAV_TRACK_GLO_L1OF_H
 #define SWIFTNAV_TRACK_GLO_L1OF_H
 
-#include <libswiftnav/common.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 void track_glo_l1of_register(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SWIFTNAV_TRACK_GLO_L1OF_H */

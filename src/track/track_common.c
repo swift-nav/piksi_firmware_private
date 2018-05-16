@@ -448,14 +448,19 @@ static void tp_tracker_update_correlators(tracker_t *tracker, u32 cycle_flags) {
                             &code_phase_prompt,
                             &carrier_phase);
 
-  bool try_lock_pilot = ((CODE_GAL_E5X == tracker->mesid.code) ||
-                         (CODE_GAL_E7X == tracker->mesid.code)) &&
-                        (0 == (TRACKER_FLAG_BIT_SYNC & tracker->flags));
+  bool try_lock_pilot = (0 == (TRACKER_FLAG_BIT_SYNC & tracker_channel->flags));
   if (try_lock_pilot) {
-    /* overwrite data with pilot until bit-sync has been achieved,
-     * so that sync can be achieved on the 100-chip secondary code */
-    cs_now.prompt.I = -cs_now.very_late.Q;
-    cs_now.prompt.Q = +cs_now.very_late.I;
+    if ((CODE_GAL_E5X == tracker_channel->mesid.code) ||
+        (CODE_GAL_E7X == tracker_channel->mesid.code)) {
+      /* overwrite data with quadrature pilot until bit-sync has been achieved,
+       * so that sync can be achieved on the 100-chip secondary code */
+      cs_now.prompt.I = -cs_now.very_late.Q;
+      cs_now.prompt.Q = +cs_now.very_late.I;
+    } else if (CODE_GAL_E1X == tracker_channel->mesid.code) {
+      /* overwrite data with in-phase pilot until bit-sync has been achieved,
+       * so that sync can be achieved on the 100-chip secondary code */
+      cs_now.prompt = cs_now.very_late;
+    }
   }
 
   tp_update_correlators(cycle_flags, &cs_now, &tracker->corrs);
@@ -1067,7 +1072,8 @@ static bool should_update_tow_cache(const tracker_t *tracker) {
 
   if (CODE_GPS_L1CA == mesid.code || CODE_GLO_L1OF == mesid.code ||
       CODE_SBAS_L1CA == mesid.code || CODE_QZS_L1CA == mesid.code ||
-      CODE_BDS2_B11 == mesid.code) {
+      CODE_BDS2_B11 == mesid.code || CODE_GAL_E1X == mesid.code ||
+      CODE_GAL_E7X == mesid.code) {
     responsible_for_update = true;
   } else {
     me_gnss_signal_t mesid_L1;

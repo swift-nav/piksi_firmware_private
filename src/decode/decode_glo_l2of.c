@@ -51,7 +51,7 @@ static decoder_interface_list_element_t list_element_glo_l2of = {
     .interface = &decoder_interface_glo_l2of, .next = 0};
 
 void decode_glo_l2of_register(void) {
-  for (u32 i = 0; i < ARRAY_SIZE(glo_l2of_decoders); i++) {
+  for (u16 i = 0; i < ARRAY_SIZE(glo_l2of_decoders); i++) {
     glo_l2of_decoders[i].active = false;
     glo_l2of_decoders[i].data = &glo_l2of_decoder_data[i];
   }

@@ -418,9 +418,7 @@ static tp_tm_e get_track_mode(me_gnss_signal_t mesid,
       track_mode = entry->profile.tm_nh20ms;
     }
   } else if (IS_GAL(mesid)) {
-    if ((CODE_GAL_E1B == mesid.code) || (CODE_GAL_E1C == mesid.code)) {
-      /* add another mode for this? it's so ugly.. */
-    } else {
+    if ((CODE_GAL_E1X == mesid.code) || (CODE_GAL_E7X == mesid.code)) {
       track_mode = entry->profile.tm_sc4;
     }
   } else {
@@ -476,8 +474,17 @@ static u8 get_profile_index(code_t code,
                             const tp_profile_entry_t *profiles,
                             size_t num_profiles,
                             float cn0) {
-  if (code_requires_direct_acq(code)) {
-    return 0; /* signals from ACQ always go through init profiles */
+  if ((code_requires_direct_acq(code) && !is_gal(code)) ||
+      (!code_requires_direct_acq(code) && is_gal(code))) {
+    /* signals from ACQ always go through init profiles */
+    /* for Galileo, we acquire on E1, then start an E5b channel
+     * which, if successful starts an E1 channel.. for two reasons:
+     * - work around BOC half-chip ambiguity
+     * - work around poor bit-sync on E1C
+     * so the logic needs to be inverted
+     * This can change once the VE and VL correlators will be
+     * correctly placed half-chip away from prompt */
+    return 0;
   }
 
   /* the bit/symbol sync is known so we can start with non-init profiles */

@@ -12,6 +12,14 @@
 #ifndef DECODE_BDS_B2_H
 #define DECODE_BDS_B2_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void decode_bds_b2_register(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* DECODE_BDS_B2_H */

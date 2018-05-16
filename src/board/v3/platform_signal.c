@@ -13,6 +13,7 @@
 #include "platform_signal.h"
 #include "decode/decode_bds_b1.h"
 #include "decode/decode_bds_b2.h"
+#include "decode/decode_gal_e1.h"
 #include "decode/decode_gal_e7.h"
 #include "decode/decode_glo_l1of.h"
 #include "decode/decode_glo_l2of.h"
@@ -26,48 +27,70 @@
 
 void platform_track_setup(void) {
   track_sid_db_init();
+#if defined CODE_GPS_L1CA_SUPPORT && CODE_GPS_L1CA_SUPPORT > 0
   track_gps_l1ca_register();
+#endif
+#if defined CODE_GPS_L2C_SUPPORT && CODE_GPS_L2C_SUPPORT > 0
   track_gps_l2c_register();
+#endif
+#if defined CODE_GLO_L1OF_SUPPORT && CODE_GLO_L1OF_SUPPORT > 0
   track_glo_l1of_register();
+#endif
+#if defined CODE_GLO_L2OF_SUPPORT && CODE_GLO_L2OF_SUPPORT > 0
   track_glo_l2of_register();
-#ifdef CODE_SBAS_L1CA_SUPPORT
+#endif
+#if defined CODE_SBAS_L1CA_SUPPORT && CODE_SBAS_L1CA_SUPPORT > 0
   track_sbas_l1_register();
 #endif
-#ifdef CODE_QZSS_L1CA_SUPPORT
+#if defined CODE_QZSS_L1CA_SUPPORT && CODE_QZSS_L1CA_SUPPORT > 0
   track_qzss_l1ca_register();
 #endif
-#ifdef CODE_QZSS_L2C_SUPPORT
+#if defined CODE_QZSS_L2C_SUPPORT && CODE_QZSS_L2C_SUPPORT > 0
   track_qzss_l2c_register();
 #endif
-#ifdef CODE_BDS2_B11_SUPPORT
+#if defined CODE_BDS2_B11_SUPPORT && CODE_BDS2_B11_SUPPORT > 0
   track_bds2_b11_register();
 #endif
-#ifdef CODE_BDS2_B2_SUPPORT
+#if defined CODE_BDS2_B2_SUPPORT && CODE_BDS2_B2_SUPPORT > 0
   track_bds2_b2_register();
 #endif
-#ifdef CODE_GAL_E7_SUPPORT
+#if defined CODE_GAL_E1_SUPPORT && CODE_GAL_E1_SUPPORT > 0
+  track_gal_e1_register();
+#endif
+#if defined CODE_GAL_E7_SUPPORT && CODE_GAL_E7_SUPPORT > 0
   track_gal_e7_register();
 #endif
 }
 
 void platform_decode_setup(void) {
+#if defined CODE_GPS_L1CA_SUPPORT && CODE_GPS_L1CA_SUPPORT > 0
   decode_gps_l1ca_register();
+#endif
+#if defined CODE_GPS_L2C_SUPPORT && CODE_GPS_L2C_SUPPORT > 0
   decode_gps_l2c_register();
+#endif
+#if defined CODE_GLO_L1OF_SUPPORT && CODE_GLO_L1OF_SUPPORT > 0
   decode_glo_l1of_register();
+#endif
+#if defined CODE_GLO_L2OF_SUPPORT && CODE_GLO_L2OF_SUPPORT > 0
   decode_glo_l2of_register();
-#ifdef CODE_SBAS_L1CA_SUPPORT
+#endif
+#if defined CODE_SBAS_L1CA_SUPPORT && CODE_SBAS_L1CA_SUPPORT > 0
   decode_sbas_l1_register();
 #endif
-#ifdef CODE_QZSS_L1CA_SUPPORT
+#if defined CODE_QZSS_L1CA_SUPPORT && CODE_QZSS_L1CA_SUPPORT > 0
   decode_qzss_l1ca_register();
 #endif
-#ifdef CODE_BDS2_B11_SUPPORT
+#if defined CODE_BDS2_B11_SUPPORT && CODE_BDS2_B11_SUPPORT > 0
   decode_bds_b1_register();
 #endif
-#ifdef CODE_BDS2_B2_SUPPORT
+#if defined CODE_BDS2_B2_SUPPORT && CODE_BDS2_B2_SUPPORT > 0
   decode_bds_b2_register();
 #endif
-#ifdef CODE_GAL_E7_SUPPORT
+#if defined CODE_GAL_E1_SUPPORT && CODE_GAL_E1_SUPPORT > 0
+  decode_gal_e1_register();
+#endif
+#if defined CODE_GAL_E7_SUPPORT && CODE_GAL_E7_SUPPORT > 0
   decode_gal_e7_register();
 #endif
 }

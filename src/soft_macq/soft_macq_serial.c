@@ -22,8 +22,10 @@
 #include "lib/fixed_fft_r2.h"
 
 #include "platform_cn0.h"
+#include "prns.h"
 #include "soft_macq_defines.h"
 #include "soft_macq_main.h"
+#include "soft_macq_utils.h"
 
 #define FAU_SAMPLE_RATE_Hz (FAU_RAW_FS / FAU_DECFACT)
 #define CODE_SPMS (FAU_SAMPLE_RATE_Hz / 1000)
@@ -37,10 +39,10 @@
 #define FFT_SCALE_SCHED_SAMPLES (0x01111111)
 #define FFT_SCALE_SCHED_INV (0x01111111)
 
-static void code_resample(const me_gnss_signal_t mesid,
-                          float chips_per_sample,
-                          sc16_t *resampled,
-                          u32 resampled_length);
+// static void code_resample(const me_gnss_signal_t mesid,
+//                          float chips_per_sample,
+//                          sc16_t *resampled,
+//                          u32 resampled_length);
 static bool get_bin_min_max(const me_gnss_signal_t mesid,
                             float cf_min,
                             float cf_max,
@@ -62,6 +64,8 @@ static bool peak_search(const me_gnss_signal_t mesid,
                         acq_peak_search_t *peak);
 
 static void GetFourMaxes(const u32 *_pcVec, u32 _uSize);
+
+static s8 code_resamp[INTFFT_MAXSIZE] __attribute__((aligned(32)));
 
 static sc16_t code_fft[INTFFT_MAXSIZE] __attribute__((aligned(32)));
 
@@ -88,18 +92,41 @@ bool soft_acq_search(const sc16_t *_cSignal,
     InitIntFFTr2(&sFftConfig, FAU_FFTLEN);
   }
 
-  float chips_per_sample = code_to_chip_rate(mesid.code) / FAU_SAMPLE_RATE_Hz;
-
-  /* For constellations with frequent symbol transitions, do 1x4 CxNC */
+  const u8 *local_code = ca_code(mesid);
+  u32 code_length = code_to_chip_count(mesid.code);
+  double chip_rate = code_to_chip_rate(mesid.code);
+  memset(code_resamp, 0, sizeof(s8) * INTFFT_MAXSIZE);
   if ((CODE_SBAS_L1CA == mesid.code) || (CODE_BDS2_B11 == mesid.code) ||
       (CODE_GAL_E7X == mesid.code)) {
-    code_resample(mesid,
-                  chips_per_sample,
-                  code_fft + CODE_SPMS * (FAU_FFTLEN / CODE_SPMS - 1),
-                  CODE_SPMS);
+    /* For constellations with frequent symbol transitions, do 1x4 CxNC */
+    code_resample(local_code,
+                  code_length,
+                  chip_rate,
+                  code_resamp + CODE_SPMS * (FAU_FFTLEN / CODE_SPMS - 1),
+                  CODE_SPMS,
+                  FAU_SAMPLE_RATE_Hz,
+                  BPSK);
+  } else if (CODE_GAL_E1X == mesid.code) {
+    code_resample(local_code,
+                  code_length,
+                  chip_rate,
+                  code_resamp,
+                  FAU_FFTLEN,
+                  FAU_SAMPLE_RATE_Hz,
+                  BOC_N1);
   } else {
-    /* Generate, resample, and FFT code */
-    code_resample(mesid, chips_per_sample, code_fft, FAU_FFTLEN);
+    code_resample(local_code,
+                  code_length,
+                  chip_rate,
+                  code_resamp,
+                  FAU_FFTLEN,
+                  FAU_SAMPLE_RATE_Hz,
+                  BPSK);
+  }
+
+  for (u32 k = 0; k < FAU_FFTLEN; k++) {
+    code_fft[k].r = code_resamp[k];
+    code_fft[k].i = 0;
   }
 
   DoFwdIntFFTr2(&sFftConfig, code_fft, FFT_SCALE_SCHED_CODE, 1);
@@ -111,19 +138,6 @@ bool soft_acq_search(const sc16_t *_cSignal,
 
   /* simple notch filter */
   if (CODE_BDS2_B11 == mesid.code) {
-    /*
-    log_debug_mesid(mesid, "%.1f %.1f %.1f %.1f %.1f",
-      (float)sample_fft[11855].r * (float)sample_fft[11855].r +
-      (float)sample_fft[11855].i * (float)sample_fft[11855].i,
-      (float)sample_fft[11856].r * (float)sample_fft[11856].r +
-      (float)sample_fft[11856].i * (float)sample_fft[11856].i,
-      (float)sample_fft[11857].r * (float)sample_fft[11857].r +
-      (float)sample_fft[11857].i * (float)sample_fft[11857].i,
-      (float)sample_fft[11858].r * (float)sample_fft[11858].r +
-      (float)sample_fft[11858].i * (float)sample_fft[11858].i,
-      (float)sample_fft[11859].r * (float)sample_fft[11859].r +
-      (float)sample_fft[11859].i * (float)sample_fft[11859].i);
-    */
     sample_fft[11857].r = 0;
     sample_fft[11857].i = 0;
     sample_fft[11858].r = 0;
@@ -225,6 +239,7 @@ bool soft_acq_search(const sc16_t *_cSignal,
   }
 
   /* Compute code phase */
+  float chips_per_sample = chip_rate / FAU_SAMPLE_RATE_Hz;
   float cp = chips_per_sample * (peak.sample_offset);
   log_debug_mesid(
       mesid, "cp %.1f cf %.1f cn0 %.1f", cp, peak.doppler, peak.cn0);
@@ -242,22 +257,22 @@ bool soft_acq_search(const sc16_t *_cSignal,
  * \param[in] resampled        Resampled PRN code
  * \param[in] resampled_length Length of resampled code.
  */
-static void code_resample(const me_gnss_signal_t mesid,
-                          float chips_per_sample,
-                          sc16_t *resampled,
-                          u32 resampled_length) {
-  const u8 *pCode = ca_code(mesid);
-  u32 code_length = code_to_chip_count(mesid.code);
-
-  float chip_offset = 0.0f;
-  for (u32 i = 0; i < resampled_length; i++) {
-    u32 code_index = (u32)floorf(chip_offset);
-    resampled[i] = (sc16_t){
-        .r = CODE_MULT * get_chip((u8 *)pCode, code_index % code_length),
-        .i = 0};
-    chip_offset += chips_per_sample;
-  }
-}
+// static void code_resample(const me_gnss_signal_t mesid,
+//                          float chips_per_sample,
+//                          sc16_t *resampled,
+//                          u32 resampled_length) {
+//  const u8 *pCode = ca_code(mesid);
+//  u32 code_length = code_to_chip_count(mesid.code);
+//
+//  float chip_offset = 0.0f;
+//  for (u32 i = 0; i < resampled_length; i++) {
+//    u32 code_index = (u32)floorf(chip_offset);
+//    resampled[i] = (sc16_t){
+//        .r = CODE_MULT * get_chip((u8 *)pCode, code_index % code_length),
+//        .i = 0};
+//    chip_offset += chips_per_sample;
+//  }
+//}
 
 /** Find dopper_bin_min and doppler_bin_max,
  *  given uncertainty range and bin_width.

@@ -51,6 +51,7 @@ typedef struct {
   dum_sat_info_t glo_svs[NUM_SATS_GLO];
   dum_sat_info_t sbas_svs[NUM_SATS_SBAS];
   dum_sat_info_t bds_svs[NUM_SATS_BDS2];
+  dum_sat_info_t gal_svs[NUM_SATS_GAL];
 } dum_info_t;
 
 static dum_info_t dum_info = {0};
@@ -215,7 +216,8 @@ void dum_get_doppler_wndw(const gnss_signal_t *sid,
   assert(sid != NULL);
   assert(sid_valid(*sid));
   assert((CODE_GPS_L1CA == sid->code) || (CODE_GLO_L1OF == sid->code) ||
-         (CODE_SBAS_L1CA == sid->code) || (CODE_BDS2_B11 == sid->code));
+         (CODE_SBAS_L1CA == sid->code) || (CODE_BDS2_B11 == sid->code) ||
+         (CODE_GAL_E1X == sid->code));
 
   float default_doppler_min =
       code_to_sv_doppler_min(sid->code) + code_to_tcxo_doppler_min(sid->code);
@@ -233,6 +235,9 @@ void dum_get_doppler_wndw(const gnss_signal_t *sid,
   } else if (IS_BDS2(*sid)) {
     i = sid->sat - BDS2_FIRST_PRN;
     mt = &dum_info.bds_svs[i].next_method;
+  } else if (IS_GAL(*sid)) {
+    i = sid->sat - GAL_FIRST_PRN;
+    mt = &dum_info.gal_svs[i].next_method;
   } else {
     i = sid->sat - GPS_FIRST_PRN;
     mt = &dum_info.gps_svs[i].next_method;

@@ -24,10 +24,13 @@
 #define GAL_E5_PRN_BYTES (INT_NUM_BYTES(GAL_E5_CHIPS_NUM))
 #define GAL_E7_PRN_BYTES (INT_NUM_BYTES(GAL_E7_CHIPS_NUM))
 #define GAL_CS100_BYTES 13
+#define GAL_CS25_BYTES 4
 
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
+
+extern const u8 gal_e1c_sec25[GAL_CS25_BYTES];
 
 extern const u32 gal_e5i_prns_init_values[];
 extern const u32 gal_e5i_prns_last_values[];
@@ -35,18 +38,14 @@ extern const u32 gal_e5i_prns_last_values[];
 extern const u32 gal_e5q_prns_init_values[];
 extern const u32 gal_e5q_prns_last_values[];
 
+extern const u8 gal_e5q_sec_codes[][GAL_CS100_BYTES]; /* 100 chip, 12.5 Byte */
+
 extern const u32 gal_e7i_prns_init_values[];
 extern const u32 gal_e7i_prns_last_values[];
 
 extern const u32 gal_e7q_prns_init_values[];
 extern const u32 gal_e7q_prns_last_values[];
 
-extern const u8 gal_e5i_codes[][GAL_E5_PRN_BYTES];
-extern const u8 gal_e5q_codes[][GAL_E5_PRN_BYTES];
-extern const u8 gal_e5q_sec_codes[][GAL_CS100_BYTES]; /* 100 chip, 12.5 Byte */
-
-extern const u8 gal_e7i_codes[][GAL_E7_PRN_BYTES];
-extern const u8 gal_e7q_codes[][GAL_E7_PRN_BYTES];
 extern const u8 gal_e7q_sec_codes[][GAL_CS100_BYTES]; /* 100 chip, 12.5 Byte */
 
 extern const u8 gal_e1b_codes[][GAL_E1B_PRN_BYTES];

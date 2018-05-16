@@ -14,6 +14,20 @@
 
 #include <libswiftnav/common.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void track_gal_e7_register(void);
+
+void gal_e1_to_e7_handover(u32 sample_count,
+                           u16 sat,
+                           double code_phase,
+                           double carrier_freq,
+                           float cn0_init);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* TRACK_GAL_E7_H */
