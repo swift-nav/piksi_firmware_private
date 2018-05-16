@@ -421,7 +421,7 @@ static bool peak_search(const me_gnss_signal_t mesid,
     /* New max peak found */
     peak->cn0 = cn0;
     peak->doppler = doppler;
-    peak->sample_offset = peak_index;
+    peak->sample_offset = (peak_index + CODE_SPMS - 1) % CODE_SPMS;
   }
 
   return true;
