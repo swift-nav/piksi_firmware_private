@@ -144,7 +144,7 @@ static const tp_lock_detect_params_t ld_params_gps[] = {
     [TP_LD_PARAMS_FREQ_2MS]   = { 0.07f, UNUSED, 40 },
     [TP_LD_PARAMS_FREQ_5MS]   = { 0.08f, UNUSED, 20 },
     [TP_LD_PARAMS_FREQ_10MS]  = {  0.1f, UNUSED, 15 },
-    [TP_LD_PARAMS_FREQ_20MS]  = {  0.1f, UNUSED, 10 },
+    [TP_LD_PARAMS_FREQ_20MS]  = {  0.1f, UNUSED, 30 },
 };
 static const tp_lock_detect_params_t ld_params_glo[] = {
                                   /* k1,     k2, lp */
@@ -159,7 +159,7 @@ static const tp_lock_detect_params_t ld_params_glo[] = {
     [TP_LD_PARAMS_FREQ_2MS]   = { 0.07f, UNUSED, 40 },
     [TP_LD_PARAMS_FREQ_5MS]   = { 0.08f, UNUSED, 20 },
     [TP_LD_PARAMS_FREQ_10MS]  = {  0.1f, UNUSED, 15 },
-    [TP_LD_PARAMS_FREQ_20MS]  = {  0.1f, UNUSED, 10 },
+    [TP_LD_PARAMS_FREQ_20MS]  = {  0.1f, UNUSED, 30 },
 };
 static const tp_lock_detect_params_t ld_params_sbas[] = {
                                   /* k1,     k2, lp */
@@ -174,7 +174,7 @@ static const tp_lock_detect_params_t ld_params_sbas[] = {
     [TP_LD_PARAMS_FREQ_2MS]   = { 0.07f, UNUSED, 40 },
     [TP_LD_PARAMS_FREQ_5MS]   = { 0.08f, UNUSED, 20 },
     [TP_LD_PARAMS_FREQ_10MS]  = {  0.1f, UNUSED, 15 },
-    [TP_LD_PARAMS_FREQ_20MS]  = {  0.1f, UNUSED, 10 },
+    [TP_LD_PARAMS_FREQ_20MS]  = {  0.1f, UNUSED, 30 },
 };
 static const tp_lock_detect_params_t ld_params_bds2[] = {
                                   /* k1,     k2, lp */
@@ -189,7 +189,7 @@ static const tp_lock_detect_params_t ld_params_bds2[] = {
     [TP_LD_PARAMS_FREQ_2MS]   = { 0.07f, UNUSED, 40 },
     [TP_LD_PARAMS_FREQ_5MS]   = { 0.08f, UNUSED, 20 },
     [TP_LD_PARAMS_FREQ_10MS]  = {  0.1f, UNUSED, 15 },
-    [TP_LD_PARAMS_FREQ_20MS]  = {  0.1f, UNUSED, 10 },
+    [TP_LD_PARAMS_FREQ_20MS]  = {  0.1f, UNUSED, 30 },
 };
 static const tp_lock_detect_params_t ld_params_qzss[] = {
                                   /* k1,     k2, lp */
@@ -204,7 +204,7 @@ static const tp_lock_detect_params_t ld_params_qzss[] = {
     [TP_LD_PARAMS_FREQ_2MS]   = { 0.07f, UNUSED, 40 },
     [TP_LD_PARAMS_FREQ_5MS]   = { 0.08f, UNUSED, 20 },
     [TP_LD_PARAMS_FREQ_10MS]  = {  0.1f, UNUSED, 15 },
-    [TP_LD_PARAMS_FREQ_20MS]  = {  0.1f, UNUSED, 10 },
+    [TP_LD_PARAMS_FREQ_20MS]  = {  0.1f, UNUSED, 30 },
 };
 static const tp_lock_detect_params_t ld_params_gal[] = {
                                   /* k1,     k2, lp */
@@ -219,7 +219,7 @@ static const tp_lock_detect_params_t ld_params_gal[] = {
     [TP_LD_PARAMS_FREQ_2MS]   = { 0.07f, UNUSED, 40 },
     [TP_LD_PARAMS_FREQ_5MS]   = { 0.08f, UNUSED, 20 },
     [TP_LD_PARAMS_FREQ_10MS]  = {  0.1f, UNUSED, 15 },
-    [TP_LD_PARAMS_FREQ_20MS]  = {  0.1f, UNUSED, 10 }
+    [TP_LD_PARAMS_FREQ_20MS]  = {  0.1f, UNUSED, 30 }
 };
 /* clang-format on */
 
@@ -583,9 +583,7 @@ void tp_profile_update_config(tracker_t *tracker) {
     tracker->flags |= TRACKER_FLAG_SENSITIVITY_MODE;
   }
 
-  const tp_tm_e mode = profile->loop_params.mode;
-  profile->use_alias_detection =
-      (TP_TM_10MS_10MS == mode) || (TP_TM_20MS_20MS == mode);
+  profile->use_alias_detection = (profile->cur.index >= IDX_10MS);
   tp_profile_get_cn0_params(profile, &profile->cn0_params);
 }
 

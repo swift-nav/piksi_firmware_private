@@ -422,6 +422,9 @@ static void process_alias_error(tracker_t *tracker, float I, float Q) {
   /* alias_detect_second() returns the freq correction value directly.
      So we can use it as is for the adjustment. */
   tp_tl_adjust(&tracker->tl_state, err_hz);
+
+  /* reset carrier freq outlier detection logic */
+  tracker->carrier_freq_prev_valid = false;
 }
 
 /**
@@ -928,11 +931,7 @@ static void tp_tracker_update_alias(tracker_t *tracker, u32 cycle_flags) {
   float Q = tracker->corrs.corr_ad.Q;
 
   if (do_second) {
-    bool inlock = ((0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) ||
-                   (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK)));
-    if (inlock) {
-      process_alias_error(tracker, I, Q);
-    }
+    process_alias_error(tracker, I, Q);
     do_first = true;
   }
 

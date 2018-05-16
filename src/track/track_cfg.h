@@ -169,7 +169,7 @@
 #define HANDOVER_CODE_PHASE_THRESHOLD 0.5
 
 /** False lock detector filter interval in ms. */
-#define TP_TRACKER_ALIAS_DURATION_MS (3000)
+#define TP_TRACKER_ALIAS_DURATION_MS (400)
 /** Initial C/N0 for confirmation [dB/Hz] */
 #define TP_TRACKER_CN0_CONFIRM_DELTA (2.f)
 

@@ -30,10 +30,10 @@ extern "C" {
 typedef struct {
   float k;       /**< Coefficient for converting radians into degrees.
                   * k=1/(2*pi*t), t - time difference between sample points. */
-  float dot;     /**< Accumulated dot products. */
-  float cross;   /**< Accumulated cross products. */
-  float first_I; /**< First in-phase sample. */
-  float first_Q; /**< First quadrature-phase sample. */
+  double dot;    /**< Accumulated dot products. */
+  double cross;  /**< Accumulated cross products. */
+  double first_I; /**< First in-phase sample. */
+  double first_Q; /**< First quadrature-phase sample. */
   u16 acc_len;   /**< Accumulation length. */
   u16 fl_count;  /**< Currently accumulated point count. */
 } alias_detect_t;

@@ -184,7 +184,11 @@ void aided_tl_fll2_pll3_update_dll(aided_tl_state_fll2_pll3_t *s,
 void aided_tl_fll2_pll3_adjust(aided_tl_state_fll2_pll3_t *s, float err) {
   s->carr_freq += err;
   s->carr_vel += err;
+  s->carr_acc = 0;
   s->code_freq += err * s->carr_to_code;
+  s->code_vel += err * s->carr_to_code;
+  s->discr_sum_hz = 0.f;
+  s->discr_cnt = 0;
 }
 
 /**
