@@ -111,19 +111,6 @@ bool soft_acq_search(const sc16_t *_cSignal,
 
   /* simple notch filter */
   if (CODE_BDS2_B11 == mesid.code) {
-    /*
-    log_debug_mesid(mesid, "%.1f %.1f %.1f %.1f %.1f",
-      (float)sample_fft[11855].r * (float)sample_fft[11855].r +
-      (float)sample_fft[11855].i * (float)sample_fft[11855].i,
-      (float)sample_fft[11856].r * (float)sample_fft[11856].r +
-      (float)sample_fft[11856].i * (float)sample_fft[11856].i,
-      (float)sample_fft[11857].r * (float)sample_fft[11857].r +
-      (float)sample_fft[11857].i * (float)sample_fft[11857].i,
-      (float)sample_fft[11858].r * (float)sample_fft[11858].r +
-      (float)sample_fft[11858].i * (float)sample_fft[11858].i,
-      (float)sample_fft[11859].r * (float)sample_fft[11859].r +
-      (float)sample_fft[11859].i * (float)sample_fft[11859].i);
-    */
     sample_fft[11857].r = 0;
     sample_fft[11857].i = 0;
     sample_fft[11858].r = 0;
@@ -197,16 +184,16 @@ bool soft_acq_search(const sc16_t *_cSignal,
       /* IF peak was found on the starting bin,
        * then need to check both sides of the starting bin. */
       if (doppler_bin == start_bin) {
-        loop_index = doppler_bin_max - 3; /* Make 4 more searches */
+        loop_index = doppler_bin_max - 1; /* Make 2 more searches */
       }
       /* ELSE peak was found on other than starting bin ,
        * then need to check one more bin from the same side. */
       else {
         /* Extend bin boundaries to handle situation
          * where peak is found on last positive or negative bin. */
-        doppler_bin_max += 2;
-        doppler_bin_min -= 2;
-        loop_index = doppler_bin_max - 2; /* Make 3 more search */
+        doppler_bin_max += 1;
+        doppler_bin_min -= 1;
+        loop_index = doppler_bin_max; /* Make 1 more search */
         /* Adjust ind1 and ind2 so that same frequency side is searched */
         ind1 *= -1;
         ind2 += 1;
@@ -289,12 +276,12 @@ static bool get_bin_min_max(const me_gnss_signal_t mesid,
     return false;
   }
 
-  /* Check that at least 5 doppler bins are provided,
-   * since minimum of 5 bins are searched.
-   * If less than 5, just add 4 more. */
-  if ((*doppler_bin_max - *doppler_bin_min + 1) < 5) {
-    *doppler_bin_max += 2;
-    *doppler_bin_min -= 2;
+  /* Check that at least 3 doppler bins are provided,
+   * since minimum of 3 bins are searched.
+   * If less than 3, just add 2 more. */
+  if ((*doppler_bin_max - *doppler_bin_min + 1) < 3) {
+    *doppler_bin_max += 1;
+    *doppler_bin_min -= 1;
   }
   return true;
 }
@@ -418,10 +405,28 @@ static bool peak_search(const me_gnss_signal_t mesid,
   }
 
   if (cn0 > peak->cn0) {
+    float ea = 0.0f, la = 0.0f;
+
+    /* linear fit on code (it's a triangle) */
+    if (peak_index != 0) {
+      ea = (float)result_mag[(peak_index - 1)];
+    } else {
+      ea = (float)result_mag[(CODE_SPMS - 1)];
+    }
+    if (peak_index != (CODE_SPMS - 1)) {
+      la = (float)result_mag[peak_index + 1];
+    } else {
+      la = (float)result_mag[0];
+    }
+    float code_delta = 0.0f;
+    if ((0.0f < ea) || (0.0f < la)) {
+      code_delta = 0.5f * (sqrtf(la) - sqrtf(ea)) / (sqrtf(la) + sqrtf(ea));
+    }
+
     /* New max peak found */
     peak->cn0 = cn0;
     peak->doppler = doppler;
-    peak->sample_offset = peak_index;
+    peak->sample_offset = (float)peak_index + code_delta;
   }
 
   return true;

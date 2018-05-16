@@ -170,30 +170,31 @@ void Sc16ArrayAddAbsTo(float *_fOut, sc16_t *_fIn, u32 _iSize) {
  *  \brief takes in a matrix in array form and produces the maximum
  * value along with relevant code and frequency indexes
  */
-int IsAcquired3D(const float *vec,
-                 const u32 _iCodeSh,
-                 const u32 _iFreqSh,
-                 const u32 _iNonCoh,
+int IsAcquired3D(const float *corr_mat,
+                 const u32 code_dim,
+                 const u32 freq_dim,
+                 const u32 non_coh_acc,
                  float *_fMval,
                  float *_pfCodeMaxI,
                  float *_pfFreqMaxI) {
   u32 k, i;
-  u32 code_len_4th, max_freq_index;
   float m[4] = {0.0};
   float max = 0.0f;
   u32 im[4] = {0};
   u32 imax = 0, kmax = 0;
 
-  code_len_4th = _iCodeSh / 4;
-
+  u32 code_len_4th = code_dim / 4;
   /* first absolute (2D) maximum */
-  for (i = 0; i < _iCodeSh * _iFreqSh; i++) {
-    if (vec[i] > max) {
-      max = vec[i];
+  for (i = 0; i < code_dim * freq_dim; i++) {
+    if (corr_mat[i] > max) {
+      max = corr_mat[i];
       imax = i;
     }
   }
-  max_freq_index = imax % _iFreqSh;
+
+  /* peak position in the two dimensions */
+  u32 max_freq_idx = imax % freq_dim;
+  u32 max_code_idx = imax / freq_dim;
 
   (*_fMval) = 0.0f;
   (*_pfCodeMaxI) = 0.0f;
@@ -201,33 +202,33 @@ int IsAcquired3D(const float *vec,
 
   /* first slice of code-dimension correlation */
   for (k = 0; k < 1 * code_len_4th; k++) {
-    i = k * _iFreqSh + max_freq_index;
-    if (vec[i] > m[0]) {
-      m[0] = vec[i];
+    i = k * freq_dim + max_freq_idx;
+    if (corr_mat[i] > m[0]) {
+      m[0] = corr_mat[i];
       im[0] = i;
     }
   }
   /* second slice */
   for (; k < 2 * code_len_4th; k++) {
-    i = k * _iFreqSh + max_freq_index;
-    if (vec[i] > m[1]) {
-      m[1] = vec[i];
+    i = k * freq_dim + max_freq_idx;
+    if (corr_mat[i] > m[1]) {
+      m[1] = corr_mat[i];
       im[1] = i;
     }
   }
   /* third slice  */
   for (; k < 3 * code_len_4th; k++) {
-    i = k * _iFreqSh + max_freq_index;
-    if (vec[i] > m[2]) {
-      m[2] = vec[i];
+    i = k * freq_dim + max_freq_idx;
+    if (corr_mat[i] > m[2]) {
+      m[2] = corr_mat[i];
       im[2] = i;
     }
   }
   /* fourth slice */
-  for (; k < _iCodeSh; k++) {
-    i = k * _iFreqSh + max_freq_index;
-    if (vec[i] > m[3]) {
-      m[3] = vec[i];
+  for (; k < code_dim; k++) {
+    i = k * freq_dim + max_freq_idx;
+    if (corr_mat[i] > m[3]) {
+      m[3] = corr_mat[i];
       im[3] = i;
     }
   }
@@ -248,28 +249,45 @@ int IsAcquired3D(const float *vec,
   /* compute mean far from peak */
   float mean_clean = 0.0f;
   for (u32 idx = (k * code_len_4th); idx < ((k + 1) * code_len_4th); idx++) {
-    i = idx * _iFreqSh + max_freq_index;
-    mean_clean += vec[i];
+    i = idx * freq_dim + max_freq_idx;
+    mean_clean += corr_mat[i];
   }
   mean_clean /= (float)code_len_4th;
 
   /* is threshold higher? */
-  if (max > (23.0f * mean_clean / (1 + log2f(_iNonCoh)))) {
-    /* code */
-    (*_pfCodeMaxI) = (float)imax / _iFreqSh;
+  if (max > (23.0f * mean_clean / (1 + log2f(non_coh_acc)))) {
+    float ea = 0.0f, la = 0.0f;
+
+    /* linear fit on code (it's a triangle) */
+    if (max_code_idx != 0) {
+      ea = (float)corr_mat[(max_code_idx - 1) * freq_dim + max_freq_idx];
+    } else {
+      ea = (float)corr_mat[(code_dim - 1) * freq_dim + max_freq_idx];
+    }
+    if (max_code_idx != (code_dim - 1)) {
+      la = (float)corr_mat[(max_code_idx + 1) * freq_dim + max_freq_idx];
+    } else {
+      la = (float)corr_mat[max_freq_idx];
+    }
+    float code_delta = 0.0f;
+    if ((0.0f < ea) || (0.0f < la)) {
+      code_delta = 0.5f * (sqrtf(la) - sqrtf(ea)) / (sqrtf(la) + sqrtf(ea));
+    }
+    (*_pfCodeMaxI) = (float)max_code_idx + code_delta;
 
     /* quadratic fit on freq (it's a sinc actually) */
-    u32 max_code_idx = _iFreqSh * (imax / _iFreqSh);
-    float ea = (float)vec[max_code_idx + ((max_freq_index - 1) % _iFreqSh)];
-    float la = (float)vec[max_code_idx + ((max_freq_index + 1) % _iFreqSh)];
+    ea = (float)corr_mat[max_code_idx * freq_dim +
+                         ((max_freq_idx + freq_dim - 1) % freq_dim)];
+    la = (float)corr_mat[max_code_idx * freq_dim +
+                         ((max_freq_idx + freq_dim + 1) % freq_dim)];
     float freq_delta = 0.0f;
     if ((0.0f != ea) && (0.0f != la)) {
       freq_delta = 0.5f * (la - ea) / (la + ea);
     }
-    if ((0 == max_freq_index) && (0.0f > freq_delta)) {
-      (*_pfFreqMaxI) = (float)_iFreqSh + freq_delta;
+    if ((0 == max_freq_idx) && (0.0f > freq_delta)) {
+      (*_pfFreqMaxI) = (float)freq_dim + freq_delta;
     } else {
-      (*_pfFreqMaxI) = (float)max_freq_index + freq_delta;
+      (*_pfFreqMaxI) = (float)max_freq_idx + freq_delta;
     }
     return 1;
   }

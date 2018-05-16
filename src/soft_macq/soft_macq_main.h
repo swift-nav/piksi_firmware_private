@@ -31,7 +31,7 @@ typedef struct {
 typedef struct {
   float cn0;
   float doppler;
-  u32 sample_offset;
+  float sample_offset;
 } acq_peak_search_t;
 
 bool soft_multi_acq_search(const me_gnss_signal_t _sMeSid,
