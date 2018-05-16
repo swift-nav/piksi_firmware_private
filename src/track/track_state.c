@@ -106,7 +106,8 @@ bool tracker_available(const u8 id, const me_gnss_signal_t mesid) {
 
   u64 now_ms = timing_getms();
   bool busy = tracker->busy;
-  if (busy && (now_ms > (NAP_CORR_LENGTH_MAX_MS + tracker->update_timestamp_ms))) {
+  if (busy &&
+      (now_ms > (NAP_CORR_LENGTH_MAX_MS + tracker->update_timestamp_ms))) {
     log_error_mesid(mesid, "dropping stale channel");
     tracker->flags |= TRACKER_FLAG_DROP_CHANNEL;
     tracker->ch_drop_reason = CH_DROP_REASON_NO_UPDATES;

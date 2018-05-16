@@ -691,8 +691,8 @@ static void drop_channel(tracker_t *tracker, ch_drop_reason_t reason) {
     bool had_locks =
         (0 != (flags & (TRACKER_FLAG_HAD_PLOCK | TRACKER_FLAG_HAD_FLOCK)));
     bool long_in_track = time_in_track_ms > TRACK_REACQ_MS;
-    u32 unlocked_time_ms = update_count_diff(
-        tracker, &tracker->ld_pess_change_count);
+    u32 unlocked_time_ms =
+        update_count_diff(tracker, &tracker->ld_pess_change_count);
     bool long_unlocked = unlocked_time_ms > TRACK_REACQ_MS;
     bool was_xcorr = (flags & TRACKER_FLAG_DROP_CHANNEL) &&
                      (CH_DROP_REASON_XCORR == tracker->ch_drop_reason);
@@ -841,15 +841,15 @@ void sanitize_tracker(tracker_t *tracker, u64 now_ms) {
   if (age_ms < tracker->settle_time_ms) {
     return;
   }
-/*
-  if (now_ms > tracker->update_timestamp_ms) {
-    u32 update_delay_ms = now_ms - tracker->update_timestamp_ms;
-    if (update_delay_ms > NAP_CORR_LENGTH_MAX_MS) {
-      drop_channel(tracker, CH_DROP_REASON_NO_UPDATES);
-      return;
+  /*
+    if (now_ms > tracker->update_timestamp_ms) {
+      u32 update_delay_ms = now_ms - tracker->update_timestamp_ms;
+      if (update_delay_ms > NAP_CORR_LENGTH_MAX_MS) {
+        drop_channel(tracker, CH_DROP_REASON_NO_UPDATES);
+        return;
+      }
     }
-  }
-*/
+  */
   /* Do we not have nav bit sync yet? */
   if (0 == (flags & TRACKER_FLAG_BIT_SYNC)) {
     drop_channel(tracker, CH_DROP_REASON_NO_BIT_SYNC);
@@ -864,8 +864,7 @@ void sanitize_tracker(tracker_t *tracker, u64 now_ms) {
   u32 unlocked_ms = 0;
   if ((0 == (flags & TRACKER_FLAG_HAS_PLOCK)) &&
       (0 == (flags & TRACKER_FLAG_HAS_FLOCK))) {
-    unlocked_ms = update_count_diff(tracker,
-                                    &tracker->ld_pess_change_count);
+    unlocked_ms = update_count_diff(tracker, &tracker->ld_pess_change_count);
   }
   if (unlocked_ms > TRACK_DROP_UNLOCKED_MS) {
     drop_channel(tracker, CH_DROP_REASON_NO_PLOCK);
@@ -873,8 +872,8 @@ void sanitize_tracker(tracker_t *tracker, u64 now_ms) {
   }
 
   /* CN0 below threshold for a while? */
-  u32 cn0_drop_ms = update_count_diff(
-      tracker, &tracker->cn0_above_drop_thres_count);
+  u32 cn0_drop_ms =
+      update_count_diff(tracker, &tracker->cn0_above_drop_thres_count);
   if (cn0_drop_ms > TRACK_DROP_CN0_MS) {
     drop_channel(tracker, CH_DROP_REASON_LOW_CN0);
     return;
