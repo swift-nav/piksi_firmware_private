@@ -97,8 +97,6 @@ void platform_watchdog_notify_starling_main_thread() {
   watchdog_notify(WD_NOTIFY_STARLING);
 }
 
-bool platform_simulation_enabled() { return simulation_enabled(); }
-
 void platform_time_matched_obs_mailbox_init() {
   static msg_t time_matched_obs_mailbox_buff[STARLING_OBS_N_BUFF];
   chMBObjectInit(&time_matched_obs_mailbox,

@@ -33,17 +33,8 @@
 #include "starling_platform_shim.h"
 #include "starling_threads.h"
 
-extern void starling_integration_solution_send_low_latency_output(
-    u8 base_sender_id,
-    const sbp_messages_t *sbp_messages,
-    u8 n_meas,
-    const navigation_measurement_t nav_meas[]);
-
-extern void starling_integration_sbp_messages_init(sbp_messages_t *sbp_messages,
-                                                   const gps_time_t *t);
-
-extern void starling_integration_solution_simulation(
-    sbp_messages_t *sbp_messages);
+extern bool starling_integration_simulation_enabled(void);
+extern void starling_integration_simulation_run(const me_msg_obs_t *me_msg);
 
 #define TIME_MATCHED_OBS_THREAD_PRIORITY (NORMALPRIO - 3)
 #define TIME_MATCHED_OBS_THREAD_STACK (6 * 1024 * 1024)
@@ -358,7 +349,6 @@ static PVT_ENGINE_INTERFACE_RC process_matched_obs(
   /* If we are in time matched mode then calculate and output the baseline
    * for this observation. */
   if (dgnss_soln_mode == STARLING_SOLN_MODE_TIME_MATCHED &&
-      !platform_simulation_enabled() &&
       update_filter_ret == PVT_ENGINE_SUCCESS) {
     /* Note: in time match mode we send the physically incorrect time of the
      * observation message (which can be receiver clock time, or rounded GPS
@@ -580,8 +570,6 @@ static void starling_thread(void) {
                                 time_matched_obs_thread,
                                 NULL);
 
-  sbp_messages_t sbp_messages;
-
   static navigation_measurement_t nav_meas[MAX_CHANNELS];
   static ephemeris_t e_meas[MAX_CHANNELS];
   static gps_time_t obs_time;
@@ -607,33 +595,30 @@ static void starling_thread(void) {
       continue;
     }
 
-    /* Init the messages we want to send */
-
-    gps_time_t epoch_time = me_msg->obs_time;
-    if (!gps_time_valid(&epoch_time) && TIME_PROPAGATED <= get_time_quality()) {
-      /* observations do not have valid time, but we have a reasonable estimate
-       * of current GPS time, so round that to nearest epoch and use it
-       */
-      epoch_time = get_current_time();
-      epoch_time = gps_time_round_to_epoch(&epoch_time, soln_freq_setting);
-    }
-
-    starling_integration_sbp_messages_init(&sbp_messages, &epoch_time);
-
-    /* Here we do all the nice simulation-related stuff. */
-    if (platform_simulation_enabled()) {
-      starling_integration_solution_simulation(&sbp_messages);
-      const u8 fake_base_sender_id = 1;
-      starling_integration_solution_send_low_latency_output(
-          fake_base_sender_id, &sbp_messages, me_msg->size, me_msg->obs);
+    /* When simulation is enabled, intercept the incoming
+     * observations. No further processing will be performed
+     * by the PVT engine, and the simulation will proceed
+     * to takeover all SBP output generation.
+     *
+     * NOTE: Because we no longer post observations
+     * to the time-matched thread there won't be any
+     * output when in time-matched solution mode.
+     *
+     * TODO(kevin) move all this onto a separate thread
+     * somewhere else. */
+    if (starling_integration_simulation_enabled()) {
+      starling_integration_simulation_run(me_msg);
       platform_me_obs_msg_free(me_msg);
       continue;
     }
 
-    if (me_msg->size == 0 || !gps_time_valid(&me_msg->obs_time)) {
+    gps_time_t epoch_time = me_msg->obs_time;
+
+    /* If there are no messages, or the observation time is invalid,
+     * we send an empty solution. */
+    if (me_msg->size == 0 || !gps_time_valid(&epoch_time)) {
       platform_me_obs_msg_free(me_msg);
-      starling_integration_solution_send_low_latency_output(
-          0, &sbp_messages, 0, nav_meas);
+      send_solution_low_latency(NULL, NULL, &epoch_time, nav_meas, 0);
       continue;
     }
 
