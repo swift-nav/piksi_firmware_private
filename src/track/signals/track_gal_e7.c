@@ -12,12 +12,12 @@
 
 /* Local headers */
 #include "track_gal_e7.h"
-#include "track_gal_e1.h"
 #include "signal_db/signal_db.h"
 #include "track/track_api.h"
 #include "track/track_common.h"
 #include "track/track_interface.h"
 #include "track/track_utils.h"
+#include "track_gal_e1.h"
 
 /* Non-local headers */
 #include <manage.h>
@@ -67,6 +67,7 @@ static void tracker_gal_e7_update(tracker_t *tracker_channel) {
   }
 
   /* TOW manipulation on bit edge */
+  /*
   tracker_tow_cache(tracker_channel);
 
   bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
@@ -80,6 +81,7 @@ static void tracker_gal_e7_update(tracker_t *tracker_channel) {
                           tracker_channel->carrier_freq,
                           tracker_channel->cn0);
   }
+  */
 }
 
 /** Register GAL E7 tracker into the the interface & settings framework.
@@ -104,12 +106,13 @@ void gal_e1_to_e7_handover(u32 sample_count,
                            double code_phase,
                            double carrier_freq,
                            float cn0_init) {
-  static s8 rand_start = +5; /* TODO: until the FPGA bug remains */
+  static s8 rand_seed = 0;
+  s8 rand_start;
   /* compose E7 MESID: same SV, but code is E7 */
   me_gnss_signal_t mesid_e7 = construct_mesid(CODE_GAL_E7X, sat);
 
   if (!tracking_startup_ready(mesid_e7)) {
-    log_debug_mesid(mesid_e7, "already in track");
+    log_info_mesid(mesid_e7, "already in track");
     return; /* E7 signal from the SV is already in track */
   }
 
@@ -117,6 +120,8 @@ void gal_e1_to_e7_handover(u32 sample_count,
     log_warn_mesid(mesid_e7, "E1-E7 handover code phase %f", code_phase);
     return;
   }
+
+  rand_start = rand_seed - 5;
 
   tracking_startup_params_t startup_params = {
       .mesid = mesid_e7,
@@ -138,6 +143,7 @@ void gal_e1_to_e7_handover(u32 sample_count,
 
     case 1:
       /* sat is already in fifo, no need to inform */
+      log_warn_mesid(mesid_e7, "already in fifo");
       break;
 
     case 2:
@@ -148,5 +154,5 @@ void gal_e1_to_e7_handover(u32 sample_count,
       assert(!"Unknown code returned");
       break;
   }
-  rand_start = -rand_start;
+  rand_seed = (rand_seed+1) % 10;
 }

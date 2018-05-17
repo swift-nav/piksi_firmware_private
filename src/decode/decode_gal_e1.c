@@ -86,8 +86,6 @@ static void decoder_gal_e1_process(const decoder_channel_info_t *channel_info,
   while (tracker_nav_bit_get(channel, &nav_bit)) {
     tracker_data_sync_init(&from_decoder);
 
-    continue;
-
     bool upd = gal_inav_msg_update(data, nav_bit);
     if (!upd) continue;
 
@@ -100,7 +98,7 @@ static void decoder_gal_e1_process(const decoder_channel_info_t *channel_info,
     switch (ret) {
       case INAV_TOW:
         log_debug_mesid(channel_info->mesid, "WN %d TOW %.3f", t.wn, t.tow);
-        TOWms = (s32) rint(t.tow * 1000);
+        TOWms = (s32)rint(t.tow * 1000);
         from_decoder.TOW_ms = TOWms + 2000;
         from_decoder.bit_polarity = data->bit_polarity;
         tracker_data_sync(channel_info->tracking_channel, &from_decoder);
@@ -163,7 +161,7 @@ static void decoder_gal_e1_process(const decoder_channel_info_t *channel_info,
         break;
       case INAV_UTC:
         log_debug_mesid(channel_info->mesid, "TOW %.3f", t.tow);
-        TOWms = (s32) rint(t.tow * 1000);
+        TOWms = (s32)rint(t.tow * 1000);
         from_decoder.TOW_ms = TOWms + 2000;
         from_decoder.bit_polarity = data->bit_polarity;
         tracker_data_sync(channel_info->tracking_channel, &from_decoder);
@@ -175,5 +173,4 @@ static void decoder_gal_e1_process(const decoder_channel_info_t *channel_info,
         break;
     }
   } /* while (tracker_nav_bit_get(channel, &nav_bit)) */
-
 }

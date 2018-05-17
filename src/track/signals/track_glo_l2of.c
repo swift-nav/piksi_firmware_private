@@ -10,7 +10,6 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-
 /* Local headers */
 #include "track_glo_l2of.h"
 #include "signal_db/signal_db.h"

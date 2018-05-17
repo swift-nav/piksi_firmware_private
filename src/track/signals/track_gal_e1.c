@@ -12,12 +12,12 @@
 
 /* Local headers */
 #include "track_gal_e1.h"
-#include "track_gal_e7.h"
 #include "signal_db/signal_db.h"
 #include "track/track_api.h"
 #include "track/track_common.h"
 #include "track/track_interface.h"
 #include "track/track_utils.h"
+#include "track_gal_e7.h"
 
 /* Non-local headers */
 #include <manage.h>
@@ -49,35 +49,35 @@ static const tracker_interface_t tracker_interface_gal_e1 = {
     .disable = tp_tracker_disable,
 };
 
-static void tracker_gal_e1_init(tracker_t *tracker_channel) {
+static void tracker_gal_e1_init(tracker_t *tracker) {
   gal_e1_config.show_unconfirmed_trackers = false;
-  tp_tracker_init(tracker_channel, &gal_e1_config);
+  tp_tracker_init(tracker, &gal_e1_config);
 
-  tracker_bit_sync_set(tracker_channel, /* bit_phase_ref = */ 0);
+  /* tracker_bit_sync_set(tracker, 0); */
 }
 
-static void tracker_gal_e1_update(tracker_t *tracker_channel) {
-  u32 cflags = tp_tracker_update(tracker_channel, &gal_e1_config);
+static void tracker_gal_e1_update(tracker_t *tracker) {
+  u32 cflags = tp_tracker_update(tracker, &gal_e1_config);
 
   bool bit_aligned =
-      ((0 != (cflags & TPF_BSYNC_UPD)) && tracker_bit_aligned(tracker_channel));
+      ((0 != (cflags & TPF_BSYNC_UPD)) && tracker_bit_aligned(tracker));
 
   if (!bit_aligned) {
     return;
   }
-/*
-  bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
-  bool inlock = ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) &&
-                 (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)));
+
+  bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
+  bool inlock = ((0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) &&
+                 (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK)));
 
   if (inlock && confirmed) {
-    gal_e1_to_e7_handover(tracker_channel->sample_count,
-                          tracker_channel->mesid.sat,
-                          tracker_channel->code_phase_prompt,
-                          tracker_channel->carrier_freq,
-                          tracker_channel->cn0);
+    gal_e1_to_e7_handover(tracker->sample_count,
+                          tracker->mesid.sat,
+                          tracker->code_phase_prompt,
+                          tracker->carrier_freq,
+                          tracker->cn0);
   }
-*/
+
 }
 
 /** Register GAL E1 tracker into the the interface & settings framework.

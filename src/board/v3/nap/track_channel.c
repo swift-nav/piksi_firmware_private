@@ -202,7 +202,14 @@ void nap_track_init(u8 channel,
               (uintptr_t)s);
   }
   if (mesid.code == CODE_GAL_E1X) {
-    log_debug("E%02" PRIu8 " channel %" PRIu8 " t %" PRIxPTR " s %" PRIxPTR,
+    log_info("E%02" PRIu8 " e1bc channel %" PRIu8 " t %" PRIxPTR " s %" PRIxPTR,
+              mesid.sat,
+              channel,
+              (uintptr_t)t,
+              (uintptr_t)s);
+  }
+  if (mesid.code == CODE_GAL_E7X) {
+    log_info("E%02" PRIu8 " e5bIQ channel %" PRIu8 " t %" PRIxPTR " s %" PRIxPTR,
               mesid.sat,
               channel,
               (uintptr_t)t,
@@ -362,16 +369,16 @@ void nap_track_init(u8 channel,
 
     if (mesid.code == CODE_GAL_E5X) {
       index = mesid.sat - 1;
-      NAP->TRK_SEC_CODE3 = getbitu(gal_e5q_sec_codes[index], 0, 4);
-      NAP->TRK_SEC_CODE2 = getbitu(gal_e5q_sec_codes[index], 4, 32);
-      NAP->TRK_SEC_CODE1 = getbitu(gal_e5q_sec_codes[index], 36, 32);
-      NAP->TRK_SEC_CODE0 = getbitu(gal_e5q_sec_codes[index], 68, 32);
+      NAP->TRK_SEC_CODE[3] = getbitu(gal_e5q_sec_codes[index], 0, 4);
+      NAP->TRK_SEC_CODE[2] = getbitu(gal_e5q_sec_codes[index], 4, 32);
+      NAP->TRK_SEC_CODE[1] = getbitu(gal_e5q_sec_codes[index], 36, 32);
+      NAP->TRK_SEC_CODE[0] = getbitu(gal_e5q_sec_codes[index], 68, 32);
     } else if (mesid.code == CODE_GAL_E7X) {
       index = mesid.sat - 1;
-      NAP->TRK_SEC_CODE3 = getbitu(gal_e7q_sec_codes[index], 0, 4);
-      NAP->TRK_SEC_CODE2 = getbitu(gal_e7q_sec_codes[index], 4, 32);
-      NAP->TRK_SEC_CODE1 = getbitu(gal_e7q_sec_codes[index], 36, 32);
-      NAP->TRK_SEC_CODE0 = getbitu(gal_e7q_sec_codes[index], 68, 32);
+      NAP->TRK_SEC_CODE[3] = getbitu(gal_e7q_sec_codes[index], 0, 4);
+      NAP->TRK_SEC_CODE[2] = getbitu(gal_e7q_sec_codes[index], 4, 32);
+      NAP->TRK_SEC_CODE[1] = getbitu(gal_e7q_sec_codes[index], 36, 32);
+      NAP->TRK_SEC_CODE[0] = getbitu(gal_e7q_sec_codes[index], 68, 32);
     }
   }
 

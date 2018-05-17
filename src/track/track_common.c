@@ -448,19 +448,17 @@ static void tp_tracker_update_correlators(tracker_t *tracker, u32 cycle_flags) {
                             &code_phase_prompt,
                             &carrier_phase);
 
-  bool try_lock_pilot = (0 == (TRACKER_FLAG_BIT_SYNC & tracker_channel->flags));
-  if (try_lock_pilot) {
-    if ((CODE_GAL_E5X == tracker_channel->mesid.code) ||
-        (CODE_GAL_E7X == tracker_channel->mesid.code)) {
-      /* overwrite data with quadrature pilot until bit-sync has been achieved,
-       * so that sync can be achieved on the 100-chip secondary code */
-      cs_now.prompt.I = -cs_now.very_late.Q;
-      cs_now.prompt.Q = +cs_now.very_late.I;
-    } else if (CODE_GAL_E1X == tracker_channel->mesid.code) {
-      /* overwrite data with in-phase pilot until bit-sync has been achieved,
-       * so that sync can be achieved on the 100-chip secondary code */
-      cs_now.prompt = cs_now.very_late;
-    }
+  if ((CODE_GAL_E5X == mesid.code) || (CODE_GAL_E7X == mesid.code)) {
+    /* for Galileo E5a and E5b all tracking happens on the pilot
+     * and when sync is achieved on the SC100 (Prompt)
+     * the data can be extracted on the Very Late correlator.
+     * This is taken care by the flag TPF_BIT_PILOT.
+     * However, as they have the pilot in quadrature,
+     * one needs to apply a 90 deg rotation
+     * before setting/accumulating the navigation data bit */
+    corr_t temp = cs_now.very_late;
+    cs_now.very_late.I = temp.Q;
+    cs_now.very_late.Q = temp.I;
   }
 
   tp_update_correlators(cycle_flags, &cs_now, &tracker->corrs);
@@ -818,16 +816,18 @@ static void tp_tracker_update_pll_dll(tracker_t *tracker, u32 cycle_flags) {
     bool costas = true;
     tp_epl_corr_t corr_all = tracker->corrs.corr_all;
 
-    bool has_pilot_sync = tracker_has_pilot_sync(tracker);
+    bool has_pilot_sync = nap_sc_wipeoff(tracker_channel);
 
-    if ((CODE_GPS_L2CM == tracker->mesid.code)) {
-      /* The L2CM and L2CL codes are in phase */
+    if ((CODE_GPS_L2CM == tracker_channel->mesid.code)) {
+      /* The L2CM and L2CL codes are in phase,
+       * copy the VL to P so that the PLL runs
+       * on the pilot instead of the data */
       corr_all.prompt = corr_all.very_late;
       costas = false;
     } else if (has_pilot_sync) {
-      /* The E5bI and E5bQ codes are in quadrature */
-      corr_all.prompt.I = -corr_all.very_late.Q;
-      corr_all.prompt.Q = +corr_all.very_late.I;
+      /* Once in bit-sync, Galileo E5a and E5b pilots
+       * are completely free of transitions
+       * so no need for a Costas loop*/
       costas = false;
     }
     tp_tl_update(&tracker->tl_state, &corr_all, costas);
