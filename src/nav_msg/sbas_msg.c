@@ -363,19 +363,6 @@ static bool sbas_msg_decode(sbas_v27_part_t *part, sbas_msg_t *msg) {
         /* msg->health = SV_UNHEALTHY; */
         break;
 
-        /*
-      case 12:
-        msg->wn = getbitu(part->decoded, 141, 10);   / * GPS Week Number * /
-        tow_s = getbitu(part->decoded, 121, 20) + 1; / * GPS TOW [s] * /
-        msg->tow_ms = tow_s * SECS_MS; / * convert to milliseconds * /
-        / * Compensate for Viterbi delay. * /
-        msg->tow_ms += delay * SBAS_L1CA_SYMBOL_LENGTH_MS;
-        if (msg->tow_ms >= WEEK_MS) {
-          msg->tow_ms -= WEEK_MS;
-        }
-        break;
-        */
-
       default:
         log_debug_sid(msg->sid, "Unsupported SBAS message type %d", msg_id);
         break;
