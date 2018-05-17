@@ -24,9 +24,9 @@ typedef enum {
   CODE_NAV_STATE_VALID,
 } code_nav_state_t;
 
-/* Maximum age for almanac 6bit health status.
- * Age of full almanac 25 pages + 1 second to cover timetag inaccuracy. */
-#define SHM_ALMA_6BIT_HEALTH_AGE_S (25 * 30 + 1)
+/* Maximum age for almanac page25 health status.
+ * Age of full almanac 12.5 min + 1 second to cover timetag inaccuracy. */
+#define SHM_ALMA_PAGE25_HEALTH_AGE_S (12.5 * MINUTE_SECS + 1)
 
 /* Satellite health states */
 typedef enum { SV_HEALTHY, SV_UNHEALTHY } health_t;
@@ -48,6 +48,6 @@ bool shm_navigation_unusable(gnss_signal_t sid);
 bool shm_health_unknown(gnss_signal_t sid);
 bool shm_ephe_healthy(const ephemeris_t* ephe, const code_t code);
 
-bool shm_6bit_alma_health_aged(u32 timetag_s);
+bool shm_alma_page25_health_aged(u32 timetag_s);
 
 #endif /* SWIFTNAV_SHM_H */

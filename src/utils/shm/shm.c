@@ -107,8 +107,8 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
      * - SHI3 has not aged and
      * - SHI3 indicates unhealthy
      */
-    if (shis.shi3_set && !shm_6bit_alma_health_aged(shis.shi3_timetag_s) &&
-        !check_6bit_alma_health_word(shis.shi3, sid.code)) {
+    if (shis.shi3_set && !shm_alma_page25_health_aged(shis.shi3_timetag_s) &&
+        !check_alma_page25_health_word(shis.shi3, sid.code)) {
       return CODE_NAV_STATE_INVALID;
     }
 
@@ -476,17 +476,17 @@ bool shm_ephe_healthy(const ephemeris_t* ephe, const code_t code) {
   return ephemeris_healthy(ephe, code);
 }
 
-/** Check if this almanac 6bit health indicator has aged
+/** Check if this almanac page 25 health indicator has aged
  *
  * \param timetag_s Timetag of reception.
- * \return true if the 6bit health indicator has aged.
+ * \return true if the page 25 health indicator has aged.
  *         false otherwise
  */
-bool shm_6bit_alma_health_aged(u32 timetag_s) {
+bool shm_alma_page25_health_aged(u32 timetag_s) {
   piksi_systime_t now;
   piksi_systime_get(&now);
   u32 timetag_now_s = piksi_systime_to_s(&now);
-  if ((timetag_now_s - timetag_s) > SHM_ALMA_6BIT_HEALTH_AGE_S) {
+  if ((timetag_now_s - timetag_s) > SHM_ALMA_PAGE25_HEALTH_AGE_S) {
     return true;
   }
   return false;
@@ -497,7 +497,7 @@ bool shm_6bit_alma_health_aged(u32 timetag_s) {
  * \param sid Signal ID
  *
  * \returns true if signal health of specified signal
- *               is CODE_NAV_STATE_INVALID, false otherwise
+ *               is CODE_NAV_STATE_VALID, false otherwise
  */
 bool shm_signal_healthy(gnss_signal_t sid) {
   assert(sid_valid(sid));
