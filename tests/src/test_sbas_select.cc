@@ -17,7 +17,7 @@ TEST(sbas_select_tests, masks) {
 
   EXPECT_EQ(sbas_select_prn_mask(SBAS_EGNOS), 0x10009);
 
-  EXPECT_EQ(sbas_select_prn_mask(SBAS_MSAS), 0x20200);
+  EXPECT_EQ(sbas_select_prn_mask(SBAS_MSAS), 4);
 
   EXPECT_EQ(sbas_select_prn_mask(SBAS_GAGAN), 0x1180);
 
