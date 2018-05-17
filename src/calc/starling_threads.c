@@ -29,7 +29,6 @@
 #include <libswiftnav/troposphere.h>
 
 #include "calc_pvt_common.h"
-#include "calc_pvt_me.h"
 #include "starling_platform_shim.h"
 #include "starling_threads.h"
 
@@ -48,6 +47,7 @@ typedef struct StarlingSettings {
   bool is_time_matched_klobuchar_enabled;
   float glonass_downweight_factor;
   float elevation_mask;
+  double solution_frequency;
   dgnss_solution_mode_t solution_output_mode;
 } StarlingSettings;
 
@@ -56,6 +56,7 @@ typedef struct StarlingSettings {
 #define INIT_IS_TIME_MATCHED_KLOBUCHAR_ENABLED true
 #define INIT_GLONASS_DOWNWEIGHT_FACTOR 4.0f
 #define INIT_ELEVATION_MASK 10.0f
+#define INIT_SOLUTION_FREQUENCY 10.0
 #define INIT_SOLUTION_OUTPUT_MODE STARLING_SOLN_MODE_LOW_LATENCY
 
 /* Local settings object and mutex protection. */
@@ -65,6 +66,7 @@ static StarlingSettings global_settings = {
     .is_time_matched_klobuchar_enabled = INIT_IS_TIME_MATCHED_KLOBUCHAR_ENABLED,
     .glonass_downweight_factor = INIT_GLONASS_DOWNWEIGHT_FACTOR,
     .elevation_mask = INIT_ELEVATION_MASK,
+    .solution_frequency = INIT_SOLUTION_FREQUENCY,
     .solution_output_mode = INIT_SOLUTION_OUTPUT_MODE,
 };
 
@@ -81,8 +83,6 @@ static bool has_time_matched_iono_params = false;
 static ionosphere_t time_matched_iono_params;
 
 static gps_time_t last_time_matched_rover_obs_post;
-
-static double starling_frequency;
 
 static sbas_system_t current_sbas_system = SBAS_UNKNOWN;
 
@@ -113,6 +113,7 @@ static void update_filter_manager_settings(FilterManager *fm) {
   set_pvt_engine_obs_downweight_factor(
       fm, settings.glonass_downweight_factor, CODE_GLO_L2OF);
   set_pvt_engine_elevation_mask(fm, settings.elevation_mask);
+  set_pvt_engine_update_frequency(fm, settings.solution_frequency);
 }
 
 static void post_observations(u8 n,
@@ -227,7 +228,6 @@ static PVT_ENGINE_INTERFACE_RC call_pvt_engine_filter(
     const u8 num_obs,
     const navigation_measurement_t *nav_meas,
     const ephemeris_t *ephemerides[MAX_CHANNELS],
-    const double solution_frequency,
     pvt_engine_result_t *result,
     dops_t *dops) {
   PVT_ENGINE_INTERFACE_RC update_rov_obs = PVT_ENGINE_FAILURE;
@@ -238,8 +238,6 @@ static PVT_ENGINE_INTERFACE_RC call_pvt_engine_filter(
 
   if (is_initialized) {
     update_filter_manager_settings(filter_manager);
-
-    set_pvt_engine_update_frequency(filter_manager, solution_frequency);
 
     filter_manager_overwrite_ephemerides(filter_manager, ephemerides);
 
@@ -414,8 +412,6 @@ static void time_matched_obs_thread(void *arg) {
     /* Grab the latest settings. */
     update_filter_manager_settings(time_matched_filter_manager);
 
-    set_pvt_engine_update_frequency(time_matched_filter_manager,
-                                    starling_frequency);
     platform_mutex_unlock(&time_matched_filter_manager_lock);
 
     dgnss_solution_mode_t dgnss_soln_mode = starling_get_solution_mode();
@@ -630,8 +626,6 @@ static void starling_thread(void) {
       continue;
     }
 
-    starling_frequency = soln_freq_setting;
-
     u8 n_ready = me_msg->size;
     memset(nav_meas, 0, sizeof(nav_meas));
 
@@ -716,7 +710,6 @@ static void starling_thread(void) {
                                     n_ready,
                                     nav_meas,
                                     stored_ephs,
-                                    starling_frequency,
                                     &spp_solution.result,
                                     &spp_solution.dops);
     platform_mutex_unlock(&spp_filter_manager_lock);
@@ -739,7 +732,6 @@ static void starling_thread(void) {
                                       n_ready,
                                       nav_meas,
                                       stored_ephs,
-                                      starling_frequency,
                                       &rtk_solution.result,
                                       &rtk_solution.dops);
       platform_mutex_unlock(&low_latency_filter_manager_lock);
@@ -816,6 +808,13 @@ void starling_set_glonass_downweight_factor(float factor) {
 void starling_set_elevation_mask(float elevation_mask) {
   platform_mutex_lock(&global_settings_lock);
   global_settings.elevation_mask = elevation_mask;
+  platform_mutex_unlock(&global_settings_lock);
+}
+
+/* Set the rate at which the filter calculates solutions. */
+void starling_set_solution_frequency(double frequency) {
+  platform_mutex_lock(&global_settings_lock);
+  global_settings.solution_frequency = frequency;
   platform_mutex_unlock(&global_settings_lock);
 }
 
