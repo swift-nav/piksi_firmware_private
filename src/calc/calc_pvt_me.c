@@ -730,9 +730,9 @@ static bool soln_freq_setting_notify(struct setting *s, const char *val) {
     return false;
   }
   /* Certain values are disallowed. */
-  if (soln_freq_setting < 0.0 || soln_freq_setting > SOLN_FREQ_SETTING_MAX) {
+  if (soln_freq_setting <= 0.0 || soln_freq_setting > SOLN_FREQ_SETTING_MAX) {
     log_warn(
-        "Solution frequency setting outside acceptable range: [%lf, %lf]. "
+        "Solution frequency setting outside acceptable range: (%lf, %lf]. "
         "Reverting to previous value.",
         0.0,
         SOLN_FREQ_SETTING_MAX);
