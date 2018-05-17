@@ -705,6 +705,64 @@ static void pack_ephemeris_bds(const ephemeris_t *e, msg_ephemeris_t *m) {
   msg->iodc = e->kepler.iodc;
 }
 
+static void unpack_ephemeris_gal(const msg_ephemeris_t *m, ephemeris_t *e) {
+  const msg_ephemeris_gal_t *msg = &m->gal;
+  unpack_ephemeris_common(&msg->common, e);
+  e->kepler.tgd_gal_s[0] = msg->bgd_e1e5a;
+  e->kepler.tgd_gal_s[1] = msg->bgd_e1e5b;
+  e->kepler.crs = msg->c_rs;
+  e->kepler.crc = msg->c_rc;
+  e->kepler.cuc = msg->c_uc;
+  e->kepler.cus = msg->c_us;
+  e->kepler.cic = msg->c_ic;
+  e->kepler.cis = msg->c_is;
+  e->kepler.dn = msg->dn;
+  e->kepler.m0 = msg->m0;
+  e->kepler.ecc = msg->ecc;
+  e->kepler.sqrta = msg->sqrta;
+  e->kepler.omega0 = msg->omega0;
+  e->kepler.omegadot = msg->omegadot;
+  e->kepler.w = msg->w;
+  e->kepler.inc = msg->inc;
+  e->kepler.inc_dot = msg->inc_dot;
+  e->kepler.af0 = msg->af0;
+  e->kepler.af1 = msg->af1;
+  e->kepler.af2 = msg->af2;
+  e->kepler.toc.tow = msg->toc.tow;
+  e->kepler.toc.wn = msg->toc.wn;
+  e->kepler.iode = msg->iode;
+  e->kepler.iodc = msg->iodc;
+}
+
+static void pack_ephemeris_gal(const ephemeris_t *e, msg_ephemeris_t *m) {
+  msg_ephemeris_gal_t *msg = &m->gal;
+  pack_ephemeris_common(e, &msg->common);
+  msg->bgd_e1e5a = e->kepler.tgd_gal_s[0];
+  msg->bgd_e1e5b = e->kepler.tgd_gal_s[1];
+  msg->c_rs = e->kepler.crs;
+  msg->c_rc = e->kepler.crc;
+  msg->c_uc = e->kepler.cuc;
+  msg->c_us = e->kepler.cus;
+  msg->c_ic = e->kepler.cic;
+  msg->c_is = e->kepler.cis;
+  msg->dn = e->kepler.dn;
+  msg->m0 = e->kepler.m0;
+  msg->ecc = e->kepler.ecc;
+  msg->sqrta = e->kepler.sqrta;
+  msg->omega0 = e->kepler.omega0;
+  msg->omegadot = e->kepler.omegadot;
+  msg->w = e->kepler.w;
+  msg->inc = e->kepler.inc;
+  msg->inc_dot = e->kepler.inc_dot;
+  msg->af0 = e->kepler.af0;
+  msg->af1 = e->kepler.af1;
+  msg->af2 = e->kepler.af2;
+  msg->toc.tow = round(e->kepler.toc.tow);
+  msg->toc.wn = e->kepler.toc.wn;
+  msg->iode = e->kepler.iode;
+  msg->iodc = e->kepler.iodc;
+}
+
 static void unpack_ephemeris_sbas(const msg_ephemeris_t *m, ephemeris_t *e) {
   const msg_ephemeris_sbas_t *msg = &m->sbas;
   unpack_ephemeris_common(&msg->common, e);
@@ -820,11 +878,19 @@ static ephe_type_table_element_t ephe_type_table[CONSTELLATION_COUNT] = {
                                {0}},
 
         /* BDS */
-        [CONSTELLATION_BDS2] = {
-            {SBP_MSG_EPHEMERIS_BDS, sizeof(msg_ephemeris_bds_t)},
-            pack_ephemeris_bds,
-            unpack_ephemeris_bds,
-            {0}}};
+        [CONSTELLATION_BDS2] = {{SBP_MSG_EPHEMERIS_BDS,
+                                 sizeof(msg_ephemeris_bds_t)},
+                                pack_ephemeris_bds,
+                                unpack_ephemeris_bds,
+                                {0}},
+
+        /* GAL */
+        [CONSTELLATION_GAL] = {{SBP_MSG_EPHEMERIS_GAL,
+                                sizeof(msg_ephemeris_gal_t)},
+                               pack_ephemeris_gal,
+                               unpack_ephemeris_gal,
+                               {0}},
+};
 
 void unpack_ephemeris(const msg_ephemeris_t *msg, ephemeris_t *e) {
   /* NOTE: here we use common part of GPS message to take sid.code info.
