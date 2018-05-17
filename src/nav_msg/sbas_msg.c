@@ -335,7 +335,7 @@ static void sbas_post_me_msg(const msg_sbas_raw_t *sbas_raw_msg) {
 static bool sbas_msg_decode(sbas_v27_part_t *part, sbas_msg_t *msg) {
   u32 delay = 0;
   u8 msg_id = 0;
-  s32 tow_s;
+  /* s32 tow_s; */
   bool res = false;
 
   if (SBAS_MSG_LENGTH > part->n_decoded) {
@@ -360,17 +360,7 @@ static bool sbas_msg_decode(sbas_v27_part_t *part, sbas_msg_t *msg) {
 
     switch (msg_id) {
       case 0:
-        msg->health = SV_UNHEALTHY;
-        break;
-      case 12:
-        msg->wn = getbitu(part->decoded, 141, 10);   /* GPS Week Number */
-        tow_s = getbitu(part->decoded, 121, 20) + 1; /* GPS TOW [s] */
-        msg->tow_ms = tow_s * SECS_MS; /* convert to milliseconds */
-        /* Compensate for Viterbi delay. */
-        msg->tow_ms += delay * SBAS_L1CA_SYMBOL_LENGTH_MS;
-        if (msg->tow_ms >= WEEK_MS) {
-          msg->tow_ms -= WEEK_MS;
-        }
+        /* msg->health = SV_UNHEALTHY; */
         break;
 
       default:
