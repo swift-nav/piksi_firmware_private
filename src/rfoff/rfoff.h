@@ -22,10 +22,8 @@ typedef struct rfoff {
   running_stats_t signal;
   double signal_now;
   double noise_now;
-  u16 signal_tau3_ms;
   u8 int_ms;
   bool rfoff;
-  u16 rfoff_countdown;
 } rfoff_t;
 
 void rfoff_init(rfoff_t *self);

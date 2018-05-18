@@ -17,38 +17,7 @@
 #include "main.h"
 
 /* RF off detection is run with this rate [ms] */
-#define RFOFF_INT_MS 10
-
-#define RFOFF_COUNTDOWN_MS 200
-
-static u16 snr2tau3(float snr, u16 tau3_prev_ms) {
-  assert(snr >= 0);
-  /* clang-format off */
-  static struct {
-    float snr_min;
-    float snr_max;
-    u16 tau3_ms;
-  } lookup[] = {
-    {25., INFINITY, RFOFF_INT_MS},
-    {0, 7., 200}
-  };
-  /* clang-format on */
-
-  u16 tau3_ms = tau3_prev_ms;
-  for (size_t i = 0; i < ARRAY_SIZE(lookup); i++) {
-    if (snr < lookup[i].snr_min) {
-      continue;
-    }
-    if (snr > lookup[i].snr_max) {
-      continue;
-    }
-    tau3_ms = lookup[i].tau3_ms;
-    break;
-  }
-  assert(tau3_ms > 0);
-
-  return tau3_ms;
-}
+#define RFOFF_INT_MS 40
 
 void rfoff_init(rfoff_t *self) {
   /* alpha is going to affect noise filtering
@@ -57,8 +26,7 @@ void rfoff_init(rfoff_t *self) {
   double alpha = 1 - exp(-1. / ((3000. / 3.) / RFOFF_INT_MS));
   running_stats_init(&self->noise, alpha);
 
-  self->signal_tau3_ms = RFOFF_INT_MS;
-  alpha = 1 - exp(-1. / ((self->signal_tau3_ms / 3.) / RFOFF_INT_MS));
+  alpha = 1 - exp(-1. / ((RFOFF_INT_MS / 3.) / RFOFF_INT_MS));
   running_stats_init(&self->signal, alpha);
 }
 
@@ -80,12 +48,6 @@ bool rfoff_detected(rfoff_t *self,
 
   self->int_ms += int_ms;
 
-  if (self->rfoff_countdown > int_ms) {
-    self->rfoff_countdown -= int_ms;
-  } else {
-    self->rfoff_countdown = 0;
-  }
-
   if (self->int_ms < RFOFF_INT_MS) {
     return self->rfoff;
   }
@@ -103,22 +65,7 @@ bool rfoff_detected(rfoff_t *self,
   double noise_mean = running_stats_get_mean(&self->noise);
   double signal_mean = running_stats_get_mean(&self->signal);
 
-  double snr = signal_mean / noise_mean;
-  u16 signal_tau3_ms = snr2tau3(snr, self->signal_tau3_ms);
-  if (signal_tau3_ms != self->signal_tau3_ms) {
-    double alpha = 1 - exp(-1. / ((signal_tau3_ms / 3.) / RFOFF_INT_MS));
-    self->signal_tau3_ms = signal_tau3_ms;
-    running_stats_init(&self->signal, alpha);
-  }
-
-  bool rfoff = signal_mean < (noise_mean + 0.25 * noise_std);
-
-  if (rfoff) {
-    self->rfoff = true;
-    self->rfoff_countdown = RFOFF_COUNTDOWN_MS;
-  } else if (0 == self->rfoff_countdown) {
-    self->rfoff = false;
-  }
+  self->rfoff = signal_mean < (noise_mean + .25 * noise_std);
 
   return self->rfoff;
 }

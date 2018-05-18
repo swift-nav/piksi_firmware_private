@@ -654,7 +654,8 @@ static void log_switch(tracker_t *tracker_channel, const char *reason) {
 }
 
 static bool pll_bw_changed(tracker_t *tracker_channel,
-                           profile_indices_t index) {
+                           profile_indices_t index,
+                           bool add_inertia) {
   tp_profile_t *state = &tracker_channel->profile;
   const tp_profile_entry_t *entry = &state->profiles[index];
   float pll_bw;
@@ -667,8 +668,14 @@ static bool pll_bw_changed(tracker_t *tracker_channel,
     pll_bw = compute_pll_bw(tracker_channel->cn0, pll_t_ms);
   }
 
-  /* Simple hysteresis to avoid too often PLL retunes */
   float pll_bw_diff = fabsf(pll_bw - state->cur.pll_bw);
+  if (!add_inertia) {
+    state->next.pll_bw = pll_bw;
+    bool changed = (pll_bw_diff > 0.1);
+    return changed;
+  }
+
+  /* Simple hysteresis to avoid too often PLL retunes */
   if ((pll_bw_diff < (state->cur.pll_bw * .20f)) || (pll_bw_diff < .5f)) {
     state->next.pll_bw = state->cur.pll_bw;
     return false;
@@ -688,7 +695,8 @@ static bool pll_bw_changed(tracker_t *tracker_channel,
 }
 
 static bool fll_bw_changed(tracker_t *tracker_channel,
-                           profile_indices_t index) {
+                           profile_indices_t index,
+                           bool add_inertia) {
   tp_profile_t *state = &tracker_channel->profile;
   const tp_profile_entry_t *entry = &state->profiles[index];
 
@@ -702,8 +710,14 @@ static bool fll_bw_changed(tracker_t *tracker_channel,
     fll_bw = compute_fll_bw(cn0, fll_t_ms);
   }
 
-  /* Simple hysteresis to avoid too often FLL retunes */
   float fll_bw_diff = fabsf(fll_bw - state->cur.fll_bw);
+  if (!add_inertia) {
+    state->next.fll_bw = fll_bw;
+    bool changed = (fll_bw_diff > 0.1);
+    return changed;
+  }
+
+  /* Simple hysteresis to avoid too often FLL retunes */
   if ((fll_bw_diff < (state->cur.fll_bw * .10f)) || (fll_bw_diff < .3)) {
     state->next.fll_bw = state->cur.fll_bw;
     return false;
@@ -721,6 +735,37 @@ static bool fll_bw_changed(tracker_t *tracker_channel,
   return true;
 }
 
+enum profile_switch_reason {
+  PROF_RFOFF,
+  PROF_LOW_CN0,
+  PROF_HIGH_CN0,
+  PROF_BIT_SYNC,
+  PROF_FLOCK,
+  PROF_PLOCK,
+  PROF_NEXT
+};
+
+const char *profile_switch_reason_str(enum profile_switch_reason reason) {
+  switch (reason) {
+    case PROF_RFOFF:
+      return "rfoff";
+    case PROF_LOW_CN0:
+      return "low_cn0";
+    case PROF_HIGH_CN0:
+      return "high_cn0";
+    case PROF_BIT_SYNC:
+      return "bsync";
+    case PROF_FLOCK:
+      return "flock";
+    case PROF_PLOCK:
+      return "plock";
+    case PROF_NEXT:
+      return "next";
+    default:
+      assert(0);
+  }
+}
+
 /**
  * Internal method for profile switch request.
  *
@@ -735,15 +780,16 @@ static bool fll_bw_changed(tracker_t *tracker_channel,
  */
 static bool profile_switch_requested(tracker_t *tracker_channel,
                                      profile_indices_t index,
-                                     const char *reason) {
+                                     enum profile_switch_reason reason) {
   assert(index != IDX_NONE);
   assert((size_t)index < ARRAY_SIZE(gnss_track_profiles));
 
   tp_profile_t *state = &tracker_channel->profile;
   const tp_profile_entry_t *next = &state->profiles[index];
 
-  bool pll_changed = pll_bw_changed(tracker_channel, index);
-  bool fll_changed = fll_bw_changed(tracker_channel, index);
+  bool add_inertia = (reason != PROF_RFOFF);
+  bool pll_changed = pll_bw_changed(tracker_channel, index, add_inertia);
+  bool fll_changed = fll_bw_changed(tracker_channel, index, add_inertia);
 
   if ((index == state->cur.index) && !pll_changed && !fll_changed) {
     return false;
@@ -760,7 +806,7 @@ static bool profile_switch_requested(tracker_t *tracker_channel,
   state->next.index = index;
   state->lock_time_ms = next->lock_time_ms;
 
-  log_switch(tracker_channel, reason);
+  log_switch(tracker_channel, profile_switch_reason_str(reason));
 
   return true;
 }
@@ -783,29 +829,35 @@ bool tp_profile_has_new_profile(tracker_t *tracker_channel) {
 
   state->profile_update = false;
 
+  bool rfoff = (0 != (tracker_channel->flags & TRACKER_FLAG_RFOFF_DETECTED));
+  bool low_cn0 = (0 == (tracker_channel->flags & TRACKER_FLAG_CN0_SHORT));
+  if (rfoff && !low_cn0) {
+    return profile_switch_requested(tracker_channel, IDX_SENS, PROF_RFOFF);
+  }
+
   if ((0 != (flags & TP_LOW_CN0)) &&
       (state->filt_cn0 < cur_profile->cn0_low_threshold) &&
       profile_switch_requested(
-          tracker_channel, cur_profile->next_cn0_low, "low cn0")) {
+          tracker_channel, cur_profile->next_cn0_low, PROF_LOW_CN0)) {
     return true;
   }
 
   bool bsync = (0 != (tracker_channel->flags & TRACKER_FLAG_BIT_SYNC));
   if ((0 != (flags & TP_WAIT_BSYNC)) && !bsync) {
     return profile_switch_requested(
-        tracker_channel, state->cur.index, "wbsync");
+        tracker_channel, state->cur.index, PROF_BIT_SYNC);
   }
 
   bool flock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK));
   if (0 != (flags & TP_WAIT_FLOCK) && !flock) {
     return profile_switch_requested(
-        tracker_channel, state->cur.index, "wflock");
+        tracker_channel, state->cur.index, PROF_FLOCK);
   }
 
   bool plock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK));
   if (0 != (flags & TP_WAIT_PLOCK) && !plock) {
     return profile_switch_requested(
-        tracker_channel, state->cur.index, "wplock");
+        tracker_channel, state->cur.index, PROF_PLOCK);
   }
 
   if (state->lock_time_ms > 0) {
@@ -815,16 +867,17 @@ bool tp_profile_has_new_profile(tracker_t *tracker_channel) {
   if ((0 != (flags & TP_HIGH_CN0)) &&
       (state->filt_cn0 > cur_profile->cn0_high_threshold) &&
       profile_switch_requested(
-          tracker_channel, cur_profile->next_cn0_high, "high cno")) {
+          tracker_channel, cur_profile->next_cn0_high, PROF_HIGH_CN0)) {
     return true;
   }
 
   if (0 != (flags & TP_USE_NEXT)) {
     assert(cur_profile->next != IDX_NONE);
-    return profile_switch_requested(tracker_channel, cur_profile->next, "next");
+    return profile_switch_requested(
+        tracker_channel, cur_profile->next, PROF_NEXT);
   } else {
     return profile_switch_requested(
-        tracker_channel, state->cur.index + 1, "next");
+        tracker_channel, state->cur.index + 1, PROF_NEXT);
   }
 
   return false;
