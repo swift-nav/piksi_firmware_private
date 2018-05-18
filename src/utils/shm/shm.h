@@ -32,6 +32,7 @@ void shm_gps_set_shi4(u16 sat, bool new_value);
 void shm_gps_set_shi6(u16 sat, bool new_value);
 void shm_glo_set_shi(u16 sat, u8 new_value);
 void shm_bds_set_shi(u16 sat, u8 new_value);
+void shm_gal_set_shi(u16 sat, u8 new_value);
 
 void shm_log_sat_state(const char* shi_name, u16 sat);
 

@@ -12,8 +12,14 @@
 #ifndef DECODE_SBAS_L1_H
 #define DECODE_SBAS_L1_H
 
-#include <libswiftnav/common.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 void decode_sbas_l1_register(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* DECODE_SBAS_L1_H */

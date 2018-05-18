@@ -58,7 +58,7 @@ static decoder_interface_list_element_t list_element_sbas_l1 = {
     .interface = &decoder_interface_sbas_l1, .next = NULL};
 
 void decode_sbas_l1_register(void) {
-  for (u32 i = 0; i < ARRAY_SIZE(sbas_l1_decoders); i++) {
+  for (u16 i = 0; i < ARRAY_SIZE(sbas_l1_decoders); i++) {
     sbas_l1_decoders[i].active = false;
     sbas_l1_decoders[i].data = &sbas_l1_decoder_data[i];
   }

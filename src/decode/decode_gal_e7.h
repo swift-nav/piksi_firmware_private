@@ -12,6 +12,14 @@
 #ifndef DECODE_GAL_E7_H
 #define DECODE_GAL_E7_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void decode_gal_e7_register(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* DECODE_GAL_E7_H */

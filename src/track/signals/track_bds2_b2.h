@@ -14,6 +14,10 @@
 
 #include <libswiftnav/common.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void track_bds2_b2_register(void);
 
 void bds_b11_to_b2_handover(u32 sample_count,
@@ -21,5 +25,9 @@ void bds_b11_to_b2_handover(u32 sample_count,
                             double code_phase,
                             double carrier_freq,
                             float cn0_init);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* TRACK_BDS2_B2_H */

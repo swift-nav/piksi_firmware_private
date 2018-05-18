@@ -106,6 +106,8 @@ void gal_inav_msg_init(nav_msg_gal_inav_t *n, u8 prn) {
   n->iod_alm[1] = GAL_INAV_IOD_INVALID;
   n->iod_alm[2] = GAL_INAV_IOD_INVALID;
   n->iod_alm[3] = GAL_INAV_IOD_INVALID;
+
+  n->bit_polarity = BIT_POLARITY_UNKNOWN;
 }
 
 /**
@@ -214,6 +216,11 @@ bool gal_inav_msg_update(nav_msg_gal_inav_t *n, s8 bit_val) {
   }
 
   /* at this point CRC matches: we have a good word */
+
+  /* if different from the flipped, we are in phase */
+  n->bit_polarity = differ1 ? BIT_POLARITY_NORMAL : BIT_POLARITY_INVERTED;
+
+  /* don't try anything for another 500 symbols */
   n->holdoff = 2 * (GAL_INAV_SYNC_BITS + GAL_INAV_PAGE_SYMB) - 1;
 
   /*char str[128];
@@ -242,10 +249,6 @@ bool gal_inav_msg_update(nav_msg_gal_inav_t *n, s8 bit_val) {
 
   extract_inav_content(n->raw_content, candidate_even_bits, candidate_odd_bits);
 
-  //  inav_content_type type = parse_inav_word(n, content);
-  //  if (INAV_INCOMPLETE != type) {
-  //    return true;
-  //  }
   return true;
 }
 
@@ -415,6 +418,7 @@ static void parse_inav_eph(nav_msg_gal_inav_t *nav_msg,
   kep->toc.wn = wn;
   kep->iode = getbitu(nav_msg->raw_eph[0], 6, 10);
   kep->iodc = kep->iode;
+  eph->fit_interval = GAL_FIT_INTERVAL_SECONDS;
   /* word type 1 */
   u32 toe = getbitu(nav_msg->raw_eph[0], 16, 14);
   u32 m0 = getbitu(nav_msg->raw_eph[0], 30, 32);
@@ -566,9 +570,10 @@ static void extract_inav_content(u8 content[static GAL_INAV_CONTENT_BYTE],
 }
 
 static bool eph_complete(nav_msg_gal_inav_t *nav_msg) {
-  if ((nav_msg->iod_nav[0] == nav_msg->iod_nav[1]) &&
-      (nav_msg->iod_nav[0] == nav_msg->iod_nav[2]) &&
-      (nav_msg->iod_nav[0] == nav_msg->iod_nav[3])) {
+  if ((GAL_INAV_IOD_INVALID != nav_msg->iod_nav[0]) &&
+      (nav_msg->iod_nav[1] == nav_msg->iod_nav[0]) &&
+      (nav_msg->iod_nav[2] == nav_msg->iod_nav[0]) &&
+      (nav_msg->iod_nav[3] == nav_msg->iod_nav[0])) {
     return true;
   }
   return false;

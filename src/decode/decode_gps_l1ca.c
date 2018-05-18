@@ -397,7 +397,7 @@ static void decode_almanac_health_new(gnss_signal_t src_sid,
 }
 
 void decode_gps_l1ca_register(void) {
-  for (u32 i = 0; i < ARRAY_SIZE(gps_l1ca_decoders); i++) {
+  for (u16 i = 0; i < ARRAY_SIZE(gps_l1ca_decoders); i++) {
     gps_l1ca_decoders[i].active = false;
     gps_l1ca_decoders[i].data = &gps_l1ca_decoder_data[i];
   }

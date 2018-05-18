@@ -10,10 +10,12 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "soft_macq_utils.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "prns.h"
+#include "soft_macq_utils.h"
 
 /** baseband LUT conversion table, takes uint8_t with a signal sample
  *  and a phase argument and generates the rotated complex sample
@@ -274,4 +276,58 @@ int IsAcquired3D(const float *vec,
     return 1;
   }
   return 0;
+}
+
+/** Resample PRN code for the given ME sid.
+ * \param[in] code         Pointer to code bits
+ * \param[in] code_len     Code length in chip
+ * \param[in] code_rate_hz Chip rate in Hz
+ * \param[in] resamp     Resampled PRN code placeholder
+ * \param[in] resamp_len Size of of resampled code placeholder
+ * \param[in] fs_hz      Sampling frequency
+ * \param[in] m          Type of modulation
+ */
+void code_resample(const u8 *const code,
+                   const u32 code_len,
+                   const u32 code_rate_hz,
+                   s8 *upsamp,
+                   const u32 upsamp_length,
+                   const u32 fs_hz,
+                   const modulation_t m) {
+  u32 code_nco = 0;
+  u32 chip = 0;
+  log_debug("code 0x%" PRIxPTR " code_len %" PRIu32 " code_rate_hz %" PRIu32
+            " upsamp 0x%" PRIxPTR " upsamp_length %" PRIu32 " fs_hz %" PRIu32,
+            (intptr_t)code,
+            code_len,
+            code_rate_hz,
+            (intptr_t)upsamp,
+            upsamp_length,
+            fs_hz);
+
+  switch (m) {
+    case BPSK:
+      for (u32 i = 0; i < upsamp_length; i++) {
+        upsamp[i] = get_chip(code, chip);
+        code_nco += code_rate_hz;
+        while (code_nco >= fs_hz) {
+          code_nco -= fs_hz;
+          chip = (chip + 1) % code_len;
+        }
+      }
+      break;
+    case BOC_N1:
+      for (u32 i = 0; i < upsamp_length; i++) {
+        s8 c = get_chip(code, chip);
+        upsamp[i] = (code_nco < (fs_hz / 2)) ? +c : -c;
+        code_nco += code_rate_hz;
+        while (code_nco >= fs_hz) {
+          code_nco -= fs_hz;
+          chip = (chip + 1) % code_len;
+        }
+      }
+      break;
+    default:
+      break;
+  }
 }

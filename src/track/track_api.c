@@ -55,13 +55,10 @@ void tracker_correlations_read(u8 nap_channel,
       nap_channel, sample_count, cs, code_phase, carrier_phase);
 }
 
-bool tracker_has_pilot_sync(const tracker_t *tracker_channel) {
-  const code_t code = tracker_channel->mesid.code;
-  const u32 flags = tracker_channel->flags;
+bool nap_sc_wipeoff(const tracker_t *tracker) {
+  const code_t code = tracker->mesid.code;
 
-  bool has_pilot_sync = ((CODE_GAL_E5X == code) || (CODE_GAL_E7X == code)) &&
-                        (0 != (TRACKER_FLAG_BIT_SYNC & flags));
-  return has_pilot_sync;
+  return is_gal(code) && tracker_has_bit_sync(tracker);
 }
 
 /** Write the NAP update register for a tracker channel.
@@ -72,13 +69,13 @@ bool tracker_has_pilot_sync(const tracker_t *tracker_channel) {
 void tracker_retune(tracker_t *tracker_channel, u32 chips_to_correlate) {
   double doppler_freq_hz = tracker_channel->carrier_freq;
   double code_phase_rate = tracker_channel->code_phase_rate;
-  bool has_pilot_sync = tracker_has_pilot_sync(tracker_channel);
+  bool nap_sc_wipe = nap_sc_wipeoff(tracker_channel);
   /* Write NAP UPDATE register. */
   nap_track_update(tracker_channel->nap_channel,
                    doppler_freq_hz,
                    code_phase_rate,
                    chips_to_correlate,
-                   has_pilot_sync);
+                   nap_sc_wipe);
 }
 
 /** Adjust TOW for FIFO delay.
@@ -312,7 +309,7 @@ bool tracker_bit_aligned(tracker_t *tracker_channel) {
  * \retval true  Bit sync has been established
  * \retval false Bit sync is not established.
  */
-bool tracker_has_bit_sync(tracker_t *tracker_channel) {
+bool tracker_has_bit_sync(const tracker_t *tracker_channel) {
   return (BITSYNC_UNSYNCED != tracker_channel->bit_sync.bit_phase_ref);
 }
 

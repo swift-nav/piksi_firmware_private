@@ -4,6 +4,9 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <libswiftnav/constants.h>
+#include <libswiftnav/logging.h>
+
 #include "lib/fixed_fft_r2.h"
 #include "soft_macq_defines.h"
 #include "soft_macq_utils.h"
@@ -15,7 +18,7 @@
 #define MDBZP_CORR_FFTLEN 512 /* closest power of two for 2 * (3975 / 15) */
 #define MDBZP_FREQ_FFTLEN 64  /* closest power of two for 15 * 4 */
 
-#define MDBZP_CODE_SLICES_MAX (FAU_MDBZP_MS_SLICES)
+#define MDBZP_CODE_SLICES_MAX (FAU_MDBZP_MS_SLICES * GAL_E1C_PRN_PERIOD_MS)
 
 static FFT_DECL(MDBZP_CORR_FFTLEN, sCorrFftConf);
 static FFT_DECL(MDBZP_FREQ_FFTLEN, sFreqFftConf);
@@ -28,7 +31,7 @@ sc16_t pSignalMat[FAU_MS_MAX * FAU_MDBZP_MS_SLICES * MDBZP_CORR_FFTLEN];
 /* 4*  5 * 15 * 3975 = ~1.2M */
 sc16_t pCorrMat[FAU_MS_MAX * MDBZP_CODE_SLICES_MAX * FAU_CODE_SIZE];
 /* 4*    3975 *   64 = ~1.0M */
-float pFreqCodeMat[FAU_CODE_SIZE * MDBZP_FREQ_FFTLEN];
+float pFreqCodeMat[FAU_CODE_SIZE * MDBZP_FREQ_FFTLEN * GAL_E1C_PRN_PERIOD_MS];
 
 /** Modified Double Block Zero Padding
  *
@@ -72,6 +75,20 @@ bool mdbzp_static(sc16_t *_cSignal,
   if (sCorrFftConf.N != samples_block) {
     InitIntFFTr2(&sCorrFftConf, samples_block);
   }
+
+  log_debug("code_slices %" PRIu32 " code_ms %" PRIu32 " code_coh %" PRIu32
+            " code_nonc %" PRIu32 " samples_ms %" PRIu32 " slices_coh %" PRIu32
+            " samples_code %" PRIu32 " samples_slice %" PRIu32
+            " num_codes %" PRIu32,
+            code_slices,
+            code_ms,
+            code_coh,
+            code_nonc,
+            samples_ms,
+            slices_coh,
+            samples_code,
+            samples_slice,
+            num_codes);
 
   /***********************************
    *         STORE CODE FFTs         *
@@ -202,7 +219,7 @@ bool mdbzp_static(sc16_t *_cSignal,
                                   &_pRes->fMaxCorr,
                                   &max_codeidx,
                                   &max_freqidx);
-  _pRes->fCodeDelay = max_codeidx / samples_code;
+  _pRes->fCodeDelay = (max_codeidx) / samples_code;
   _pRes->fDoppFreq = (max_freqidx < (freqfft_sz / 2))
                          ? max_freqidx
                          : (max_freqidx - freqfft_sz);

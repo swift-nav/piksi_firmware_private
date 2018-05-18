@@ -14,6 +14,10 @@
 
 #include <libswiftnav/common.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* not weak as it is used in L2C builds only */
 void track_gps_l2c_register(void);
 
@@ -23,5 +27,9 @@ void do_l1ca_to_l2c_handover(u32 sample_count,
                              double carrier_freq,
                              float cn0_init,
                              s32 TOW_ms);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SWIFTNAV_TRACK_GPS_L2C_H */
