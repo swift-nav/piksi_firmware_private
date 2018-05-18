@@ -87,11 +87,12 @@ static void base_pos_llh_callback(u16 sender_id,
   llh[1] = llh_degrees[1] * D2R;
   llh[2] = llh_degrees[2];
   wgsllh2ecef(llh, base_pos);
+
   chMtxLock(&base_pos_lock);
-  /* Relay base station position using sender_id = 0. */
-  sbp_send_msg_(SBP_MSG_BASE_POS_LLH, len, msg, MSG_FORWARD_SENDER_ID);
   set_known_ref_pos(base_pos);
   chMtxUnlock(&base_pos_lock);
+  /* Relay base station position using sender_id = 0. */
+  sbp_send_msg_(SBP_MSG_BASE_POS_LLH, len, msg, MSG_FORWARD_SENDER_ID);
 }
 
 /** SBP callback for when the base station sends us a message containing its
@@ -110,11 +111,12 @@ static void base_pos_ecef_callback(u16 sender_id,
   }
   double base_pos[3];
   MEMCPY_S(base_pos, sizeof(base_pos), msg, sizeof(base_pos));
+
   chMtxLock(&base_pos_lock);
-  /* Relay base station position using sender_id = 0. */
-  sbp_send_msg_(SBP_MSG_BASE_POS_ECEF, len, msg, MSG_FORWARD_SENDER_ID);
   set_known_ref_pos(base_pos);
   chMtxUnlock(&base_pos_lock);
+  /* Relay base station position using sender_id = 0. */
+  sbp_send_msg_(SBP_MSG_BASE_POS_ECEF, len, msg, MSG_FORWARD_SENDER_ID);
 }
 
 /** SBP callback for when the base station sends us a message containing its

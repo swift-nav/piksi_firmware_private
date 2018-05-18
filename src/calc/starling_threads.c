@@ -28,7 +28,6 @@
 #include <libswiftnav/single_epoch_solver.h>
 #include <libswiftnav/troposphere.h>
 
-#include "calc_pvt_common.h"
 #include "starling_platform_shim.h"
 #include "starling_threads.h"
 
