@@ -96,7 +96,7 @@ static void decoder_gal_e7_process(const decoder_channel_info_t *channel_info,
     inav_data_type_t ret = parse_inav_word(data, &dd, &t);
     switch (ret) {
       case INAV_TOW:
-        log_info_mesid(channel_info->mesid, "WN %d TOW %.3f", t.wn, t.tow);
+        log_debug_mesid(channel_info->mesid, "WN %d TOW %.3f", t.wn, t.tow);
         TOWms = (s32)rint(t.tow * 1000);
         from_decoder.TOW_ms = TOWms + 2000;
         from_decoder.bit_polarity = data->bit_polarity;
@@ -159,7 +159,7 @@ static void decoder_gal_e7_process(const decoder_channel_info_t *channel_info,
         }
         break;
       case INAV_UTC:
-        log_info_mesid(channel_info->mesid, "TOW %.3f", t.tow);
+        log_debug_mesid(channel_info->mesid, "TOW %.3f", t.tow);
         TOWms = (s32)rint(t.tow * 1000);
         from_decoder.TOW_ms = TOWms + 2000;
         from_decoder.bit_polarity = data->bit_polarity;

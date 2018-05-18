@@ -816,9 +816,9 @@ static void tp_tracker_update_pll_dll(tracker_t *tracker, u32 cycle_flags) {
     bool costas = true;
     tp_epl_corr_t corr_all = tracker->corrs.corr_all;
 
-    bool has_pilot_sync = nap_sc_wipeoff(tracker_channel);
+    bool has_pilot_sync = nap_sc_wipeoff(tracker);
 
-    if ((CODE_GPS_L2CM == tracker_channel->mesid.code)) {
+    if ((CODE_GPS_L2CM == tracker->mesid.code)) {
       /* The L2CM and L2CL codes are in phase,
        * copy the VL to P so that the PLL runs
        * on the pilot instead of the data */

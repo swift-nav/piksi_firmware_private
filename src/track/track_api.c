@@ -66,10 +66,10 @@ bool nap_sc_wipeoff(const tracker_t *tracker) {
  * \param[in]     tracker Tracker channel data
  * \param chips_to_correlate  Number of code chips to integrate over.
  */
-void tracker_retune(tracker_t *tracker_channel, u32 chips_to_correlate) {
-  double doppler_freq_hz = tracker_channel->carrier_freq;
-  double code_phase_rate = tracker_channel->code_phase_rate;
-  bool nap_sc_wipe = nap_sc_wipeoff(tracker_channel);
+void tracker_retune(tracker_t *tracker, u32 chips_to_correlate) {
+  double doppler_freq_hz = tracker->carrier_freq;
+  double code_phase_rate = tracker->code_phase_rate;
+  bool nap_sc_wipe = nap_sc_wipeoff(tracker);
   /* Write NAP UPDATE register. */
   nap_track_update(tracker->nap_channel,
                    doppler_freq_hz,

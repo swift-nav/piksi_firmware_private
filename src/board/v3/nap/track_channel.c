@@ -202,19 +202,20 @@ void nap_track_init(u8 channel,
               (uintptr_t)s);
   }
   if (mesid.code == CODE_GAL_E1X) {
-    log_info("E%02" PRIu8 " e1bc channel %" PRIu8 " t %" PRIxPTR " s %" PRIxPTR,
-             mesid.sat,
-             channel,
-             (uintptr_t)t,
-             (uintptr_t)s);
+    log_debug("E%02" PRIu8 " e1bc channel %" PRIu8 " t %" PRIxPTR
+              " s %" PRIxPTR,
+              mesid.sat,
+              channel,
+              (uintptr_t)t,
+              (uintptr_t)s);
   }
   if (mesid.code == CODE_GAL_E7X) {
-    log_info("E%02" PRIu8 " e5bIQ channel %" PRIu8 " t %" PRIxPTR
-             " s %" PRIxPTR,
-             mesid.sat,
-             channel,
-             (uintptr_t)t,
-             (uintptr_t)s);
+    log_debug("E%02" PRIu8 " e5bIQ channel %" PRIu8 " t %" PRIxPTR
+              " s %" PRIxPTR,
+              mesid.sat,
+              channel,
+              (uintptr_t)t,
+              (uintptr_t)s);
   }
 
   if (swiftnap_code_map[channel] != mesid_to_nap_code(mesid)) {

@@ -641,7 +641,7 @@ u32 mesid_to_lfsr0_init(const me_gnss_signal_t mesid, const u8 index) {
       ret = gal_e5i_prns_init_values[mesid.sat - GAL_FIRST_PRN] & 0x3FFF;
       break;
     case CODE_GAL_E7X:
-      ret = gal_e7q_prns_init_values[mesid.sat - GAL_FIRST_PRN] & 0x3FFF;
+      ret = gal_e7i_prns_init_values[mesid.sat - GAL_FIRST_PRN] & 0x3FFF;
       break;
     case CODE_GPS_L1P:
     case CODE_GPS_L2P:
@@ -722,7 +722,7 @@ u32 mesid_to_lfsr1_init(const me_gnss_signal_t mesid, const u8 index) {
       ret = gal_e5q_prns_init_values[mesid.sat - GAL_FIRST_PRN] & 0x3FFF;
       break;
     case CODE_GAL_E7X:
-      ret = gal_e7i_prns_init_values[mesid.sat - GAL_FIRST_PRN] & 0x3FFF;
+      ret = gal_e7q_prns_init_values[mesid.sat - GAL_FIRST_PRN] & 0x3FFF;
       break;
     case CODE_GPS_L1P:
     case CODE_GPS_L2P:
@@ -798,7 +798,7 @@ u32 mesid_to_lfsr0_last(me_gnss_signal_t mesid) {
       ret = gal_e5i_prns_last_values[mesid.sat - GAL_FIRST_PRN] & 0x3FFF;
       break;
     case CODE_GAL_E7X:
-      ret = gal_e7q_prns_last_values[mesid.sat - GAL_FIRST_PRN] & 0x3FFF;
+      ret = gal_e7i_prns_last_values[mesid.sat - GAL_FIRST_PRN] & 0x3FFF;
       break;
     case CODE_GPS_L1P:
     case CODE_GPS_L2P:
@@ -875,7 +875,7 @@ u32 mesid_to_lfsr1_last(me_gnss_signal_t mesid) {
       ret = gal_e5q_prns_last_values[mesid.sat - GAL_FIRST_PRN] & 0x3FFF;
       break;
     case CODE_GAL_E7X:
-      ret = gal_e7i_prns_last_values[mesid.sat - GAL_FIRST_PRN] & 0x3FFF;
+      ret = gal_e7q_prns_last_values[mesid.sat - GAL_FIRST_PRN] & 0x3FFF;
       break;
     case CODE_GPS_L1P:
     case CODE_GPS_L2P:

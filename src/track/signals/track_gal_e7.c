@@ -67,7 +67,7 @@ static void tracker_gal_e7_update(tracker_t *tracker_channel) {
   }
 
   /* TOW manipulation on bit edge */
-  /*
+
   tracker_tow_cache(tracker_channel);
 
   bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
@@ -81,7 +81,6 @@ static void tracker_gal_e7_update(tracker_t *tracker_channel) {
                           tracker_channel->carrier_freq,
                           tracker_channel->cn0);
   }
-  */
 }
 
 /** Register GAL E7 tracker into the the interface & settings framework.
@@ -112,7 +111,7 @@ void gal_e1_to_e7_handover(u32 sample_count,
   me_gnss_signal_t mesid_e7 = construct_mesid(CODE_GAL_E7X, sat);
 
   if (!tracking_startup_ready(mesid_e7)) {
-    log_info_mesid(mesid_e7, "already in track");
+    log_debug_mesid(mesid_e7, "already in track");
     return; /* E7 signal from the SV is already in track */
   }
 

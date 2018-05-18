@@ -65,7 +65,7 @@ static void tracker_gal_e1_update(tracker_t *tracker) {
   if (!bit_aligned) {
     return;
   }
-
+#if 0
   bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
   bool inlock = ((0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) &&
                  (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK)));
@@ -77,6 +77,7 @@ static void tracker_gal_e1_update(tracker_t *tracker) {
                           tracker->carrier_freq,
                           tracker->cn0);
   }
+#endif
 }
 
 /** Register GAL E1 tracker into the the interface & settings framework.

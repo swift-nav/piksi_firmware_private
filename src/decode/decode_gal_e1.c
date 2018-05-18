@@ -92,12 +92,12 @@ static void decoder_gal_e1_process(const decoder_channel_info_t *channel_info,
     ephemeris_t *e = &(dd.ephemeris);
     ephemeris_kepler_t *k = &(dd.ephemeris.kepler);
     utc_tm date;
-    eph_new_status_t estat;
+    /* eph_new_status_t estat; */
 
     inav_data_type_t ret = parse_inav_word(data, &dd, &t);
     switch (ret) {
       case INAV_TOW:
-        log_info_mesid(channel_info->mesid, "WN %d TOW %.3f", t.wn, t.tow);
+        log_debug_mesid(channel_info->mesid, "WN %d TOW %.3f", t.wn, t.tow);
         TOWms = (s32)rint(t.tow * 1000);
         from_decoder.TOW_ms = TOWms + 2000;
         from_decoder.bit_polarity = data->bit_polarity;
@@ -151,16 +151,21 @@ static void decoder_gal_e1_process(const decoder_channel_info_t *channel_info,
         dd.ephemeris.sid.code = CODE_GAL_E1X;
         dd.ephemeris.valid = 1;
         shm_gal_set_shi(dd.ephemeris.sid.sat, dd.ephemeris.health_bits);
+        /* having the ephemeris on both E1 and E7 is generating
+         * discrepancy errors right now..
+         * need to figure out a way to refactor that check  */
+        /*
         estat = ephemeris_new(&dd.ephemeris);
         if (EPH_NEW_OK != estat) {
           log_warn_mesid(channel_info->mesid,
-                         "Error in GAL E5b ephemeris processing. "
+                         "Error in GAL E1 ephemeris processing. "
                          "Eph status: %" PRIu8 " ",
                          estat);
         }
+        */
         break;
       case INAV_UTC:
-        log_info_mesid(channel_info->mesid, "TOW %.3f", t.tow);
+        log_debug_mesid(channel_info->mesid, "TOW %.3f", t.tow);
         TOWms = (s32)rint(t.tow * 1000);
         from_decoder.TOW_ms = TOWms + 2000;
         from_decoder.bit_polarity = data->bit_polarity;
