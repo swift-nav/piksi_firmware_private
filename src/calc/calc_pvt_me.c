@@ -68,8 +68,8 @@
  * can't run this fast anyway. */
 #define SOLN_FREQ_SETTING_MAX 1000.0
 
-double soln_freq_setting = 1.0;
-u32 obs_output_divisor = 1;
+double soln_freq_setting = 10.0;
+u32 obs_output_divisor = 2;
 
 s16 msg_obs_max_size = SBP_FRAMING_MAX_PAYLOAD_SIZE;
 
