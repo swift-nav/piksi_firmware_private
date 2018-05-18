@@ -497,9 +497,6 @@ static void tp_tracker_update_correlators(tracker_t *tracker_channel,
 
     if (0 == tracker_channel->cycle_no) {
       if (rfoff) {
-        if (0 == (tracker_channel->flags & TRACKER_FLAG_RFOFF_DETECTED)) {
-          piksi_systime_get(&tracker_channel->rfoff_start);
-        }
         tracker_channel->flags |= TRACKER_FLAG_RFOFF_DETECTED;
       } else {
         tracker_channel->flags &= ~TRACKER_FLAG_RFOFF_DETECTED;
@@ -880,7 +877,6 @@ static void tp_tracker_update_pll_dll(tracker_t *tracker_channel,
       costas = false;
     }
     tp_tl_update(&tracker_channel->tl_state, &corr_all, costas);
-
     tp_tl_get_rates(&tracker_channel->tl_state, &rates);
 
     tracker_channel->carrier_freq = rates.carr_freq;
