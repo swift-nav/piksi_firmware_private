@@ -97,6 +97,9 @@ typedef struct StarlingFilterSolution {
   pvt_engine_result_t result;
 } StarlingFilterSolution;
 
+/** Maximum difference between observation times to consider them matched. */
+#define TIME_MATCH_THRESHOLD 2e-3
+
 /** number of milliseconds before SPP resumes in pseudo-absolute mode */
 #define DGNSS_TIMEOUT_MS 5000
 

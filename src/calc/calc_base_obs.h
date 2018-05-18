@@ -25,9 +25,6 @@
 /** \addtogroup base_obs Base station observation handling
  * \{ */
 
-/** Maximum difference between observation times to consider them matched. */
-#define TIME_MATCH_THRESHOLD 2e-3
-
 /* Maximum distance between calculated and surveyed base station single point
  * position before we ignore the observation. In metres.
  */
@@ -41,11 +38,8 @@ extern bool disable_raim;
 extern memory_pool_t base_obs_buff_pool;
 extern mailbox_t base_obs_mailbox;
 
-extern mutex_t base_pos_lock;
 extern bool base_pos_known;
 extern double base_pos_ecef[3];
-
-extern mutex_t base_glonass_biases_lock;
 
 void base_obs_setup(void);
 
