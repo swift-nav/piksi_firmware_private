@@ -154,5 +154,5 @@ void gal_e1_to_e7_handover(u32 sample_count,
       assert(!"Unknown code returned");
       break;
   }
-  rand_seed = (rand_seed+1) % 10;
+  rand_seed = (rand_seed + 1) % 10;
 }

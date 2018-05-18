@@ -285,11 +285,23 @@ static void histogram_update(bit_sync_t *b,
       /* might be a +2 or a -2.. we'll know when we do the same for NH20s */
       b->bit_phase_ref = (b->bit_phase + 2) % b->bit_length;
       log_warn("E%02d e5bIQ %c %c %c %c  %c %c %c %c  %c %c %c %c  %c %c %c %c",
-          b->mesid.sat,
-          HS(2), HS(6), HS(10), HS(14),
-          HS(18), HS(22), HS(26), HS(30),
-          HS(34), HS(38), HS(42), HS(46),
-          HS(50), HS(54), HS(58), HS(62));
+               b->mesid.sat,
+               HS(2),
+               HS(6),
+               HS(10),
+               HS(14),
+               HS(18),
+               HS(22),
+               HS(26),
+               HS(30),
+               HS(34),
+               HS(38),
+               HS(42),
+               HS(46),
+               HS(50),
+               HS(54),
+               HS(58),
+               HS(62));
     }
 
   } else if (CODE_GAL_E5X == b->mesid.code) {
@@ -318,32 +330,35 @@ static void histogram_update(bit_sync_t *b,
     }
 
   }
-//  else if (CODE_GAL_E1X == b->mesid.code) {
-//    /* Galileo E1C has a SC25 secondary code */
-//    s8 hist_head = b->histogram[0];
-//    /* rotate the histogram left */
-//    memmove(
-//        &(b->histogram[0]), &(b->histogram[1]), sizeof(s8) * (GAL_CS25_MS - 1));
-//    /* if there was a transition subtract 1 */
-//    hist_head = SIGN(dot_prod_real);
-//    b->histogram[(GAL_CS25_MS - 1)] = hist_head;
-//    s32 sum = 0;
-//    /* cross-correlate transitions at the current symbol */
-//    /* transitions on the first element do count: it's a pure pilot channel */
-//    for (u8 i = 0; i < GAL_CS25_MS; i++) {
-//      sum += b->histogram[i] * (e1c_xans[(i + GAL_CS25_MS) % GAL_CS25_MS]);
-//    }
-//    if (sum == GAL_CS25_MS) {
-//      b->bit_phase_ref = (b->bit_phase) % b->bit_length;
-//      log_warn("E%02d e1BC %c %c %c %c  %c %c %c %c  %c %c %c %c  %c %c %c %c",
-//          b->mesid.sat,
-//          HS(2), HS(6), HS(10), HS(14),
-//          HS(18), HS(22), HS(26), HS(30),
-//          HS(34), HS(38), HS(42), HS(46),
-//          HS(50), HS(54), HS(58), HS(62));
-//    }
-//
-//  }
+  //  else if (CODE_GAL_E1X == b->mesid.code) {
+  //    /* Galileo E1C has a SC25 secondary code */
+  //    s8 hist_head = b->histogram[0];
+  //    /* rotate the histogram left */
+  //    memmove(
+  //        &(b->histogram[0]), &(b->histogram[1]), sizeof(s8) * (GAL_CS25_MS -
+  //        1));
+  //    /* if there was a transition subtract 1 */
+  //    hist_head = SIGN(dot_prod_real);
+  //    b->histogram[(GAL_CS25_MS - 1)] = hist_head;
+  //    s32 sum = 0;
+  //    /* cross-correlate transitions at the current symbol */
+  //    /* transitions on the first element do count: it's a pure pilot channel
+  //    */
+  //    for (u8 i = 0; i < GAL_CS25_MS; i++) {
+  //      sum += b->histogram[i] * (e1c_xans[(i + GAL_CS25_MS) % GAL_CS25_MS]);
+  //    }
+  //    if (sum == GAL_CS25_MS) {
+  //      b->bit_phase_ref = (b->bit_phase) % b->bit_length;
+  //      log_warn("E%02d e1BC %c %c %c %c  %c %c %c %c  %c %c %c %c  %c %c %c
+  //      %c",
+  //          b->mesid.sat,
+  //          HS(2), HS(6), HS(10), HS(14),
+  //          HS(18), HS(22), HS(26), HS(30),
+  //          HS(34), HS(38), HS(42), HS(46),
+  //          HS(50), HS(54), HS(58), HS(62));
+  //    }
+  //
+  //  }
   else {
     /* check one in the histogram if the above is negative */
     if (dot_prod_real < 0) {

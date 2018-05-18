@@ -492,13 +492,12 @@ static void manage_acq(void) {
     me_gnss_signal_t mesid_trk = acq->mesid;
     float cp = acq_result.cp;
     float cf = acq_result.cf;
-    /*
+
     if (CODE_GAL_E1X == acq->mesid.code) {
       mesid_trk.code = CODE_GAL_E7X;
       cp = fmodf(cp * 10.0f, code_to_chip_count(CODE_GAL_E7X));
       cf = cf * GAL_E7_HZ / GAL_E1_HZ;
     }
-    */
 
     tracking_startup_params_t tracking_startup_params = {
         .mesid = mesid_trk,

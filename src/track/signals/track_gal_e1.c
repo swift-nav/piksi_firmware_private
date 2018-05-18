@@ -77,7 +77,6 @@ static void tracker_gal_e1_update(tracker_t *tracker) {
                           tracker->carrier_freq,
                           tracker->cn0);
   }
-
 }
 
 /** Register GAL E1 tracker into the the interface & settings framework.

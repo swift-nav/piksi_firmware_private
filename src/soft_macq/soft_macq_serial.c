@@ -39,10 +39,6 @@
 #define FFT_SCALE_SCHED_SAMPLES (0x01111111)
 #define FFT_SCALE_SCHED_INV (0x01111111)
 
-// static void code_resample(const me_gnss_signal_t mesid,
-//                          float chips_per_sample,
-//                          sc16_t *resampled,
-//                          u32 resampled_length);
 static bool get_bin_min_max(const me_gnss_signal_t mesid,
                             float cf_min,
                             float cf_max,
@@ -250,29 +246,6 @@ bool soft_acq_search(const sc16_t *_cSignal,
   acq_result->cn0 = peak.cn0;
   return true;
 }
-
-/** Resample PRN code for the given ME sid.
- * \param[in] mesid            ME signal id
- * \param[in] chips_per_sample Number of chips per sample.
- * \param[in] resampled        Resampled PRN code
- * \param[in] resampled_length Length of resampled code.
- */
-// static void code_resample(const me_gnss_signal_t mesid,
-//                          float chips_per_sample,
-//                          sc16_t *resampled,
-//                          u32 resampled_length) {
-//  const u8 *pCode = ca_code(mesid);
-//  u32 code_length = code_to_chip_count(mesid.code);
-//
-//  float chip_offset = 0.0f;
-//  for (u32 i = 0; i < resampled_length; i++) {
-//    u32 code_index = (u32)floorf(chip_offset);
-//    resampled[i] = (sc16_t){
-//        .r = CODE_MULT * get_chip((u8 *)pCode, code_index % code_length),
-//        .i = 0};
-//    chip_offset += chips_per_sample;
-//  }
-//}
 
 /** Find dopper_bin_min and doppler_bin_max,
  *  given uncertainty range and bin_width.
