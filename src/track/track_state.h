@@ -38,6 +38,7 @@ void tracker_disable(const u8 id);
 /* Update interface */
 void trackers_update(u32 channels_mask, const u8 start_chan);
 void trackers_missed(u32 channels_mask, const u8 start_chan);
+void stale_trackers_cleanup(void);
 
 /* Send state */
 void tracking_send_state(void);

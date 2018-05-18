@@ -104,18 +104,7 @@ bool tracker_available(const u8 id, const me_gnss_signal_t mesid) {
     return false;
   }
 
-  u64 now_ms = timing_getms();
-  bool busy = tracker->busy;
-  if (busy &&
-      (now_ms > (NAP_CORR_LENGTH_MAX_MS + tracker->update_timestamp_ms))) {
-    log_error_mesid(mesid, "dropping stale channel");
-    tracker->flags |= TRACKER_FLAG_DROP_CHANNEL;
-    tracker->ch_drop_reason = CH_DROP_REASON_NO_UPDATES;
-    sanitize_tracker(tracker, now_ms);
-    busy = false;
-  }
-
-  return (!busy);
+  return !(tracker->busy);
 }
 
 /**
@@ -525,5 +514,21 @@ void tracking_send_state(void) {
     tracking_send_state_63();
   } else {
     tracking_send_state_85();
+  }
+}
+
+/** Goes through all the NAP tracker channels and cleans the stale ones
+ * (there should NEVER be any!)
+ */
+void stale_trackers_cleanup(void) {
+  u64 now_ms = timing_getms();
+
+  for (u8 i = 0; i < nap_track_n_channels; i++) {
+    tracker_t *tracker = tracker_get(i);
+    if (!tracker->busy) continue;
+    if ((now_ms > (NAP_CORR_LENGTH_MAX_MS + tracker->update_timestamp_ms))) {
+      tracker_flag_drop(tracker, CH_DROP_REASON_NO_UPDATES);
+      sanitize_tracker(tracker, now_ms);
+    }
   }
 }
