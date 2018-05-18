@@ -651,17 +651,17 @@ static const char *get_ch_drop_reason_str(ch_drop_reason_t reason) {
  * The method logs channel drop reason message, actually disables tracking
  * channel components and updates ACQ hints for re-acqusition.
  *
- * \param[in,out] tracker_channel Tracker channel data
+ * \param[in,out] tracker Tracker channel data
  * \param[in] reason     Channel drop reason
  */
-static void drop_channel(tracker_t *tracker_channel, ch_drop_reason_t reason) {
+static void drop_channel(tracker_t *tracker, ch_drop_reason_t reason) {
   /* Read the required parameters from the tracking channel first to ensure
    * that the tracking channel is not restarted in the mean time.
    */
-  const u32 flags = tracker_channel->flags;
-  me_gnss_signal_t mesid = tracker_channel->mesid;
+  const u32 flags = tracker->flags;
+  me_gnss_signal_t mesid = tracker->mesid;
   u64 now_ms = timing_getms();
-  u32 time_in_track_ms = (u32)(now_ms - tracker_channel->init_timestamp_ms);
+  u32 time_in_track_ms = (u32)(now_ms - tracker->init_timestamp_ms);
 
   /* Log message with appropriate priority. */
   if ((CH_DROP_REASON_ERROR == reason) ||
@@ -669,7 +669,7 @@ static void drop_channel(tracker_t *tracker_channel, ch_drop_reason_t reason) {
     log_error_mesid(mesid,
                     "[+%" PRIu32 "ms] nap_channel = %" PRIu8 " %s",
                     time_in_track_ms,
-                    tracker_channel->nap_channel,
+                    tracker->nap_channel,
                     get_ch_drop_reason_str(reason));
   } else if (0 == (flags & TRACKER_FLAG_CONFIRMED)) {
     /* Unconfirmed tracker messages are always logged at debug level */
@@ -691,14 +691,14 @@ static void drop_channel(tracker_t *tracker_channel, ch_drop_reason_t reason) {
     bool had_locks =
         (0 != (flags & (TRACKER_FLAG_HAD_PLOCK | TRACKER_FLAG_HAD_FLOCK)));
     bool long_in_track = time_in_track_ms > TRACK_REACQ_MS;
-    u32 unlocked_time_ms = update_count_diff(
-        tracker_channel, &tracker_channel->ld_pess_change_count);
+    u32 unlocked_time_ms =
+        update_count_diff(tracker, &tracker->ld_pess_change_count);
     bool long_unlocked = unlocked_time_ms > TRACK_REACQ_MS;
     bool was_xcorr = (flags & TRACKER_FLAG_DROP_CHANNEL) &&
-                     (CH_DROP_REASON_XCORR == tracker_channel->ch_drop_reason);
+                     (CH_DROP_REASON_XCORR == tracker->ch_drop_reason);
 
     if (long_in_track && had_locks && !long_unlocked && !was_xcorr) {
-      double carrier_freq = tracker_channel->carrier_freq_at_lock;
+      double carrier_freq = tracker->carrier_freq_at_lock;
       float doppler_min = code_to_sv_doppler_min(mesid.code) +
                           code_to_tcxo_doppler_min(mesid.code);
       float doppler_max = code_to_sv_doppler_max(mesid.code) +
@@ -715,8 +715,8 @@ static void drop_channel(tracker_t *tracker_channel, ch_drop_reason_t reason) {
   }
 
   /* Disable the decoder and tracking channels */
-  decoder_channel_disable(tracker_channel->nap_channel);
-  tracker_disable(tracker_channel->nap_channel);
+  decoder_channel_disable(tracker->nap_channel);
+  tracker_disable(tracker->nap_channel);
 }
 
 /**
@@ -724,31 +724,31 @@ static void drop_channel(tracker_t *tracker_channel, ch_drop_reason_t reason) {
  *
  * \return
  */
-void restore_acq(const tracker_t *tracker_channel) {
-  u32 flags = tracker_channel->flags;
-  me_gnss_signal_t mesid = tracker_channel->mesid;
+void restore_acq(const tracker_t *tracker) {
+  u32 flags = tracker->flags;
+  me_gnss_signal_t mesid = tracker->mesid;
   acq_status_t *acq = &acq_status[mesid_to_global_index(mesid)];
 
   /* Now restore satellite acq */
   acq->state = ACQ_PRN_ACQUIRING;
   if (IS_GLO(mesid)) {
     bool glo_health_decoded = (0 != (flags & TRACKER_FLAG_GLO_HEALTH_DECODED));
-    if (glo_health_decoded && (SV_UNHEALTHY == tracker_channel->health) &&
-        (tracker_channel->glo_orbit_slot != GLO_ORBIT_SLOT_UNKNOWN)) {
+    if (glo_health_decoded && (SV_UNHEALTHY == tracker->health) &&
+        (tracker->glo_orbit_slot != GLO_ORBIT_SLOT_UNKNOWN)) {
       /* GLO acq quarantine timer is only armed for GLO L1OF
          as it is the only direct acq GLO signal we care about in acq module */
       mesid = construct_mesid(CODE_GLO_L1OF, mesid.sat);
       acq = &acq_status[mesid_to_global_index(mesid)];
       acq->state = ACQ_PRN_UNHEALTHY;
-      u16 index = tracker_channel->glo_orbit_slot - 1;
+      u16 index = tracker->glo_orbit_slot - 1;
       assert(index < ARRAY_SIZE(glo_acq_timer));
       glo_acq_timer[index].status = acq;
       piksi_systime_get(&glo_acq_timer[index].tick); /* channel drop time */
     }
   } else if (IS_SBAS(mesid)) {
-    if (SV_UNHEALTHY == tracker_channel->health) {
+    if (SV_UNHEALTHY == tracker->health) {
       acq->state = ACQ_PRN_UNHEALTHY;
-      u16 index = tracker_channel->mesid.sat - SBAS_FIRST_PRN;
+      u16 index = tracker->mesid.sat - SBAS_FIRST_PRN;
       assert(index < ARRAY_SIZE(sbas_acq_timer));
       sbas_acq_timer[index].status = acq;
       piksi_systime_get(&sbas_acq_timer[index].tick); /* channel drop time */
@@ -807,19 +807,17 @@ bool leap_second_imminent(void) {
  * or bit sync, or is flagged as cross-correlation, etc.
  * Keep tracking unhealthy (except GLO) and low-elevation satellites for
  * cross-correlation purposes. */
-void sanitize_tracker(tracker_t *tracker_channel, u64 now_ms) {
+void sanitize_tracker(tracker_t *tracker, u64 now_ms) {
   /*! Addressing the problem where we try to disable a channel that is
-   * not in `STATE_ENABLED` in the first place. It remains to check
+   * not busy in the first place. It remains to check
    * why `TRACKING_CHANNEL_FLAG_ACTIVE` might not be effective here?
    * */
-  state_t state = tracker_channel->state;
-  COMPILER_BARRIER();
-  if (STATE_ENABLED != state) {
+  if (!(tracker->busy)) {
     return;
   }
 
-  u32 flags = tracker_channel->flags;
-  me_gnss_signal_t mesid = tracker_channel->mesid;
+  u32 flags = tracker->flags;
+  me_gnss_signal_t mesid = tracker->mesid;
 
   /* Skip channels that aren't in use */
   if (0 == (flags & TRACKER_FLAG_ACTIVE)) {
@@ -827,71 +825,70 @@ void sanitize_tracker(tracker_t *tracker_channel, u64 now_ms) {
   }
 
   if (0 != (flags & TRACKER_FLAG_DROP_CHANNEL)) {
-    drop_channel(tracker_channel, tracker_channel->ch_drop_reason);
+    drop_channel(tracker, tracker->ch_drop_reason);
     return;
   }
 
   /* Is tracking masked? */
   u16 global_index = mesid_to_global_index(mesid);
   if (track_mask[global_index]) {
-    drop_channel(tracker_channel, CH_DROP_REASON_MASKED);
+    drop_channel(tracker, CH_DROP_REASON_MASKED);
     return;
   }
 
   /* Give newly-initialized channels a chance to converge. */
-  u32 age_ms = now_ms - tracker_channel->init_timestamp_ms;
-  if (age_ms < tracker_channel->settle_time_ms) {
+  u32 age_ms = now_ms - tracker->init_timestamp_ms;
+  if (age_ms < tracker->settle_time_ms) {
     return;
   }
-
-  if (now_ms > tracker_channel->update_timestamp_ms) {
-    u32 update_delay_ms = now_ms - tracker_channel->update_timestamp_ms;
-    if (update_delay_ms > NAP_CORR_LENGTH_MAX_MS) {
-      drop_channel(tracker_channel, CH_DROP_REASON_NO_UPDATES);
-      return;
+  /*
+    if (now_ms > tracker->update_timestamp_ms) {
+      u32 update_delay_ms = now_ms - tracker->update_timestamp_ms;
+      if (update_delay_ms > NAP_CORR_LENGTH_MAX_MS) {
+        drop_channel(tracker, CH_DROP_REASON_NO_UPDATES);
+        return;
+      }
     }
-  }
-
+  */
   /* Do we not have nav bit sync yet? */
   if (0 == (flags & TRACKER_FLAG_BIT_SYNC)) {
-    drop_channel(tracker_channel, CH_DROP_REASON_NO_BIT_SYNC);
+    drop_channel(tracker, CH_DROP_REASON_NO_BIT_SYNC);
     return;
   }
 
   /* PLL/FLL pessimistic lock detector "unlocked" for a while?
-     We could get rid of this check althogether if not the
+     We could get rid of this check altogether if not the
      observed cases, when tracker could not achieve the pessimistic
      lock state for a long time (minutes?) and yet managed to pass
      CN0 sanity checks.*/
   u32 unlocked_ms = 0;
   if ((0 == (flags & TRACKER_FLAG_HAS_PLOCK)) &&
       (0 == (flags & TRACKER_FLAG_HAS_FLOCK))) {
-    unlocked_ms = update_count_diff(tracker_channel,
-                                    &tracker_channel->ld_pess_change_count);
+    unlocked_ms = update_count_diff(tracker, &tracker->ld_pess_change_count);
   }
   if (unlocked_ms > TRACK_DROP_UNLOCKED_MS) {
-    drop_channel(tracker_channel, CH_DROP_REASON_NO_PLOCK);
+    drop_channel(tracker, CH_DROP_REASON_NO_PLOCK);
     return;
   }
 
   /* CN0 below threshold for a while? */
-  u32 cn0_drop_ms = update_count_diff(
-      tracker_channel, &tracker_channel->cn0_above_drop_thres_count);
+  u32 cn0_drop_ms =
+      update_count_diff(tracker, &tracker->cn0_above_drop_thres_count);
   if (cn0_drop_ms > TRACK_DROP_CN0_MS) {
-    drop_channel(tracker_channel, CH_DROP_REASON_LOW_CN0);
+    drop_channel(tracker, CH_DROP_REASON_LOW_CN0);
     return;
   }
 
   /* Drop GLO if the SV is unhealthy */
   if (IS_GLO(mesid)) {
     bool glo_health_decoded = (0 != (flags & TRACKER_FLAG_GLO_HEALTH_DECODED));
-    if (glo_health_decoded && (SV_UNHEALTHY == tracker_channel->health)) {
-      drop_channel(tracker_channel, CH_DROP_REASON_SV_UNHEALTHY);
+    if (glo_health_decoded && (SV_UNHEALTHY == tracker->health)) {
+      drop_channel(tracker, CH_DROP_REASON_SV_UNHEALTHY);
       return;
     }
   } else if (IS_SBAS(mesid)) {
-    if (SV_UNHEALTHY == tracker_channel->health) {
-      drop_channel(tracker_channel, CH_DROP_REASON_SV_UNHEALTHY);
+    if (SV_UNHEALTHY == tracker->health) {
+      drop_channel(tracker, CH_DROP_REASON_SV_UNHEALTHY);
       return;
     }
   }

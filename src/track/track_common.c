@@ -81,147 +81,134 @@ static u32 tp_convert_ms_to_chips(me_gnss_signal_t mesid,
 
 /**
  * (Re-)initialize lock detector parameters.
- * \param[in,out] tracker_channel Tracker channel data.
+ * \param[in,out] tracker Tracker channel data.
  * \param[in]     init        Flag to indicate if the call to initialize or
  *                            to update.
  * \return None
  */
-void tp_tracker_update_lock_detect_parameters(tracker_t *tracker_channel,
-                                              bool init) {
-  tp_profile_t *profile = &tracker_channel->profile;
+void tp_tracker_update_lock_detect_parameters(tracker_t *tracker, bool init) {
+  tp_profile_t *profile = &tracker->profile;
   const tp_lock_detect_params_t *ldp = &profile->ld_phase_params;
   const tp_lock_detect_params_t *ldf = &profile->ld_freq_params;
 
   if (init) {
-    lock_detect_init(
-        &tracker_channel->ld_phase, ldp->k1, ldp->k2, ldp->lp, /*lo=*/0);
-    lock_detect_init(
-        &tracker_channel->ld_freq, ldf->k1, ldf->k2, ldf->lp, /*lo=*/0);
+    lock_detect_init(&tracker->ld_phase, ldp->k1, ldp->k2, ldp->lp, /*lo=*/0);
+    lock_detect_init(&tracker->ld_freq, ldf->k1, ldf->k2, ldf->lp, /*lo=*/0);
   } else {
-    lock_detect_reinit(
-        &tracker_channel->ld_phase, ldp->k1, ldp->k2, ldp->lp, /*lo=*/0);
-    lock_detect_reinit(
-        &tracker_channel->ld_freq, ldf->k1, ldf->k2, ldf->lp, /*lo=*/0);
+    lock_detect_reinit(&tracker->ld_phase, ldp->k1, ldp->k2, ldp->lp, /*lo=*/0);
+    lock_detect_reinit(&tracker->ld_freq, ldf->k1, ldf->k2, ldf->lp, /*lo=*/0);
   }
 }
 
 /**
  * Update tracker parameters when initializing or changing tracking mode.
  *
- * \param[in,out]  tracker_channel Tracker channel data.
+ * \param[in,out]  tracker Tracker channel data.
  * \param[in]     init         Flag to indicate if the call to initialize or
  *                             to update.
  *
  * \return None
  */
-void tp_profile_apply_config(tracker_t *tracker_channel, bool init) {
-  me_gnss_signal_t mesid = tracker_channel->mesid;
-  tp_profile_t *profile = &tracker_channel->profile;
+void tp_profile_apply_config(tracker_t *tracker, bool init) {
+  me_gnss_signal_t mesid = tracker->mesid;
+  tp_profile_t *profile = &tracker->profile;
 
   const tp_loop_params_t *l = &profile->loop_params;
   u8 prev_cn0_ms = 0;
   bool prev_use_alias_detection = 0;
 
   if (!init) {
-    prev_cn0_ms = tp_get_cn0_ms(tracker_channel->tracking_mode);
-    prev_use_alias_detection = tracker_channel->use_alias_detection;
+    prev_cn0_ms = tp_get_cn0_ms(tracker->tracking_mode);
+    prev_use_alias_detection = tracker->use_alias_detection;
   }
 
-  tracker_channel->tracking_mode = profile->loop_params.mode;
-  tracker_channel->use_alias_detection = profile->use_alias_detection;
+  tracker->tracking_mode = profile->loop_params.mode;
+  tracker->use_alias_detection = profile->use_alias_detection;
 
-  tracker_channel->has_next_params = false;
+  tracker->has_next_params = false;
 
   /* For mode switch the current step is one step behind bit edge.
      For start-up it is 0. */
   u8 cycle_cnt = tp_get_cycle_count(l->mode);
-  tracker_channel->cycle_no = init ? 0 : (cycle_cnt - 1);
+  tracker->cycle_no = init ? 0 : (cycle_cnt - 1);
 
   /**< C/N0 integration time */
-  u8 cn0_ms = tp_get_cn0_ms(tracker_channel->tracking_mode);
+  u8 cn0_ms = tp_get_cn0_ms(tracker->tracking_mode);
   /**< Set initial rates */
   tl_rates_t rates;
-  rates.code_freq =
-      tracker_channel->code_phase_rate - code_to_chip_rate(mesid.code);
-  rates.carr_freq = tracker_channel->carrier_freq;
+  rates.code_freq = tracker->code_phase_rate - code_to_chip_rate(mesid.code);
+  rates.carr_freq = tracker->carrier_freq;
   rates.acceleration = 0.0f;
   /**< Set tracking loop configuration parameters */
   tl_config_t config;
   tp_tl_get_config(l, &config);
-  config.dll_loop_freq = 1000.f / tp_get_dll_ms(tracker_channel->tracking_mode);
-  config.fll_loop_freq =
-      1000.f / tp_get_flll_ms(tracker_channel->tracking_mode);
-  config.fll_discr_freq =
-      1000.f / tp_get_flld_ms(tracker_channel->tracking_mode);
+  config.dll_loop_freq = 1000.f / tp_get_dll_ms(tracker->tracking_mode);
+  config.fll_loop_freq = 1000.f / tp_get_flll_ms(tracker->tracking_mode);
+  config.fll_discr_freq = 1000.f / tp_get_flld_ms(tracker->tracking_mode);
 
   /* DLL init could be done nicer by initing DLL only */
   if (init || profile->dll_init) {
     log_debug_mesid(mesid, "Initializing TL");
 
-    tp_tl_init(
-        &tracker_channel->tl_state, profile->loop_params.ctrl, &rates, &config);
+    tp_tl_init(&tracker->tl_state, profile->loop_params.ctrl, &rates, &config);
   } else {
     log_debug_mesid(mesid, "Re-tuning TL");
 
     /* Recalculate filter coefficients */
-    tp_tl_retune(
-        &tracker_channel->tl_state, profile->loop_params.ctrl, &config);
+    tp_tl_retune(&tracker->tl_state, profile->loop_params.ctrl, &config);
   }
-  tp_tracker_update_lock_detect_parameters(tracker_channel, init);
+  tp_tracker_update_lock_detect_parameters(tracker, init);
 
-  tracker_channel->flags &= ~TRACKER_FLAG_PLL_USE;
-  tracker_channel->flags &= ~TRACKER_FLAG_FLL_USE;
+  tracker->flags &= ~TRACKER_FLAG_PLL_USE;
+  tracker->flags &= ~TRACKER_FLAG_FLL_USE;
   if (profile->loop_params.carr_bw > 0) {
-    tracker_channel->flags |= TRACKER_FLAG_PLL_USE;
+    tracker->flags |= TRACKER_FLAG_PLL_USE;
   }
   if (profile->loop_params.fll_bw > 0) {
-    tracker_channel->flags |= TRACKER_FLAG_FLL_USE;
+    tracker->flags |= TRACKER_FLAG_FLL_USE;
   }
 
   if (init || cn0_ms != prev_cn0_ms) {
     tp_cn0_params_t cn0_params;
-    tp_profile_get_cn0_params(&tracker_channel->profile, &cn0_params);
+    tp_profile_get_cn0_params(&tracker->profile, &cn0_params);
 
     float cn0_t;
     float cn0_0;
 
-    if (tracker_channel->flags & TRACKER_FLAG_CONFIRMED) {
-      cn0_t = cn0_0 = tracker_channel->cn0;
+    if (tracker->flags & TRACKER_FLAG_CONFIRMED) {
+      cn0_t = cn0_0 = tracker->cn0;
     } else {
       /* When confirmation is required, set C/N0 below drop threshold and
        * check that is actually grows to correct range */
       cn0_0 =
           cn0_params.track_cn0_drop_thres_dbhz - TP_TRACKER_CN0_CONFIRM_DELTA;
-      cn0_t = init ? tracker_channel->cn0 : tracker_channel->cn0_est.cn0_0;
+      cn0_t = init ? tracker->cn0 : tracker->cn0_est.cn0_0;
     }
 
     /* Initialize C/N0 estimator and filter */
-    track_cn0_init(mesid,                     /* ME signal for logging */
-                   cn0_ms,                    /* C/N0 period in ms */
-                   &tracker_channel->cn0_est, /* C/N0 estimator state */
-                   cn0_0,                     /* Initial C/N0 value */
-                   0);                        /* Flags */
+    track_cn0_init(mesid,             /* ME signal for logging */
+                   cn0_ms,            /* C/N0 period in ms */
+                   &tracker->cn0_est, /* C/N0 estimator state */
+                   cn0_0,             /* Initial C/N0 value */
+                   0);                /* Flags */
 
-    if (0 == (tracker_channel->flags & TRACKER_FLAG_CONFIRMED)) {
-      tracker_channel->cn0_est.cn0_0 = cn0_t;
-      tracker_channel->cn0 = cn0_t;
+    if (0 == (tracker->flags & TRACKER_FLAG_CONFIRMED)) {
+      tracker->cn0_est.cn0_0 = cn0_t;
+      tracker->cn0 = cn0_t;
     }
-    log_debug_mesid(mesid,
-                    "CN0 update: CD=%f EST=%f CN0_0=%f",
-                    tracker_channel->cn0,
-                    cn0_0,
-                    cn0_t);
+    log_debug_mesid(
+        mesid, "CN0 update: CD=%f EST=%f CN0_0=%f", tracker->cn0, cn0_0, cn0_t);
   }
 
-  if (tracker_channel->use_alias_detection) {
-    float alias_detect_ms = tp_get_alias_ms(tracker_channel->tracking_mode);
+  if (tracker->use_alias_detection) {
+    float alias_detect_ms = tp_get_alias_ms(tracker->tracking_mode);
 
     if (prev_use_alias_detection) {
-      alias_detect_reinit(&tracker_channel->alias_detect,
+      alias_detect_reinit(&tracker->alias_detect,
                           (u32)(TP_TRACKER_ALIAS_DURATION_MS / alias_detect_ms),
                           alias_detect_ms * 1e-3f);
     } else {
-      alias_detect_init(&tracker_channel->alias_detect,
+      alias_detect_init(&tracker->alias_detect,
                         (u32)(TP_TRACKER_ALIAS_DURATION_MS / alias_detect_ms),
                         alias_detect_ms * 1e-3f);
     }
@@ -233,40 +220,39 @@ void tp_profile_apply_config(tracker_t *tracker_channel, bool init) {
  *
  * The method initializes tracker parameters.
  *
- * \param[in]     tracker_channel Tracker channel data
+ * \param[in]     tracker Tracker channel data
  * \param[in]     config       Configuration parameters.
  *
  * \return None
  */
-void tp_tracker_init(tracker_t *tracker_channel,
-                     const tp_tracker_config_t *config) {
-  me_gnss_signal_t mesid = tracker_channel->mesid;
+void tp_tracker_init(tracker_t *tracker, const tp_tracker_config_t *config) {
+  me_gnss_signal_t mesid = tracker->mesid;
 
-  tracker_ambiguity_unknown(tracker_channel);
+  tracker_ambiguity_unknown(tracker);
 
   log_debug_mesid(
-      mesid, "[+%" PRIu32 "ms] Tracker start", tracker_channel->update_count);
+      mesid, "[+%" PRIu32 "ms] Tracker start", tracker->update_count);
 
   /* Do tracking report to manager */
   tp_report_t report;
   memset(&report, 0, sizeof(report));
-  report.cn0 = tracker_channel->cn0;
+  report.cn0 = tracker->cn0;
 
-  tp_profile_init(tracker_channel, &report);
+  tp_profile_init(tracker, &report);
 
   if (config->show_unconfirmed_trackers) {
-    tracker_channel->flags |= TRACKER_FLAG_CONFIRMED;
+    tracker->flags |= TRACKER_FLAG_CONFIRMED;
   }
 
-  tp_profile_apply_config(tracker_channel, /* init = */ true);
+  tp_profile_apply_config(tracker, /* init = */ true);
 
-  tracker_channel->flags |= TRACKER_FLAG_ACTIVE;
+  tracker->flags |= TRACKER_FLAG_ACTIVE;
 }
 
-void tracker_cleanup(tracker_t *tracker_channel) {
+void tracker_cleanup(tracker_t *tracker) {
   size_t cleanup_region_size =
       sizeof(tracker_t) - offsetof(tracker_t, cleanup_region_start);
-  memset(&tracker_channel->cleanup_region_start, 0, cleanup_region_size);
+  memset(&tracker->cleanup_region_start, 0, cleanup_region_size);
 }
 
 /**
@@ -274,19 +260,19 @@ void tracker_cleanup(tracker_t *tracker_channel) {
  *
  * The method releases tracker state.
  *
- * \param[in] tracker_channel Tracker channel data
+ * \param[in] tracker Tracker channel data
  */
-void tp_tracker_disable(tracker_t *tracker_channel) {
-  log_debug_mesid(tracker_channel->mesid,
+void tp_tracker_disable(tracker_t *tracker) {
+  log_debug_mesid(tracker->mesid,
                   "[+%" PRIu32 "ms] Tracker stop TOW=%" PRId32 "ms",
-                  tracker_channel->update_count,
-                  tracker_channel->TOW_ms);
+                  tracker->update_count,
+                  tracker->TOW_ms);
 
   /* restore acq for this tracked SV */
-  restore_acq(tracker_channel);
+  restore_acq(tracker);
 
   /* final cleanup */
-  tracker_cleanup(tracker_channel);
+  tracker_cleanup(tracker);
 }
 
 /**
@@ -299,33 +285,32 @@ void tp_tracker_disable(tracker_t *tracker_channel) {
  * tracking mode parameters are used. Otherwise, the new tracking parameters
  * are obtained and used for computation.
  *
- * \param[in] tracker_channel Tracker channel data
+ * \param[in] tracker Tracker channel data
  *
  * \return Computed number of chips.
  */
-static u32 tp_tracker_compute_rollover_count(tracker_t *tracker_channel) {
-  double code_phase_chips = tracker_channel->code_phase_prompt;
+static u32 tp_tracker_compute_rollover_count(tracker_t *tracker) {
+  double code_phase_chips = tracker->code_phase_prompt;
 
-  bool plock = ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) ||
-                (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)));
+  bool plock = ((0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) ||
+                (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK)));
   u32 result_ms = 0;
-  if (tracker_channel->has_next_params) {
-    tp_profile_t *profile = &tracker_channel->profile;
-    tp_tm_e mode =
-        tp_profile_get_next_track_mode(profile, tracker_channel->mesid);
+  if (tracker->has_next_params) {
+    tp_profile_t *profile = &tracker->profile;
+    tp_tm_e mode = tp_profile_get_next_track_mode(profile, tracker->mesid);
     result_ms = tp_get_current_cycle_duration(mode, 0);
   } else {
-    result_ms = tp_get_rollover_cycle_duration(tracker_channel->tracking_mode,
-                                               tracker_channel->cycle_no);
+    result_ms = tp_get_rollover_cycle_duration(tracker->tracking_mode,
+                                               tracker->cycle_no);
   }
   if (0 == result_ms) {
-    log_error_mesid(tracker_channel->mesid,
+    log_error_mesid(tracker->mesid,
                     "tracking_mode %d cycle_no %d result_ms 0",
-                    tracker_channel->tracking_mode,
-                    tracker_channel->cycle_no);
+                    tracker->tracking_mode,
+                    tracker->cycle_no);
   }
   return tp_convert_ms_to_chips(
-      tracker_channel->mesid, result_ms, code_phase_chips, plock);
+      tracker->mesid, result_ms, code_phase_chips, plock);
 }
 
 /**
@@ -336,21 +321,21 @@ static u32 tp_tracker_compute_rollover_count(tracker_t *tracker_channel) {
  * is performed when the interval processed by FPGA is the last bit interval,
  * or, in other words, the next cycle has a bit sync flag and closes the bit.
  *
- * \param tracker_channel Tracker channel data
+ * \param tracker Tracker channel data
  *
  * \return None
  */
-static void mode_change_init(tracker_t *tracker_channel) {
-  bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
-  if (tracker_channel->has_next_params || !confirmed) {
+static void mode_change_init(tracker_t *tracker) {
+  bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
+  if (tracker->has_next_params || !confirmed) {
     /* If the mode switch has been initiated - do nothing */
     return;
   }
 
   /* Compute time of the currently integrated period */
-  u8 next_cycle = tp_next_cycle_counter(tracker_channel->tracking_mode,
-                                        tracker_channel->cycle_no);
-  u32 next_cycle_flags = tp_get_cycle_flags(tracker_channel, next_cycle);
+  u8 next_cycle =
+      tp_next_cycle_counter(tracker->tracking_mode, tracker->cycle_no);
+  u32 next_cycle_flags = tp_get_cycle_flags(tracker, next_cycle);
 
   if (0 == (next_cycle_flags & TPF_BSYNC_UPD)) {
     return;
@@ -358,14 +343,14 @@ static void mode_change_init(tracker_t *tracker_channel) {
 
   /* The switch is possible only when bit sync counter is updated: get the
    * bit update interval in ms. */
-  u8 bit_ms = tp_get_bit_ms(tracker_channel->tracking_mode);
+  u8 bit_ms = tp_get_bit_ms(tracker->tracking_mode);
 
-  if (tracker_next_bit_aligned(tracker_channel, bit_ms)) {
+  if (tracker_next_bit_aligned(tracker, bit_ms)) {
     /* When the bit sync is available and the next integration interval is the
      * last one in the bit, check if the profile switch is required. */
-    if (tp_profile_has_new_profile(tracker_channel)) {
+    if (tp_profile_has_new_profile(tracker)) {
       /* Initiate profile change */
-      tracker_channel->has_next_params = true;
+      tracker->has_next_params = true;
     }
   }
 }
@@ -375,15 +360,15 @@ static void mode_change_init(tracker_t *tracker_channel) {
  *
  * Method fetches new profile parameters and reconfigures as necessary.
  *
- * \param[in,out] tracker_channel Tracker channel data
+ * \param[in,out] tracker Tracker channel data
  *
  * \return None
  */
-static void mode_change_complete(tracker_t *tracker_channel) {
-  if (tracker_channel->has_next_params) {
-    tp_profile_switch(tracker_channel);
-    tp_profile_update_config(tracker_channel);
-    tp_profile_apply_config(tracker_channel, /* init = */ false);
+static void mode_change_complete(tracker_t *tracker) {
+  if (tracker->has_next_params) {
+    tp_profile_switch(tracker);
+    tp_profile_update_config(tracker);
+    tp_profile_apply_config(tracker, /* init = */ false);
   }
 }
 
@@ -392,13 +377,13 @@ static void mode_change_complete(tracker_t *tracker_channel) {
  *
  * The method updates the TL step according to tracking mode.
  *
- * \param tracker_channel Tracker channel data
+ * \param tracker Tracker channel data
  *
  * \return None
  */
-void tp_tracker_update_cycle_counter(tracker_t *tracker_channel) {
-  tracker_channel->cycle_no = tp_next_cycle_counter(
-      tracker_channel->tracking_mode, tracker_channel->cycle_no);
+void tp_tracker_update_cycle_counter(tracker_t *tracker) {
+  tracker->cycle_no =
+      tp_next_cycle_counter(tracker->tracking_mode, tracker->cycle_no);
 }
 
 /**
@@ -406,14 +391,14 @@ void tp_tracker_update_cycle_counter(tracker_t *tracker_channel) {
  *
  * Detect frequency error and update tracker state as appropriate.
  *
- * \param[in] tracker_channel Tracker channel data
+ * \param[in] tracker Tracker channel data
  * \param[in] I in-phase signal component
  * \param[in] Q quadrature signal component
  *
  * \return None
  */
-static void process_alias_error(tracker_t *tracker_channel, float I, float Q) {
-  float err_hz = alias_detect_second(&tracker_channel->alias_detect, I, Q);
+static void process_alias_error(tracker_t *tracker, float I, float Q) {
+  float err_hz = alias_detect_second(&tracker->alias_detect, I, Q);
 
   if (fabsf(err_hz) < TRACK_ALIAS_THRESHOLD_HZ) {
     return;
@@ -425,18 +410,18 @@ static void process_alias_error(tracker_t *tracker_channel, float I, float Q) {
      However in practice we see alias frequencies also in between the expected
      ones. So let's just correct the error we actually observe. */
 
-  bool plock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK));
-  bool flock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK));
-  log_warn_mesid(tracker_channel->mesid,
+  bool plock = (0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK));
+  bool flock = (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK));
+  log_warn_mesid(tracker->mesid,
                  "False freq detected: %.1f Hz (plock=%d,flock=%d)",
                  err_hz,
                  (int)plock,
                  (int)flock);
 
-  tracker_ambiguity_unknown(tracker_channel);
+  tracker_ambiguity_unknown(tracker);
   /* alias_detect_second() returns the freq correction value directly.
      So we can use it as is for the adjustment. */
-  tp_tl_adjust(&tracker_channel->tl_state, err_hz);
+  tp_tl_adjust(&tracker->tl_state, err_hz);
 }
 
 /**
@@ -445,12 +430,11 @@ static void process_alias_error(tracker_t *tracker_channel, float I, float Q) {
  * Updates tracker correlators with data read from FPGA according to current
  * cycle flags.
  *
- * \param[in]     tracker_channel Tracker channel data
+ * \param[in]     tracker Tracker channel data
  * \param[in]     cycle_flags  Current cycle flags.
  */
-static void tp_tracker_update_correlators(tracker_t *tracker_channel,
-                                          u32 cycle_flags) {
-  me_gnss_signal_t mesid = tracker_channel->mesid;
+static void tp_tracker_update_correlators(tracker_t *tracker, u32 cycle_flags) {
+  me_gnss_signal_t mesid = tracker->mesid;
   tp_epl_corr_t cs_now;     /**< Correlations from FPGA */
   u32 sample_count;         /**< Sample count from FPGA */
   double code_phase_prompt; /**< Code phase from FPGA */
@@ -458,15 +442,15 @@ static void tp_tracker_update_correlators(tracker_t *tracker_channel,
   u8 int_ms = 0;            /**< Current cycle duration in ms */
 
   /* Read correlations. */
-  tracker_correlations_read(tracker_channel->nap_channel,
+  tracker_correlations_read(tracker->nap_channel,
                             cs_now.five,
                             &sample_count,
                             &code_phase_prompt,
                             &carrier_phase);
 
-  bool try_lock_pilot = ((CODE_GAL_E5X == tracker_channel->mesid.code) ||
-                         (CODE_GAL_E7X == tracker_channel->mesid.code)) &&
-                        (0 == (TRACKER_FLAG_BIT_SYNC & tracker_channel->flags));
+  bool try_lock_pilot = ((CODE_GAL_E5X == tracker->mesid.code) ||
+                         (CODE_GAL_E7X == tracker->mesid.code)) &&
+                        (0 == (TRACKER_FLAG_BIT_SYNC & tracker->flags));
   if (try_lock_pilot) {
     /* overwrite data with pilot until bit-sync has been achieved,
      * so that sync can be achieved on the 100-chip secondary code */
@@ -474,28 +458,28 @@ static void tp_tracker_update_correlators(tracker_t *tracker_channel,
     cs_now.prompt.Q = +cs_now.very_late.I;
   }
 
-  tp_update_correlators(cycle_flags, &cs_now, &tracker_channel->corrs);
+  tp_update_correlators(cycle_flags, &cs_now, &tracker->corrs);
 
   /* Current cycle duration */
-  int_ms = tp_get_current_cycle_duration(tracker_channel->tracking_mode,
-                                         tracker_channel->cycle_no);
+  int_ms =
+      tp_get_current_cycle_duration(tracker->tracking_mode, tracker->cycle_no);
 
   u64 now = timing_getms();
-  if (tracker_channel->updated_once) {
-    u64 time_diff_ms = now - tracker_channel->update_timestamp_ms;
+  if (tracker->updated_once) {
+    u64 time_diff_ms = now - tracker->update_timestamp_ms;
     if (time_diff_ms > NAP_CORR_LENGTH_MAX_MS) {
       log_warn_mesid(mesid,
                      "Unexpected tracking channel update rate: %" PRIu64 " ms",
                      time_diff_ms);
     }
   }
-  tracker_channel->updated_once = true;
-  tracker_channel->update_timestamp_ms = now;
+  tracker->updated_once = true;
+  tracker->update_timestamp_ms = now;
 
-  tracker_channel->sample_count = sample_count;
-  tracker_channel->code_phase_prompt = code_phase_prompt;
-  tracker_channel->carrier_phase_prev = tracker_channel->carrier_phase;
-  tracker_channel->carrier_phase = carrier_phase;
+  tracker->sample_count = sample_count;
+  tracker->code_phase_prompt = code_phase_prompt;
+  tracker->carrier_phase_prev = tracker->carrier_phase;
+  tracker->carrier_phase = carrier_phase;
 
   /* ToW update:
    * ToW along with carrier and code phases and sample number and health
@@ -503,77 +487,75 @@ static void tp_tracker_update_correlators(tracker_t *tracker_channel,
    */
   bool decoded_tow;
   bool decoded_health;
-  tracker_channel->TOW_ms_prev = tracker_channel->TOW_ms;
-  tracker_channel->TOW_ms =
-      tracker_tow_update(tracker_channel,
-                         tracker_channel->TOW_ms,
-                         int_ms,
-                         &tracker_channel->TOW_residual_ns,
-                         &decoded_tow,
-                         &decoded_health);
+  tracker->TOW_ms_prev = tracker->TOW_ms;
+  tracker->TOW_ms = tracker_tow_update(tracker,
+                                       tracker->TOW_ms,
+                                       int_ms,
+                                       &tracker->TOW_residual_ns,
+                                       &decoded_tow,
+                                       &decoded_health);
 
-  if (!tp_tow_is_sane(tracker_channel->TOW_ms)) {
+  if (!tp_tow_is_sane(tracker->TOW_ms)) {
     log_error_mesid(mesid,
                     "[+%" PRIu32 "ms] Error TOW from decoder %" PRId32 "(%s)",
-                    tracker_channel->update_count,
-                    tracker_channel->TOW_ms,
+                    tracker->update_count,
+                    tracker->TOW_ms,
                     decoded_tow ? "decoded" : "propagated");
 
-    tracker_channel->TOW_ms = TOW_UNKNOWN;
-    tracker_channel->flags &= ~TRACKER_FLAG_TOW_DECODED;
+    tracker->TOW_ms = TOW_UNKNOWN;
+    tracker->flags &= ~TRACKER_FLAG_TOW_DECODED;
     /* Still trust TRACKER_FLAG_GLO_HEALTH_DECODED, if it is set */
   }
 
   if (decoded_tow) {
     log_debug_mesid(mesid,
                     "[+%" PRIu32 "ms] Decoded TOW %" PRId32,
-                    tracker_channel->update_count,
-                    tracker_channel->TOW_ms);
+                    tracker->update_count,
+                    tracker->TOW_ms);
 
-    if (tracker_channel->TOW_ms != TOW_UNKNOWN) {
-      tracker_channel->flags |= TRACKER_FLAG_TOW_DECODED;
+    if (tracker->TOW_ms != TOW_UNKNOWN) {
+      tracker->flags |= TRACKER_FLAG_TOW_DECODED;
     }
   }
 
   if (decoded_health) {
     /* GLO health data is also decoded along with TOW */
     if (IS_GLO(mesid)) {
-      tracker_channel->flags |= TRACKER_FLAG_GLO_HEALTH_DECODED;
-      tracker_channel->health = tracker_glo_sv_health_get(tracker_channel);
+      tracker->flags |= TRACKER_FLAG_GLO_HEALTH_DECODED;
+      tracker->health = tracker_glo_sv_health_get(tracker);
       log_debug_mesid(mesid,
                       "[+%" PRIu32 "ms] Decoded Health info %" PRIu8,
-                      tracker_channel->update_count,
-                      tracker_channel->health);
+                      tracker->update_count,
+                      tracker->health);
     }
   }
 
-  if (TOW_UNKNOWN == tracker_channel->TOW_ms) {
-    tracker_channel->flags &= ~TRACKER_FLAG_TOW_VALID;
+  if (TOW_UNKNOWN == tracker->TOW_ms) {
+    tracker->flags &= ~TRACKER_FLAG_TOW_VALID;
   } else {
-    tracker_channel->flags |= TRACKER_FLAG_TOW_VALID;
+    tracker->flags |= TRACKER_FLAG_TOW_VALID;
   }
 
   /* Channel run time. */
-  tracker_channel->update_count += int_ms;
+  tracker->update_count += int_ms;
 }
 
 /**
  * Updates bit synchronization and decodes message
  *
- * \param[in]     tracker_channel Tracker channel data
+ * \param[in]     tracker Tracker channel data
  * \param[in]     cycle_flags  Current cycle flags.
  *
  * \return None
  */
-static void tp_tracker_update_bsync(tracker_t *tracker_channel,
-                                    u32 cycle_flags) {
+static void tp_tracker_update_bsync(tracker_t *tracker, u32 cycle_flags) {
   if (0 != (cycle_flags & TPF_BSYNC_UPD)) {
     bool sensitivity_mode =
-        (0 != (tracker_channel->flags & TRACKER_FLAG_SENSITIVITY_MODE));
+        (0 != (tracker->flags & TRACKER_FLAG_SENSITIVITY_MODE));
     /* Bit sync / data decoding update counter. */
-    u8 int_ms = tp_get_bit_ms(tracker_channel->tracking_mode);
+    u8 int_ms = tp_get_bit_ms(tracker->tracking_mode);
     /* Bit sync advance / message decoding */
-    tracker_bit_sync_update(tracker_channel, int_ms, sensitivity_mode);
+    tracker_bit_sync_update(tracker, int_ms, sensitivity_mode);
 
     /* TODO Update BS from ToW when appropriate. */
     /* TODO Add fast BS detection. */
@@ -584,183 +566,178 @@ static void tp_tracker_update_bsync(tracker_t *tracker_channel,
 /**
  * Updates C/N0 estimators.
  *
- * \param[in]     tracker_channel Tracker channel data
+ * \param[in]     tracker Tracker channel data
  * \param[in]     cycle_flags  Current cycle flags.
  *
  * \return None
  */
-static void tp_tracker_update_cn0(tracker_t *tracker_channel, u32 cycle_flags) {
-  float cn0 = tracker_channel->cn0_est.filter.yn;
+static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
+  float cn0 = tracker->cn0_est.filter.yn;
   tp_cn0_params_t cn0_params;
-  tp_profile_get_cn0_params(&tracker_channel->profile, &cn0_params);
+  tp_profile_get_cn0_params(&tracker->profile, &cn0_params);
 
   if (0 != (cycle_flags & TPF_CN0_USE)) {
     /* Workaround for
      * https://github.com/swift-nav/piksi_v3_bug_tracking/issues/475
      * don't update c/n0 if correlators data are 0 use
      * last post-filter sample instead */
-    if (0 == tracker_channel->corrs.corr_cn0.prompt.I &&
-        0 == tracker_channel->corrs.corr_cn0.prompt.Q) {
-      log_warn_mesid(tracker_channel->mesid,
+    if (0 == tracker->corrs.corr_cn0.prompt.I &&
+        0 == tracker->corrs.corr_cn0.prompt.Q) {
+      log_warn_mesid(tracker->mesid,
                      "Prompt I/Q: %" PRIi32 "/%" PRIi32 " Ea I/Q: %" PRIi32
                      "/%" PRIi32 " La I/Q: %" PRIi32 "/%" PRIi32
                      " VEa I/Q: %" PRIi32 "/%" PRIi32 " VLa I/Q: %" PRIi32
                      "/%" PRIi32,
-                     tracker_channel->corrs.corr_cn0.prompt.I,
-                     tracker_channel->corrs.corr_cn0.prompt.Q,
-                     tracker_channel->corrs.corr_cn0.early.I,
-                     tracker_channel->corrs.corr_cn0.early.Q,
-                     tracker_channel->corrs.corr_cn0.late.I,
-                     tracker_channel->corrs.corr_cn0.late.Q,
-                     tracker_channel->corrs.corr_cn0.very_early.I,
-                     tracker_channel->corrs.corr_cn0.very_early.Q,
-                     tracker_channel->corrs.corr_cn0.very_late.I,
-                     tracker_channel->corrs.corr_cn0.very_late.Q);
+                     tracker->corrs.corr_cn0.prompt.I,
+                     tracker->corrs.corr_cn0.prompt.Q,
+                     tracker->corrs.corr_cn0.early.I,
+                     tracker->corrs.corr_cn0.early.Q,
+                     tracker->corrs.corr_cn0.late.I,
+                     tracker->corrs.corr_cn0.late.Q,
+                     tracker->corrs.corr_cn0.very_early.I,
+                     tracker->corrs.corr_cn0.very_early.Q,
+                     tracker->corrs.corr_cn0.very_late.I,
+                     tracker->corrs.corr_cn0.very_late.Q);
 
     } else {
       /* Update C/N0 estimate */
-      cn0 = track_cn0_update(tracker_channel->mesid,
+      cn0 = track_cn0_update(tracker->mesid,
                              cn0_params.est,
-                             &tracker_channel->cn0_est,
-                             tracker_channel->corrs.corr_cn0.prompt.I,
-                             tracker_channel->corrs.corr_cn0.prompt.Q,
-                             tracker_channel->corrs.corr_cn0.very_early.I,
-                             tracker_channel->corrs.corr_cn0.very_early.Q);
+                             &tracker->cn0_est,
+                             tracker->corrs.corr_cn0.prompt.I,
+                             tracker->corrs.corr_cn0.prompt.Q,
+                             tracker->corrs.corr_cn0.very_early.I,
+                             tracker->corrs.corr_cn0.very_early.Q);
     }
   }
 
   if (cn0 > cn0_params.track_cn0_drop_thres_dbhz) {
     /* When C/N0 is above a drop threshold tracking shall continue. */
-    tracker_channel->cn0_above_drop_thres_count = tracker_channel->update_count;
+    tracker->cn0_above_drop_thres_count = tracker->update_count;
   }
 
-  bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
-  bool inlock = ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) ||
-                 (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)));
+  bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
+  bool inlock = ((0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) ||
+                 (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK)));
   if (cn0 > cn0_params.track_cn0_drop_thres_dbhz && !confirmed && inlock &&
-      tracker_has_bit_sync(tracker_channel)) {
-    tracker_channel->flags |= TRACKER_FLAG_CONFIRMED;
-    log_debug_mesid(tracker_channel->mesid,
-                    "CONFIRMED from %f to %d",
-                    cn0,
-                    tracker_channel->cn0_est.cn0_0);
+      tracker_has_bit_sync(tracker)) {
+    tracker->flags |= TRACKER_FLAG_CONFIRMED;
+    log_debug_mesid(
+        tracker->mesid, "CONFIRMED from %f to %d", cn0, tracker->cn0_est.cn0_0);
 
-    cn0 = tracker_channel->cn0_est.cn0_0;
+    cn0 = tracker->cn0_est.cn0_0;
     /* Re-initialize C/N0 estimator and filter */
-    track_cn0_init(tracker_channel->mesid,          /* ME signal */
-                   tracker_channel->cn0_est.cn0_ms, /* C/N0 period in ms */
-                   &tracker_channel->cn0_est,       /* C/N0 estimator state */
-                   cn0,                             /* Initial C/N0 value */
-                   0);                              /* Flags */
+    track_cn0_init(tracker->mesid,          /* ME signal */
+                   tracker->cn0_est.cn0_ms, /* C/N0 period in ms */
+                   &tracker->cn0_est,       /* C/N0 estimator state */
+                   cn0,                     /* Initial C/N0 value */
+                   0);                      /* Flags */
   }
 
-  if (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED)) {
-    tracker_channel->cn0 = cn0;
+  if (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED)) {
+    tracker->cn0 = cn0;
   }
 
   if (cn0 < cn0_params.track_cn0_ambiguity_thres_dbhz) {
     /* C/N0 has dropped below threshold, indicate that the carrier phase
      * ambiguity is now unknown as cycle slips are likely. */
-    tracker_ambiguity_unknown(tracker_channel);
+    tracker_ambiguity_unknown(tracker);
   }
 
   if (cn0 < cn0_params.track_cn0_use_thres_dbhz) {
     /* Update the latest time we were below the threshold. */
-    tracker_channel->cn0_below_use_thres_count = tracker_channel->update_count;
+    tracker->cn0_below_use_thres_count = tracker->update_count;
     /* Flag as low CN0 measurements. */
-    tracker_channel->flags &= ~TRACKER_FLAG_CN0_LONG;
-    tracker_channel->flags &= ~TRACKER_FLAG_CN0_SHORT;
+    tracker->flags &= ~TRACKER_FLAG_CN0_LONG;
+    tracker->flags &= ~TRACKER_FLAG_CN0_SHORT;
   }
 
   if (cn0 >
       (cn0_params.track_cn0_use_thres_dbhz + TRACK_CN0_HYSTERESIS_THRES_DBHZ)) {
     /* Flag as high CN0 measurements. */
-    tracker_channel->flags |= TRACKER_FLAG_CN0_LONG;
-    tracker_channel->flags |= TRACKER_FLAG_CN0_SHORT;
+    tracker->flags |= TRACKER_FLAG_CN0_LONG;
+    tracker->flags |= TRACKER_FLAG_CN0_SHORT;
   }
 }
 
-static void update_ld_phase(tracker_t *tracker_channel) {
-  bool last_outp = tracker_channel->ld_phase.outp;
+static void update_ld_phase(tracker_t *tracker) {
+  bool last_outp = tracker->ld_phase.outp;
 
-  lock_detect_update(&tracker_channel->ld_phase,
-                     tracker_channel->corrs.corr_ld.I,
-                     tracker_channel->corrs.corr_ld.Q,
-                     tp_get_ld_ms(tracker_channel->tracking_mode));
+  lock_detect_update(&tracker->ld_phase,
+                     tracker->corrs.corr_ld.I,
+                     tracker->corrs.corr_ld.Q,
+                     tp_get_ld_ms(tracker->tracking_mode));
 
-  bool outp = tracker_channel->ld_phase.outp;
+  bool outp = tracker->ld_phase.outp;
 
   if (outp) {
-    tracker_channel->flags |= TRACKER_FLAG_HAS_PLOCK;
-    tracker_channel->flags |= TRACKER_FLAG_HAD_PLOCK;
-  } else if (last_outp && (TP_TM_INITIAL != tracker_channel->tracking_mode)) {
-    log_info_mesid(tracker_channel->mesid, "PLL stress");
+    tracker->flags |= TRACKER_FLAG_HAS_PLOCK;
+    tracker->flags |= TRACKER_FLAG_HAD_PLOCK;
+  } else if (last_outp && (TP_TM_INITIAL != tracker->tracking_mode)) {
+    log_info_mesid(tracker->mesid, "PLL stress");
   }
 }
 
-static void update_ld_freq(tracker_t *tracker_channel) {
+static void update_ld_freq(tracker_t *tracker) {
   /* FLL lock detector is based on frequency error seen by FLL discriminator */
-  float unfiltered_freq_error = tracker_channel->unfiltered_freq_error;
+  float unfiltered_freq_error = tracker->unfiltered_freq_error;
 
   /* Calculate low-pass filtered frequency error */
-  freq_lock_detect_update(&tracker_channel->ld_freq, unfiltered_freq_error);
+  freq_lock_detect_update(&tracker->ld_freq, unfiltered_freq_error);
 
-  bool outp = tracker_channel->ld_freq.outp;
+  bool outp = tracker->ld_freq.outp;
 
   if (outp) {
-    tracker_channel->flags |= TRACKER_FLAG_HAS_FLOCK;
-    tracker_channel->flags |= TRACKER_FLAG_HAD_FLOCK;
+    tracker->flags |= TRACKER_FLAG_HAS_FLOCK;
+    tracker->flags |= TRACKER_FLAG_HAD_FLOCK;
   }
 }
 
 /**
  * Updates PLL and FLL lock detectors.
  *
- * \param[in]     tracker_channel Tracker channel data
+ * \param[in]     tracker Tracker channel data
  * \param[in]     cycle_flags  Current cycle flags.
  *
  * \return None
  */
-static void tp_tracker_update_locks(tracker_t *tracker_channel,
-                                    u32 cycle_flags) {
+static void tp_tracker_update_locks(tracker_t *tracker, u32 cycle_flags) {
   /* Phase lock and frequency lock detectors are updated asynchronously. */
   if (0 != (cycle_flags & TPF_PLD_USE) || 0 != (cycle_flags & TPF_FLL_USE)) {
-    bool outp_prev =
-        tracker_channel->ld_phase.outp || tracker_channel->ld_freq.outp;
+    bool outp_prev = tracker->ld_phase.outp || tracker->ld_freq.outp;
 
     if (0 != (cycle_flags & TPF_PLD_USE)) {
-      tracker_channel->flags &= ~TRACKER_FLAG_HAS_PLOCK;
+      tracker->flags &= ~TRACKER_FLAG_HAS_PLOCK;
 
-      if (0 != (tracker_channel->flags & TRACKER_FLAG_PLL_USE)) {
-        update_ld_phase(tracker_channel);
+      if (0 != (tracker->flags & TRACKER_FLAG_PLL_USE)) {
+        update_ld_phase(tracker);
       } else {
         /* Reset internal variables while phase lock detector is not in use. */
-        tp_profile_t *profile = &tracker_channel->profile;
+        tp_profile_t *profile = &tracker->profile;
         const tp_lock_detect_params_t *ldp = &profile->ld_phase_params;
         lock_detect_init(
-            &tracker_channel->ld_phase, ldp->k1, ldp->k2, ldp->lp, /*lo=*/0);
+            &tracker->ld_phase, ldp->k1, ldp->k2, ldp->lp, /*lo=*/0);
       }
     }
 
     if (0 != (cycle_flags & TPF_FLL_USE)) {
-      tracker_channel->flags &= ~TRACKER_FLAG_HAS_FLOCK;
-      update_ld_freq(tracker_channel);
+      tracker->flags &= ~TRACKER_FLAG_HAS_FLOCK;
+      update_ld_freq(tracker);
     }
 
-    bool outp = tracker_channel->ld_phase.outp || tracker_channel->ld_freq.outp;
+    bool outp = tracker->ld_phase.outp || tracker->ld_freq.outp;
 
     if (!outp_prev && outp) {
-      u32 unlocked_ms = update_count_diff(
-          tracker_channel, &tracker_channel->ld_pess_change_count);
-      log_debug_mesid(
-          tracker_channel->mesid, "Lock after %" PRIu32 "ms", unlocked_ms);
+      u32 unlocked_ms =
+          update_count_diff(tracker, &tracker->ld_pess_change_count);
+      log_debug_mesid(tracker->mesid, "Lock after %" PRIu32 "ms", unlocked_ms);
     }
 
     if (outp != outp_prev) {
-      tracker_channel->ld_pess_change_count = tracker_channel->update_count;
+      tracker->ld_pess_change_count = tracker->update_count;
     }
     if (outp) {
-      tracker_channel->carrier_freq_at_lock = tracker_channel->carrier_freq;
+      tracker->carrier_freq_at_lock = tracker->carrier_freq;
     }
   }
   /*
@@ -769,8 +746,8 @@ static void tp_tracker_update_locks(tracker_t *tracker_channel,
    * is done always to prevent incorrect handling of partial integration
    * intervals.
    */
-  if (0 == (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) {
-    tracker_ambiguity_unknown(tracker_channel);
+  if (0 == (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) {
+    tracker_ambiguity_unknown(tracker);
   }
 }
 
@@ -779,19 +756,17 @@ static void tp_tracker_update_locks(tracker_t *tracker_channel,
  *
  * The method performs FLL tracking or FLL tracking assistance for PLL.
  *
- * \param[in]     tracker_channel Tracker channel data
+ * \param[in]     tracker Tracker channel data
  * \param[in]     cycle_flags  Current cycle flags.
  *
  * \return None
  */
-void tp_tracker_update_fll(tracker_t *tracker_channel, u32 cycle_flags) {
+void tp_tracker_update_fll(tracker_t *tracker, u32 cycle_flags) {
   bool halfq = (0 != (cycle_flags & TPF_FLL_HALFQ));
 
   if (0 != (cycle_flags & TPF_FLL_USE)) {
-    tp_tl_fll_update_second(
-        &tracker_channel->tl_state, tracker_channel->corrs.corr_fll, halfq);
-    tracker_channel->unfiltered_freq_error =
-        tp_tl_get_fll_error(&tracker_channel->tl_state);
+    tp_tl_fll_update_second(&tracker->tl_state, tracker->corrs.corr_fll, halfq);
+    tracker->unfiltered_freq_error = tp_tl_get_fll_error(&tracker->tl_state);
   }
 }
 
@@ -801,36 +776,34 @@ void tp_tracker_update_fll(tracker_t *tracker_channel, u32 cycle_flags) {
  * This method updates PLL and DLL loops and additionally checks for DLL errors
  * and report data to profile managements.
  *
- * \param[in]     tracker_channel Tracker channel data
+ * \param[in]     tracker Tracker channel data
  * \param[in]     cycle_flags  Current cycle flags.
  *
  * \return None
  */
-static void tp_tracker_update_pll_dll(tracker_t *tracker_channel,
-                                      u32 cycle_flags) {
+static void tp_tracker_update_pll_dll(tracker_t *tracker, u32 cycle_flags) {
   if (0 != (cycle_flags & TPF_EPL_USE)) {
     /* Output I/Q correlations using SBP if enabled for this channel */
-    if (tracker_channel->tracking_mode != TP_TM_INITIAL) {
-      tracker_correlations_send(tracker_channel,
-                                tracker_channel->corrs.corr_all.five);
+    if (tracker->tracking_mode != TP_TM_INITIAL) {
+      tracker_correlations_send(tracker, tracker->corrs.corr_all.five);
     }
 
-    if (tracker_channel->has_next_params) {
+    if (tracker->has_next_params) {
       /* Transitional state: when the next interval has a different integration
        * period, the controller will give wrong correction. Due to that the
        * input parameters are scaled to stabilize tracker.
        */
-      u8 new_dll_ms = tp_profile_get_next_loop_params_ms(
-          tracker_channel->mesid, &tracker_channel->profile);
-      u8 old_dll_ms = tp_get_dll_ms(tracker_channel->tracking_mode);
+      u8 new_dll_ms =
+          tp_profile_get_next_loop_params_ms(tracker->mesid, &tracker->profile);
+      u8 old_dll_ms = tp_get_dll_ms(tracker->tracking_mode);
 
       if (old_dll_ms != new_dll_ms) {
         /* TODO utilize noise bandwidth and damping ratio */
         float k2 = (float)old_dll_ms / new_dll_ms;
         float k1 = sqrtf(k2);
         for (u32 i = 0; i < 3; i++) {
-          tracker_channel->corrs.corr_all.five[i].I *= k1;
-          tracker_channel->corrs.corr_all.five[i].Q *= k2;
+          tracker->corrs.corr_all.five[i].I *= k1;
+          tracker->corrs.corr_all.five[i].Q *= k2;
         }
       }
     }
@@ -838,11 +811,11 @@ static void tp_tracker_update_pll_dll(tracker_t *tracker_channel,
     tl_rates_t rates = {0};
 
     bool costas = true;
-    tp_epl_corr_t corr_all = tracker_channel->corrs.corr_all;
+    tp_epl_corr_t corr_all = tracker->corrs.corr_all;
 
-    bool has_pilot_sync = tracker_has_pilot_sync(tracker_channel);
+    bool has_pilot_sync = tracker_has_pilot_sync(tracker);
 
-    if ((CODE_GPS_L2CM == tracker_channel->mesid.code)) {
+    if ((CODE_GPS_L2CM == tracker->mesid.code)) {
       /* The L2CM and L2CL codes are in phase */
       corr_all.prompt = corr_all.very_late;
       costas = false;
@@ -852,25 +825,25 @@ static void tp_tracker_update_pll_dll(tracker_t *tracker_channel,
       corr_all.prompt.Q = +corr_all.very_late.I;
       costas = false;
     }
-    tp_tl_update(&tracker_channel->tl_state, &corr_all, costas);
-    tp_tl_get_rates(&tracker_channel->tl_state, &rates);
+    tp_tl_update(&tracker->tl_state, &corr_all, costas);
+    tp_tl_get_rates(&tracker->tl_state, &rates);
 
-    tracker_channel->carrier_freq = rates.carr_freq;
-    tracker_channel->code_phase_rate =
-        rates.code_freq + code_to_chip_rate(tracker_channel->mesid.code);
-    tracker_channel->acceleration = rates.acceleration;
+    tracker->carrier_freq = rates.carr_freq;
+    tracker->code_phase_rate =
+        rates.code_freq + code_to_chip_rate(tracker->mesid.code);
+    tracker->acceleration = rates.acceleration;
 
     /* Do tracking report to manager */
     tp_report_t report;
     memset(&report, 0, sizeof(report));
-    if (0 == (tracker_channel->flags & TRACKER_FLAG_CONFIRMED)) {
-      report.cn0 = tracker_channel->cn0_est.cn0_0;
+    if (0 == (tracker->flags & TRACKER_FLAG_CONFIRMED)) {
+      report.cn0 = tracker->cn0_est.cn0_0;
     } else {
-      report.cn0 = tracker_channel->cn0;
+      report.cn0 = tracker->cn0;
     }
-    report.time_ms = tp_get_dll_ms(tracker_channel->tracking_mode);
+    report.time_ms = tp_get_dll_ms(tracker->tracking_mode);
 
-    tp_profile_report_data(&tracker_channel->profile, &report);
+    tp_profile_report_data(&tracker->profile, &report);
   }
 }
 
@@ -934,14 +907,13 @@ static void tp_tracker_flag_outliers(tracker_t *tracker) {
 /**
  * Runs false lock detection logic.
  *
- * \param[in,out] tracker_channel Tracker channel data
+ * \param[in,out] tracker Tracker channel data
  * \param[in]     cycle_flags  Current cycle flags.
  *
  * \return None
  */
-static void tp_tracker_update_alias(tracker_t *tracker_channel,
-                                    u32 cycle_flags) {
-  if (!tracker_channel->use_alias_detection) {
+static void tp_tracker_update_alias(tracker_t *tracker, u32 cycle_flags) {
+  if (!tracker->use_alias_detection) {
     return;
   }
 
@@ -952,20 +924,20 @@ static void tp_tracker_update_alias(tracker_t *tracker_channel,
     return;
   }
 
-  float I = tracker_channel->corrs.corr_ad.I;
-  float Q = tracker_channel->corrs.corr_ad.Q;
+  float I = tracker->corrs.corr_ad.I;
+  float Q = tracker->corrs.corr_ad.Q;
 
   if (do_second) {
-    bool inlock = ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) ||
-                   (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)));
+    bool inlock = ((0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) ||
+                   (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK)));
     if (inlock) {
-      process_alias_error(tracker_channel, I, Q);
+      process_alias_error(tracker, I, Q);
     }
     do_first = true;
   }
 
   if (do_first) {
-    alias_detect_first(&tracker_channel->alias_detect, I, Q);
+    alias_detect_first(&tracker->alias_detect, I, Q);
   }
 }
 
@@ -976,84 +948,82 @@ static void tp_tracker_update_alias(tracker_t *tracker_channel,
  * from
  * controller, but is a LP product of controller output.
  *
- * \param[in,out  tracker_channel Tracker channel data
+ * \param[in,out  tracker Tracker channel data
  * \param[in]     cycle_flags  Current cycle flags.
  * \param[in]     config       Generic tracker configuration.
  *
  * \return None
  */
-static void tp_tracker_filter_doppler(tracker_t *tracker_channel,
+static void tp_tracker_filter_doppler(tracker_t *tracker,
                                       u32 cycle_flags,
                                       const tp_tracker_config_t *config) {
-  if (0 != (cycle_flags & TPF_BSYNC_UPD) &&
-      tracker_bit_aligned(tracker_channel)) {
-    float xcorr_freq = tracker_channel->carrier_freq;
+  if (0 != (cycle_flags & TPF_BSYNC_UPD) && tracker_bit_aligned(tracker)) {
+    float xcorr_freq = tracker->carrier_freq;
 
-    if (tracker_channel->flags & TRACKER_FLAG_XCORR_FILTER_ACTIVE) {
+    if (tracker->flags & TRACKER_FLAG_XCORR_FILTER_ACTIVE) {
       xcorr_freq = lp1_filter_update(
-          &tracker_channel->xcorr_filter, &config->xcorr_f_params, xcorr_freq);
+          &tracker->xcorr_filter, &config->xcorr_f_params, xcorr_freq);
     } else {
       lp1_filter_init(
-          &tracker_channel->xcorr_filter, &config->xcorr_f_params, xcorr_freq);
-      tracker_channel->flags |= TRACKER_FLAG_XCORR_FILTER_ACTIVE;
+          &tracker->xcorr_filter, &config->xcorr_f_params, xcorr_freq);
+      tracker->flags |= TRACKER_FLAG_XCORR_FILTER_ACTIVE;
     }
 
-    tracker_channel->xcorr_freq = xcorr_freq;
+    tracker->xcorr_freq = xcorr_freq;
   }
 }
 
 /**
  * Mode switching control.
  *
- * \param tracker_channel Tracker channel data
+ * \param tracker Tracker channel data
  *
  * \return None
  */
-static void tp_tracker_update_mode(tracker_t *tracker_channel) {
-  mode_change_complete(tracker_channel);
-  mode_change_init(tracker_channel);
+static void tp_tracker_update_mode(tracker_t *tracker) {
+  mode_change_complete(tracker);
+  mode_change_init(tracker);
 }
 
 /**
  * Default tracking loop.
  *
- * \param tracker_channel Tracking channel data.
+ * \param tracker Tracking channel data.
  * \param config       Generic tracker configuration.
  *
  * \return Flags, used in the current tracking cycle.
  */
-u32 tp_tracker_update(tracker_t *tracker_channel,
-                      const tp_tracker_config_t *config) {
+u32 tp_tracker_update(tracker_t *tracker, const tp_tracker_config_t *config) {
   /*
    * State machine control: control is a combination of actions permitted by
    * the tracker state and flags specific for current cycle.
    */
-  u32 cflags = tp_get_cycle_flags(tracker_channel, tracker_channel->cycle_no);
+  u32 cflags = tp_get_cycle_flags(tracker, tracker->cycle_no);
 
-  tp_tracker_update_correlators(tracker_channel, cflags);
-  tp_tracker_update_bsync(tracker_channel, cflags);
-  tp_tracker_update_cn0(tracker_channel, cflags);
-  tp_tracker_update_fll(tracker_channel, cflags);
-  tp_tracker_update_pll_dll(tracker_channel, cflags);
-  tp_tracker_update_locks(tracker_channel, cflags);
-  tp_tracker_flag_outliers(tracker_channel);
-  tp_tracker_update_alias(tracker_channel, cflags);
-  tp_tracker_filter_doppler(tracker_channel, cflags, config);
-  tp_tracker_update_mode(tracker_channel);
+  tp_tracker_update_correlators(tracker, cflags);
+  tp_tracker_update_bsync(tracker, cflags);
+  tp_tracker_update_cn0(tracker, cflags);
+  tp_tracker_update_fll(tracker, cflags);
+  tp_tracker_update_pll_dll(tracker, cflags);
+  tp_tracker_update_locks(tracker, cflags);
+  tp_tracker_flag_outliers(tracker);
+  tp_tracker_update_alias(tracker, cflags);
+  tp_tracker_filter_doppler(tracker, cflags, config);
+  tp_tracker_update_mode(tracker);
 
-  u32 chips_to_correlate = tp_tracker_compute_rollover_count(tracker_channel);
-  tracker_retune(tracker_channel, chips_to_correlate);
+  u32 chips_to_correlate = tp_tracker_compute_rollover_count(tracker);
+  tracker_retune(tracker, chips_to_correlate);
 
-  tp_tracker_update_cycle_counter(tracker_channel);
+  tp_tracker_update_cycle_counter(tracker);
 
   return cflags;
 }
 
-static bool tow_is_bit_aligned(tracker_t *tracker_channel) {
-  me_gnss_signal_t mesid = tracker_channel->mesid;
-  u8 bit_length = tracker_bit_length_get(tracker_channel);
+static bool tow_is_bit_aligned(tracker_t *tracker) {
+  me_gnss_signal_t mesid = tracker->mesid;
+  u8 bit_length = tracker_bit_length_get(tracker);
 
-  if (tracker_channel->TOW_ms == TOW_UNKNOWN) {
+  if (tracker->TOW_ms == TOW_UNKNOWN) {
     return false;
   }
 
@@ -1066,7 +1036,7 @@ static bool tow_is_bit_aligned(tracker_t *tracker_channel) {
    * 10ms for GLO L1/L2
    * 2 ms for SBAS and Beidou B1/B2 with D2 data
    */
-  u8 tail = tracker_channel->TOW_ms % bit_length;
+  u8 tail = tracker->TOW_ms % bit_length;
   if (0 != tail) {
     /* If this correction is needed, then there is something wrong
        either with the TOW cache update or with the bit sync */
@@ -1076,23 +1046,23 @@ static bool tow_is_bit_aligned(tracker_t *tracker_channel) {
                     "[+%" PRIu32
                     "ms] TOW error detected: "
                     "error=%" PRId8 "ms old_tow=%" PRId32,
-                    tracker_channel->update_count,
+                    tracker->update_count,
                     error_ms,
-                    tracker_channel->TOW_ms);
+                    tracker->TOW_ms);
 
     /* This is rude, but safe. Do not expect it to happen normally. */
-    tracker_flag_drop(tracker_channel, CH_DROP_REASON_OUTLIER);
+    tracker_flag_drop(tracker, CH_DROP_REASON_OUTLIER);
     return false;
   }
   return true;
 }
 
-static bool should_update_tow_cache(const tracker_t *tracker_channel) {
-  me_gnss_signal_t mesid = tracker_channel->mesid;
+static bool should_update_tow_cache(const tracker_t *tracker) {
+  me_gnss_signal_t mesid = tracker->mesid;
 
-  bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
-  bool cn0_ok = (tracker_channel->cn0 >= CN0_TOW_CACHE_THRESHOLD);
-  bool tow_is_known = (TOW_UNKNOWN != tracker_channel->TOW_ms);
+  bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
+  bool cn0_ok = (tracker->cn0 >= CN0_TOW_CACHE_THRESHOLD);
+  bool tow_is_known = (TOW_UNKNOWN != tracker->TOW_ms);
   bool responsible_for_update = false;
 
   if (CODE_GPS_L1CA == mesid.code || CODE_GLO_L1OF == mesid.code ||
@@ -1138,23 +1108,23 @@ static bool should_update_tow_cache(const tracker_t *tracker_channel) {
  * Tracker performs ToW update/propagation only on bit edge. This makes
  * it more robust to propagation errors.
  *
- * \param[in,out] tracker_channel Tracker channel data
+ * \param[in,out] tracker Tracker channel data
  *
  * \return None
  */
-void tracker_tow_cache(tracker_t *tracker_channel) {
+void tracker_tow_cache(tracker_t *tracker) {
   /* If TOW is unknown, check if a valid cached TOW is available. */
-  if (TOW_UNKNOWN == tracker_channel->TOW_ms) {
-    propagate_tow_from_sid_db(tracker_channel);
+  if (TOW_UNKNOWN == tracker->TOW_ms) {
+    propagate_tow_from_sid_db(tracker);
   }
 
   /* Check that tracker has valid TOW. */
-  if (!tow_is_bit_aligned(tracker_channel)) {
+  if (!tow_is_bit_aligned(tracker)) {
     return;
   }
 
   /* Check if a tracker should update TOW cache. */
-  if (should_update_tow_cache(tracker_channel)) {
-    update_tow_in_sid_db(tracker_channel);
+  if (should_update_tow_cache(tracker)) {
+    update_tow_in_sid_db(tracker);
   }
 }

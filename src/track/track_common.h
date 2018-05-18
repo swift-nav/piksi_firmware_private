@@ -54,21 +54,21 @@ typedef struct {
   u32 time_ms : 8; /**< Time in milliseconds */
 } tp_report_t;
 
-void tp_profile_init(tracker_t *tracker_channel, const tp_report_t *data);
+void tp_profile_init(tracker_t *tracker, const tp_report_t *data);
 
-void tp_profile_update_config(tracker_t *tracker_channel);
-void tp_profile_apply_config(tracker_t *tracker_channel, bool init);
-void tp_profile_switch(tracker_t *tracker_channel);
+void tp_profile_update_config(tracker_t *tracker);
+void tp_profile_apply_config(tracker_t *tracker, bool init);
+void tp_profile_switch(tracker_t *tracker);
 
 void tp_profile_get_cn0_params(const tp_profile_t *profile,
                                tp_cn0_params_t *cn0_params);
-bool tp_profile_has_new_profile(tracker_t *tracker_channel);
+bool tp_profile_has_new_profile(tracker_t *tracker);
 u8 tp_profile_get_next_loop_params_ms(const me_gnss_signal_t mesid,
                                       const tp_profile_t *profile);
 void tp_profile_report_data(tp_profile_t *profile, const tp_report_t *data);
 
 u8 tp_next_cycle_counter(tp_tm_e tracking_mode, u8 cycle_no);
-u32 tp_get_cycle_flags(tracker_t *tracker_channel, u8 cycle_no);
+u32 tp_get_cycle_flags(tracker_t *tracker, u8 cycle_no);
 u32 tp_compute_cycle_parameters(tp_tm_e tracking_mode, u8 cycle_no);
 
 u8 tp_get_cycle_count(tp_tm_e tracking_mode);
@@ -110,11 +110,9 @@ void tp_tl_fll_update_second(tp_tl_state_t *s, corr_t cs, bool halfq);
 void tp_tl_fll_update(tp_tl_state_t *s);
 
 /* Generic tracker functions */
-void tp_tracker_init(tracker_t *tracker_channel,
-                     const tp_tracker_config_t *config);
-void tp_tracker_disable(tracker_t *tracker_channel);
-u32 tp_tracker_update(tracker_t *tracker_channel,
-                      const tp_tracker_config_t *config);
+void tp_tracker_init(tracker_t *tracker, const tp_tracker_config_t *config);
+void tp_tracker_disable(tracker_t *tracker);
+u32 tp_tracker_update(tracker_t *tracker, const tp_tracker_config_t *config);
 
 tp_tm_e tp_profile_get_next_track_mode(const tp_profile_t *profile,
                                        me_gnss_signal_t mesid);

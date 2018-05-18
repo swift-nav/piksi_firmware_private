@@ -529,13 +529,13 @@ static struct profile_vars get_profile_vars(const me_gnss_signal_t mesid,
  * The method generates tracking loop parameters according to selected
  * configuration.
  *
- * \param tracker_channel[in,out] Tracker channel data
+ * \param tracker[in,out] Tracker channel data
  *
  * \return None
  */
-void tp_profile_update_config(tracker_t *tracker_channel) {
-  const me_gnss_signal_t mesid = tracker_channel->mesid;
-  tp_profile_t *profile = &tracker_channel->profile;
+void tp_profile_update_config(tracker_t *tracker) {
+  const me_gnss_signal_t mesid = tracker->mesid;
+  tp_profile_t *profile = &tracker->profile;
   const tp_profile_entry_t *cur_profile =
       &profile->profiles[profile->cur.index];
 
@@ -578,9 +578,9 @@ void tp_profile_update_config(tracker_t *tracker_channel) {
   profile->loop_params.mode = get_track_mode(mesid, cur_profile);
   profile->loop_params.ctrl = cur_profile->profile.controller_type;
 
-  tracker_channel->flags &= ~TRACKER_FLAG_SENSITIVITY_MODE;
+  tracker->flags &= ~TRACKER_FLAG_SENSITIVITY_MODE;
   if (profile->cur.pll_bw <= 0) {
-    tracker_channel->flags |= TRACKER_FLAG_SENSITIVITY_MODE;
+    tracker->flags |= TRACKER_FLAG_SENSITIVITY_MODE;
   }
 
   const tp_tm_e mode = profile->loop_params.mode;
@@ -622,14 +622,14 @@ static const char *get_ctrl_str(tp_ctrl_e v) {
  *
  * The function generate log output only when debug level logging is enabled.
  *
- * \param tracker_channel Tracker channel data
+ * \param tracker Tracker channel data
  * \param[in] reason Profile switching reason in a textual form
  *
  * \return None
  */
-static void log_switch(tracker_t *tracker_channel, const char *reason) {
-  const me_gnss_signal_t mesid = tracker_channel->mesid;
-  const tp_profile_t *state = &tracker_channel->profile;
+static void log_switch(tracker_t *tracker, const char *reason) {
+  const me_gnss_signal_t mesid = tracker->mesid;
+  const tp_profile_t *state = &tracker->profile;
   const tp_profile_entry_t *cur_profile = &state->profiles[state->cur.index];
   const tp_profile_entry_t *next_profile = &state->profiles[state->next.index];
   tp_tm_e cur_track_mode = get_track_mode(mesid, cur_profile);
@@ -653,18 +653,17 @@ static void log_switch(tracker_t *tracker_channel, const char *reason) {
                   get_ctrl_str(next_profile->profile.controller_type));
 }
 
-static bool pll_bw_changed(tracker_t *tracker_channel,
-                           profile_indices_t index) {
-  tp_profile_t *state = &tracker_channel->profile;
+static bool pll_bw_changed(tracker_t *tracker, profile_indices_t index) {
+  tp_profile_t *state = &tracker->profile;
   const tp_profile_entry_t *entry = &state->profiles[index];
   float pll_bw;
 
   if (entry->profile.pll_bw >= 0) { /* fixed PLL BW */
     pll_bw = entry->profile.pll_bw;
   } else { /* dynamic PLL BW */
-    tp_tm_e track_mode = get_track_mode(tracker_channel->mesid, entry);
+    tp_tm_e track_mode = get_track_mode(tracker->mesid, entry);
     u8 pll_t_ms = tp_get_pll_ms(track_mode);
-    pll_bw = compute_pll_bw(tracker_channel->cn0, pll_t_ms);
+    pll_bw = compute_pll_bw(tracker->cn0, pll_t_ms);
   }
 
   /* Simple hysteresis to avoid too often PLL retunes */
@@ -687,17 +686,16 @@ static bool pll_bw_changed(tracker_t *tracker_channel,
   return true;
 }
 
-static bool fll_bw_changed(tracker_t *tracker_channel,
-                           profile_indices_t index) {
-  tp_profile_t *state = &tracker_channel->profile;
+static bool fll_bw_changed(tracker_t *tracker, profile_indices_t index) {
+  tp_profile_t *state = &tracker->profile;
   const tp_profile_entry_t *entry = &state->profiles[index];
 
   float fll_bw;
   if (entry->profile.fll_bw >= 0) { /* fixed FLL BW */
     fll_bw = entry->profile.fll_bw;
   } else { /* dynamic FLL BW */
-    float cn0 = tracker_channel->cn0;
-    tp_tm_e track_mode = get_track_mode(tracker_channel->mesid, entry);
+    float cn0 = tracker->cn0;
+    tp_tm_e track_mode = get_track_mode(tracker->mesid, entry);
     u8 fll_t_ms = tp_get_flll_ms(track_mode);
     fll_bw = compute_fll_bw(cn0, fll_t_ms);
   }
@@ -726,24 +724,24 @@ static bool fll_bw_changed(tracker_t *tracker_channel,
  *
  * Sets the requested profile as the current one.
  *
- * \param tracker_channel Tracker channel data
+ * \param tracker Tracker channel data
  * \param[in]     index  Index of profile to activate
  * \param[in]     reason Textual reason of profile switch
  *
  * \retval true Profile switch requested
  * \retval false No profile switch requested
  */
-static bool profile_switch_requested(tracker_t *tracker_channel,
+static bool profile_switch_requested(tracker_t *tracker,
                                      profile_indices_t index,
                                      const char *reason) {
   assert(index != IDX_NONE);
   assert((size_t)index < ARRAY_SIZE(gnss_track_profiles));
 
-  tp_profile_t *state = &tracker_channel->profile;
+  tp_profile_t *state = &tracker->profile;
   const tp_profile_entry_t *next = &state->profiles[index];
 
-  bool pll_changed = pll_bw_changed(tracker_channel, index);
-  bool fll_changed = fll_bw_changed(tracker_channel, index);
+  bool pll_changed = pll_bw_changed(tracker, index);
+  bool fll_changed = fll_bw_changed(tracker, index);
 
   if ((index == state->cur.index) && !pll_changed && !fll_changed) {
     return false;
@@ -760,7 +758,7 @@ static bool profile_switch_requested(tracker_t *tracker_channel,
   state->next.index = index;
   state->lock_time_ms = next->lock_time_ms;
 
-  log_switch(tracker_channel, reason);
+  log_switch(tracker, reason);
 
   return true;
 }
@@ -768,15 +766,15 @@ static bool profile_switch_requested(tracker_t *tracker_channel,
 /**
  * Method to check if there is a pending profile change.
  *
- * \param tracker_channel Tracker channel data
+ * \param tracker Tracker channel data
  *
  * \retval true  New profile is available.
  * \retval false No profile change is required.
  */
-bool tp_profile_has_new_profile(tracker_t *tracker_channel) {
+bool tp_profile_has_new_profile(tracker_t *tracker) {
   const tp_profile_entry_t *cur_profile;
   u16 flags;
-  tp_profile_t *state = &tracker_channel->profile;
+  tp_profile_t *state = &tracker->profile;
 
   cur_profile = &state->profiles[state->cur.index];
   flags = cur_profile->flags;
@@ -785,27 +783,23 @@ bool tp_profile_has_new_profile(tracker_t *tracker_channel) {
 
   if ((0 != (flags & TP_LOW_CN0)) &&
       (state->filt_cn0 < cur_profile->cn0_low_threshold) &&
-      profile_switch_requested(
-          tracker_channel, cur_profile->next_cn0_low, "low cn0")) {
+      profile_switch_requested(tracker, cur_profile->next_cn0_low, "low cn0")) {
     return true;
   }
 
-  bool bsync = (0 != (tracker_channel->flags & TRACKER_FLAG_BIT_SYNC));
+  bool bsync = (0 != (tracker->flags & TRACKER_FLAG_BIT_SYNC));
   if ((0 != (flags & TP_WAIT_BSYNC)) && !bsync) {
-    return profile_switch_requested(
-        tracker_channel, state->cur.index, "wbsync");
+    return profile_switch_requested(tracker, state->cur.index, "wbsync");
   }
 
-  bool flock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK));
+  bool flock = (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK));
   if (0 != (flags & TP_WAIT_FLOCK) && !flock) {
-    return profile_switch_requested(
-        tracker_channel, state->cur.index, "wflock");
+    return profile_switch_requested(tracker, state->cur.index, "wflock");
   }
 
-  bool plock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK));
+  bool plock = (0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK));
   if (0 != (flags & TP_WAIT_PLOCK) && !plock) {
-    return profile_switch_requested(
-        tracker_channel, state->cur.index, "wplock");
+    return profile_switch_requested(tracker, state->cur.index, "wplock");
   }
 
   if (state->lock_time_ms > 0) {
@@ -815,16 +809,15 @@ bool tp_profile_has_new_profile(tracker_t *tracker_channel) {
   if ((0 != (flags & TP_HIGH_CN0)) &&
       (state->filt_cn0 > cur_profile->cn0_high_threshold) &&
       profile_switch_requested(
-          tracker_channel, cur_profile->next_cn0_high, "high cno")) {
+          tracker, cur_profile->next_cn0_high, "high cno")) {
     return true;
   }
 
   if (0 != (flags & TP_USE_NEXT)) {
     assert(cur_profile->next != IDX_NONE);
-    return profile_switch_requested(tracker_channel, cur_profile->next, "next");
+    return profile_switch_requested(tracker, cur_profile->next, "next");
   } else {
-    return profile_switch_requested(
-        tracker_channel, state->cur.index + 1, "next");
+    return profile_switch_requested(tracker, state->cur.index + 1, "next");
   }
 
   return false;
@@ -860,14 +853,14 @@ static float compute_cn0_offset(const me_gnss_signal_t mesid,
  *
  * The method registers GNSS signal and returns initial tracking parameters.
  *
- * \param[in,out]  tracker_channel Tracker channel data
+ * \param[in,out]  tracker Tracker channel data
  * \param[in]  data    Initial parameters.
  */
-void tp_profile_init(tracker_t *tracker_channel, const tp_report_t *data) {
-  assert(tracker_channel);
+void tp_profile_init(tracker_t *tracker, const tp_report_t *data) {
+  assert(tracker);
 
-  tp_profile_t *profile = &tracker_channel->profile;
-  me_gnss_signal_t mesid = tracker_channel->mesid;
+  tp_profile_t *profile = &tracker->profile;
+  me_gnss_signal_t mesid = tracker->mesid;
 
   memset(profile, 0, sizeof(*profile));
 
@@ -880,20 +873,20 @@ void tp_profile_init(tracker_t *tracker_channel, const tp_report_t *data) {
 
   profile->profile_update = 0;
 
-  tp_profile_update_config(tracker_channel);
+  tp_profile_update_config(tracker);
 
-  log_switch(tracker_channel, "init");
+  log_switch(tracker, "init");
 }
 
-void tp_profile_switch(tracker_t *tracker_channel) {
-  tp_profile_t *profile = &tracker_channel->profile;
+void tp_profile_switch(tracker_t *tracker) {
+  tp_profile_t *profile = &tracker->profile;
   assert(profile->profile_update);
 
   /* Do transition of current profile */
   profile->profile_update = 0;
 
   profile->cur = profile->next;
-  profile->cn0_offset = compute_cn0_offset(tracker_channel->mesid, profile);
+  profile->cn0_offset = compute_cn0_offset(tracker->mesid, profile);
 }
 
 /**

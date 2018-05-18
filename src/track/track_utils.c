@@ -130,14 +130,14 @@ u16 tracker_load_cc_data(tracker_cc_data_t *cc_data) {
   u16 cnt = 0;
 
   for (u8 id = 0; id < NUM_TRACKER_CHANNELS; ++id) {
-    tracker_t *tracker_channel = tracker_get(id);
+    tracker_t *tracker = tracker_get(id);
     tracker_cc_entry_t entry;
 
     entry.id = id;
-    entry.mesid = tracker_channel->mesid;
-    entry.flags = tracker_channel->flags;
-    entry.freq = tracker_channel->xcorr_freq;
-    entry.cn0 = tracker_channel->cn0;
+    entry.mesid = tracker->mesid;
+    entry.flags = tracker->flags;
+    entry.freq = tracker->xcorr_freq;
+    entry.cn0 = tracker->cn0;
 
     if (0 != (entry.flags & TRACKER_FLAG_ACTIVE) &&
         0 != (entry.flags & TRACKER_FLAG_CONFIRMED) &&
@@ -166,18 +166,18 @@ u16 tracker_load_cc_data(tracker_cc_data_t *cc_data) {
 void tracker_set_carrier_phase_offset(const tracker_info_t *info,
                                       s64 carrier_phase_offset) {
   bool adjusted = false;
-  tracker_t *tracker_channel = tracker_get(info->id);
+  tracker_t *tracker = tracker_get(info->id);
 
-  tracker_lock(tracker_channel);
-  if (0 != (tracker_channel->flags & TRACKER_FLAG_ACTIVE) &&
-      mesid_is_equal(info->mesid, tracker_channel->mesid) &&
-      info->lock_counter == tracker_channel->lock_counter) {
-    tracker_misc_info_t *misc_info = &tracker_channel->misc_info;
+  tracker_lock(tracker);
+  if (0 != (tracker->flags & TRACKER_FLAG_ACTIVE) &&
+      mesid_is_equal(info->mesid, tracker->mesid) &&
+      info->lock_counter == tracker->lock_counter) {
+    tracker_misc_info_t *misc_info = &tracker->misc_info;
     misc_info->carrier_phase_offset.value = carrier_phase_offset;
     misc_info->carrier_phase_offset.timestamp_ms = timing_getms();
     adjusted = true;
   }
-  tracker_unlock(tracker_channel);
+  tracker_unlock(tracker);
 
   if (adjusted) {
     log_debug_mesid(info->mesid,
@@ -194,9 +194,9 @@ void tracker_set_carrier_phase_offset(const tracker_info_t *info,
  */
 tracker_t *tracker_channel_get_by_mesid(const me_gnss_signal_t mesid) {
   for (u8 i = 0; i < nap_track_n_channels; i++) {
-    tracker_t *tracker_channel = tracker_get(i);
-    if (mesid_is_equal(tracker_channel->mesid, mesid)) {
-      return tracker_channel;
+    tracker_t *tracker = tracker_get(i);
+    if (mesid_is_equal(tracker->mesid, mesid)) {
+      return tracker;
     }
   }
   return NULL;
@@ -219,18 +219,18 @@ tracker_t *tracker_channel_get_by_mesid(const me_gnss_signal_t mesid) {
  */
 void tracker_drop_unhealthy_glo(const me_gnss_signal_t mesid) {
   assert(IS_GLO(mesid));
-  tracker_t *tracker_channel = tracker_channel_get_by_mesid(mesid);
-  if (tracker_channel == NULL) {
+  tracker_t *tracker = tracker_channel_get_by_mesid(mesid);
+  if (tracker == NULL) {
     return;
   }
   /* Double-check that channel is in enabled state.
    * Similar check exists in manage_track() in manage.c
    */
-  if (STATE_ENABLED != tracker_state_get(tracker_channel)) {
+  if (!(tracker->busy)) {
     return;
   }
-  tracker_channel->flags |= TRACKER_FLAG_GLO_HEALTH_DECODED;
-  tracker_channel->health = SV_UNHEALTHY;
+  tracker->flags |= TRACKER_FLAG_GLO_HEALTH_DECODED;
+  tracker->health = SV_UNHEALTHY;
 }
 
 /**
