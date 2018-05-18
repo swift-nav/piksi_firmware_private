@@ -1003,40 +1003,6 @@ ndb_op_code_t ndb_almanac_erase_by_src(gnss_signal_t src_sid) {
 }
 
 /**
- * Updates health flags of existing almanac.
- *
- * \param[in] target_sid  GNSS signal identifier to update
- * \param[in] health_bits Health bits (5 LSB)
- * \param[in] ds          Data source
- * \param[in] src_sid     hb source in case of data source being NDB_DS_RECEIVER
- * \param[in] sender_id   Sender ID if data source is NDB_DS_SBP. In other cases
- *                        set to NDB_EVENT_SENDER_ID_VOID.
- *
- * \retval NDB_ERR_NONE             On success. Health data is updated.
- * \retval NDB_ERR_NO_CHANGE        On success. Health data is unchanged.
- * \retval NDB_ERR_BAD_PARAM        Parameter errors.
- * \retval NDB_ERR_UNCONFIRMED_DATA New entry, but confirmation is required.
- * \retval NDB_ERR_NO_DATA          No data entry to update.
- */
-ndb_op_code_t ndb_almanac_hb_update(gnss_signal_t target_sid,
-                                    u8 health_bits,
-                                    ndb_data_source_t ds,
-                                    const gnss_signal_t *src_sid,
-                                    u16 sender_id) {
-  health_bits &= 0x1F;
-
-  almanac_t tmp;
-  if (NDB_ERR_NONE == ndb_almanac_read(target_sid, &tmp) &&
-      (tmp.health_bits & 0x1F) != health_bits) {
-    tmp.health_bits &= 0xE0;
-    tmp.health_bits |= health_bits;
-    return ndb_almanac_store(src_sid, &tmp, ds, sender_id);
-  }
-
-  return NDB_ERR_NO_DATA;
-}
-
-/**
  * Sends out MsgAlmanac
  *
  * \param[in] sid  GNSS signal identifier to indicate which alma to send

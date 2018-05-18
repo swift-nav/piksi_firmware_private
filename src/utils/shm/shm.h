@@ -24,12 +24,18 @@ typedef enum {
   CODE_NAV_STATE_VALID,
 } code_nav_state_t;
 
+/* Maximum age for almanac page25 health status.
+ * Age of full almanac 12.5 min + 1 second to cover timetag inaccuracy. */
+#define SHM_ALMA_PAGE25_HEALTH_AGE_S (12.5 * MINUTE_SECS + 1)
+
 /* Satellite health states */
 typedef enum { SV_HEALTHY, SV_UNHEALTHY } health_t;
 
 void shm_gps_set_shi1(u16 sat, u8 new_value);
+void shm_gps_set_shi3(u16 sat, u8 new_value);
 void shm_gps_set_shi4(u16 sat, bool new_value);
 void shm_gps_set_shi6(u16 sat, bool new_value);
+
 void shm_glo_set_shi(u16 sat, u8 new_value);
 void shm_bds_set_shi(u16 sat, u8 new_value);
 
@@ -41,5 +47,7 @@ bool shm_navigation_suitable(gnss_signal_t sid);
 bool shm_navigation_unusable(gnss_signal_t sid);
 bool shm_health_unknown(gnss_signal_t sid);
 bool shm_ephe_healthy(const ephemeris_t* ephe, const code_t code);
+
+bool shm_alma_page25_health_aged(u32 timetag_s);
 
 #endif /* SWIFTNAV_SHM_H */

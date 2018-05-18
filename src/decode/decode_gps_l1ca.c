@@ -336,49 +336,8 @@ static void decode_almanac_health_new(gnss_signal_t src_sid,
     gnss_signal_t target_sid = construct_sid(CODE_GPS_L1CA, sv_idx + 1);
 
     u8 health_bits = hflags[sv_idx];
-
-    ndb_op_code_t r = ndb_almanac_hb_update(target_sid,
-                                            health_bits,
-                                            NDB_DS_RECEIVER,
-                                            &src_sid,
-                                            NDB_EVENT_SENDER_ID_VOID);
-
-    switch (r) {
-      case NDB_ERR_NONE:
-        log_debug_sid(target_sid,
-                      "almanac health bits updated (0x%02" PRIX8 ")",
-                      health_bits);
-        break;
-      case NDB_ERR_NO_CHANGE:
-        log_debug_sid(target_sid,
-                      "almanac health bits up to date (0x%02" PRIX8 ")",
-                      health_bits);
-        break;
-      case NDB_ERR_UNCONFIRMED_DATA:
-        log_debug_sid(target_sid,
-                      "almanac health bits are unconfirmed (0x%02" PRIX8 ")",
-                      health_bits);
-        break;
-      case NDB_ERR_NO_DATA:
-        log_debug_sid(target_sid,
-                      "almanac health bits are ignored (0x%02" PRIX8 ")",
-                      health_bits);
-        break;
-      case NDB_ERR_OLDER_DATA:
-      case NDB_ERR_MISSING_IE:
-      case NDB_ERR_UNSUPPORTED:
-      case NDB_ERR_FILE_IO:
-      case NDB_ERR_INIT_DONE:
-      case NDB_ERR_BAD_PARAM:
-      case NDB_ERR_ALGORITHM_ERROR:
-      case NDB_ERR_AGED_DATA:
-      case NDB_ERR_GPS_TIME_MISSING:
-      default:
-        log_error_sid(target_sid,
-                      "error %d updating almanac health bits (0x%02" PRIX8 ")",
-                      (int)r,
-                      health_bits);
-        break;
+    if (shm_signal_healthy(src_sid)) {
+      shm_gps_set_shi3(target_sid.sat, health_bits);
     }
 
     /* Health indicates CODE_NAV_STATE_INVALID */
@@ -458,13 +417,6 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
 
   gnss_signal_t l1ca_sid =
       construct_sid(channel_info->mesid.code, channel_info->mesid.sat);
-
-  if (dd.almanac_upd_flag && (0 != dd.almanac.health_bits)) {
-    /* If almanac health bits indicate problems,
-     * clear NDB and TOW cache of the SV the almanac is for. */
-    erase_nav_data(dd.almanac.sid, l1ca_sid);
-    return;
-  }
 
   if (dd.invalid_control_or_data) {
     log_info_mesid(channel_info->mesid, "Invalid control or data element");

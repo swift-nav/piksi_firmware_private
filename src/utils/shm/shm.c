@@ -19,6 +19,7 @@
 #include "nav_msg/cnav_msg_storage.h"
 #include "nav_msg/nav_msg.h"
 #include "ndb/ndb.h"
+#include "piksi_systime.h"
 #include "shm.h"
 #include "signal_db/signal_db.h"
 
@@ -98,6 +99,16 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
   /* Check common GPS */
   if (IS_GPS(sid)) {
     if (shis.shi1_set && !check_6bit_health_word(shis.shi1, sid.code)) {
+      return CODE_NAV_STATE_INVALID;
+    }
+
+    /* Return SV_NAV_STATE_INVALID if:
+     * - SHI3 is set and
+     * - SHI3 has not aged and
+     * - SHI3 indicates unhealthy
+     */
+    if (shis.shi3_set && !shm_alma_page25_health_aged(shis.shi3_timetag_s) &&
+        !check_alma_page25_health_word(shis.shi3, sid.code)) {
       return CODE_NAV_STATE_INVALID;
     }
 
@@ -374,6 +385,27 @@ void shm_gps_set_shi1(u16 sat, u8 new_value) {
   shm_log_sat_state("SHI1", sat);
 }
 
+/** Update SHI3 for GPS satellite.
+ *  Refer to libswiftnav/shm.h for details of SHIs.
+ *
+ * \param sat GPS satellite ID
+ * \param new_value value to set SHI3 to
+ */
+void shm_gps_set_shi3(u16 sat, u8 new_value) {
+  assert(sat >= GPS_FIRST_PRN && sat < GPS_FIRST_PRN + NUM_SATS_GPS);
+  if (0 == new_value) {
+    return;
+  }
+  piksi_systime_t now;
+  piksi_systime_get(&now);
+  u32 timetag_s = piksi_systime_to_s(&now);
+  chMtxLock(&shm_data_access);
+  gps_shis[sat - GPS_FIRST_PRN].shi3 = new_value;
+  gps_shis[sat - GPS_FIRST_PRN].shi3_set = true;
+  gps_shis[sat - GPS_FIRST_PRN].shi3_timetag_s = timetag_s;
+  chMtxUnlock(&shm_data_access);
+}
+
 /** Update SHI4 for GPS satellite.
  *  Refer to libswiftnav/shm.h for details of SHIs.
  *
@@ -444,12 +476,28 @@ bool shm_ephe_healthy(const ephemeris_t* ephe, const code_t code) {
   return ephemeris_healthy(ephe, code);
 }
 
+/** Check if this almanac page 25 health indicator has aged
+ *
+ * \param timetag_s Timetag of reception.
+ * \return true if the page 25 health indicator has aged.
+ *         false otherwise
+ */
+bool shm_alma_page25_health_aged(u32 timetag_s) {
+  piksi_systime_t now;
+  piksi_systime_get(&now);
+  u32 timetag_now_s = piksi_systime_to_s(&now);
+  if ((timetag_now_s - timetag_s) > SHM_ALMA_PAGE25_HEALTH_AGE_S) {
+    return true;
+  }
+  return false;
+}
+
 /** Check if signal is healthy.
  *
  * \param sid Signal ID
  *
  * \returns true if signal health of specified signal
- *               is CODE_NAV_STATE_INVALID, false otherwise
+ *               is CODE_NAV_STATE_VALID, false otherwise
  */
 bool shm_signal_healthy(gnss_signal_t sid) {
   assert(sid_valid(sid));
