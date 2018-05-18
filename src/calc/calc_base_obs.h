@@ -38,11 +38,8 @@ extern bool disable_raim;
 extern memory_pool_t base_obs_buff_pool;
 extern mailbox_t base_obs_mailbox;
 
-extern mutex_t base_pos_lock;
 extern bool base_pos_known;
 extern double base_pos_ecef[3];
-
-extern mutex_t base_glonass_biases_lock;
 
 void base_obs_setup(void);
 

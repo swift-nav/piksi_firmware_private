@@ -56,12 +56,6 @@ mailbox_t base_obs_mailbox;
 /** Most recent observations from the base station. */
 obss_t base_obss;
 
-/** Mutex to control access to the base station position state. */
-MUTEX_DECL(base_pos_lock);
-
-/** Mutex to control access to the base station glonass biases. */
-MUTEX_DECL(base_glonass_biases_lock);
-
 static u32 base_obs_msg_counter = 0;
 static u8 old_base_sender_id = 0;
 
@@ -88,9 +82,7 @@ static void base_pos_llh_callback(u16 sender_id,
   llh[2] = llh_degrees[2];
   wgsllh2ecef(llh, base_pos);
 
-  chMtxLock(&base_pos_lock);
   set_known_ref_pos(base_pos);
-  chMtxUnlock(&base_pos_lock);
   /* Relay base station position using sender_id = 0. */
   sbp_send_msg_(SBP_MSG_BASE_POS_LLH, len, msg, MSG_FORWARD_SENDER_ID);
 }
@@ -112,9 +104,7 @@ static void base_pos_ecef_callback(u16 sender_id,
   double base_pos[3];
   MEMCPY_S(base_pos, sizeof(base_pos), msg, sizeof(base_pos));
 
-  chMtxLock(&base_pos_lock);
   set_known_ref_pos(base_pos);
-  chMtxUnlock(&base_pos_lock);
   /* Relay base station position using sender_id = 0. */
   sbp_send_msg_(SBP_MSG_BASE_POS_ECEF, len, msg, MSG_FORWARD_SENDER_ID);
 }
@@ -136,9 +126,7 @@ static void base_glonass_biases_callback(u16 sender_id,
   glo_biases_t biases;
   unpack_glonass_biases_content(*(msg_glo_biases_t *)msg, &biases);
 
-  chMtxLock(&base_glonass_biases_lock);
   set_known_glonass_biases(biases);
-  chMtxUnlock(&base_glonass_biases_lock);
   /* Relay base station GLONASS biases using sender_id = 0. */
   sbp_send_msg_(SBP_MSG_GLO_BIASES, len, msg, MSG_FORWARD_SENDER_ID);
 }

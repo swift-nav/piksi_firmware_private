@@ -173,17 +173,21 @@ static void post_observations(u8 n,
 }
 
 void set_known_ref_pos(const double base_pos[3]) {
+  platform_mutex_lock(&time_matched_filter_manager_lock);
   if (time_matched_filter_manager) {
     filter_manager_set_known_ref_pos(
         (FilterManagerRTK *)time_matched_filter_manager, base_pos);
   }
+  platform_mutex_unlock(&time_matched_filter_manager_lock);
 }
 
 void set_known_glonass_biases(const glo_biases_t biases) {
+  platform_mutex_lock(&time_matched_filter_manager_lock);
   if (time_matched_filter_manager) {
     filter_manager_set_known_glonass_biases(
         (FilterManagerRTK *)time_matched_filter_manager, biases);
   }
+  platform_mutex_unlock(&time_matched_filter_manager_lock);
 }
 
 void reset_rtk_filter(void) {
@@ -332,13 +336,9 @@ static PVT_ENGINE_INTERFACE_RC process_matched_obs(
       /* If we're in low latency mode we need to copy/update the low latency
          filter manager from the time matched filter manager. */
       platform_mutex_lock(&low_latency_filter_manager_lock);
-      platform_mutex_lock(&base_pos_lock);
-      platform_mutex_lock(&base_glonass_biases_lock);
       copy_filter_manager_rtk(
           (FilterManagerRTK *)low_latency_filter_manager,
           (const FilterManagerRTK *)time_matched_filter_manager);
-      platform_mutex_unlock(&base_glonass_biases_lock);
-      platform_mutex_unlock(&base_pos_lock);
       platform_mutex_unlock(&low_latency_filter_manager_lock);
     }
   }
