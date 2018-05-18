@@ -30,6 +30,10 @@ typedef enum {
                                    (ephemeris + TOW + polarity update) */
 } glo_decode_status_t;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void nav_msg_init_glo_with_cb(nav_msg_glo_t *n, me_gnss_signal_t mesid);
 glo_decode_status_t glo_data_decoding(nav_msg_glo_t *n,
                                       me_gnss_signal_t mesid,
@@ -49,4 +53,8 @@ void erase_cnav_data(gnss_signal_t target_sid, gnss_signal_t src_sid);
 void decoder_disable(const decoder_channel_info_t *channel_info,
                      decoder_data_t *decoder_data);
 
-#endif /* #ifndef SWIFTNAV_DECODE_COMMON_H */
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* SWIFTNAV_DECODE_COMMON_H */

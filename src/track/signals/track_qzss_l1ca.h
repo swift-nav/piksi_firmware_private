@@ -12,8 +12,14 @@
 #ifndef TRACK_QZSS_L1CA_H
 #define TRACK_QZSS_L1CA_H
 
-#include <libswiftnav/common.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 void track_qzss_l1ca_register(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* TRACK_QZSS_L1CA_H */

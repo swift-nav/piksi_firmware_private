@@ -12,8 +12,14 @@
 #ifndef SWIFTNAV_DECODE_GLO_L2OF_H
 #define SWIFTNAV_DECODE_GLO_L2OF_H
 
-#include <libswiftnav/common.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 void decode_glo_l2of_register(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

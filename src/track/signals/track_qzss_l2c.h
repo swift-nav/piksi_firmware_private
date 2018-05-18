@@ -14,7 +14,10 @@
 
 #include <libswiftnav/common.h>
 
-/* not weak as it is used in L2C builds only */
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void track_qzss_l2c_register(void);
 
 void qzss_l1ca_to_l2c_handover(u32 sample_count,
@@ -23,5 +26,9 @@ void qzss_l1ca_to_l2c_handover(u32 sample_count,
                                double carrier_freq,
                                float cn0_init,
                                s32 TOW_ms);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* TRACK_QZSS_L2C_H */

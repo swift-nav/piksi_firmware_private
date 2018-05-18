@@ -112,6 +112,7 @@
 #define tl_fll2_get_rates aided_tl_fll2_get_rates
 
 /* Bit synchronization and data decoding */
+#define TPF_BIT_PILOT ((u32)1 << 1) /* data comes in the fifth correlator */
 #define TPF_BSYNC_SET ((u32)1 << 2)
 #define TPF_BSYNC_ADD ((u32)1 << 3)
 #define TPF_BSYNC_UPD ((u32)1 << 4)

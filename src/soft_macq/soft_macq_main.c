@@ -23,6 +23,7 @@
 #include "nap/nap_constants.h"
 
 #include "lib/fixed_fft_r2.h"
+#include "prns.h"
 #include "soft_macq_defines.h"
 #include "soft_macq_mdbzp.h"
 #include "soft_macq_serial.h"
@@ -43,10 +44,10 @@
 static u8 *sample_buff;
 
 /**! samples are down-converted to baseband and decimated here  */
-static sc16_t pBaseBand[FAU_BASEBAND_SIZE] __attribute__((aligned(32)));
+static sc16_t baseband[FAU_BASEBAND_SIZE] __attribute__((aligned(32)));
 
 /**! here is where the code gets resampled */
-static s8 pResampCode[FAU_SPMS] __attribute__((aligned(32)));
+static s8 code_upsamp[FAU_BASEBAND_SIZE] __attribute__((aligned(32)));
 
 /** the last grabber acquisition time tag */
 static u64 last_timetag;
@@ -54,15 +55,11 @@ static u64 last_timetag;
 /** the last acquired signal */
 static me_gnss_signal_t mesid_last;
 
-/** */
-static u32 samples_ms;
-
 static bool bModuleInit;
 
 /********************************
  * STATIC FUNCTION DECLARATIONS
  *********************************/
-
 static bool BbMixAndDecimate(const me_gnss_signal_t mesid);
 
 static bool SoftMacqSerial(const me_gnss_signal_t mesid,
@@ -137,8 +134,7 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
    *  */
   if ((tmp_timetag) || (!code_equiv(mesid_last.code, mesid.code)) ||
       ((mesid_last.code == CODE_GLO_L1OF) && (mesid_last.sat != mesid.sat))) {
-    /** perform again baseband down-conversion and decimation depending on
-     * mesid */
+    /** perform baseband down-conversion + decimation depending on mesid */
     BbMixAndDecimate(mesid);
   }
 
@@ -175,7 +171,7 @@ static bool SoftMacqSerial(const me_gnss_signal_t mesid,
                            acq_result_t *_psLegacyResult) {
   float cf_bin_width = soft_acq_bin_width();
 
-  return soft_acq_search(pBaseBand,
+  return soft_acq_search(baseband,
                          mesid,
                          _fCarrFreqMin,
                          _fCarrFreqMax,
@@ -188,87 +184,87 @@ static bool SoftMacqSerial(const me_gnss_signal_t mesid,
  **/
 static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
   u32 k, h;
-  u32 uNco, uNcoVal, uNcoStep = 0;
-  u8 uSample;
+  u32 carr_nco, nco_step = 0;
+  u8 sample_bitmap, phase_bitmap;
 
   /** first of all reset the destination buffer */
-  memset(pBaseBand, 0, FAU_BASEBAND_SIZE * sizeof(sc16_t));
+  memset(baseband, 0, FAU_BASEBAND_SIZE * sizeof(sc16_t));
 
   switch (mesid.code) {
     case CODE_GPS_L1CA:
     case CODE_SBAS_L1CA:
     case CODE_QZS_L1CA:
-      samples_ms = FAU_RAW_SPMS / FAU_DECFACT;
-      uNcoStep = CirclesToUint32((double)FAU_FC_GPSL1 / (double)FAU_RAW_FS);
+    case CODE_GAL_E1X:
+      nco_step = CirclesToUint32(GPS_L1_HZ / (double)FAU_RAW_FS);
 
-      for (k = 0, uNco = 0; k < FAU_SAMPLE_GRABBER_LENGTH; k++) {
-        uSample = ((sample_buff[k] >> 0) & 0x3)
-                  << BBNCO_CARRPH_BITS; /** two LSBs are Channel 1 */
-        uNcoVal = (uNco >> (32 - BBNCO_CARRPH_BITS)) & BBNCO_CARRPH_MASK;
+      for (k = 0, carr_nco = 0; k < FAU_SAMPLE_GRABBER_LENGTH; k++) {
+        /** B1-B0 are Channel 1 */
+        sample_bitmap = ((sample_buff[k] >> 0) & 0x3) << BBNCO_CARRPH_BITS;
+        phase_bitmap =
+            (carr_nco >> (32 - BBNCO_CARRPH_BITS)) & BBNCO_CARRPH_MASK;
 
         h = k / FAU_DECFACT;
         if (FAU_BASEBAND_SIZE == h) break;
 
-        pBaseBand[h].r += bbConvTable[(uSample | uNcoVal)].r;
-        pBaseBand[h].i += bbConvTable[(uSample | uNcoVal)].i;
-        uNco += uNcoStep;
+        baseband[h].r += bbConvTable[(sample_bitmap | phase_bitmap)].r;
+        baseband[h].i += bbConvTable[(sample_bitmap | phase_bitmap)].i;
+        carr_nco += nco_step;
       }
       break;
 
     case CODE_GLO_L1OF:
-      samples_ms = FAU_RAW_SPMS / FAU_DECFACT;
-      uNcoStep = CirclesToUint32(
-          (double)(FAU_FC_GLOG1 +
-                   (mesid.sat - GLO_FCN_OFFSET) * FAU_GLOG1_FOFF) /
+      nco_step = CirclesToUint32(
+          (GLO_L1_HZ + (mesid.sat - GLO_FCN_OFFSET) * GLO_L1_DELTA_HZ) /
           (double)FAU_RAW_FS);
 
-      for (k = 0, h = 0, uNco = 0; k < FAU_SAMPLE_GRABBER_LENGTH; k++) {
-        uSample = ((sample_buff[k] >> 2) & 0x3)
-                  << BBNCO_CARRPH_BITS; /** B3..2 are Channel 2 */
-        uNcoVal = (uNco >> (32 - BBNCO_CARRPH_BITS)) & BBNCO_CARRPH_MASK;
+      for (k = 0, carr_nco = 0; k < FAU_SAMPLE_GRABBER_LENGTH; k++) {
+        /** B3-B2 are Channel 2 */
+        sample_bitmap = ((sample_buff[k] >> 2) & 0x3) << BBNCO_CARRPH_BITS;
+        phase_bitmap =
+            (carr_nco >> (32 - BBNCO_CARRPH_BITS)) & BBNCO_CARRPH_MASK;
 
         h = k / FAU_DECFACT;
         if (FAU_BASEBAND_SIZE == h) break;
 
-        pBaseBand[h].r += bbConvTable[(uSample | uNcoVal)].r;
-        pBaseBand[h].i += bbConvTable[(uSample | uNcoVal)].i;
-        uNco += uNcoStep;
+        baseband[h].r += bbConvTable[(sample_bitmap | phase_bitmap)].r;
+        baseband[h].i += bbConvTable[(sample_bitmap | phase_bitmap)].i;
+        carr_nco += nco_step;
       }
       break;
 
     case CODE_BDS2_B11:
-      samples_ms = FAU_RAW_SPMS / FAU_DECFACT;
-      uNcoStep = CirclesToUint32((double)(FAU_FC_BDSB1) / (double)FAU_RAW_FS);
+      nco_step = CirclesToUint32(BDS2_B11_HZ / (double)FAU_RAW_FS);
 
-      for (k = 0, h = 0, uNco = 0; k < FAU_SAMPLE_GRABBER_LENGTH; k++) {
-        uSample = ((sample_buff[k] >> 0) & 0x3)
-                  << BBNCO_CARRPH_BITS; /** B1..0 are Channel 1 */
-        uNcoVal = (uNco >> (32 - BBNCO_CARRPH_BITS)) & BBNCO_CARRPH_MASK;
+      for (k = 0, carr_nco = 0; k < FAU_SAMPLE_GRABBER_LENGTH; k++) {
+        /** B1-B0 are Channel 1 */
+        sample_bitmap = ((sample_buff[k] >> 0) & 0x3) << BBNCO_CARRPH_BITS;
+        phase_bitmap =
+            (carr_nco >> (32 - BBNCO_CARRPH_BITS)) & BBNCO_CARRPH_MASK;
 
         h = k / FAU_DECFACT;
         if (FAU_BASEBAND_SIZE == h) break;
 
-        pBaseBand[h].r += bbConvTable[(uSample | uNcoVal)].r;
-        pBaseBand[h].i += bbConvTable[(uSample | uNcoVal)].i;
-        uNco += uNcoStep;
+        baseband[h].r += bbConvTable[(sample_bitmap | phase_bitmap)].r;
+        baseband[h].i += bbConvTable[(sample_bitmap | phase_bitmap)].i;
+        carr_nco += nco_step;
       }
       break;
 
     case CODE_GAL_E7X:
-      samples_ms = FAU_RAW_SPMS / FAU_DECFACT;
-      uNcoStep = CirclesToUint32((double)(FAU_FC_GALE7) / (double)FAU_RAW_FS);
+      nco_step = CirclesToUint32(GAL_E7_HZ / (double)FAU_RAW_FS);
 
-      for (k = 0, h = 0, uNco = 0; k < FAU_SAMPLE_GRABBER_LENGTH; k++) {
+      for (k = 0, carr_nco = 0; k < FAU_SAMPLE_GRABBER_LENGTH; k++) {
         /* B7-B6 are Channel 4 */
-        uSample = ((sample_buff[k] >> 6) & 0x3) << BBNCO_CARRPH_BITS;
-        uNcoVal = (uNco >> (32 - BBNCO_CARRPH_BITS)) & BBNCO_CARRPH_MASK;
+        sample_bitmap = ((sample_buff[k] >> 6) & 0x3) << BBNCO_CARRPH_BITS;
+        phase_bitmap =
+            (carr_nco >> (32 - BBNCO_CARRPH_BITS)) & BBNCO_CARRPH_MASK;
 
         h = k / FAU_DECFACT;
         if (FAU_BASEBAND_SIZE == h) break;
 
-        pBaseBand[h].r += bbConvTable[(uSample | uNcoVal)].r;
-        pBaseBand[h].i += bbConvTable[(uSample | uNcoVal)].i;
-        uNco += uNcoStep;
+        baseband[h].r += bbConvTable[(sample_bitmap | phase_bitmap)].r;
+        baseband[h].i += bbConvTable[(sample_bitmap | phase_bitmap)].i;
+        carr_nco += nco_step;
       }
       break;
 
@@ -285,7 +281,6 @@ static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
     case CODE_BDS2_B2:
     case CODE_GAL_E1B:
     case CODE_GAL_E1C:
-    case CODE_GAL_E1X:
     case CODE_GAL_E6B:
     case CODE_GAL_E6C:
     case CODE_GAL_E6X:
@@ -317,112 +312,125 @@ static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
  */
 static bool SoftMacqMdbzp(const me_gnss_signal_t mesid,
                           acqResults_t *pacq_res) {
-  u32 h;
-  u32 uNco, uNcoStep, uChipInd;
-  sFauParams_t sParams;
-  const u8 *_pLocalCode = ca_code(mesid);
+  sFauParams_t fau_conf;
+  const u8 *local_code = ca_code(mesid);
 
   /** sanity checks */
   assert(NULL != pacq_res);
   assert(mesid_valid(mesid));
 
-  sParams.iSampMs = samples_ms;
+  fau_conf.iSampMs = FAU_SPMS;
 
   switch (mesid.code) {
     case CODE_GPS_L1CA:
     case CODE_QZS_L1CA:
-      sParams.iNumCodeSlices = FAU_MDBZP_MS_SLICES * FAU_GPSL1CA_CODE_MS;
-      sParams.iCodeTimeMs = FAU_GPSL1CA_CODE_MS;
-      sParams.iCohCodes = FAU_GPSL1CA_COHE;
-      sParams.iNcohAcc = FAU_GPSL1CA_NONC;
-      sParams.uSecCodeLen = 0;
+      fau_conf.iNumCodeSlices = FAU_MDBZP_MS_SLICES * GPS_L1CA_PRN_PERIOD_MS;
+      fau_conf.iCodeTimeMs = GPS_L1CA_PRN_PERIOD_MS;
+      fau_conf.iCohCodes = FAU_GPSL1CA_COHE;
+      fau_conf.iNcohAcc = FAU_GPSL1CA_NONC;
+      fau_conf.uSecCodeLen = 0;
 
-      uNcoStep = FAU_GPSL1CA_CODE_CHIPS;
-      uChipInd = 0;
-      for (h = 0, uNco = 0; h < samples_ms; h++) {
-        pResampCode[h] = get_chip((u8 *)_pLocalCode, uChipInd);
-        uNco += uNcoStep;
-        if (uNco >= samples_ms) {
-          uNco -= samples_ms;
-          uChipInd = (uChipInd + 1) % FAU_GPSL1CA_CODE_CHIPS;
-        }
-      }
+      code_resample(local_code,
+                    GPS_L1CA_CHIPS_NUM,
+                    GPS_CA_CHIPPING_RATE,
+                    code_upsamp,
+                    FAU_SPMS * GPS_L1CA_PRN_PERIOD_MS,
+                    FAU_RAW_FS / FAU_DECFACT,
+                    BPSK);
       break;
 
     case CODE_GLO_L1OF:
-      sParams.iNumCodeSlices = FAU_MDBZP_MS_SLICES * FAU_GLOG1_CODE_MS;
-      sParams.iCodeTimeMs = FAU_GLOG1_CODE_MS;
-      sParams.iCohCodes = FAU_GLOG1_COHE;
-      sParams.iNcohAcc = FAU_GLOG1_NONC;
-      sParams.uSecCodeLen = 0;
+      fau_conf.iNumCodeSlices = FAU_MDBZP_MS_SLICES * GLO_PRN_PERIOD_MS;
+      fau_conf.iCodeTimeMs = GLO_PRN_PERIOD_MS;
+      fau_conf.iCohCodes = FAU_GLOG1_COHE;
+      fau_conf.iNcohAcc = FAU_GLOG1_NONC;
+      fau_conf.uSecCodeLen = 0;
 
-      uNcoStep = FAU_GLOG1_CODE_CHIPS;
-      uChipInd = 0;
-      for (h = 0, uNco = 0; h < samples_ms; h++) {
-        pResampCode[h] = get_chip((u8 *)_pLocalCode, uChipInd);
-        uNco += uNcoStep;
-        if (uNco >= samples_ms) {
-          uNco -= samples_ms;
-          uChipInd = (uChipInd + 1) % FAU_GLOG1_CODE_CHIPS;
-        }
-      }
+      code_resample(local_code,
+                    GLO_CA_CHIPS_NUM,
+                    GLO_CA_CHIPPING_RATE,
+                    code_upsamp,
+                    FAU_SPMS * GLO_PRN_PERIOD_MS,
+                    FAU_RAW_FS / FAU_DECFACT,
+                    BPSK);
       break;
 
     case CODE_SBAS_L1CA:
-      sParams.iNumCodeSlices = FAU_MDBZP_MS_SLICES * FAU_SBASL1_CODE_MS;
-      sParams.iCodeTimeMs = FAU_SBASL1_CODE_MS;
-      sParams.iCohCodes = FAU_SBASL1_COHE;
-      sParams.iNcohAcc = FAU_SBASL1_NONC;
-      sParams.uSecCodeLen = 0;
+      fau_conf.iNumCodeSlices = FAU_MDBZP_MS_SLICES * SBAS_L1CA_PRN_PERIOD_MS;
+      fau_conf.iCodeTimeMs = SBAS_L1CA_PRN_PERIOD_MS;
+      fau_conf.iCohCodes = FAU_SBASL1_COHE;
+      fau_conf.iNcohAcc = FAU_SBASL1_NONC;
+      fau_conf.uSecCodeLen = 0;
 
-      uNcoStep = FAU_SBASL1_CODE_CHIPS;
-      uChipInd = 0;
-      for (h = 0, uNco = 0; h < samples_ms; h++) {
-        pResampCode[h] = get_chip((u8 *)_pLocalCode, uChipInd);
-        uNco += uNcoStep;
-        if (uNco >= samples_ms) {
-          uNco -= samples_ms;
-          uChipInd = (uChipInd + 1) % FAU_SBASL1_CODE_CHIPS;
-        }
-      }
+      code_resample(local_code,
+                    SBAS_L1CA_CHIPS_NUM,
+                    SBAS_L1CA_CHIPPING_RATE,
+                    code_upsamp,
+                    FAU_SPMS * SBAS_L1CA_PRN_PERIOD_MS,
+                    FAU_RAW_FS / FAU_DECFACT,
+                    BPSK);
       break;
 
     case CODE_BDS2_B11:
-      sParams.iNumCodeSlices = FAU_MDBZP_MS_SLICES * FAU_BDSB11_CODE_MS;
-      sParams.iCodeTimeMs = FAU_BDSB11_CODE_MS;
-      sParams.iCohCodes = FAU_BDSB11_COHE;
-      sParams.iNcohAcc = FAU_BDSB11_NONC;
-      sParams.uSecCodeLen = 0;
+      fau_conf.iNumCodeSlices = FAU_MDBZP_MS_SLICES * BDS2_B11_SYMB_LENGTH_MS;
+      fau_conf.iCodeTimeMs = BDS2_B11_SYMB_LENGTH_MS;
+      fau_conf.iCohCodes = FAU_BDSB11_COHE;
+      fau_conf.iNcohAcc = FAU_BDSB11_NONC;
+      fau_conf.uSecCodeLen = 0;
 
-      uNcoStep = FAU_BDSB11_CODE_CHIPS;
-      uChipInd = 0;
-      for (h = 0, uNco = 0; h < samples_ms; h++) {
-        pResampCode[h] = get_chip((u8 *)_pLocalCode, uChipInd);
-        uNco += uNcoStep;
-        if (uNco >= samples_ms) {
-          uNco -= samples_ms;
-          uChipInd = (uChipInd + 1) % FAU_BDSB11_CODE_CHIPS;
-        }
-      }
+      code_resample(local_code,
+                    BDS2_B11_CHIPS_NUM,
+                    BDS2_B11_CHIPPING_RATE,
+                    code_upsamp,
+                    FAU_SPMS * BDS2_B11_PRN_PERIOD_MS,
+                    FAU_RAW_FS / FAU_DECFACT,
+                    BPSK);
+      break;
+
+    case CODE_GAL_E1X:
+      fau_conf.iNumCodeSlices = FAU_MDBZP_MS_SLICES * GAL_E1C_PRN_PERIOD_MS;
+      fau_conf.iCodeTimeMs = GAL_E1C_PRN_PERIOD_MS;
+      fau_conf.iCohCodes = FAU_GALE1_COHE;
+      fau_conf.iNcohAcc = FAU_GALE1_NONC;
+      fau_conf.uSecCodeLen = 0;
+      code_resample(local_code,
+                    GAL_E1C_CHIPS_NUM,
+                    GAL_E1_CHIPPING_RATE,
+                    code_upsamp,
+                    FAU_SPMS * GAL_E1C_PRN_PERIOD_MS,
+                    FAU_RAW_FS / FAU_DECFACT,
+                    BOC_N1);
+      break;
+
+    case CODE_GAL_E5X:
+      fau_conf.iNumCodeSlices = FAU_MDBZP_MS_SLICES * GAL_E5Q_PRN_PERIOD_MS;
+      fau_conf.iCodeTimeMs = GAL_E5Q_PRN_PERIOD_MS;
+      fau_conf.iCohCodes = FAU_GALE5_COHE;
+      fau_conf.iNcohAcc = FAU_GALE5_NONC;
+      fau_conf.uSecCodeLen = 0;
+      code_resample(local_code,
+                    GAL_E5_CHIPS_NUM,
+                    GAL_E5_CHIPPING_RATE,
+                    code_upsamp,
+                    FAU_SPMS * GAL_E5Q_PRN_PERIOD_MS,
+                    FAU_RAW_FS / FAU_DECFACT,
+                    BPSK);
       break;
 
     case CODE_GAL_E7X:
-      sParams.iNumCodeSlices = FAU_MDBZP_MS_SLICES * FAU_GALE7_CODE_MS;
-      sParams.iCodeTimeMs = FAU_GALE7_CODE_MS;
-      sParams.iCohCodes = FAU_GALE7_COHE;
-      sParams.iNcohAcc = FAU_GALE7_NONC;
-      sParams.uSecCodeLen = 0;
+      fau_conf.iNumCodeSlices = FAU_MDBZP_MS_SLICES * GAL_E7Q_PRN_PERIOD_MS;
+      fau_conf.iCodeTimeMs = GAL_E7Q_PRN_PERIOD_MS;
+      fau_conf.iCohCodes = FAU_GALE7_COHE;
+      fau_conf.iNcohAcc = FAU_GALE7_NONC;
+      fau_conf.uSecCodeLen = 0;
 
-      uNcoStep = FAU_GALE7_CODE_CHIPS;
-      uChipInd = 0;
-      for (h = 0, uNco = 0; h < samples_ms; h++) {
-        pResampCode[h] = get_chip((u8 *)_pLocalCode, uChipInd);
-        uNco += uNcoStep;
-        while (uNco >= samples_ms) {
-          uNco -= samples_ms;
-          uChipInd = (uChipInd + 1) % FAU_GALE7_CODE_CHIPS;
-        }
-      }
+      code_resample(local_code,
+                    GAL_E7_CHIPS_NUM,
+                    GAL_E7_CHIPPING_RATE,
+                    code_upsamp,
+                    FAU_SPMS * GAL_E7Q_PRN_PERIOD_MS,
+                    FAU_RAW_FS / FAU_DECFACT,
+                    BPSK);
       break;
 
     case CODE_INVALID:
@@ -438,7 +446,6 @@ static bool SoftMacqMdbzp(const me_gnss_signal_t mesid,
     case CODE_BDS2_B2:
     case CODE_GAL_E1B:
     case CODE_GAL_E1C:
-    case CODE_GAL_E1X:
     case CODE_GAL_E6B:
     case CODE_GAL_E6C:
     case CODE_GAL_E6X:
@@ -447,7 +454,6 @@ static bool SoftMacqMdbzp(const me_gnss_signal_t mesid,
     case CODE_GAL_E8:
     case CODE_GAL_E5I:
     case CODE_GAL_E5Q:
-    case CODE_GAL_E5X:
     case CODE_QZS_L2CM:
     case CODE_QZS_L2CL:
     case CODE_QZS_L2CX:
@@ -460,15 +466,15 @@ static bool SoftMacqMdbzp(const me_gnss_signal_t mesid,
       break;
   }
   /** call now MDBZP */
-  bool ret = mdbzp_static(pBaseBand, pResampCode, &sParams, pacq_res);
+  bool ret = mdbzp_static(baseband, code_upsamp, &fau_conf, pacq_res);
   if (ret) {
-    log_debug_mesid(mesid,
-                    "%16" PRIu64
-                    "  fMaxCorr %.1e  fDoppFreq %.1f  fCodeDelay %.4f",
-                    pacq_res->uFirstLocIdx,
-                    pacq_res->fMaxCorr,
-                    pacq_res->fDoppFreq,
-                    pacq_res->fCodeDelay);
+    log_info_mesid(mesid,
+                   "%16" PRIu64
+                   "  fMaxCorr %.1e  fDoppFreq %.1f  fCodeDelay %.4f",
+                   pacq_res->uFirstLocIdx,
+                   pacq_res->fMaxCorr,
+                   pacq_res->fDoppFreq,
+                   pacq_res->fCodeDelay);
   }
   return ret;
 }

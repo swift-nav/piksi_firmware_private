@@ -12,8 +12,14 @@
 #ifndef DECODE_QZSS_L1CA_H
 #define DECODE_QZSS_L1CA_H
 
-#include <libswiftnav/common.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 void decode_qzss_l1ca_register(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* DECODE_QZSS_L1CA_H */

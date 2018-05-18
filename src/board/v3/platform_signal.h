@@ -16,6 +16,7 @@
 /* Platform-specific code support */
 #define CODE_GPS_L1CA_SUPPORT 1
 #define CODE_GPS_L2C_SUPPORT 1
+#define CODE_GPS_L5_SUPPORT 0
 #define CODE_GLO_L1OF_SUPPORT 1
 #define CODE_GLO_L2OF_SUPPORT 1
 #define CODE_GPS_L1P_SUPPORT 1
@@ -23,9 +24,11 @@
 #define CODE_SBAS_L1CA_SUPPORT 1
 #define CODE_QZSS_L1CA_SUPPORT 0
 #define CODE_QZSS_L2C_SUPPORT 0
+#define CODE_QZSS_L5_SUPPORT 0
 #define CODE_BDS2_B11_SUPPORT 1
 #define CODE_BDS2_B2_SUPPORT 1
 #define CODE_GAL_E1_SUPPORT 0
+#define CODE_GAL_E5_SUPPORT 0
 #define CODE_GAL_E7_SUPPORT 0
 
 /* Tracker configuration */
@@ -41,7 +44,18 @@
 #define NUM_BDS2_B2_DECODERS NAP_NUM_BDS_B2_CHANNELS
 #define NUM_QZSS_L1CA_DECODERS NAP_NUM_GPS_L1_CHANNELS
 #define NUM_SBAS_L1_DECODERS NAP_NUM_GPS_L1_CHANNELS
+
+#if defined CODE_GAL_E1_SUPPORT && CODE_GAL_E1_SUPPORT > 0
+#define NUM_GAL_E1_DECODERS NAP_NUM_GAL_E1_CHANNELS
+#else
+#define NUM_GAL_E1_DECODERS 0
+#endif
+
+#if defined CODE_GAL_E1_SUPPORT && CODE_GAL_E1_SUPPORT > 0
 #define NUM_GAL_E7_DECODERS NAP_NUM_GAL_E7_CHANNELS
+#else
+#define NUM_GAL_E7_DECODERS 0
+#endif
 
 void platform_track_setup(void);
 void platform_decode_setup(void);

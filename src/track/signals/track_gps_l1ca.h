@@ -12,8 +12,14 @@
 #ifndef SWIFTNAV_TRACK_GPS_L1CA_H
 #define SWIFTNAV_TRACK_GPS_L1CA_H
 
-#include <libswiftnav/common.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 void track_gps_l1ca_register(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

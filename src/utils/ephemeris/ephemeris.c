@@ -235,6 +235,10 @@ static bool xcorr_check_eph_to_eph(const ephemeris_t *e) {
     first_prn = BDS2_FIRST_PRN;
     num_sats = NUM_SATS_BDS2;
     gnss = "BDS";
+  } else if (IS_GAL(e->sid)) {
+    first_prn = GAL_FIRST_PRN;
+    num_sats = NUM_SATS_GAL;
+    gnss = "GAL";
   } else if (IS_GLO(e->sid)) {
     /* Checking for GLO ephemeris is useless, because
      * 1) No doppler x-corr can be happen due to frequency division

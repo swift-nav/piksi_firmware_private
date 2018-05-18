@@ -26,10 +26,10 @@ extern "C" {
 #endif /* __cplusplus */
 
 const u8* ca_code(const me_gnss_signal_t mesid);
-s8 get_chip(u8* code, u32 chip_num);
+s8 get_chip(const u8* const code, const u32 chip_num);
 
-u32 mesid_to_lfsr0_init(const me_gnss_signal_t mesid, u8 index);
-u32 mesid_to_lfsr1_init(const me_gnss_signal_t mesid, u8 index);
+u32 mesid_to_lfsr0_init(const me_gnss_signal_t mesid, const u8 index);
+u32 mesid_to_lfsr1_init(const me_gnss_signal_t mesid, const u8 index);
 
 u32 mesid_to_lfsr0_last(const me_gnss_signal_t mesid);
 u32 mesid_to_lfsr1_last(const me_gnss_signal_t mesid);

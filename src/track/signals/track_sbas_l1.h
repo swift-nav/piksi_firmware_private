@@ -12,8 +12,14 @@
 #ifndef TRACK_SBAS_L1_H
 #define TRACK_SBAS_L1_H
 
-#include <libswiftnav/common.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 void track_sbas_l1_register(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* TRACK_SBAS_L1_H */

@@ -53,9 +53,11 @@ typedef enum {
   TP_TM_10MS_20MS,   /**< 10 ms */
   TP_TM_10MS_10MS,   /**< 10 ms */
   TP_TM_10MS_NH20MS, /**< 10 ms */
+  TP_TM_10MS_SC4,    /**< 10 ms */
 
-  TP_TM_20MS_20MS,  /**< 20 ms */
-  TP_TM_20MS_NH20MS /**< 20 ms */
+  TP_TM_20MS_20MS,   /**< 20 ms */
+  TP_TM_20MS_NH20MS, /**< 20 ms */
+  TP_TM_20MS_SC4     /**< 20 ms */
 } tp_tm_e;
 
 /**
