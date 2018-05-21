@@ -115,8 +115,8 @@ typedef struct {
   u32 gps_l2c_sv_capability;
   bool gps_l2c_sv_capability_upd_flag;
 
-  u8 shi1;
-  bool shi1_upd_flag;
+  u8 shi_ephemeris;
+  bool shi_ephemeris_upd_flag;
 
   almanac_t almanac;
   bool almanac_upd_flag;
