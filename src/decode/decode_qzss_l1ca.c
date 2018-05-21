@@ -53,9 +53,11 @@ static decoder_interface_list_element_t list_element_qzss_l1ca = {
     .interface = &decoder_interface_qzss_l1ca, .next = NULL};
 
 void decode_qzss_l1ca_register(void) {
-  for (u16 i = 0; i < ARRAY_SIZE(qzss_l1ca_decoders); i++) {
-    qzss_l1ca_decoders[i].active = false;
-    qzss_l1ca_decoders[i].data = &qzss_l1ca_decoder_data[i];
+  /* workaround for `comparison is always false due to limited range of data
+   * type` */
+  for (u16 i = 1; i <= ARRAY_SIZE(qzss_l1ca_decoders); i++) {
+    qzss_l1ca_decoders[i - 1].active = false;
+    qzss_l1ca_decoders[i - 1].data = &qzss_l1ca_decoder_data[i - 1];
   }
 
   decoder_interface_register(&list_element_qzss_l1ca);

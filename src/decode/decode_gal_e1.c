@@ -28,7 +28,7 @@
 #include "track/track_sid_db.h"
 
 /** Galileo decoder data */
-static decoder_t gal_e1_decoders[NAP_NUM_GAL_E1_CHANNELS];
+static decoder_t gal_e1_decoders[NUM_GAL_E1_DECODERS];
 
 static nav_msg_gal_inav_t gal_e1_decoder_data[ARRAY_SIZE(gal_e1_decoders)];
 

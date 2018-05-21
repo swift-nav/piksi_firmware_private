@@ -122,7 +122,7 @@ static bool glo_enabled = CODE_GLO_L1OF_SUPPORT || CODE_GLO_L2OF_SUPPORT;
 /** Flag if SBAS enabled */
 static bool sbas_enabled = CODE_SBAS_L1CA_SUPPORT;
 /** Flag if BEIDOU2 enabled */
-static bool bds2_enabled = CODE_BDS2_B11_SUPPORT || CODE_BDS2_B2_SUPPORT;
+static bool bds2_enabled = CODE_BDS2_B1_SUPPORT || CODE_BDS2_B2_SUPPORT;
 /** Flag if QZSS enabled */
 static bool qzss_enabled = CODE_QZSS_L1CA_SUPPORT || CODE_QZSS_L2C_SUPPORT;
 /** Flag if Galileo enabled */
@@ -280,7 +280,7 @@ static bool bds2_enable_notify(struct setting *s, const char *val) {
     return false;
   }
   log_debug("BEIDOU status (1 - on, 0 - off): %u", bds2_enabled);
-  if (bds2_enabled && !(CODE_BDS2_B11_SUPPORT || CODE_BDS2_B2_SUPPORT)) {
+  if (bds2_enabled && !(CODE_BDS2_B1_SUPPORT || CODE_BDS2_B2_SUPPORT)) {
     /* user tries enable Beidou2 on the platform that does not support it */
     log_error("The platform does not support BDS2");
     bds2_enabled = false;

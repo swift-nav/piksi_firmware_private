@@ -825,7 +825,7 @@ static void tp_tracker_update_pll_dll(tracker_t *tracker, u32 cycle_flags) {
       corr_all.prompt = corr_all.very_late;
       costas = false;
     } else if (has_pilot_sync) {
-      /* Once in bit-sync, Galileo E5a and E5b pilots
+      /* Once in bit-sync, Galileo pilots
        * are completely free of transitions
        * so no need for a Costas loop*/
       costas = false;
