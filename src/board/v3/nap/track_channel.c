@@ -331,9 +331,9 @@ void nap_track_init(u8 channel,
       } else {
         num_codes = BDS2_B11_D1NAV_SYMBOL_LENGTH_MS / BDS2_B11_SYMB_LENGTH_MS;
       }
+    } else {
+      assert(0);
     }
-  } else {
-    assert(0);
   }
 
   /* get a reasonable deadline to which propagate to */
