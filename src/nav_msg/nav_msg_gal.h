@@ -72,6 +72,9 @@ extern "C" {
 /** Viterbi decoder reversed polynomial B */
 #define GAL_INAV_V27_POLY_B 0x6D /* 0b01101101 - reversed 0133 */
 
+/** Galileo fit_interval definition */
+#define GAL_FIT_INTERVAL_SECONDS (2 * HOUR_SECS)
+
 /**
  * Galileo message decoder object.
  *
@@ -109,6 +112,8 @@ typedef struct {
   /* Almanac from pages 7, 8, 9 and 10 */
   u8 raw_alm[4][GAL_INAV_CONTENT_BYTE];
 
+  /**< Polarity of the data */
+  s8 bit_polarity;
 } nav_msg_gal_inav_t;
 
 typedef enum _inav_data_type_e {

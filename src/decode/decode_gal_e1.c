@@ -16,7 +16,7 @@
 
 #include "decode.h"
 #include "decode_common.h"
-#include "decode_gal_e7.h"
+#include "decode_gal_e1.h"
 #include "gnss_capabilities/gnss_capabilities.h"
 #include "nav_msg/nav_msg_gal.h"
 #include "sbp.h"
@@ -27,39 +27,40 @@
 #include "track/track_decode.h"
 #include "track/track_sid_db.h"
 
-static decoder_t gal_e7_decoders[NUM_GAL_E7_DECODERS];
+/** Galileo decoder data */
+static decoder_t gal_e1_decoders[NUM_GAL_E1_DECODERS];
 
-static nav_msg_gal_inav_t gal_e7_decoder_data[ARRAY_SIZE(gal_e7_decoders)];
+static nav_msg_gal_inav_t gal_e1_decoder_data[ARRAY_SIZE(gal_e1_decoders)];
 
-static void decoder_gal_e7_init(const decoder_channel_info_t *channel_info,
+static void decoder_gal_e1_init(const decoder_channel_info_t *channel_info,
                                 decoder_data_t *decoder_data);
 
-static void decoder_gal_e7_process(const decoder_channel_info_t *channel_info,
+static void decoder_gal_e1_process(const decoder_channel_info_t *channel_info,
                                    decoder_data_t *decoder_data);
 
 static const decoder_interface_t decoder_interface_gal = {
-    .code = CODE_GAL_E7X,
-    .init = decoder_gal_e7_init,
+    .code = CODE_GAL_E1X,
+    .init = decoder_gal_e1_init,
     .disable = decoder_disable,
-    .process = decoder_gal_e7_process,
-    .decoders = gal_e7_decoders,
-    .num_decoders = ARRAY_SIZE(gal_e7_decoders)};
+    .process = decoder_gal_e1_process,
+    .decoders = gal_e1_decoders,
+    .num_decoders = ARRAY_SIZE(gal_e1_decoders)};
 
 static decoder_interface_list_element_t list_element_gal = {
     .interface = &decoder_interface_gal, .next = NULL};
 
-void decode_gal_e7_register(void) {
+void decode_gal_e1_register(void) {
   /* workaround for `comparison is always false due to limited range of data
    * type` */
-  for (u16 i = 1; i <= ARRAY_SIZE(gal_e7_decoders); i++) {
-    gal_e7_decoders[i - 1].active = false;
-    gal_e7_decoders[i - 1].data = &gal_e7_decoder_data[i - 1];
+  for (u16 i = 1; i <= ARRAY_SIZE(gal_e1_decoders); i++) {
+    gal_e1_decoders[i - 1].active = false;
+    gal_e1_decoders[i - 1].data = &gal_e1_decoder_data[i - 1];
   }
 
   decoder_interface_register(&list_element_gal);
 }
 
-static void decoder_gal_e7_init(const decoder_channel_info_t *channel_info,
+static void decoder_gal_e1_init(const decoder_channel_info_t *channel_info,
                                 decoder_data_t *decoder_data) {
   nav_msg_gal_inav_t *data = decoder_data;
 
@@ -67,7 +68,7 @@ static void decoder_gal_e7_init(const decoder_channel_info_t *channel_info,
   gal_inav_msg_init(data, channel_info->mesid.sat);
 }
 
-static void decoder_gal_e7_process(const decoder_channel_info_t *channel_info,
+static void decoder_gal_e1_process(const decoder_channel_info_t *channel_info,
                                    decoder_data_t *decoder_data) {
   assert(channel_info);
   assert(decoder_data);
@@ -91,7 +92,7 @@ static void decoder_gal_e7_process(const decoder_channel_info_t *channel_info,
     ephemeris_t *e = &(dd.ephemeris);
     ephemeris_kepler_t *k = &(dd.ephemeris.kepler);
     utc_tm date;
-    eph_new_status_t estat;
+    /* eph_new_status_t estat; */
 
     inav_data_type_t ret = parse_inav_word(data, &dd, &t);
     switch (ret) {
@@ -147,16 +148,21 @@ static void decoder_gal_e7_process(const decoder_channel_info_t *channel_info,
                   k->tgd_gal_s[0],
                   k->tgd_gal_s[1]);
         log_debug("    %19.11E%19.11E ", rint(t.tow), 0.0);
-        dd.ephemeris.sid.code = CODE_GAL_E7X;
+        dd.ephemeris.sid.code = CODE_GAL_E1X;
         dd.ephemeris.valid = 1;
         shm_gal_set_shi(dd.ephemeris.sid.sat, dd.ephemeris.health_bits);
+        /* having the ephemeris on both E1 and E7 is generating
+         * discrepancy errors right now..
+         * need to figure out a way to refactor that check  */
+        /*
         estat = ephemeris_new(&dd.ephemeris);
         if (EPH_NEW_OK != estat) {
           log_warn_mesid(channel_info->mesid,
-                         "Error in GAL E5b ephemeris processing. "
+                         "Error in GAL E1 ephemeris processing. "
                          "Eph status: %" PRIu8 " ",
                          estat);
         }
+        */
         break;
       case INAV_UTC:
         log_debug_mesid(channel_info->mesid, "TOW %.3f", t.tow);

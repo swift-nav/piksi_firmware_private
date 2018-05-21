@@ -730,6 +730,13 @@ static ephe_type_table_element_t ephe_type_table[CONSTELLATION_COUNT] = {
                                unpack_ephemeris_glo,
                                {0}},
 
+        /* GAL */
+        [CONSTELLATION_GAL] = {{SBP_MSG_EPHEMERIS_GPS,
+                                sizeof(msg_ephemeris_gps_t)},
+                               pack_ephemeris_gps,
+                               unpack_ephemeris_gps,
+                               {0}},
+
         /* BDS */
         [CONSTELLATION_BDS2] = {
             {SBP_MSG_EPHEMERIS_GPS, sizeof(msg_ephemeris_gps_t)},

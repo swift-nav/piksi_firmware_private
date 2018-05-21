@@ -12,8 +12,14 @@
 #ifndef SWIFTNAV_DECODE_GPS_L2C_H
 #define SWIFTNAV_DECODE_GPS_L2C_H
 
-#include <libswiftnav/common.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 void decode_gps_l2c_register(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SWIFTNAV_DECODE_GPS_L2C_H */

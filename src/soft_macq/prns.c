@@ -600,7 +600,7 @@ static const u32 gps_l2cl_prns_last_values[] = {
  *              For other signals any value can be written.
  * \return LFSR initial value
  */
-u32 mesid_to_lfsr0_init(const me_gnss_signal_t mesid, u8 index) {
+u32 mesid_to_lfsr0_init(const me_gnss_signal_t mesid, const u8 index) {
   u32 ret = ~0;
 
   assert(mesid_valid(mesid));
@@ -678,7 +678,7 @@ u32 mesid_to_lfsr0_init(const me_gnss_signal_t mesid, u8 index) {
  *              For other signals any value can be written.
  * \return LFSR initial value
  */
-u32 mesid_to_lfsr1_init(const me_gnss_signal_t mesid, u8 index) {
+u32 mesid_to_lfsr1_init(const me_gnss_signal_t mesid, const u8 index) {
   u32 ret = ~0;
 
   assert(mesid_valid(mesid));
@@ -927,20 +927,8 @@ const u8* ca_code(const me_gnss_signal_t mesid) {
     return bds2_codes[(mesid.sat) - BDS2_FIRST_PRN];
   }
 
-  if (CODE_GAL_E1B == mesid.code) {
-    return gal_e1b_codes[(mesid.sat) - GAL_FIRST_PRN];
-  }
-
-  if (CODE_GAL_E1C == mesid.code) {
+  if (CODE_GAL_E1X == mesid.code) {
     return gal_e1c_codes[(mesid.sat) - GAL_FIRST_PRN];
-  }
-
-  if (CODE_GAL_E5X == mesid.code) {
-    return gal_e5q_codes[(mesid.sat) - GAL_FIRST_PRN];
-  }
-
-  if (CODE_GAL_E7X == mesid.code) {
-    return gal_e7q_codes[(mesid.sat) - GAL_FIRST_PRN];
   }
 
   const prn_array_t prn_array = prn_array_table[mesid.code];
@@ -951,9 +939,9 @@ const u8* ca_code(const me_gnss_signal_t mesid) {
   return prn_array[mesid_to_code_index(mesid)];
 }
 
-inline s8 get_chip(u8* code, u32 chip_num) {
-  u32 byte = chip_num / 8;
-  u8 bit = 7 - chip_num % 8;
+inline s8 get_chip(const u8* const code, const u32 chip_num) {
+  u32 byte = chip_num >> 3;
+  u8 bit = 7 - (chip_num & 0x7);
 
   return ((code[byte] >> bit) & 1) ? -1 : 1;
 }

@@ -303,7 +303,7 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
 
   [IDX_INIT_2] =
   { { BW_DYN,      BW_DYN,            5,   TP_CTRL_PLL3,
-      TP_TM_1MS_20MS,  TP_TM_1MS_10MS,  TP_TM_1MS_2MS,  TP_TM_1MS_NH20MS,  TP_TM_1MS_SC4 },
+      TP_TM_1MS_20MS,  TP_TM_1MS_10MS,  TP_TM_1MS_2MS,  TP_TM_1MS_NH20MS,  TP_TM_4MS_SC4 },
       TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
       100,             0,            0,
       IDX_NONE, IDX_NONE,     IDX_NONE,
@@ -311,7 +311,7 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
 
   [IDX_2MS] =
   { { BW_DYN,      BW_DYN,            2,   TP_CTRL_PLL3,
-      TP_TM_2MS_20MS,  TP_TM_2MS_10MS,  TP_TM_2MS_2MS,  TP_TM_2MS_NH20MS,  TP_TM_2MS_SC4 },
+      TP_TM_2MS_20MS,  TP_TM_2MS_10MS,  TP_TM_2MS_2MS,  TP_TM_2MS_NH20MS,  TP_TM_4MS_SC4 },
       TP_LD_PARAMS_PHASE_2MS, TP_LD_PARAMS_FREQ_2MS,
         40,          43,          0,
       IDX_2MS,     IDX_5MS,     IDX_NONE,
@@ -418,9 +418,7 @@ static tp_tm_e get_track_mode(me_gnss_signal_t mesid,
       track_mode = entry->profile.tm_nh20ms;
     }
   } else if (IS_GAL(mesid)) {
-    if ((CODE_GAL_E1B == mesid.code) || (CODE_GAL_E1C == mesid.code)) {
-      /* add another mode for this? it's so ugly.. */
-    } else {
+    if ((CODE_GAL_E1X == mesid.code) || (CODE_GAL_E7X == mesid.code)) {
       track_mode = entry->profile.tm_sc4;
     }
   } else {
@@ -476,8 +474,11 @@ static u8 get_profile_index(code_t code,
                             const tp_profile_entry_t *profiles,
                             size_t num_profiles,
                             float cn0) {
-  if (code_requires_direct_acq(code)) {
-    return 0; /* signals from ACQ always go through init profiles */
+  if (code_requires_direct_acq(code) || is_gal(code)) {
+    /* signals from ACQ always go through init profiles,
+     * and also if they are Galileo as right now
+     * the NAP secondary code stripping still has problems with FW */
+    return 0;
   }
 
   /* the bit/symbol sync is known so we can start with non-init profiles */

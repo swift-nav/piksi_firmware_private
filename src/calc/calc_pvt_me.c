@@ -342,6 +342,17 @@ static void collect_measurements(u64 rec_tc,
         /* Tracking channel is suitable for solution calculation */
         any_gps |= IS_GPS(meas[n_collected].sid);
         n_collected++;
+      } else {
+        if (is_gal(meas[n_collected].sid.code)) {
+          log_debug_sid(meas[n_collected].sid,
+                        "HEALTH %s  NAV %s  ELEV %s  TOW %s  EPHE %s  CN0 %s",
+                        (0 != (flags & TRACKER_FLAG_HEALTHY)) ? "Y" : "N",
+                        (0 != (flags & TRACKER_FLAG_NAV_SUITABLE)) ? "Y" : "N",
+                        (0 != (flags & TRACKER_FLAG_ELEVATION)) ? "Y" : "N",
+                        (0 != (flags & TRACKER_FLAG_TOW_VALID)) ? "Y" : "N",
+                        (0 != (flags & TRACKER_FLAG_HAS_EPHE)) ? "Y" : "N",
+                        (0 != (flags & TRACKER_FLAG_CN0_SHORT)) ? "Y" : "N");
+        }
       }
     }
   }

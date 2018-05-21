@@ -123,6 +123,13 @@ static u8 mesid_to_nap_code(const me_gnss_signal_t mesid) {
     case CODE_GPS_L2P:
       assert(!"Unsupported SID");
       break;
+    case CODE_GAL_E1X:
+#if defined CODE_GAL_E1_SUPPORT && CODE_GAL_E1_SUPPORT > 0
+      ret = NAP_TRK_CODE_GAL_E1;
+#else
+      assert(!"Invalid code");
+#endif /* CODE_GAL_E1_SUPPORT*/
+      break;
     case CODE_GAL_E7X:
       ret = NAP_TRK_CODE_GAL_E7;
       break;
@@ -132,7 +139,6 @@ static u8 mesid_to_nap_code(const me_gnss_signal_t mesid) {
     case CODE_GPS_L5X:
     case CODE_GAL_E1B:
     case CODE_GAL_E1C:
-    case CODE_GAL_E1X:
     case CODE_GAL_E6B:
     case CODE_GAL_E6C:
     case CODE_GAL_E6X:
@@ -181,17 +187,35 @@ void nap_track_init(u8 channel,
                     double code_phase,
                     u32 chips_to_correlate) {
   assert((mesid.code == CODE_GPS_L1CA) || (mesid.code == CODE_GPS_L2CM) ||
-         (mesid.code == CODE_GPS_L2CL) || (mesid.code == CODE_GLO_L1OF) ||
-         (mesid.code == CODE_GLO_L2OF) || (mesid.code == CODE_SBAS_L1CA) ||
-         (mesid.code == CODE_BDS2_B11) || (mesid.code == CODE_BDS2_B2) ||
-         (mesid.code == CODE_QZS_L1CA) || (mesid.code == CODE_QZS_L2CM) ||
-         (mesid.code == CODE_QZS_L2CL) || (mesid.code == CODE_GAL_E7X));
+         (mesid.code == CODE_GPS_L2CL) || (mesid.code == CODE_GPS_L5X) ||
+         (mesid.code == CODE_GLO_L1OF) || (mesid.code == CODE_GLO_L2OF) ||
+         (mesid.code == CODE_SBAS_L1CA) || (mesid.code == CODE_BDS2_B11) ||
+         (mesid.code == CODE_BDS2_B2) || (mesid.code == CODE_QZS_L1CA) ||
+         (mesid.code == CODE_QZS_L2CM) || (mesid.code == CODE_QZS_L2CL) ||
+         (mesid.code == CODE_QZS_L5X) || (mesid.code == CODE_GAL_E1X) ||
+         (mesid.code == CODE_GAL_E7X));
 
   swiftnap_tracking_wr_t *t = &NAP->TRK_CH_WR[channel];
   struct nap_ch_state *s = &nap_ch_desc[channel];
 
   if (mesid.code == CODE_BDS2_B2) {
     log_debug("C%02" PRIu8 " channel %" PRIu8 " t %" PRIxPTR " s %" PRIxPTR,
+              mesid.sat,
+              channel,
+              (uintptr_t)t,
+              (uintptr_t)s);
+  }
+  if (mesid.code == CODE_GAL_E1X) {
+    log_debug("E%02" PRIu8 " e1bc channel %" PRIu8 " t %" PRIxPTR
+              " s %" PRIxPTR,
+              mesid.sat,
+              channel,
+              (uintptr_t)t,
+              (uintptr_t)s);
+  }
+  if (mesid.code == CODE_GAL_E7X) {
+    log_debug("E%02" PRIu8 " e5bIQ channel %" PRIu8 " t %" PRIxPTR
+              " s %" PRIxPTR,
               mesid.sat,
               channel,
               (uintptr_t)t,
@@ -215,6 +239,9 @@ void nap_track_init(u8 channel,
   } else if (IS_BDS2(mesid)) {
     s->spacing[0] = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
                                     .samples = NAP_VE_E_BDS2_SPACING_SAMPLES};
+  } else if (CODE_GAL_E1X == mesid.code) {
+    s->spacing[0] = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
+                                    .samples = NAP_VE_E_GPS_SPACING_SAMPLES};
   } else if (CODE_GAL_E7X == mesid.code) {
     s->spacing[0] = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
                                     .samples = NAP_VE_E_GALE7_SPACING_SAMPLES};
@@ -332,28 +359,43 @@ void nap_track_init(u8 channel,
     mesid1.code = CODE_GPS_L2CL;
   }
 
-  NAP->TRK_CODE_LFSR0_INIT = mesid_to_lfsr0_init(mesid, 0);
-  NAP->TRK_CODE_LFSR0_RESET = mesid_to_lfsr0_init(mesid, 0);
-  NAP->TRK_CODE_LFSR0_LAST = mesid_to_lfsr0_last(mesid);
-
-  NAP->TRK_CODE_LFSR1_INIT = mesid_to_lfsr1_init(mesid1, index);
-  NAP->TRK_CODE_LFSR1_RESET = mesid_to_lfsr1_init(mesid1, 0);
-  NAP->TRK_CODE_LFSR1_LAST = mesid_to_lfsr1_last(mesid1);
-
-  if (mesid.code == CODE_GAL_E5X) {
+#if defined CODE_GAL_E1_SUPPORT && CODE_GAL_E1_SUPPORT > 0
+  if (mesid.code == CODE_GAL_E1X) {
     index = mesid.sat - 1;
-    NAP->TRK_SEC_CODE[3] = getbitu(gal_e5q_sec_codes[index], 0, 4);
-    NAP->TRK_SEC_CODE[2] = getbitu(gal_e5q_sec_codes[index], 4, 32);
-    NAP->TRK_SEC_CODE[1] = getbitu(gal_e5q_sec_codes[index], 36, 32);
-    NAP->TRK_SEC_CODE[0] = getbitu(gal_e5q_sec_codes[index], 68, 32);
+    for (u16 k = 0; k < GAL_E1B_PRN_BYTES; k++) {
+      NAP->TRK_MEMCODE_CFG =
+          (channel << 19) | (0 << 18) | (k << 8) | gal_e1b_codes[index][k];
+    }
+    for (u16 k = 0; k < GAL_E1C_PRN_BYTES; k++) {
+      NAP->TRK_MEMCODE_CFG =
+          (channel << 19) | (1 << 18) | (k << 8) | gal_e1c_codes[index][k];
+    }
+  } else {
+#endif /* CODE_GAL_E1_SUPPORT */
+    NAP->TRK_CODE_LFSR0_INIT = mesid_to_lfsr0_init(mesid, 0);
+    NAP->TRK_CODE_LFSR0_RESET = mesid_to_lfsr0_init(mesid, 0);
+    NAP->TRK_CODE_LFSR0_LAST = mesid_to_lfsr0_last(mesid);
+
+    NAP->TRK_CODE_LFSR1_INIT = mesid_to_lfsr1_init(mesid1, index);
+    NAP->TRK_CODE_LFSR1_RESET = mesid_to_lfsr1_init(mesid1, 0);
+    NAP->TRK_CODE_LFSR1_LAST = mesid_to_lfsr1_last(mesid1);
+
+    if (mesid.code == CODE_GAL_E5X) {
+      index = mesid.sat - 1;
+      NAP->TRK_SEC_CODE[3] = getbitu(gal_e5q_sec_codes[index], 0, 4);
+      NAP->TRK_SEC_CODE[2] = getbitu(gal_e5q_sec_codes[index], 4, 32);
+      NAP->TRK_SEC_CODE[1] = getbitu(gal_e5q_sec_codes[index], 36, 32);
+      NAP->TRK_SEC_CODE[0] = getbitu(gal_e5q_sec_codes[index], 68, 32);
+    } else if (mesid.code == CODE_GAL_E7X) {
+      index = mesid.sat - 1;
+      NAP->TRK_SEC_CODE[3] = getbitu(gal_e7q_sec_codes[index], 0, 4);
+      NAP->TRK_SEC_CODE[2] = getbitu(gal_e7q_sec_codes[index], 4, 32);
+      NAP->TRK_SEC_CODE[1] = getbitu(gal_e7q_sec_codes[index], 36, 32);
+      NAP->TRK_SEC_CODE[0] = getbitu(gal_e7q_sec_codes[index], 68, 32);
+    }
+#if defined CODE_GAL_E1_SUPPORT && CODE_GAL_E1_SUPPORT > 0
   }
-  if (mesid.code == CODE_GAL_E7X) {
-    index = mesid.sat - 1;
-    NAP->TRK_SEC_CODE[3] = getbitu(gal_e7q_sec_codes[index], 0, 4);
-    NAP->TRK_SEC_CODE[2] = getbitu(gal_e7q_sec_codes[index], 4, 32);
-    NAP->TRK_SEC_CODE[1] = getbitu(gal_e7q_sec_codes[index], 36, 32);
-    NAP->TRK_SEC_CODE[0] = getbitu(gal_e7q_sec_codes[index], 68, 32);
-  }
+#endif /* CODE_GAL_E1_SUPPORT */
 
   /* port FCN-induced NCO phase to a common receiver clock point */
   s->reckoned_carr_phase = (s->fcn_freq_hz) *

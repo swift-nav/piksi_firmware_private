@@ -129,9 +129,11 @@ void tp_update_correlators(u32 cycle_flags,
     corr_state->corr_fll = corr_add(corr_state->corr_fll, cs_straight->prompt);
 
   /* Message payload / bit sync accumulator updates */
+  corr_t bit = (0 != (cycle_flags & TPF_BIT_PILOT)) ? cs_straight->very_late
+                                                    : cs_straight->prompt;
   if (0 != (cycle_flags & TPF_BSYNC_SET)) {
-    corr_state->corr_bit = cs_straight->prompt;
+    corr_state->corr_bit = bit;
   } else if (0 != (cycle_flags & TPF_BSYNC_ADD)) {
-    corr_state->corr_bit = corr_add(corr_state->corr_bit, cs_straight->prompt);
+    corr_state->corr_bit = corr_add(corr_state->corr_bit, bit);
   }
 }

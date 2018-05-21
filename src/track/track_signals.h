@@ -15,6 +15,7 @@
 
 #include "signals/track_bds2_b11.h"
 #include "signals/track_bds2_b2.h"
+#include "signals/track_gal_e1.h"
 #include "signals/track_gal_e7.h"
 #include "signals/track_glo_l1of.h"
 #include "signals/track_glo_l2of.h"

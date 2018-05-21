@@ -27,6 +27,10 @@
 
 #define SYMBOL_LENGTH_NH20_MS 20
 #define GAL_CS100_MS 100
+#define GAL_CS25_LEN 25
+#define GAL_CS25_MS (GAL_CS25_LEN * GAL_E1C_PRN_PERIOD_MS)
+
+#define HS(n) ((b->histogram[n] > 0) ? '+' : '-')
 
 /* The sync histogram should be as follows for NH20 code
  * NH20 = [0 0 0 0 0  1 0 0 1 1  0 1 0 1 0  0 1 1 1 0]
@@ -35,6 +39,9 @@
 static const s8 nh20_xans[SYMBOL_LENGTH_NH20_MS] = {+1, +1, +1, +1, +1, -1, -1,
                                                     +1, -1, +1, -1, -1, -1, -1,
                                                     -1, +1, -1, +1, +1, -1};
+
+/* Galileo E1C transitions array, common to all satellites */
+static s8 e1c_xans[GAL_CS25_MS];
 
 /* Galileo E5aQ transitions array, built per satellite */
 static s8 e5q_xans[NUM_SATS_GAL][GAL_CS100_MS];
@@ -97,10 +104,24 @@ void bit_sync_init(bit_sync_t *b, const me_gnss_signal_t mesid) {
       }
       break;
 
+    case CODE_GAL_E1X:
+      bit_length = 4;
+      /* TODO: add GAL_CS100_MS to constants.h in LSNP, or me_constants.h */
+      prev_chip = getbitu(gal_e1c_sec25, GAL_CS25_LEN - 1, 1);
+      for (u8 sec_chip_idx = 0; sec_chip_idx < GAL_CS25_LEN; sec_chip_idx++) {
+        curr_chip = getbitu(gal_e1c_sec25, sec_chip_idx, 1);
+        e1c_xans[sec_chip_idx * GAL_E1C_PRN_PERIOD_MS + 0] =
+            (curr_chip != prev_chip) ? -1 : +1;
+        e1c_xans[sec_chip_idx * GAL_E1C_PRN_PERIOD_MS + 1] = +1;
+        e1c_xans[sec_chip_idx * GAL_E1C_PRN_PERIOD_MS + 2] = +1;
+        e1c_xans[sec_chip_idx * GAL_E1C_PRN_PERIOD_MS + 3] = +1;
+        prev_chip = curr_chip;
+      }
+      break;
+
     case CODE_GAL_E5X:
       bit_length = 20;
-      /* TODO: add this GAL_CS100_MS to constants.h in LSNP, or me_constants.h
-       */
+      /* TODO: add GAL_CS100_MS to constants.h in LSNP, or me_constants.h */
       prev_chip = getbitu(gal_e5q_sec_codes[sat], GAL_CS100_MS - 1, 1);
       for (u8 sec_chip_idx = 0; sec_chip_idx < GAL_CS100_MS; sec_chip_idx++) {
         curr_chip = getbitu(gal_e5q_sec_codes[sat], sec_chip_idx, 1);
@@ -108,10 +129,10 @@ void bit_sync_init(bit_sync_t *b, const me_gnss_signal_t mesid) {
         prev_chip = curr_chip;
       }
       break;
+
     case CODE_GAL_E7X:
       bit_length = 4;
-      /* TODO: add this GAL_CS100_MS to constants.h in LSNP, or me_constants.h
-       */
+      /* TODO: add GAL_CS100_MS to constants.h in LSNP, or me_constants.h */
       prev_chip = getbitu(gal_e7q_sec_codes[sat], GAL_CS100_MS - 1, 1);
       for (u8 sec_chip_idx = 0; sec_chip_idx < GAL_CS100_MS; sec_chip_idx++) {
         curr_chip = getbitu(gal_e7q_sec_codes[sat], sec_chip_idx, 1);
@@ -126,7 +147,6 @@ void bit_sync_init(bit_sync_t *b, const me_gnss_signal_t mesid) {
     case CODE_GPS_L5X:
     case CODE_GAL_E1B:
     case CODE_GAL_E1C:
-    case CODE_GAL_E1X:
     case CODE_GAL_E6B:
     case CODE_GAL_E6C:
     case CODE_GAL_E6X:
@@ -242,13 +262,11 @@ static void histogram_update(bit_sync_t *b,
 
   } else if (CODE_GAL_E7X == b->mesid.code) {
     /* Galileo E7Q has a SC100 secondary code */
-
-    /* FIXME: resetting the histogram is a bit brutal.. */
     if (ABS(b->histogram[0]) > 3) {
       memset(b->histogram, 0, sizeof(b->histogram));
     }
-    /* rotate the histogram left */
     s8 hist_head = b->histogram[0];
+    /* rotate the histogram left */
     memmove(&(b->histogram[0]),
             &(b->histogram[1]),
             sizeof(s8) * (GAL_CS100_MS - 1));
@@ -258,8 +276,7 @@ static void histogram_update(bit_sync_t *b,
     s32 sum = 0;
     u8 sat = b->mesid.sat - 1;
     /* cross-correlate transitions at the current symbol */
-    /* the FPGA is working on the new bit already, so one needs to anticipate by
-     * 1 */
+    /* FPGA is working on new bit already: need to anticipate by 1 */
     for (u8 i = 2; i < GAL_CS100_MS; i++) {
       sum += b->histogram[i] * (e7q_xans[sat][i - 2]);
     }
@@ -270,14 +287,13 @@ static void histogram_update(bit_sync_t *b,
     }
 
   } else if (CODE_GAL_E5X == b->mesid.code) {
+    /* TODO: this is untested */
     /* Galileo E5Q has a SC100 secondary code */
-
-    /* FIXME: resetting the histogram is a bit brutal.. */
     if (ABS(b->histogram[0]) > 3) {
       memset(b->histogram, 0, sizeof(b->histogram));
     }
-    /* rotate the histogram left */
     s8 hist_head = b->histogram[0];
+    /* rotate the histogram left */
     memmove(&(b->histogram[0]),
             &(b->histogram[1]),
             sizeof(s8) * (GAL_CS100_MS - 1));
@@ -287,15 +303,33 @@ static void histogram_update(bit_sync_t *b,
     s32 sum = 0;
     u8 sat = b->mesid.sat - 1;
     /* cross-correlate transitions at the current symbol */
-    /* transitions on the first element shouldn't count: it's data */
-    for (u8 i = 1; i < GAL_CS100_MS; i++) {
-      sum += b->histogram[i] * (e5q_xans[sat][i]);
+    /* transitions on the first element do count: it's a pure pilot channel */
+    for (u8 i = 2; i < GAL_CS100_MS; i++) {
+      sum += b->histogram[i] * (e5q_xans[sat][i - 2]);
     }
     if (sum >= (2 * GAL_CS100_MS)) {
-      /* might be a +2 or a -2.. we'll know when we do the same for NH20s */
       b->bit_phase_ref = (b->bit_phase + 2) % b->bit_length;
     }
 
+  } else if (CODE_GAL_E1X == b->mesid.code) {
+    /* Galileo E1C has a SC25 secondary code */
+    s8 hist_head = b->histogram[0];
+    /* rotate the histogram left */
+    memmove(
+        &(b->histogram[0]), &(b->histogram[1]), sizeof(s8) * (GAL_CS25_MS - 1));
+    /* if there was a transition subtract 1 */
+    hist_head = SIGN(dot_prod_real);
+    b->histogram[(GAL_CS25_MS - 1)] = hist_head;
+    s32 sum = 0;
+    /* cross-correlate transitions at the current symbol */
+    /* transitions on the first element do count: it's a pure pilot channel
+    */
+    for (u8 i = 0; i < GAL_CS25_MS; i++) {
+      sum += b->histogram[i] * (e1c_xans[(i - 2 + GAL_CS25_MS) % GAL_CS25_MS]);
+    }
+    if (sum == GAL_CS25_MS) {
+      b->bit_phase_ref = (b->bit_phase + 2) % b->bit_length;
+    }
   } else {
     /* check one in the histogram if the above is negative */
     if (dot_prod_real < 0) {

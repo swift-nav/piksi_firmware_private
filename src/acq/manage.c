@@ -122,7 +122,7 @@ static bool glo_enabled = CODE_GLO_L1OF_SUPPORT || CODE_GLO_L2OF_SUPPORT;
 /** Flag if SBAS enabled */
 static bool sbas_enabled = CODE_SBAS_L1CA_SUPPORT;
 /** Flag if BEIDOU2 enabled */
-static bool bds2_enabled = CODE_BDS2_B11_SUPPORT || CODE_BDS2_B2_SUPPORT;
+static bool bds2_enabled = CODE_BDS2_B1_SUPPORT || CODE_BDS2_B2_SUPPORT;
 /** Flag if QZSS enabled */
 static bool qzss_enabled = CODE_QZSS_L1CA_SUPPORT || CODE_QZSS_L2C_SUPPORT;
 /** Flag if Galileo enabled */
@@ -280,7 +280,7 @@ static bool bds2_enable_notify(struct setting *s, const char *val) {
     return false;
   }
   log_debug("BEIDOU status (1 - on, 0 - off): %u", bds2_enabled);
-  if (bds2_enabled && !(CODE_BDS2_B11_SUPPORT || CODE_BDS2_B2_SUPPORT)) {
+  if (bds2_enabled && !(CODE_BDS2_B1_SUPPORT || CODE_BDS2_B2_SUPPORT)) {
     /* user tries enable Beidou2 on the platform that does not support it */
     log_error("The platform does not support BDS2");
     bds2_enabled = false;
@@ -455,7 +455,7 @@ static void manage_acq(void) {
          (CODE_SBAS_L1CA == acq->mesid.code) ||
          (CODE_BDS2_B11 == acq->mesid.code) ||
          (CODE_QZS_L1CA == acq->mesid.code) ||
-         (CODE_GAL_E7X == acq->mesid.code));
+         (CODE_GAL_E1X == acq->mesid.code));
 
   float doppler_min = code_to_sv_doppler_min(acq->mesid.code) +
                       code_to_tcxo_doppler_min(acq->mesid.code);
@@ -489,13 +489,23 @@ static void manage_acq(void) {
       return;
     }
 
+    me_gnss_signal_t mesid_trk = acq->mesid;
+    float cp = acq_result.cp;
+    float cf = acq_result.cf;
+
+    if (CODE_GAL_E1X == acq->mesid.code) {
+      mesid_trk.code = CODE_GAL_E7X;
+      cp = fmodf(cp * 10.0f, code_to_chip_count(CODE_GAL_E7X));
+      cf = cf * GAL_E7_HZ / GAL_E1_HZ;
+    }
+
     tracking_startup_params_t tracking_startup_params = {
-        .mesid = acq->mesid,
+        .mesid = mesid_trk,
         .glo_slot_id = GLO_ORBIT_SLOT_UNKNOWN,
         .sample_count = acq_result.sample_count,
-        .carrier_freq = acq_result.cf,
-        .code_phase = acq_result.cp,
-        .chips_to_correlate = code_to_chip_count(acq->mesid.code),
+        .carrier_freq = cf,
+        .code_phase = cp,
+        .chips_to_correlate = code_to_chip_count(mesid_trk.code),
         .cn0_init = acq_result.cn0,
         .elevation = TRACKING_ELEVATION_UNKNOWN};
 
@@ -1093,7 +1103,8 @@ u32 get_tracking_channel_sid_flags(const gnss_signal_t sid,
     }
   }
 
-  if ((IS_GPS(sid) || IS_BDS2(sid)) && shm_navigation_suitable(sid)) {
+  if ((IS_GPS(sid) || IS_BDS2(sid) || IS_GAL(sid)) &&
+      shm_navigation_suitable(sid)) {
     flags |= TRACKER_FLAG_NAV_SUITABLE;
   } else if (IS_GLO(sid) && (flags & TRACKER_FLAG_HEALTHY)) {
     flags |= TRACKER_FLAG_NAV_SUITABLE;

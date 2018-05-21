@@ -10,9 +10,6 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-/* skip weak attributes for L2CA API implementation */
-#define TRACK_GLO_L2CA_INTERNAL
-
 /* Local headers */
 #include "track_glo_l2of.h"
 #include "signal_db/signal_db.h"
