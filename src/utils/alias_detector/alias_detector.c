@@ -71,8 +71,7 @@ float alias_detect_second(alias_detect_t *a, float I, float Q) {
 
   a->fl_count++;
   if (a->fl_count == a->acc_len) {
-    float angle_rad = atan2f(a->cross, a->dot);
-    float err = sinf(angle_rad) * a->k;
+    float err = atan2f(a->cross, a->dot) * a->k;
     a->fl_count = 0;
     a->cross = 0;
     a->dot = 0;
