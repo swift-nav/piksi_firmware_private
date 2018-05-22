@@ -240,7 +240,7 @@ void tp_tracker_init(tracker_t *tracker, const tp_tracker_config_t *config) {
 
   tp_profile_init(tracker, &report);
 
-  if (config->show_unconfirmed_trackers) {
+  if (config->confirm_early) {
     tracker->flags |= TRACKER_FLAG_CONFIRMED;
   }
 

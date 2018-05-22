@@ -57,7 +57,6 @@ void track_qzss_l1ca_register(void) {
 }
 
 static void tracker_qzss_l1ca_init(tracker_t *tracker_channel) {
-  qzss_l1ca_config.show_unconfirmed_trackers = true;
   tp_tracker_init(tracker_channel, &qzss_l1ca_config);
 }
 

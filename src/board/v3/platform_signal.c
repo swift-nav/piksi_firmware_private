@@ -48,7 +48,7 @@ void platform_track_setup(void) {
 #if defined CODE_QZSS_L2C_SUPPORT && CODE_QZSS_L2C_SUPPORT > 0
   track_qzss_l2c_register();
 #endif
-#if defined CODE_BDS2_B11_SUPPORT && CODE_BDS2_B11_SUPPORT > 0
+#if defined CODE_BDS2_B1_SUPPORT && CODE_BDS2_B1_SUPPORT > 0
   track_bds2_b11_register();
 #endif
 #if defined CODE_BDS2_B2_SUPPORT && CODE_BDS2_B2_SUPPORT > 0
@@ -81,7 +81,7 @@ void platform_decode_setup(void) {
 #if defined CODE_QZSS_L1CA_SUPPORT && CODE_QZSS_L1CA_SUPPORT > 0
   decode_qzss_l1ca_register();
 #endif
-#if defined CODE_BDS2_B11_SUPPORT && CODE_BDS2_B11_SUPPORT > 0
+#if defined CODE_BDS2_B1_SUPPORT && CODE_BDS2_B1_SUPPORT > 0
   decode_bds_b1_register();
 #endif
 #if defined CODE_BDS2_B2_SUPPORT && CODE_BDS2_B2_SUPPORT > 0
