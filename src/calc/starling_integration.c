@@ -40,7 +40,7 @@
 #define STARLING_BASE_SENDER_ID_DEFAULT 0
 
 /*******************************************************************************
- * Types 
+ * Types
  ******************************************************************************/
 
 /* Set of messages sent by the Piksi Multi integration of Starling. */
