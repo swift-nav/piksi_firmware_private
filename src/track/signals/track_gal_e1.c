@@ -50,7 +50,6 @@ static const tracker_interface_t tracker_interface_gal_e1 = {
 };
 
 static void tracker_gal_e1_init(tracker_t *tracker) {
-  gal_e1_config.show_unconfirmed_trackers = false;
   tp_tracker_init(tracker, &gal_e1_config);
 
   /* tracker_bit_sync_set(tracker, 0); */

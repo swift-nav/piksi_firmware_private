@@ -25,7 +25,7 @@
  * Common tracker configuration container.
  */
 typedef struct {
-  bool show_unconfirmed_trackers; /**< Flag to control reporting of unconfirmed
+  bool confirm_early; /**< Flag to control reporting of unconfirmed
                                    *   tracker channels */
   float xcorr_delta; /**< Frequency delta error for cross-correlation [hz] */
   float

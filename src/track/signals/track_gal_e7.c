@@ -50,7 +50,6 @@ static const tracker_interface_t tracker_interface_gal_e7 = {
 };
 
 static void tracker_gal_e7_init(tracker_t *tracker_channel) {
-  gal_e7_config.show_unconfirmed_trackers = false;
   tp_tracker_init(tracker_channel, &gal_e7_config);
 
   //  tracker_bit_sync_set(tracker_channel, /* bit_phase_ref = */ 0);
