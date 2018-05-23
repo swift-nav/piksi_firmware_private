@@ -331,7 +331,7 @@ void nap_track_init(u8 channel,
       } else {
         num_codes = BDS2_B11_D1NAV_SYMBOL_LENGTH_MS / BDS2_B11_SYMB_LENGTH_MS;
       }
-    } else if (CODE_GAL_E7X == mesid.code {
+    } else if (CODE_GAL_E7X == mesid.code) {
       /* default num_codes = 1 */;
     } else {
       assert(0);
