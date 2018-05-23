@@ -83,7 +83,7 @@ void cnav_msg_put(const cnav_msg_t *msg) {
     storage_cell->msg_valid = true;
     chMtxUnlock(&cnav_msg_mutex);
     log_debug_sid(sid, "CNAV message type %d saved", msg->msg_id);
-    shm_log_sat_state("SHI5", msg->prn);
+    shm_log_sat_state("cnav_msg10", msg->prn);
   }
 }
 

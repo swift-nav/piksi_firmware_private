@@ -837,7 +837,8 @@ static s8 decode_subframe1(const nav_msg_t *n,
   if (0 == n->frame_age[0]) {
     /* Decode health information as soon as we get it and even if other
      * subframes forming the ephemeris won't be received */
-    shm_gps_decode_shi_ephemeris(n->frame_words[0][3 - 3], &data->shi_ephemeris);
+    shm_gps_decode_shi_ephemeris(n->frame_words[0][3 - 3],
+                                 &data->shi_ephemeris);
     data->shi_ephemeris_upd_flag = true;
     res = 1;
   }

@@ -435,7 +435,8 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
   shm_gps_set_shi_lnav_how_alert(l1ca_sid.sat, !data->nav_msg.alert);
 
   if (dd.shi_ephemeris_upd_flag) {
-    log_debug_mesid(channel_info->mesid, "SHI1: 0x%" PRIx8, dd.shi_ephemeris);
+    log_debug_mesid(
+        channel_info->mesid, "shi_ephemeris: 0x%" PRIx8, dd.shi_ephemeris);
     shm_gps_set_shi_ephemeris(l1ca_sid.sat, dd.shi_ephemeris);
   }
 
