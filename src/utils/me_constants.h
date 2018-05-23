@@ -14,7 +14,7 @@
 #define ME_CONSTANTS_H
 
 /** Max user velocity for visibility calculation (m/s) */
-#define MAX_USER_VELOCITY_MPS 38.0f
+#define MAX_USER_VELOCITY_MPS 7500.0f
 
 /** Approximate average distance to the GPS satellites in m. */
 #define GPS_NOMINAL_RANGE 22.980e6

@@ -566,9 +566,9 @@ static void me_calc_pvt_thread(void *arg) {
       if (ndb_iono_corr_read(&i_params) != NDB_ERR_NONE) {
         i_params = DEFAULT_IONO_PARAMS;
       }
-      correct_tropo(lgf.position_solution.pos_ecef, n_ready, nav_meas);
+      /* correct_tropo(lgf.position_solution.pos_ecef, n_ready, nav_meas);
       correct_iono(
-          lgf.position_solution.pos_ecef, &i_params, n_ready, nav_meas);
+          lgf.position_solution.pos_ecef, &i_params, n_ready, nav_meas); */
     }
 
     if (sid_set_get_sat_count(&codes) < 4) {
