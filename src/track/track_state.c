@@ -296,7 +296,11 @@ bool tracker_init(const u8 id,
     /* Clear error flags before starting NAP tracking channel */
     error_flags_clear(tracker);
 
-    /* Change the channel state to ENABLED. */
+    /* (tracker->update_timestamp_ms = now) must be executed strictly before
+       (tracker->busy = true). Otherwise stale_trackers_cleanup() may kick in
+       and kill the tracker as stale. */
+    COMPILER_BARRIER();
+
     tracker->busy = true;
   }
   tracker_unlock(tracker);
@@ -526,7 +530,12 @@ void stale_trackers_cleanup(void) {
   for (u8 i = 0; i < nap_track_n_channels; i++) {
     tracker_t *tracker = tracker_get(i);
     if (!tracker->busy) continue;
-    if ((now_ms > (NAP_CORR_LENGTH_MAX_MS + tracker->update_timestamp_ms))) {
+    u64 deadline_ms = NAP_CORR_LENGTH_MAX_MS + tracker->update_timestamp_ms;
+    if (now_ms > deadline_ms) {
+      log_info_mesid(tracker->mesid,
+                     "hit deadline_ms: %" PRIu64 ", updated once: %d",
+                     deadline_ms,
+                     (int)tracker->updated_once);
       tracker_flag_drop(tracker, CH_DROP_REASON_NO_UPDATES);
       sanitize_tracker(tracker, now_ms);
     }
