@@ -42,7 +42,7 @@ static const ephemeris_t ref_eph = {
       {2.01600000000E+05,     /* kepler.toc.tow */
        1998},                 /* kepler.toc.wn */
       1,                      /* kepler.iodc */
-      1}}                     /* kepler.iode */
+      112}}                   /* kepler.iode */
 
 };
 

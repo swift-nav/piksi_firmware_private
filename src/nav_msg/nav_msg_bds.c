@@ -227,16 +227,17 @@ s32 bds_d1_process_subframe(nav_msg_bds_t *n,
     TOW_s -= WEEK_SECS;
   }
   /* Current time is 330 bits from TOW. */
-  TOW_s = TOW_s * SECS_MS + BDS2_B11_D1NAV_SYMBOL_LENGTH_MS * 330;
+  s32 TOW_ms = TOW_s * SECS_MS + BDS2_B11_D1NAV_SYMBOL_LENGTH_MS * 330;
 
   if (!subframes123_from_same_frame(n)) {
-    return TOW_s;
+    return TOW_ms;
   }
 
   if (0x3fffffffULL == ((n->goodwords_mask >> 20) & 0x3fffffffULL)) {
     process_d1_fraid1(n, mesid, data);
     process_d1_fraid2(n, mesid, data);
     process_d1_fraid3(n, mesid, data);
+    data->ephemeris.kepler.iode = (u16)(TOW_s / (HOUR_SECS / 2));
   }
 
   if (0x3ffULL == ((n->goodwords_mask >> 10) & 0x3ffULL)) {
@@ -307,7 +308,7 @@ s32 bds_d1_process_subframe(nav_msg_bds_t *n,
     e->valid = 1;
   }
 
-  return TOW_s;
+  return TOW_ms;
 }
 
 /** D2 parsing
