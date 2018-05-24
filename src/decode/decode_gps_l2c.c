@@ -103,7 +103,7 @@ static void decoder_gps_l2c_process(const decoder_channel_info_t *channel_info,
     }
 
     /* Update health indicators */
-    shm_gps_set_shi6(channel_info->mesid.sat, !data->cnav_msg.alert);
+    shm_gps_set_shi_cnav_alert(channel_info->mesid.sat, !data->cnav_msg.alert);
 
     if (CNAV_MSG_TYPE_10 == data->cnav_msg.msg_id) {
       log_debug_mesid(channel_info->mesid,

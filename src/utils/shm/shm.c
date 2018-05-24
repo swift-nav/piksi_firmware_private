@@ -80,10 +80,10 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
   assert(sid_valid(sid));
 
   /* Check GPS band specific SHIs.
-   * SHI1. LNAV SV HEALTH (6 bits, subframe 1, word 3)
-   * SHI4. LNAV alert flag (HOW, bit 18)
-   * SHI5. CNAV L1, L2 [and L5] health (message type 10 bits 52..54)
-   * SHI6. CNAV alert flag (bit 38, each message)
+   * shi_ephemeris, LNAV SV HEALTH (6 bits, subframe 1, word 3)
+   * shi_lnav_how_alert, LNAV alert flag (HOW, bit 18)
+   * cnav_msg10, CNAV L1, L2 [and L5] health (message type 10 bits 52..54)
+   * shi_cnav_alert. CNAV alert flag (bit 38, each message)
    */
 
   /* Check GLO SHI.
@@ -100,17 +100,19 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
 
   /* Check common GPS */
   if (IS_GPS(sid)) {
-    if (shis.shi1_set && !check_6bit_health_word(shis.shi1, sid.code)) {
+    if (shis.shi_ephemeris_set &&
+        !check_6bit_health_word(shis.shi_ephemeris, sid.code)) {
       return CODE_NAV_STATE_INVALID;
     }
 
     /* Return SV_NAV_STATE_INVALID if:
-     * - SHI3 is set and
-     * - SHI3 has not aged and
-     * - SHI3 indicates unhealthy
+     * - shi_page25_set is set and
+     * - shi_page25_set has not aged and
+     * - shi_page25_set indicates unhealthy
      */
-    if (shis.shi3_set && !shm_alma_page25_health_aged(shis.shi3_timetag_s) &&
-        !check_alma_page25_health_word(shis.shi3, sid.code)) {
+    if (shis.shi_page25_set &&
+        !shm_alma_page25_health_aged(shis.shi_page25_timetag_s) &&
+        !check_alma_page25_health_word(shis.shi_page25, sid.code)) {
       return CODE_NAV_STATE_INVALID;
     }
 
@@ -126,21 +128,21 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
     case CODE_GPS_L1CA: {
       /*
       * Return SV_NAV_STATE_INVALID if either of the following:
-      * - SHI1 is available and indicates L1CA unhealthy
-      * - SHI4 is available and negative
-      * - SHI5 is available and indicates L1CA unhealthy
-      * - almanac health bits are available and indicate L1 unhealthy
+      * - shi_ephemeris_set is available and indicates L1CA unhealthy
+      * - shi_lnav_how_alert is available and negative
+      * - cnav_msg10 is available and indicates L1 unhealthy
+      * - almanac health bits are available and indicate L1CA unhealthy
       *
       * Return CODE_NAV_STATE_VALID all conditions below are true:
-      * - SHI1 is available and indicates L1CA healthy
-      * - SHI4 is available and positive
+      * - shi_ephemeris_set is available and indicates L1CA healthy
+      * - shi_lnav_how_alert is available and positive
       * - One of the following:
-      *     - SHI5 is unavailable
-      *     - SHI5 is available and indicates L1CA healthy
+      *     - cnav_msg10 is unavailable
+      *     - cnav_msg10 is available and indicates L1 healthy
       *
       * Otherwise return CODE_NAV_STATE_UNKNOWN
       */
-      if (shis.shi4_set && !shis.shi4) {
+      if (shis.shi_lnav_how_alert_set && !shis.shi_lnav_how_alert) {
         return CODE_NAV_STATE_INVALID;
       }
 
@@ -150,8 +152,9 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
         return CODE_NAV_STATE_INVALID;
       }
 
-      if ((shis.shi1_set && check_6bit_health_word(shis.shi1, sid.code)) &&
-          (shis.shi4_set && shis.shi4) &&
+      if ((shis.shi_ephemeris_set &&
+           check_6bit_health_word(shis.shi_ephemeris, sid.code)) &&
+          (shis.shi_lnav_how_alert_set && shis.shi_lnav_how_alert) &&
           ((!msg10_available) ||
            (msg10_available && cnav_msg10.data.type_10.l1_health))) {
         return CODE_NAV_STATE_VALID;
@@ -163,21 +166,20 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
     case CODE_GPS_L1P: {
       /*
       * Return SV_NAV_STATE_INVALID if either of the following:
-      * - SHI1 is available and indicates L1P unhealthy
-      * - SHI4 is available and negative
-      * - SHI5 is available and indicates L1P unhealthy
-      * - almanac health bits are available and indicate L1 unhealthy
+      * - shi_ephemeris is available and indicates L1P unhealthy
+      * - shi_lnav_how_alert is available and negative
+      * - cnav_msg10 is available and indicates L1 unhealthy
       *
       * Return CODE_NAV_STATE_VALID all conditions below are true:
-      * - SHI1 is available and indicates L1P healthy
-      * - SHI4 is available and positive
+      * - shi_ephemeris is available and indicates L1P healthy
+      * - shi_lnav_how_alert is available and positive
       * - One of the following:
-      *     - Both SHI5 and SHI6 are unavailable
-      *     - SHI5 is available and indicates L1P healthy
+      *     - Both cnav_msg10 and shi_cnav_alert are unavailable
+      *     - cnav_msg10 is available and indicates L1 healthy
       *
       * Otherwise return CODE_NAV_STATE_UNKNOWN
       */
-      if (shis.shi4_set && !shis.shi4) {
+      if (shis.shi_lnav_how_alert_set && !shis.shi_lnav_how_alert) {
         return CODE_NAV_STATE_INVALID;
       }
 
@@ -187,9 +189,10 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
         return CODE_NAV_STATE_INVALID;
       }
 
-      if ((shis.shi1_set && check_6bit_health_word(shis.shi1, sid.code)) &&
-          (shis.shi4_set && shis.shi4) &&
-          ((!shis.shi6_set && !msg10_available) ||
+      if ((shis.shi_ephemeris_set &&
+           check_6bit_health_word(shis.shi_ephemeris, sid.code)) &&
+          (shis.shi_lnav_how_alert_set && shis.shi_lnav_how_alert) &&
+          ((!shis.shi_cnav_alert_set && !msg10_available) ||
            (msg10_available && cnav_msg10.data.type_10.l1_health))) {
         return CODE_NAV_STATE_VALID;
       }
@@ -200,19 +203,19 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
     case CODE_GPS_L2CM: {
       /*
        * Return CODE_NAV_STATE_INVALID if either of the following:
-       * - SHI1 is available and indicates L2CM unhealthy
-       * - SHI6 is available and negative
-       * - SHI5 is available and indicates L2CM unhealthy
-       * - almanac health bits are available and indicate L1 unhealthy
+       * - shi_ephemeris is available and indicates L2CM unhealthy
+       * - shi_cnav_alert is available and negative
+       * - cnav_msg10 is available and indicates L2 unhealthy
+       * - almanac health bits are available and indicate L2CM unhealthy
        *
        * Return CODE_NAV_STATE_VALID if all conditions below are true:
-       * - SHI1 is available and indicates L2CM healthy
-       * - SHI5 is available and indicates L2CM healthy
-       * - SHI6 is available and positive
+       * - shi_ephemeris is available and indicates L2CM healthy
+       * - cnav_msg10 is available and indicates L2 healthy
+       * - shi_cnav_alert is available and positive
        *
        * Otherwise return CODE_NAV_STATE_UNKNOWN
        */
-      if (shis.shi6_set && !shis.shi6) {
+      if (shis.shi_cnav_alert_set && !shis.shi_cnav_alert) {
         return CODE_NAV_STATE_INVALID;
       }
 
@@ -222,8 +225,9 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
         return CODE_NAV_STATE_INVALID;
       }
 
-      if ((shis.shi1_set && check_6bit_health_word(shis.shi1, sid.code)) &&
-          (shis.shi6_set && shis.shi6)) {
+      if ((shis.shi_ephemeris_set &&
+           check_6bit_health_word(shis.shi_ephemeris, sid.code)) &&
+          (shis.shi_cnav_alert_set && shis.shi_cnav_alert)) {
         return CODE_NAV_STATE_VALID;
       }
 
@@ -233,21 +237,21 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
     case CODE_GPS_L2P: {
       /*
       * Return SV_NAV_STATE_INVALID if either of the following:
-      * - SHI1 is available and indicates L2P unhealthy
-      * - SHI4 is available and negative
-      * - SHI5 is available and indicates L2P unhealthy
-      * - almanac health bits are available and indicate L1 unhealthy
+      * - shi_ephemeris is available and indicates L2P unhealthy
+      * - shi_lnav_how_alert is available and negative
+      * - cnav_msg10 is available and indicates L2 unhealthy
+      * - almanac health bits are available and indicate L2P unhealthy
       *
       * Return CODE_NAV_STATE_VALID all conditions below are true:
-      * - SHI1 is available and indicates L2P healthy
-      * - SHI4 is available and positive
+      * - shi_ephemeris is available and indicates L2P healthy
+      * - shi_lnav_how_alert is available and positive
       * - One of the following:
-      *     - Both SHI5 and SHI6 are unavailable
-      *     - SHI5 is available and indicates L2P healthy
+      *     - Both cnav_msg10 and shi_cnav_alert are unavailable
+      *     - cnav_msg10 is available and indicates L2 healthy
       *
       * Otherwise return CODE_NAV_STATE_UNKNOWN
       */
-      if (shis.shi4_set && !shis.shi4) {
+      if (shis.shi_lnav_how_alert_set && !shis.shi_lnav_how_alert) {
         return CODE_NAV_STATE_INVALID;
       }
 
@@ -257,9 +261,10 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
         return CODE_NAV_STATE_INVALID;
       }
 
-      if ((shis.shi1_set && check_6bit_health_word(shis.shi1, sid.code)) &&
-          (shis.shi4_set && shis.shi4) &&
-          ((!shis.shi6_set && !msg10_available) ||
+      if ((shis.shi_ephemeris_set &&
+           check_6bit_health_word(shis.shi_ephemeris, sid.code)) &&
+          (shis.shi_lnav_how_alert_set && shis.shi_lnav_how_alert) &&
+          ((!shis.shi_cnav_alert_set && !msg10_available) ||
            (msg10_available && cnav_msg10.data.type_10.l2_health))) {
         return CODE_NAV_STATE_VALID;
       }
@@ -347,20 +352,26 @@ void shm_log_sat_state(const char* shi_name, u16 sat) {
     char* s_l2_str;
     cns_2_str(s_l1, &s_l1_str);
     cns_2_str(s_l2, &s_l2_str);
-    char shi1_str[4], shi4_str[2], shi6_str[2];
+    char shi_ephemeris_str[4], shi_lnav_how_alert_str[2], shi_cnav_alert_str[2];
     char shi5_l1_str[2], shi5_l2_str[2], shi5_l5_str[2];
     chMtxLock(&shm_data_access);
     gps_sat_health_indicators_t shis = gps_shis[sat - GPS_FIRST_PRN];
     chMtxUnlock(&shm_data_access);
-    int_shi_2_str(shis.shi1_set, shis.shi1, shi1_str, sizeof(shi1_str));
-    bool_shi_2_str(shis.shi4_set, shis.shi4, shi4_str);
+    int_shi_2_str(shis.shi_ephemeris_set,
+                  shis.shi_ephemeris,
+                  shi_ephemeris_str,
+                  sizeof(shi_ephemeris_str));
+    bool_shi_2_str(shis.shi_lnav_how_alert_set,
+                   shis.shi_lnav_how_alert,
+                   shi_lnav_how_alert_str);
     cnav_msg_t cnav_msg10;
     bool shi5_set = cnav_msg_get(l2_sid, CNAV_MSG_TYPE_10, &cnav_msg10);
     cnav_msg_type_10_t m10 = cnav_msg10.data.type_10;
     bool_shi_2_str(shi5_set, m10.l1_health, shi5_l1_str);
     bool_shi_2_str(shi5_set, m10.l2_health, shi5_l2_str);
     bool_shi_2_str(shi5_set, m10.l5_health, shi5_l5_str);
-    bool_shi_2_str(shis.shi6_set, shis.shi6, shi6_str);
+    bool_shi_2_str(
+        shis.shi_cnav_alert_set, shis.shi_cnav_alert, shi_cnav_alert_str);
     log_debug(
         "GPS SV %02d %s update. State {L1:%s, L2:%s} "
         "SHI[1:%s, 4:%s, 5:{%s,%s,%s}, 6:%s]",
@@ -368,37 +379,37 @@ void shm_log_sat_state(const char* shi_name, u16 sat) {
         shi_name,
         s_l1_str,
         s_l2_str,
-        shi1_str,
-        shi4_str,
+        shi_ephemeris_str,
+        shi_lnav_how_alert_str,
         shi5_l1_str,
         shi5_l2_str,
         shi5_l5_str,
-        shi6_str);
+        shi_cnav_alert_str);
   }
 }
 
-/** Update SHI1 for GPS satellite.
+/** Update shi_ephemeris for GPS satellite.
  *  Refer to libswiftnav/shm.h for details of SHIs.
  *
  * \param sat GPS satellite ID
- * \param new_value value to set SHI1 to
+ * \param new_value value to set shi_ephemeris to
  */
-void shm_gps_set_shi1(u16 sat, u8 new_value) {
+void shm_gps_set_shi_ephemeris(u16 sat, u8 new_value) {
   assert(sat >= GPS_FIRST_PRN && sat < GPS_FIRST_PRN + NUM_SATS_GPS);
   chMtxLock(&shm_data_access);
-  gps_shis[sat - GPS_FIRST_PRN].shi1 = new_value;
-  gps_shis[sat - GPS_FIRST_PRN].shi1_set = true;
+  gps_shis[sat - GPS_FIRST_PRN].shi_ephemeris = new_value;
+  gps_shis[sat - GPS_FIRST_PRN].shi_ephemeris_set = true;
   chMtxUnlock(&shm_data_access);
-  shm_log_sat_state("SHI1", sat);
+  shm_log_sat_state("shi_ephemeris", sat);
 }
 
-/** Update SHI3 for GPS satellite.
+/** Update shi_page25 for GPS satellite.
  *  Refer to libswiftnav/shm.h for details of SHIs.
  *
  * \param sat GPS satellite ID
- * \param new_value value to set SHI3 to
+ * \param new_value value to set shi_page25 to
  */
-void shm_gps_set_shi3(u16 sat, u8 new_value) {
+void shm_gps_set_shi_page25(u16 sat, u8 new_value) {
   assert(sat >= GPS_FIRST_PRN && sat < GPS_FIRST_PRN + NUM_SATS_GPS);
   if (0 == new_value) {
     return;
@@ -407,40 +418,40 @@ void shm_gps_set_shi3(u16 sat, u8 new_value) {
   piksi_systime_get(&now);
   u32 timetag_s = piksi_systime_to_s(&now);
   chMtxLock(&shm_data_access);
-  gps_shis[sat - GPS_FIRST_PRN].shi3 = new_value;
-  gps_shis[sat - GPS_FIRST_PRN].shi3_set = true;
-  gps_shis[sat - GPS_FIRST_PRN].shi3_timetag_s = timetag_s;
+  gps_shis[sat - GPS_FIRST_PRN].shi_page25 = new_value;
+  gps_shis[sat - GPS_FIRST_PRN].shi_page25_set = true;
+  gps_shis[sat - GPS_FIRST_PRN].shi_page25_timetag_s = timetag_s;
   chMtxUnlock(&shm_data_access);
 }
 
-/** Update SHI4 for GPS satellite.
+/** Update shi_lnav_how_alert for GPS satellite.
  *  Refer to libswiftnav/shm.h for details of SHIs.
  *
  * \param sat GPS satellite ID
- * \param new_value value to set SHI4 to
+ * \param new_value value to set shi_lnav_how_alert to
  */
-void shm_gps_set_shi4(u16 sat, bool new_value) {
+void shm_gps_set_shi_lnav_how_alert(u16 sat, bool new_value) {
   assert(sat >= GPS_FIRST_PRN && sat < GPS_FIRST_PRN + NUM_SATS_GPS);
   chMtxLock(&shm_data_access);
-  gps_shis[sat - GPS_FIRST_PRN].shi4 = new_value;
-  gps_shis[sat - GPS_FIRST_PRN].shi4_set = true;
+  gps_shis[sat - GPS_FIRST_PRN].shi_lnav_how_alert = new_value;
+  gps_shis[sat - GPS_FIRST_PRN].shi_lnav_how_alert_set = true;
   chMtxUnlock(&shm_data_access);
-  shm_log_sat_state("SHI4", sat);
+  shm_log_sat_state("shi_lnav_how_alert", sat);
 }
 
-/** Update SHI6 for GPS satellite.
+/** Update shi_cnav_alert for GPS satellite.
  *  Refer to libswiftnav/shm.h for details of SHIs.
  *
  * \param sat GPS satellite ID
- * \param new_value value to set SHI6 to
+ * \param new_value value to set shi_cnav_alert to
  */
-void shm_gps_set_shi6(u16 sat, bool new_value) {
+void shm_gps_set_shi_cnav_alert(u16 sat, bool new_value) {
   assert(sat >= GPS_FIRST_PRN && sat < GPS_FIRST_PRN + NUM_SATS_GPS);
   chMtxLock(&shm_data_access);
-  gps_shis[sat - GPS_FIRST_PRN].shi6 = new_value;
-  gps_shis[sat - GPS_FIRST_PRN].shi6_set = true;
+  gps_shis[sat - GPS_FIRST_PRN].shi_cnav_alert = new_value;
+  gps_shis[sat - GPS_FIRST_PRN].shi_cnav_alert_set = true;
   chMtxUnlock(&shm_data_access);
-  shm_log_sat_state("SHI6", sat);
+  shm_log_sat_state("shi_cnav_alert", sat);
 }
 
 /** Update SHI for GLO satellite.

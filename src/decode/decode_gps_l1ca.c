@@ -337,7 +337,7 @@ static void decode_almanac_health_new(gnss_signal_t src_sid,
 
     u8 health_bits = hflags[sv_idx];
     if (shm_signal_healthy(src_sid)) {
-      shm_gps_set_shi3(target_sid.sat, health_bits);
+      shm_gps_set_shi_page25(target_sid.sat, health_bits);
     }
 
     /* Health indicates CODE_NAV_STATE_INVALID */
@@ -432,11 +432,12 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
     return;
   }
 
-  shm_gps_set_shi4(l1ca_sid.sat, !data->nav_msg.alert);
+  shm_gps_set_shi_lnav_how_alert(l1ca_sid.sat, !data->nav_msg.alert);
 
-  if (dd.shi1_upd_flag) {
-    log_debug_mesid(channel_info->mesid, "SHI1: 0x%" PRIx8, dd.shi1);
-    shm_gps_set_shi1(l1ca_sid.sat, dd.shi1);
+  if (dd.shi_ephemeris_upd_flag) {
+    log_debug_mesid(
+        channel_info->mesid, "shi_ephemeris: 0x%" PRIx8, dd.shi_ephemeris);
+    shm_gps_set_shi_ephemeris(l1ca_sid.sat, dd.shi_ephemeris);
   }
 
   /* Health indicates CODE_NAV_STATE_INVALID for L2CM */
