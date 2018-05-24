@@ -227,10 +227,10 @@ s32 bds_d1_process_subframe(nav_msg_bds_t *n,
     TOW_s -= WEEK_SECS;
   }
   /* Current time is 330 bits from TOW. */
-  TOW_s = TOW_s * SECS_MS + BDS2_B11_D1NAV_SYMBOL_LENGTH_MS * 330;
+  s32 TOW_ms = TOW_s * SECS_MS + BDS2_B11_D1NAV_SYMBOL_LENGTH_MS * 330;
 
   if (!subframes123_from_same_frame(n)) {
-    return TOW_s;
+    return TOW_ms;
   }
 
   if (0x3fffffffULL == ((n->goodwords_mask >> 20) & 0x3fffffffULL)) {
@@ -307,7 +307,7 @@ s32 bds_d1_process_subframe(nav_msg_bds_t *n,
     e->valid = 1;
   }
 
-  return TOW_s;
+  return TOW_ms;
 }
 
 /** D2 parsing
@@ -527,8 +527,10 @@ static void process_d1_fraid1(nav_msg_bds_t *n,
   k->af0 = BITS_SIGN_EXTEND_32(24, a[0]) * C_1_2P33;
   k->af1 = BITS_SIGN_EXTEND_32(22, a[1]) * C_1_2P50;
   k->af2 = BITS_SIGN_EXTEND_32(11, a[2]) * C_1_2P66;
-  k->iodc = 1;
-  k->iode = 1;
+  /* RTCM recommendation, BDS IODC = mod(toc / 720, 240)
+   * Note scale factor effect, (toc * 8) / 720 -> (toc / 90) */
+  k->iodc = (toc / 90) % 240;
+
   /* IONO params */
   i->toa.wn = e->toe.wn;
   i->a0 = (double)(alpha[0] * C_1_2P30);
@@ -617,6 +619,9 @@ static void process_d1_fraid3(nav_msg_bds_t *n,
       data->split_toe_mask = 0;
     }
     e->toe.tow = new_toe;
+    /* RTCM recommendation, BDS IODE = mod(toe / 720, 240)
+     * Note scale factor effect, (toe * 8) / 720 -> (toe / 90) */
+    k->iode = (data->split_toe / 90) % 240;
   }
   /* Keplerian params */
   k->inc = BITS_SIGN_EXTEND_32(32, i0) * C_1_2P31 * GPS_PI;
