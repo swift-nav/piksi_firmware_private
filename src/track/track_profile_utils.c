@@ -731,7 +731,7 @@ static const state_table_t mode_20ms_sc4 = {
   .alias_ms = 4,
   .flld_ms = 10,
   .flll_ms = 20,
-  .bit_ms = 20,
+  .bit_ms = 4,
   .ent_cnt = 10,
   .entries = {
     {1, TPF_EPL_SET | TPF_CN0_SET | TPF_DATAPILOT_SET | TPF_PLD_SET | TPF_FLL_SET | TPF_ALIAS_SET},
