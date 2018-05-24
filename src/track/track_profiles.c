@@ -303,7 +303,7 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
 
   [IDX_INIT_2] =
   { { BW_DYN,      BW_DYN,            5,   TP_CTRL_PLL3,
-      TP_TM_1MS_20MS,  TP_TM_1MS_10MS,  TP_TM_1MS_2MS,  TP_TM_1MS_NH20MS,  TP_TM_4MS_SC4 },
+      TP_TM_1MS_20MS,  TP_TM_1MS_10MS,  TP_TM_1MS_2MS,  TP_TM_1MS_NH20MS,  TP_TM_1MS_SC4 },
       TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
       100,             0,            0,
       IDX_NONE, IDX_NONE,     IDX_NONE,
@@ -311,7 +311,7 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
 
   [IDX_2MS] =
   { { BW_DYN,      BW_DYN,            2,   TP_CTRL_PLL3,
-      TP_TM_2MS_20MS,  TP_TM_2MS_10MS,  TP_TM_2MS_2MS,  TP_TM_2MS_NH20MS,  TP_TM_4MS_SC4 },
+      TP_TM_2MS_20MS,  TP_TM_2MS_10MS,  TP_TM_2MS_2MS,  TP_TM_2MS_NH20MS,  TP_TM_2MS_SC4 },
       TP_LD_PARAMS_PHASE_2MS, TP_LD_PARAMS_FREQ_2MS,
         40,          43,          0,
       IDX_2MS,     IDX_5MS,     IDX_NONE,
@@ -327,7 +327,7 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
 
   [IDX_10MS] =
   { { BW_DYN,      BW_DYN,            1,   TP_CTRL_PLL3,
-      TP_TM_10MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS, TP_TM_10MS_NH20MS,  TP_TM_4MS_SC4 },
+      TP_TM_10MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS, TP_TM_10MS_NH20MS,  TP_TM_10MS_SC4 },
       TP_LD_PARAMS_PHASE_10MS, TP_LD_PARAMS_FREQ_10MS,
       40,          32,          38,
       IDX_10MS,    IDX_20MS,     IDX_5MS,
@@ -335,7 +335,7 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
 
   [IDX_20MS] =
   { { BW_DYN,      BW_DYN,           .5,   TP_CTRL_PLL3,
-      TP_TM_20MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS,  TP_TM_20MS_NH20MS,  TP_TM_4MS_SC4 },
+      TP_TM_20MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS,  TP_TM_20MS_NH20MS,  TP_TM_20MS_SC4 },
       TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
       40,          25,          35,
       IDX_20MS,   IDX_SENS,     IDX_10MS,
@@ -344,7 +344,7 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
   /* sensitivity profile */
   [IDX_SENS] =
   { {      0,         1.0,           .5,   TP_CTRL_PLL3,
-      TP_TM_20MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS,  TP_TM_20MS_NH20MS,  TP_TM_4MS_SC4 },
+      TP_TM_20MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS,  TP_TM_20MS_NH20MS,  TP_TM_20MS_SC4 },
       TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
       100,             0,          32,
       IDX_SENS,  IDX_NONE,     IDX_20MS,
