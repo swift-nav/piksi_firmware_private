@@ -216,14 +216,6 @@ void tracker_get_state(u8 id,
   tracker_unlock(tracker);
 }
 
-/** Clear the error flags for a tracker channel.
- *
- * \param tracker   Tracker channel to use.
- */
-static void error_flags_clear(tracker_t *tracker) {
-  tracker->flags &= ~TRACKER_FLAG_DROP_CHANNEL;
-}
-
 /** Initialize a tracker channel to track the specified mesid.
  *
  * \param id                    ID of the tracker channel to be initialized.
@@ -292,9 +284,6 @@ bool tracker_init(const u8 id,
     bit_sync_init(&tracker->bit_sync, mesid);
 
     tracker_interface_lookup(mesid.code)->init(tracker);
-
-    /* Clear error flags before starting NAP tracking channel */
-    error_flags_clear(tracker);
 
     /* (tracker->update_timestamp_ms = now) must be executed strictly before
        (tracker->busy = true). Otherwise stale_trackers_cleanup() may kick in
