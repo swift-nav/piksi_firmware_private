@@ -61,7 +61,10 @@ void pal_handle_error(pal_rc_t code);
 
 /* 
  * Initialize the PAL. No primitive-related functions will be called
- * until after the PAL has been successfully initialized.
+ * until after the PAL has been successfully initialized. On a 
+ * side-note, it is likely that much of the Starling API will not
+ * work until it has had a chance to initialize its internal 
+ * data structures.
  *
  * STARTUP_ONLY
  */
