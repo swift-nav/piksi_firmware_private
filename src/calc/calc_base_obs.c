@@ -215,7 +215,7 @@ static void update_obss(obss_t *new_obss) {
      * due to a cycle slip. */
     s32 ret = calc_PVT(new_obss->n,
                        new_obss->nm,
-                       disable_raim,
+                       true,  // disable_raim,
                        true,
                        GPS_ONLY,
                        &soln,

@@ -1059,7 +1059,6 @@ u32 get_tracking_channel_meas(u8 i,
       meas->carrier_phase += (double)carrier_phase_offset;
     }
     meas->flags = compute_meas_flags(flags, info.mesid);
-    meas->elevation = (double)track_sid_db_elevation_degrees_get(meas->sid);
   } else {
     memset(meas, 0, sizeof(*meas));
   }
