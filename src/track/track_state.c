@@ -520,11 +520,8 @@ void stale_trackers_cleanup(void) {
     tracker_t *tracker = tracker_get(i);
     if (!tracker->busy) continue;
     u64 deadline_ms = NAP_CORR_LENGTH_MAX_MS + tracker->update_timestamp_ms;
-    if (now_ms > deadline_ms) {
-      log_info_mesid(tracker->mesid,
-                     "hit deadline_ms: %" PRIu64 ", updated once: %d",
-                     deadline_ms,
-                     (int)tracker->updated_once);
+    if ((now_ms > deadline_ms) && (tracker->updated_once)) {
+      log_error_mesid(tracker->mesid, "hit deadline_ms: %" PRIu64, deadline_ms);
       tracker_flag_drop(tracker, CH_DROP_REASON_NO_UPDATES);
       sanitize_tracker(tracker, now_ms);
     }
