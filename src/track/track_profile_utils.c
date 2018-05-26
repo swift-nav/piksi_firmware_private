@@ -794,7 +794,7 @@ static const state_table_t mode_20ms_nh20ms = {
   .flld_ms = 10,
   .flll_ms = 20,
   .bit_ms = 20,
-  .ent_cnt = 15,
+  .ent_cnt = 14,
   .entries = {
     {1, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET | TPF_ALIAS_SET},
     {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | TPF_ALIAS_ADD},
