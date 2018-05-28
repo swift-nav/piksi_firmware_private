@@ -15,6 +15,7 @@
 
 #include "calc_nav_meas.h"
 #include "me_constants.h"
+#include "track/track_sid_db.h"
 
 #include <libswiftnav/coord_system.h>
 #include <libswiftnav/cycle_slip.h>
@@ -119,9 +120,17 @@ s8 calc_navigation_measurement(u8 n_channels,
      * tracking loop. */
     nav_meas[i]->raw_measured_doppler = meas[i]->carrier_freq;
 
+    s8 elevation = track_sid_db_elevation_degrees_get(meas[i]->sid);
+    if (TRACKING_ELEVATION_UNKNOWN == elevation) {
+      /* use zero instead of 100 deg for unknown elevation so that the
+       * measurement gets weighted down and not up in the solver */
+      nav_meas[i]->elevation = 1.0;
+    } else {
+      nav_meas[i]->elevation = (double)elevation;
+    }
+
     /* Copy over remaining values. */
     nav_meas[i]->cn0 = meas[i]->cn0;
-    nav_meas[i]->elevation = meas[i]->elevation;
     nav_meas[i]->lock_time = meas[i]->lock_time;
     nav_meas[i]->time_in_track = meas[i]->time_in_track;
 
