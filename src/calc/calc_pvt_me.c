@@ -68,7 +68,7 @@
  * can't run this fast anyway. */
 #define SOLN_FREQ_SETTING_MAX 1000.0
 
-double soln_freq_setting = 5.0;
+double soln_freq_setting = 1.0;
 u32 obs_output_divisor = 1;
 
 s16 msg_obs_max_size = SBP_FRAMING_MAX_PAYLOAD_SIZE;
@@ -418,12 +418,26 @@ static void me_calc_pvt_thread(void *arg) {
   piksi_systime_get(&next_epoch);
   piksi_systime_inc_us(&next_epoch, SECS_US / soln_freq_setting);
 
+  s16 cnt = 200;
+
   while (TRUE) {
     /* read current value of soln_freq into a local variable that does not
      * change during this loop iteration */
     chSysLock();
     double soln_freq = soln_freq_setting;
-    chSysUnlock();
+    if (cnt-- < 0) {
+      if (rand() % 2 == 1) {
+        soln_freq_setting = 1.0 / ((rand() % 10) + 1);
+      } else {
+        soln_freq_setting = (rand() % 10) + 1;
+      }
+      soln_freq = soln_freq_setting;
+      chSysUnlock();
+      log_info("Changing solution frequency to %.1f", soln_freq);
+      cnt = 200;
+    } else {
+      chSysUnlock();
+    }
 
     drop_glo_signals_on_leap_second();
 
@@ -660,6 +674,7 @@ static void me_calc_pvt_thread(void *arg) {
     gps_time_t smoothed_time = napcount2gpstime(current_tc);
     double smoothed_drift = get_clock_drift();
 
+    /*
     double true_state[8];
     true_state[0] = TRUE_X;
     true_state[1] = TRUE_Y;
@@ -671,6 +686,18 @@ static void me_calc_pvt_thread(void *arg) {
     true_state[7] = GPS_C * smoothed_drift;
 
     print_residuals(n_ready, nav_meas, true_state, current_fix.time.tow);
+    */
+
+    log_info("RAW:%012llu,%.10f,%.4g,%.16g,%.4g,%.10f,%.16g,%d,%.10f",
+             current_tc,
+             current_fix.time.tow,
+             current_fix.clock_offset_var,
+             current_fix.clock_drift,
+             current_fix.clock_drift_var,
+             smoothed_time.tow,
+             smoothed_drift,
+             get_time_quality(),
+             current_time.tow);
 
     /* if desired output time is still unknown, use the epoch closest to the fix
      * time */
