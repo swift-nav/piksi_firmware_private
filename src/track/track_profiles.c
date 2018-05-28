@@ -924,24 +924,6 @@ void tp_profile_get_cn0_params(const tp_profile_t *profile,
 }
 
 /**
- * Helper to obtain loop parameters for the next integration interval.
- *
- * \param[in] mesid   ME signal identifier.
- * \param[in] profile Tracking profile data to check
- *
- * \return Loop parameters for the next integration interval
- */
-u8 tp_profile_get_next_loop_params_ms(const me_gnss_signal_t mesid,
-                                      const tp_profile_t *profile) {
-  assert(NULL != profile);
-  const struct tp_profile_entry *next_profile;
-  next_profile = &profile->profiles[profile->next.index];
-  tp_tm_e track_mode = get_track_mode(mesid, next_profile);
-
-  return tp_get_dll_ms(track_mode);
-}
-
-/**
  * Updates track profile data with supplied information.
  *
  * The method takes tracking loop data and merges it with previously collected

@@ -63,8 +63,6 @@ void tp_profile_switch(tracker_t *tracker);
 void tp_profile_get_cn0_params(const tp_profile_t *profile,
                                tp_cn0_params_t *cn0_params);
 bool tp_profile_has_new_profile(tracker_t *tracker);
-u8 tp_profile_get_next_loop_params_ms(const me_gnss_signal_t mesid,
-                                      const tp_profile_t *profile);
 void tp_profile_report_data(tp_profile_t *profile, const tp_report_t *data);
 
 u8 tp_next_cycle_counter(tp_tm_e tracking_mode, u8 cycle_no);
