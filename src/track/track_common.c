@@ -819,7 +819,6 @@ static void tp_tracker_update_pll_dll(tracker_t *tracker, u32 cycle_flags) {
     tracker->carrier_freq = rates.carr_freq;
     tracker->code_phase_rate =
         rates.code_freq + code_to_chip_rate(tracker->mesid.code);
-    tracker->acceleration = rates.acceleration;
 
     /* Do tracking report to manager */
     tp_report_t report;
