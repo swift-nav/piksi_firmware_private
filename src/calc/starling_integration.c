@@ -68,6 +68,7 @@ typedef struct {
  ******************************************************************************/
 bool enable_glonass = true;
 bool send_heading = false;
+bool allow_sbas_test_mode = false;
 double heading_offset = 0.0;
 
 /*******************************************************************************
@@ -692,6 +693,18 @@ static bool set_disable_klobuchar(struct setting *s, const char *val) {
   return ret;
 }
 
+static bool set_sbas_test_mode(struct setting *s, const char *val) {
+  int value = 0;
+  bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
+  if (!ret) {
+    return ret;
+  }
+  bool sbas_test_mode = (value != 0);
+  starling_set_allow_sbas_test_mode(sbas_test_mode);
+  *(bool *)s->addr = sbas_test_mode;
+  return ret;
+}
+
 static void reset_filters_callback(u16 sender_id,
                                    u8 len,
                                    u8 msg[],
@@ -748,6 +761,12 @@ static void initialize_starling_settings(void) {
                  disable_klobuchar,
                  TYPE_BOOL,
                  set_disable_klobuchar);
+
+  SETTING_NOTIFY("solution",
+                 "allow_sbas_test_mode",
+                 allow_sbas_test_mode,
+                 TYPE_BOOL,
+                 set_sbas_test_mode);
 
   static const char *const dgnss_soln_mode_enum[] = {
       "Low Latency", "Time Matched", "No DGNSS", NULL};

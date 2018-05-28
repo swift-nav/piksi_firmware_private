@@ -12,7 +12,8 @@
 #include <assert.h>
 #include <libswiftnav/glo_map.h>
 #include <string.h>
-#include "manage.h"
+
+#include "acq/manage.h"
 #include "ndb/ndb_lgf.h"
 #include "position/position.h"
 #include "sbas_select/sbas_select.h"
@@ -87,6 +88,17 @@ u16 sm_constellation_to_start_index(constellation_t gnss) {
  * \return mask for SBAS SV.
  */
 static u32 sbas_limit_mask(void) {
+  static sbas_system_t sbas_provider = SBAS_NONE;
+
+  int prn_override = get_sbas_prn_override();
+  if (prn_override > 0) {
+    if (sbas_provider != SBAS_USER) {
+      tracker_set_sbas_provider_change_flag();
+    }
+    sbas_provider = SBAS_USER;
+    return 1 << (prn_override - SBAS_FIRST_PRN);
+  }
+
   /* read LGF */
   last_good_fix_t lgf;
   if (NDB_ERR_NONE != ndb_lgf_read(&lgf)) {
@@ -94,7 +106,6 @@ static u32 sbas_limit_mask(void) {
     return sbas_select_prn_mask(SBAS_WAAS) | sbas_select_prn_mask(SBAS_EGNOS) |
            sbas_select_prn_mask(SBAS_GAGAN) | sbas_select_prn_mask(SBAS_MSAS);
   } else {
-    static sbas_system_t sbas_provider = SBAS_NONE;
     sbas_system_t new_provider = sbas_select_provider(&lgf);
     if ((sbas_provider != new_provider) && (SBAS_NONE != sbas_provider)) {
       tracker_set_sbas_provider_change_flag();

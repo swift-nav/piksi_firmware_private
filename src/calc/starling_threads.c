@@ -28,6 +28,7 @@
 #include <libswiftnav/single_epoch_solver.h>
 #include <libswiftnav/troposphere.h>
 
+#include "acq/manage.h"
 #include "starling_platform_shim.h"
 #include "starling_threads.h"
 
@@ -44,6 +45,7 @@ static bool is_starling_api_initialized = false;
 typedef struct StarlingSettings {
   bool is_glonass_enabled;
   bool is_time_matched_klobuchar_enabled;
+  bool allow_sbas_test_mode;
   float glonass_downweight_factor;
   float elevation_mask;
   double solution_frequency;
@@ -65,6 +67,7 @@ typedef struct ReferencePosition {
 /* Initial settings values (internal to Starling). */
 #define INIT_IS_GLONASS_ENABLED true
 #define INIT_IS_TIME_MATCHED_KLOBUCHAR_ENABLED true
+#define INIT_ALLOW_SBAS_TEST_MODE true
 #define INIT_GLONASS_DOWNWEIGHT_FACTOR 4.0f
 #define INIT_ELEVATION_MASK 10.0f
 #define INIT_SOLUTION_FREQUENCY 10.0
@@ -75,6 +78,7 @@ static MUTEX_DECL(global_settings_lock);
 static StarlingSettings global_settings = {
     .is_glonass_enabled = INIT_IS_GLONASS_ENABLED,
     .is_time_matched_klobuchar_enabled = INIT_IS_TIME_MATCHED_KLOBUCHAR_ENABLED,
+    .allow_sbas_test_mode = INIT_ALLOW_SBAS_TEST_MODE,
     .glonass_downweight_factor = INIT_GLONASS_DOWNWEIGHT_FACTOR,
     .elevation_mask = INIT_ELEVATION_MASK,
     .solution_frequency = INIT_SOLUTION_FREQUENCY,
@@ -131,6 +135,7 @@ static void update_filter_manager_settings(FilterManager *fm) {
   /* Apply the most recent settings values to the Filter Manager. */
   assert(fm);
   set_pvt_engine_enable_glonass(fm, settings.is_glonass_enabled);
+  set_allow_sbas_test_mode(fm, settings.allow_sbas_test_mode);
   set_pvt_engine_obs_downweight_factor(
       fm, settings.glonass_downweight_factor, CODE_GLO_L1OF);
   set_pvt_engine_obs_downweight_factor(
@@ -552,7 +557,12 @@ static void init_filters_and_settings(void) {
  * updates for a single SBAS message.
  */
 static void process_sbas_data(const sbas_raw_data_t *sbas_data) {
-  sbas_system_t sbas_system = get_sbas_system(sbas_data->sid);
+  sbas_system_t sbas_system = SBAS_NONE;
+  if (get_sbas_prn_override() != SAT_INVALID) {
+    sbas_system = SBAS_USER;
+  } else {
+    sbas_system = get_sbas_system(sbas_data->sid);
+  }
 
   platform_mutex_lock(&spp_filter_manager_lock);
   if (sbas_system != current_sbas_system && SBAS_NONE != current_sbas_system) {
@@ -871,6 +881,13 @@ void starling_set_is_fix_enabled(bool is_fix_enabled) {
     set_pvt_engine_enable_fix_mode(time_matched_filter_manager, is_fix_enabled);
   }
   platform_mutex_unlock(&time_matched_filter_manager_lock);
+}
+
+/* Allow SBAS test mode messages in the Starling engine. */
+void starling_set_allow_sbas_test_mode(bool allow_sbas_test_mode) {
+  platform_mutex_lock(&global_settings_lock);
+  global_settings.allow_sbas_test_mode = allow_sbas_test_mode;
+  platform_mutex_unlock(&global_settings_lock);
 }
 
 /* Indicate for how long corrections should persist. */

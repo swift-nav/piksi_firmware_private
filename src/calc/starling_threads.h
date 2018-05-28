@@ -159,6 +159,8 @@ void starling_set_solution_frequency(double frequency);
 void starling_set_known_ref_pos(const double base_pos[3]);
 /* Update the glonass biases. */
 void starling_set_known_glonass_biases(const glo_biases_t biases);
+/* Allow SBAS test mode messages in the Starling engine. */
+void starling_set_allow_sbas_test_mode(bool allow_sbas_test_mode);
 
 /* Set the desired solution mode for the Starling engine. */
 void starling_set_solution_mode(dgnss_solution_mode_t mode);
