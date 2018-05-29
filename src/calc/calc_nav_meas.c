@@ -33,10 +33,7 @@
  *             `n_channels`
  * \param nav_meas Array of pointers of where to store the output observations,
  *                 length `n_channels`
- * \param rec_time Pointer to an estimate of the current GPS time. Can be `NULL`
-                   in which case one of the pseudoranges is chosen as a
-                   reference and set to a nominal range, implying a certain
-                   receiver clock error.
+ * \param rec_time Pointer to an estimate of the GPS time at reception time
  * \return '0' for success, '-1' for measurement sanity check error
  */
 s8 calc_navigation_measurement(u8 n_channels,
@@ -45,32 +42,11 @@ s8 calc_navigation_measurement(u8 n_channels,
                                const gps_time_t *rec_time) {
   /* To calculate the pseudorange from the time of transmit we need the local
    * time of reception. */
-  gps_time_t tor = GPS_TIME_UNKNOWN;
-  u8 i = 0;
-  if (NULL != rec_time && gps_time_valid(rec_time)) {
-    /* If we were given a valid time, use that. */
-    tor = *rec_time;
-  } else if (n_channels > 0) {
-    /* If we were not given a time of reception then we can just set one of the
-     * pseudoranges arbitrarily to a nominal value and reference all the other
-     * pseudoranges to that. This doesn't affect the PVT solution but does
-     * potentially correspond to a large receiver clock error. */
-    for (i = 0; i < n_channels; i++) {
-      /* use the time of the first GPS signal */
-      if (IS_GPS(meas[i]->sid)) {
-        tor.tow = 1e-3 * meas[i]->time_of_week_ms + GPS_NOMINAL_RANGE / GPS_C;
-        break;
-      }
-    }
-    normalize_gps_time(&tor);
-
-    /* Log a warning if we got here because rec_time was invalid */
-    if (NULL != rec_time) {
-      log_warn("Invalid rec_time: wn %d, tow %f", rec_time->wn, rec_time->tow);
-    }
+  if (!gps_time_valid(rec_time)) {
+    return -1;
   }
 
-  for (i = 0; i < n_channels; i++) {
+  for (u8 i = 0; i < n_channels; i++) {
     nav_meas[i]->sid = meas[i]->sid;
 
     u32 code_length = code_to_chip_count(meas[i]->sid.code);
@@ -107,10 +83,8 @@ s8 calc_navigation_measurement(u8 n_channels,
 
     normalize_gps_time(&nav_meas[i]->tot);
 
-    if (rec_time != NULL) {
-      /* Match the week number to the reception time if given. */
-      gps_time_match_weeks(&nav_meas[i]->tot, rec_time);
-    }
+    /* Match the week number to the time of reception. */
+    gps_time_match_weeks(&nav_meas[i]->tot, rec_time);
 
     /* Compute the carrier phase measurement. */
     nav_meas[i]->raw_carrier_phase = meas[i]->carrier_phase;
@@ -129,8 +103,8 @@ s8 calc_navigation_measurement(u8 n_channels,
     double dt = meas[i]->rec_time_delta;
 
     /* Form the time of reception of this signal */
-    gps_time_t meas_tor = tor;
-    meas_tor.tow = tor.tow + dt;
+    gps_time_t meas_tor = *rec_time;
+    meas_tor.tow += dt;
     normalize_gps_time(&meas_tor);
 
     /* The raw pseudorange is just the time of flight multiplied by the speed of
