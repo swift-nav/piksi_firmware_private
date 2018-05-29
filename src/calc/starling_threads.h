@@ -160,8 +160,6 @@ void starling_set_known_ref_pos(const double base_pos[3]);
 /* Update the glonass biases. */
 void starling_set_known_glonass_biases(const glo_biases_t biases);
 
-
-
 /* Set the desired solution mode for the Starling engine. */
 void starling_set_solution_mode(dgnss_solution_mode_t mode);
 /* Get the current solution mode for the Starling engine. */
