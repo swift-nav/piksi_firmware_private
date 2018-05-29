@@ -82,7 +82,7 @@ static void base_pos_llh_callback(u16 sender_id,
   llh[2] = llh_degrees[2];
   wgsllh2ecef(llh, base_pos);
 
-  set_known_ref_pos(base_pos);
+  starling_set_known_ref_pos(base_pos);
   /* Relay base station position using sender_id = 0. */
   sbp_send_msg_(SBP_MSG_BASE_POS_LLH, len, msg, MSG_FORWARD_SENDER_ID);
 }
@@ -104,7 +104,7 @@ static void base_pos_ecef_callback(u16 sender_id,
   double base_pos[3];
   MEMCPY_S(base_pos, sizeof(base_pos), msg, sizeof(base_pos));
 
-  set_known_ref_pos(base_pos);
+  starling_set_known_ref_pos(base_pos);
   /* Relay base station position using sender_id = 0. */
   sbp_send_msg_(SBP_MSG_BASE_POS_ECEF, len, msg, MSG_FORWARD_SENDER_ID);
 }
@@ -126,7 +126,7 @@ static void base_glonass_biases_callback(u16 sender_id,
   glo_biases_t biases;
   unpack_glonass_biases_content(*(msg_glo_biases_t *)msg, &biases);
 
-  set_known_glonass_biases(biases);
+  starling_set_known_glonass_biases(biases);
   /* Relay base station GLONASS biases using sender_id = 0. */
   sbp_send_msg_(SBP_MSG_GLO_BIASES, len, msg, MSG_FORWARD_SENDER_ID);
 }

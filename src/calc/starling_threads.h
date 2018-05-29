@@ -97,9 +97,6 @@ typedef struct StarlingFilterSolution {
 #define SPP_ECEF_SIZE 3
 
 void reset_rtk_filter(void);
-void set_known_ref_pos(const double base_pos[3]);
-void set_known_glonass_biases(const glo_biases_t biases);
-
 /*******************************************************************************
  * Formal Starling API
  ******************************************************************************/
@@ -158,6 +155,12 @@ void starling_set_glonass_downweight_factor(float factor);
 void starling_set_elevation_mask(float elevation_mask);
 /* Set the rate at which the filter calculates solutions. */
 void starling_set_solution_frequency(double frequency);
+/* Set a surveyed reference position for the base station. */
+void starling_set_known_ref_pos(const double base_pos[3]);
+/* Update the glonass biases. */
+void starling_set_known_glonass_biases(const glo_biases_t biases);
+
+
 
 /* Set the desired solution mode for the Starling engine. */
 void starling_set_solution_mode(dgnss_solution_mode_t mode);

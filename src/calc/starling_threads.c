@@ -172,24 +172,6 @@ static void post_observations(u8 n,
   }
 }
 
-void set_known_ref_pos(const double base_pos[3]) {
-  platform_mutex_lock(&time_matched_filter_manager_lock);
-  if (time_matched_filter_manager) {
-    filter_manager_set_known_ref_pos(
-        (FilterManagerRTK *)time_matched_filter_manager, base_pos);
-  }
-  platform_mutex_unlock(&time_matched_filter_manager_lock);
-}
-
-void set_known_glonass_biases(const glo_biases_t biases) {
-  platform_mutex_lock(&time_matched_filter_manager_lock);
-  if (time_matched_filter_manager) {
-    filter_manager_set_known_glonass_biases(
-        (FilterManagerRTK *)time_matched_filter_manager, biases);
-  }
-  platform_mutex_unlock(&time_matched_filter_manager_lock);
-}
-
 void reset_rtk_filter(void) {
   platform_mutex_lock(&time_matched_filter_manager_lock);
   if (time_matched_filter_manager) {
@@ -846,6 +828,28 @@ void starling_set_max_correction_age(int max_age) {
   }
   platform_mutex_unlock(&time_matched_filter_manager_lock);
 }
+
+/* Set a surveyed reference position for the base station. */
+void starling_set_known_ref_pos(const double base_pos[3]) {
+  platform_mutex_lock(&time_matched_filter_manager_lock);
+  if (time_matched_filter_manager) {
+    filter_manager_set_known_ref_pos(
+        (FilterManagerRTK *)time_matched_filter_manager, base_pos);
+  }
+  platform_mutex_unlock(&time_matched_filter_manager_lock);
+}
+
+/* Update the glonass biases. */
+void starling_set_known_glonass_biases(const glo_biases_t biases) {
+  platform_mutex_lock(&time_matched_filter_manager_lock);
+  if (time_matched_filter_manager) {
+    filter_manager_set_known_glonass_biases(
+        (FilterManagerRTK *)time_matched_filter_manager, biases);
+  }
+  platform_mutex_unlock(&time_matched_filter_manager_lock);
+}
+
+
 
 /* Set the desired solution mode for the Starling engine. */
 void starling_set_solution_mode(dgnss_solution_mode_t mode) {
