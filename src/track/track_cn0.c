@@ -79,24 +79,6 @@ typedef struct {
   u8 update_count; /**< Configuration update counter */
   track_cn0_params_t params[INTEG_PERIODS_NUM]; /**< Estimator and filter
                                                  *   parameters */
-  float pri2sec_threshold; /**< Threshold for switching primary to secondary
-                            *   estimator  (20ms) [dB/Hz].
-                            *
-                            * The value is specified for 20ms C/N0 estimator
-                            * period, and automatically adjusted for other
-                            * intervals.
-                            *
-                            * \sa track_cn0_get_pri2sec_threshold
-                            */
-  float sec2pri_threshold; /**< Threshold for switching secondary to primary
-                            *   estimator  (20ms) [dB/Hz].
-                            *
-                            * The value is specified for 20ms C/N0 estimator
-                            * period, and automatically adjusted for other
-                            * intervals.
-                            *
-                            * \sa track_cn0_get_sec2pri_threshold
-                            */
 } track_cn0_config_t;
 
 /**
@@ -109,8 +91,6 @@ static track_cn0_config_t cn0_config PLATFORM_CN0_DATA = {
     .cn0_shift = PLATFORM_CN0_EST_SHIFT,
     .cutoff = CN0_EST_LPF_CUTOFF_HZ,
     .update_count = 0,
-    .pri2sec_threshold = TRACK_CN0_PRI2SEC_THRESHOLD,
-    .sec2pri_threshold = TRACK_CN0_SEC2PRI_THRESHOLD,
 };
 
 static float q_avg = 8.f; /* initial value for noise level */
@@ -394,32 +374,4 @@ float track_cn0_get_offset(u8 cn0_ms) {
       break;
   }
   return cn0_offset;
-}
-
-/**
- * Computes C/N0 threshold for enabling secondary estimator.
- *
- * \param[in] cn0_ms C/N0 estimator integration time [ms]
- *
- * \return C/N0 threshold in dB/Hz for enabling secondary estimator
- *
- * \sa track_cn0_get_sec2pri_threshold
- */
-float track_cn0_get_pri2sec_threshold(u8 cn0_ms) {
-  float cn0_offset = track_cn0_get_offset(cn0_ms);
-  return cn0_config.pri2sec_threshold + TRACK_CN0_OFFSET_20MS_DBHZ - cn0_offset;
-}
-
-/**
- * Computes C/N0 threshold for enabling primary estimator.
- *
- * \param[in] cn0_ms C/N0 estimator integration time [ms]
- *
- * \return C/N0 threshold in dB/Hz for enabling primary estimator
- *
- * \sa track_cn0_get_pri2sec_threshold
- */
-float track_cn0_get_sec2pri_threshold(u8 cn0_ms) {
-  float cn0_offset = track_cn0_get_offset(cn0_ms);
-  return cn0_config.sec2pri_threshold + TRACK_CN0_OFFSET_20MS_DBHZ - cn0_offset;
 }

@@ -29,11 +29,6 @@
 
 #define TRACK_CN0_FLAG_FAST_TYPE (0x80u)
 
-/** C/N0 level above which primary estimator shall be used */
-#define TRACK_CN0_SEC2PRI_THRESHOLD TRACK_CN0_ADJUST(32.f)
-/** C/N0 level below which secondary estimator shall be used */
-#define TRACK_CN0_PRI2SEC_THRESHOLD (TRACK_CN0_SEC2PRI_THRESHOLD - 4.f)
-
 /* Configure C/N0 value filter algorithm */
 #define cn0_filter_params_t lp1_filter_params_t
 #define cn0_filter_compute_params lp1_filter_compute_params
@@ -100,8 +95,6 @@ float track_cn0_update(const me_gnss_signal_t mesid,
                        float ve_Q);
 const char *track_cn0_str(track_cn0_est_e t);
 float track_cn0_get_offset(u8 cn0_ms);
-float track_cn0_get_pri2sec_threshold(u8 cn0_ms);
-float track_cn0_get_sec2pri_threshold(u8 cn0_ms);
 
 #ifdef __cplusplus
 }
