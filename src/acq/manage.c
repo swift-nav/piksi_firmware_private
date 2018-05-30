@@ -16,10 +16,10 @@
 #include <string.h>
 
 #include <libsbp/piksi.h>
-#include <libsbp/sbp.h>
 #include <libswiftnav/almanac.h>
 #include <libswiftnav/constants.h>
 #include <libswiftnav/coord_system.h>
+#include <libswiftnav/glo_map.h>
 #include <libswiftnav/linear_algebra.h>
 #include <libswiftnav/logging.h>
 #include <libswiftnav/memcpy_s.h>

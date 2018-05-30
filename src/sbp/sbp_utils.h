@@ -30,6 +30,7 @@
 
 #include "nav_msg/cnav_msg.h"
 #include "obs_bias/obs_bias.h"
+#include "sbp.h"
 
 typedef struct {
   union {
@@ -70,6 +71,10 @@ typedef enum {
 } ndb_event_obj_type_t;
 
 #define NDB_EVENT_SENDER_ID_VOID 0
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 void sbp_init_gps_time(msg_gps_time_t *gps_time, gps_time_t *t);
 void sbp_init_utc_time(msg_utc_time_t *utc_time, gps_time_t *t);
@@ -255,5 +260,9 @@ void sbp_pack_sbas_raw_data(const gnss_signal_t sid,
                             const u8 *decoded,
                             msg_sbas_raw_t *sbas_raw_msg);
 void unpack_sbas_raw_data(const msg_sbas_raw_t *m, sbas_raw_data_t *d);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SWIFTNAV_SBP_UTILS_H */

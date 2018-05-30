@@ -20,6 +20,7 @@
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "settings/settings.h"
+#include "utils/timing/timing.h"
 
 #define UTC_PARAMS_FILE_NAME "persistent/ndb/utc_params"
 #define UTC_PARAMS_FILE_TYPE "utc parameters"

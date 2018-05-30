@@ -11,6 +11,8 @@
  */
 #include "obs_bias.h"
 #include <assert.h>
+#include <libswiftnav/glo_map.h>
+#include <libswiftnav/glonass_phase_biases.h>
 #include "sbp_utils.h"
 
 /* exported setting */
