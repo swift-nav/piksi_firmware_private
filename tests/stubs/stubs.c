@@ -11,6 +11,7 @@
  */
 
 #include "manage.h"
+#include "sbp/sbp.h"
 
 #define MAX_ACQUIRED_SV_INDEX 15
 
@@ -220,4 +221,29 @@ u8 code_track_count(code_t code) {
 u8 constellation_track_count(constellation_t gnss) {
   (void)gnss;
   return 0;
+}
+
+/** SBP stubs */
+
+s8 sbp_send_msg(u16 msg_type, u8 len, u8 buff[]) {
+  (void)msg_type;
+  (void)len;
+  (void)buff;
+  return SBP_OK;
+}
+
+s8 sbp_send_msg_(u16 msg_type, u8 len, u8 buff[], u16 sender_id) {
+  (void)msg_type;
+  (void)len;
+  (void)buff;
+  (void)sender_id;
+  return SBP_OK;
+}
+
+void sbp_register_cbk(u16 msg_type,
+                      sbp_msg_callback_t cb,
+                      sbp_msg_callbacks_node_t *node) {
+  (void)msg_type;
+  (void)cb;
+  (void)node;
 }

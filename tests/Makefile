@@ -41,7 +41,7 @@ CPPFLAGS += -isystem $(GTEST_DIR)/include
 CFLAGS += -g -Wall -Wextra -Werror -std=c99 -D_GNU_SOURCE
 
 # Flags passed to the C++ compiler.
-CXXFLAGS += -g -Wall -Wextra -Werror --coverage
+CXXFLAGS += -g -Wall -Wextra -Werror -std=c++11 --coverage
 
 # Compiler include directories.
 INCLUDE_DIRS :=
@@ -60,6 +60,7 @@ INCLUDE_DIRS += -I$(USER_SRC_DIR)/cfg
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/reacq
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/soft_macq
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/track
+INCLUDE_DIRS += -I../libsbp/c/include
 
 # All Google Test headers.  Usually you shouldn't change this
 # definition.
@@ -77,8 +78,8 @@ lsnp :
 	mkdir -p $(LIBSWIFTNAV_BUILDDIR); cd $(LIBSWIFTNAV_BUILDDIR); \
 	cmake -DMAX_CHANNELS=45 \
 	      -DPIKSI_MULTI_UNIT_TEST=ON \
-	      -DCMAKE_C_COMPILER=gcc-5 \
-	      -DCMAKE_CXX_COMPILER=g++-5 \
+	      -DCMAKE_C_COMPILER=gcc-6 \
+	      -DCMAKE_CXX_COMPILER=g++-6 \
 	      -DENABLE_AUTOFORMAT=OFF \
 	      ../
 	$(MAKE) -C $(LIBSWIFTNAV_BUILDDIR) --no-print-directory
@@ -133,6 +134,7 @@ vpath %.c $(USER_SRC_DIR) \
           $(USER_SRC_DIR)/utils/sbas_select \
           $(USER_SRC_DIR)/calc \
           $(USER_SRC_DIR)/reacq \
+          $(USER_SRC_DIR)/sbp \
           $(STUBS_DIR) \
 
 vpath %.cc $(TEST_SRC_DIR)
@@ -163,6 +165,7 @@ C_SRCS = fixed_fft_r2.c \
          ch_stubs.c \
          nav_msg.c \
          nav_msg_bds.c \
+         sbp_utils.c \
 
 # Test source files
 CXX_SRCS = $(notdir $(shell find $(TEST_SRC_DIR) -name '*.cc'))
