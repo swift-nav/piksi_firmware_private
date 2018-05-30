@@ -84,7 +84,7 @@ typedef struct {
 /**
  * Subsystem configuration.
  */
-static track_cn0_config_t cn0_config PLATFORM_CN0_DATA = {
+static track_cn0_config_t cn0_config = {
     .alpha = CN0_EST_LPF_ALPHA,
     .nbw = PLATFORM_CN0_EST_BW_HZ,
     .scale = PLATFORM_CN0_EST_SCALE,
