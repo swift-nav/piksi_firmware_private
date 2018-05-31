@@ -145,7 +145,8 @@ vpath %.c $(USER_SRC_DIR) \
           $(USER_SRC_DIR)/calc \
           $(USER_SRC_DIR)/reacq \
           $(USER_SRC_DIR)/sbp \
-          $(STUBS_DIR) \
+          $(USER_SRC_DIR)/utils/shm \
+          $(STUBS_DIR)
 
 vpath %.cc $(TEST_SRC_DIR)
 
@@ -176,6 +177,8 @@ C_SRCS = fixed_fft_r2.c \
          nav_msg.c \
          nav_msg_bds.c \
          sbp_utils.c \
+         shm.c \
+         cnav_msg_storage.c
 
 # Test source files
 CXX_SRCS = $(notdir $(shell find $(TEST_SRC_DIR) -name '*.cc'))
