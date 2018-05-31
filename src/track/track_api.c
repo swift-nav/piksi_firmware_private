@@ -271,7 +271,7 @@ void tracker_bit_sync_update(tracker_t *tracker,
   if (nav_bit_fifo_write(&tracker->nav_bit_fifo, &element)) {
     /* warn if the FIFO has become full */
     if (nav_bit_fifo_full(&tracker->nav_bit_fifo)) {
-      log_warn_mesid(mesid, "nav bit FIFO full");
+      log_error_mesid(mesid, "nav bit FIFO full");
     }
   }
 
