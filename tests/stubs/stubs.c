@@ -213,6 +213,12 @@ ndb_op_code_t ndb_lgf_read(last_good_fix_t *lgf) {
   return NDB_ERR_NONE;
 }
 
+ndb_op_code_t ndb_utc_params_read(utc_params_t *utc_params_p, bool *is_nv) {
+  (void)utc_params_p;
+  (void)is_nv;
+  return NDB_ERR_NONE;
+}
+
 u8 code_track_count(code_t code) {
   (void)code;
   return 0;

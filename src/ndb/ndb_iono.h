@@ -17,10 +17,10 @@
 #include <ndb/ndb_common.h>
 
 void ndb_iono_init(void);
-ndb_op_code_t ndb_iono_corr_read(ionosphere_t *iono) NDB_WEAK;
+ndb_op_code_t ndb_iono_corr_read(ionosphere_t *iono);
 ndb_op_code_t ndb_iono_corr_store(const gnss_signal_t *sid,
                                   const ionosphere_t *iono,
                                   ndb_data_source_t src,
-                                  u16 sender_id) NDB_WEAK;
+                                  u16 sender_id);
 
 #endif /* SRC_NDB_IONO_H_ */

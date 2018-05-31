@@ -17,11 +17,10 @@
 #include <ndb/ndb_common.h>
 
 void ndb_utc_params_init(void);
-ndb_op_code_t ndb_utc_params_read(utc_params_t *utc_params,
-                                  bool *is_nv) NDB_WEAK;
+ndb_op_code_t ndb_utc_params_read(utc_params_t *utc_params, bool *is_nv);
 ndb_op_code_t ndb_utc_params_store(const gnss_signal_t *sid,
                                    const utc_params_t *utc_params,
                                    ndb_data_source_t src,
-                                   u16 sender_id) NDB_WEAK;
+                                   u16 sender_id);
 
 #endif /* SRC_NDB_UTC_H_ */
