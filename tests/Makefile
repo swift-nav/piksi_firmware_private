@@ -44,7 +44,7 @@ CWARN = -Wall -Wextra -Werror -std=gnu99 -Wimplicit \
 	-Wformat=2 \
 	-Wimplicit-function-declaration  \
 	-Wformat-security -Wpointer-arith \
-	-Wlogical-op -Wjump-misses-init \
+	-Wno-missing-field-initializers \
 	-Wno-implicit-fallthrough
 
 # Flags passed to the C compiler.
