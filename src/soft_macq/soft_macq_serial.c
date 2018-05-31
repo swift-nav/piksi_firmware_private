@@ -121,7 +121,7 @@ bool soft_acq_search(const sc16_t *_cSignal,
   }
 
   for (u32 k = 0; k < FAU_FFTLEN; k++) {
-    code_fft[k].r = code_resamp[k];
+    code_fft[k].r = CODE_MULT * code_resamp[k];
     code_fft[k].i = 0;
   }
 
