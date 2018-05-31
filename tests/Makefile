@@ -37,11 +37,21 @@ STUBS_DIR = stubs
 # the compiler doesn't generate warnings in Google Test headers.
 CPPFLAGS += -isystem $(GTEST_DIR)/include
 
+# C warnings without redudant-decl and missing-field-initializers
+CWARN = -Wall -Wextra -Werror -std=gnu99 -Wimplicit \
+	-Wshadow -Wswitch-default -Wswitch-enum -Wundef \
+	-Wuninitialized -Wstrict-prototypes \
+	-Wformat=2 \
+	-Wimplicit-function-declaration  \
+	-Wformat-security -Wpointer-arith \
+	-Wlogical-op -Wjump-misses-init \
+	-Wno-implicit-fallthrough
+
 # Flags passed to the C compiler.
-CFLAGS += -g -Wall -Wextra -Werror -std=c99 -D_GNU_SOURCE
+CFLAGS += -g $(CWARN) -D_GNU_SOURCE
 
 # Flags passed to the C++ compiler.
-CXXFLAGS += -g -Wall -Wextra -Werror -std=c++11 --coverage
+CXXFLAGS += -g -Wall -Wextra -Werror --coverage
 
 # Compiler include directories.
 INCLUDE_DIRS :=
@@ -78,8 +88,8 @@ lsnp :
 	mkdir -p $(LIBSWIFTNAV_BUILDDIR); cd $(LIBSWIFTNAV_BUILDDIR); \
 	cmake -DMAX_CHANNELS=45 \
 	      -DPIKSI_MULTI_UNIT_TEST=ON \
-	      -DCMAKE_C_COMPILER=gcc-6 \
-	      -DCMAKE_CXX_COMPILER=g++-6 \
+	      -DCMAKE_C_COMPILER=gcc-5 \
+	      -DCMAKE_CXX_COMPILER=g++-5 \
 	      -DENABLE_AUTOFORMAT=OFF \
 	      ../
 	$(MAKE) -C $(LIBSWIFTNAV_BUILDDIR) --no-print-directory
