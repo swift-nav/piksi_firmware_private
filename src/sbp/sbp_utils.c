@@ -593,106 +593,256 @@ static void pack_ephemeris_common(const ephemeris_t *e,
 
 static void unpack_ephemeris_gps(const msg_ephemeris_t *m, ephemeris_t *e) {
   const msg_ephemeris_gps_t *msg = &m->gps;
+  ephemeris_kepler_t *k = &e->kepler;
   unpack_ephemeris_common(&msg->common, e);
-  e->kepler.tgd_gps_s = msg->tgd;
-  e->kepler.crs = msg->c_rs;
-  e->kepler.crc = msg->c_rc;
-  e->kepler.cuc = msg->c_uc;
-  e->kepler.cus = msg->c_us;
-  e->kepler.cic = msg->c_ic;
-  e->kepler.cis = msg->c_is;
-  e->kepler.dn = msg->dn;
-  e->kepler.m0 = msg->m0;
-  e->kepler.ecc = msg->ecc;
-  e->kepler.sqrta = msg->sqrta;
-  e->kepler.omega0 = msg->omega0;
-  e->kepler.omegadot = msg->omegadot;
-  e->kepler.w = msg->w;
-  e->kepler.inc = msg->inc;
-  e->kepler.inc_dot = msg->inc_dot;
-  e->kepler.af0 = msg->af0;
-  e->kepler.af1 = msg->af1;
-  e->kepler.af2 = msg->af2;
-  e->kepler.toc.tow = msg->toc.tow;
-  e->kepler.toc.wn = msg->toc.wn;
-  e->kepler.iode = msg->iode;
-  e->kepler.iodc = msg->iodc;
+  k->tgd_gps_s = msg->tgd;
+  k->crs = msg->c_rs;
+  k->crc = msg->c_rc;
+  k->cuc = msg->c_uc;
+  k->cus = msg->c_us;
+  k->cic = msg->c_ic;
+  k->cis = msg->c_is;
+  k->dn = msg->dn;
+  k->m0 = msg->m0;
+  k->ecc = msg->ecc;
+  k->sqrta = msg->sqrta;
+  k->omega0 = msg->omega0;
+  k->omegadot = msg->omegadot;
+  k->w = msg->w;
+  k->inc = msg->inc;
+  k->inc_dot = msg->inc_dot;
+  k->af0 = msg->af0;
+  k->af1 = msg->af1;
+  k->af2 = msg->af2;
+  k->toc.tow = msg->toc.tow;
+  k->toc.wn = msg->toc.wn;
+  k->iode = msg->iode;
+  k->iodc = msg->iodc;
 }
 
 static void pack_ephemeris_gps(const ephemeris_t *e, msg_ephemeris_t *m) {
+  const ephemeris_kepler_t *k = &e->kepler;
   msg_ephemeris_gps_t *msg = &m->gps;
   pack_ephemeris_common(e, &msg->common);
-  msg->tgd = e->kepler.tgd_gps_s;
-  msg->c_rs = e->kepler.crs;
-  msg->c_rc = e->kepler.crc;
-  msg->c_uc = e->kepler.cuc;
-  msg->c_us = e->kepler.cus;
-  msg->c_ic = e->kepler.cic;
-  msg->c_is = e->kepler.cis;
-  msg->dn = e->kepler.dn;
-  msg->m0 = e->kepler.m0;
-  msg->ecc = e->kepler.ecc;
-  msg->sqrta = e->kepler.sqrta;
-  msg->omega0 = e->kepler.omega0;
-  msg->omegadot = e->kepler.omegadot;
-  msg->w = e->kepler.w;
-  msg->inc = e->kepler.inc;
-  msg->inc_dot = e->kepler.inc_dot;
-  msg->af0 = e->kepler.af0;
-  msg->af1 = e->kepler.af1;
-  msg->af2 = e->kepler.af2;
-  msg->toc.tow = round(e->kepler.toc.tow);
-  msg->toc.wn = e->kepler.toc.wn;
-  msg->iode = e->kepler.iode;
-  msg->iodc = e->kepler.iodc;
+  msg->tgd = k->tgd_gps_s;
+  msg->c_rs = k->crs;
+  msg->c_rc = k->crc;
+  msg->c_uc = k->cuc;
+  msg->c_us = k->cus;
+  msg->c_ic = k->cic;
+  msg->c_is = k->cis;
+  msg->dn = k->dn;
+  msg->m0 = k->m0;
+  msg->ecc = k->ecc;
+  msg->sqrta = k->sqrta;
+  msg->omega0 = k->omega0;
+  msg->omegadot = k->omegadot;
+  msg->w = k->w;
+  msg->inc = k->inc;
+  msg->inc_dot = k->inc_dot;
+  msg->af0 = k->af0;
+  msg->af1 = k->af1;
+  msg->af2 = k->af2;
+  msg->toc.tow = round(k->toc.tow);
+  msg->toc.wn = k->toc.wn;
+  msg->iode = k->iode;
+  msg->iodc = k->iodc;
+}
+
+static void unpack_ephemeris_bds(const msg_ephemeris_t *m, ephemeris_t *e) {
+  const msg_ephemeris_bds_t *msg = &m->bds;
+  ephemeris_kepler_t *k = &e->kepler;
+  unpack_ephemeris_common(&msg->common, e);
+  k->tgd_bds_s[0] = msg->tgd1;
+  k->tgd_bds_s[1] = msg->tgd2;
+  k->crs = msg->c_rs;
+  k->crc = msg->c_rc;
+  k->cuc = msg->c_uc;
+  k->cus = msg->c_us;
+  k->cic = msg->c_ic;
+  k->cis = msg->c_is;
+  k->dn = msg->dn;
+  k->m0 = msg->m0;
+  k->ecc = msg->ecc;
+  k->sqrta = msg->sqrta;
+  k->omega0 = msg->omega0;
+  k->omegadot = msg->omegadot;
+  k->w = msg->w;
+  k->inc = msg->inc;
+  k->inc_dot = msg->inc_dot;
+  k->af0 = msg->af0;
+  k->af1 = msg->af1;
+  k->af2 = msg->af2;
+  k->toc.tow = msg->toc.tow;
+  k->toc.wn = msg->toc.wn;
+  k->iode = msg->iode;
+  k->iodc = msg->iodc;
+}
+
+static void pack_ephemeris_bds(const ephemeris_t *e, msg_ephemeris_t *m) {
+  const ephemeris_kepler_t *k = &e->kepler;
+  msg_ephemeris_bds_t *msg = &m->bds;
+  pack_ephemeris_common(e, &msg->common);
+  msg->tgd1 = k->tgd_bds_s[0];
+  msg->tgd2 = k->tgd_bds_s[1];
+  msg->c_rs = k->crs;
+  msg->c_rc = k->crc;
+  msg->c_uc = k->cuc;
+  msg->c_us = k->cus;
+  msg->c_ic = k->cic;
+  msg->c_is = k->cis;
+  msg->dn = k->dn;
+  msg->m0 = k->m0;
+  msg->ecc = k->ecc;
+  msg->sqrta = k->sqrta;
+  msg->omega0 = k->omega0;
+  msg->omegadot = k->omegadot;
+  msg->w = k->w;
+  msg->inc = k->inc;
+  msg->inc_dot = k->inc_dot;
+  msg->af0 = k->af0;
+  msg->af1 = k->af1;
+  msg->af2 = k->af2;
+  msg->toc.tow = round(k->toc.tow);
+  msg->toc.wn = k->toc.wn;
+  msg->iode = k->iode;
+  msg->iodc = k->iodc;
+}
+
+static void unpack_ephemeris_gal(const msg_ephemeris_t *m, ephemeris_t *e) {
+  const msg_ephemeris_gal_t *msg = &m->gal;
+  ephemeris_kepler_t *k = &e->kepler;
+  unpack_ephemeris_common(&msg->common, e);
+  k->tgd_gal_s[0] = msg->bgd_e1e5a;
+  k->tgd_gal_s[1] = msg->bgd_e1e5b;
+  k->crs = msg->c_rs;
+  k->crc = msg->c_rc;
+  k->cuc = msg->c_uc;
+  k->cus = msg->c_us;
+  k->cic = msg->c_ic;
+  k->cis = msg->c_is;
+  k->dn = msg->dn;
+  k->m0 = msg->m0;
+  k->ecc = msg->ecc;
+  k->sqrta = msg->sqrta;
+  k->omega0 = msg->omega0;
+  k->omegadot = msg->omegadot;
+  k->w = msg->w;
+  k->inc = msg->inc;
+  k->inc_dot = msg->inc_dot;
+  k->af0 = msg->af0;
+  k->af1 = msg->af1;
+  k->af2 = msg->af2;
+  k->toc.tow = msg->toc.tow;
+  k->toc.wn = msg->toc.wn;
+  k->iode = msg->iode;
+  k->iodc = msg->iodc;
+}
+
+static void pack_ephemeris_gal(const ephemeris_t *e, msg_ephemeris_t *m) {
+  const ephemeris_kepler_t *k = &e->kepler;
+  msg_ephemeris_gal_t *msg = &m->gal;
+  pack_ephemeris_common(e, &msg->common);
+  msg->bgd_e1e5a = k->tgd_gal_s[0];
+  msg->bgd_e1e5b = k->tgd_gal_s[1];
+  msg->c_rs = k->crs;
+  msg->c_rc = k->crc;
+  msg->c_uc = k->cuc;
+  msg->c_us = k->cus;
+  msg->c_ic = k->cic;
+  msg->c_is = k->cis;
+  msg->dn = k->dn;
+  msg->m0 = k->m0;
+  msg->ecc = k->ecc;
+  msg->sqrta = k->sqrta;
+  msg->omega0 = k->omega0;
+  msg->omegadot = k->omegadot;
+  msg->w = k->w;
+  msg->inc = k->inc;
+  msg->inc_dot = k->inc_dot;
+  msg->af0 = k->af0;
+  msg->af1 = k->af1;
+  msg->af2 = k->af2;
+  msg->toc.tow = round(k->toc.tow);
+  msg->toc.wn = k->toc.wn;
+  msg->iode = k->iode;
+  msg->iodc = k->iodc;
 }
 
 static void unpack_ephemeris_sbas(const msg_ephemeris_t *m, ephemeris_t *e) {
   const msg_ephemeris_sbas_t *msg = &m->sbas;
+  ephemeris_xyz_t *k = &e->xyz;
   unpack_ephemeris_common(&msg->common, e);
-  MEMCPY_S(e->xyz.pos, sizeof(e->xyz.pos), msg->pos, sizeof(msg->pos));
-  MEMCPY_S(e->xyz.vel, sizeof(e->xyz.vel), msg->vel, sizeof(msg->vel));
-  MEMCPY_S(e->xyz.acc, sizeof(e->xyz.acc), msg->acc, sizeof(msg->acc));
-  e->xyz.a_gf0 = msg->a_gf0;
-  e->xyz.a_gf1 = msg->a_gf1;
+  k->pos[0] = msg->pos[0];
+  k->pos[1] = msg->pos[1];
+  k->pos[2] = msg->pos[2];
+  k->vel[0] = msg->vel[0];
+  k->vel[1] = msg->vel[1];
+  k->vel[2] = msg->vel[2];
+  k->acc[0] = msg->acc[0];
+  k->acc[1] = msg->acc[1];
+  k->acc[2] = msg->acc[2];
+  k->a_gf0 = msg->a_gf0;
+  k->a_gf1 = msg->a_gf1;
 }
 
 static void pack_ephemeris_sbas(const ephemeris_t *e, msg_ephemeris_t *m) {
+  const ephemeris_xyz_t *k = &e->xyz;
   msg_ephemeris_sbas_t *msg = &m->sbas;
   pack_ephemeris_common(e, &msg->common);
-  MEMCPY_S(msg->pos, sizeof(msg->pos), e->xyz.pos, sizeof(e->xyz.pos));
-  MEMCPY_S(msg->vel, sizeof(msg->vel), e->xyz.vel, sizeof(e->xyz.vel));
-  MEMCPY_S(msg->acc, sizeof(msg->acc), e->xyz.acc, sizeof(e->xyz.acc));
-  msg->a_gf0 = e->xyz.a_gf0;
-  msg->a_gf1 = e->xyz.a_gf1;
+  msg->pos[0] = k->pos[0];
+  msg->pos[1] = k->pos[1];
+  msg->pos[2] = k->pos[2];
+  msg->vel[0] = k->vel[0];
+  msg->vel[1] = k->vel[1];
+  msg->vel[2] = k->vel[2];
+  msg->acc[0] = k->acc[0];
+  msg->acc[1] = k->acc[1];
+  msg->acc[2] = k->acc[2];
+  msg->a_gf0 = k->a_gf0;
+  msg->a_gf1 = k->a_gf1;
 }
 
 static void unpack_ephemeris_glo(const msg_ephemeris_t *m, ephemeris_t *e) {
   const msg_ephemeris_glo_t *msg = &m->glo;
+  ephemeris_glo_t *k = &e->glo;
   unpack_ephemeris_common(&msg->common, e);
-  MEMCPY_S(e->glo.pos, sizeof(e->glo.pos), msg->pos, sizeof(msg->pos));
-  MEMCPY_S(e->glo.vel, sizeof(e->glo.vel), msg->vel, sizeof(msg->vel));
-  MEMCPY_S(e->glo.acc, sizeof(e->glo.acc), msg->acc, sizeof(msg->acc));
-  e->glo.gamma = msg->gamma;
-  e->glo.tau = msg->tau;
-  e->glo.d_tau = msg->d_tau;
-  e->glo.iod = msg->iod;
-  e->glo.fcn = (u16)msg->fcn;
+  k->pos[0] = msg->pos[0];
+  k->pos[1] = msg->pos[1];
+  k->pos[2] = msg->pos[2];
+  k->vel[0] = msg->vel[0];
+  k->vel[1] = msg->vel[1];
+  k->vel[2] = msg->vel[2];
+  k->acc[0] = msg->acc[0];
+  k->acc[1] = msg->acc[1];
+  k->acc[2] = msg->acc[2];
+  k->gamma = msg->gamma;
+  k->tau = msg->tau;
+  k->d_tau = msg->d_tau;
+  k->iod = msg->iod;
+  k->fcn = (u16)msg->fcn;
   glo_map_set_slot_id(construct_mesid(msg->common.sid.code, (u16)msg->fcn),
                       msg->common.sid.sat);
 }
 
 static void pack_ephemeris_glo(const ephemeris_t *e, msg_ephemeris_t *m) {
+  const ephemeris_glo_t *k = &e->glo;
   msg_ephemeris_glo_t *msg = &m->glo;
   pack_ephemeris_common(e, &msg->common);
-  MEMCPY_S(msg->pos, sizeof(msg->pos), e->glo.pos, sizeof(e->glo.pos));
-  MEMCPY_S(msg->vel, sizeof(msg->vel), e->glo.vel, sizeof(e->glo.vel));
-  MEMCPY_S(msg->acc, sizeof(msg->acc), e->glo.acc, sizeof(e->glo.acc));
-  msg->gamma = e->glo.gamma;
-  msg->tau = e->glo.tau;
-  msg->d_tau = e->glo.d_tau;
-  msg->iod = e->glo.iod;
-  msg->fcn = (u8)e->glo.fcn;
+  msg->pos[0] = k->pos[0];
+  msg->pos[1] = k->pos[1];
+  msg->pos[2] = k->pos[2];
+  msg->vel[0] = k->vel[0];
+  msg->vel[1] = k->vel[1];
+  msg->vel[2] = k->vel[2];
+  msg->acc[0] = k->acc[0];
+  msg->acc[1] = k->acc[1];
+  msg->acc[2] = k->acc[2];
+  msg->gamma = k->gamma;
+  msg->tau = k->tau;
+  msg->d_tau = k->d_tau;
+  msg->iod = k->iod;
+  msg->fcn = (u8)k->fcn;
 }
 
 #define TYPE_TABLE_INVALID_MSG_ID 0
@@ -730,19 +880,20 @@ static ephe_type_table_element_t ephe_type_table[CONSTELLATION_COUNT] = {
                                unpack_ephemeris_glo,
                                {0}},
 
-        /* GAL */
-        [CONSTELLATION_GAL] = {{SBP_MSG_EPHEMERIS_GPS,
-                                sizeof(msg_ephemeris_gps_t)},
-                               pack_ephemeris_gps,
-                               unpack_ephemeris_gps,
-                               {0}},
-
         /* BDS */
-        [CONSTELLATION_BDS2] = {
-            {SBP_MSG_EPHEMERIS_GPS, sizeof(msg_ephemeris_gps_t)},
-            pack_ephemeris_gps,
-            unpack_ephemeris_gps,
-            {0}}};
+        [CONSTELLATION_BDS2] = {{SBP_MSG_EPHEMERIS_BDS,
+                                 sizeof(msg_ephemeris_bds_t)},
+                                pack_ephemeris_bds,
+                                unpack_ephemeris_bds,
+                                {0}},
+
+        /* GAL */
+        [CONSTELLATION_GAL] = {{SBP_MSG_EPHEMERIS_GAL,
+                                sizeof(msg_ephemeris_gal_t)},
+                               pack_ephemeris_gal,
+                               unpack_ephemeris_gal,
+                               {0}},
+};
 
 void unpack_ephemeris(const msg_ephemeris_t *msg, ephemeris_t *e) {
   /* NOTE: here we use common part of GPS message to take sid.code info.

@@ -34,6 +34,8 @@
 typedef struct {
   union {
     msg_ephemeris_gps_t gps;
+    msg_ephemeris_bds_t bds;
+    msg_ephemeris_gal_t gal;
     msg_ephemeris_sbas_t sbas;
     msg_ephemeris_glo_t glo;
   };
