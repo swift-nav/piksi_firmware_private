@@ -210,13 +210,13 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
 
 ndb_op_code_t ndb_lgf_read(last_good_fix_t *lgf) {
   (void)lgf;
-  return NDB_ERR_NONE;
+  return NDB_ERR_UNSUPPORTED;
 }
 
 ndb_op_code_t ndb_utc_params_read(utc_params_t *utc_params_p, bool *is_nv) {
   (void)utc_params_p;
   (void)is_nv;
-  return NDB_ERR_NONE;
+  return NDB_ERR_UNSUPPORTED;
 }
 
 u8 code_track_count(code_t code) {

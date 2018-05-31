@@ -38,7 +38,7 @@ STUBS_DIR = stubs
 CPPFLAGS += -isystem $(GTEST_DIR)/include
 
 # C warnings without redudant-decl and missing-field-initializers
-CWARN = -Wall -Wextra -Werror -std=gnu99 -Wimplicit \
+CWARN = -Wall -Wextra -Werror -Wimplicit \
 	-Wshadow -Wswitch-default -Wswitch-enum -Wundef \
 	-Wuninitialized -Wstrict-prototypes \
 	-Wformat=2 \
@@ -48,7 +48,7 @@ CWARN = -Wall -Wextra -Werror -std=gnu99 -Wimplicit \
 	-Wno-implicit-fallthrough
 
 # Flags passed to the C compiler.
-CFLAGS += -g $(CWARN) -D_GNU_SOURCE
+CFLAGS += -g $(CWARN) -std=c99 -D_GNU_SOURCE
 
 # Flags passed to the C++ compiler.
 CXXFLAGS += -g -Wall -Wextra -Werror --coverage
