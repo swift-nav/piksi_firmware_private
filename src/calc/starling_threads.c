@@ -50,6 +50,18 @@ typedef struct StarlingSettings {
   dgnss_solution_mode_t solution_output_mode;
 } StarlingSettings;
 
+/* Glonass biases are handled separately from generic settings. */
+typedef struct GlonassBiases {
+  bool is_valid;
+  glo_biases_t values;
+} GlonassBiases;
+
+/* Reference position is also handled separately from generic settings. */
+typedef struct ReferencePosition {
+  bool is_valid;
+  double xyz[3];
+} ReferencePosition;
+
 /* Initial settings values (internal to Starling). */
 #define INIT_IS_GLONASS_ENABLED true
 #define INIT_IS_TIME_MATCHED_KLOBUCHAR_ENABLED true
@@ -67,6 +79,18 @@ static StarlingSettings global_settings = {
     .elevation_mask = INIT_ELEVATION_MASK,
     .solution_frequency = INIT_SOLUTION_FREQUENCY,
     .solution_output_mode = INIT_SOLUTION_OUTPUT_MODE,
+};
+
+/* Glonass biases and mutex protection. */
+static MUTEX_DECL(glonass_biases_lock);
+static GlonassBiases glonass_biases = {
+    .is_valid = false, .values = {0},
+};
+
+/* Reference position and mutex protection. */
+static MUTEX_DECL(reference_position_lock);
+static ReferencePosition reference_position = {
+    .is_valid = false, .xyz = {0},
 };
 
 static FilterManager *time_matched_filter_manager = NULL;
@@ -101,7 +125,7 @@ static sbas_system_t current_sbas_system = SBAS_UNKNOWN;
  */
 static void update_filter_manager_settings(FilterManager *fm) {
   platform_mutex_lock(&global_settings_lock);
-  StarlingSettings settings = global_settings;
+  const StarlingSettings settings = global_settings;
   platform_mutex_unlock(&global_settings_lock);
 
   /* Apply the most recent settings values to the Filter Manager. */
@@ -113,6 +137,37 @@ static void update_filter_manager_settings(FilterManager *fm) {
       fm, settings.glonass_downweight_factor, CODE_GLO_L2OF);
   set_pvt_engine_elevation_mask(fm, settings.elevation_mask);
   set_pvt_engine_update_frequency(fm, settings.solution_frequency);
+}
+
+/**
+ * Thread-safe update of glonass biases. Assumes that access to
+ * the filter manager is protected elsewhere.
+ */
+static void update_filter_manager_rtk_glonass_biases(FilterManagerRTK *fmrtk) {
+  platform_mutex_lock(&glonass_biases_lock);
+  const GlonassBiases biases = glonass_biases;
+  platform_mutex_unlock(&glonass_biases_lock);
+
+  assert(fmrtk);
+  if (biases.is_valid) {
+    filter_manager_set_known_glonass_biases(fmrtk, biases.values);
+  }
+}
+
+/**
+ * Thread-safe update of reference position. Assumes that access to
+ * the filter manager is protected elsewhere.
+ */
+static void update_filter_manager_rtk_reference_position(
+    FilterManagerRTK *fmrtk) {
+  platform_mutex_lock(&reference_position_lock);
+  const ReferencePosition refpos = reference_position;
+  platform_mutex_unlock(&reference_position_lock);
+
+  assert(fmrtk);
+  if (refpos.is_valid) {
+    filter_manager_set_known_ref_pos(fmrtk, refpos.xyz);
+  }
 }
 
 static void post_observations(u8 n,
@@ -170,24 +225,6 @@ static void post_observations(u8 n,
       last_time_matched_rover_obs_post = *t;
     }
   }
-}
-
-void set_known_ref_pos(const double base_pos[3]) {
-  platform_mutex_lock(&time_matched_filter_manager_lock);
-  if (time_matched_filter_manager) {
-    filter_manager_set_known_ref_pos(
-        (FilterManagerRTK *)time_matched_filter_manager, base_pos);
-  }
-  platform_mutex_unlock(&time_matched_filter_manager_lock);
-}
-
-void set_known_glonass_biases(const glo_biases_t biases) {
-  platform_mutex_lock(&time_matched_filter_manager_lock);
-  if (time_matched_filter_manager) {
-    filter_manager_set_known_glonass_biases(
-        (FilterManagerRTK *)time_matched_filter_manager, biases);
-  }
-  platform_mutex_unlock(&time_matched_filter_manager_lock);
 }
 
 void reset_rtk_filter(void) {
@@ -410,6 +447,11 @@ static void time_matched_obs_thread(void *arg) {
     platform_mutex_lock(&time_matched_filter_manager_lock);
     /* Grab the latest settings. */
     update_filter_manager_settings(time_matched_filter_manager);
+    /* Update the glonass biases. */
+    update_filter_manager_rtk_glonass_biases(
+        (FilterManagerRTK *)time_matched_filter_manager);
+    update_filter_manager_rtk_reference_position(
+        (FilterManagerRTK *)time_matched_filter_manager);
 
     platform_mutex_unlock(&time_matched_filter_manager_lock);
 
@@ -845,6 +887,23 @@ void starling_set_max_correction_age(int max_age) {
     set_max_correction_age(time_matched_filter_manager, max_age);
   }
   platform_mutex_unlock(&time_matched_filter_manager_lock);
+}
+
+/* Set a surveyed reference position for the base station. */
+void starling_set_known_ref_pos(const double base_pos[3]) {
+  platform_mutex_lock(&reference_position_lock);
+  memcpy(
+      reference_position.xyz, base_pos, sizeof(reference_position.xyz[0]) * 3);
+  reference_position.is_valid = true;
+  platform_mutex_unlock(&reference_position_lock);
+}
+
+/* Update the glonass biases. */
+void starling_set_known_glonass_biases(const glo_biases_t biases) {
+  platform_mutex_lock(&glonass_biases_lock);
+  glonass_biases.values = biases;
+  glonass_biases.is_valid = true;
+  platform_mutex_unlock(&glonass_biases_lock);
 }
 
 /* Set the desired solution mode for the Starling engine. */
