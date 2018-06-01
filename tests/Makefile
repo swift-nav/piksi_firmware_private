@@ -37,18 +37,18 @@ STUBS_DIR = stubs
 # the compiler doesn't generate warnings in Google Test headers.
 CPPFLAGS += -isystem $(GTEST_DIR)/include
 
-# C warnings without redudant-decl and missing-field-initializers
+# C warnings 
 CWARN = -Wall -Wextra -Werror -Wimplicit \
 	-Wshadow -Wswitch-default -Wswitch-enum -Wundef \
 	-Wuninitialized -Wstrict-prototypes \
 	-Wformat=2 \
 	-Wimplicit-function-declaration  \
 	-Wformat-security -Wpointer-arith \
-	-Wno-missing-field-initializers \
+	-Wno-missing-field-initializers -Wno-redundant-decl \
 	-Wno-implicit-fallthrough
 
 # Flags passed to the C compiler.
-CFLAGS += -g $(CWARN) -std=c99 -D_GNU_SOURCE
+CFLAGS += -g $(CWARN) -std=gnu99 -D_GNU_SOURCE
 
 # Flags passed to the C++ compiler.
 CXXFLAGS += -g -Wall -Wextra -Werror --coverage
