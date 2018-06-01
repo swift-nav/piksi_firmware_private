@@ -37,8 +37,18 @@ STUBS_DIR = stubs
 # the compiler doesn't generate warnings in Google Test headers.
 CPPFLAGS += -isystem $(GTEST_DIR)/include
 
+# C warnings 
+CWARN = -Wall -Wextra -Werror -Wimplicit \
+	-Wshadow -Wswitch-default -Wswitch-enum -Wundef \
+	-Wuninitialized -Wstrict-prototypes \
+	-Wformat=2 \
+	-Wimplicit-function-declaration  \
+	-Wformat-security -Wpointer-arith \
+	-Wno-missing-field-initializers  \
+	-Wno-implicit-fallthrough
+
 # Flags passed to the C compiler.
-CFLAGS += -g -Wall -Wextra -Werror -std=c99 -D_GNU_SOURCE
+CFLAGS += -g $(CWARN) -std=gnu99 -D_GNU_SOURCE
 
 # Flags passed to the C++ compiler.
 CXXFLAGS += -g -Wall -Wextra -Werror --coverage
@@ -60,6 +70,7 @@ INCLUDE_DIRS += -I$(USER_SRC_DIR)/cfg
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/reacq
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/soft_macq
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/track
+INCLUDE_DIRS += -I../libsbp/c/include
 
 # All Google Test headers.  Usually you shouldn't change this
 # definition.
@@ -133,6 +144,7 @@ vpath %.c $(USER_SRC_DIR) \
           $(USER_SRC_DIR)/utils/sbas_select \
           $(USER_SRC_DIR)/calc \
           $(USER_SRC_DIR)/reacq \
+          $(USER_SRC_DIR)/sbp \
           $(STUBS_DIR) \
 
 vpath %.cc $(TEST_SRC_DIR)
@@ -163,6 +175,7 @@ C_SRCS = fixed_fft_r2.c \
          ch_stubs.c \
          nav_msg.c \
          nav_msg_bds.c \
+         sbp_utils.c \
 
 # Test source files
 CXX_SRCS = $(notdir $(shell find $(TEST_SRC_DIR) -name '*.cc'))

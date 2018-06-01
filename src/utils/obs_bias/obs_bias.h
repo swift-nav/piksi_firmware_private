@@ -12,11 +12,7 @@
 #ifndef OBSERVATION_BIASES_CALIBRATION_H
 #define OBSERVATION_BIASES_CALIBRATION_H
 
-#include <libswiftnav/glo_map.h>
-#include <libswiftnav/glonass_phase_biases.h>
-#include "calc_base_obs.h"
-#include "sbp.h"
-#include "timing/timing.h"
+#include <libswiftnav/nav_meas.h>
 
 /* Send the glonass bias message every 5 observations message */
 extern const u32 biases_message_freq_setting;

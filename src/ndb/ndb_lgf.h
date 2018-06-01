@@ -18,7 +18,7 @@
 #include "position/position.h"
 
 void ndb_lgf_init(void);
-ndb_op_code_t ndb_lgf_read(last_good_fix_t *lgf) NDB_WEAK;
-ndb_op_code_t ndb_lgf_store(const last_good_fix_t *lgf) NDB_WEAK;
+ndb_op_code_t ndb_lgf_read(last_good_fix_t *lgf);
+ndb_op_code_t ndb_lgf_store(const last_good_fix_t *lgf);
 
 #endif /* SRC_NDB_LGF_H_ */

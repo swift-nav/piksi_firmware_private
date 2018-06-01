@@ -10,8 +10,6 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#define NDB_WEAK
-
 #include <libsbp/sbp.h>
 #include <libswiftnav/logging.h>
 #include <string.h>
@@ -20,6 +18,7 @@
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "settings/settings.h"
+#include "utils/timing/timing.h"
 
 #define UTC_PARAMS_FILE_NAME "persistent/ndb/utc_params"
 #define UTC_PARAMS_FILE_TYPE "utc parameters"

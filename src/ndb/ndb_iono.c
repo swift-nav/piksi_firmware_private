@@ -10,8 +10,6 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#define NDB_WEAK
-
 #include <libsbp/sbp.h>
 #include <libswiftnav/logging.h>
 #include <string.h>

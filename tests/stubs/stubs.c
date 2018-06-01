@@ -11,6 +11,7 @@
  */
 
 #include "manage.h"
+#include "sbp/sbp.h"
 
 #define MAX_ACQUIRED_SV_INDEX 15
 
@@ -209,7 +210,13 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
 
 ndb_op_code_t ndb_lgf_read(last_good_fix_t *lgf) {
   (void)lgf;
-  return NDB_ERR_NONE;
+  return NDB_ERR_UNSUPPORTED;
+}
+
+ndb_op_code_t ndb_utc_params_read(utc_params_t *utc_params_p, bool *is_nv) {
+  (void)utc_params_p;
+  (void)is_nv;
+  return NDB_ERR_UNSUPPORTED;
 }
 
 u8 code_track_count(code_t code) {
@@ -220,4 +227,29 @@ u8 code_track_count(code_t code) {
 u8 constellation_track_count(constellation_t gnss) {
   (void)gnss;
   return 0;
+}
+
+/** SBP stubs */
+
+s8 sbp_send_msg(u16 msg_type, u8 len, u8 buff[]) {
+  (void)msg_type;
+  (void)len;
+  (void)buff;
+  return SBP_OK;
+}
+
+s8 sbp_send_msg_(u16 msg_type, u8 len, u8 buff[], u16 sender_id) {
+  (void)msg_type;
+  (void)len;
+  (void)buff;
+  (void)sender_id;
+  return SBP_OK;
+}
+
+void sbp_register_cbk(u16 msg_type,
+                      sbp_msg_callback_t cb,
+                      sbp_msg_callbacks_node_t *node) {
+  (void)msg_type;
+  (void)cb;
+  (void)node;
 }
