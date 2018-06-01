@@ -36,10 +36,6 @@ systime_t chThdSleepMilliseconds(systime_t time) {
   return 1;
 }
 
-void chMtxLock(mutex_t *mp) {
-  (void)mp;
-}
+void chMtxLock(mutex_t *mp) { (void)mp; }
 
-void chMtxUnlock(mutex_t *mp) {
-  (void)mp;
-}
+void chMtxUnlock(mutex_t *mp) { (void)mp; }
