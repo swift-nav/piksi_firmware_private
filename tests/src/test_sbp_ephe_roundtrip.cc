@@ -68,8 +68,8 @@ TEST(test_ephemeris_sbp, sbp_roundtrip) {
     calc_sat_state(&e_sbp, &t, sbp_sat_pos, sbp_sat_vel, _, _, _, &iodc, &iode);
 
     // Compare the original ephemeris to the one converted to SBP and back
-    const double POS_THRESHOLD = 1e-16;  // m
-    const double VEL_THRESHOLD = 1e-16;  // m/s
+    const double POS_THRESHOLD = 1e-8;   // m
+    const double VEL_THRESHOLD = 1e-12;  // m/s
 
     EXPECT_LT(fabs(sat_pos[0] - sbp_sat_pos[0]), POS_THRESHOLD);
     EXPECT_LT(fabs(sat_pos[1] - sbp_sat_pos[1]), POS_THRESHOLD);
