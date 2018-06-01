@@ -132,7 +132,7 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
       * - shi_ephemeris_set is available and indicates L1CA/L1P unhealthy
       * - shi_lnav_how_alert is available and negative
       * - cnav_msg10 is available and indicates L1 unhealthy
-      * - almanac health bits are available and indicate L1CA unhealthy
+      * - almanac health bits are available and indicate L1CA/L1P unhealthy
       *
       * Return CODE_NAV_STATE_VALID all conditions below are true:
       * - shi_ephemeris_set is available and indicates L1CA/L1P healthy
@@ -171,10 +171,10 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
        * - shi_ephemeris is available and indicates L2CM/L2P unhealthy
        * - shi_cnav_alert is available and negative
        * - cnav_msg10 is available and indicates L2 unhealthy
-       * - almanac health bits are available and indicate L2CM unhealthy
+       * - almanac health bits are available and indicate L2CM/L2P unhealthy
        *
        * Return CODE_NAV_STATE_VALID if all conditions below are true:
-       * - shi_ephemeris is available and indicates L2CM healthy
+       * - shi_ephemeris is available and indicates L2CM/L2P healthy
        * - cnav_msg10 is available and indicates L2 healthy
        * - shi_cnav_alert is available and positive
        *
