@@ -143,22 +143,14 @@ static bool track_sid_db_load_azel(const gnss_signal_t sid,
  * \param[in] sid             GNSS signal identifier.
  * \param[in] elevation_entry Data to store.
  *
- * \retval true  If elevation entry has been updated.
- * \retval false If elevation entry is not present.
  */
-static bool track_sid_db_update_azel(const gnss_signal_t sid,
+static void track_sid_db_update_azel(const gnss_signal_t sid,
                                      const tp_azel_entry_t *azel_entry) {
-  bool result = false;
-
-  if (NULL != azel_entry) {
-    u16 sv_index = sid_to_sv_index(sid);
-    chMtxLock(&sid_db_cache.mutex);
-    sid_db_cache.entries[sv_index].azel = *azel_entry;
-    chMtxUnlock(&sid_db_cache.mutex);
-    result = true;
-  }
-
-  return result;
+  assert(NULL != azel_entry);
+  u16 sv_index = sid_to_sv_index(sid);
+  chMtxLock(&sid_db_cache.mutex);
+  sid_db_cache.entries[sv_index].azel = *azel_entry;
+  chMtxUnlock(&sid_db_cache.mutex);
 }
 
 /** Set the azimuth and elevation angles for SV by sid.
@@ -168,20 +160,16 @@ static bool track_sid_db_update_azel(const gnss_signal_t sid,
  * \param[in] elevation Elevation angle [degrees].
  * \param[in] timestamp Azimuth and elevation evaluation time [ticks].
  *
- * \retval true  Elevation has been successfully updated.
- * \retval false Elevation has not been updated because GNSS constellation is
- *               not supported.
- *
  * \sa sv_elevation_degrees_get
  */
-bool track_sid_db_azel_degrees_set(gnss_signal_t sid,
+void track_sid_db_azel_degrees_set(gnss_signal_t sid,
                                    u16 azimuth,
                                    s8 elevation,
                                    u64 timestamp) {
   tp_azel_entry_t entry = {.azimuth_d = azimuth,
                            .elevation_d = elevation,
                            .timestamp_tk = timestamp};
-  return track_sid_db_update_azel(sid, &entry);
+  track_sid_db_update_azel(sid, &entry);
 }
 
 /** Return the azimuth angle for a satellite.

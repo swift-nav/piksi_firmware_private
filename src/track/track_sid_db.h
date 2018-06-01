@@ -49,7 +49,7 @@ bool tp_tow_is_sane(s32 tow_ms);
 void track_sid_db_load_tow(const gnss_signal_t sid, tp_tow_entry_t *tow_entry);
 void track_sid_db_update_tow(const gnss_signal_t sid,
                              const tp_tow_entry_t *tow_entry);
-bool track_sid_db_azel_degrees_set(gnss_signal_t sid,
+void track_sid_db_azel_degrees_set(gnss_signal_t sid,
                                    u16 azimuth,
                                    s8 elevation,
                                    u64 timestamp);

@@ -240,8 +240,6 @@ static void me_send_failed_obs(u8 _num_obs,
 static void update_sat_azel(const double rcv_pos[3], const gps_time_t t) {
   ephemeris_t ephemeris;
   almanac_t almanac;
-  double az, el;
-  u64 nap_count = gpstime2napcount(&t);
 
   /* compute elevation for any valid ephemeris/almanac we can pull from NDB */
   for (u16 sv_index = 0; sv_index < NUM_SATS; sv_index++) {
@@ -250,23 +248,17 @@ static void update_sat_azel(const double rcv_pos[3], const gps_time_t t) {
     if (!sid_valid(sid)) {
       continue;
     }
+    /* try to compute from ephemeris */
     ndb_op_code_t res = ndb_ephemeris_read(sid, &ephemeris);
-
-    /* try to compute elevation from any valid ephemeris */
-    if ((NDB_ERR_NONE == res || NDB_ERR_UNCONFIRMED_DATA == res) &&
-        ephemeris_valid(&ephemeris, &t) &&
-        calc_sat_az_el(&ephemeris, &t, rcv_pos, &az, &el, false) >= 0) {
-      track_sid_db_azel_degrees_set(
-          sid, round(az * R2D), round(el * R2D), nap_count);
-      log_debug_sid(sid, "Updated elevation from ephemeris %.1f", el * R2D);
-
-      /* else try to fetch almanac and use it if it is valid */
-    } else if (NDB_ERR_NONE == ndb_almanac_read(sid, &almanac) &&
-               almanac_valid(&almanac, &t) &&
-               calc_sat_az_el_almanac(&almanac, &t, rcv_pos, &az, &el) >= 0) {
-      track_sid_db_azel_degrees_set(
-          sid, round(az * R2D), round(el * R2D), nap_count);
-      log_debug_sid(sid, "Updated elevation from almanac %.1f", el * R2D);
+    if (NDB_ERR_NONE == res || NDB_ERR_UNCONFIRMED_DATA == res) {
+      if (0 == update_azel_from_ephemeris(&ephemeris, &t, rcv_pos)) {
+        /* success */
+        continue;
+      }
+    }
+    /* else try to compute from almanac */
+    if (NDB_ERR_NONE == ndb_almanac_read(sid, &almanac)) {
+      update_azel_from_almanac(&almanac, &t, rcv_pos);
     }
   }
 }

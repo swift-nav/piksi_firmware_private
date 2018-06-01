@@ -315,6 +315,56 @@ static bool xcorr_check_eph_to_eph(const ephemeris_t *e) {
   return false;
 }
 
+/* Compute satellite azimuth and elevation and update the track db
+ *
+ * \param e ephemeris
+ * \param t time at which to calculate the az/el.
+ * \param pos_ecef coordinates of the reference point
+ *
+ * \return  0 on success,
+ *         -1 if ephemeris is invalid or time is outside its fit interval
+ */
+s8 update_azel_from_ephemeris(const ephemeris_t *e,
+                              const gps_time_t *t,
+                              const double pos_ecef[]) {
+  if (!ephemeris_valid(e, t)) {
+    return -1;
+  }
+  double az, el;
+  if (0 != calc_sat_az_el(e, t, pos_ecef, &az, &el, false)) {
+    return -1;
+  }
+  track_sid_db_azel_degrees_set(
+      e->sid, round(az * R2D), round(el * R2D), nap_timing_count());
+  log_debug_sid(e->sid, "Updated elevation from ephemeris %.1f deg", el * R2D);
+  return 0;
+}
+
+/* Compute satellite azimuth and elevation and update the track db
+ *
+ * \param a almanac
+ * \param t time at which to calculate the az/el.
+ * \param pos_ecef coordinates of the reference point
+ *
+ * \return  0 on success,
+ *         -1 if almanac is invalid or time is outside its fit interval
+ */
+s8 update_azel_from_almanac(const almanac_t *a,
+                            const gps_time_t *t,
+                            const double pos_ecef[]) {
+  if (!almanac_valid(a, t)) {
+    return -1;
+  }
+  double az, el;
+  if (0 != calc_sat_az_el_almanac(a, t, pos_ecef, &az, &el)) {
+    return -1;
+  }
+  track_sid_db_azel_degrees_set(
+      a->sid, round(az * R2D), round(el * R2D), nap_timing_count());
+  log_debug_sid(a->sid, "Updated elevation from almanac %.1f deg", el * R2D);
+  return 0;
+}
+
 /**
  * Checks that new GPS ephemeris matches its own almanac and none of the other
  * satellites, and if so, pass to it to NDB.
@@ -434,25 +484,10 @@ eph_new_status_t ephemeris_new(const ephemeris_t *e) {
 
   /* if satellite's azimuth and elevation are not yet cached, try to compute
    * them from the newly received ephemeris */
-
   last_good_fix_t lgf;
-  if (TRACKING_ELEVATION_UNKNOWN ==
-          track_sid_db_elevation_degrees_get(e->sid) &&
-      NDB_ERR_NONE == ndb_lgf_read(&lgf)) {
-    double az, el;
-    const gnss_solution *pos = &lgf.position_solution;
-    if (ephemeris_valid(e, &pos->time) &&
-        0 == calc_sat_az_el(e,
-                            &pos->time,
-                            pos->pos_ecef,
-                            &az,
-                            &el,
-                            /*check_validity=*/false)) {
-      track_sid_db_azel_degrees_set(
-          e->sid, round(az * R2D), round(el * R2D), nap_timing_count());
-      log_debug_sid(
-          e->sid, "Updated elevation from new ephemeris %.1f deg", el * R2D);
-    }
+  if (NDB_ERR_NONE == oc && NDB_ERR_NONE == ndb_lgf_read(&lgf)) {
+    update_azel_from_ephemeris(
+        e, &lgf.position_solution.time, lgf.position_solution.pos_ecef);
   }
   return EPH_NEW_OK;
 }
