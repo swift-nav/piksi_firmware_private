@@ -18,8 +18,8 @@
 /** Process noise parameters for clock state Kalman filter.
  *  Determined empirically from the raw PVT solutions of several boards on HITL
  */
-#define CLOCK_BIAS_VAR 2.1e-18
-#define CLOCK_DRIFT_VAR 1.3e-22
+#define CLOCK_BIAS_VAR 5.0e-20
+#define CLOCK_DRIFT_VAR 6.6e-22
 
 /* Time in which clock state uncertainty does not change significantly */
 #define CLOCK_STATE_MIN_PROPAGATE_TIME_S 1e-3
