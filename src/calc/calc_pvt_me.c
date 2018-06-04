@@ -523,17 +523,8 @@ static void me_calc_pvt_thread(void *arg) {
     }
 
     /* Create navigation measurements from the channel measurements */
-
-    /* If `rcv_time` is invalid (i.e. GPS_TIME_UNKNOWN), then pass in NULL
-     * instead of `rcv_time`. This will result in valid pseudoranges but with
-     * a large and arbitrary receiver clock error. We will discard these
-     * measurements in any case after getting the PVT solution and initializing
-     * clock. */
-    s8 nm_ret = calc_navigation_measurement(
-        n_ready,
-        p_meas,
-        p_nav_meas,
-        gps_time_valid(&current_time) ? &current_time : NULL);
+    s8 nm_ret =
+        calc_navigation_measurement(n_ready, p_meas, p_nav_meas, &current_time);
 
     if (nm_ret != 0) {
       log_error("calc_navigation_measurement() returned an error");
@@ -587,6 +578,7 @@ static void me_calc_pvt_thread(void *arg) {
      * just return the rough value from the tracking loop. */
     s8 pvt_ret = calc_PVT(n_ready,
                           nav_meas,
+                          &current_time,
                           disable_raim,
                           false,
                           GPS_L1CA_WHEN_POSSIBLE,
