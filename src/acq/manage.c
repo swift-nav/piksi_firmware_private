@@ -266,7 +266,7 @@ static bool sbas_enable_notify(struct setting *s, const char *val) {
   }
   for (u16 i = 0; i < ARRAY_SIZE(acq_status); i++) {
     if (IS_SBAS(acq_status[i].mesid)) {
-      acq_status[i].masked = !sbas_enabled;
+      acq_status[i].masked = !sbas_enabled || !sbas_active(acq_status[i].mesid);
     }
   }
   return true;
@@ -288,7 +288,7 @@ static bool bds2_enable_notify(struct setting *s, const char *val) {
   }
   for (u16 i = 0; i < ARRAY_SIZE(acq_status); i++) {
     if (IS_BDS2(acq_status[i].mesid)) {
-      acq_status[i].masked = !bds2_enabled;
+      acq_status[i].masked = !bds2_enabled || !bds_active(acq_status[i].mesid);
     }
   }
   return true;
@@ -310,7 +310,7 @@ static bool qzss_enable_notify(struct setting *s, const char *val) {
   }
   for (u16 i = 0; i < ARRAY_SIZE(acq_status); i++) {
     if (IS_QZSS(acq_status[i].mesid)) {
-      acq_status[i].masked = !qzss_enabled;
+      acq_status[i].masked = !qzss_enabled || !qzss_active(acq_status[i].mesid);
     }
   }
   return true;
@@ -332,7 +332,8 @@ static bool galileo_enable_notify(struct setting *s, const char *val) {
   }
   for (u16 i = 0; i < ARRAY_SIZE(acq_status); i++) {
     if (IS_GAL(acq_status[i].mesid)) {
-      acq_status[i].masked = !galileo_enabled;
+      acq_status[i].masked =
+          !galileo_enabled || !gal_active(acq_status[i].mesid);
     }
   }
   return true;
