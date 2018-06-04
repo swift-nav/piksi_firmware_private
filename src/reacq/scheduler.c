@@ -329,7 +329,6 @@ static void sch_run_common(acq_jobs_state_t *jobs_data, acq_job_t *job) {
         .code_phase = cp,
         .chips_to_correlate = code_to_chip_count(mesid_trk.code),
         .cn0_init = acq_result.cn0,
-        .elevation = TRACKING_ELEVATION_UNKNOWN,
         .glo_slot_id = glo_orbit_slot};
     task->task_index = ACQ_UNINITIALIZED_TASKS;
     job->state = ACQ_STATE_IDLE;

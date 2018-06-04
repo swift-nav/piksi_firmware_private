@@ -113,8 +113,7 @@ void do_glo_l1of_to_l2of_handover(u32 sample_count,
       /* chips to correlate during first 1 ms of tracking */
       .chips_to_correlate = code_to_chip_rate(L2_mesid.code) * 1e-3,
       /* get initial cn0 from parent L1 channel */
-      .cn0_init = init_cn0_dbhz - GLO_L2OF_CN0_INIT_ADJUST_DBHZ,
-      .elevation = TRACKING_ELEVATION_UNKNOWN};
+      .cn0_init = init_cn0_dbhz - GLO_L2OF_CN0_INIT_ADJUST_DBHZ};
 
   switch (tracking_startup_request(&startup_params)) {
     case 0:

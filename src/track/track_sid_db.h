@@ -24,6 +24,9 @@
 /** Maximum SV azimuth/elevation age in [s]: 1 minute is about 0.5 degrees */
 #define MAX_AZ_EL_AGE_SEC 60
 
+#define TRACKING_AZIMUTH_UNKNOWN 400
+#define TRACKING_ELEVATION_UNKNOWN 100 /* Default to above elev. mask */
+
 /**
  * ToW cache entry.
  */
