@@ -485,7 +485,8 @@ eph_new_status_t ephemeris_new(const ephemeris_t *e) {
   /* if satellite's azimuth and elevation are not yet cached, try to compute
    * them from the newly received ephemeris */
   last_good_fix_t lgf;
-  if (NDB_ERR_NONE == oc && NDB_ERR_NONE == ndb_lgf_read(&lgf)) {
+  if ((NDB_ERR_NONE == oc || NDB_ERR_UNCONFIRMED_DATA == oc) &&
+      NDB_ERR_NONE == ndb_lgf_read(&lgf)) {
     update_azel_from_ephemeris(
         e, &lgf.position_solution.time, lgf.position_solution.pos_ecef);
   }
