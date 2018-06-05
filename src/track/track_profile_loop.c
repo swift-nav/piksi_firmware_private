@@ -204,7 +204,7 @@ void tp_tl_get_config(const tp_loop_params_t *l, tl_config_t *config) {
  *
  * \return None
  */
-void tp_tl_update(tp_tl_state_t *s, const tp_epl_corr_t *cs, bool costas) {
+void tp_tl_update_loop(tp_tl_state_t *s, const tp_epl_corr_t *cs, bool costas) {
   /* TODO: Make this more elegant. */
   correlation_t cs2[3];
   for (u32 i = 0; i < 3; i++) {
@@ -213,22 +213,13 @@ void tp_tl_update(tp_tl_state_t *s, const tp_epl_corr_t *cs, bool costas) {
   }
 
   switch (s->ctrl) {
-    case TP_CTRL_PLL2:
-      tl_pll2_update_dll(&s->pll2, cs2);
-      break;
-
     case TP_CTRL_PLL3:
-      tl_pll3_update_dll(&s->pll3, cs2, costas);
+      tl_pll3_update_loop(&s->pll3, cs2, costas);
       break;
 
+    case TP_CTRL_PLL2:
     case TP_CTRL_FLL1:
-      tl_fll1_update_dll(&s->fll1, cs2);
-      break;
-
     case TP_CTRL_FLL2:
-      tl_fll2_update_dll(&s->fll2, cs2);
-      break;
-
     default:
       assert(false);
   }
@@ -329,6 +320,50 @@ bool tp_tl_is_pll(const tp_tl_state_t *s) {
     case TP_CTRL_FLL2:
       return false;
 
+    default:
+      assert(false);
+  }
+}
+
+/**
+ * DLL update.
+ * \param s Tracker state.
+ */
+void tp_tl_update_dll(tp_tl_state_t *s) {
+  switch (s->ctrl) {
+    case TP_CTRL_PLL3:
+      tl_pll3_update_dll(&s->pll3);
+      break;
+
+    case TP_CTRL_PLL2:
+    case TP_CTRL_FLL1:
+    case TP_CTRL_FLL2:
+    default:
+      assert(false);
+  }
+}
+
+/**
+ * DLL discriminator update.
+ *
+ * \param s  Tracker state.
+ * \param cs EPL correlator data.
+ */
+void tp_tl_update_dll_discr(tp_tl_state_t *s, const tp_epl_corr_t *cs) {
+  correlation_t cs2[3];
+  for (u32 i = 0; i < 3; i++) {
+    cs2[i].I = cs->five[2 - i].I;
+    cs2[i].Q = cs->five[2 - i].Q;
+  }
+
+  switch (s->ctrl) {
+    case TP_CTRL_PLL3:
+      tl_pll3_update_dll_discr(&s->pll3, cs2);
+      break;
+
+    case TP_CTRL_PLL2:
+    case TP_CTRL_FLL1:
+    case TP_CTRL_FLL2:
     default:
       assert(false);
   }

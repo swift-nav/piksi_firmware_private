@@ -26,6 +26,8 @@
 
 #define TP_DLL_PLL_MEAS_DIM 5
 
+#define SENS_THRESH_DBHZ 25
+
 /**
  * Tracking mode enumeration.
  */
@@ -52,12 +54,20 @@ typedef enum {
 
   TP_TM_10MS_20MS,   /**< 10 ms */
   TP_TM_10MS_10MS,   /**< 10 ms */
+  TP_TM_200MS_10MS,  /**< 200 ms */
   TP_TM_10MS_NH20MS, /**< 10 ms */
   TP_TM_10MS_SC4,    /**< 10 ms */
 
   TP_TM_20MS_20MS,   /**< 20 ms */
   TP_TM_20MS_NH20MS, /**< 20 ms */
-  TP_TM_20MS_SC4     /**< 20 ms */
+  TP_TM_20MS_SC4,    /**< 20 ms */
+
+  TP_TM_40MS_20MS,  /**< 40 ms */
+  TP_TM_60MS_20MS,  /**< 60 ms */
+  TP_TM_80MS_20MS,  /**< 80 ms */
+  TP_TM_100MS_20MS, /**< 100 ms */
+  TP_TM_200MS_20MS, /**< 200 ms */
+  TP_TM_300MS_20MS  /**< 300 ms */
 } tp_tm_e;
 
 /**
@@ -404,6 +414,7 @@ typedef struct {
   float unfiltered_freq_error; /**< Unfiltered frequency error at the FLL
                                     discriminator output [Hz]. */
   float cn0;                   /**< Current estimate of C/N0. */
+  u32 no_signal_ms;
   u32 flags;                   /**< Tracker flags TRACKER_FLAG_... */
   ch_drop_reason_t ch_drop_reason; /* Drop reason if TRACKER_FLAG_DROP is set */
   float acceleration;              /**< Acceleration [g] */
@@ -429,7 +440,7 @@ typedef struct {
   lock_detect_t ld_freq;       /**< Frequency lock detector state. */
   lp1_filter_t xcorr_filter;   /**< Low-pass SV POV doppler filter */
   tp_tm_e tracking_mode;       /**< Tracking mode */
-  u16 cycle_no : 5;            /**< Cycle index inside current
+  u8 cycle_no;                 /**< Cycle index inside current
                                 *   integration mode. */
   u16 use_alias_detection : 1; /**< Flag for alias detection control */
   u16 has_next_params : 1;     /**< Flag if stage transition is in

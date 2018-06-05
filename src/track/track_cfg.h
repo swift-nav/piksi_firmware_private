@@ -76,7 +76,9 @@
 #define tl_pll3_init aided_tl_fll2_pll3_init
 #define tl_pll3_retune aided_tl_fll2_pll3_retune
 #define tl_pll3_update_fll aided_tl_fll2_pll3_update_fll
+#define tl_pll3_update_loop aided_tl_fll2_pll3_update_loop
 #define tl_pll3_update_dll aided_tl_fll2_pll3_update_dll
+#define tl_pll3_update_dll_discr aided_tl_fll2_pll3_update_dll_discr
 #define tl_pll3_adjust aided_tl_fll2_pll3_adjust
 #define tl_pll3_get_dll_error aided_tl_fll2_pll3_get_dll_error
 #define tl_pll3_discr_update aided_tl_fll2_pll3_discr_update
@@ -144,6 +146,12 @@
 #define TPF_PLD_SET ((u32)1 << 22)
 #define TPF_PLD_ADD ((u32)1 << 23)
 #define TPF_PLD_USE ((u32)1 << 24)
+
+#define TPF_DLL_RUN ((u32)1 << 25)
+#define TPF_FLL_RUN ((u32)1 << 26)
+#define TPF_PLL_RUN ((u32)1 << 27)
+
+#define TPF_LOOP_RUN (TPF_DLL_RUN | TPF_FLL_RUN | TPF_PLL_RUN)
 
 #define TRACKING_AZIMUTH_UNKNOWN 400
 #define TRACKING_ELEVATION_UNKNOWN 100 /* Default to above elev. mask */

@@ -150,6 +150,7 @@ typedef struct {
  */
 typedef struct {
   float dll_loop_freq;  /**< DLL loop frequency [Hz] */
+  float dll_discr_freq; /**< DLL discriminator frequency [Hz] */
   float fll_loop_freq;  /**< FLL loop frequency [Hz] */
   float fll_discr_freq; /**< FLL discriminator frequency [Hz] */
   float code_bw;        /**< DLL bandwidth [Hz] */
@@ -267,6 +268,10 @@ typedef struct {
   float discr_sum_hz;  /**< FLL: Discriminator sum over coh. int. period [Hz] */
   float discr_period_s; /**< FLL: Discriminator period */
   u8 discr_cnt; /**< FLL: discr_sum is averaged across this many updates */
+
+  float dll_discr_sum_hz; /* DLL discriminator sum over coh. int. period [Hz] */
+  float dll_discr_period_s; /**< DLL: Discriminator period [s] */
+  u8 dll_discr_cnt; /**< DLL: discr_sum is averaged across this many updates */
 
   float freq_c1; /**< FLL: c1 coefficient */
   float freq_c2; /**< FLL: c2 coefficient */
@@ -493,9 +498,12 @@ void aided_tl_fll2_pll3_init(aided_tl_state_fll2_pll3_t *s,
 void aided_tl_fll2_pll3_retune(aided_tl_state_fll2_pll3_t *s,
                                const tl_config_t *config);
 void aided_tl_fll2_pll3_update_fll(aided_tl_state_fll2_pll3_t *s);
-void aided_tl_fll2_pll3_update_dll(aided_tl_state_fll2_pll3_t *s,
-                                   const correlation_t cs[3],
-                                   bool costas);
+void aided_tl_fll2_pll3_update_loop(aided_tl_state_fll2_pll3_t *s,
+                                    const correlation_t cs[3],
+                                    bool costas);
+void aided_tl_fll2_pll3_update_dll(aided_tl_state_fll2_pll3_t *s);
+void aided_tl_fll2_pll3_update_dll_discr(aided_tl_state_fll2_pll3_t *s,
+                                         const correlation_t cs[3]);
 void aided_tl_fll2_pll3_adjust(aided_tl_state_fll2_pll3_t *s, float carr_err);
 float aided_tl_fll2_pll3_get_dll_error(const aided_tl_state_fll2_pll3_t *s);
 void aided_tl_fll2_pll3_discr_update(aided_tl_state_fll2_pll3_t *s,

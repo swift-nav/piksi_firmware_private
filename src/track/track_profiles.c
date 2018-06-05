@@ -82,6 +82,8 @@ typedef enum {
 #define DEBUG_PRINT_TIME_INTERVAL_MS (20000)
 #define BW_DYN -1
 
+#define SENS_THRESH_DBHZ 25
+
 /** Describes single tracking profile */
 typedef struct tp_profile_entry {
   struct {
@@ -337,16 +339,16 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
   { { BW_DYN,      BW_DYN,           .5,   TP_CTRL_PLL3,
       TP_TM_20MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS,  TP_TM_20MS_NH20MS,  TP_TM_20MS_SC4 },
       TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
-      40,          25,          35,
+      40,        SENS_THRESH_DBHZ,   35,
       IDX_20MS,   IDX_SENS,     IDX_10MS,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
 
   /* sensitivity profile */
   [IDX_SENS] =
   { {      0,         1.0,           .5,   TP_CTRL_PLL3,
-      TP_TM_20MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS,  TP_TM_20MS_NH20MS,  TP_TM_20MS_SC4 },
+      TP_TM_200MS_20MS, TP_TM_200MS_10MS, TP_TM_2MS_2MS,  TP_TM_20MS_NH20MS,  TP_TM_20MS_SC4 },
       TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
-      100,             0,          32,
+      300,             0,          32,
       IDX_SENS,  IDX_NONE,     IDX_20MS,
       TP_HIGH_CN0 | TP_USE_NEXT }
 };
@@ -782,10 +784,28 @@ bool tp_profile_has_new_profile(tracker_t *tracker) {
 
   state->profile_update = false;
 
-  if ((0 != (flags & TP_LOW_CN0)) &&
-      (state->filt_cn0 < cur_profile->cn0_low_threshold) &&
-      profile_switch_requested(tracker, cur_profile->next_cn0_low, "low cn0")) {
-    return true;
+  if (0 != (flags & TP_LOW_CN0)) {
+    if (tracker->cn0_est.no_signal_ms > 0) {
+      if ((state->filt_cn0 > 32) &&
+          profile_switch_requested(tracker, IDX_SENS, "low cn0")) {
+        return true;
+      }
+      if ((tracker->cn0_est.no_signal_ms >= 35) &&
+          profile_switch_requested(tracker, IDX_SENS, "low cn0")) {
+        return true;
+      }
+    }
+    if ((state->filt_cn0 < SENS_THRESH_DBHZ) &&
+        profile_switch_requested(tracker, IDX_SENS, "low cn0")) {
+      /* expedite transition to sensitivity profile */
+      return true;
+    }
+
+    if ((state->filt_cn0 < cur_profile->cn0_low_threshold) &&
+        profile_switch_requested(
+            tracker, cur_profile->next_cn0_low, "low cn0")) {
+      return true;
+    }
   }
 
   bool bsync = (0 != (tracker->flags & TRACKER_FLAG_BIT_SYNC));

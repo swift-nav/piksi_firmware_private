@@ -67,6 +67,10 @@ typedef struct {
   u32 ver : 8;                 /**< Configuration version */
   cn0_est_basic_state_t basic; /**< Basic estimator for Very Early tap in use */
 
+  float cn0_dbhz;     /**< Latest filtered CN0 value [db-hz] */
+  float raw_cn0_dbhz; /**< Latest raw CN0 value [db-hz] */
+  u32 no_signal_ms;
+
   /* Other supported estimators for testing:
    * cn0_est_ch_state_t   ch;
    * cn0_est_nwpr_state_t nwpr;
@@ -90,6 +94,7 @@ void track_cn0_init(const me_gnss_signal_t mesid,
 float track_cn0_update(const me_gnss_signal_t mesid,
                        track_cn0_est_e t,
                        track_cn0_state_t *e,
+                       u8 int_ms,
                        float I,
                        float Q,
                        float ve_I,
