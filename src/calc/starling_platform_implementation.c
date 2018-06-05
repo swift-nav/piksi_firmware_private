@@ -19,7 +19,7 @@
  * then print an appropriate message.
  */
 void pal_handle_error(pal_rc_t code) {
-  if (!code) {
+  if (STARLING_PAL_OK == code) {
     return;
   } 
 
@@ -55,6 +55,41 @@ pal_rc_t pal_thread_run(unsigned int priority,
 
 }
 
+/******************************************************************************
+ * QUEUE 
+ *****************************************************************************/
 
+void *pal_queue_create(const size_t capacity) {
+  return NULL;
+}
+
+pal_rc_t pal_queue_push_back(void *q, const void *p) {
+  return -1;
+}
+
+pal_rc_t pal_queue_pop_front(void *q, void **p) {
+  return -1;
+}
+
+void pal_queue_destroy(void *q) {
+
+}
+
+/******************************************************************************
+ * ALLOCATOR
+ *****************************************************************************/
+
+// STARTUP_ONLY
+pal_rc_t pal_allocator_register(const size_t block_size, const size_t n_blocks) {
+  return -1;
+}
+
+pal_rc_t pal_allocator_alloc(const size_t block_size, void **p) {
+  return -1;
+}
+
+pal_rc_t pal_allocator_free(void *p) {
+  return -1;
+}
 
 
