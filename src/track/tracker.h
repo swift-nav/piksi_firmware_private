@@ -26,6 +26,9 @@
 
 #define TP_DLL_PLL_MEAS_DIM 5
 
+#define THRESH_SENS_DBHZ 25
+#define THRESH_20MS_DBHZ 32
+
 /**
  * Tracking mode enumeration.
  */

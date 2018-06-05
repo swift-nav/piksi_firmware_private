@@ -68,6 +68,7 @@ typedef struct {
   cn0_est_basic_state_t basic; /**< Basic estimator for Very Early tap in use */
 
   float cn0_raw_dbhz; /**< Last unfiltered CN0 estimation [dB-Hz] */
+  u32 weak_signal_ms; /**< Signal is below #SENS_THRESH_DBHZ this long [ms] */
 
   /* Other supported estimators for testing:
    * cn0_est_ch_state_t   ch;
@@ -92,6 +93,7 @@ void track_cn0_init(const me_gnss_signal_t mesid,
 float track_cn0_update(const me_gnss_signal_t mesid,
                        track_cn0_est_e t,
                        track_cn0_state_t *e,
+                       u8 int_ms,
                        float I,
                        float Q,
                        float ve_I,

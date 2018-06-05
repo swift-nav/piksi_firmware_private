@@ -11,6 +11,7 @@
  */
 #include "track_cn0.h"
 #include "settings/settings.h"
+#include "track/tracker.h"
 
 #include <assert.h>
 #include <math.h>
@@ -302,6 +303,7 @@ void track_cn0_init(const me_gnss_signal_t mesid,
  * \param[in]     mesid  ME signal identifier for logging.
  * \param[in]     t      Type of estimator value to use/return.
  * \param[in,out] e      Estimator state.
+ * \param[in]     int_ms Integration time [ms]
  * \param[in]     I      In-phase component.
  * \param[in]     Q      Quadrature component.
  * \param[in]     ve_I   Very early in-phase accumulator
@@ -312,6 +314,7 @@ void track_cn0_init(const me_gnss_signal_t mesid,
 float track_cn0_update(const me_gnss_signal_t mesid,
                        track_cn0_est_e t,
                        track_cn0_state_t *e,
+                       u8 int_ms,
                        float I,
                        float Q,
                        float ve_I,
@@ -336,9 +339,16 @@ float track_cn0_update(const me_gnss_signal_t mesid,
     e->type = t;
   }
 
-  cn0 = update_estimator(e, &pp->est_params, t, I, Q, ve_I, ve_Q);
-  e->cn0_raw_dbhz = cn0;
-  cn0 = cn0_filter_update(&e->filter, &pp->filter_params, cn0);
+  e->cn0_raw_dbhz = update_estimator(e, &pp->est_params, t, I, Q, ve_I, ve_Q);
+  cn0 = cn0_filter_update(&e->filter, &pp->filter_params, e->cn0_raw_dbhz);
+
+  if (e->cn0_raw_dbhz < THRESH_SENS_DBHZ) {
+    if (e->weak_signal_ms < SECS_MS) { /* to avoid wrapping to 0 */
+      e->weak_signal_ms += int_ms;
+    }
+  } else {
+    e->weak_signal_ms = 0;
+  }
 
   return cn0;
 }
