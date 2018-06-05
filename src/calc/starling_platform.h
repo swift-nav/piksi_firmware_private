@@ -52,6 +52,8 @@
  * If a function returns successfully, it should return
  * STARLING_PAL_OK. When unsuccessful, functions are permitted
  * to return any other value with implementation-specific meaning.
+ *
+ * Functions which cannot possibly fail do not use this return type.
  */
 typedef int pal_rc_t;
 
@@ -69,6 +71,9 @@ void pal_handle_error(pal_rc_t code);
  * work until it has had a chance to initialize its internal 
  * data structures.
  *
+ * Any return value besides STARLING_PAL_OK will be treated as a critical
+ * system failure.
+ 
  * STARTUP_ONLY
  */
 pal_rc_t pal_init(void);
@@ -78,7 +83,7 @@ pal_rc_t pal_init(void);
  *****************************************************************************/
 
 // Maximum number of threads requested by the Starling engine.
-#define STARLING_MAX_NUM_THREADS  0x2
+#define STARLING_MAX_NUM_THREADS  2
 // Maximum thread stack size requirement (in bytes) of Starling threads.
 #define STARLING_MAX_THREAD_STACK 0x1000
 
@@ -97,6 +102,9 @@ typedef struct pal_thread_task_t {
  * priority in the OS, as long as the relative prioritization among
  * Starling threads is preserved. Lower value indicates higher priority.
  *
+ * Any return value besides STARLING_PAL_OK will be treated as a critical
+ * system failure.
+ *
  * STARTUP_ONLY
  */
 pal_rc_t pal_thread_run_tasks(const pal_thread_task_t *tasks[STARLING_MAX_NUM_THREADS]); 
@@ -105,23 +113,56 @@ pal_rc_t pal_thread_run_tasks(const pal_thread_task_t *tasks[STARLING_MAX_NUM_TH
  * MAILBOX
  *****************************************************************************/
 
+/**
+ * Mailboxes are identified and accessed by index only. This decision
+ * was made so that the "finite-ness" of the mailboxes is encoded in
+ * the API. Obviously, it is an error to index a mailbox which doesn't exist.
+ */
+
 // Maximum number of mailboxes requested by the Starling engine.
-#define STARLING_MAX_NUM_MAILBOXES 0x10
-// Maximum number of entries that queues must support.
-#define STARLING_MAX_MAILBOX_CAPACITY 0x4
+#define STARLING_MAX_NUM_MAILBOXES 16
+// Maximum number of entries that mailboxes must support.
+#define STARLING_MAX_MAILBOX_CAPACITY 4
 
 /**
- * Used to identify queues. Valid values are in the range
- * [0, STARLING_MAX_NUM_QUEUES].
+ * Used to identify mailboxes. Valid values are in the range
+ * [0, STARLING_MAX_NUM_MAILBOXES].
  */
 typedef uint32_t mailbox_id_t;
 
-// STARTUP_ONLY
+/**
+ * Initialize the id'th mailbox. This function will only be called
+ * once per mailbox at startup.
+ *
+ * STARTUP_ONLY
+ */
 pal_rc_t pal_mailbox_init(mailbox_id_t id, const size_t capacity);
 
+/**
+ * Post a message to the mailbox. This may fail if the mailbox
+ * is full.
+ */
 pal_rc_t pal_mailbox_post(mailbox_id_t id, const void *p);
 
-pal_rc_t pal_mailbox_fetch(mailbox_id_t id, void **p, uint32_t timeout_ms);
+/**
+ * Try and perform a non-blocking fetch operation on the mailbox.
+ * This function should return immediately. If the mailbox is empty
+ * or some other error occurs, a platform-specific error code
+ * is returned.
+ */
+pal_rc_t pal_mailbox_fetch_immediate(mailbox_id_t id, void **p);
+
+/**
+ * Try and perform a blocking fetch operation on the mailbox.
+ * This function should block for some platform dependent amount
+ * of time. By calling this function instead of the immediate variant,
+ * the Starling library is indicating that a thread should pend on something
+ * arriving in this mailbox. It is up to the platform implementation to
+ * do something sensible (block, sleep, etc.). Return code is the same
+ * as the immediate variant, although the platform may also return a
+ * timeout error code.
+ */
+pal_rc_t pal_mailbox_fetch_timeout(mailbox_id_t id, void **p);
 
 /******************************************************************************
  * ALLOCATOR

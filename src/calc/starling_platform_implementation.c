@@ -71,8 +71,15 @@ pal_rc_t pal_thread_run_tasks(const pal_thread_task_t *tasks[STARLING_MAX_NUM_TH
 }
 
 /******************************************************************************
- * QUEUE 
+ * MAILBOX
  *****************************************************************************/
+
+/**
+ * Timeout fetch operations on mailboxes will return after
+ * a certain number of milliseconds if nothing is there in
+ * this implementation.
+ */
+#define STARLING_PLATFORM_MAILBOX_TIMEOUT 5000
 
 /**
  * A fundamental assumption of this implementation is that a pointer 
@@ -100,6 +107,21 @@ static bool is_valid_mailbox_id(mailbox_id_t id) {
 static mailbox_object_t *get_mailbox_for_id(mailbox_id_t id) {
   return &mailbox_objects[id];
 }
+
+/**
+ */
+static pal_rc_t mailbox_fetch(mailbox_id_t id, void **p, uint32_t timeout_ms) {
+  assert(is_valid_mailbox_id(id));
+  assert(p);
+  mailbox_object_t *mb = get_mailbox_for_id(id);
+  msg_t result = chMBFetch(&mb->chibios_mailbox, (msg_t*)p, (systime_t)timeout_ms);
+  if (MSG_OK != result) {
+    *p = NULL;
+    return -1;
+  }
+  return STARLING_PAL_OK;
+}
+
 
 /**
  */
@@ -137,19 +159,14 @@ pal_rc_t pal_mailbox_post(mailbox_id_t id, const void *p) {
   return STARLING_PAL_OK;
 }
 
-/**
- */
-pal_rc_t pal_mailbox_try_fetch(mailbox_id_t id, void **p, uint32_t timeout_ms) {
-  assert(is_valid_mailbox_id(id));
-  assert(p);
-  mailbox_object_t *mb = get_mailbox_for_id(id);
-  msg_t result = chMBFetch(&mb->chibios_mailbox, (msg_t*)p, (systime_t)timeout_ms);
-  if (MSG_OK != result) {
-    *p = NULL;
-    return -1;
-  }
-  return STARLING_PAL_OK;
+pal_rc_t pal_mailbox_fetch_immediate(mailbox_id_t id, void **p) {
+  return mailbox_fetch(id, p, TIME_IMMEDIATE);
 }
+
+pal_rc_t pal_mailbox_fetch_timeout(mailbox_id_t id, void **p) {
+  return mailbox_fetch(id, p, STARLING_PLATFORM_MAILBOX_TIMEOUT);
+}
+
 
 /******************************************************************************
  * ALLOCATOR
