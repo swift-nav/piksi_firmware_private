@@ -47,6 +47,7 @@ matrix:
       env: C_COMPILER=gcc-5 CXX_COMPILER=g++-5
 
 before_install:
+  - ./scripts/ci/check_for_s3_cred.sh || travis_terminate 1
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install gcc5 --enable-cxx; fi
   - pip install --user --upgrade awscli
@@ -70,12 +71,12 @@ script:
   - ./travis.sh
 
 after_success:
-  - ./travis_pr_describe.sh
-  - ./publish.sh requirements.yaml
-  - PRODUCT_VERSION=v3 ./publish.sh build_v3_prod/piksi_firmware_v3_prod*.elf
+  - ./travis_pr_describe.sh || travis_terminate 1
+  - ./publish.sh requirements.yaml || travis_terminate 1
+  - PRODUCT_VERSION=v3 ./publish.sh build_v3_prod/piksi_firmware_v3_prod*.elf || travis_terminate 1
   # These tokens are in plaintext so Swift developers can make PR's from their
   # personal forks. We may want to revisit this at some point.
-  - GITHUB_COMMENT_TOKEN=29ff16b8acbf635fad0c702d3189c04a997b9719 SLACK_CHANNEL=github ./comment.sh
+  - GITHUB_COMMENT_TOKEN=29ff16b8acbf635fad0c702d3189c04a997b9719 SLACK_CHANNEL=github ./comment.sh || travis_terminate 1
   - HITL_API_GITHUB_TOKEN=d70b53ef8e8e0966818c473c56c02bf45b17290b GITHUB_COMMENT_TOKEN=29ff16b8acbf635fad0c702d3189c04a997b9719 ./hitl_smoke_test.sh
 
 env:
