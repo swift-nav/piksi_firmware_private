@@ -38,6 +38,9 @@
  * marked with a STARTUP_ONLY comment.
  */
 
+#include <stdint.h>
+#include <stddef.h>
+
 /******************************************************************************
  * GENERAL 
  *****************************************************************************/
@@ -75,14 +78,14 @@ pal_rc_t pal_init(void);
  *****************************************************************************/
 
 // Maximum number of threads requested by the Starling engine.
-#define STARLING_MAX_NUM_THREADS  0x2u
+#define STARLING_MAX_NUM_THREADS  0x2
 // Maximum thread stack size requirement (in bytes) of Starling threads.
-#define STARLING_MAX_THREAD_STACK 0x1000u
+#define STARLING_MAX_THREAD_STACK 0x1000
 
 /**
  * Task info accepted by the platform thread launcher.
  */
-typedef pal_thread_task_t {
+typedef struct pal_thread_task_t {
   unsigned int priority;
   void (*fn)(void *);
   void *context;
@@ -103,9 +106,9 @@ pal_rc_t pal_thread_run_tasks(const pal_thread_task_t *tasks[STARLING_MAX_NUM_TH
  *****************************************************************************/
 
 // Maximum number of mailboxes requested by the Starling engine.
-#define STARLING_MAX_NUM_MAILBOXES 0x10u
+#define STARLING_MAX_NUM_MAILBOXES 0x10
 // Maximum number of entries that queues must support.
-#define STARLING_MAX_MAILBOX_CAPACITY 0x4u
+#define STARLING_MAX_MAILBOX_CAPACITY 0x4
 
 /**
  * Used to identify queues. Valid values are in the range
@@ -114,11 +117,11 @@ pal_rc_t pal_thread_run_tasks(const pal_thread_task_t *tasks[STARLING_MAX_NUM_TH
 typedef uint32_t mailbox_id_t;
 
 // STARTUP_ONLY
-pal_rc_t pal_mailbox_init(mailbox_id_t, const size_t capacity);
+pal_rc_t pal_mailbox_init(mailbox_id_t id, const size_t capacity);
 
-pal_rc_t pal_mailbox_post(mailbox_id_t, const void *p);
+pal_rc_t pal_mailbox_post(mailbox_id_t id, const void *p);
 
-pal_rc_t pal_mailbox_fetch(mailbox_id_t, void **p, uint32_t timeout_ms);
+pal_rc_t pal_mailbox_fetch(mailbox_id_t id, void **p, uint32_t timeout_ms);
 
 /******************************************************************************
  * ALLOCATOR

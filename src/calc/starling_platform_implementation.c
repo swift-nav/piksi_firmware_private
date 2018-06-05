@@ -13,7 +13,10 @@
 #include "starling_platform.h"
 
 #include <libswiftnav/logging.h>
+
+#include <assert.h>
 #include <ch.h>
+#include <inttypes.h>
 
 /******************************************************************************
  * GENERAL
@@ -34,7 +37,7 @@ void pal_handle_error(pal_rc_t code) {
   * error into the actual return codes so that the handle error
   * function can reconstruct the information.
   */
-  log_error("Error in Starling PAL implementation: " PRIi32, (int32_t)code);
+  log_error("Error in Starling PAL implementation.");
 }
 
 /**
@@ -48,6 +51,8 @@ pal_rc_t pal_init(void) {
   }
 
   is_platform_initialized = true;
+
+  return STARLING_PAL_OK;
 }
 
 /******************************************************************************
@@ -57,11 +62,12 @@ pal_rc_t pal_init(void) {
 /**
  * For Piksi Multi, we support a maximum of two auxiliary threads.
  */
-static_assert(STARLING_MAX_NUM_THREADS <= 2);
+_Static_assert(STARLING_MAX_NUM_THREADS <= 2, 
+               "Piksi Multi only has support for 2 Starling threads.");
 
-
-pal_rc_t pal_thread_run_tasks(pal_thread_task_t tasks[STARLING_MAX_NUM_THREADS]) {
-
+pal_rc_t pal_thread_run_tasks(const pal_thread_task_t *tasks[STARLING_MAX_NUM_THREADS]) {
+  (void)tasks;
+  return -1;
 }
 
 /******************************************************************************
@@ -72,21 +78,22 @@ pal_rc_t pal_thread_run_tasks(pal_thread_task_t tasks[STARLING_MAX_NUM_THREADS])
  * A fundamental assumption of this implementation is that a pointer 
  * is exactly the size of a ChibiOS mailbox message.
  */
-static_assert(sizeof(msg_t) == sizeof(void*));
+_Static_assert(sizeof(msg_t) == sizeof(void*),
+               "Mailbox message type insufficient for pointer passing.");
 
 /* Everything needed to represent the state of a platform mailbox. */
-struct mailbox_object_t {
+typedef struct mailbox_object_t {
   bool      is_initialized;
   mailbox_t chibios_mailbox;
   msg_t     chibios_msg_buffer[STARLING_MAX_MAILBOX_CAPACITY];
-};
+} mailbox_object_t;
 
 /* Collection of mailbox state objects used in this implementation. */
 static mailbox_object_t mailbox_objects[STARLING_MAX_NUM_MAILBOXES];
 
 /* Helper function to check that a mailbox id is in range. */
 static bool is_valid_mailbox_id(mailbox_id_t id) {
-  return mbid < STARLING_MAX_NUM_MAILBOXES;
+  return (id < STARLING_MAX_NUM_MAILBOXES);
 }
 
 /* Helper function for getting the mailbox pointer from an id. */
@@ -102,7 +109,7 @@ pal_rc_t pal_mailbox_init(mailbox_id_t id, const size_t capacity) {
   mailbox_object_t *mb = get_mailbox_for_id(id);
 
   /* Error to request capacity larger than max value. */
-  if (STARLING_MAX_QUEUE_CAPACITY < capacity) {
+  if (STARLING_MAX_MAILBOX_CAPACITY < capacity) {
     return -1;
   }
 
@@ -111,7 +118,7 @@ pal_rc_t pal_mailbox_init(mailbox_id_t id, const size_t capacity) {
     return -1;
   }
 
-  chMBObjectInit(&mb->chibios_mailbox, &chibios_msg_buffer, capacity);
+  chMBObjectInit(&mb->chibios_mailbox, mb->chibios_msg_buffer, capacity);
   mb->is_initialized = true;
 
   return STARLING_PAL_OK;
@@ -122,8 +129,8 @@ pal_rc_t pal_mailbox_init(mailbox_id_t id, const size_t capacity) {
 pal_rc_t pal_mailbox_post(mailbox_id_t id, const void *p) {
   assert(is_valid_mailbox_id(id));
   mailbox_object_t *mb = get_mailbox_for_id(id);
-  msg_t = chMBPost(mb, (msg_t)p, TIME_IMMEDIATE);
-  if (MSG_OK != msg_t) {
+  msg_t result = chMBPost(&mb->chibios_mailbox, (msg_t)p, TIME_IMMEDIATE);
+  if (MSG_OK != result) {
     // TODO(kevin) report errors.
     return -1;
   }
@@ -132,12 +139,12 @@ pal_rc_t pal_mailbox_post(mailbox_id_t id, const void *p) {
 
 /**
  */
-pal_rc_t pal_mailbox_fetch(mailbox_id_t id, void **p, uint32_t timeout_ms) {
+pal_rc_t pal_mailbox_try_fetch(mailbox_id_t id, void **p, uint32_t timeout_ms) {
   assert(is_valid_mailbox_id(id));
   assert(p);
   mailbox_object_t *mb = get_mailbox_for_id(id);
-  msg_t = chMBFetch(mb, (msg_t*)p, (systime_t)timeout_ms);
-  if (MSG_OK != msg_t) {
+  msg_t result = chMBFetch(&mb->chibios_mailbox, (msg_t*)p, (systime_t)timeout_ms);
+  if (MSG_OK != result) {
     *p = NULL;
     return -1;
   }
@@ -150,14 +157,19 @@ pal_rc_t pal_mailbox_fetch(mailbox_id_t id, void **p, uint32_t timeout_ms) {
 
 // STARTUP_ONLY
 pal_rc_t pal_allocator_register(const size_t block_size, const size_t n_blocks) {
+  (void)block_size;
+  (void)n_blocks;
   return -1;
 }
 
 pal_rc_t pal_allocator_alloc(const size_t block_size, void **p) {
+  (void)block_size;
+  (void)p;
   return -1;
 }
 
 pal_rc_t pal_allocator_free(void *p) {
+  (void)p;
   return -1;
 }
 
