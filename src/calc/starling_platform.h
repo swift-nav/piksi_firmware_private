@@ -23,7 +23,7 @@
  *
  * The Starling Engine manages a handful of threads over which it spreads the
  * GNSS estimation workload. Interface with and between these threads is handled
- * by message passing over queues. In order to allow efficient platform-specific
+ * by message passing over mailboxes. In order to allow efficient platform-specific
  * implementation of these primitives, they are abstracted in this layer.
  *
  * PAL implementers should make the following assumptions:
@@ -75,49 +75,59 @@ pal_rc_t pal_init(void);
  *****************************************************************************/
 
 // Maximum number of threads requested by the Starling engine.
-#define STARLING_MAX_NUM_THREADS  0x2
+#define STARLING_MAX_NUM_THREADS  0x2u
 // Maximum thread stack size requirement (in bytes) of Starling threads.
-#define STARLING_MAX_THREAD_STACK 0x1000
+#define STARLING_MAX_THREAD_STACK 0x1000u
 
 /**
- * Run a function on a separate thread with given priority and 
- * user context. The implementation may adjust the actual thread 
+ * Task info accepted by the platform thread launcher.
+ */
+typedef pal_thread_task_t {
+  unsigned int priority;
+  void (*fn)(void *);
+  void *context;
+} pal_thread_task_t;
+
+/**
+ * Give the platform implementation a set of tasks to run individually
+ * on separate threads. The implementation may adjust the actual thread 
  * priority in the OS, as long as the relative prioritization among
  * Starling threads is preserved. Lower value indicates higher priority.
  *
  * STARTUP_ONLY
  */
-pal_rc_t pal_thread_run(unsigned int priority,
-                        void (*fn)(void *), 
-                        void *context);
+pal_rc_t pal_thread_run_tasks(const pal_thread_task_t *tasks[STARLING_MAX_NUM_THREADS]); 
 
 /******************************************************************************
- * QUEUE 
+ * MAILBOX
  *****************************************************************************/
 
-// Maximum number of queues requested by the Starling engine.
-#define STARLING_MAX_NUM_QUEUES 0x10
+// Maximum number of mailboxes requested by the Starling engine.
+#define STARLING_MAX_NUM_MAILBOXES 0x10u
 // Maximum number of entries that queues must support.
-#define STARLING_MAX_QUEUE_CAPACITY 0x4
+#define STARLING_MAX_MAILBOX_CAPACITY 0x4u
 
-void *pal_queue_create(const size_t capacity);
+/**
+ * Used to identify queues. Valid values are in the range
+ * [0, STARLING_MAX_NUM_QUEUES].
+ */
+typedef uint32_t mailbox_id_t;
 
-pal_rc_t pal_queue_push_back(void *q, const void *p);
+// STARTUP_ONLY
+pal_rc_t pal_mailbox_init(mailbox_id_t, const size_t capacity);
 
-pal_rc_t pal_queue_pop_front(void *q, void **p);
+pal_rc_t pal_mailbox_post(mailbox_id_t, const void *p);
 
-void pal_queue_destroy(void *q);
+pal_rc_t pal_mailbox_fetch(mailbox_id_t, void **p, uint32_t timeout_ms);
 
 /******************************************************************************
  * ALLOCATOR
  *****************************************************************************/
 
 // STARTUP_ONLY
-pal_rc_t pal_allocator_register(const size_t block_size, 
-                                const size_t n_blocks);
+pal_rc_t pal_allocator_register(const size_t block_size, const size_t n_blocks);
 
-pal_rc_t pal_allocator_alloc(const size_t block_size,
-                             void **p);
+pal_rc_t pal_allocator_alloc(const size_t block_size, void **p);
 
 pal_rc_t pal_allocator_free(void *p);
 
