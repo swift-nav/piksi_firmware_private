@@ -67,6 +67,8 @@ typedef struct {
   u32 ver : 8;                 /**< Configuration version */
   cn0_est_basic_state_t basic; /**< Basic estimator for Very Early tap in use */
 
+  float cn0_raw_dbhz; /**< Last unfiltered CN0 estimation [dB-Hz] */
+
   /* Other supported estimators for testing:
    * cn0_est_ch_state_t   ch;
    * cn0_est_nwpr_state_t nwpr;
