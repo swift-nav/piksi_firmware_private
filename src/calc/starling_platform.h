@@ -89,11 +89,25 @@ pal_rc_t pal_init(void);
 #define STARLING_MAX_THREAD_STACK 0x600000
 
 /**
+ * The Starling engine requires a specific set of supported thread
+ * priorities. It is up to the implementation to meet these needs in a
+ * sensible way.
+ */
+enum {
+  /* Tasks at this priority should be serviced as close to realtime as possible.
+   */
+  STARLING_PAL_PRIORITY_REALTIME,
+  /* Tasks at this priority have no real timing constraints. */
+  STARLING_PAL_PRIORITY_BACKGROUND,
+};
+typedef uint8_t pal_priority_t;
+
+/**
  * Task info accepted by the platform thread launcher.
  */
 typedef struct pal_thread_task_t {
   const char *name;
-  unsigned int priority;
+  pal_priority_t priority;
   void (*fn)(void *);
   void *context;
 } pal_thread_task_t;

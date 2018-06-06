@@ -61,6 +61,8 @@ pal_rc_t pal_init(void) {
 
 #define PIKSI_MULTI_NUM_STARLING_THREADS 2
 #define PIKSI_MULTI_STARLING_THREAD_WORKING_AREA_SIZE 0x600000
+#define PIKSI_MULTI_STARLING_THREAD_PRIO_REALTIME (HIGHPRIO - 4)
+#define PIKSI_MULTI_STARLING_THREAD_PRIO_BACKGROUND (NORMALPRIO - 3)
 
 #define PIKSI_MULTI_PAL_THREAD_RUN_FAILURE -1
 
@@ -85,6 +87,38 @@ static THD_WORKING_AREA(wa_thread_2,
 static void *const working_areas[] = {wa_thread_1, wa_thread_2};
 
 /**
+ * Helper function to validate that a task has acceptable
+ * values. Assumes a non-null task.
+ */
+static bool is_task_valid(pal_thread_task_t *task) {
+  /* Priority must have a valid value. */
+  if (STARLING_PAL_PRIORITY_REALTIME != task->priority &&
+      STARLING_PAL_PRIORITY_BACKGROUND != task->priority) {
+    return false;
+  }
+  /* Task function must exist. */
+  if (NULL == task->fn) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Helper function to convert the PAL API thread priority level
+ * to a meaningful OS priority level.
+ */
+static tprio_t convert_priority(pal_priority_t priority) {
+  switch (priority) {
+    case STARLING_PAL_PRIORITY_REALTIME:
+      return PIKSI_MULTI_STARLING_THREAD_PRIO_REALTIME;
+    case STARLING_PAL_PRIORITY_BACKGROUND:
+      return PIKSI_MULTI_STARLING_THREAD_PRIO_BACKGROUND;
+    default:
+      return PIKSI_MULTI_STARLING_THREAD_PRIO_BACKGROUND;
+  }
+}
+
+/**
  * Thread wrapper function which applies the thread name before invoking
  * the user function.
  */
@@ -107,12 +141,16 @@ pal_rc_t pal_thread_run_tasks(
   for (int i = 0; i < PIKSI_MULTI_NUM_STARLING_THREADS; ++i) {
     pal_thread_task_t *const task = tasks[i];
     if (task) {
-      thread_t *thread =
-          chThdCreateStatic(working_areas[i],
-                            PIKSI_MULTI_STARLING_THREAD_WORKING_AREA_SIZE,
-                            task->priority,
-                            apply_name_and_run_task,
-                            task);
+      thread_t *thread = NULL;
+      if (is_task_valid(task)) {
+        /* Convert to appropriate priority and dispatch. */
+        thread =
+            chThdCreateStatic(working_areas[i],
+                              PIKSI_MULTI_STARLING_THREAD_WORKING_AREA_SIZE,
+                              convert_priority(task->priority),
+                              apply_name_and_run_task,
+                              task);
+      }
       /* Stop early if something went wrong. */
       if (!thread) {
         return PIKSI_MULTI_PAL_THREAD_RUN_FAILURE;
