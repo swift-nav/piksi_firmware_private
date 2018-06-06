@@ -618,7 +618,7 @@ static void starling_thread(void *arg) {
   platform_mutex_unlock(&spp_filter_manager_lock);
 
   while (TRUE) {
-    platform_watchdog_notify_starling_main_thread();
+    pal_watchdog_kick();
 
     process_any_sbas_messages();
 
@@ -810,8 +810,7 @@ void starling_run(void) {
   };
 
   pal_thread_task_t *const tasks[STARLING_MAX_NUM_THREADS] = {
-      &low_latency_task,
-      &time_matched_task,
+      &low_latency_task, &time_matched_task,
   };
 
   pal_run_thread_tasks(tasks);
