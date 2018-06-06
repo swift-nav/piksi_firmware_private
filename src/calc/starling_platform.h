@@ -17,14 +17,15 @@
  * Starling Platform Abstraction Layer
  * ===================================
  * The Platform Abstraction Layer (PAL) serves to provide the Starling Engine
- * with everything it needs to run on a given software platform. Apart from these
- * platform specific "primitives", the Starling Engine is designed to be 
+ * with everything it needs to run on a given software platform. Apart from
+ * these platform specific "primitives", the Starling Engine is designed to be
  * completely portable.
  *
  * The Starling Engine manages a handful of threads over which it spreads the
  * GNSS estimation workload. Interface with and between these threads is handled
- * by message passing over mailboxes. In order to allow efficient platform-specific
- * implementation of these primitives, they are abstracted in this layer.
+ * by message passing over mailboxes. In order to allow efficient
+ * platform-specific implementation of these primitives, they are abstracted in
+ * this layer.
  *
  * PAL implementers should make the following assumptions:
  *
@@ -38,16 +39,16 @@
  * marked with a STARTUP_ONLY comment.
  */
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 /******************************************************************************
- * GENERAL 
+ * GENERAL
  *****************************************************************************/
 
-#define STARLING_PAL_OK  0x0
+#define STARLING_PAL_OK 0x0
 
-/** 
+/**
  * Generic return type used by many functions in the API.
  * If a function returns successfully, it should return
  * STARLING_PAL_OK. When unsuccessful, functions are permitted
@@ -57,23 +58,23 @@
  */
 typedef int pal_rc_t;
 
-/** 
+/**
  * Handle an implementation-specific error. The Starling Engine
  * may invoke this function on any return code which is not
  * STARLING_PAL_OK.
  */
 void pal_handle_error(pal_rc_t code);
 
-/* 
+/*
  * Initialize the PAL. No primitive-related functions will be called
- * until after the PAL has been successfully initialized. On a 
+ * until after the PAL has been successfully initialized. On a
  * side-note, it is likely that much of the Starling API will not
- * work until it has had a chance to initialize its internal 
+ * work until it has had a chance to initialize its internal
  * data structures.
  *
  * Any return value besides STARLING_PAL_OK will be treated as a critical
  * system failure.
- 
+
  * STARTUP_ONLY
  */
 pal_rc_t pal_init(void);
@@ -83,7 +84,7 @@ pal_rc_t pal_init(void);
  *****************************************************************************/
 
 // Maximum number of threads requested by the Starling engine.
-#define STARLING_MAX_NUM_THREADS  2
+#define STARLING_MAX_NUM_THREADS 2
 // Maximum thread stack size requirement (in bytes) of Starling threads.
 #define STARLING_MAX_THREAD_STACK 0x1000
 
@@ -98,7 +99,7 @@ typedef struct pal_thread_task_t {
 
 /**
  * Give the platform implementation a set of tasks to run individually
- * on separate threads. The implementation may adjust the actual thread 
+ * on separate threads. The implementation may adjust the actual thread
  * priority in the OS, as long as the relative prioritization among
  * Starling threads is preserved. Lower value indicates higher priority.
  *
@@ -107,7 +108,8 @@ typedef struct pal_thread_task_t {
  *
  * STARTUP_ONLY
  */
-pal_rc_t pal_thread_run_tasks(const pal_thread_task_t *tasks[STARLING_MAX_NUM_THREADS]); 
+pal_rc_t pal_thread_run_tasks(
+    const pal_thread_task_t *tasks[STARLING_MAX_NUM_THREADS]);
 
 /******************************************************************************
  * MAILBOX
