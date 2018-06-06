@@ -10,7 +10,7 @@
   become_method: sudo
 
 - name: Install base Ubuntu packages
-  apt: pkg={{ item }} state=installed update_cache=yes
+  apt: pkg={{ item }} state=present update_cache=yes
   with_items:
     - git
     - build-essential
