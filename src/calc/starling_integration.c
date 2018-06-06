@@ -765,7 +765,6 @@ static void initialize_starling_settings(void) {
 }
 
 static void initialize_and_run_starling(void) {
-
   initialize_starling_settings();
 
   /* Set time of last differential solution in the past. */
@@ -898,19 +897,19 @@ void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
 
 /* Short lived thread used to setup the Starling engine off of the
  * main thread. */
-#define STARLING_STARTUP_WA_SIZE 1024 
+#define STARLING_STARTUP_WA_SIZE 1024
 static THD_WORKING_AREA(starling_startup_wa, STARLING_STARTUP_WA_SIZE);
 static THD_FUNCTION(starling_startup, arg) {
   (void)arg;
   pal_init();
-  initialize_and_run_starling(); 
+  initialize_and_run_starling();
 }
 
 void starling_calc_pvt_setup() {
   /* Start main starling thread. */
   chThdCreateStatic(starling_startup_wa,
                     sizeof(starling_startup_wa),
-                    NORMALPRIO, 
+                    NORMALPRIO,
                     starling_startup,
                     NULL);
 }

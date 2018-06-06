@@ -795,23 +795,23 @@ static void starling_thread(void *arg) {
 }
 
 /* Run the starling engine on the current thread. Blocks indefinitely. */
-void starling_run(void) { 
+void starling_run(void) {
   static pal_thread_task_t low_latency_task = {
-    .name = "starling low-latency",
-    .priority = STARLING_PAL_PRIORITY_REALTIME,
-    .fn = &starling_thread,
-    .context = NULL,
+      .name = "starling low-latency",
+      .priority = STARLING_PAL_PRIORITY_REALTIME,
+      .fn = &starling_thread,
+      .context = NULL,
   };
   static pal_thread_task_t time_matched_task = {
-    .name = "starling time-matched",
-    .priority = STARLING_PAL_PRIORITY_BACKGROUND,
-    .fn = &time_matched_obs_thread,
-    .context = NULL,
+      .name = "starling time-matched",
+      .priority = STARLING_PAL_PRIORITY_BACKGROUND,
+      .fn = &time_matched_obs_thread,
+      .context = NULL,
   };
 
-  pal_thread_task_t * const tasks[STARLING_MAX_NUM_THREADS] = {
-    &low_latency_task,
-    &time_matched_task,
+  pal_thread_task_t *const tasks[STARLING_MAX_NUM_THREADS] = {
+      &low_latency_task,
+      &time_matched_task,
   };
 
   pal_run_thread_tasks(tasks);

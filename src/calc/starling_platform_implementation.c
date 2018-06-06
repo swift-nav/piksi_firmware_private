@@ -25,9 +25,7 @@
  *****************************************************************************/
 static bool is_platform_initialized = false;
 
-void pal_watchdog_kick(void) {
-  watchdog_notify(WD_NOTIFY_STARLING);
-}
+void pal_watchdog_kick(void) { watchdog_notify(WD_NOTIFY_STARLING); }
 
 /**
  * Figure out which subsystem of the PAL this error came from and

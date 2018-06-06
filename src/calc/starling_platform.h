@@ -66,7 +66,6 @@ typedef int pal_rc_t;
  */
 void pal_watchdog_kick(void);
 
-
 /**
  * Handle an implementation-specific error. The Starling Engine
  * may invoke this function on any return code which is not
