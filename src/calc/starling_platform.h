@@ -83,15 +83,16 @@ pal_rc_t pal_init(void);
  * THREAD
  *****************************************************************************/
 
-// Maximum number of threads requested by the Starling engine.
+/* Maximum number of threads requested by the Starling engine. */
 #define STARLING_MAX_NUM_THREADS 2
-// Maximum thread stack size requirement (in bytes) of Starling threads.
-#define STARLING_MAX_THREAD_STACK 0x1000
+/* Maximum thread stack size requirement (in bytes) of Starling threads. */
+#define STARLING_MAX_THREAD_STACK 0x600000
 
 /**
  * Task info accepted by the platform thread launcher.
  */
 typedef struct pal_thread_task_t {
+  const char *name;
   unsigned int priority;
   void (*fn)(void *);
   void *context;
@@ -102,6 +103,8 @@ typedef struct pal_thread_task_t {
  * on separate threads. The implementation may adjust the actual thread
  * priority in the OS, as long as the relative prioritization among
  * Starling threads is preserved. Lower value indicates higher priority.
+ * Elements of the task array should either point to a valid task struct,
+ * or be NULL.
  *
  * Any return value besides STARLING_PAL_OK will be treated as a critical
  * system failure.
@@ -109,7 +112,7 @@ typedef struct pal_thread_task_t {
  * STARTUP_ONLY
  */
 pal_rc_t pal_thread_run_tasks(
-    const pal_thread_task_t *tasks[STARLING_MAX_NUM_THREADS]);
+    pal_thread_task_t *const tasks[STARLING_MAX_NUM_THREADS]);
 
 /******************************************************************************
  * MAILBOX

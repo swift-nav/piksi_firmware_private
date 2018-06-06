@@ -59,16 +59,67 @@ pal_rc_t pal_init(void) {
  * THREAD
  *****************************************************************************/
 
+#define PIKSI_MULTI_NUM_STARLING_THREADS 2
+#define PIKSI_MULTI_STARLING_THREAD_WORKING_AREA_SIZE 0x600000
+
+#define PIKSI_MULTI_PAL_THREAD_RUN_FAILURE -1
+
 /**
  * For Piksi Multi, we support a maximum of two auxiliary threads.
  */
-_Static_assert(STARLING_MAX_NUM_THREADS <= 2,
+_Static_assert(PIKSI_MULTI_NUM_STARLING_THREADS >= STARLING_MAX_NUM_THREADS,
                "Piksi Multi only has support for 2 Starling threads.");
 
+/**
+ * Ensure that the allocated thread stacks are large enough.
+ */
+_Static_assert(PIKSI_MULTI_STARLING_THREAD_WORKING_AREA_SIZE >=
+                   STARLING_MAX_THREAD_STACK,
+               "Piksi Multi thread stack is too small for Starling.");
+
+static THD_WORKING_AREA(wa_thread_1,
+                        PIKSI_MULTI_STARLING_THREAD_WORKING_AREA_SIZE);
+static THD_WORKING_AREA(wa_thread_2,
+                        PIKSI_MULTI_STARLING_THREAD_WORKING_AREA_SIZE);
+
+static void *const working_areas[] = {wa_thread_1, wa_thread_2};
+
+/**
+ * Thread wrapper function which applies the thread name before invoking
+ * the user function.
+ */
+static void apply_name_and_run_task(void *context) {
+  const pal_thread_task_t *task = (pal_thread_task_t *)context;
+  if (task->name) {
+    chRegSetThreadName(task->name);
+  } else {
+    chRegSetThreadName("starling anonymous thread");
+  }
+  /* Invoke the user task. */
+  task->fn(task->context);
+}
+
+/**
+ * Iterate through the array of tasks and spawn each on a separate thread.
+ */
 pal_rc_t pal_thread_run_tasks(
-    const pal_thread_task_t *tasks[STARLING_MAX_NUM_THREADS]) {
-  (void)tasks;
-  return -1;
+    pal_thread_task_t *const tasks[STARLING_MAX_NUM_THREADS]) {
+  for (int i = 0; i < PIKSI_MULTI_NUM_STARLING_THREADS; ++i) {
+    pal_thread_task_t *const task = tasks[i];
+    if (task) {
+      thread_t *thread =
+          chThdCreateStatic(working_areas[i],
+                            PIKSI_MULTI_STARLING_THREAD_WORKING_AREA_SIZE,
+                            task->priority,
+                            apply_name_and_run_task,
+                            task);
+      /* Stop early if something went wrong. */
+      if (!thread) {
+        return PIKSI_MULTI_PAL_THREAD_RUN_FAILURE;
+      }
+    }
+  }
+  return STARLING_PAL_OK;
 }
 
 /******************************************************************************
