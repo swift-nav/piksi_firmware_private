@@ -69,7 +69,7 @@ typedef struct {
 
   float cn0_dbhz;     /**< Latest filtered CN0 value [db-hz] */
   float raw_cn0_dbhz; /**< Latest raw CN0 value [db-hz] */
-  u32 no_signal_ms;
+  u32 weak_signal_ms; /**< Signal is below #SENS_THRESH_DBHZ this long [ms] */
 
   /* Other supported estimators for testing:
    * cn0_est_ch_state_t   ch;

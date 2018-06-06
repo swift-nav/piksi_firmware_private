@@ -82,8 +82,6 @@ typedef enum {
 #define DEBUG_PRINT_TIME_INTERVAL_MS (20000)
 #define BW_DYN -1
 
-#define SENS_THRESH_DBHZ 25
-
 /** Describes single tracking profile */
 typedef struct tp_profile_entry {
   struct {
@@ -339,7 +337,7 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
   { { BW_DYN,      BW_DYN,           .5,   TP_CTRL_PLL3,
       TP_TM_20MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS,  TP_TM_20MS_NH20MS,  TP_TM_20MS_SC4 },
       TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
-      40,        SENS_THRESH_DBHZ,   35,
+      40,        THRESH_SENS_DBHZ,   35,
       IDX_20MS,   IDX_SENS,     IDX_10MS,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
 
@@ -785,19 +783,21 @@ bool tp_profile_has_new_profile(tracker_t *tracker) {
   state->profile_update = false;
 
   if (0 != (flags & TP_LOW_CN0)) {
-    if (tracker->cn0_est.no_signal_ms > 0) {
-      if ((state->filt_cn0 > 32) &&
+    if (tracker->cn0_est.weak_signal_ms > 0) {
+      if ((state->filt_cn0 > THRESH_20MS_DBHZ) &&
           profile_switch_requested(tracker, IDX_SENS, "low cn0")) {
         return true;
       }
-      if ((tracker->cn0_est.no_signal_ms >= 35) &&
+      /* 35ms is a result of experimenting.
+         The threshold is needed to avoid spontaneous transitions
+         to sensitivity profile, when signal is reasonably strong */
+      if ((tracker->cn0_est.weak_signal_ms >= 35) &&
           profile_switch_requested(tracker, IDX_SENS, "low cn0")) {
         return true;
       }
     }
-    if ((state->filt_cn0 < SENS_THRESH_DBHZ) &&
+    if ((state->filt_cn0 < THRESH_SENS_DBHZ) &&
         profile_switch_requested(tracker, IDX_SENS, "low cn0")) {
-      /* expedite transition to sensitivity profile */
       return true;
     }
 

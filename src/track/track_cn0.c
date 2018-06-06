@@ -303,7 +303,7 @@ void track_cn0_init(const me_gnss_signal_t mesid,
  * \param[in]     mesid  ME signal identifier for logging.
  * \param[in]     t      Type of estimator value to use/return.
  * \param[in,out] e      Estimator state.
- * \parma[in]     int_ms Integration time [ms]
+ * \param[in]     int_ms Integration time [ms]
  * \param[in]     I      In-phase component.
  * \param[in]     Q      Quadrature component.
  * \param[in]     ve_I   Very early in-phase accumulator
@@ -343,12 +343,12 @@ float track_cn0_update(const me_gnss_signal_t mesid,
   cn0_raw_dbhz = update_estimator(e, &pp->est_params, t, I, Q, ve_I, ve_Q);
   cn0 = cn0_filter_update(&e->filter, &pp->filter_params, cn0_raw_dbhz);
 
-  if (cn0_raw_dbhz < SENS_THRESH_DBHZ) {
-    if (e->no_signal_ms < SECS_MS) {
-      e->no_signal_ms += int_ms;
+  if (cn0_raw_dbhz < THRESH_SENS_DBHZ) {
+    if (e->weak_signal_ms < SECS_MS) {
+      e->weak_signal_ms += int_ms;
     }
   } else {
-    e->no_signal_ms = 0;
+    e->weak_signal_ms = 0;
   }
 
   return cn0;
