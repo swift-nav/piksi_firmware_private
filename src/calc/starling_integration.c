@@ -21,6 +21,7 @@
 #include "calc/calc_pvt_common.h"
 #include "calc/calc_pvt_me.h"
 #include "calc/starling_integration.h"
+#include "calc/starling_platform.h"
 #include "calc/starling_threads.h"
 #include "me_msg/me_msg.h"
 #include "ndb/ndb.h"
@@ -34,9 +35,6 @@
 /*******************************************************************************
  * Constants
  ******************************************************************************/
-#define STARLING_THREAD_PRIORITY (HIGHPRIO - 4)
-#define STARLING_THREAD_STACK (6 * 1024 * 1024)
-
 #define STARLING_BASE_SENDER_ID_DEFAULT 0
 
 /*******************************************************************************
@@ -73,9 +71,6 @@ double heading_offset = 0.0;
 /*******************************************************************************
  * Locals
  ******************************************************************************/
-
-/* Working area for the main starling thread. */
-static THD_WORKING_AREA(wa_starling_thread, STARLING_THREAD_STACK);
 
 static MUTEX_DECL(last_sbp_lock);
 static gps_time_t last_dgnss;
@@ -769,9 +764,7 @@ static void initialize_starling_settings(void) {
                  heading_offset_changed);
 }
 
-static THD_FUNCTION(initialize_and_run_starling, arg) {
-  (void)arg;
-  chRegSetThreadName("starling");
+static void initialize_and_run_starling(void) {
 
   initialize_starling_settings();
 
@@ -903,12 +896,22 @@ void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
  * Starling Integration API
  ******************************************************************************/
 
+/* Short lived thread used to setup the Starling engine off of the
+ * main thread. */
+#define STARLING_STARTUP_WA_SIZE 1024 
+static THD_WORKING_AREA(starling_startup_wa, STARLING_STARTUP_WA_SIZE);
+static THD_FUNCTION(starling_startup, arg) {
+  (void)arg;
+  pal_init();
+  initialize_and_run_starling(); 
+}
+
 void starling_calc_pvt_setup() {
   /* Start main starling thread. */
-  chThdCreateStatic(wa_starling_thread,
-                    sizeof(wa_starling_thread),
-                    STARLING_THREAD_PRIORITY,
-                    initialize_and_run_starling,
+  chThdCreateStatic(starling_startup_wa,
+                    sizeof(starling_startup_wa),
+                    NORMALPRIO, 
+                    starling_startup,
                     NULL);
 }
 

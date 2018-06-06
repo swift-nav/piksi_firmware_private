@@ -134,7 +134,7 @@ typedef struct pal_thread_task_t {
  *
  * STARTUP_ONLY
  */
-pal_rc_t pal_thread_run_tasks(
+pal_rc_t pal_run_thread_tasks(
     pal_thread_task_t *const tasks[STARLING_MAX_NUM_THREADS]);
 
 /******************************************************************************

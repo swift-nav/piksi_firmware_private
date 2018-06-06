@@ -70,6 +70,20 @@ static sbas_raw_data_t sbas_data_buff[SBAS_DATA_N_BUFF];
  * Platform Shim Calls
  ******************************************************************************/
 
+/* TODO(kevin) this is a hack to make sure there isn't a race condition
+ * at startup. Once a better solution is realized, this won't be necessary. 
+ * Note that the semaphore is taken initially, and the low latency thread
+ * will signal once initialization is finished. */
+static BSEMAPHORE_DECL(time_matched_thread_sem, true);
+void platform_time_matched_thread_signal(void) {
+  chBSemSignal(&time_matched_thread_sem);
+}
+
+void platform_time_matched_thread_wait(void) {
+  chBSemWait(&time_matched_thread_sem);
+}
+
+
 void platform_mutex_lock(void *mtx) { chMtxLock((mutex_t *)mtx); }
 
 void platform_mutex_unlock(void *mtx) { chMtxUnlock((mutex_t *)mtx); }

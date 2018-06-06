@@ -413,11 +413,12 @@ bool update_time_matched(gps_time_t *last_update_time,
   return true;
 }
 
-static THD_WORKING_AREA(wa_time_matched_obs_thread,
-                        TIME_MATCHED_OBS_THREAD_STACK);
 static void time_matched_obs_thread(void *arg) {
   (void)arg;
-  platform_thread_set_name("time matched obs");
+
+  /* Before do anything, wait for the main Starling thread
+   * to initialize everything. */
+  platform_time_matched_thread_wait();
 
   obss_t *base_obs;
   static obss_t base_obss_copy;
@@ -595,18 +596,16 @@ static void process_any_sbas_messages(void) {
   }
 }
 
-static void starling_thread(void) {
+static void starling_thread(void *arg) {
+  (void)arg;
   msg_t ret;
 
   /* Initialize all filters, settings, and SBP callbacks. */
   init_filters_and_settings();
 
-  /* Spawn the time_matched thread. */
-  platform_thread_create_static(wa_time_matched_obs_thread,
-                                sizeof(wa_time_matched_obs_thread),
-                                TIME_MATCHED_OBS_THREAD_PRIORITY,
-                                time_matched_obs_thread,
-                                NULL);
+  /* Notify the time-matched thread that everything is initialized and
+   * it may start processing. */
+  platform_time_matched_thread_signal();
 
   static navigation_measurement_t nav_meas[MAX_CHANNELS];
   static ephemeris_t e_meas[MAX_CHANNELS];
@@ -795,22 +794,28 @@ static void starling_thread(void) {
   }
 }
 
-static pal_thread_task_t low_latency_task {
-  .name = "starling low-latency",
-  .priority = STARLING_PAL_PRIORITY_REALTIME,
-  .fn = &starling_thread;
-  .context = NULL;
-};
-
-static pal_thread_task_t time_matched_task {
-  .name = "starling time-matched",
-  .priority = STARLING_PAL_PRIORITY_BACKGROUND,
-  .fn = &time_matched_obs_thread;
-  .context = NULL;
-};
-
 /* Run the starling engine on the current thread. Blocks indefinitely. */
-void starling_run(void) { starling_thread(); }
+void starling_run(void) { 
+  static pal_thread_task_t low_latency_task = {
+    .name = "starling low-latency",
+    .priority = STARLING_PAL_PRIORITY_REALTIME,
+    .fn = &starling_thread,
+    .context = NULL,
+  };
+  static pal_thread_task_t time_matched_task = {
+    .name = "starling time-matched",
+    .priority = STARLING_PAL_PRIORITY_BACKGROUND,
+    .fn = &time_matched_obs_thread,
+    .context = NULL,
+  };
+
+  pal_thread_task_t * const tasks[STARLING_MAX_NUM_THREADS] = {
+    &low_latency_task,
+    &time_matched_task,
+  };
+
+  pal_run_thread_tasks(tasks);
+}
 
 /* Set up all persistent data-structures used by the API. All
  * API calls should be valid after a call to this function. */

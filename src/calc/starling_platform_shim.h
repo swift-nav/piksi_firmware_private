@@ -23,6 +23,10 @@
 #include "calc/starling_threads.h"
 #include "me_msg/me_msg.h"
 
+/*TODO(kevin) this is a hack which should be removed ultimately. */
+void platform_time_matched_thread_signal(void);
+void platform_time_matched_thread_wait(void);
+
 /* Mutex */
 void platform_mutex_lock(void *mtx);
 void platform_mutex_unlock(void *mtx);

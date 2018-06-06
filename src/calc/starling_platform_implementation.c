@@ -142,7 +142,7 @@ static void apply_name_and_run_task(void *context) {
 /**
  * Iterate through the array of tasks and spawn each on a separate thread.
  */
-pal_rc_t pal_thread_run_tasks(
+pal_rc_t pal_run_thread_tasks(
     pal_thread_task_t *const tasks[STARLING_MAX_NUM_THREADS]) {
   for (int i = 0; i < PIKSI_MULTI_NUM_STARLING_THREADS; ++i) {
     pal_thread_task_t *const task = tasks[i];
