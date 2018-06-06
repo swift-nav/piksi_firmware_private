@@ -43,7 +43,10 @@ s8 calc_navigation_measurement(u8 n_channels,
   /* To calculate the pseudorange from the time of transmit we need the local
    * time of reception. */
   if (!gps_time_valid(rec_time)) {
-    log_warn("Invalid gps time wn=%d, tow=%.0f, n_channels = %u", rec_time->wn, rec_time->tow, n_channels);
+    log_warn("Invalid gps time wn=%d, tow=%.0f, n_channels = %u", 
+             rec_time->wn, 
+             rec_time->tow, 
+             n_channels);
     return -1;
   }
 
