@@ -28,6 +28,7 @@
 #include <libswiftnav/single_epoch_solver.h>
 #include <libswiftnav/troposphere.h>
 
+#include "starling_platform.h"
 #include "starling_platform_shim.h"
 #include "starling_threads.h"
 
@@ -793,6 +794,20 @@ static void starling_thread(void) {
         p_spp_solution, p_rtk_solution, &epoch_time, nav_meas, n_ready);
   }
 }
+
+static pal_thread_task_t low_latency_task {
+  .name = "starling low-latency",
+  .priority = STARLING_PAL_PRIORITY_REALTIME,
+  .fn = &starling_thread;
+  .context = NULL;
+};
+
+static pal_thread_task_t time_matched_task {
+  .name = "starling time-matched",
+  .priority = STARLING_PAL_PRIORITY_BACKGROUND,
+  .fn = &time_matched_obs_thread;
+  .context = NULL;
+};
 
 /* Run the starling engine on the current thread. Blocks indefinitely. */
 void starling_run(void) { starling_thread(); }
