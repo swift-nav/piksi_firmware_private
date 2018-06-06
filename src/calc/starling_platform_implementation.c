@@ -12,6 +12,8 @@
 
 #include "starling_platform.h"
 
+#include "system_monitor/system_monitor.h"
+
 #include <libswiftnav/logging.h>
 
 #include <assert.h>
@@ -22,6 +24,10 @@
  * GENERAL
  *****************************************************************************/
 static bool is_platform_initialized = false;
+
+void pal_watchdog_kick(void) {
+  watchdog_notify(WD_NOTIFY_STARLING);
+}
 
 /**
  * Figure out which subsystem of the PAL this error came from and

@@ -59,6 +59,15 @@
 typedef int pal_rc_t;
 
 /**
+ * In order to monitor the health of the Starling engine, the platform
+ * should provide watchdog functionality. The Starling engine will kick the
+ * watchdog every time it completes an operation. It is up to the platform
+ * to monitor in a manner consistent with the way Starling is being used.
+ */
+void pal_watchdog_kick(void);
+
+
+/**
  * Handle an implementation-specific error. The Starling Engine
  * may invoke this function on any return code which is not
  * STARLING_PAL_OK.
