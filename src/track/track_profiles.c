@@ -786,6 +786,9 @@ bool tp_profile_has_new_profile(tracker_t *tracker) {
     if (tracker->cn0_est.weak_signal_ms > 0) {
       if ((state->filt_cn0 > THRESH_20MS_DBHZ) &&
           profile_switch_requested(tracker, IDX_SENS, "low cn0")) {
+        /* filt_cn0 reports a reasonably strong signal, but
+           weak_signal_ms derived from raw CN0 says there is no signal.
+           So we expedite the transition to sensitivity profile. */
         return true;
       }
       /* 35ms is a result of experimenting.

@@ -344,7 +344,7 @@ float track_cn0_update(const me_gnss_signal_t mesid,
   cn0 = cn0_filter_update(&e->filter, &pp->filter_params, cn0_raw_dbhz);
 
   if (cn0_raw_dbhz < THRESH_SENS_DBHZ) {
-    if (e->weak_signal_ms < SECS_MS) {
+    if (e->weak_signal_ms < SECS_MS) { /* to avoid wrapping to 0 */
       e->weak_signal_ms += int_ms;
     }
   } else {
