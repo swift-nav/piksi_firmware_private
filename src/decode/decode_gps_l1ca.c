@@ -515,6 +515,8 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
                   GPS_NOMINAL_RANGE / GPS_C;
           chMtxUnlock(&tracker_channel->mutex);
           gps_time_match_weeks(&t, &dd.ephemeris.toe);
+          log_warn_mesid(channel_info->mesid,
+                         "Setting system time from decoded ephemeris");
           /* Initialize clock with accuracy of 1 ms */
           set_time(nap_timing_count(), &t, 1e-3);
         }

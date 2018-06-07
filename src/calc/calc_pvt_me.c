@@ -522,6 +522,10 @@ static void me_calc_pvt_thread(void *arg) {
       p_e_meas[i] = &e_meas[i];
     }
 
+    if (!gps_time_valid(&current_time)) {
+      log_warn("Invalid gps time in calc_pvt_me");
+    }
+
     /* Create navigation measurements from the channel measurements */
     s8 nm_ret =
         calc_navigation_measurement(n_ready, p_meas, p_nav_meas, &current_time);
