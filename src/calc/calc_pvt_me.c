@@ -522,8 +522,12 @@ static void me_calc_pvt_thread(void *arg) {
       p_e_meas[i] = &e_meas[i];
     }
 
+    /* GPS time is invalid on the first fix, form a coarse estimate from the
+     * first pseudorange measurement */
     if (!gps_time_valid(&current_time)) {
-      log_warn("Invalid gps time in calc_pvt_me");
+      current_time.tow =
+          (double)meas[0].time_of_week_ms / SECS_MS + GPS_NOMINAL_RANGE / GPS_C;
+      gps_time_match_weeks(&current_time, &e_meas[0].toe);
     }
 
     /* Create navigation measurements from the channel measurements */
@@ -671,6 +675,8 @@ static void me_calc_pvt_thread(void *arg) {
                current_fix.clock_drift);
 
       me_send_failed_obs(n_ready, nav_meas, e_meas, &current_time);
+      /* adjust the deadline of the next fix to land on output epoch */
+      piksi_systime_add_us(&next_epoch, round(output_offset * SECS_US));
       continue;
     }
 
@@ -710,7 +716,7 @@ static void me_calc_pvt_thread(void *arg) {
       /* Send the observations. */
       me_send_all(n_ready, nav_meas, e_meas, &output_time);
     } else {
-      log_warn("clock_offset %.9lf greater than OBS_PROPAGATION_LIMIT",
+      log_info("clock_offset %.3f s greater than OBS_PROPAGATION_LIMIT",
                output_offset);
       /* Send the observations, but marked unusable */
       me_send_failed_obs(n_ready, nav_meas, e_meas, &current_time);
