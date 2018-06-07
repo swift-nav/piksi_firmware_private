@@ -35,3 +35,7 @@ systime_t chThdSleepMilliseconds(systime_t time) {
   stubs_now_ms += (u32)time;
   return 1;
 }
+
+void chMtxLock(mutex_t *mp) { (void)mp; }
+
+void chMtxUnlock(mutex_t *mp) { (void)mp; }

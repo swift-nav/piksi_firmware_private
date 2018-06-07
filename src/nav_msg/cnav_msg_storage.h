@@ -17,8 +17,16 @@
 
 #include <libswiftnav/signal.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void cnav_msg_put(const cnav_msg_t *msg);
 bool cnav_msg_get(gnss_signal_t sid, cnav_msg_type_t type, cnav_msg_t *msg);
 void cnav_msg_clear(gnss_signal_t sid);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* LIBSWIFTNAV_CNAV_MSG_STORAGE_H */

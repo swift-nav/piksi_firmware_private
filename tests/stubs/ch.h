@@ -18,6 +18,7 @@
 #define CH_KERNEL_PATCH 3
 
 typedef unsigned int systime_t;
+typedef int mutex_t;
 
 void chSysLock(void);
 void chSysUnlock(void);
@@ -26,7 +27,12 @@ systime_t chThdSleep(systime_t time);
 systime_t chThdSleepS(systime_t time);
 systime_t chThdSleepMilliseconds(systime_t time);
 
+void chMtxLock(mutex_t *mp);
+void chMtxUnlock(mutex_t *mp);
+
 #define TIME_INFINITE (systime_t)(-1)
+
+#define MUTEX_DECL(name) mutex_t name = 0;
 
 #endif /* _CH_H_ */
 
