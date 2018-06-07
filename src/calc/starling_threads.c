@@ -107,7 +107,7 @@ static ionosphere_t time_matched_iono_params;
 
 static gps_time_t last_time_matched_rover_obs_post;
 
-static sbas_system_t current_sbas_system = SBAS_UNKNOWN;
+static sbas_system_t current_sbas_system = SBAS_NONE;
 
 /**
  * Use this to update the settings for the provided filter manager
@@ -555,8 +555,7 @@ static void process_sbas_data(const sbas_raw_data_t *sbas_data) {
   sbas_system_t sbas_system = get_sbas_system(sbas_data->sid);
 
   platform_mutex_lock(&spp_filter_manager_lock);
-  if (sbas_system != current_sbas_system &&
-      SBAS_UNKNOWN != current_sbas_system) {
+  if (sbas_system != current_sbas_system && SBAS_NONE != current_sbas_system) {
     /* clear existing SBAS corrections when provider changes */
     filter_manager_reinitialize_sbas(spp_filter_manager);
   }
