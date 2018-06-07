@@ -10,7 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-/* SwiftNAP v3.16.1 register map */
+/* SwiftNAP v3.17.0 register map */
 
 #ifndef SWIFTNAP_H
 #define SWIFTNAP_H
@@ -18,7 +18,7 @@
 #include <libswiftnav/common.h>
 
 /* Version */
-#define NAP_VERSION (0x03100001)
+#define NAP_VERSION (0x03110000)
 
 /* Number of tracking channels */
 #define NAP_NUM_TRACKING_CHANNELS (67U)
@@ -44,7 +44,7 @@
 #define NAP_NUM_TRACKING_READABLE (7U)
 
 /* Number of writeable tracking channel registers */
-#define NAP_NUM_TRACKING_WRITEABLE (4U)
+#define NAP_NUM_TRACKING_WRITEABLE (3U)
 
 typedef enum {
   NAP_TRK_CODE_GPS_L1 = 0,
@@ -103,7 +103,6 @@ typedef struct {
 /* Tracking channel writeable register structure */
 typedef struct {
   volatile u32 CORR_SET;
-  volatile u32 SPACING;
   volatile u32 CARR_PINC;
   volatile u32 CODE_PINC;
 } swiftnap_tracking_wr_t;
@@ -3280,22 +3279,14 @@ typedef struct {
   (((REG) & ~NAP_TRK_CH_CORR_SET_SEC_CODE_ENABLE_Msk) |   \
    ((VAL) << NAP_TRK_CH_CORR_SET_SEC_CODE_ENABLE_Pos))
 
-/* Register: NAP_TRK_CH_SPACING */
-#define NAP_TRK_CH_SPACING_OFFSET0_Pos (0U)
-#define NAP_TRK_CH_SPACING_OFFSET0_Len (7U)
-#define NAP_TRK_CH_SPACING_OFFSET0_Rst (0xCU)
-#define NAP_TRK_CH_SPACING_OFFSET0_Msk (0x7FU << NAP_TRK_CH_SPACING_OFFSET0_Pos)
-#define SET_NAP_TRK_CH_SPACING_OFFSET0(REG, VAL) \
-  (((REG) & ~NAP_TRK_CH_SPACING_OFFSET0_Msk) |   \
-   ((VAL) << NAP_TRK_CH_SPACING_OFFSET0_Pos))
-
-#define NAP_TRK_CH_SPACING_OFFSET1_Pos (19U)
-#define NAP_TRK_CH_SPACING_OFFSET1_Len (7U)
-#define NAP_TRK_CH_SPACING_OFFSET1_Rst (0xCU)
-#define NAP_TRK_CH_SPACING_OFFSET1_Msk (0x7FU << NAP_TRK_CH_SPACING_OFFSET1_Pos)
-#define SET_NAP_TRK_CH_SPACING_OFFSET1(REG, VAL) \
-  (((REG) & ~NAP_TRK_CH_SPACING_OFFSET1_Msk) |   \
-   ((VAL) << NAP_TRK_CH_SPACING_OFFSET1_Pos))
+#define NAP_TRK_CH_CORR_SET_SPACING_Pos (21U)
+#define NAP_TRK_CH_CORR_SET_SPACING_Len (7U)
+#define NAP_TRK_CH_CORR_SET_SPACING_Rst (0xCU)
+#define NAP_TRK_CH_CORR_SET_SPACING_Msk \
+  (0x7FU << NAP_TRK_CH_CORR_SET_SPACING_Pos)
+#define SET_NAP_TRK_CH_CORR_SET_SPACING(REG, VAL) \
+  (((REG) & ~NAP_TRK_CH_CORR_SET_SPACING_Msk) |   \
+   ((VAL) << NAP_TRK_CH_CORR_SET_SPACING_Pos))
 
 /* Register: NAP_TRK_CH_CARR_PINC */
 #define NAP_TRK_CH_CARR_PINC_VALUE_Pos (0U)
