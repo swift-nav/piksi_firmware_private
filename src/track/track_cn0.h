@@ -68,7 +68,7 @@ typedef struct {
   cn0_est_basic_state_t basic; /**< Basic estimator for Very Early tap in use */
 
   float cn0_raw_dbhz; /**< Last unfiltered CN0 estimation [dB-Hz] */
-  u32 weak_signal_ms; /**< Signal is below #SENS_THRESH_DBHZ this long [ms] */
+  u32 weak_signal_ms; /**< Signal is below #THRESH_SENS_DBHZ this long [ms] */
 
   /* Other supported estimators for testing:
    * cn0_est_ch_state_t   ch;

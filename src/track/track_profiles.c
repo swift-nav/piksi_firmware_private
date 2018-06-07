@@ -30,6 +30,11 @@
 #include "track/track_common.h"
 #include "track/track_flags.h"
 
+/* 35ms is a result of experimenting.
+   The threshold is needed to avoid spontaneous transitions
+   to sensitivity profile, when signal is reasonably strong */
+#define TP_WEAK_SIGNAL_THRESHOLD_MS 35
+
 /** Unknown delay indicator */
 #define TP_DELAY_UNKNOWN -1
 
@@ -791,10 +796,7 @@ bool tp_profile_has_new_profile(tracker_t *tracker) {
            So we expedite the transition to sensitivity profile. */
         return true;
       }
-      /* 35ms is a result of experimenting.
-         The threshold is needed to avoid spontaneous transitions
-         to sensitivity profile, when signal is reasonably strong */
-      if ((tracker->cn0_est.weak_signal_ms >= 35) &&
+      if ((tracker->cn0_est.weak_signal_ms >= TP_WEAK_SIGNAL_THRESHOLD_MS) &&
           profile_switch_requested(tracker, IDX_SENS, "low cn0")) {
         return true;
       }
