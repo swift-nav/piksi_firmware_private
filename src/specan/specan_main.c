@@ -76,7 +76,7 @@ void ThreadManageSpecan(void *arg) {
    * be interfered with, later on they will have to contend the CPU as
    * they both are low priority tasks
    * */
-  while (TRUE) {
+  while (true) {
     chThdSleepMilliseconds(500);
     if (!run_spectrum) continue;
 

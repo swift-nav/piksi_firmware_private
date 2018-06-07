@@ -33,15 +33,15 @@ gnss_capabilities_t gnss_capab = {.gps_active = 0x0ffffffffULL,
                                   Configuration compliant with to
                                   http://www.csno-tarc.cn/system/basicinfo
                                   retrieved on May 2nd*/
-                                  .bds_active = 0x07fe0ULL,
-                                  .bds_d2nav = 0x1001fULL,
-                                  .bds_b2 = 0x17fffULL,
+                                  .bds_active = 0x7FE0ull,
+                                  .bds_d2nav = 0x1Full,
+                                  .bds_b2 = 0x7FE0ull,
 
                                   .qzss_active = 0x3ff,
 
-                                  .gal_active = 0xffffffffULL,
-                                  .gal_e5 = 0xffffffffULL,
-                                  .gps_e6 = 0xffffffffULL};
+                                  .gal_active = 0x0000000022840DDFull,
+                                  .gal_e5 = 0x0000000022840DDFull,
+                                  .gps_e6 = 0x0000000022840DDFull};
 
 /** \defgroup gnss_capabilities Constellation capabilities
  * Functions used in gnss capabilities

@@ -48,7 +48,7 @@ static void pps_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("PPS");
 
-  while (TRUE) {
+  while (true) {
     if (get_time_quality() >= TIME_PROPAGATED && !nap_pps_armed()) {
       gps_time_t t = get_current_time();
 
@@ -72,16 +72,16 @@ static void pps_thread(void *arg) {
 bool pps_config(u32 microseconds, u8 polarity) {
   if (microseconds < 1 || microseconds >= 1e6) {
     log_info("Invalid PPS width. Valid range: 1-999999\n");
-    return FALSE;
+    return false;
   }
 
   if (polarity > 1) {
     log_info("Invalid PPS polarity. Valid values: 0, 1\n");
-    return FALSE;
+    return false;
   }
 
   nap_pps_config(microseconds, polarity);
-  return TRUE;
+  return true;
 }
 
 /** Settings callback for PPS config.
@@ -98,7 +98,7 @@ bool pps_config_changed(struct setting *s, const char *val) {
   if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
     return pps_config(pps_width_microseconds, pps_polarity);
   }
-  return FALSE;
+  return false;
 }
 
 /** Settings callback for PPS frequency.
@@ -115,19 +115,19 @@ bool pps_frequency_changed(struct setting *s, const char *val) {
   if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
     if (pps_frequency_hz > 20.0) {
       log_info("Invalid PPS frequency. Maximum: 20 Hz\n");
-      return FALSE;
+      return false;
     }
 
     pps_period = 1.0 / pps_frequency_hz;
 
     if (pps_width_microseconds >= pps_period * 1.0e6) {
       log_info("PPS width needs to be smaller than PPS period.\n");
-      return FALSE;
+      return false;
     }
 
-    return TRUE;
+    return true;
   }
-  return FALSE;
+  return false;
 }
 
 /** Set up PPS generation.

@@ -128,7 +128,7 @@ static void system_monitor_thread(void *arg) {
 
   piksi_systime_t time;
 
-  while (TRUE) {
+  while (true) {
     piksi_systime_get(&time);
 
     u32 status_flags = antenna_present() << 31 | antenna_shorted() << 30 |
@@ -197,7 +197,7 @@ static void watchdog_thread(void *arg) {
 
   if (use_wdt) wdgStart(&WDGD1, &board_wdg_config);
 
-  while (TRUE) {
+  while (true) {
     /* Wait for all threads to set a flag indicating they are still
        alive and performing their function */
     chThdSleepMilliseconds(WATCHDOG_THREAD_PERIOD_MS);

@@ -204,7 +204,7 @@ static void nap_irq_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("NAP");
 
-  while (TRUE) {
+  while (true) {
     /* Waiting for the IRQ to happen.*/
     chBSemWaitTimeout(&nap_irq_sem, MS2ST(PROCESS_PERIOD_MS));
 
@@ -217,7 +217,7 @@ void nap_track_irq_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("NAP Tracking");
 
-  while (TRUE) {
+  while (true) {
     piksi_systime_get(&sys_time);
 
     handle_nap_track_irq();

@@ -111,7 +111,7 @@ void gal_e7_to_e1_handover(u32 sample_count,
   }
 
   if (!handover_valid(code_phase, GAL_E7_CHIPS_NUM)) {
-    log_info_mesid(mesid_e1, "E7-E1 handover code phase %f", code_phase);
+    log_warn_mesid(mesid_e1, "E7-E1 handover code phase %f", code_phase);
     return;
   }
 
@@ -130,7 +130,7 @@ void gal_e7_to_e1_handover(u32 sample_count,
 
   switch (tracking_startup_request(&startup_params)) {
     case 0:
-      log_warn_mesid(mesid_e1, "E1 handover done with %+d", rand_start);
+      log_debug_mesid(mesid_e1, "handover done with %+d", rand_start);
       break;
 
     case 1:
@@ -138,12 +138,11 @@ void gal_e7_to_e1_handover(u32 sample_count,
       break;
 
     case 2:
-      log_warn_mesid(mesid_e1, "Failed to start E1 tracking");
+      log_warn_mesid(mesid_e1, "failed to start tracking");
       break;
 
     default:
       assert(!"Unknown code returned");
       break;
   }
-  rand_start = (rand_start + 1) % 4;
 }
