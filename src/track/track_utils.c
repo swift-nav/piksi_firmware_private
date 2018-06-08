@@ -80,6 +80,7 @@ bool tracker_calc_pseudorange(u64 ref_tc,
   gps_time_t rec_time = napcount2gpstime(ref_tc);
   if (!gps_time_valid(&rec_time)) {
     log_warn("Invalid gps time in tracker_calc_pseudorange");
+    return false;
   }
 
   s8 nm_ret = calc_navigation_measurement(1, &meas, &p_nav_meas, &rec_time);

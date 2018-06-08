@@ -527,6 +527,7 @@ static void me_calc_pvt_thread(void *arg) {
     if (!gps_time_valid(&current_time)) {
       current_time.tow =
           (double)meas[0].time_of_week_ms / SECS_MS + GPS_NOMINAL_RANGE / GPS_C;
+      normalize_gps_time(&current_time);
       gps_time_match_weeks(&current_time, &e_meas[0].toe);
     }
 
