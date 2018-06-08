@@ -90,9 +90,6 @@ static const sbas_coverage_t sbas_coverage[] = {
     {SBAS_MSAS, msas_range},
 };
 
-/** SBAS system currently in use */
-static sbas_system_t used_sbas = SBAS_NONE;
-
 /** Convert SBAS system provider ID (type) to a descriptive name */
 static const char *get_sbas_name(sbas_system_t sbas_type) {
   switch (sbas_type) {
@@ -172,6 +169,17 @@ static bool point_in_region(const point_coord_t *border,
   return false;
 }
 
+static sbas_system_t update_used_sbas(const sbas_system_t new,
+                                      sbas_system_t *current) {
+  if (new != *current) {
+    log_info("SBAS system changed: %s -> %s",
+             get_sbas_name(*current),
+             get_sbas_name(new));
+    *current = new;
+  }
+  return *current;
+}
+
 /**
  * The function calculates what SBAS system is available
  * depending on user position.
@@ -179,15 +187,17 @@ static bool point_in_region(const point_coord_t *border,
  * \return SBAS type corresponding to user's position
  */
 sbas_system_t sbas_select_provider(const last_good_fix_t *lgf) {
+  /* SBAS system currently in use */
+  static sbas_system_t used_sbas = SBAS_NONE;
+
   assert(lgf != NULL);
-  if (lgf->position_quality == POSITION_UNKNOWN) {
-    used_sbas = SBAS_NONE;
-    return SBAS_NONE;
+
+  if (POSITION_UNKNOWN == lgf->position_quality) {
+    return update_used_sbas(SBAS_NONE, &used_sbas);
   }
 
   double lgf_lat_deg = lgf->position_solution.pos_llh[0] * R2D;
-  assert(-90 <= lgf_lat_deg);
-  assert(lgf_lat_deg <= 90);
+  assert(-90 <= lgf_lat_deg && lgf_lat_deg <= 90);
 
   /* Design note: code doesn't apply special handling for south pole due
    * none of the systems extending there at the moment. Once support is needed
@@ -195,9 +205,7 @@ sbas_system_t sbas_select_provider(const last_good_fix_t *lgf) {
    * where receiver is moved from one pole to another without getting fix in
    * between.
    */
-  bool close_to_north_pole =
-      double_within(lgf_lat_deg, 90., SBAS_SELECT_LAT_POLAR_REGION_DEG);
-  if (close_to_north_pole) {
+  if (double_within(lgf_lat_deg, 90.0, SBAS_SELECT_LAT_POLAR_REGION_DEG)) {
     /* LGF is close to north pole, where longitudes can change rapidly.
        If first LGF is acquired close to a pole and no SBAS provider is in
        use, we want to start using some SBAS provider and stick to
@@ -206,45 +214,40 @@ sbas_system_t sbas_select_provider(const last_good_fix_t *lgf) {
        This also covers the hysteresis for latitude near pole. */
 
     if (SBAS_NONE == used_sbas) {
-      used_sbas = SBAS_WAAS;
+      update_used_sbas(SBAS_WAAS, &used_sbas);
     }
+
     return used_sbas;
   }
 
   double lgf_lon_deg = lgf->position_solution.pos_llh[1] * R2D;
-  assert(-180 <= lgf_lon_deg);
-  assert(lgf_lon_deg <= 180);
-  /* Check all SBAS systems if user position is in its coverage area.
-   * Start checking from currently using SBAS system. If user still in it
-   * just return, don't check others to avoid unwanted SBAS switch */
-  u8 i = get_sbas_area_index(used_sbas);
+  assert(-180 <= lgf_lon_deg && lgf_lon_deg <= 180);
 
-  for (u8 j = 0; j < ARRAY_SIZE(sbas_coverage); j++) {
-    double hyst_deg =
-        (used_sbas == sbas_coverage[i].sbas) ? SBAS_SELECT_LATLON_HYST_DEG : 0;
-    /* check if user position is in SBAS area under testing */
-    if (point_in_region(
-            sbas_coverage[i].borders, lgf_lat_deg, lgf_lon_deg, hyst_deg)) {
-      if (sbas_coverage[i].sbas != used_sbas) {
-        log_info("SBAS system changed: %s -> %s",
-                 get_sbas_name(used_sbas),
-                 get_sbas_name(sbas_coverage[i].sbas));
-        used_sbas = sbas_coverage[i].sbas;
-      }
-      /* SBAS area found */
+  /* Test current selection against user position using hysteresis */
+  if (SBAS_NONE != used_sbas) {
+    u8 idx = get_sbas_area_index(used_sbas);
+    if (point_in_region(sbas_coverage[idx].borders,
+                        lgf_lat_deg,
+                        lgf_lon_deg,
+                        SBAS_SELECT_LATLON_HYST_DEG)) {
+      /* SBAS area unchanged */
       return used_sbas;
     }
-    /* if user is not in area in question, take next one */
-    i++;
-    if (i > ARRAY_SIZE(sbas_coverage) - 1) {
-      /* we reached max index of the array, get 0th */
-      i = 0;
+  }
+
+  for (u8 i = 0; i < ARRAY_SIZE(sbas_coverage); ++i) {
+    /* Helper pointer for readability */
+    const sbas_coverage_t *it = &sbas_coverage[i];
+
+    /* Test current iteration against user position using zero hysteresis */
+    if (point_in_region(it->borders, lgf_lat_deg, lgf_lon_deg, 0)) {
+      /* SBAS area found */
+      return update_used_sbas(it->sbas, &used_sbas);
     }
   }
 
   /* User is not in any SBAS coverage area */
-  used_sbas = SBAS_NONE;
-  return SBAS_NONE;
+  return update_used_sbas(SBAS_NONE, &used_sbas);
 }
 
 /**
