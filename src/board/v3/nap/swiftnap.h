@@ -18,7 +18,7 @@
 #include <libswiftnav/common.h>
 
 /* Version */
-#define NAP_VERSION (0x03110000)
+#define NAP_VERSION (0x03110002)
 
 /* Number of tracking channels */
 #define NAP_NUM_TRACKING_CHANNELS (67U)
