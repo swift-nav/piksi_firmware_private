@@ -11,6 +11,7 @@
  */
 
 #include "nav_msg/sbas_msg.h"
+#include "calc/starling_integration.h"
 #include "calc/starling_threads.h"
 #include "nav_msg/nav_msg.h" /* For BIT_POLARITY_... constants */
 #include "sbp_utils.h"
@@ -384,7 +385,9 @@ static bool sbas_msg_decode(sbas_v27_part_t *part, sbas_msg_t *msg) {
 
     switch (msg_id) {
       case 0:
-        msg->health = SV_UNHEALTHY;
+        if (!allow_sbas_test_mode) {
+          msg->health = SV_UNHEALTHY;
+        }
         break;
       case 12:
         /* We don't use SBAS for ranging. So no need to decode SBAS TOW for now.

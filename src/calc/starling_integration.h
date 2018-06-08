@@ -26,6 +26,7 @@
 
 extern bool enable_glonass;
 extern bool send_heading;
+extern bool allow_sbas_test_mode;
 
 typedef struct {
   piksi_systime_t systime;

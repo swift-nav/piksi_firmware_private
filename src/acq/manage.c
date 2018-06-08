@@ -128,6 +128,9 @@ static bool qzss_enabled = CODE_QZSS_L1CA_SUPPORT || CODE_QZSS_L2C_SUPPORT;
 /** Flag if Galileo enabled */
 static bool galileo_enabled = CODE_GAL_E1_SUPPORT || CODE_GAL_E7_SUPPORT;
 
+/* Override SBAS PRN if set to non-zero value */
+static int sbas_prn_override = SAT_INVALID;
+
 typedef struct {
   piksi_systime_t tick; /**< Time when SV was detected as unhealthy */
   acq_status_t *status; /**< Pointer to acq status for the SV */
@@ -339,6 +342,21 @@ static bool galileo_enable_notify(struct setting *s, const char *val) {
   return true;
 }
 
+/* Update the SBAS PRN override value used by the search manager */
+static bool sbas_prn_override_notify(struct setting *s, const char *val) {
+  bool res = s->type->from_string(s->type->priv, s->addr, s->len, val);
+  if (!res) {
+    return false;
+  }
+  if ((sbas_prn_override < SBAS_FIRST_PRN) ||
+      (sbas_prn_override > (NUM_SATS_SBAS + SBAS_FIRST_PRN))) {
+    sbas_prn_override = SAT_INVALID;
+    return false;
+  }
+  log_debug("SBAS PRN override value: %i", sbas_prn_override);
+  return true;
+}
+
 /* Update the solution elevation mask used by the ME and by Starling. */
 static bool solution_elevation_mask_notify(struct setting *s, const char *val) {
   bool res = s->type->from_string(s->type->priv, s->addr, s->len, val);
@@ -362,6 +380,11 @@ void manage_acq_setup() {
                  sbas_enabled,
                  TYPE_BOOL,
                  sbas_enable_notify);
+  SETTING_NOTIFY("acquisition",
+                 "sbas_prn_override",
+                 sbas_prn_override,
+                 TYPE_INT,
+                 sbas_prn_override_notify);
   SETTING_NOTIFY("acquisition",
                  "bds2_acquisition_enabled",
                  bds2_enabled,
@@ -1412,6 +1435,12 @@ bool is_qzss_enabled(void) { return qzss_enabled; }
  * @return true if GAL enabled, otherwise false
  */
 bool is_galileo_enabled(void) { return galileo_enabled; }
+
+/** Gets the SBAS PRN override value
+ *
+ * @return -1 if no override enabled, or the SBAS PRN value otherwise
+ */
+int get_sbas_prn_override(void) { return sbas_prn_override; }
 
 /**
  * The function retrieves the GLO orbit slot, if the mapping to a FCN exists
