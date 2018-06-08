@@ -85,13 +85,6 @@ void platform_time_matched_thread_wait(void) {
 
 void platform_pool_free(void *pool, void *buf) { chPoolFree(pool, buf); }
 
-void platform_thread_create_static(
-    void *wa, size_t wa_size, int prio, void (*fn)(void *), void *user) {
-  chThdCreateStatic(wa, wa_size, prio, fn, user);
-}
-
-void platform_thread_set_name(const char *name) { chRegSetThreadName(name); }
-
 /* Return true on success. */
 bool platform_try_read_ephemeris(const gnss_signal_t sid, ephemeris_t *eph) {
   return (ndb_ephemeris_read(sid, eph) == NDB_ERR_NONE);
@@ -100,10 +93,6 @@ bool platform_try_read_ephemeris(const gnss_signal_t sid, ephemeris_t *eph) {
 /* Return true on success. */
 bool platform_try_read_iono_corr(ionosphere_t *params) {
   return (ndb_iono_corr_read(params) == NDB_ERR_NONE);
-}
-
-void platform_watchdog_notify_starling_main_thread() {
-  watchdog_notify(WD_NOTIFY_STARLING);
 }
 
 void platform_time_matched_obs_mailbox_init() {
