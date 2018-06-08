@@ -28,6 +28,8 @@
    GLO_L1_HZ - 10e6 * 159 = 1602.0e6 - 10e6 * 159 = 12.0e6 [Hz] */
 #define GLO_L1_TCXO_PPM_TO_HZ (TCXO_FREQ_HZ * 1e-6 * 159.)
 
+#define TRACKING_ELEVATION_UNKNOWN 100 /* Default to above elev. mask */
+
 extern test_case_t *test_case;
 extern test_case_t test_cases;
 
@@ -257,4 +259,9 @@ void sbp_register_cbk(u16 msg_type,
   (void)msg_type;
   (void)cb;
   (void)node;
+}
+
+s8 track_sid_db_elevation_degrees_get(gnss_signal_t sid) {
+  (void)sid;
+  return TRACKING_ELEVATION_UNKNOWN;
 }

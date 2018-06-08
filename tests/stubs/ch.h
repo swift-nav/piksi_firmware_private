@@ -19,6 +19,7 @@
 
 typedef unsigned int systime_t;
 typedef int mutex_t;
+typedef int binary_semaphore_t;
 
 void chSysLock(void);
 void chSysUnlock(void);
