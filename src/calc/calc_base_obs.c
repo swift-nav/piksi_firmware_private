@@ -385,12 +385,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
   packed_obs_content_t *obs =
       (packed_obs_content_t *)(msg + sizeof(observation_header_t));
 
-  for (u8 i = 0; i < obs_in_msg && base_obss_rx.n < MAX_CHANNELS; i++) {
-    gnss_signal_t sid = sid_from_sbp(obs[i].sid);
-    if (!sid_supported(sid)) {
-      continue;
-    }
-
+  for (u8 i = 0; i < obs_in_msg; i++) {
     navigation_measurement_t *nm = &base_obss_rx.nm[base_obss_rx.n];
 
     /* Unpack the observation into a navigation_measurement_t. */
