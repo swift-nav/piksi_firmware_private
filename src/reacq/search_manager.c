@@ -13,7 +13,7 @@
 #include <libswiftnav/glo_map.h>
 #include <string.h>
 
-#include "acq/manage.h"
+#include "manage.h"
 #include "ndb/ndb_lgf.h"
 #include "position/position.h"
 #include "sbas_select/sbas_select.h"
