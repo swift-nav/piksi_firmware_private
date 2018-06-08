@@ -27,9 +27,6 @@
 void platform_time_matched_thread_signal(void);
 void platform_time_matched_thread_wait(void);
 
-/* Mutex */
-void platform_mutex_lock(void *mtx);
-void platform_mutex_unlock(void *mtx);
 /* Thread */
 void platform_thread_create_static(
     void *wa, size_t wa_size, int prio, void (*fn)(void *), void *user);

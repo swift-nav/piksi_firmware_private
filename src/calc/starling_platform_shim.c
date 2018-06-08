@@ -83,10 +83,6 @@ void platform_time_matched_thread_wait(void) {
   chBSemWait(&time_matched_thread_sem);
 }
 
-void platform_mutex_lock(void *mtx) { chMtxLock((mutex_t *)mtx); }
-
-void platform_mutex_unlock(void *mtx) { chMtxUnlock((mutex_t *)mtx); }
-
 void platform_pool_free(void *pool, void *buf) { chPoolFree(pool, buf); }
 
 void platform_thread_create_static(
