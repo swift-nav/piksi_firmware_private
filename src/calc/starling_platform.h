@@ -136,6 +136,31 @@ pal_rc_t pal_run_thread_tasks(
     pal_thread_task_t *const tasks[STARLING_MAX_NUM_THREADS]);
 
 /******************************************************************************
+ * MUTEX
+ *****************************************************************************/
+
+/**
+ * Mutexes are indentified and accessed by index only because they are
+ * finite in number.
+ *
+ * TODO(kevin) Ultimately we do not want mutexes in the platform layer
+ * and they should be replaced with message passing over mailbox.
+ */
+
+// Maximum number of mutexes requested by Starling engine.
+#define STARLING_MAX_NUM_MUTEXES 16
+
+/**
+ * Used to identify mutexes. Valid values are in the range
+ * [0, STARLING_MAX_NUM_MUTEXES-1].
+ */
+typedef uint32_t mutex_id_t;
+
+void pal_mutex_init(mutex_id_t id);
+void pal_mutex_lock(mutex_id_t id);
+void pal_mutex_unlock(mutex_id_t id);
+
+/******************************************************************************
  * MAILBOX
  *****************************************************************************/
 

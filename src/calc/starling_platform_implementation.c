@@ -165,6 +165,53 @@ pal_rc_t pal_run_thread_tasks(
 }
 
 /******************************************************************************
+ * MUTEX 
+ *****************************************************************************/
+
+#define PIKSI_MULTI_MAX_NUM_MUTEXES 16
+
+_Static_assert(STARLING_MAX_NUM_MUTEXES <= PIKSI_MULTI_MAX_NUM_MUTEXES,
+               "Piksi Multi cannot provide required number of mutexes.");
+
+typedef struct mutex_object_t {
+  bool is_initialized;
+  mutex_t chibios_mutex;
+} mutex_object_t;
+
+static mutex_object_t mutex_objects[PIKSI_MULTI_MAX_NUM_MUTEXES];
+
+/* Helper function to check that a mutex id is in range. */
+static bool is_valid_mutex_id(mutex_id_t id) {
+  return (id < PIKSI_MULTI_MAX_NUM_MUTEXES);
+}
+
+/* Helper function for getting the mutex pointer from an id. */
+static mutex_object_t *get_mutex_for_id(mutex_id_t id) {
+  return &mutex_objects[id];
+}
+
+void pal_mutex_init(mutex_id_t id) {
+  assert(is_valid_mutex_id(id));
+  mutex_object_t *mtx = get_mutex_for_id(id);
+  chMtxObjectInit(&mtx->chibios_mutex);
+  mtx->is_initialized = true;
+}
+
+void pal_mutex_lock(mutex_id_t id) {
+  assert(is_valid_mutex_id(id));
+  mutex_object_t *mtx = get_mutex_for_id(id);
+  assert(mtx->is_initialized);
+  chMtxLock(&mtx->chibios_mutex);
+}
+
+void pal_mutex_unlock(mutex_id_t id) {
+  assert(is_valid_mutex_id(id));
+  mutex_object_t *mtx = get_mutex_for_id(id);
+  assert(mtx->is_initialized);
+  chMtxUnlock(&mtx->chibios_mutex);
+}
+
+/******************************************************************************
  * MAILBOX
  *****************************************************************************/
 
