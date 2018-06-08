@@ -71,8 +71,19 @@ typedef struct ReferencePosition {
 #define INIT_SOLUTION_FREQUENCY 10.0
 #define INIT_SOLUTION_OUTPUT_MODE STARLING_SOLN_MODE_LOW_LATENCY
 
+/* Enumerate all of the locks we will require for this implementation. */
+enum {
+  LOCK_GLOBAL_SETTINGS,
+  LOCK_GLONASS_BIASES,
+  LOCK_REFERENCE_POSITION,
+  LOCK_TIME_MATCHED_FILTER,
+  LOCK_LOW_LATENCY_FILTER,
+  LOCK_SPP_FILTER,
+  LOCK_TIME_MATCHED_IONO_PARAMS,
+  kNumLocks,
+};
+
 /* Local settings object and mutex protection. */
-static MUTEX_DECL(global_settings_lock);
 static StarlingSettings global_settings = {
     .is_glonass_enabled = INIT_IS_GLONASS_ENABLED,
     .is_time_matched_klobuchar_enabled = INIT_IS_TIME_MATCHED_KLOBUCHAR_ENABLED,
@@ -83,13 +94,11 @@ static StarlingSettings global_settings = {
 };
 
 /* Glonass biases and mutex protection. */
-static MUTEX_DECL(glonass_biases_lock);
 static GlonassBiases glonass_biases = {
     .is_valid = false, .values = {0},
 };
 
 /* Reference position and mutex protection. */
-static MUTEX_DECL(reference_position_lock);
 static ReferencePosition reference_position = {
     .is_valid = false, .xyz = {0},
 };
@@ -98,11 +107,6 @@ static FilterManager *time_matched_filter_manager = NULL;
 static FilterManager *low_latency_filter_manager = NULL;
 static FilterManager *spp_filter_manager = NULL;
 
-static MUTEX_DECL(time_matched_filter_manager_lock);
-static MUTEX_DECL(low_latency_filter_manager_lock);
-static MUTEX_DECL(spp_filter_manager_lock);
-
-static MUTEX_DECL(time_matched_iono_params_lock);
 static bool has_time_matched_iono_params = false;
 static ionosphere_t time_matched_iono_params;
 
@@ -125,9 +129,9 @@ static sbas_system_t current_sbas_system = SBAS_UNKNOWN;
  * individual setting.
  */
 static void update_filter_manager_settings(FilterManager *fm) {
-  platform_mutex_lock(&global_settings_lock);
+  pal_mutex_lock(LOCK_GLOBAL_SETTINGS);
   const StarlingSettings settings = global_settings;
-  platform_mutex_unlock(&global_settings_lock);
+  pal_mutex_unlock(LOCK_GLOBAL_SETTINGS);
 
   /* Apply the most recent settings values to the Filter Manager. */
   assert(fm);
@@ -145,9 +149,9 @@ static void update_filter_manager_settings(FilterManager *fm) {
  * the filter manager is protected elsewhere.
  */
 static void update_filter_manager_rtk_glonass_biases(FilterManagerRTK *fmrtk) {
-  platform_mutex_lock(&glonass_biases_lock);
+  pal_mutex_lock(LOCK_GLONASS_BIASES);
   const GlonassBiases biases = glonass_biases;
-  platform_mutex_unlock(&glonass_biases_lock);
+  pal_mutex_unlock(LOCK_GLONASS_BIASES);
 
   assert(fmrtk);
   if (biases.is_valid) {
@@ -161,9 +165,9 @@ static void update_filter_manager_rtk_glonass_biases(FilterManagerRTK *fmrtk) {
  */
 static void update_filter_manager_rtk_reference_position(
     FilterManagerRTK *fmrtk) {
-  platform_mutex_lock(&reference_position_lock);
+  pal_mutex_lock(LOCK_REFERENCE_POSITION);
   const ReferencePosition refpos = reference_position;
-  platform_mutex_unlock(&reference_position_lock);
+  pal_mutex_unlock(LOCK_REFERENCE_POSITION);
 
   assert(fmrtk);
   if (refpos.is_valid) {
@@ -229,11 +233,11 @@ static void post_observations(u8 n,
 }
 
 void reset_rtk_filter(void) {
-  platform_mutex_lock(&time_matched_filter_manager_lock);
+  pal_mutex_lock(LOCK_TIME_MATCHED_FILTER);
   if (time_matched_filter_manager) {
     filter_manager_init(time_matched_filter_manager);
   }
-  platform_mutex_unlock(&time_matched_filter_manager_lock);
+  pal_mutex_unlock(LOCK_TIME_MATCHED_FILTER);
 }
 
 static PVT_ENGINE_INTERFACE_RC update_filter(FilterManager *filter_manager) {
@@ -328,7 +332,7 @@ static PVT_ENGINE_INTERFACE_RC process_matched_obs(
 
   dgnss_solution_mode_t dgnss_soln_mode = starling_get_solution_mode();
 
-  platform_mutex_lock(&time_matched_filter_manager_lock);
+  pal_mutex_lock(LOCK_TIME_MATCHED_FILTER);
 
   if (!filter_manager_is_initialized(time_matched_filter_manager)) {
     filter_manager_init(time_matched_filter_manager);
@@ -339,17 +343,17 @@ static PVT_ENGINE_INTERFACE_RC process_matched_obs(
                                          stored_ephs);
 
     /* Grab the most recent klobuchar enable setting. */
-    platform_mutex_lock(&global_settings_lock);
+    pal_mutex_lock(LOCK_GLOBAL_SETTINGS);
     bool disable_klobuchar = !global_settings.is_time_matched_klobuchar_enabled;
-    platform_mutex_unlock(&global_settings_lock);
+    pal_mutex_unlock(LOCK_GLOBAL_SETTINGS);
 
-    platform_mutex_lock(&time_matched_iono_params_lock);
+    pal_mutex_lock(LOCK_TIME_MATCHED_IONO_PARAMS);
     if (has_time_matched_iono_params) {
       filter_manager_update_iono_parameters(time_matched_filter_manager,
                                             &time_matched_iono_params,
                                             disable_klobuchar);
     }
-    platform_mutex_unlock(&time_matched_iono_params_lock);
+    pal_mutex_unlock(LOCK_TIME_MATCHED_IONO_PARAMS);
 
     update_rov_obs = filter_manager_update_rov_obs(time_matched_filter_manager,
                                                    &rover_channel_meass->tor,
@@ -373,11 +377,11 @@ static PVT_ENGINE_INTERFACE_RC process_matched_obs(
         update_filter_ret == PVT_ENGINE_SUCCESS) {
       /* If we're in low latency mode we need to copy/update the low latency
          filter manager from the time matched filter manager. */
-      platform_mutex_lock(&low_latency_filter_manager_lock);
+      pal_mutex_lock(LOCK_LOW_LATENCY_FILTER);
       copy_filter_manager_rtk(
           (FilterManagerRTK *)low_latency_filter_manager,
           (const FilterManagerRTK *)time_matched_filter_manager);
-      platform_mutex_unlock(&low_latency_filter_manager_lock);
+      pal_mutex_unlock(LOCK_LOW_LATENCY_FILTER);
     }
   }
 
@@ -394,7 +398,7 @@ static PVT_ENGINE_INTERFACE_RC process_matched_obs(
         get_baseline(time_matched_filter_manager, true, rtk_dops, rtk_result);
   }
 
-  platform_mutex_unlock(&time_matched_filter_manager_lock);
+  pal_mutex_unlock(LOCK_TIME_MATCHED_FILTER);
 
   return get_baseline_ret;
 }
@@ -446,7 +450,7 @@ static void time_matched_obs_thread(void *arg) {
     platform_base_obs_free(base_obs);
 
     /* Check if the el mask has changed and update */
-    platform_mutex_lock(&time_matched_filter_manager_lock);
+    pal_mutex_lock(LOCK_TIME_MATCHED_FILTER);
     /* Grab the latest settings. */
     update_filter_manager_settings(time_matched_filter_manager);
     /* Update the glonass biases. */
@@ -455,7 +459,7 @@ static void time_matched_obs_thread(void *arg) {
     update_filter_manager_rtk_reference_position(
         (FilterManagerRTK *)time_matched_filter_manager);
 
-    platform_mutex_unlock(&time_matched_filter_manager_lock);
+    pal_mutex_unlock(LOCK_TIME_MATCHED_FILTER);
 
     dgnss_solution_mode_t dgnss_soln_mode = starling_get_solution_mode();
 
@@ -538,15 +542,15 @@ static void init_filters_and_settings(void) {
 
   platform_time_matched_obs_mailbox_init();
 
-  platform_mutex_lock(&time_matched_filter_manager_lock);
+  pal_mutex_lock(LOCK_TIME_MATCHED_FILTER);
   time_matched_filter_manager = create_filter_manager_rtk();
   assert(time_matched_filter_manager);
-  platform_mutex_unlock(&time_matched_filter_manager_lock);
+  pal_mutex_unlock(LOCK_TIME_MATCHED_FILTER);
 
-  platform_mutex_lock(&low_latency_filter_manager_lock);
+  pal_mutex_lock(LOCK_LOW_LATENCY_FILTER);
   low_latency_filter_manager = create_filter_manager_rtk();
   assert(low_latency_filter_manager);
-  platform_mutex_unlock(&low_latency_filter_manager_lock);
+  pal_mutex_unlock(LOCK_LOW_LATENCY_FILTER);
 }
 
 /**
@@ -556,14 +560,14 @@ static void init_filters_and_settings(void) {
 static void process_sbas_data(const sbas_raw_data_t *sbas_data) {
   sbas_system_t sbas_system = get_sbas_system(sbas_data->sid);
 
-  platform_mutex_lock(&spp_filter_manager_lock);
+  pal_mutex_lock(LOCK_SPP_FILTER);
   if (sbas_system != current_sbas_system &&
       SBAS_UNKNOWN != current_sbas_system) {
     /* clear existing SBAS corrections when provider changes */
     filter_manager_reinitialize_sbas(spp_filter_manager);
   }
   filter_manager_process_sbas_message(spp_filter_manager, sbas_data);
-  platform_mutex_unlock(&spp_filter_manager_lock);
+  pal_mutex_unlock(LOCK_SPP_FILTER);
   current_sbas_system = sbas_system;
 }
 
@@ -611,11 +615,11 @@ static void starling_thread(void *arg) {
   static ephemeris_t e_meas[MAX_CHANNELS];
   static gps_time_t obs_time;
 
-  platform_mutex_lock(&spp_filter_manager_lock);
+  pal_mutex_lock(LOCK_SPP_FILTER);
   spp_filter_manager = create_filter_manager_spp();
   assert(spp_filter_manager);
   filter_manager_init(spp_filter_manager);
-  platform_mutex_unlock(&spp_filter_manager_lock);
+  pal_mutex_unlock(LOCK_SPP_FILTER);
 
   while (TRUE) {
     pal_watchdog_kick();
@@ -693,13 +697,13 @@ static void starling_thread(void *arg) {
     if (!platform_try_read_iono_corr(&i_params)) {
       i_params = DEFAULT_IONO_PARAMS;
     }
-    platform_mutex_lock(&time_matched_iono_params_lock);
+    pal_mutex_lock(LOCK_TIME_MATCHED_IONO_PARAMS);
     has_time_matched_iono_params = true;
     time_matched_iono_params = i_params;
-    platform_mutex_unlock(&time_matched_iono_params_lock);
-    platform_mutex_lock(&spp_filter_manager_lock);
+    pal_mutex_unlock(LOCK_TIME_MATCHED_IONO_PARAMS);
+    pal_mutex_lock(LOCK_SPP_FILTER);
     filter_manager_update_iono_parameters(spp_filter_manager, &i_params, false);
-    platform_mutex_unlock(&spp_filter_manager_lock);
+    pal_mutex_unlock(LOCK_SPP_FILTER);
 
     /* This will duplicate pointers to satellites with mutliple frequencies,
      * but this scenario is expected and handled */
@@ -745,7 +749,7 @@ static void starling_thread(void *arg) {
     dgnss_solution_mode_t dgnss_soln_mode = starling_get_solution_mode();
 
     /* Always try and run the SPP filter. */
-    platform_mutex_lock(&spp_filter_manager_lock);
+    pal_mutex_lock(LOCK_SPP_FILTER);
     spp_rc = call_pvt_engine_filter(spp_filter_manager,
                                     &obs_time,
                                     n_ready,
@@ -753,7 +757,7 @@ static void starling_thread(void *arg) {
                                     stored_ephs,
                                     &spp_solution.result,
                                     &spp_solution.dops);
-    platform_mutex_unlock(&spp_filter_manager_lock);
+    pal_mutex_unlock(LOCK_SPP_FILTER);
 
     /* We only post to time-matched thread on SPP success. */
     if (PVT_ENGINE_SUCCESS == spp_rc) {
@@ -767,7 +771,7 @@ static void starling_thread(void *arg) {
 
     /* Run the RTK filter when desired. */
     if (should_do_low_latency_rtk) {
-      platform_mutex_lock(&low_latency_filter_manager_lock);
+      pal_mutex_lock(LOCK_LOW_LATENCY_FILTER);
       rtk_rc = call_pvt_engine_filter(low_latency_filter_manager,
                                       &obs_time,
                                       n_ready,
@@ -775,7 +779,7 @@ static void starling_thread(void *arg) {
                                       stored_ephs,
                                       &rtk_solution.result,
                                       &rtk_solution.dops);
-      platform_mutex_unlock(&low_latency_filter_manager_lock);
+      pal_mutex_unlock(LOCK_LOW_LATENCY_FILTER);
     }
 
     /* Generate the output based on which filters ran successfully. */
@@ -791,6 +795,14 @@ static void starling_thread(void *arg) {
     /* Forward solutions to outside world. */
     send_solution_low_latency(
         p_spp_solution, p_rtk_solution, &epoch_time, nav_meas, n_ready);
+  }
+}
+
+/* Iterate through the locks used in this implementation
+ * and make sure they are all initialized. */
+static void initialize_mutexes(void) {
+  for (int i = 0; i < kNumLocks; ++i) {
+    pal_mutex_init(i);
   }
 }
 
@@ -822,6 +834,8 @@ void starling_initialize_api(void) {
   /* It is invalid to call more than once. */
   assert(!is_starling_api_initialized);
 
+  initialize_mutexes();
+
   platform_sbas_data_mailbox_setup();
 
   is_starling_api_initialized = true;
@@ -845,97 +859,97 @@ void starling_add_sbas_data(const sbas_raw_data_t *sbas_data,
 
 /* Enable glonass constellation in the Starling engine. */
 void starling_set_is_glonass_enabled(bool is_glonass_enabled) {
-  platform_mutex_lock(&global_settings_lock);
+  pal_mutex_lock(LOCK_GLOBAL_SETTINGS);
   global_settings.is_glonass_enabled = is_glonass_enabled;
-  platform_mutex_unlock(&global_settings_lock);
+  pal_mutex_unlock(LOCK_GLOBAL_SETTINGS);
 }
 
 /* Enable klobuchar corrections in the time-matched filter. */
 void starling_set_is_time_matched_klobuchar_enabled(bool is_klobuchar_enabled) {
-  platform_mutex_lock(&global_settings_lock);
+  pal_mutex_lock(LOCK_GLOBAL_SETTINGS);
   global_settings.is_time_matched_klobuchar_enabled = is_klobuchar_enabled;
-  platform_mutex_unlock(&global_settings_lock);
+  pal_mutex_unlock(LOCK_GLOBAL_SETTINGS);
 }
 
 /* Modify the relative weighting of glonass observations. */
 void starling_set_glonass_downweight_factor(float factor) {
-  platform_mutex_lock(&global_settings_lock);
+  pal_mutex_lock(LOCK_GLOBAL_SETTINGS);
   global_settings.glonass_downweight_factor = factor;
-  platform_mutex_unlock(&global_settings_lock);
+  pal_mutex_unlock(LOCK_GLOBAL_SETTINGS);
 }
 
 /* Set the elevation mask used to filter satellites from the solution. */
 void starling_set_elevation_mask(float elevation_mask) {
-  platform_mutex_lock(&global_settings_lock);
+  pal_mutex_lock(LOCK_GLOBAL_SETTINGS);
   global_settings.elevation_mask = elevation_mask;
-  platform_mutex_unlock(&global_settings_lock);
+  pal_mutex_unlock(LOCK_GLOBAL_SETTINGS);
 }
 
 /* Set the rate at which the filter calculates solutions. */
 void starling_set_solution_frequency(double frequency) {
-  platform_mutex_lock(&global_settings_lock);
+  pal_mutex_lock(LOCK_GLOBAL_SETTINGS);
   global_settings.solution_frequency = frequency;
-  platform_mutex_unlock(&global_settings_lock);
+  pal_mutex_unlock(LOCK_GLOBAL_SETTINGS);
 }
 
 /* Enable fixed RTK mode in the Starling engine. */
 void starling_set_is_fix_enabled(bool is_fix_enabled) {
-  platform_mutex_lock(&low_latency_filter_manager_lock);
+  pal_mutex_lock(LOCK_LOW_LATENCY_FILTER);
   if (low_latency_filter_manager) {
     set_pvt_engine_enable_fix_mode(low_latency_filter_manager, is_fix_enabled);
   }
-  platform_mutex_unlock(&low_latency_filter_manager_lock);
+  pal_mutex_unlock(LOCK_LOW_LATENCY_FILTER);
 
-  platform_mutex_lock(&time_matched_filter_manager_lock);
+  pal_mutex_lock(LOCK_TIME_MATCHED_FILTER);
   if (time_matched_filter_manager) {
     set_pvt_engine_enable_fix_mode(time_matched_filter_manager, is_fix_enabled);
   }
-  platform_mutex_unlock(&time_matched_filter_manager_lock);
+  pal_mutex_unlock(LOCK_TIME_MATCHED_FILTER);
 }
 
 /* Indicate for how long corrections should persist. */
 void starling_set_max_correction_age(int max_age) {
-  platform_mutex_lock(&low_latency_filter_manager_lock);
+  pal_mutex_lock(LOCK_LOW_LATENCY_FILTER);
   if (low_latency_filter_manager) {
     set_max_correction_age(low_latency_filter_manager, max_age);
   }
-  platform_mutex_unlock(&low_latency_filter_manager_lock);
+  pal_mutex_unlock(LOCK_LOW_LATENCY_FILTER);
 
-  platform_mutex_lock(&time_matched_filter_manager_lock);
+  pal_mutex_lock(LOCK_TIME_MATCHED_FILTER);
   if (time_matched_filter_manager) {
     set_max_correction_age(time_matched_filter_manager, max_age);
   }
-  platform_mutex_unlock(&time_matched_filter_manager_lock);
+  pal_mutex_unlock(LOCK_TIME_MATCHED_FILTER);
 }
 
 /* Set a surveyed reference position for the base station. */
 void starling_set_known_ref_pos(const double base_pos[3]) {
-  platform_mutex_lock(&reference_position_lock);
+  pal_mutex_lock(LOCK_REFERENCE_POSITION);
   memcpy(
       reference_position.xyz, base_pos, sizeof(reference_position.xyz[0]) * 3);
   reference_position.is_valid = true;
-  platform_mutex_unlock(&reference_position_lock);
+  pal_mutex_unlock(LOCK_REFERENCE_POSITION);
 }
 
 /* Update the glonass biases. */
 void starling_set_known_glonass_biases(const glo_biases_t biases) {
-  platform_mutex_lock(&glonass_biases_lock);
+  pal_mutex_lock(LOCK_GLONASS_BIASES);
   glonass_biases.values = biases;
   glonass_biases.is_valid = true;
-  platform_mutex_unlock(&glonass_biases_lock);
+  pal_mutex_unlock(LOCK_GLONASS_BIASES);
 }
 
 /* Set the desired solution mode for the Starling engine. */
 void starling_set_solution_mode(dgnss_solution_mode_t mode) {
-  platform_mutex_lock(&global_settings_lock);
+  pal_mutex_lock(LOCK_GLOBAL_SETTINGS);
   global_settings.solution_output_mode = mode;
-  platform_mutex_unlock(&global_settings_lock);
+  pal_mutex_unlock(LOCK_GLOBAL_SETTINGS);
 }
 
 /* Get the current solution mode for the Starling engine. */
 dgnss_solution_mode_t starling_get_solution_mode(void) {
-  platform_mutex_lock(&global_settings_lock);
+  pal_mutex_lock(LOCK_GLOBAL_SETTINGS);
   dgnss_solution_mode_t mode = global_settings.solution_output_mode;
-  platform_mutex_unlock(&global_settings_lock);
+  pal_mutex_unlock(LOCK_GLOBAL_SETTINGS);
   return mode;
 }
