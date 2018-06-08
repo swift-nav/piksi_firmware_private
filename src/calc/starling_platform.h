@@ -124,9 +124,8 @@ typedef struct pal_thread_task_t {
  * Give the platform implementation a set of tasks to run individually
  * on separate threads. The implementation may adjust the actual thread
  * priority in the OS, as long as the relative prioritization among
- * Starling threads is preserved. Lower value indicates higher priority.
- * Elements of the task array should either point to a valid task struct,
- * or be NULL.
+ * Starling threads is preserved. Elements of the task array should either
+ * point to a valid task struct, or be NULL.
  *
  * Any return value besides STARLING_PAL_OK will be treated as a critical
  * system failure.
@@ -153,7 +152,7 @@ pal_rc_t pal_run_thread_tasks(
 
 /**
  * Used to identify mailboxes. Valid values are in the range
- * [0, STARLING_MAX_NUM_MAILBOXES].
+ * [0, STARLING_MAX_NUM_MAILBOXES-1].
  */
 typedef uint32_t mailbox_id_t;
 
