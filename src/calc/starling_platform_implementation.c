@@ -208,6 +208,7 @@ static pal_rc_t mailbox_fetch(mailbox_id_t id, void **p, uint32_t timeout_ms) {
   assert(is_valid_mailbox_id(id));
   assert(p);
   mailbox_object_t *mb = get_mailbox_for_id(id);
+  assert(mb->is_initialized);
   msg_t result =
       chMBFetch(&mb->chibios_mailbox, (msg_t *)p, (systime_t)timeout_ms);
   if (MSG_OK != result) {
@@ -229,7 +230,7 @@ pal_rc_t pal_mailbox_init(mailbox_id_t id, const size_t capacity) {
     return -1;
   }
 
-  /* Error to initialize an already initialized queue. */
+  /* Error to initialize an already initialized mailbox. */
   if (mb->is_initialized) {
     return -1;
   }
@@ -245,6 +246,7 @@ pal_rc_t pal_mailbox_init(mailbox_id_t id, const size_t capacity) {
 pal_rc_t pal_mailbox_post(mailbox_id_t id, const void *p) {
   assert(is_valid_mailbox_id(id));
   mailbox_object_t *mb = get_mailbox_for_id(id);
+  assert(mb->is_initialized);
   msg_t result = chMBPost(&mb->chibios_mailbox, (msg_t)p, TIME_IMMEDIATE);
   if (MSG_OK != result) {
     // TODO(kevin) report errors.
