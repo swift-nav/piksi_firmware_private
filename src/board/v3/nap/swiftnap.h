@@ -10,7 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-/* SwiftNAP v3.17.0 register map */
+/* SwiftNAP v4.0.0 register map */
 
 #ifndef SWIFTNAP_H
 #define SWIFTNAP_H
@@ -18,7 +18,7 @@
 #include <libswiftnav/common.h>
 
 /* Version */
-#define NAP_VERSION (0x03110000)
+#define NAP_VERSION (0x04000000)
 
 /* Number of tracking channels */
 #define NAP_NUM_TRACKING_CHANNELS (67U)

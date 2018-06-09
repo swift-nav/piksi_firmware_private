@@ -14,6 +14,6 @@
         - uImage.piksiv3_prod
     -
       bucket: swiftnav-artifacts
-      prefix: piksi_fpga/v1.4.0-develop-2018060819
+      prefix: piksi_fpga/v1.4.0-develop-2018060819-1-g8bb7dda
       files:
         - piksi_prod_fpga.bit
