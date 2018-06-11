@@ -1126,20 +1126,6 @@ bool tracking_startup_ready(const me_gnss_signal_t mesid) {
   return (acq->state == ACQ_PRN_ACQUIRING) && (!acq->masked);
 }
 
-/**
- * Checks if the tracker is running.
- *
- * \param[in] mesid GNSS ME signal ID to check.
- *
- * \retval true  Tracker for \a mesid is in running state
- * \retval false Tracker for \a mesid is not in running state
- */
-bool tracking_is_running(const me_gnss_signal_t mesid) {
-  u16 global_index = mesid_to_global_index(mesid);
-  acq_status_t *acq = &acq_status[global_index];
-  return (acq->state == ACQ_PRN_TRACKING);
-}
-
 /** Check if a startup request for a mesid is present in a
  *  tracking startup FIFO.
  *
@@ -1379,8 +1365,7 @@ bool mesid_is_tracked(const me_gnss_signal_t mesid) {
      Revisit this if there will be any better way to check
      if SV is in track. */
   u16 global_index = mesid_to_global_index(mesid);
-  acq_status_t *acq = &acq_status[global_index];
-  return acq->state == ACQ_PRN_TRACKING;
+  return (ACQ_PRN_TRACKING == acq_status[global_index].state);
 }
 
 /** Checks if GLONASS enabled
