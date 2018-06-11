@@ -84,7 +84,7 @@ static void imu_aux_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("IMU aux");
 
-  while (TRUE) {
+  while (true) {
     if (raw_imu_output) {
       imu_aux_send();
     }
@@ -105,7 +105,7 @@ static void imu_thread(void *arg) {
   msg_imu_raw_t imu_raw;
   msg_mag_raw_t mag_raw;
 
-  while (TRUE) {
+  while (true) {
     /* Wait until an IMU interrupt occurs. */
     systime_t timeout = TIME_INFINITE;
     if (raw_imu_output || raw_mag_output) {

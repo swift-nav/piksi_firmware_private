@@ -1005,8 +1005,8 @@ ndb_op_code_t ndb_almanac_erase_by_src(gnss_signal_t src_sid) {
  *
  * \param[in] sid  GNSS signal identifier to indicate which alma to send
  *
- * \retval TRUE    Alma found, valid and sent
- * \retval FALSE   Alma not sent
+ * \retval true    Alma found, valid and sent
+ * \retval false   Alma not sent
  */
 bool ndb_almanac_sbp_update_tx(gnss_signal_t sid) {
   almanac_t a;
@@ -1016,10 +1016,10 @@ bool ndb_almanac_sbp_update_tx(gnss_signal_t sid) {
     msg_almanac_t msg;
     msg_info_t info = pack_almanac(&a, &msg);
     sbp_send_msg(info.msg_id, info.size, (u8 *)&msg);
-    return TRUE;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 static ndb_sbp_update_info_t alma_update_info = {

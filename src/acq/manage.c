@@ -204,7 +204,7 @@ static void manage_acq_thread(void *arg) {
 
   init_reacq();
 
-  while (TRUE) {
+  while (true) {
     last_good_fix_t lgf;
     bool have_fix;
 

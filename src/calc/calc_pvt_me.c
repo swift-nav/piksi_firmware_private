@@ -274,7 +274,7 @@ static void update_sat_azel(const double rcv_pos[3], const gps_time_t t) {
  */
 static void me_thd_sleep(piksi_systime_t *next_epoch, u32 interval_us) {
   u32 slept_us = 0;
-  while (TRUE) {
+  while (true) {
     slept_us = piksi_systime_sleep_until_us(next_epoch);
     piksi_systime_inc_us(next_epoch, interval_us);
 
@@ -344,14 +344,14 @@ static void collect_measurements(u64 rec_tc,
         n_collected++;
       } else {
         if (is_gal(meas[n_collected].sid.code)) {
-          log_debug_sid(meas[n_collected].sid,
-                        "HEALTH %s  NAV %s  ELEV %s  TOW %s  EPHE %s  CN0 %s",
-                        (0 != (flags & TRACKER_FLAG_HEALTHY)) ? "Y" : "N",
-                        (0 != (flags & TRACKER_FLAG_NAV_SUITABLE)) ? "Y" : "N",
-                        (0 != (flags & TRACKER_FLAG_ELEVATION)) ? "Y" : "N",
-                        (0 != (flags & TRACKER_FLAG_TOW_VALID)) ? "Y" : "N",
-                        (0 != (flags & TRACKER_FLAG_HAS_EPHE)) ? "Y" : "N",
-                        (0 != (flags & TRACKER_FLAG_CN0_SHORT)) ? "Y" : "N");
+          log_info_sid(meas[n_collected].sid,
+                       "HEALTH %s  NAV %s  ELEV %s  TOW %s  EPHE %s  CN0 %s",
+                       (0 != (flags & TRACKER_FLAG_HEALTHY)) ? "Y" : "N",
+                       (0 != (flags & TRACKER_FLAG_NAV_SUITABLE)) ? "Y" : "N",
+                       (0 != (flags & TRACKER_FLAG_ELEVATION)) ? "Y" : "N",
+                       (0 != (flags & TRACKER_FLAG_TOW_VALID)) ? "Y" : "N",
+                       (0 != (flags & TRACKER_FLAG_HAS_EPHE)) ? "Y" : "N",
+                       (0 != (flags & TRACKER_FLAG_CN0_SHORT)) ? "Y" : "N");
         }
       }
     }
@@ -377,12 +377,23 @@ static void drop_gross_outlier(const navigation_measurement_t *nav_meas,
   for (u8 j = 0; j < 3; j++) {
     geometric_range[j] = nav_meas->sat_pos[j] - current_fix->pos_ecef[j];
   }
-  if (fabs(nav_meas->pseudorange - current_fix->clock_offset * GPS_C -
-           vector_norm(3, geometric_range)) > RAIM_DROP_CHANNEL_THRESHOLD_M) {
+  double pseudorng_error =
+      fabs(nav_meas->pseudorange - current_fix->clock_offset * GPS_C -
+           vector_norm(3, geometric_range));
+
+  bool generic_gross_outlier = pseudorng_error > RAIM_DROP_CHANNEL_THRESHOLD_M;
+  if (generic_gross_outlier) {
     /* mark channel for dropping */
     tracker_set_raim_flag(nav_meas->sid);
     /* clear the ephemeris for this signal */
     ndb_ephemeris_erase(nav_meas->sid);
+  }
+
+  bool boc_halfchip_outlier =
+      (CODE_GAL_E1X == nav_meas->sid.code) && (pseudorng_error > 100);
+  if (boc_halfchip_outlier) {
+    /* mark channel for dropping */
+    tracker_set_raim_flag(nav_meas->sid);
   }
 }
 
@@ -401,7 +412,7 @@ static void me_calc_pvt_thread(void *arg) {
   piksi_systime_get(&next_epoch);
   piksi_systime_inc_us(&next_epoch, SECS_US / soln_freq_setting);
 
-  while (TRUE) {
+  while (true) {
     /* read current value of soln_freq into a local variable that does not
      * change during this loop iteration */
     chSysLock();
