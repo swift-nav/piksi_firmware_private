@@ -490,7 +490,7 @@ static u8 get_profile_index(code_t code,
       return i;
     }
   }
-  return 0;
+  return IDX_SENS;
 }
 
 static struct profile_vars get_profile_vars(const me_gnss_signal_t mesid,
@@ -873,6 +873,8 @@ void tp_profile_init(tracker_t *tracker, const tp_report_t *data) {
   profile->cn0_est = TRACK_CN0_EST_BASIC;
 
   profile->profile_update = 0;
+
+  profile->cn0_offset = compute_cn0_offset(mesid, profile);
 
   tp_profile_update_config(tracker);
 
