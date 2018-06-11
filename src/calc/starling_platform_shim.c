@@ -74,8 +74,6 @@ void platform_mutex_lock(void *mtx) { chMtxLock((mutex_t *)mtx); }
 
 void platform_mutex_unlock(void *mtx) { chMtxUnlock((mutex_t *)mtx); }
 
-void platform_pool_free(void *pool, void *buf) { chPoolFree(pool, buf); }
-
 void platform_thread_create_static(
     void *wa, size_t wa_size, int prio, void (*fn)(void *), void *user) {
   chThdCreateStatic(wa, wa_size, prio, fn, user);
