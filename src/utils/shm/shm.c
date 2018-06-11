@@ -125,16 +125,17 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
   }
 
   switch (sid.code) {
-    case CODE_GPS_L1CA: {
+    case CODE_GPS_L1CA:
+    case CODE_GPS_L1P: {
       /*
       * Return SV_NAV_STATE_INVALID if either of the following:
-      * - shi_ephemeris_set is available and indicates L1CA unhealthy
+      * - shi_ephemeris_set is available and indicates L1CA/L1P unhealthy
       * - shi_lnav_how_alert is available and negative
       * - cnav_msg10 is available and indicates L1 unhealthy
-      * - almanac health bits are available and indicate L1CA unhealthy
+      * - almanac health bits are available and indicate L1CA/L1P unhealthy
       *
       * Return CODE_NAV_STATE_VALID all conditions below are true:
-      * - shi_ephemeris_set is available and indicates L1CA healthy
+      * - shi_ephemeris_set is available and indicates L1CA/L1P healthy
       * - shi_lnav_how_alert is available and positive
       * - One of the following:
       *     - cnav_msg10 is unavailable
@@ -163,53 +164,17 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
       return CODE_NAV_STATE_UNKNOWN;
     }
 
-    case CODE_GPS_L1P: {
-      /*
-      * Return SV_NAV_STATE_INVALID if either of the following:
-      * - shi_ephemeris is available and indicates L1P unhealthy
-      * - shi_lnav_how_alert is available and negative
-      * - cnav_msg10 is available and indicates L1 unhealthy
-      *
-      * Return CODE_NAV_STATE_VALID all conditions below are true:
-      * - shi_ephemeris is available and indicates L1P healthy
-      * - shi_lnav_how_alert is available and positive
-      * - One of the following:
-      *     - Both cnav_msg10 and shi_cnav_alert are unavailable
-      *     - cnav_msg10 is available and indicates L1 healthy
-      *
-      * Otherwise return CODE_NAV_STATE_UNKNOWN
-      */
-      if (shis.shi_lnav_how_alert_set && !shis.shi_lnav_how_alert) {
-        return CODE_NAV_STATE_INVALID;
-      }
-
-      cnav_msg_t cnav_msg10;
-      bool msg10_available = cnav_msg_get(sid, CNAV_MSG_TYPE_10, &cnav_msg10);
-      if (msg10_available && !cnav_msg10.data.type_10.l1_health) {
-        return CODE_NAV_STATE_INVALID;
-      }
-
-      if ((shis.shi_ephemeris_set &&
-           check_6bit_health_word(shis.shi_ephemeris, sid.code)) &&
-          (shis.shi_lnav_how_alert_set && shis.shi_lnav_how_alert) &&
-          ((!shis.shi_cnav_alert_set && !msg10_available) ||
-           (msg10_available && cnav_msg10.data.type_10.l1_health))) {
-        return CODE_NAV_STATE_VALID;
-      }
-
-      return CODE_NAV_STATE_UNKNOWN;
-    }
-
-    case CODE_GPS_L2CM: {
+    case CODE_GPS_L2CM:
+    case CODE_GPS_L2P: {
       /*
        * Return CODE_NAV_STATE_INVALID if either of the following:
-       * - shi_ephemeris is available and indicates L2CM unhealthy
+       * - shi_ephemeris is available and indicates L2CM/L2P unhealthy
        * - shi_cnav_alert is available and negative
        * - cnav_msg10 is available and indicates L2 unhealthy
-       * - almanac health bits are available and indicate L2CM unhealthy
+       * - almanac health bits are available and indicate L2CM/L2P unhealthy
        *
        * Return CODE_NAV_STATE_VALID if all conditions below are true:
-       * - shi_ephemeris is available and indicates L2CM healthy
+       * - shi_ephemeris is available and indicates L2CM/L2P healthy
        * - cnav_msg10 is available and indicates L2 healthy
        * - shi_cnav_alert is available and positive
        *
@@ -228,44 +193,6 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
       if ((shis.shi_ephemeris_set &&
            check_6bit_health_word(shis.shi_ephemeris, sid.code)) &&
           (shis.shi_cnav_alert_set && shis.shi_cnav_alert)) {
-        return CODE_NAV_STATE_VALID;
-      }
-
-      return CODE_NAV_STATE_UNKNOWN;
-    }
-
-    case CODE_GPS_L2P: {
-      /*
-      * Return SV_NAV_STATE_INVALID if either of the following:
-      * - shi_ephemeris is available and indicates L2P unhealthy
-      * - shi_lnav_how_alert is available and negative
-      * - cnav_msg10 is available and indicates L2 unhealthy
-      * - almanac health bits are available and indicate L2P unhealthy
-      *
-      * Return CODE_NAV_STATE_VALID all conditions below are true:
-      * - shi_ephemeris is available and indicates L2P healthy
-      * - shi_lnav_how_alert is available and positive
-      * - One of the following:
-      *     - Both cnav_msg10 and shi_cnav_alert are unavailable
-      *     - cnav_msg10 is available and indicates L2 healthy
-      *
-      * Otherwise return CODE_NAV_STATE_UNKNOWN
-      */
-      if (shis.shi_lnav_how_alert_set && !shis.shi_lnav_how_alert) {
-        return CODE_NAV_STATE_INVALID;
-      }
-
-      cnav_msg_t cnav_msg10;
-      bool msg10_available = cnav_msg_get(sid, CNAV_MSG_TYPE_10, &cnav_msg10);
-      if (msg10_available && !cnav_msg10.data.type_10.l2_health) {
-        return CODE_NAV_STATE_INVALID;
-      }
-
-      if ((shis.shi_ephemeris_set &&
-           check_6bit_health_word(shis.shi_ephemeris, sid.code)) &&
-          (shis.shi_lnav_how_alert_set && shis.shi_lnav_how_alert) &&
-          ((!shis.shi_cnav_alert_set && !msg10_available) ||
-           (msg10_available && cnav_msg10.data.type_10.l2_health))) {
         return CODE_NAV_STATE_VALID;
       }
 

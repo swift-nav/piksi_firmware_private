@@ -53,9 +53,9 @@ bool xcorr_calc_alm_positions(gnss_signal_t sid,
   ndb_op_code_t oc = ndb_almanac_read(sid, &a);
   /* Here we do not care if GPS time is unknown
    * since almanac is used with input time_s. */
-  bool alma_valid = (NDB_ERR_NONE == oc || NDB_ERR_GPS_TIME_MISSING == oc);
+  bool data_elem_valid = (NDB_ERR_NONE == oc || NDB_ERR_GPS_TIME_MISSING == oc);
 
-  if (!alma_valid || a.toa.wn <= 0) {
+  if (!data_elem_valid) {
     return false;
   }
 

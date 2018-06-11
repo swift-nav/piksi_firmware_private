@@ -157,6 +157,7 @@ void update_time(u64 tc, const gnss_solution *sol) {
  */
 void set_time(u64 tc, const gps_time_t *t, double accuracy) {
   if (!gps_time_valid(t)) {
+    log_warn("Invalid gps time in set_time");
     return;
   }
 

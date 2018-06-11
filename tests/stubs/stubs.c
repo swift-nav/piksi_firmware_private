@@ -219,6 +219,12 @@ ndb_op_code_t ndb_utc_params_read(utc_params_t *utc_params_p, bool *is_nv) {
   return NDB_ERR_UNSUPPORTED;
 }
 
+ndb_op_code_t ndb_almanac_read(gnss_signal_t sid, almanac_t *a) {
+  (void)sid;
+  (void)a;
+  return NDB_ERR_MISSING_IE;
+}
+
 u8 code_track_count(code_t code) {
   (void)code;
   return 0;
@@ -230,7 +236,6 @@ u8 constellation_track_count(constellation_t gnss) {
 }
 
 /** SBP stubs */
-
 s8 sbp_send_msg(u16 msg_type, u8 len, u8 buff[]) {
   (void)msg_type;
   (void)len;

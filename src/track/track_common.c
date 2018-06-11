@@ -791,26 +791,6 @@ static void tp_tracker_update_pll_dll(tracker_t *tracker, u32 cycle_flags) {
       tracker_correlations_send(tracker, tracker->corrs.corr_all.five);
     }
 
-    if (tracker->has_next_params) {
-      /* Transitional state: when the next interval has a different integration
-       * period, the controller will give wrong correction. Due to that the
-       * input parameters are scaled to stabilize tracker.
-       */
-      u8 new_dll_ms =
-          tp_profile_get_next_loop_params_ms(tracker->mesid, &tracker->profile);
-      u8 old_dll_ms = tp_get_dll_ms(tracker->tracking_mode);
-
-      if (old_dll_ms != new_dll_ms) {
-        /* TODO utilize noise bandwidth and damping ratio */
-        float k2 = (float)old_dll_ms / new_dll_ms;
-        float k1 = sqrtf(k2);
-        for (u32 i = 0; i < 3; i++) {
-          tracker->corrs.corr_all.five[i].I *= k1;
-          tracker->corrs.corr_all.five[i].Q *= k2;
-        }
-      }
-    }
-
     tl_rates_t rates = {0};
 
     bool costas = true;

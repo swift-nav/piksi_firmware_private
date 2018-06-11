@@ -37,6 +37,14 @@ DESCRIPTION_FILE="build_v3_prod/pr_description.yaml"
 # TRAVIS_TEST_RESULT: is set to 0 if the build is successful and 1 if the build is broken.
 # TRAVIS_TAG: If the current build is for a git tag, this variable is set to the tag’s name.
 
+if [ "$TRAVIS_OS_NAME" != "linux" ]; then
+    exit
+fi
+
+if [ "$TESTENV" == "lint" ]; then
+    exit
+fi
+
 echo "---
 commit:
   sha: $TRAVIS_COMMIT

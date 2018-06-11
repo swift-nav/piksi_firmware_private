@@ -285,6 +285,18 @@ bool tracker_init(const u8 id,
 
     tracker_interface_lookup(mesid.code)->init(tracker);
 
+    /* First profile may have different first integration time depending
+       on signal type and CN0. */
+    tp_tm_e tracking_mode = tracker->profile.loop_params.mode;
+    u8 first_int_ms = tp_get_current_cycle_duration(tracking_mode, 0);
+    assert((1 == first_int_ms) || (2 == first_int_ms));
+    if (tp_get_cycle_count(tracking_mode) > 1) {
+      /* nap_track_init() expects first 2 integration times be equal */
+      u8 second_int_ms = tp_get_current_cycle_duration(tracking_mode, 1);
+      assert(second_int_ms == first_int_ms);
+    }
+    chips_to_correlate = code_to_chip_rate(mesid.code) * 1e-3 * first_int_ms;
+
     /* (tracker->update_timestamp_ms = now) must be executed strictly before
        (tracker->busy = true). Otherwise stale_trackers_cleanup() may kick in
        and kill the tracker as stale. */

@@ -62,7 +62,7 @@ typedef struct {
 /** Internal tracking channel state */
 static struct nap_ch_state {
   me_gnss_signal_t mesid;     /**< Channel ME sid */
-  nap_spacing_t spacing[2];   /**< Correlator spacing */
+  nap_spacing_t spacing;      /**< Correlator spacing */
   u32 length[2];              /**< Correlation length in samples of Fs */
   s32 carr_pinc[2];           /**< Carrier phase increment */
   u32 code_pinc[2];           /**< Code phase increment */
@@ -234,30 +234,23 @@ void nap_track_init(u8 channel,
 
   /* Correlator spacing: VE -> E */
   if (IS_GLO(mesid)) {
-    s->spacing[0] = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
-                                    .samples = NAP_VE_E_GLO_SPACING_SAMPLES};
+    s->spacing = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
+                                 .samples = NAP_VE_E_GLO_SPACING_SAMPLES};
   } else if (IS_BDS2(mesid)) {
-    s->spacing[0] = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
-                                    .samples = NAP_VE_E_BDS2_SPACING_SAMPLES};
+    s->spacing = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
+                                 .samples = NAP_VE_E_BDS2_SPACING_SAMPLES};
   } else if (CODE_GAL_E1X == mesid.code) {
-    s->spacing[0] = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
-                                    .samples = NAP_VE_E_GPS_SPACING_SAMPLES};
+    s->spacing = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
+                                 .samples = NAP_VE_E_GPS_SPACING_SAMPLES};
   } else if (CODE_GAL_E7X == mesid.code) {
-    s->spacing[0] = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
-                                    .samples = NAP_VE_E_GALE7_SPACING_SAMPLES};
+    s->spacing = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
+                                 .samples = NAP_VE_E_GALE7_SPACING_SAMPLES};
   } else {
-    s->spacing[0] = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
-                                    .samples = NAP_VE_E_GPS_SPACING_SAMPLES};
+    s->spacing = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
+                                 .samples = NAP_VE_E_GPS_SPACING_SAMPLES};
   }
 
-  /* Correlator spacing: L -> VL */
-  s->spacing[1] = (nap_spacing_t){.chips = NAP_L_VL_SPACING_CHIPS,
-                                  .samples = NAP_L_VL_SPACING_SAMPLES};
-
   /* Set correlator spacing */
-  t->SPACING =
-      (spacing_to_nap_offset(s->spacing[0]) << NAP_TRK_CH_SPACING_OFFSET0_Pos) |
-      (spacing_to_nap_offset(s->spacing[1]) << NAP_TRK_CH_SPACING_OFFSET1_Pos);
 
   /* code and carrier frequency */
   double carrier_freq_hz = mesid_to_carr_freq(mesid);
@@ -266,8 +259,8 @@ void nap_track_init(u8 channel,
 
   /* Spacing between VE and P correlators */
   s16 delta_samples =
-      NAP_EPL_SPACING_SAMPLES + s->spacing[0].samples +
-      round(s->spacing[0].chips * calc_samples_per_chip(chip_rate));
+      NAP_EPL_SPACING_SAMPLES + s->spacing.samples +
+      round(s->spacing.chips * calc_samples_per_chip(chip_rate));
 
   /* MIC_COMMENT: nap_track_update_init() so that nap_track_update()
    * does not have to branch for the special "init" situation */
@@ -289,7 +282,9 @@ void nap_track_init(u8 channel,
                    length,
                    chip_rate);
   }
-  t->CORR_SET = SET_NAP_CORR_LEN(length);
+  t->CORR_SET =
+      SET_NAP_CORR_LEN(length) + ((u32)spacing_to_nap_offset(s->spacing)
+                                  << NAP_TRK_CH_CORR_SET_SPACING_Pos);
   s->length_adjust = delta_samples;
   /* Carrier phase rate */
   double carrier_dopp_hz = -(s->fcn_freq_hz + doppler_freq_hz);
@@ -451,7 +446,9 @@ void nap_track_update(u8 channel,
 
   t->CORR_SET =
       SET_NAP_CORR_LEN(length) +
-      ((u32)has_pilot_sync << NAP_TRK_CH_CORR_SET_SEC_CODE_ENABLE_Pos);
+      ((u32)has_pilot_sync << NAP_TRK_CH_CORR_SET_SEC_CODE_ENABLE_Pos) +
+      ((u32)spacing_to_nap_offset(s->spacing)
+       << NAP_TRK_CH_CORR_SET_SPACING_Pos);
 
   if ((length < NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MIN_MS)) ||
       (length > NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MAX_MS))) {
@@ -513,8 +510,8 @@ void nap_track_read_results(u8 channel,
   corrs[4].Q = (s16)((trk_ch.CORR[4] >> 16) & 0xFFFF);
 
   /* Spacing between VE and P correlators */
-  double prompt_offset = s->spacing[0].chips +
-                         (NAP_EPL_SPACING_SAMPLES + s->spacing[0].samples) /
+  double prompt_offset = s->spacing.chips +
+                         (NAP_EPL_SPACING_SAMPLES + s->spacing.samples) /
                              calc_samples_per_chip(s->code_phase_rate[1]);
 
   /* Code and carrier phase reckoning */

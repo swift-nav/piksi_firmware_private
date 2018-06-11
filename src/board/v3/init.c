@@ -132,12 +132,11 @@ static bool nap_version_ok(u32 version) {
     return false;
   }
 
-#if (REQUIRED_NAP_VERSION_VAL & ~REQUIRED_NAP_VERSION_MASK) > 0
-  return (version & (~REQUIRED_NAP_VERSION_MASK)) >=
-         (REQUIRED_NAP_VERSION_VAL & (~REQUIRED_NAP_VERSION_MASK));
-#else
-  return (version & (~REQUIRED_NAP_VERSION_MASK)) == 0;
-#endif
+  /* the stupid +1 is to work around the compiler warning:
+   * `comparison of unsigned expression >= 0 is always true`
+   * */
+  return (1 + (version & (~REQUIRED_NAP_VERSION_MASK))) >=
+         (1 + (REQUIRED_NAP_VERSION_VAL & (~REQUIRED_NAP_VERSION_MASK)));
 }
 
 static void nap_version_check(void) {
