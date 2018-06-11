@@ -165,16 +165,18 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
     }
 
     case CODE_GPS_L2CM:
+    case CODE_GPS_L2CL:
+    case CODE_GPS_L2CX:
     case CODE_GPS_L2P: {
       /*
        * Return CODE_NAV_STATE_INVALID if either of the following:
-       * - shi_ephemeris is available and indicates L2CM/L2P unhealthy
+       * - shi_ephemeris is available and indicates L2C/L2P unhealthy
        * - shi_cnav_alert is available and negative
        * - cnav_msg10 is available and indicates L2 unhealthy
-       * - almanac health bits are available and indicate L2CM/L2P unhealthy
+       * - almanac health bits are available and indicate L2C/L2P unhealthy
        *
        * Return CODE_NAV_STATE_VALID if all conditions below are true:
-       * - shi_ephemeris is available and indicates L2CM/L2P healthy
+       * - shi_ephemeris is available and indicates L2C/L2P healthy
        * - cnav_msg10 is available and indicates L2 healthy
        * - shi_cnav_alert is available and positive
        *
@@ -217,11 +219,8 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
       }
       return CODE_NAV_STATE_UNKNOWN;
 
-    case CODE_GPS_L2CL:
-      return CODE_NAV_STATE_UNKNOWN;
-
     case CODE_SBAS_L1CA:
-      assert(!"Unsupported code");
+      return CODE_NAV_STATE_UNKNOWN;
 
     case CODE_GAL_E1B:
     case CODE_GAL_E1C:
@@ -238,7 +237,6 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
 
     case CODE_INVALID:
     case CODE_COUNT:
-    case CODE_GPS_L2CX:
     case CODE_GPS_L5I:
     case CODE_GPS_L5Q:
     case CODE_GPS_L5X:

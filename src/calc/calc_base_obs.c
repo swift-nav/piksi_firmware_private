@@ -168,12 +168,6 @@ static void update_obss(obss_t *new_obss) {
    */
   filter_base_meas(&new_obss->n, new_obss->nm);
 
-  /* Filter out any observation not marked healthy by the ndb. */
-  if (new_obss->n > 0) {
-    new_obss->n =
-        filter_nav_meas(new_obss->n, new_obss->nm, shm_suitable_wrapper);
-  }
-
   if (new_obss->n == 0) {
     log_info("All base obs filtered");
     return;
@@ -386,11 +380,6 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
       (packed_obs_content_t *)(msg + sizeof(observation_header_t));
 
   for (u8 i = 0; i < obs_in_msg && base_obss_rx.n < MAX_CHANNELS; i++) {
-    gnss_signal_t sid = sid_from_sbp(obs[i].sid);
-    if (!sid_supported(sid)) {
-      continue;
-    }
-
     navigation_measurement_t *nm = &base_obss_rx.nm[base_obss_rx.n];
 
     /* Unpack the observation into a navigation_measurement_t. */
@@ -407,6 +396,11 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
     nm->tot = tor;
     nm->tot.tow -= nm->raw_pseudorange / GPS_C;
     normalize_gps_time(&nm->tot);
+
+    /* Filter out any observation without a valid pseudorange observation. */
+    if (!pseudorange_valid(*nm)) {
+      continue;
+    }
 
     /* Calculate satellite parameters using the ephemeris. */
     ephemeris_t ephe;
@@ -438,6 +432,11 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
     }
 
     if (!eph_valid || (cscc_ret != 0) || (css_ret != 0)) {
+      continue;
+    }
+
+    /* Filter out any observation not marked healthy by the ndb. */
+    if (shm_navigation_unusable(nm->sid)) {
       continue;
     }
 
