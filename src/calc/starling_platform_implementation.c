@@ -178,11 +178,11 @@ typedef struct mutex_object_t {
   mutex_t chibios_mutex;
 } mutex_object_t;
 
-static mutex_object_t mutex_objects[PIKSI_MULTI_MAX_NUM_MUTEXES];
+static mutex_object_t mutex_objects[STARLING_MAX_NUM_MUTEXES];
 
 /* Helper function to check that a mutex id is in range. */
 static bool is_valid_mutex_id(mutex_id_t id) {
-  return (id < PIKSI_MULTI_MAX_NUM_MUTEXES);
+  return (id < STARLING_MAX_NUM_MUTEXES);
 }
 
 /* Helper function for getting the mutex pointer from an id. */
@@ -215,12 +215,22 @@ void pal_mutex_unlock(mutex_id_t id) {
  * MAILBOX
  *****************************************************************************/
 
+#define PIKSI_MULTI_MAX_NUM_MAILBOXES 16
+#define PIKSI_MULTI_MAX_MAILBOX_CAPACITY 6
+
+_Static_assert(STARLING_MAX_NUM_MAILBOXES <= PIKSI_MULTI_MAX_NUM_MAILBOXES,
+               "Piksi Multi cannot provide required number of mailboxes.");
+
+
+_Static_assert(STARLING_MAX_NUM_MAILBOXES <= PIKSI_MULTI_MAX_NUM_MAILBOXES,
+               "Piksi Multi cannot provide required mailbox capacity.");
+
 /**
  * Timeout fetch operations on mailboxes will return after
- * a certain number of milliseconds if nothing is there in
+ * a certain number of ticks if nothing is there in
  * this implementation.
  */
-#define STARLING_PLATFORM_MAILBOX_TIMEOUT 5000
+#define PIKSI_MULTI_MAILBOX_TIMEOUT 5000
 
 /**
  * A fundamental assumption of this implementation is that a pointer
@@ -307,7 +317,7 @@ pal_rc_t pal_mailbox_fetch_immediate(mailbox_id_t id, void **p) {
 }
 
 pal_rc_t pal_mailbox_fetch_timeout(mailbox_id_t id, void **p) {
-  return mailbox_fetch(id, p, STARLING_PLATFORM_MAILBOX_TIMEOUT);
+  return mailbox_fetch(id, p, PIKSI_MULTI_MAILBOX_TIMEOUT);
 }
 
 /******************************************************************************

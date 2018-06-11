@@ -38,6 +38,28 @@ extern void starling_integration_simulation_run(const me_msg_obs_t *me_msg);
 #define TIME_MATCHED_OBS_THREAD_PRIORITY (NORMALPRIO - 3)
 #define TIME_MATCHED_OBS_THREAD_STACK (6 * 1024 * 1024)
 
+/* Enumerate all of the locks we will require for this implementation. */
+enum {
+  LOCK_GLOBAL_SETTINGS,
+  LOCK_GLONASS_BIASES,
+  LOCK_REFERENCE_POSITION,
+  LOCK_TIME_MATCHED_FILTER,
+  LOCK_LOW_LATENCY_FILTER,
+  LOCK_SPP_FILTER,
+  LOCK_TIME_MATCHED_IONO_PARAMS,
+  kNumLocks,
+};
+
+/* Enumerate all of the mailboxes we will require for this implementation. */
+enum {
+  MAILBOX_TIME_MATCHED_OBS,
+  MAILBOX_SBAS_DATA,
+  kNumMailboxes,
+};
+
+/* Define the mailbox capacities. */
+#define MAILBOX_SBAS_DATA_CAPACITY 6
+
 /* Tracks if the API has been properly initialized or not. */
 static bool is_starling_api_initialized = false;
 
@@ -70,18 +92,6 @@ typedef struct ReferencePosition {
 #define INIT_ELEVATION_MASK 10.0f
 #define INIT_SOLUTION_FREQUENCY 10.0
 #define INIT_SOLUTION_OUTPUT_MODE STARLING_SOLN_MODE_LOW_LATENCY
-
-/* Enumerate all of the locks we will require for this implementation. */
-enum {
-  LOCK_GLOBAL_SETTINGS,
-  LOCK_GLONASS_BIASES,
-  LOCK_REFERENCE_POSITION,
-  LOCK_TIME_MATCHED_FILTER,
-  LOCK_LOW_LATENCY_FILTER,
-  LOCK_SPP_FILTER,
-  LOCK_TIME_MATCHED_IONO_PARAMS,
-  kNumLocks,
-};
 
 /* Local settings object and mutex protection. */
 static StarlingSettings global_settings = {
@@ -806,6 +816,12 @@ static void initialize_mutexes(void) {
   }
 }
 
+/* Iterate through the mailboxes used in this implementation
+ * and make sure they are all initialized. */
+static void initialize_mailboxes(void) {
+  pal_mailbox_init(MAILBOX_SBAS_DATA, MAILBOX_SBAS_DATA_CAPACITY);
+}
+
 /* Run the starling engine on the current thread. Blocks indefinitely. */
 void starling_run(void) {
   static pal_thread_task_t low_latency_task = {
@@ -835,6 +851,7 @@ void starling_initialize_api(void) {
   assert(!is_starling_api_initialized);
 
   initialize_mutexes();
+  initialize_mailboxes();
 
   platform_sbas_data_mailbox_setup();
 

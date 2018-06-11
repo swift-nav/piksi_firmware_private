@@ -173,7 +173,7 @@ void pal_mutex_unlock(mutex_id_t id);
 // Maximum number of mailboxes requested by the Starling engine.
 #define STARLING_MAX_NUM_MAILBOXES 16
 // Maximum number of entries that mailboxes must support.
-#define STARLING_MAX_MAILBOX_CAPACITY 4
+#define STARLING_MAX_MAILBOX_CAPACITY 6 
 
 /**
  * Used to identify mailboxes. Valid values are in the range
