@@ -818,7 +818,9 @@ static void initialize_mutexes(void) {
 /* Iterate through the mailboxes used in this implementation
  * and make sure they are all initialized. */
 static void initialize_mailboxes(void) {
-  pal_mailbox_init(MAILBOX_SBAS_DATA, MAILBOX_SBAS_DATA_CAPACITY);
+  pal_mailbox_init(MAILBOX_SBAS_DATA, 
+                   sizeof(sbas_raw_data_t), 
+                   MAILBOX_SBAS_DATA_CAPACITY);
 }
 
 /* Run the starling engine on the current thread. Blocks indefinitely. */

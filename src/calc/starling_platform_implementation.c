@@ -19,6 +19,7 @@
 #include <assert.h>
 #include <ch.h>
 #include <inttypes.h>
+#include <stdlib.h>
 
 /******************************************************************************
  * GENERAL
@@ -193,6 +194,7 @@ static mutex_object_t *get_mutex_for_id(mutex_id_t id) {
 void pal_mutex_init(mutex_id_t id) {
   assert(is_valid_mutex_id(id));
   mutex_object_t *mtx = get_mutex_for_id(id);
+  assert(!mtx->is_initialized);
   chMtxObjectInit(&mtx->chibios_mutex);
   mtx->is_initialized = true;
 }
@@ -244,6 +246,8 @@ typedef struct mailbox_object_t {
   bool is_initialized;
   mailbox_t chibios_mailbox;
   msg_t chibios_msg_buffer[STARLING_MAX_MAILBOX_CAPACITY];
+  memory_pool_t chibios_mem_pool;
+  void *chibios_mem_pool_buffer;
 } mailbox_object_t;
 
 /* Collection of mailbox state objects used in this implementation. */
@@ -276,10 +280,12 @@ static pal_rc_t mailbox_fetch(mailbox_id_t id, void **p, uint32_t timeout_ms) {
 }
 
 /**
+ * Initializing a mailbox is a little bit complicated. Because messages are passed
+ * by pointer, a mailbox has also an accompanying object pool with which messages 
+ * are allocated and freed.
  */
-pal_rc_t pal_mailbox_init(mailbox_id_t id, const size_t capacity) {
+pal_rc_t pal_mailbox_init(mailbox_id_t id, size_t msg_size, size_t capacity) {
   assert(is_valid_mailbox_id(id));
-
   mailbox_object_t *mb = get_mailbox_for_id(id);
 
   /* Error to request capacity larger than max value. */
@@ -292,9 +298,19 @@ pal_rc_t pal_mailbox_init(mailbox_id_t id, const size_t capacity) {
     return -1;
   }
 
-  chMBObjectInit(&mb->chibios_mailbox, mb->chibios_msg_buffer, capacity);
-  mb->is_initialized = true;
+  /* Attempt to create an appropriately sized memory region for message
+   * allocations. */
+  mb->chibios_mem_pool_buffer = malloc(msg_size * capacity);
+  if (!mb->chibios_mem_pool_buffer) {
+    return -1;
+  }
 
+  /* Initialize the mailbox and it's corresponding message object pool. */
+  chMBObjectInit(&mb->chibios_mailbox, mb->chibios_msg_buffer, capacity);
+  chPoolObjectInit(&mb->chibios_mem_pool, msg_size, NULL);
+  chPoolLoadArray(&mb->chibios_mem_pool, mb->chibios_mem_pool_buffer, capacity);
+
+  mb->is_initialized = true;
   return STARLING_PAL_OK;
 }
 
@@ -320,25 +336,3 @@ pal_rc_t pal_mailbox_fetch_timeout(mailbox_id_t id, void **p) {
   return mailbox_fetch(id, p, PIKSI_MULTI_MAILBOX_TIMEOUT);
 }
 
-/******************************************************************************
- * ALLOCATOR
- *****************************************************************************/
-
-// STARTUP_ONLY
-pal_rc_t pal_allocator_register(const size_t block_size,
-                                const size_t n_blocks) {
-  (void)block_size;
-  (void)n_blocks;
-  return -1;
-}
-
-pal_rc_t pal_allocator_alloc(const size_t block_size, void **p) {
-  (void)block_size;
-  (void)p;
-  return -1;
-}
-
-pal_rc_t pal_allocator_free(void *p) {
-  (void)p;
-  return -1;
-}

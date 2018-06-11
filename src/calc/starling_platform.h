@@ -156,7 +156,13 @@ pal_rc_t pal_run_thread_tasks(
  */
 typedef uint32_t mutex_id_t;
 
+/**
+ * Initialize a mutex object.
+ *
+ * STARTUP_ONLY
+ */
 void pal_mutex_init(mutex_id_t id);
+
 void pal_mutex_lock(mutex_id_t id);
 void pal_mutex_unlock(mutex_id_t id);
 
@@ -168,6 +174,11 @@ void pal_mutex_unlock(mutex_id_t id);
  * Mailboxes are identified and accessed by index only. This decision
  * was made so that the "finite-ness" of the mailboxes is encoded in
  * the API. Obviously, it is an error to index a mailbox which doesn't exist.
+ *
+ * Furthermore, since all messages are passed by pointer, the mailbox also 
+ * provides functionality for alloc'ing and freeing the corresponding 
+ * messages. It is incumbent on anyone using a mailbox to allocate messages
+ * prior to "post" operations, and to free messages upon receiving them. 
  */
 
 // Maximum number of mailboxes requested by the Starling engine.
@@ -187,13 +198,26 @@ typedef uint32_t mailbox_id_t;
  *
  * STARTUP_ONLY
  */
-pal_rc_t pal_mailbox_init(mailbox_id_t id, const size_t capacity);
+pal_rc_t pal_mailbox_init(mailbox_id_t id, size_t msg_size, size_t capacity);
+
+/**
+ * Allocate a message for the id'th mailbox. If the returned pointer
+ * is NULL, then there are no messages slots available to be alloc'd. 
+ * */
+void *pal_mailbox_alloc_message(mailbox_id_t id);
+
+/**
+ * Free a message for the id'th mailbox. Attempting to free a message
+ * that wasn't allocated, or was allocated with a different mailbox
+ * causes undefined behavior.
+ */
+void pal_mailbox_free_message(mailbox_id_t id, void *msg);
 
 /**
  * Post a message to the mailbox. This may fail if the mailbox
  * is full.
  */
-pal_rc_t pal_mailbox_post(mailbox_id_t id, const void *p);
+pal_rc_t pal_mailbox_post(mailbox_id_t id, const void *msg);
 
 /**
  * Try and perform a non-blocking fetch operation on the mailbox.
@@ -201,7 +225,7 @@ pal_rc_t pal_mailbox_post(mailbox_id_t id, const void *p);
  * or some other error occurs, a platform-specific error code
  * is returned.
  */
-pal_rc_t pal_mailbox_fetch_immediate(mailbox_id_t id, void **p);
+pal_rc_t pal_mailbox_fetch_immediate(mailbox_id_t id, void **msg);
 
 /**
  * Try and perform a blocking fetch operation on the mailbox.
@@ -213,17 +237,6 @@ pal_rc_t pal_mailbox_fetch_immediate(mailbox_id_t id, void **p);
  * as the immediate variant, although the platform may also return a
  * timeout error code.
  */
-pal_rc_t pal_mailbox_fetch_timeout(mailbox_id_t id, void **p);
-
-/******************************************************************************
- * ALLOCATOR
- *****************************************************************************/
-
-// STARTUP_ONLY
-pal_rc_t pal_allocator_register(const size_t block_size, const size_t n_blocks);
-
-pal_rc_t pal_allocator_alloc(const size_t block_size, void **p);
-
-pal_rc_t pal_allocator_free(void *p);
+pal_rc_t pal_mailbox_fetch_timeout(mailbox_id_t id, void **msg);
 
 #endif
