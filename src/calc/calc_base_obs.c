@@ -145,19 +145,20 @@ static inline bool shm_suitable_wrapper(navigation_measurement_t meas) {
  * \note This function is stateful as it must store the previous observation
  *       set for the TDCP Doppler.
  */
-static void update_obss(obss_t *new_obss) {
+static void update_obss(remote_obss_t *new_uncollapsed_obss) {
   static gps_time_t tor_old = GPS_TIME_UNKNOWN;
 
   /* We don't want to allow observations that have the same or earlier time
    * stamp than the last received */
-  if (gps_time_valid(&tor_old) && gpsdifftime(&new_obss->tor, &tor_old) <= 0) {
+  if (gps_time_valid(&tor_old) &&
+      gpsdifftime(&new_uncollapsed_obss->tor, &tor_old) <= 0) {
     log_info("Observation received with equal or earlier time stamp, ignoring");
     return;
   }
 
   /* Ensure observations sorted by PRN. */
-  qsort(new_obss->nm,
-        new_obss->n,
+  qsort(new_uncollapsed_obss->nm,
+        new_uncollapsed_obss->n,
         sizeof(navigation_measurement_t),
         nav_meas_cmp);
   /** Precheck any base station observations and filter if needed. This is not a
@@ -166,12 +167,39 @@ static void update_obss(obss_t *new_obss) {
    *  details, see:
    *  https://github.com/swift-nav/estimation_team_planning/issues/215.
    */
-  filter_base_meas(&new_obss->n, new_obss->nm);
+  filter_base_meas(&new_uncollapsed_obss->n, new_uncollapsed_obss->nm);
 
-  if (new_obss->n == 0) {
+  if (new_uncollapsed_obss->n == 0) {
     log_info("All base obs filtered");
     return;
   }
+
+  /* After collapsing the measurements to Piksi supported signals,
+   * only less or equal than MAX_CHANNELS measurements should remain. */
+  if (new_uncollapsed_obss->n > MAX_CHANNELS) {
+    log_warn("Obs collapsing failure");
+  }
+
+  /* Copy contents of new_uncollapsed_obss into new_obss. */
+  obss_t obss;
+  obss_t *new_obss = &obss;
+  new_obss->tor = new_uncollapsed_obss->tor;
+  new_obss->has_pos = new_uncollapsed_obss->has_pos;
+  new_obss->soln = new_uncollapsed_obss->soln;
+  new_obss->n = new_uncollapsed_obss->n;
+  new_obss->sender_id = new_uncollapsed_obss->sender_id;
+  MEMCPY_S(new_obss->pos_ecef,
+           sizeof(new_obss->pos_ecef),
+           new_uncollapsed_obss->pos_ecef,
+           sizeof(new_uncollapsed_obss->pos_ecef));
+  MEMCPY_S(new_obss->known_pos_ecef,
+           sizeof(new_obss->known_pos_ecef),
+           new_uncollapsed_obss->known_pos_ecef,
+           sizeof(new_uncollapsed_obss->known_pos_ecef));
+  MEMCPY_S(new_obss->nm,
+           sizeof(new_obss->nm),
+           new_uncollapsed_obss->nm,
+           MAX_CHANNELS * sizeof(navigation_measurement_t));
 
   /* Count distinct satellites */
   gnss_sid_set_t codes;
@@ -301,7 +329,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
   /* As we receive observation messages we assemble them into a working
    * `obss_t` (`base_obss_rx`) so as not to disturb the global `base_obss`
    * state that may be in use. */
-  static obss_t base_obss_rx = {.has_pos = 0};
+  static remote_obss_t base_obss_rx = {.has_pos = 0};
 
   /* An SBP sender ID of zero means that the messages are relayed observations
    * from the console, not from the base station. We don't want to use them and
@@ -379,7 +407,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
   packed_obs_content_t *obs =
       (packed_obs_content_t *)(msg + sizeof(observation_header_t));
 
-  for (u8 i = 0; i < obs_in_msg && base_obss_rx.n < MAX_CHANNELS; i++) {
+  for (u8 i = 0; i < obs_in_msg && base_obss_rx.n < MAX_REMOTE_OBS; i++) {
     navigation_measurement_t *nm = &base_obss_rx.nm[base_obss_rx.n];
 
     /* Unpack the observation into a navigation_measurement_t. */
