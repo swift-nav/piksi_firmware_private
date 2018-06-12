@@ -430,7 +430,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
       continue;
     }
 
-    /* Filter out any observation not marked healthy by the ndb. */
+    /* Filter out any observation not marked healthy by the SHM. */
     if (shm_navigation_unusable(nm->sid)) {
       continue;
     }
