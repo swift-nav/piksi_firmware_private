@@ -224,7 +224,8 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/utils/nav_bit_fifo/nav_bit_fifo.o \
         $(SWIFTNAV_ROOT)/src/utils/nav_data_sync/nav_data_sync.o \
         $(SWIFTNAV_ROOT)/src/me_msg/me_msg.o \
-	$(SWIFTNAV_ROOT)/src/calc/starling_mailbox_implementation.o \
+	$(SWIFTNAV_ROOT)/src/calc/mailbox.o \
+	$(SWIFTNAV_ROOT)/src/calc/object_pool.o \
         $(BOARDDIR)/ndb_fs_access.o \
         $(SWIFTNAV_ROOT)/src/main/main.o
 

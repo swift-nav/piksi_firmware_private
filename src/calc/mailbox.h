@@ -30,8 +30,8 @@
  * after which they should be used for the remaining duration of the
  * program.
  *
- * Furthermore, it is assumed that in many cases, messages will be
- * passed by pointer. For this reason, the mailbox implementation will
+ * Furthermore, it is assumed that in all cases, messages are exactly
+ * the size of a pointer. For this reason, the mailbox implementation will
  * often have some kind of object pool for message allocation. This
  * mechanism is exposed via the functions for allocating and freeing
  * message buffers.
@@ -44,33 +44,10 @@
 typedef struct mailbox_impl_t mailbox_impl_t;
 
 /**
- * Functions for querying the "finite-ness" of the implementation.
- * These should be provided so that the Starling engine can include
- * some sanity checking that the implementation will be sufficient.
- */
-size_t mailbox_get_max_count(void);
-size_t mailbox_get_max_capacity(void);
-
-/**
  * Should return a pointer to the next available mailbox instance, or
  * NULL if there are no more available.
- *
- * The size of messages is required so that the appropriate underlying
- * object pool can be created. The capacity is the maximum number of 
- * messages allowed in the mailbox at any given time.
- *
- * Requests for a mailbox with message size of 0 will not allocate
- * an object pool.
  */
-mailbox_impl_t *mailbox_init(size_t msg_size, size_t capacity);
-
-/**
- * Allocate and free message buffers used in the implementation.
- * For large objects, we don't really want to perform unnecessary 
- * copies, so the mailbox will allow allocation of the messages
- */
-void *mailbox_alloc_message(mailbox_impl_t *self);
-void mailbox_free_message(mailbox_impl_t *self, void *msg);
+mailbox_impl_t *mailbox_init(size_t capacity);
 
 /**
  * Post a message to the back or front of the mailbox queue.
@@ -95,5 +72,13 @@ int mailbox_post_front(mailbox_impl_t *self, const void *msg);
  */
 int mailbox_fetch_immediate(mailbox_impl_t *self, void **msg);
 int mailbox_fetch_timeout(mailbox_impl_t *self, void **msg);
+
+/**
+ * Functions for querying the "finite-ness" of the implementation.
+ * These should be provided so that the Starling engine can include
+ * some sanity checking that the implementation will be sufficient.
+ */
+size_t mailbox_implementation_get_max_count(void);
+size_t mailbox_implementation_get_max_capacity(void);
 
 #endif

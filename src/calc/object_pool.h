@@ -10,15 +10,22 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ifndef FIXED_ALLOCATOR_H
-#define FIXED_ALLOCATOR_H
+#ifndef OBJECT_POOL_H
+#define OBJECT_POOL_H
 
 #include <stddef.h>
 
-typedef struct fixed_allocator_t fixed_allocator_t;
+typedef struct object_pool_t object_pool_t;
 
-fixed_allocator_t *fixed_allocator_init(size_t block_size, size_t capacity);
-void *fixed_allocator_alloc(fixed_allocator_t *self);
-void  fixed_allocator_free(fixed_allocator_t *self, void *block);
+object_pool_t *object_pool_init(size_t object_size, size_t capacity);
+void *object_pool_alloc(object_pool_t *self);
+void  object_pool_free(object_pool_t *self, void *object);
+
+/**
+ * Query the implementation for its limitations. Allows some
+ * degree of sanity checking at the application level.
+ */
+size_t object_pool_implementation_get_max_count(void);
+size_t object_pool_implementation_get_max_available_bytes(void);
 
 #endif

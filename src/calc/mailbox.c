@@ -15,22 +15,20 @@
 #include <libswiftnav/logging.h>
 
 #include <ch.h>
+#include <stdint.h>
 
 /**
  * Here we provide an implementation of Starling's required mailbox
  * interface for Piksi Multi. Some things to note:
  *
  * - There is a finite number of mailboxes.
- * - Mailboxes support up to a fixed capacity.
+ * - Mailboxes can hold messages up to a fixed capacity.
  * - Everything is handled with the ChibiOS primitives.
  * - All return codes are taken directly from ChibiOS (where 0 means success).
- * - Mailboxes with non-zero message size have an accompanying object pool.
- * - Object pool memory is taken from a statically allocated buffer.
  */
 
 /* Implementation assumptions. */
-_Static_assert(MSG_OK == 0,
-               "Mailbox Error: chibiOS does not return 0 for success.");
+_Static_assert(MSG_OK == 0, "Mailbox Error: chibiOS does not return 0 for success.");
 
 #define MAILBOX_MAX_COUNT 8
 #define MAILBOX_MAX_CAPACITY 8
@@ -39,24 +37,19 @@ _Static_assert(MSG_OK == 0,
  * operation. */
 #define MAILBOX_IMPLEMENTATION_TIMEOUT 5000
 
+/* clang-format off */
 struct mailbox_impl_t {
-  size_t msg_size;
   mailbox_t chibios_mailbox;
-  msg_t chibios_msg_buffer[MAILBOX_MAX_CAPACITY];
+  msg_t     chibios_msg_buffer[MAILBOX_MAX_CAPACITY];
 };
+/* clang-format on */
 
 static mailbox_impl_t mailboxes[MAILBOX_MAX_COUNT];
 
 static int num_mailboxes_in_use = 0;
 
 /*******************************************************************************/
-size_t mailbox_get_max_count(void) { return MAILBOX_MAX_COUNT; }
-
-/*******************************************************************************/
-size_t mailbox_get_max_capacity(void) { return MAILBOX_MAX_CAPACITY; }
-
-/*******************************************************************************/
-mailbox_impl_t *mailbox_init(size_t msg_size, size_t capacity) {
+mailbox_impl_t *mailbox_init(size_t capacity) {
   if (capacity > MAILBOX_MAX_CAPACITY) {
     log_error("Mailbox Error: request for unsupported capacity.");
     return NULL;
@@ -72,16 +65,6 @@ mailbox_impl_t *mailbox_init(size_t msg_size, size_t capacity) {
 }
 
 /*******************************************************************************/
-void *mailbox_alloc(mailbox_impl_t *self) {
-  return NULL;
-}
-
-/*******************************************************************************/
-void mailbox_free(mailbox_impl_t *self, void *msg) {
-  return;
-}
-
-/*******************************************************************************/
 int mailbox_post(mailbox_impl_t *self, const void *msg) {
   return chMBPost(&self->chibios_mailbox, (msg_t)msg, TIME_IMMEDIATE);
 }
@@ -93,10 +76,18 @@ int mailbox_post_ahead(mailbox_impl_t *self, const void *msg) {
 
 /*******************************************************************************/
 int mailbox_fetch_immediate(mailbox_impl_t *self, void **msg) {
-  return chMBFetch(&self->chibios_mailbox, (msg_t *)msg, TIME_IMMEDIATE);
+  return chMBFetch(&self->chibios_mailbox, (msg_t *)(*msg), TIME_IMMEDIATE);
 }
 
 /*******************************************************************************/
 int mailbox_fetch_timeout(mailbox_impl_t *self, void **msg) {
-  return chMBFetch(&self->chibios_mailbox, (msg_t *)msg, MAILBOX_IMPLEMENTATION_TIMEOUT);
+  return chMBFetch(&self->chibios_mailbox, (msg_t *)(*msg), MAILBOX_IMPLEMENTATION_TIMEOUT);
 }
+
+/*******************************************************************************/
+size_t mailbox_get_max_count(void) { return MAILBOX_MAX_COUNT; }
+
+/*******************************************************************************/
+size_t mailbox_get_max_capacity(void) { return MAILBOX_MAX_CAPACITY; }
+
+
