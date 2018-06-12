@@ -448,12 +448,9 @@ static void tp_tracker_update_correlators(tracker_t *tracker, u32 cycle_flags) {
                             &code_phase_prompt,
                             &carrier_phase);
 
-  if ((CODE_GAL_E5I == mesid.code) ||
-      (CODE_GAL_E5Q == mesid.code) ||
-      (CODE_GAL_E5X == mesid.code) ||
-      (CODE_GAL_E7I == mesid.code) ||
-      (CODE_GAL_E7Q == mesid.code) ||
-      (CODE_GAL_E7X == mesid.code)) {
+  if ((CODE_GAL_E5I == mesid.code) || (CODE_GAL_E5Q == mesid.code) ||
+      (CODE_GAL_E5X == mesid.code) || (CODE_GAL_E7I == mesid.code) ||
+      (CODE_GAL_E7Q == mesid.code) || (CODE_GAL_E7X == mesid.code)) {
     /* for Galileo E5a and E5b all tracking happens on the pilot
      * and when sync is achieved on the SC100 (Prompt)
      * the data can be extracted on the Very Late correlator.

@@ -377,13 +377,15 @@ void nap_track_init(u8 channel,
     NAP->TRK_CODE_LFSR1_RESET = mesid_to_lfsr1_init(mesid1, 0);
     NAP->TRK_CODE_LFSR1_LAST = mesid_to_lfsr1_last(mesid1);
 
-    if ((mesid.code == CODE_GAL_E5I) || (mesid.code == CODE_GAL_E5Q) || (mesid.code == CODE_GAL_E5X)) {
+    if ((mesid.code == CODE_GAL_E5I) || (mesid.code == CODE_GAL_E5Q) ||
+        (mesid.code == CODE_GAL_E5X)) {
       index = mesid.sat - 1;
       NAP->TRK_SEC_CODE[3] = getbitu(gal_e5q_sec_codes[index], 0, 4);
       NAP->TRK_SEC_CODE[2] = getbitu(gal_e5q_sec_codes[index], 4, 32);
       NAP->TRK_SEC_CODE[1] = getbitu(gal_e5q_sec_codes[index], 36, 32);
       NAP->TRK_SEC_CODE[0] = getbitu(gal_e5q_sec_codes[index], 68, 32);
-    } else if ((mesid.code == CODE_GAL_E7I) || (mesid.code == CODE_GAL_E7Q) || (mesid.code == CODE_GAL_E7X)) {
+    } else if ((mesid.code == CODE_GAL_E7I) || (mesid.code == CODE_GAL_E7Q) ||
+               (mesid.code == CODE_GAL_E7X)) {
       index = mesid.sat - 1;
       NAP->TRK_SEC_CODE[3] = getbitu(gal_e7q_sec_codes[index], 0, 4);
       NAP->TRK_SEC_CODE[2] = getbitu(gal_e7q_sec_codes[index], 4, 32);
@@ -542,7 +544,8 @@ void nap_track_read_results(u8 channel,
 #ifndef PIKSI_RELEASE
   /* Useful for debugging correlators */
 
-  if ((s->mesid.code == CODE_GAL_E7I) || (s->mesid.code == CODE_GAL_E7Q) || (s->mesid.code == CODE_GAL_E7X)) {
+  if ((s->mesid.code == CODE_GAL_E7I) || (s->mesid.code == CODE_GAL_E7Q) ||
+      (s->mesid.code == CODE_GAL_E7X)) {
     log_debug("EPL %02d   %+3ld %+3ld   %+3ld %+3ld   %+3ld %+3ld",
               s->mesid.sat,
               corrs[3].I >> 6,

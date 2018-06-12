@@ -255,8 +255,7 @@ void tracker_bit_sync_update(tracker_t *tracker,
     return;
   }
 
-  if ((CODE_GAL_E7I == mesid.code) ||
-      (CODE_GAL_E7Q == mesid.code) ||
+  if ((CODE_GAL_E7I == mesid.code) || (CODE_GAL_E7Q == mesid.code) ||
       (CODE_GAL_E7X == mesid.code)) {
     log_debug("E%02d energy %+4ld %+4ld  %+4ld %+4ld",
               mesid.sat,
