@@ -235,8 +235,6 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
       }
       return CODE_NAV_STATE_UNKNOWN;
 
-    case CODE_INVALID:
-    case CODE_COUNT:
     case CODE_GPS_L5I:
     case CODE_GPS_L5Q:
     case CODE_GPS_L5X:
@@ -254,6 +252,10 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
     case CODE_QZS_L5I:
     case CODE_QZS_L5Q:
     case CODE_QZS_L5X:
+      return CODE_NAV_STATE_UNKNOWN;
+
+    case CODE_INVALID:
+    case CODE_COUNT:
     default:
       assert(!"Invalid code");
   }

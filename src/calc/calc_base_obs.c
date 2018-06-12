@@ -402,6 +402,11 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
       continue;
     }
 
+    /* Filter out any observation not marked healthy by the ndb. */
+    if (shm_navigation_unusable(nm->sid)) {
+      continue;
+    }
+
     /* Calculate satellite parameters using the ephemeris. */
     ephemeris_t ephe;
     ndb_op_code_t res = ndb_ephemeris_read(nm->sid, &ephe);
@@ -432,11 +437,6 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
     }
 
     if (!eph_valid || (cscc_ret != 0) || (css_ret != 0)) {
-      continue;
-    }
-
-    /* Filter out any observation not marked healthy by the ndb. */
-    if (shm_navigation_unusable(nm->sid)) {
       continue;
     }
 
