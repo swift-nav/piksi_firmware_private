@@ -39,9 +39,9 @@ gnss_capabilities_t gnss_capab = {.gps_active = 0x0ffffffffULL,
 
                                   .qzss_active = 0x3ff,
 
-                                  .gal_active = 0x67be2ddfULL,
-                                  .gal_e5 = 0x67b62ddfULL,
-                                  .gps_e6 = 0x67b62ddfULL};
+                                  .gal_active = 0x0000000022840DDFull,
+                                  .gal_e5 = 0x0000000022840DDFull,
+                                  .gps_e6 = 0x0000000022840DDFull};
 
 /** \defgroup gnss_capabilities Constellation capabilities
  * Functions used in gnss capabilities
