@@ -43,7 +43,7 @@ static tracker_interface_function_t tracker_gal_e1_update;
 
 /** GAL E1 tracker interface */
 static const tracker_interface_t tracker_interface_gal_e1 = {
-    .code = CODE_GAL_E1X,
+    .code = CODE_GAL_E1B,
     .init = tracker_gal_e1_init,
     .update = tracker_gal_e1_update,
     .disable = tp_tracker_disable,
@@ -103,7 +103,7 @@ void gal_e7_to_e1_handover(u32 sample_count,
                            float cn0_init) {
   static s8 rand_start = 0;
   /* compose E1 MESID: same SV, but code is E1 */
-  me_gnss_signal_t mesid_e1 = construct_mesid(CODE_GAL_E1X, sat);
+  me_gnss_signal_t mesid_e1 = construct_mesid(CODE_GAL_E1B, sat);
 
   if (!tracking_startup_ready(mesid_e1)) {
     log_debug_mesid(mesid_e1, "already in track");
@@ -121,7 +121,7 @@ void gal_e7_to_e1_handover(u32 sample_count,
       /* recalculate doppler freq for E7 from E1 */
       .carrier_freq = carrier_freq * GAL_E1_HZ / GAL_E7_HZ,
       .code_phase = fmod(code_phase / 10.0 + rand_start * 1023,
-                         code_to_chip_count(CODE_GAL_E1X)),
+                         code_to_chip_count(CODE_GAL_E1B)),
       /* chips to correlate during first 1 ms of tracking */
       .chips_to_correlate = code_to_chip_rate(mesid_e1.code) * 1e-3,
       /* get initial cn0 from parent E1 channel */

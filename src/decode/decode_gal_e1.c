@@ -39,7 +39,7 @@ static void decoder_gal_e1_process(const decoder_channel_info_t *channel_info,
                                    decoder_data_t *decoder_data);
 
 static const decoder_interface_t decoder_interface_gal = {
-    .code = CODE_GAL_E1X,
+    .code = CODE_GAL_E1B,
     .init = decoder_gal_e1_init,
     .disable = decoder_disable,
     .process = decoder_gal_e1_process,
@@ -148,7 +148,7 @@ static void decoder_gal_e1_process(const decoder_channel_info_t *channel_info,
                   k->tgd_gal_s[0],
                   k->tgd_gal_s[1]);
         log_debug("    %19.11E%19.11E ", rint(t.tow), 0.0);
-        dd.ephemeris.sid.code = CODE_GAL_E1X;
+        dd.ephemeris.sid.code = CODE_GAL_E1B;
         dd.ephemeris.valid = 1;
         shm_gal_set_shi(dd.ephemeris.sid.sat, dd.ephemeris.health_bits);
         /* having the ephemeris on both E1 and E7 is generating

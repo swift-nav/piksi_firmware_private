@@ -456,7 +456,7 @@ static void manage_acq(void) {
          (CODE_SBAS_L1CA == acq->mesid.code) ||
          (CODE_BDS2_B11 == acq->mesid.code) ||
          (CODE_QZS_L1CA == acq->mesid.code) ||
-         (CODE_GAL_E1X == acq->mesid.code));
+         (CODE_GAL_E1B == acq->mesid.code));
 
   float doppler_min = code_to_sv_doppler_min(acq->mesid.code) +
                       code_to_tcxo_doppler_min(acq->mesid.code);
@@ -494,9 +494,11 @@ static void manage_acq(void) {
     float cp = acq_result.cp;
     float cf = acq_result.cf;
 
-    if (CODE_GAL_E1X == acq->mesid.code) {
-      mesid_trk.code = CODE_GAL_E7X;
-      cp = fmodf(cp * 10.0f, code_to_chip_count(CODE_GAL_E7X));
+    if ((CODE_GAL_E1B == acq->mesid.code) ||
+        (CODE_GAL_E1C == acq->mesid.code) ||
+        (CODE_GAL_E1X == acq->mesid.code)) {
+      mesid_trk.code = CODE_GAL_E7I;
+      cp = fmodf(cp * 10.0f, code_to_chip_count(CODE_GAL_E7I));
       cf = cf * GAL_E7_HZ / GAL_E1_HZ;
     }
 
@@ -1035,11 +1037,9 @@ u32 get_tracking_channel_meas(u8 i,
       meas->carrier_phase += 0.5;
     }
 
-    if (CODE_GAL_E1X == meas->sid.code) {
-      meas->sid.code = CODE_GAL_E1B;
+    if (CODE_GAL_E1B == meas->sid.code) {
       meas->carrier_phase += 0.5;
-    } else if (CODE_GAL_E7X == meas->sid.code) {
-      meas->sid.code = CODE_GAL_E7I;
+    } else if (CODE_GAL_E7I == meas->sid.code) {
       meas->carrier_phase -= 0.25;
     }
 

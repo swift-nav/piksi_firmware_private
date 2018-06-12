@@ -123,6 +123,8 @@ static u8 mesid_to_nap_code(const me_gnss_signal_t mesid) {
     case CODE_GPS_L2P:
       assert(!"Unsupported SID");
       break;
+    case CODE_GAL_E1B:
+    case CODE_GAL_E1C:
     case CODE_GAL_E1X:
 #if defined CODE_GAL_E1_SUPPORT && CODE_GAL_E1_SUPPORT > 0
       ret = NAP_TRK_CODE_GAL_E1;
@@ -130,6 +132,8 @@ static u8 mesid_to_nap_code(const me_gnss_signal_t mesid) {
       assert(!"Invalid code");
 #endif /* CODE_GAL_E1_SUPPORT*/
       break;
+    case CODE_GAL_E7I:
+    case CODE_GAL_E7Q:
     case CODE_GAL_E7X:
       ret = NAP_TRK_CODE_GAL_E7;
       break;
@@ -137,13 +141,9 @@ static u8 mesid_to_nap_code(const me_gnss_signal_t mesid) {
     case CODE_GPS_L5I:
     case CODE_GPS_L5Q:
     case CODE_GPS_L5X:
-    case CODE_GAL_E1B:
-    case CODE_GAL_E1C:
     case CODE_GAL_E6B:
     case CODE_GAL_E6C:
     case CODE_GAL_E6X:
-    case CODE_GAL_E7I:
-    case CODE_GAL_E7Q:
     case CODE_GAL_E8:
     case CODE_GAL_E5I:
     case CODE_GAL_E5Q:
@@ -192,8 +192,8 @@ void nap_track_init(u8 channel,
          (mesid.code == CODE_SBAS_L1CA) || (mesid.code == CODE_BDS2_B11) ||
          (mesid.code == CODE_BDS2_B2) || (mesid.code == CODE_QZS_L1CA) ||
          (mesid.code == CODE_QZS_L2CM) || (mesid.code == CODE_QZS_L2CL) ||
-         (mesid.code == CODE_QZS_L5X) || (mesid.code == CODE_GAL_E1X) ||
-         (mesid.code == CODE_GAL_E7X));
+         (mesid.code == CODE_QZS_L5X) || (mesid.code == CODE_GAL_E1B) ||
+         (mesid.code == CODE_GAL_E7I));
 
   swiftnap_tracking_wr_t *t = &NAP->TRK_CH_WR[channel];
   struct nap_ch_state *s = &nap_ch_desc[channel];
@@ -205,7 +205,7 @@ void nap_track_init(u8 channel,
               (uintptr_t)t,
               (uintptr_t)s);
   }
-  if (mesid.code == CODE_GAL_E1X) {
+  if (mesid.code == CODE_GAL_E1B) {
     log_debug("E%02" PRIu8 " e1bc channel %" PRIu8 " t %" PRIxPTR
               " s %" PRIxPTR,
               mesid.sat,
@@ -213,7 +213,7 @@ void nap_track_init(u8 channel,
               (uintptr_t)t,
               (uintptr_t)s);
   }
-  if (mesid.code == CODE_GAL_E7X) {
+  if (mesid.code == CODE_GAL_E7I) {
     log_debug("E%02" PRIu8 " e5bIQ channel %" PRIu8 " t %" PRIxPTR
               " s %" PRIxPTR,
               mesid.sat,
@@ -239,10 +239,10 @@ void nap_track_init(u8 channel,
   } else if (IS_BDS2(mesid)) {
     s->spacing = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
                                  .samples = NAP_VE_E_BDS2_SPACING_SAMPLES};
-  } else if (CODE_GAL_E1X == mesid.code) {
+  } else if (CODE_GAL_E1B == mesid.code) {
     s->spacing = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
                                  .samples = NAP_VE_E_GPS_SPACING_SAMPLES};
-  } else if (CODE_GAL_E7X == mesid.code) {
+  } else if (CODE_GAL_E7I == mesid.code) {
     s->spacing = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
                                  .samples = NAP_VE_E_GALE7_SPACING_SAMPLES};
   } else {
@@ -324,7 +324,7 @@ void nap_track_init(u8 channel,
       } else {
         num_codes = BDS2_B11_D1NAV_SYMBOL_LENGTH_MS / BDS2_B11_SYMB_LENGTH_MS;
       }
-    } else if (CODE_GAL_E7X == mesid.code) {
+    } else if (is_gal(mesid.code)) {
       /* default num_codes = 1 */;
     } else {
       assert(0);
@@ -357,7 +357,7 @@ void nap_track_init(u8 channel,
   }
 
 #if defined CODE_GAL_E1_SUPPORT && CODE_GAL_E1_SUPPORT > 0
-  if (mesid.code == CODE_GAL_E1X) {
+  if (mesid.code == CODE_GAL_E1B) {
     index = mesid.sat - 1;
     for (u16 k = 0; k < GAL_E1B_PRN_BYTES; k++) {
       NAP->TRK_MEMCODE_CFG =
@@ -377,13 +377,13 @@ void nap_track_init(u8 channel,
     NAP->TRK_CODE_LFSR1_RESET = mesid_to_lfsr1_init(mesid1, 0);
     NAP->TRK_CODE_LFSR1_LAST = mesid_to_lfsr1_last(mesid1);
 
-    if (mesid.code == CODE_GAL_E5X) {
+    if ((mesid.code == CODE_GAL_E5I) || (mesid.code == CODE_GAL_E5Q) || (mesid.code == CODE_GAL_E5X)) {
       index = mesid.sat - 1;
       NAP->TRK_SEC_CODE[3] = getbitu(gal_e5q_sec_codes[index], 0, 4);
       NAP->TRK_SEC_CODE[2] = getbitu(gal_e5q_sec_codes[index], 4, 32);
       NAP->TRK_SEC_CODE[1] = getbitu(gal_e5q_sec_codes[index], 36, 32);
       NAP->TRK_SEC_CODE[0] = getbitu(gal_e5q_sec_codes[index], 68, 32);
-    } else if (mesid.code == CODE_GAL_E7X) {
+    } else if ((mesid.code == CODE_GAL_E7I) || (mesid.code == CODE_GAL_E7Q) || (mesid.code == CODE_GAL_E7X)) {
       index = mesid.sat - 1;
       NAP->TRK_SEC_CODE[3] = getbitu(gal_e7q_sec_codes[index], 0, 4);
       NAP->TRK_SEC_CODE[2] = getbitu(gal_e7q_sec_codes[index], 4, 32);
@@ -542,7 +542,7 @@ void nap_track_read_results(u8 channel,
 #ifndef PIKSI_RELEASE
   /* Useful for debugging correlators */
 
-  if (s->mesid.code == CODE_GAL_E7X) {
+  if ((s->mesid.code == CODE_GAL_E7I) || (s->mesid.code == CODE_GAL_E7Q) || (s->mesid.code == CODE_GAL_E7X)) {
     log_debug("EPL %02d   %+3ld %+3ld   %+3ld %+3ld   %+3ld %+3ld",
               s->mesid.sat,
               corrs[3].I >> 6,
