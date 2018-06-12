@@ -136,7 +136,7 @@ void gal_e1_to_e7_handover(u32 sample_count,
 
   switch (tracking_startup_request(&startup_params)) {
     case 0:
-      log_warn_mesid(mesid_e7, "E5b handover done with %+d", rand_start);
+      log_debug_mesid(mesid_e7, "handover done with %+d", rand_start);
       break;
 
     case 1:
@@ -145,7 +145,7 @@ void gal_e1_to_e7_handover(u32 sample_count,
       break;
 
     case 2:
-      log_warn_mesid(mesid_e7, "Failed to start E5b tracking");
+      log_warn_mesid(mesid_e7, "failed to start tracking");
       break;
 
     default:
