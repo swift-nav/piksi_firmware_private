@@ -241,7 +241,7 @@ static void update_tow_qzss_l2c(tracker_t *tracker_channel, u32 cycle_flags) {
     bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
     if ((TOW_UNKNOWN != tracker_channel->TOW_ms) &&
         (tracker_channel->cn0 >= CN0_TOW_CACHE_THRESHOLD) && confirmed &&
-        !tracking_is_running(construct_mesid(CODE_QZS_L1CA, mesid.sat))) {
+        !mesid_is_tracked(construct_mesid(CODE_QZS_L1CA, mesid.sat))) {
       /* Update ToW cache:
        * - bit edge is reached
        * - CN0 is OK

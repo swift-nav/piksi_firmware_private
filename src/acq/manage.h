@@ -102,7 +102,6 @@ u32 get_tracking_channel_sid_flags(const gnss_signal_t sid,
 u8 tracking_channels_ready(u32 required_flags);
 
 bool tracking_startup_ready(const me_gnss_signal_t mesid);
-bool tracking_is_running(const me_gnss_signal_t mesid);
 u8 tracking_startup_request(const tracking_startup_params_t *startup_params);
 
 bool l1ca_l2cm_handover_reserve(u8 sat);
