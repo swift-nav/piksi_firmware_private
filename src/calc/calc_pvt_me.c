@@ -377,12 +377,23 @@ static void drop_gross_outlier(const navigation_measurement_t *nav_meas,
   for (u8 j = 0; j < 3; j++) {
     geometric_range[j] = nav_meas->sat_pos[j] - current_fix->pos_ecef[j];
   }
-  if (fabs(nav_meas->pseudorange - current_fix->clock_offset * GPS_C -
-           vector_norm(3, geometric_range)) > RAIM_DROP_CHANNEL_THRESHOLD_M) {
+  double pseudorng_error =
+      fabs(nav_meas->pseudorange - current_fix->clock_offset * GPS_C -
+           vector_norm(3, geometric_range));
+
+  bool generic_gross_outlier = pseudorng_error > RAIM_DROP_CHANNEL_THRESHOLD_M;
+  if (generic_gross_outlier) {
     /* mark channel for dropping */
     tracker_set_raim_flag(nav_meas->sid);
     /* clear the ephemeris for this signal */
     ndb_ephemeris_erase(nav_meas->sid);
+  }
+
+  bool boc_halfchip_outlier =
+      (CODE_GAL_E1B == nav_meas->sid.code) && (pseudorng_error > 100);
+  if (boc_halfchip_outlier) {
+    /* mark channel for dropping */
+    tracker_set_raim_flag(nav_meas->sid);
   }
 }
 

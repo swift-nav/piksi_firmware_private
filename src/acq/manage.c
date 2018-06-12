@@ -1035,6 +1035,14 @@ u32 get_tracking_channel_meas(u8 i,
       meas->carrier_phase += 0.5;
     }
 
+    if (CODE_GAL_E1X == sid.code) {
+      sid.code = CODE_GAL_E1B;
+      meas->carrier_phase += 0.5;
+    } else if (CODE_GAL_E7X == sid.code) {
+      sid.code = CODE_GAL_E7I;
+      meas->carrier_phase -= 0.25;
+    }
+
     /* Adjust carrier phase initial integer offset to be approximately equal to
      * pseudorange.
      *
