@@ -43,7 +43,7 @@ static tracker_interface_function_t tracker_gal_e7_update;
 
 /** GAL E7 tracker interface */
 static const tracker_interface_t tracker_interface_gal_e7 = {
-    .code = CODE_GAL_E7X,
+    .code = CODE_GAL_E7I,
     .init = tracker_gal_e7_init,
     .update = tracker_gal_e7_update,
     .disable = tp_tracker_disable,
@@ -107,7 +107,7 @@ void gal_e1_to_e7_handover(u32 sample_count,
   static s8 rand_seed = 0;
   s8 rand_start;
   /* compose E7 MESID: same SV, but code is E7 */
-  me_gnss_signal_t mesid_e7 = construct_mesid(CODE_GAL_E7X, sat);
+  me_gnss_signal_t mesid_e7 = construct_mesid(CODE_GAL_E7I, sat);
 
   if (!tracking_startup_ready(mesid_e7)) {
     log_debug_mesid(mesid_e7, "already in track");
@@ -127,7 +127,7 @@ void gal_e1_to_e7_handover(u32 sample_count,
       /* recalculate doppler freq for E7 from E1 */
       .carrier_freq = carrier_freq * GAL_E7_HZ / GAL_E1_HZ,
       .code_phase = fmod(code_phase * 10.0 + rand_start,
-                         code_to_chip_count(CODE_GAL_E7X)),
+                         code_to_chip_count(CODE_GAL_E7I)),
       /* chips to correlate during first 1 ms of tracking */
       .chips_to_correlate = code_to_chip_rate(mesid_e7.code) * 1e-3,
       /* get initial cn0 from parent E1 channel */
@@ -136,7 +136,7 @@ void gal_e1_to_e7_handover(u32 sample_count,
 
   switch (tracking_startup_request(&startup_params)) {
     case 0:
-      log_warn_mesid(mesid_e7, "E5b handover done with %+d", rand_start);
+      log_debug_mesid(mesid_e7, "handover done with %+d", rand_start);
       break;
 
     case 1:
@@ -145,7 +145,7 @@ void gal_e1_to_e7_handover(u32 sample_count,
       break;
 
     case 2:
-      log_warn_mesid(mesid_e7, "Failed to start E5b tracking");
+      log_warn_mesid(mesid_e7, "failed to start tracking");
       break;
 
     default:

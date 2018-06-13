@@ -418,7 +418,7 @@ static tp_tm_e get_track_mode(me_gnss_signal_t mesid,
       track_mode = entry->profile.tm_nh20ms;
     }
   } else if (IS_GAL(mesid)) {
-    if ((CODE_GAL_E1X == mesid.code) || (CODE_GAL_E7X == mesid.code)) {
+    if ((CODE_GAL_E1B == mesid.code) || (CODE_GAL_E7I == mesid.code)) {
       track_mode = entry->profile.tm_sc4;
     }
   } else {

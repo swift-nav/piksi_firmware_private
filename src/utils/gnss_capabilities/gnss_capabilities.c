@@ -16,7 +16,18 @@
 
 #include "gnss_capabilities.h"
 
-/* as of March 2018 */
+/* one can use a simple Matlab script to generate these:
+PRNS_PRESENT = [11 12 19  26 24 30 ...
+                 8  9  1   2  7  3 ...
+                 4  5 21  25 27 31];
+mask = repmat('0', 1, 64);
+mask(PRNS_PRESENT) = '1';
+fl_mask = fliplr(mask);
+fprintf(1, '0x%016Xull \n', bin2dec(fl_mask))
+fprintf(1, 'E%02d\n', strfind(mask, '1'));
+*/
+
+/* as of June 2018 */
 gnss_capabilities_t gnss_capab = {.gps_active = 0x0ffffffffULL,
                                   .gps_l2c = 0x0f7814bf5ULL,
                                   .gps_l5 = 0x0a78003a5ULL,
@@ -39,9 +50,9 @@ gnss_capabilities_t gnss_capab = {.gps_active = 0x0ffffffffULL,
 
                                   .qzss_active = 0x3ff,
 
-                                  .gal_active = 0x67be2ddfULL,
-                                  .gal_e5 = 0x67b62ddfULL,
-                                  .gps_e6 = 0x67b62ddfULL};
+                                  .gal_active = 0x0000000067940DDFull,
+                                  .gal_e5 = 0x0000000067940DDFull,
+                                  .gps_e6 = 0x0000000067940DDFull};
 
 /** \defgroup gnss_capabilities Constellation capabilities
  * Functions used in gnss capabilities
