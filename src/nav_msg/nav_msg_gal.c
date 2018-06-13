@@ -219,6 +219,9 @@ bool gal_inav_msg_update(nav_msg_gal_inav_t *n, s8 bit_val) {
 
   /* if different from the flipped, we are in phase */
   n->bit_polarity = differ1 ? BIT_POLARITY_NORMAL : BIT_POLARITY_INVERTED;
+  if (differ0) {
+    log_warn("E%02d inverted preamble", n->prn);
+  }
 
   /* don't try anything for another 500 symbols */
   n->holdoff = 2 * (GAL_INAV_SYNC_BITS + GAL_INAV_PAGE_SYMB) - 1;
