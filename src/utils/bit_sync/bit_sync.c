@@ -104,6 +104,8 @@ void bit_sync_init(bit_sync_t *b, const me_gnss_signal_t mesid) {
       }
       break;
 
+    case CODE_GAL_E1B:
+    case CODE_GAL_E1C:
     case CODE_GAL_E1X:
       bit_length = 4;
       /* TODO: add GAL_CS100_MS to constants.h in LSNP, or me_constants.h */
@@ -119,6 +121,8 @@ void bit_sync_init(bit_sync_t *b, const me_gnss_signal_t mesid) {
       }
       break;
 
+    case CODE_GAL_E5I:
+    case CODE_GAL_E5Q:
     case CODE_GAL_E5X:
       bit_length = 20;
       /* TODO: add GAL_CS100_MS to constants.h in LSNP, or me_constants.h */
@@ -130,6 +134,8 @@ void bit_sync_init(bit_sync_t *b, const me_gnss_signal_t mesid) {
       }
       break;
 
+    case CODE_GAL_E7I:
+    case CODE_GAL_E7Q:
     case CODE_GAL_E7X:
       bit_length = 4;
       /* TODO: add GAL_CS100_MS to constants.h in LSNP, or me_constants.h */
@@ -145,16 +151,10 @@ void bit_sync_init(bit_sync_t *b, const me_gnss_signal_t mesid) {
     case CODE_GPS_L2P:
     case CODE_GPS_L2CX:
     case CODE_GPS_L5X:
-    case CODE_GAL_E1B:
-    case CODE_GAL_E1C:
     case CODE_GAL_E6B:
     case CODE_GAL_E6C:
     case CODE_GAL_E6X:
-    case CODE_GAL_E7I:
-    case CODE_GAL_E7Q:
     case CODE_GAL_E8:
-    case CODE_GAL_E5I:
-    case CODE_GAL_E5Q:
     case CODE_QZS_L2CX:
     case CODE_QZS_L5X:
     case CODE_INVALID:
@@ -260,7 +260,7 @@ static void histogram_update(bit_sync_t *b,
       b->bit_phase_ref = b->bit_phase;
     }
 
-  } else if (CODE_GAL_E7X == b->mesid.code) {
+  } else if (CODE_GAL_E7I == b->mesid.code) {
     /* Galileo E7Q has a SC100 secondary code */
     if (ABS(b->histogram[0]) > 3) {
       memset(b->histogram, 0, sizeof(b->histogram));
@@ -286,7 +286,7 @@ static void histogram_update(bit_sync_t *b,
       b->bit_phase_ref = (b->bit_phase + 2) % b->bit_length;
     }
 
-  } else if (CODE_GAL_E5X == b->mesid.code) {
+  } else if (CODE_GAL_E5I == b->mesid.code) {
     /* TODO: this is untested */
     /* Galileo E5Q has a SC100 secondary code */
     if (ABS(b->histogram[0]) > 3) {
@@ -311,7 +311,7 @@ static void histogram_update(bit_sync_t *b,
       b->bit_phase_ref = (b->bit_phase + 2) % b->bit_length;
     }
 
-  } else if (CODE_GAL_E1X == b->mesid.code) {
+  } else if (CODE_GAL_E1B == b->mesid.code) {
     /* Galileo E1C has a SC25 secondary code */
     s8 hist_head = b->histogram[0];
     /* rotate the histogram left */

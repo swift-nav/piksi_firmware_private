@@ -137,6 +137,9 @@ void sm_init(acq_jobs_state_t *data) {
       u16 idx = sm_constellation_to_start_index(gnss);
       u16 num_sv = constellation_to_sat_count(gnss);
       code_t code = constellation_to_l1_code(gnss);
+      if ((CODE_GAL_E1C == code) || (CODE_GAL_E1X == code)) {
+        code = CODE_GAL_E1B;
+      }
       acq_job_t *job = &data->jobs[type][idx];
       u16 first_prn = reacq_gnss[k].first_prn;
       for (i = 0; i < num_sv; i++) {
