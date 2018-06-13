@@ -69,9 +69,9 @@ typedef struct {
   navigation_measurement_t nm[MAX_CHANNELS];
 } obss_t;
 
-#define MAX_REMOTE_OBS 100
+#define MAX_REMOTE_OBS 150
 /**
- * Observation input type.
+ * Uncollapsed observation input type.
  * Remote observations may contain multiple useful signals for satellites.
  * This observation type can fit more observations than the obss_t.
  * Eventually signals in uncollapsed_obss_t are collapsed, and copied to obss_t.
@@ -98,7 +98,7 @@ typedef struct {
   u8 sender_id;
   /** Set of observations. */
   navigation_measurement_t nm[MAX_REMOTE_OBS];
-} remote_obss_t;
+} uncollapsed_obss_t;
 
 /**
  * Filter result data type returned by various API functions.

@@ -145,7 +145,7 @@ static inline bool shm_suitable_wrapper(navigation_measurement_t meas) {
  * \note This function is stateful as it must store the previous observation
  *       set for the TDCP Doppler.
  */
-static void update_obss(remote_obss_t *new_uncollapsed_obss) {
+static void update_obss(uncollapsed_obss_t *new_uncollapsed_obss) {
   static gps_time_t tor_old = GPS_TIME_UNKNOWN;
 
   /* We don't want to allow observations that have the same or earlier time
@@ -327,9 +327,9 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
   static gps_time_t prev_tor = GPS_TIME_UNKNOWN;
 
   /* As we receive observation messages we assemble them into a working
-   * `obss_t` (`base_obss_rx`) so as not to disturb the global `base_obss`
-   * state that may be in use. */
-  static remote_obss_t base_obss_rx = {.has_pos = 0};
+   * `obss_t` (`uncollapsed_obss_rx`) so as not to disturb the global
+   * `base_obss` state that may be in use. */
+  static uncollapsed_obss_t base_obss_rx = {.has_pos = 0};
 
   /* An SBP sender ID of zero means that the messages are relayed observations
    * from the console, not from the base station. We don't want to use them and
