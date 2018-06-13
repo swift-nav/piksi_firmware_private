@@ -194,6 +194,8 @@ static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
     case CODE_GPS_L1CA:
     case CODE_SBAS_L1CA:
     case CODE_QZS_L1CA:
+    case CODE_GAL_E1B:
+    case CODE_GAL_E1C:
     case CODE_GAL_E1X:
       nco_step = CirclesToUint32(GPS_L1_HZ / (double)FAU_RAW_FS);
 
@@ -250,6 +252,8 @@ static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
       }
       break;
 
+    case CODE_GAL_E7I:
+    case CODE_GAL_E7Q:
     case CODE_GAL_E7X:
       nco_step = CirclesToUint32(GAL_E7_HZ / (double)FAU_RAW_FS);
 
@@ -279,8 +283,6 @@ static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
     case CODE_GPS_L5Q:
     case CODE_GPS_L5X:
     case CODE_BDS2_B2:
-    case CODE_GAL_E1B:
-    case CODE_GAL_E1C:
     case CODE_GAL_E6B:
     case CODE_GAL_E6C:
     case CODE_GAL_E6X:
@@ -288,8 +290,6 @@ static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
     case CODE_GAL_E5I:
     case CODE_GAL_E5Q:
     case CODE_GAL_E5X:
-    case CODE_GAL_E7I:
-    case CODE_GAL_E7Q:
     case CODE_QZS_L2CM:
     case CODE_QZS_L2CL:
     case CODE_QZS_L2CX:
@@ -387,21 +387,25 @@ static bool SoftMacqMdbzp(const me_gnss_signal_t mesid,
                     BPSK);
       break;
 
+    case CODE_GAL_E1B:
+    case CODE_GAL_E1C:
     case CODE_GAL_E1X:
-      fau_conf.iNumCodeSlices = FAU_MDBZP_MS_SLICES * GAL_E1C_PRN_PERIOD_MS;
-      fau_conf.iCodeTimeMs = GAL_E1C_PRN_PERIOD_MS;
+      fau_conf.iNumCodeSlices = FAU_MDBZP_MS_SLICES * GAL_E1B_PRN_PERIOD_MS;
+      fau_conf.iCodeTimeMs = GAL_E1B_PRN_PERIOD_MS;
       fau_conf.iCohCodes = FAU_GALE1_COHE;
       fau_conf.iNcohAcc = FAU_GALE1_NONC;
       fau_conf.uSecCodeLen = 0;
       code_resample(local_code,
-                    GAL_E1C_CHIPS_NUM,
+                    GAL_E1B_CHIPS_NUM,
                     GAL_E1_CHIPPING_RATE,
                     code_upsamp,
-                    FAU_SPMS * GAL_E1C_PRN_PERIOD_MS,
+                    FAU_SPMS * GAL_E1B_PRN_PERIOD_MS,
                     FAU_RAW_FS / FAU_DECFACT,
                     BOC_N1);
       break;
 
+    case CODE_GAL_E5I:
+    case CODE_GAL_E5Q:
     case CODE_GAL_E5X:
       fau_conf.iNumCodeSlices = FAU_MDBZP_MS_SLICES * GAL_E5Q_PRN_PERIOD_MS;
       fau_conf.iCodeTimeMs = GAL_E5Q_PRN_PERIOD_MS;
@@ -417,6 +421,8 @@ static bool SoftMacqMdbzp(const me_gnss_signal_t mesid,
                     BPSK);
       break;
 
+    case CODE_GAL_E7I:
+    case CODE_GAL_E7Q:
     case CODE_GAL_E7X:
       fau_conf.iNumCodeSlices = FAU_MDBZP_MS_SLICES * GAL_E7Q_PRN_PERIOD_MS;
       fau_conf.iCodeTimeMs = GAL_E7Q_PRN_PERIOD_MS;
@@ -444,16 +450,10 @@ static bool SoftMacqMdbzp(const me_gnss_signal_t mesid,
     case CODE_GPS_L5Q:
     case CODE_GPS_L5X:
     case CODE_BDS2_B2:
-    case CODE_GAL_E1B:
-    case CODE_GAL_E1C:
     case CODE_GAL_E6B:
     case CODE_GAL_E6C:
     case CODE_GAL_E6X:
-    case CODE_GAL_E7I:
-    case CODE_GAL_E7Q:
     case CODE_GAL_E8:
-    case CODE_GAL_E5I:
-    case CODE_GAL_E5Q:
     case CODE_QZS_L2CM:
     case CODE_QZS_L2CL:
     case CODE_QZS_L2CX:

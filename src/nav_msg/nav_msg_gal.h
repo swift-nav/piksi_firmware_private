@@ -73,7 +73,7 @@ extern "C" {
 #define GAL_INAV_V27_POLY_B 0x6D /* 0b01101101 - reversed 0133 */
 
 /** Galileo fit_interval definition */
-#define GAL_FIT_INTERVAL_SECONDS (2 * HOUR_SECS)
+#define GAL_FIT_INTERVAL_SECONDS (4 * HOUR_SECS)
 
 /**
  * Galileo message decoder object.

@@ -637,9 +637,13 @@ u32 mesid_to_lfsr0_init(const me_gnss_signal_t mesid, const u8 index) {
     case CODE_GPS_L5Q:
       ret = 0xFFFFFFFF; /* 13 bit, all 1's */
       break;
+    case CODE_GAL_E5I:
+    case CODE_GAL_E5Q:
     case CODE_GAL_E5X:
       ret = gal_e5i_prns_init_values[mesid.sat - GAL_FIRST_PRN] & 0x3FFF;
       break;
+    case CODE_GAL_E7I:
+    case CODE_GAL_E7Q:
     case CODE_GAL_E7X:
       ret = gal_e7i_prns_init_values[mesid.sat - GAL_FIRST_PRN] & 0x3FFF;
       break;
@@ -653,11 +657,7 @@ u32 mesid_to_lfsr0_init(const me_gnss_signal_t mesid, const u8 index) {
     case CODE_GAL_E6B:
     case CODE_GAL_E6C:
     case CODE_GAL_E6X:
-    case CODE_GAL_E7I:
-    case CODE_GAL_E7Q:
     case CODE_GAL_E8:
-    case CODE_GAL_E5I:
-    case CODE_GAL_E5Q:
     case CODE_QZS_L2CX:
     case CODE_QZS_L5I:
     case CODE_QZS_L5Q:
@@ -718,9 +718,13 @@ u32 mesid_to_lfsr1_init(const me_gnss_signal_t mesid, const u8 index) {
     case CODE_BDS2_B2:
       ret = bds2_prns_init_values[mesid.sat - BDS2_FIRST_PRN] & 0x7FF;
       break;
+    case CODE_GAL_E5I:
+    case CODE_GAL_E5Q:
     case CODE_GAL_E5X:
       ret = gal_e5q_prns_init_values[mesid.sat - GAL_FIRST_PRN] & 0x3FFF;
       break;
+    case CODE_GAL_E7I:
+    case CODE_GAL_E7Q:
     case CODE_GAL_E7X:
       ret = gal_e7q_prns_init_values[mesid.sat - GAL_FIRST_PRN] & 0x3FFF;
       break;
@@ -735,11 +739,7 @@ u32 mesid_to_lfsr1_init(const me_gnss_signal_t mesid, const u8 index) {
     case CODE_GAL_E6B:
     case CODE_GAL_E6C:
     case CODE_GAL_E6X:
-    case CODE_GAL_E7I:
-    case CODE_GAL_E7Q:
     case CODE_GAL_E8:
-    case CODE_GAL_E5I:
-    case CODE_GAL_E5Q:
     case CODE_QZS_L2CX:
     case CODE_QZS_L5I:
     case CODE_QZS_L5Q:
@@ -794,9 +794,13 @@ u32 mesid_to_lfsr0_last(me_gnss_signal_t mesid) {
       ret = 0x17FF; /* should be 1 1111 1111 1101 as per IS-GPS-705D
                        but need to work around NAP logic */
       break;
+    case CODE_GAL_E5I:
+    case CODE_GAL_E5Q:
     case CODE_GAL_E5X:
       ret = gal_e5i_prns_last_values[mesid.sat - GAL_FIRST_PRN] & 0x3FFF;
       break;
+    case CODE_GAL_E7I:
+    case CODE_GAL_E7Q:
     case CODE_GAL_E7X:
       ret = gal_e7i_prns_last_values[mesid.sat - GAL_FIRST_PRN] & 0x3FFF;
       break;
@@ -810,11 +814,7 @@ u32 mesid_to_lfsr0_last(me_gnss_signal_t mesid) {
     case CODE_GAL_E6B:
     case CODE_GAL_E6C:
     case CODE_GAL_E6X:
-    case CODE_GAL_E7I:
-    case CODE_GAL_E7Q:
     case CODE_GAL_E8:
-    case CODE_GAL_E5I:
-    case CODE_GAL_E5Q:
     case CODE_QZS_L2CX:
     case CODE_QZS_L5I:
     case CODE_QZS_L5Q:
@@ -871,9 +871,13 @@ u32 mesid_to_lfsr1_last(me_gnss_signal_t mesid) {
     case CODE_QZS_L2CL:
       ret = qzss_l2cl_prns_last_values[mesid.sat - QZS_FIRST_PRN] & 0x7FFFFFF;
       break;
+    case CODE_GAL_E5I:
+    case CODE_GAL_E5Q:
     case CODE_GAL_E5X:
       ret = gal_e5q_prns_last_values[mesid.sat - GAL_FIRST_PRN] & 0x3FFF;
       break;
+    case CODE_GAL_E7I:
+    case CODE_GAL_E7Q:
     case CODE_GAL_E7X:
       ret = gal_e7q_prns_last_values[mesid.sat - GAL_FIRST_PRN] & 0x3FFF;
       break;
@@ -888,11 +892,7 @@ u32 mesid_to_lfsr1_last(me_gnss_signal_t mesid) {
     case CODE_GAL_E6B:
     case CODE_GAL_E6C:
     case CODE_GAL_E6X:
-    case CODE_GAL_E7I:
-    case CODE_GAL_E7Q:
     case CODE_GAL_E8:
-    case CODE_GAL_E5I:
-    case CODE_GAL_E5Q:
     case CODE_QZS_L2CX:
     case CODE_QZS_L5I:
     case CODE_QZS_L5Q:
@@ -927,7 +927,11 @@ const u8* ca_code(const me_gnss_signal_t mesid) {
     return bds2_codes[(mesid.sat) - BDS2_FIRST_PRN];
   }
 
-  if (CODE_GAL_E1X == mesid.code) {
+  if ((CODE_GAL_E1B == mesid.code) || (CODE_GAL_E1X == mesid.code)) {
+    return gal_e1b_codes[(mesid.sat) - GAL_FIRST_PRN];
+  }
+
+  if (CODE_GAL_E1C == mesid.code) {
     return gal_e1c_codes[(mesid.sat) - GAL_FIRST_PRN];
   }
 

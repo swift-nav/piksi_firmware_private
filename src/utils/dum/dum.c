@@ -217,7 +217,7 @@ void dum_get_doppler_wndw(const gnss_signal_t *sid,
   assert(sid_valid(*sid));
   assert((CODE_GPS_L1CA == sid->code) || (CODE_GLO_L1OF == sid->code) ||
          (CODE_SBAS_L1CA == sid->code) || (CODE_BDS2_B11 == sid->code) ||
-         (CODE_GAL_E1X == sid->code));
+         (CODE_GAL_E1B == sid->code));
 
   float default_doppler_min =
       code_to_sv_doppler_min(sid->code) + code_to_tcxo_doppler_min(sid->code);

@@ -223,7 +223,11 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
     case CODE_SBAS_L1CA:
       assert(!"Unsupported code");
 
+    case CODE_GAL_E1B:
+    case CODE_GAL_E1C:
     case CODE_GAL_E1X:
+    case CODE_GAL_E7I:
+    case CODE_GAL_E7Q:
     case CODE_GAL_E7X:
       if (shi_gal.shi_set && (SV_UNHEALTHY == shi_gal.shi)) {
         return CODE_NAV_STATE_INVALID;
@@ -238,13 +242,9 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
     case CODE_GPS_L5I:
     case CODE_GPS_L5Q:
     case CODE_GPS_L5X:
-    case CODE_GAL_E1B:
-    case CODE_GAL_E1C:
     case CODE_GAL_E6B:
     case CODE_GAL_E6C:
     case CODE_GAL_E6X:
-    case CODE_GAL_E7I:
-    case CODE_GAL_E7Q:
     case CODE_GAL_E8:
     case CODE_GAL_E5I:
     case CODE_GAL_E5Q:
