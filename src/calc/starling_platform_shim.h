@@ -36,17 +36,6 @@ bool platform_try_read_iono_corr(ionosphere_t *params);
 /* Miscellaneous */
 void platform_watchdog_notify_starling_main_thread(void);
 
-/* internal communication between threads */
-void platform_time_matched_obs_mailbox_init(void);
-int32_t platform_time_matched_obs_mailbox_post(int32_t msg, uint32_t timeout);
-int32_t platform_time_matched_obs_mailbox_post_ahead(int32_t msg,
-                                                     uint32_t timeout);
-int32_t platform_time_matched_obs_mailbox_fetch(int32_t *msg, uint32_t timeout);
-
-/* memory management for internal communication */
-obss_t *platform_time_matched_obs_alloc(void);
-void platform_time_matched_obs_free(obss_t *ptr);
-
 /* used for receiving obs messages */
 int32_t platform_base_obs_mailbox_fetch(int32_t *msg, uint32_t timeout);
 void platform_base_obs_free(obss_t *ptr);

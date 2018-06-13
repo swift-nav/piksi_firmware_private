@@ -30,8 +30,8 @@
 /* Implementation assumptions. */
 _Static_assert(MSG_OK == 0, "Mailbox Error: chibiOS does not return 0 for success.");
 
-#define MAILBOX_MAX_COUNT 8
-#define MAILBOX_MAX_CAPACITY 8
+#define MAILBOX_MAX_COUNT 8 
+#define MAILBOX_MAX_CAPACITY 150 
 
 /* This is an implementation-specific timeout for the fetch with timeout
  * operation. */
@@ -65,12 +65,12 @@ mailbox_impl_t *mailbox_init(size_t capacity) {
 }
 
 /*******************************************************************************/
-int mailbox_post(mailbox_impl_t *self, const void *msg) {
+int mailbox_post_back(mailbox_impl_t *self, const void *msg) {
   return chMBPost(&self->chibios_mailbox, (msg_t)msg, TIME_IMMEDIATE);
 }
 
 /*******************************************************************************/
-int mailbox_post_ahead(mailbox_impl_t *self, const void *msg) {
+int mailbox_post_front(mailbox_impl_t *self, const void *msg) {
   return chMBPostAhead(&self->chibios_mailbox, (msg_t)msg, TIME_IMMEDIATE);
 }
 
