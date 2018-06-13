@@ -471,6 +471,11 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
     base_obss_rx.n++;
   }
 
+  /* Print msg if we encounter a remote which sends large amount of obs. */
+  if (MAX_REMOTE_OBS == base_obss_rx.n) {
+    log_info("Remote obs reached MAX_REMOTE_OBS amount");
+  }
+
   /* If we can, and all the obs have been received, update to using the new
    * obss. */
   if (count == total - 1) {
