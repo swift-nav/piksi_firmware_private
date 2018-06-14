@@ -30,6 +30,8 @@
 
 #include "starling_platform_shim.h"
 #include "starling_threads.h"
+#include "mailbox.h"
+#include "object_pool.h"
 
 extern bool starling_integration_simulation_enabled(void);
 extern void starling_integration_simulation_run(const me_msg_obs_t *me_msg);
@@ -109,6 +111,10 @@ static gps_time_t last_time_matched_rover_obs_post;
 
 static sbas_system_t current_sbas_system = SBAS_NONE;
 
+/* Data structures for internal message passing and sychronization. */
+static mailbox_impl_t *time_matched_obs_mailbox = NULL;
+static object_pool_t  *time_matched_obs_pool = NULL;
+
 /**
  * Use this to update the settings for the provided filter manager
  * from any thread. This will apply the current value for
@@ -179,51 +185,49 @@ static void post_observations(u8 n,
    * pushing the message into the mailbox then we just wasted an
    * observation from the mailbox for no good reason. */
 
-  obss_t *obs = platform_time_matched_obs_alloc();
-  msg_t ret;
+  obss_t *obs = object_pool_alloc(time_matched_obs_pool);
   if (obs == NULL) {
     /* Pool is empty, grab a buffer from the mailbox instead, i.e.
      * overwrite the oldest item in the queue. */
-    ret =
-        platform_time_matched_obs_mailbox_fetch((msg_t *)&obs, TIME_IMMEDIATE);
-    if (ret != MSG_OK) {
-      log_error("Pool full and mailbox empty!");
+    int error = mailbox_fetch_immediate(time_matched_obs_mailbox, (void**)&obs);
+    if (error) {
+      log_error("Starling Error: time-matched obs pool full and mailbox empty!");
+      return;
     }
   }
-  if (NULL != obs) {
-    obs->tor = *t;
-    obs->n = n;
-    for (u8 i = 0, cnt = 0; i < n; ++i) {
-      obs->nm[cnt++] = m[i];
-    }
-    if (soln->valid) {
-      obs->pos_ecef[0] = soln->baseline[0];
-      obs->pos_ecef[1] = soln->baseline[1];
-      obs->pos_ecef[2] = soln->baseline[2];
-      obs->has_pos = true;
-    } else {
-      obs->has_pos = false;
-    }
 
-    if (soln) {
-      obs->soln = *soln;
-    } else {
-      obs->soln.valid = 0;
-      obs->soln.velocity_valid = 0;
-    }
+  obs->tor = *t;
+  obs->n = n;
+  for (u8 i = 0, cnt = 0; i < n; ++i) {
+    obs->nm[cnt++] = m[i];
+  }
+  if (soln->valid) {
+    obs->pos_ecef[0] = soln->baseline[0];
+    obs->pos_ecef[1] = soln->baseline[1];
+    obs->pos_ecef[2] = soln->baseline[2];
+    obs->has_pos = true;
+  } else {
+    obs->has_pos = false;
+  }
 
-    ret = platform_time_matched_obs_mailbox_post((msg_t)obs, TIME_IMMEDIATE);
-    if (ret != MSG_OK) {
-      /* We could grab another item from the mailbox, discard it and then
-       * post our obs again but if the size of the mailbox and the pool
-       * are equal then we should have already handled the case where the
-       * mailbox is full when we handled the case that the pool was full.
-       * */
-      log_error("Mailbox should have space!");
-      platform_time_matched_obs_free(obs);
-    } else {
-      last_time_matched_rover_obs_post = *t;
-    }
+  if (soln) {
+    obs->soln = *soln;
+  } else {
+    obs->soln.valid = 0;
+    obs->soln.velocity_valid = 0;
+  }
+
+  int error = mailbox_post_back(time_matched_obs_mailbox, obs);
+  if (error) {
+    /* We could grab another item from the mailbox, discard it and then
+     * post our obs again but if the size of the mailbox and the pool
+     * are equal then we should have already handled the case where the
+     * mailbox is full when we handled the case that the pool was full.
+     * */
+    log_error("Starling Error: time-matched obs mailbox should have space!");
+    object_pool_free(time_matched_obs_pool, obs);
+  } else {
+    last_time_matched_rover_obs_post = *t;
   }
 }
 
@@ -460,11 +464,10 @@ static void time_matched_obs_thread(void *arg) {
     obss_t *obss;
     /* Look through the mailbox (FIFO queue) of locally generated observations
      * looking for one that matches in time. */
-    while (platform_time_matched_obs_mailbox_fetch((msg_t *)&obss,
-                                                   TIME_IMMEDIATE) == MSG_OK) {
+    while (0 == mailbox_fetch_immediate(time_matched_obs_mailbox, (void**)&obss)) {
       if (dgnss_soln_mode == STARLING_SOLN_MODE_NO_DGNSS) {
         /* Not doing any DGNSS.  Toss the obs away. */
-        platform_time_matched_obs_free(obss);
+        object_pool_free(time_matched_obs_pool, obss);
         continue;
       }
 
@@ -491,7 +494,7 @@ static void time_matched_obs_thread(void *arg) {
         }
         send_solution_time_matched(p_solution, &base_obss_copy, obss);
 
-        platform_time_matched_obs_free(obss);
+        object_pool_free(time_matched_obs_pool, obss);
         break;
       } else {
         if (dt > 0) {
@@ -512,19 +515,18 @@ static void time_matched_obs_thread(void *arg) {
               base_obss_copy.tor.wn,
               base_obss_copy.tor.tow);
           /* Return the buffer to the mailbox so we can try it again later. */
-          const msg_t post_ret = platform_time_matched_obs_mailbox_post_ahead(
-              (msg_t)obss, TIME_IMMEDIATE);
-          if (post_ret != MSG_OK) {
+          int error = mailbox_post_front(time_matched_obs_mailbox, obss);
+          if (error) {
             /* Something went wrong with returning it to the buffer, better just
              * free it and carry on. */
-            log_warn("Obs Matching: mailbox full, discarding observation!");
-            platform_time_matched_obs_free(obss);
+            log_warn("Starling Error: time-matched obs mailbox full, discarding observation!");
+            object_pool_free(time_matched_obs_pool, obss);
           }
           break;
         } else {
           /* Time of base obs later than time of local obs,
            * keep moving through the mailbox. */
-          platform_time_matched_obs_free(obss);
+          object_pool_free(time_matched_obs_pool, obss);
         }
       }
     }
@@ -533,8 +535,6 @@ static void time_matched_obs_thread(void *arg) {
 
 static void init_filters_and_settings(void) {
   last_time_matched_rover_obs_post = GPS_TIME_UNKNOWN;
-
-  platform_time_matched_obs_mailbox_init();
 
   platform_mutex_lock(&time_matched_filter_manager_lock);
   time_matched_filter_manager = create_filter_manager_rtk();
@@ -545,6 +545,17 @@ static void init_filters_and_settings(void) {
   low_latency_filter_manager = create_filter_manager_rtk();
   assert(low_latency_filter_manager);
   platform_mutex_unlock(&low_latency_filter_manager_lock);
+}
+
+static void init_internal_data_structures(void) {
+  time_matched_obs_mailbox = mailbox_init(STARLING_OBS_N_BUFF);
+  if (!time_matched_obs_mailbox) {
+    log_error("Starling Error: unable to setup time-matched obs mailbox.");
+  }
+  time_matched_obs_pool = object_pool_init(sizeof(sizeof(obss_t)), STARLING_OBS_N_BUFF);
+  if (!time_matched_obs_pool) {
+    log_error("Starling Error: unable to setup time-matched obs object pool.");
+  }
 }
 
 /**
@@ -598,6 +609,7 @@ static void starling_thread(void) {
 
   /* Initialize all filters, settings, and SBP callbacks. */
   init_filters_and_settings();
+  init_internal_data_structures();
 
   /* Spawn the time_matched thread. */
   platform_thread_create_static(wa_time_matched_obs_thread,

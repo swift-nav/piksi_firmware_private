@@ -55,10 +55,6 @@
  * Local Variables
  ******************************************************************************/
 
-/* Time-matched observations data-structures. */
-static memory_pool_t time_matched_obs_buff_pool;
-static mailbox_t time_matched_obs_mailbox;
-
 /* SBAS Data API data-structures. */
 #define SBAS_DATA_N_BUFF 6
 static mailbox_t sbas_data_mailbox;
@@ -73,8 +69,6 @@ static sbas_raw_data_t sbas_data_buff[SBAS_DATA_N_BUFF];
 void platform_mutex_lock(void *mtx) { chMtxLock((mutex_t *)mtx); }
 
 void platform_mutex_unlock(void *mtx) { chMtxUnlock((mutex_t *)mtx); }
-
-void platform_pool_free(void *pool, void *buf) { chPoolFree(pool, buf); }
 
 void platform_thread_create_static(
     void *wa, size_t wa_size, int prio, void (*fn)(void *), void *user) {
@@ -95,38 +89,6 @@ bool platform_try_read_iono_corr(ionosphere_t *params) {
 
 void platform_watchdog_notify_starling_main_thread() {
   watchdog_notify(WD_NOTIFY_STARLING);
-}
-
-void platform_time_matched_obs_mailbox_init() {
-  static msg_t time_matched_obs_mailbox_buff[STARLING_OBS_N_BUFF];
-  chMBObjectInit(&time_matched_obs_mailbox,
-                 time_matched_obs_mailbox_buff,
-                 STARLING_OBS_N_BUFF);
-  chPoolObjectInit(&time_matched_obs_buff_pool, sizeof(obss_t), NULL);
-  static obss_t obs_buff[STARLING_OBS_N_BUFF] _CCM;
-  chPoolLoadArray(&time_matched_obs_buff_pool, obs_buff, STARLING_OBS_N_BUFF);
-}
-
-int32_t platform_time_matched_obs_mailbox_post(int32_t msg, uint32_t timeout) {
-  return chMBPost(&time_matched_obs_mailbox, (msg_t)msg, (systime_t)timeout);
-}
-
-int32_t platform_time_matched_obs_mailbox_post_ahead(int32_t msg,
-                                                     uint32_t timeout) {
-  return chMBPostAhead(
-      &time_matched_obs_mailbox, (msg_t)msg, (systime_t)timeout);
-}
-
-int32_t platform_time_matched_obs_mailbox_fetch(int32_t *msg,
-                                                uint32_t timeout) {
-  return chMBFetch(&time_matched_obs_mailbox, (msg_t *)msg, (systime_t)timeout);
-}
-
-obss_t *platform_time_matched_obs_alloc(void) {
-  return chPoolAlloc(&time_matched_obs_buff_pool);
-}
-void platform_time_matched_obs_free(obss_t *ptr) {
-  chPoolFree(&time_matched_obs_buff_pool, ptr);
 }
 
 void platform_base_obs_free(obss_t *ptr) {
