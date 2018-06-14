@@ -360,12 +360,14 @@ void nap_track_init(u8 channel,
   if (mesid.code == CODE_GAL_E1B) {
     index = mesid.sat - 1;
     for (u16 k = 0; k < GAL_E1B_PRN_BYTES; k++) {
-      NAP->TRK_MEMCODE_CFG =
-          (channel << 19) | (0 << 18) | (k << 8) | gal_e1b_codes[index][k];
+      NAP->TRK_GAL_E1_MEMCFG =
+          (1 << (18 + channel - NAP_FIRST_GAL_E1_CHANNEL)) | (0 << 17) |
+          (k << 8) | gal_e1b_codes[index][k];
     }
     for (u16 k = 0; k < GAL_E1C_PRN_BYTES; k++) {
-      NAP->TRK_MEMCODE_CFG =
-          (channel << 19) | (1 << 18) | (k << 8) | gal_e1c_codes[index][k];
+      NAP->TRK_GAL_E1_MEMCFG =
+          (1 << (18 + channel - NAP_FIRST_GAL_E1_CHANNEL)) | (1 << 17) |
+          (k << 8) | gal_e1c_codes[index][k];
     }
   } else {
 #endif /* CODE_GAL_E1_SUPPORT */

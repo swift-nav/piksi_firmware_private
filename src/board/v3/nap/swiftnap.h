@@ -10,7 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-/* SwiftNAP v4.1.0 register map */
+/* SwiftNAP v4.2.0 register map */
 
 #ifndef SWIFTNAP_H
 #define SWIFTNAP_H
@@ -18,27 +18,30 @@
 #include <libswiftnav/common.h>
 
 /* Version */
-#define NAP_VERSION (0x04010000)
+#define NAP_VERSION (0x04020000)
 
 /* Number of tracking channels */
 #define NAP_NUM_TRACKING_CHANNELS (72U)
 
-// Number of GPS L1 tracking channels
+/* Number of specific tracking channels */
 #define NAP_NUM_GPS_L1_CHANNELS (15U)
-// Number of GPS L2 tracking channels
 #define NAP_NUM_GPS_L2_CHANNELS (9U)
-// Number of Glonass G1 tracking channels
 #define NAP_NUM_GLO_G1_CHANNELS (10U)
-// Number of Glonass G2 tracking channels
 #define NAP_NUM_GLO_G2_CHANNELS (10U)
-// Number of Beidou B1 tracking channels
 #define NAP_NUM_BDS_B1_CHANNELS (7U)
-// Number of Beidou B2 tracking channels
 #define NAP_NUM_BDS_B2_CHANNELS (7U)
-// Number of Galileo E1 tracking channels
 #define NAP_NUM_GAL_E1_CHANNELS (7U)
-// Number of Galileo E7 tracking channels
 #define NAP_NUM_GAL_E7_CHANNELS (7U)
+
+/* Index of first specific channel */
+#define NAP_FIRST_GPS_L1_CHANNEL (0U)
+#define NAP_FIRST_GPS_L2_CHANNEL (15U)
+#define NAP_FIRST_GLO_G1_CHANNEL (24U)
+#define NAP_FIRST_GLO_G2_CHANNEL (34U)
+#define NAP_FIRST_BDS_B1_CHANNEL (44U)
+#define NAP_FIRST_BDS_B2_CHANNEL (51U)
+#define NAP_FIRST_GAL_E1_CHANNEL (58U)
+#define NAP_FIRST_GAL_E7_CHANNEL (65U)
 
 /* Number of readable tracking channel registers */
 #define NAP_NUM_TRACKING_READABLE (7U)
@@ -139,7 +142,7 @@ typedef struct {
   const volatile u32 AES_KEY_C[8];
   const volatile u32 AES_KEY_D[8];
   volatile u32 AES_KEY_READ_ENABLE;
-  volatile u32 TRK_MEMCODE_CFG;
+  volatile u32 TRK_GAL_E1_MEMCFG;
   const volatile u32 TRK_STATUS[3];
   volatile u32 TRK_CONTROL[3];
   volatile u32 TRK_IRQS[3];
@@ -664,41 +667,41 @@ typedef struct {
   (((REG) & ~NAP_AES_KEY_READ_ENABLE_VALUE_Msk) |   \
    ((VAL) << NAP_AES_KEY_READ_ENABLE_VALUE_Pos))
 
-/* Register: NAP_TRK_MEMCODE_CFG */
-#define NAP_TRK_MEMCODE_CFG_DATA_Pos (0U)
-#define NAP_TRK_MEMCODE_CFG_DATA_Len (8U)
-#define NAP_TRK_MEMCODE_CFG_DATA_Rst (0x0U)
-#define NAP_TRK_MEMCODE_CFG_DATA_Msk (0xFFU << NAP_TRK_MEMCODE_CFG_DATA_Pos)
-#define SET_NAP_TRK_MEMCODE_CFG_DATA(REG, VAL) \
-  (((REG) & ~NAP_TRK_MEMCODE_CFG_DATA_Msk) |   \
-   ((VAL) << NAP_TRK_MEMCODE_CFG_DATA_Pos))
+/* Register: NAP_TRK_GAL_E1_MEMCFG */
+#define NAP_TRK_GAL_E1_MEMCFG_DATA_Pos (0U)
+#define NAP_TRK_GAL_E1_MEMCFG_DATA_Len (8U)
+#define NAP_TRK_GAL_E1_MEMCFG_DATA_Rst (0x0U)
+#define NAP_TRK_GAL_E1_MEMCFG_DATA_Msk (0xFFU << NAP_TRK_GAL_E1_MEMCFG_DATA_Pos)
+#define SET_NAP_TRK_GAL_E1_MEMCFG_DATA(REG, VAL) \
+  (((REG) & ~NAP_TRK_GAL_E1_MEMCFG_DATA_Msk) |   \
+   ((VAL) << NAP_TRK_GAL_E1_MEMCFG_DATA_Pos))
 
-#define NAP_TRK_MEMCODE_CFG_DATA_IDX_Pos (8U)
-#define NAP_TRK_MEMCODE_CFG_DATA_IDX_Len (10U)
-#define NAP_TRK_MEMCODE_CFG_DATA_IDX_Rst (0x0U)
-#define NAP_TRK_MEMCODE_CFG_DATA_IDX_Msk \
-  (0x3FFU << NAP_TRK_MEMCODE_CFG_DATA_IDX_Pos)
-#define SET_NAP_TRK_MEMCODE_CFG_DATA_IDX(REG, VAL) \
-  (((REG) & ~NAP_TRK_MEMCODE_CFG_DATA_IDX_Msk) |   \
-   ((VAL) << NAP_TRK_MEMCODE_CFG_DATA_IDX_Pos))
+#define NAP_TRK_GAL_E1_MEMCFG_DATA_IDX_Pos (8U)
+#define NAP_TRK_GAL_E1_MEMCFG_DATA_IDX_Len (9U)
+#define NAP_TRK_GAL_E1_MEMCFG_DATA_IDX_Rst (0x0U)
+#define NAP_TRK_GAL_E1_MEMCFG_DATA_IDX_Msk \
+  (0x1FFU << NAP_TRK_GAL_E1_MEMCFG_DATA_IDX_Pos)
+#define SET_NAP_TRK_GAL_E1_MEMCFG_DATA_IDX(REG, VAL) \
+  (((REG) & ~NAP_TRK_GAL_E1_MEMCFG_DATA_IDX_Msk) |   \
+   ((VAL) << NAP_TRK_GAL_E1_MEMCFG_DATA_IDX_Pos))
 
-#define NAP_TRK_MEMCODE_CFG_IQ_SELECT_Pos (18U)
-#define NAP_TRK_MEMCODE_CFG_IQ_SELECT_Len (1U)
-#define NAP_TRK_MEMCODE_CFG_IQ_SELECT_Rst (0x0U)
-#define NAP_TRK_MEMCODE_CFG_IQ_SELECT_Msk \
-  (0x1U << NAP_TRK_MEMCODE_CFG_IQ_SELECT_Pos)
-#define SET_NAP_TRK_MEMCODE_CFG_IQ_SELECT(REG, VAL) \
-  (((REG) & ~NAP_TRK_MEMCODE_CFG_IQ_SELECT_Msk) |   \
-   ((VAL) << NAP_TRK_MEMCODE_CFG_IQ_SELECT_Pos))
+#define NAP_TRK_GAL_E1_MEMCFG_IQ_SELECT_Pos (17U)
+#define NAP_TRK_GAL_E1_MEMCFG_IQ_SELECT_Len (1U)
+#define NAP_TRK_GAL_E1_MEMCFG_IQ_SELECT_Rst (0x0U)
+#define NAP_TRK_GAL_E1_MEMCFG_IQ_SELECT_Msk \
+  (0x1U << NAP_TRK_GAL_E1_MEMCFG_IQ_SELECT_Pos)
+#define SET_NAP_TRK_GAL_E1_MEMCFG_IQ_SELECT(REG, VAL) \
+  (((REG) & ~NAP_TRK_GAL_E1_MEMCFG_IQ_SELECT_Msk) |   \
+   ((VAL) << NAP_TRK_GAL_E1_MEMCFG_IQ_SELECT_Pos))
 
-#define NAP_TRK_MEMCODE_CFG_CHANNEL_NR_Pos (19U)
-#define NAP_TRK_MEMCODE_CFG_CHANNEL_NR_Len (7U)
-#define NAP_TRK_MEMCODE_CFG_CHANNEL_NR_Rst (0x0U)
-#define NAP_TRK_MEMCODE_CFG_CHANNEL_NR_Msk \
-  (0x7FU << NAP_TRK_MEMCODE_CFG_CHANNEL_NR_Pos)
-#define SET_NAP_TRK_MEMCODE_CFG_CHANNEL_NR(REG, VAL) \
-  (((REG) & ~NAP_TRK_MEMCODE_CFG_CHANNEL_NR_Msk) |   \
-   ((VAL) << NAP_TRK_MEMCODE_CFG_CHANNEL_NR_Pos))
+#define NAP_TRK_GAL_E1_MEMCFG_CHANNEL_NR_Pos (18U)
+#define NAP_TRK_GAL_E1_MEMCFG_CHANNEL_NR_Len (14U)
+#define NAP_TRK_GAL_E1_MEMCFG_CHANNEL_NR_Rst (0x0U)
+#define NAP_TRK_GAL_E1_MEMCFG_CHANNEL_NR_Msk \
+  (0x3FFFU << NAP_TRK_GAL_E1_MEMCFG_CHANNEL_NR_Pos)
+#define SET_NAP_TRK_GAL_E1_MEMCFG_CHANNEL_NR(REG, VAL) \
+  (((REG) & ~NAP_TRK_GAL_E1_MEMCFG_CHANNEL_NR_Msk) |   \
+   ((VAL) << NAP_TRK_GAL_E1_MEMCFG_CHANNEL_NR_Pos))
 
 /* Register: NAP_TRK_STATUS0 */
 #define NAP_TRK_STATUS0_CH0_RUNNING_Pos (0U)
