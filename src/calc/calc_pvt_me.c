@@ -10,6 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 #include <assert.h>
+#include <float.h>
 #include <stdio.h>
 
 #include <libsbp/sbp.h>
@@ -64,9 +65,12 @@
 #define ME_CALC_PVT_THREAD_PRIORITY (HIGHPRIO - 3)
 #define ME_CALC_PVT_THREAD_STACK (64 * 1024)
 
-/* Arbitrarily set the maximum solution frequency to 1kHz. It almost certainly
- * can't run this fast anyway. */
-#define SOLN_FREQ_SETTING_MAX 1000.0
+/* Limits the sets of possible solution frequencies (in increasing order) */
+static const double valid_soln_freqs_hz[] = {1.0, 2.0, 4.0, 5.0, 10.0};
+
+#define SOLN_FREQ_SETTING_MIN (valid_soln_freqs_hz[0])
+#define SOLN_FREQ_SETTING_MAX \
+  (valid_soln_freqs_hz[ARRAY_SIZE(valid_soln_freqs_hz) - 1])
 
 double soln_freq_setting = 10.0;
 u32 obs_output_divisor = 2;
@@ -747,6 +751,32 @@ static void me_calc_pvt_thread(void *arg) {
 
 soln_stats_t solution_last_stats_get(void) { return last_stats; }
 
+static double validate_soln_freq(double requested_freq_hz) {
+  /* Loop over valid frequencies, start from highest frequency */
+  for (s8 i = ARRAY_SIZE(valid_soln_freqs_hz) - 1; i >= 0; --i) {
+    double freq = valid_soln_freqs_hz[i];
+
+    /* Equal */
+    if (fabs(freq - requested_freq_hz) < DBL_EPSILON) {
+      log_info("Solution frequency validated to %.2f Hz", freq);
+      return freq;
+    }
+
+    /* No match available, floor to closest valid frequency */
+    if (freq < requested_freq_hz) {
+      log_info("Solution frequency floored to %.2f Hz", freq);
+      return freq;
+    }
+  }
+
+  log_warn(
+      "Input solution frequency %.2f Hz couldn't be validated, "
+      "defaulting to %.2f Hz",
+      requested_freq_hz,
+      SOLN_FREQ_SETTING_MIN);
+  return SOLN_FREQ_SETTING_MIN;
+}
+
 /* Update the solution frequency used by the ME and by Starling. */
 static bool soln_freq_setting_notify(struct setting *s, const char *val) {
   double old_value = soln_freq_setting;
@@ -755,15 +785,18 @@ static bool soln_freq_setting_notify(struct setting *s, const char *val) {
     return false;
   }
   /* Certain values are disallowed. */
-  if (soln_freq_setting <= 0.0 || soln_freq_setting > SOLN_FREQ_SETTING_MAX) {
+  if (soln_freq_setting < (SOLN_FREQ_SETTING_MIN - DBL_EPSILON) ||
+      soln_freq_setting > (SOLN_FREQ_SETTING_MAX + DBL_EPSILON)) {
     log_warn(
-        "Solution frequency setting outside acceptable range: (%lf, %lf]. "
-        "Reverting to previous value.",
+        "Solution frequency setting outside acceptable range: [%.2f, %.2f] Hz. "
+        "Reverting to previous value: %.2f Hz.",
         0.0,
-        SOLN_FREQ_SETTING_MAX);
+        SOLN_FREQ_SETTING_MAX,
+        old_value);
     soln_freq_setting = old_value;
     return false;
   }
+  soln_freq_setting = validate_soln_freq(soln_freq_setting);
   starling_set_solution_frequency(soln_freq_setting);
   return true;
 }
