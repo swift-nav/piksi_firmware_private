@@ -64,19 +64,21 @@ static void tracker_gal_e1_update(tracker_t *tracker) {
   if (!bit_aligned) {
     return;
   }
-#if 0
+
   bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
   bool inlock = ((0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) &&
                  (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK)));
 
   if (inlock && confirmed) {
-    gal_e1_to_e7_handover(tracker->sample_count,
-                          tracker->mesid.sat,
-                          tracker->code_phase_prompt,
-                          tracker->carrier_freq,
-                          tracker->cn0);
+    tracker->bit_polarity = BIT_POLARITY_NORMAL;
+    tracker_update_bit_polarity_flags(tracker);
+
+    //    DO_EVERY(32, gal_e1_to_e7_handover(tracker->sample_count,
+    //                          tracker->mesid.sat,
+    //                          tracker->code_phase_prompt,
+    //                          tracker->carrier_freq,
+    //                          tracker->cn0); );
   }
-#endif
 }
 
 /** Register GAL E1 tracker into the the interface & settings framework.

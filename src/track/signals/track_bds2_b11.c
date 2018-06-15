@@ -72,11 +72,12 @@ static void tracker_bds2_b11_update(tracker_t *tracker_channel) {
 
   if (inlock && confirmed) {
     /* Start B2 tracker if not running */
-    bds_b11_to_b2_handover(tracker_channel->sample_count,
-                           tracker_channel->mesid.sat,
-                           tracker_channel->code_phase_prompt,
-                           tracker_channel->carrier_freq,
-                           tracker_channel->cn0);
+    DO_EVERY(2,
+             bds_b11_to_b2_handover(tracker_channel->sample_count,
+                                    tracker_channel->mesid.sat,
+                                    tracker_channel->code_phase_prompt,
+                                    tracker_channel->carrier_freq,
+                                    tracker_channel->cn0););
   }
 }
 
