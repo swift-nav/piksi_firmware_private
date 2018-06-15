@@ -49,17 +49,17 @@ static const tracker_interface_t tracker_interface_gal_e7 = {
     .disable = tp_tracker_disable,
 };
 
-static void tracker_gal_e7_init(tracker_t *tracker_channel) {
-  tp_tracker_init(tracker_channel, &gal_e7_config);
+static void tracker_gal_e7_init(tracker_t *tracker) {
+  tp_tracker_init(tracker, &gal_e7_config);
 
-  //  tracker_bit_sync_set(tracker_channel, /* bit_phase_ref = */ 0);
+  //  tracker_bit_sync_set(tracker, /* bit_phase_ref = */ 0);
 }
 
-static void tracker_gal_e7_update(tracker_t *tracker_channel) {
-  u32 cflags = tp_tracker_update(tracker_channel, &gal_e7_config);
+static void tracker_gal_e7_update(tracker_t *tracker) {
+  u32 cflags = tp_tracker_update(tracker, &gal_e7_config);
 
   bool bit_aligned =
-      ((0 != (cflags & TPF_BSYNC_UPD)) && tracker_bit_aligned(tracker_channel));
+      ((0 != (cflags & TPF_BSYNC_UPD)) && tracker_bit_aligned(tracker));
 
   if (!bit_aligned) {
     return;
@@ -67,18 +67,22 @@ static void tracker_gal_e7_update(tracker_t *tracker_channel) {
 
   /* TOW manipulation on bit edge */
 
-  tracker_tow_cache(tracker_channel);
+  tracker_tow_cache(tracker);
 
-  bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
-  bool inlock = ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) &&
-                 (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)));
+  bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
+  bool inlock = ((0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) &&
+                 (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK)));
 
   if (inlock && confirmed) {
-    gal_e7_to_e1_handover(tracker_channel->sample_count,
-                          tracker_channel->mesid.sat,
-                          tracker_channel->code_phase_prompt,
-                          tracker_channel->carrier_freq,
-                          tracker_channel->cn0);
+    tracker->bit_polarity = BIT_POLARITY_NORMAL;
+    tracker_update_bit_polarity_flags(tracker);
+
+    DO_EVERY(8,
+             gal_e7_to_e1_handover(tracker->sample_count,
+                                   tracker->mesid.sat,
+                                   tracker->code_phase_prompt,
+                                   tracker->carrier_freq,
+                                   tracker->cn0););
   }
 }
 
@@ -119,7 +123,7 @@ void gal_e1_to_e7_handover(u32 sample_count,
     return;
   }
 
-  rand_start = rand_seed - 5;
+  rand_start = rand_seed * 5;
 
   tracking_startup_params_t startup_params = {
       .mesid = mesid_e7,
@@ -152,5 +156,5 @@ void gal_e1_to_e7_handover(u32 sample_count,
       assert(!"Unknown code returned");
       break;
   }
-  rand_seed = (rand_seed + 1) % 10;
+  rand_seed = (rand_seed >= 0) ? (rand_seed - 1) : +1;
 }
