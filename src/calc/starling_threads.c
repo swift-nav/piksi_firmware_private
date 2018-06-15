@@ -285,7 +285,8 @@ static PVT_ENGINE_INTERFACE_RC call_pvt_engine_filter(
         filter_manager, obs_time, num_obs, nav_meas);
   }
 
-  if (update_rov_obs == PVT_ENGINE_SUCCESS) {
+  if (update_rov_obs == PVT_ENGINE_SUCCESS ||
+      update_rov_obs == PVT_ENGINE_NO_APRIORI_POSITION) {
     update_filter_ret = update_filter(filter_manager);
   }
 
@@ -293,7 +294,13 @@ static PVT_ENGINE_INTERFACE_RC call_pvt_engine_filter(
     get_baseline_ret = get_baseline(filter_manager, false, dops, result);
   }
 
-  return get_baseline_ret;
+  if (get_baseline_ret != PVT_ENGINE_SUCCESS) {
+    return get_baseline_ret;
+  }
+  /* If get_baseline_ret == PVT_ENGINE_SUCCESS, we are interested in
+   * update_rov_obs, because it could be PVT_ENGINE_NO_APRIORI_POSITION, which
+   * would require an iteration. */
+  return update_rov_obs;
 }
 
 /**
@@ -752,6 +759,23 @@ static void starling_thread(void) {
                                     stored_ephs,
                                     &spp_solution.result,
                                     &spp_solution.dops);
+
+    /* If the SPP filter doesn't have an a priori position, the position will be
+     degraded (since some a priori models require it, like iono/tropo). To fix
+     this problem, we get an initial position and iterate the solution. */
+    if (spp_rc == PVT_ENGINE_NO_APRIORI_POSITION) {
+      filter_manager_init(spp_filter_manager);
+      filter_manager_set_apriori_position(spp_filter_manager,
+                                          spp_solution.result.baseline);
+
+      spp_rc = call_pvt_engine_filter(spp_filter_manager,
+                                      &obs_time,
+                                      n_ready,
+                                      nav_meas,
+                                      stored_ephs,
+                                      &spp_solution.result,
+                                      &spp_solution.dops);
+    }
     platform_mutex_unlock(&spp_filter_manager_lock);
 
     /* We only post to time-matched thread on SPP success. */
