@@ -166,7 +166,7 @@ static const state_table_t mode_1ms_sc4 = {
   .bit_ms = 4,
   .ent_cnt = 4,
   .entries = {
-    {1, TP_FLAGS_1MS | TPF_CN0_SET | TPF_DATAPILOT_SET},
+    {1, TP_FLAGS_1MS | TPF_CN0_SET | TPF_DATAPILOT_SET | TPF_FLL_HALFQ},
     {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_DATAPILOT_ADD},
     {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_DATAPILOT_ADD},
     {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_DATAPILOT_ADD
@@ -318,23 +318,24 @@ static const state_table_t mode_2ms_sc4 = {
   .ent_cnt = 10,
   .entries = {
     {2, TPF_EPL_SET  | TPF_CN0_SET | TPF_DATAPILOT_SET | TPF_PLD_SET | TPF_FLL_SET |
-        TPF_EPL_USE  |                                   TPF_PLD_USE | TPF_FLL_USE },
+        TPF_EPL_USE  |                                   TPF_PLD_USE | TPF_FLL_USE |
+                                                                       TPF_FLL_HALFQ},
     {2, TP_FLAGS_2MS | TPF_CN0_ADD | TPF_DATAPILOT_ADD |
                        TPF_CN0_USE | TPF_DATAPILOT_UPD},
 
-    {2, TP_FLAGS_2MS | TPF_CN0_SET | TPF_DATAPILOT_SET },
+    {2, TP_FLAGS_2MS | TPF_CN0_SET | TPF_DATAPILOT_SET | TPF_FLL_HALFQ},
     {2, TP_FLAGS_2MS | TPF_CN0_ADD | TPF_DATAPILOT_ADD |
                        TPF_CN0_USE | TPF_DATAPILOT_UPD},
 
-    {2, TP_FLAGS_2MS | TPF_CN0_SET | TPF_DATAPILOT_SET },
+    {2, TP_FLAGS_2MS | TPF_CN0_SET | TPF_DATAPILOT_SET | TPF_FLL_HALFQ},
     {2, TP_FLAGS_2MS | TPF_CN0_ADD | TPF_DATAPILOT_ADD |
                        TPF_CN0_USE | TPF_DATAPILOT_UPD},
 
-    {2, TP_FLAGS_2MS | TPF_CN0_SET | TPF_DATAPILOT_SET },
+    {2, TP_FLAGS_2MS | TPF_CN0_SET | TPF_DATAPILOT_SET | TPF_FLL_HALFQ},
     {2, TP_FLAGS_2MS | TPF_CN0_ADD | TPF_DATAPILOT_ADD |
                        TPF_CN0_USE | TPF_DATAPILOT_UPD},
 
-    {2, TP_FLAGS_2MS | TPF_CN0_SET | TPF_DATAPILOT_SET },
+    {2, TP_FLAGS_2MS | TPF_CN0_SET | TPF_DATAPILOT_SET | TPF_FLL_HALFQ},
     {2, TP_FLAGS_2MS | TPF_CN0_ADD | TPF_DATAPILOT_ADD |
                        TPF_CN0_USE | TPF_DATAPILOT_UPD},
   }
@@ -416,23 +417,28 @@ static const state_table_t mode_4ms_sc4 = {
     {1, TPF_EPL_SET  | TPF_CN0_SET | TPF_DATAPILOT_SET | TPF_PLD_SET | TPF_FLL_SET},
     {1, TPF_EPL_ADD  | TPF_CN0_ADD | TPF_DATAPILOT_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
     {2, TPF_EPL_ADD  | TPF_CN0_ADD | TPF_DATAPILOT_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
-        TPF_EPL_USE  | TPF_CN0_USE | TPF_DATAPILOT_UPD | TPF_PLD_USE | TPF_FLL_USE},
+        TPF_EPL_USE  | TPF_CN0_USE | TPF_DATAPILOT_UPD | TPF_PLD_USE | TPF_FLL_USE |
+                                                                       TPF_FLL_HALFQ},
 
     {2, TPF_EPL_SET  | TPF_CN0_SET | TPF_DATAPILOT_SET | TPF_PLD_SET | TPF_FLL_SET},
     {2, TPF_EPL_ADD  | TPF_CN0_ADD | TPF_DATAPILOT_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
-        TPF_EPL_USE  | TPF_CN0_USE | TPF_DATAPILOT_UPD | TPF_PLD_USE | TPF_FLL_USE},
+        TPF_EPL_USE  | TPF_CN0_USE | TPF_DATAPILOT_UPD | TPF_PLD_USE | TPF_FLL_USE |
+                                                                       TPF_FLL_HALFQ},
 
     {2, TPF_EPL_SET  | TPF_CN0_SET | TPF_DATAPILOT_SET | TPF_PLD_SET | TPF_FLL_SET },
     {2, TPF_EPL_ADD  | TPF_CN0_ADD | TPF_DATAPILOT_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
-        TPF_EPL_USE  | TPF_CN0_USE | TPF_DATAPILOT_UPD | TPF_PLD_USE | TPF_FLL_USE},
+        TPF_EPL_USE  | TPF_CN0_USE | TPF_DATAPILOT_UPD | TPF_PLD_USE | TPF_FLL_USE |
+                                                                       TPF_FLL_HALFQ},
 
     {2, TPF_EPL_SET  | TPF_CN0_SET | TPF_DATAPILOT_SET | TPF_PLD_SET | TPF_FLL_SET },
     {2, TPF_EPL_ADD  | TPF_CN0_ADD | TPF_DATAPILOT_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
-        TPF_EPL_USE  | TPF_CN0_USE | TPF_DATAPILOT_UPD | TPF_PLD_USE | TPF_FLL_USE},
+        TPF_EPL_USE  | TPF_CN0_USE | TPF_DATAPILOT_UPD | TPF_PLD_USE | TPF_FLL_USE |
+                                                                       TPF_FLL_HALFQ},
 
     {2, TPF_EPL_SET  | TPF_CN0_SET | TPF_DATAPILOT_SET | TPF_PLD_SET | TPF_FLL_SET },
     {2, TPF_EPL_ADD  | TPF_CN0_ADD | TPF_DATAPILOT_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
-        TPF_EPL_USE  | TPF_CN0_USE | TPF_DATAPILOT_UPD | TPF_PLD_USE | TPF_FLL_USE},
+        TPF_EPL_USE  | TPF_CN0_USE | TPF_DATAPILOT_UPD | TPF_PLD_USE | TPF_FLL_USE |
+                                                                       TPF_FLL_HALFQ},
   }
 };
 
