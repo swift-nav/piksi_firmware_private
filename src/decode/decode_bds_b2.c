@@ -53,8 +53,8 @@ static decoder_interface_list_element_t list_element_bds_b2 = {
 
 void decode_bds_b2_register(void) {
   for (u16 i = 1; i <= ARRAY_SIZE(bds_b2_decoders); i++) {
-    bds_b2_decoders[i-1].active = false;
-    bds_b2_decoders[i-1].data = &bds_b2_decoder_data[i-1];
+    bds_b2_decoders[i - 1].active = false;
+    bds_b2_decoders[i - 1].data = &bds_b2_decoder_data[i - 1];
   }
 
   decoder_interface_register(&list_element_bds_b2);
