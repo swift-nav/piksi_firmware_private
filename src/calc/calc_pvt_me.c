@@ -10,6 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 #include <assert.h>
+#include <float.h>
 #include <stdio.h>
 
 #include <libsbp/sbp.h>
@@ -756,7 +757,7 @@ static double validate_soln_freq(double requested_freq_hz) {
     double freq = valid_soln_freqs_hz[i];
 
     /* Equal */
-    if (fabs(freq - requested_freq_hz) < FLOAT_EQUALITY_EPS) {
+    if (fabs(freq - requested_freq_hz) < DBL_EPSILON) {
       log_info("Solution frequency validated to %.2f Hz", freq);
       return freq;
     }
@@ -769,8 +770,8 @@ static double validate_soln_freq(double requested_freq_hz) {
   }
 
   log_warn(
-      "Input solution frequency %.2f couldn't be validated, "
-      "defaulting to %.2f",
+      "Input solution frequency %.2f Hz couldn't be validated, "
+      "defaulting to %.2f Hz",
       requested_freq_hz,
       SOLN_FREQ_SETTING_MIN);
   return SOLN_FREQ_SETTING_MIN;
@@ -784,13 +785,14 @@ static bool soln_freq_setting_notify(struct setting *s, const char *val) {
     return false;
   }
   /* Certain values are disallowed. */
-  if (soln_freq_setting < (SOLN_FREQ_SETTING_MIN - FLOAT_EQUALITY_EPS) ||
-      soln_freq_setting > (SOLN_FREQ_SETTING_MAX + FLOAT_EQUALITY_EPS)) {
+  if (soln_freq_setting < (SOLN_FREQ_SETTING_MIN - DBL_EPSILON) ||
+      soln_freq_setting > (SOLN_FREQ_SETTING_MAX + DBL_EPSILON)) {
     log_warn(
-        "Solution frequency setting outside acceptable range: (%.2f, %.2f]. "
-        "Reverting to previous value.",
+        "Solution frequency setting outside acceptable range: [%.2f, %.2f] Hz. "
+        "Reverting to previous value: %.2f Hz.",
         0.0,
-        SOLN_FREQ_SETTING_MAX);
+        SOLN_FREQ_SETTING_MAX,
+        old_value);
     soln_freq_setting = old_value;
     return false;
   }
