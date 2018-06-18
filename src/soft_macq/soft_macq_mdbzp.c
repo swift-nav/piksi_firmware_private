@@ -76,6 +76,8 @@ bool mdbzp_static(sc16_t *_cSignal,
     InitIntFFTr2(&sCorrFftConf, samples_block);
   }
 
+#ifdef DEBUG_MDZP
+
   log_debug("code_slices %" PRIu32 " code_ms %" PRIu32 " code_coh %" PRIu32
             " code_nonc %" PRIu32 " samples_ms %" PRIu32 " slices_coh %" PRIu32
             " samples_code %" PRIu32 " samples_slice %" PRIu32
@@ -90,10 +92,29 @@ bool mdbzp_static(sc16_t *_cSignal,
             samples_slice,
             num_codes);
 
+  DO_EVERY(16, {
+    char s_values[256];
+    char s_val[16];
+    u16 k;
+    sprintf(s_values, "signal_i: ");
+    for (k = 0; k < 16; k++) {
+      sprintf(s_val, "%+4d ", _cSignal[k].r);
+      strcat(s_values, s_val);
+    }
+    log_info("%s", s_values);
+    sprintf(s_values, "signal_q: ");
+    for (k = 0; k < 16; k++) {
+      sprintf(s_val, "%+4d ", _cSignal[k].i);
+      strcat(s_values, s_val);
+    }
+    log_info("%s", s_values);
+  };);
+#endif
+
   /***********************************
    *         STORE CODE FFTs         *
    ************************************/
-  u32 scale_mask = 0x0003;
+  u32 scale_mask = 0x0000;
   for (u32 j = 0; j < code_slices; j++) {
     memset(cFftWork, 0, samples_block * sizeof(sc16_t));
 
@@ -118,7 +139,7 @@ bool mdbzp_static(sc16_t *_cSignal,
   /*******************************
    *     STORE SIGNAL FFTs       *
    *******************************/
-  scale_mask = 0x0003;
+  scale_mask = 0x0000;
   for (u32 j = 0; j < num_codes * code_slices; j++) {
     memset(cFftWork, 0, sizeof(cFftWork));
 
@@ -147,7 +168,7 @@ bool mdbzp_static(sc16_t *_cSignal,
   /******************************
    * COMPUTE THE BIG DBZP MATRIX
    ******************************/
-  scale_mask = 0x0003;
+  scale_mask = 0x0155;
   for (u32 j = 0; j < code_slices; j++) {
     for (u32 h = 0; h < num_codes; h++) {
       for (u32 k = 0; k < code_slices; k++) {
@@ -188,7 +209,7 @@ bool mdbzp_static(sc16_t *_cSignal,
 
   /** alloc final code-frequency matrix */
   memset(pFreqCodeMat, 0, freqfft_sz * samples_code * sizeof(float));
-  scale_mask = 0x003f;
+  scale_mask = 0x0155;
 
   for (u32 m = 0; m < samples_code; m++) {
     for (u32 n = 0; n < code_nonc; n++) {

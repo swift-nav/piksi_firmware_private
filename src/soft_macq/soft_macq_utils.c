@@ -243,7 +243,6 @@ int IsAcquired3D(const float *vec,
       kmax = k;
     }
   }
-  (*_fMval) = max;
 
   k = (kmax + 2) % 4;
 
@@ -255,8 +254,10 @@ int IsAcquired3D(const float *vec,
   }
   mean_clean /= (float)code_len_4th;
 
+  (*_fMval) = max / mean_clean;
+
   /* is threshold higher? */
-  if (max > (23.0f * mean_clean / (1 + log2f(_iNonCoh)))) {
+  if (max > (18.0f * mean_clean / (sqrtf(_iNonCoh)))) {
     /* code */
     (*_pfCodeMaxI) = (float)imax / _iFreqSh;
 
