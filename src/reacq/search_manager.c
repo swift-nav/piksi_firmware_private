@@ -21,9 +21,9 @@
 
 /** Re-acq normal priority masks. */
 static const u32 reacq_normal_prio[] = {
-    0b111111111111111111111111111111, /* GPS */
+    0b101010101010101010101010101010, /* GPS */
     0b000000000100000000010000000001, /* SBAS */
-    0b111111111111111111111111111111, /* GLO */
+    0b010101010101010101010101010101, /* GLO */
     0b101010101010101010101010101010, /* BDS2 */
     0b010101010101010101010101010101, /* QZSS */
     0b101010101010101010101010101010  /* GAL */
@@ -41,12 +41,12 @@ static const u32 reacq_gps_high_prio[] = {
 
 /** Re-acq sbas high priority masks. */
 static const u32 reacq_sbas_high_prio[] = {
-    0b111111111111111111111111111111, /* GPS */
+    0b101010101010101010101010101010, /* GPS */
     0b101010101010101010101010101010, /* SBAS */
-    0b000010000100001000010000100001, /* GLO */
-    0b000100001000010000100001000010, /* BDS2 */
-    0b001000010000100001000010000100, /* QZSS */
-    0b010000100001000010000100001000  /* GAL */
+    0b010101010101010101010101010101, /* GLO */
+    0b101010101010101010101010101010, /* BDS2 */
+    0b010101010101010101010101010101, /* QZSS */
+    0b101010101010101010101010101010  /* GAL */
 };
 
 /* Search manager functions which call other modules */
@@ -441,7 +441,7 @@ bool is_constellation_enabled(constellation_t con) {
 }
 
 static reacq_prio_level_t get_dynamic_prio(void) {
-  if (code_track_count(CODE_GPS_L1CA) < LOW_GPS_L1CA_SV_LIMIT) {
+  if (code_track_count(CODE_GPS_L2CM) < LOW_GPS_L2CM_SV_LIMIT) {
     return REACQ_GPS_HIGH_PRIO;
   }
   if (code_track_count(CODE_SBAS_L1CA) < LOW_SBAS_L1CA_SV_LIMIT) {

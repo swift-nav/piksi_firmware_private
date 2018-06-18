@@ -57,7 +57,7 @@
 #define REACQ_PRIORITY_CYCLE (30)
 
 /** GPS will have high re-acq priority if less than limit SVs is tracked */
-#define LOW_GPS_L1CA_SV_LIMIT 6
+#define LOW_GPS_L2CM_SV_LIMIT 2
 /**
   SBAS will have high re-acq priority if less than limit SVs is tracked
   and GPS is not already prioritized.
