@@ -162,6 +162,7 @@ static void update_filter_manager_rtk_reference_position(
     FilterManagerRTK *fmrtk) {
   platform_mutex_lock(&reference_position_lock);
   const ReferencePosition refpos = reference_position;
+  reference_position.is_valid = false;
   platform_mutex_unlock(&reference_position_lock);
 
   assert(fmrtk);
