@@ -722,7 +722,7 @@ static void initialize_starling_settings(void) {
                  TYPE_GNSS_FILTER,
                  enable_fix_mode);
 
-  static u32 max_age_of_differential = 0;
+  static u32 max_age_of_differential = 30;
   SETTING_NOTIFY("solution",
                  "correction_age_max",
                  max_age_of_differential,
