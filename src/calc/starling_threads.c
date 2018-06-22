@@ -14,6 +14,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#define PROFILE_STARLING 1
+
 #include <libsbp/sbp.h>
 #include <libswiftnav/constants.h>
 #include <libswiftnav/coord_system.h>
@@ -30,6 +32,11 @@
 
 #include "starling_platform_shim.h"
 #include "starling_threads.h"
+
+#if defined PROFILE_STARLING && PROFILE_STARLING > 0
+#include "board/v3/nap/nap_hw.h"
+#include "timing/timing.h"
+#endif
 
 extern bool starling_integration_simulation_enabled(void);
 extern void starling_integration_simulation_run(const me_msg_obs_t *me_msg);
@@ -639,6 +646,15 @@ static void starling_thread(void) {
       continue;
     }
 
+#if defined PROFILE_STARLING && PROFILE_STARLING > 0
+    static float avg_run_time_s = 0.1f;
+    static float diff_run_time_s = 0.1f;
+    static float avg_diff_run_time_s = 0.0f;
+    static float std_run_time_s = 0.1f;
+    const float smooth_factor = 0.01f;
+    u32 nap_snapshot_begin = NAP->TIMING_COUNT;
+#endif
+
     /* When simulation is enabled, intercept the incoming
      * observations. No further processing will be performed
      * by the PVT engine, and the simulation will proceed
@@ -815,6 +831,23 @@ static void starling_thread(void) {
     /* Forward solutions to outside world. */
     send_solution_low_latency(
         p_spp_solution, p_rtk_solution, &epoch_time, nav_meas, n_ready);
+
+#if defined PROFILE_STARLING && PROFILE_STARLING > 0
+    u32 nap_snapshot_diff = (u32)(NAP->TIMING_COUNT - nap_snapshot_begin);
+    float time_snapshot_diff = RX_DT_NOMINAL * nap_snapshot_diff;
+    avg_run_time_s = avg_run_time_s * (1 - smooth_factor) +
+                     time_snapshot_diff * smooth_factor;
+    diff_run_time_s = (time_snapshot_diff - avg_run_time_s);
+    avg_diff_run_time_s = avg_diff_run_time_s * (1 - smooth_factor) +
+                          (diff_run_time_s * diff_run_time_s) * smooth_factor;
+    std_run_time_s = sqrtf(avg_diff_run_time_s);
+    if (diff_run_time_s > 3.0f * std_run_time_s) {
+      log_warn("time_snapshot_diff %f average %f std %f",
+               time_snapshot_diff,
+               avg_run_time_s,
+               std_run_time_s);
+    }
+#endif
   }
 }
 
