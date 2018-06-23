@@ -10,7 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-/* SwiftNAP v4.2.0 register map */
+/* SwiftNAP v4.3.0 register map */
 
 #ifndef SWIFTNAP_H
 #define SWIFTNAP_H
@@ -18,7 +18,7 @@
 #include <libswiftnav/common.h>
 
 /* Version */
-#define NAP_VERSION (0x04020000)
+#define NAP_VERSION (0x04030000)
 
 /* Number of tracking channels */
 #define NAP_NUM_TRACKING_CHANNELS (72U)
@@ -3470,10 +3470,10 @@ typedef struct {
    ((VAL) << NAP_TRK_CH_CORR_SET_SEC_CODE_ENABLE_Pos))
 
 #define NAP_TRK_CH_CORR_SET_SPACING_Pos (21U)
-#define NAP_TRK_CH_CORR_SET_SPACING_Len (7U)
-#define NAP_TRK_CH_CORR_SET_SPACING_Rst (0xCU)
+#define NAP_TRK_CH_CORR_SET_SPACING_Len (6U)
+#define NAP_TRK_CH_CORR_SET_SPACING_Rst (0x0U)
 #define NAP_TRK_CH_CORR_SET_SPACING_Msk \
-  (0x7FU << NAP_TRK_CH_CORR_SET_SPACING_Pos)
+  (0x3FU << NAP_TRK_CH_CORR_SET_SPACING_Pos)
 #define SET_NAP_TRK_CH_CORR_SET_SPACING(REG, VAL) \
   (((REG) & ~NAP_TRK_CH_CORR_SET_SPACING_Msk) |   \
    ((VAL) << NAP_TRK_CH_CORR_SET_SPACING_Pos))
