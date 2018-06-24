@@ -17,7 +17,7 @@
 #include <libswiftnav/memcpy_s.h>
 
 /* Maximum latency that can be accumulated by the FIFO for all constellations */
-#define MAX_NAV_BIT_LATENCY_MS 400
+#define MAX_NAV_BIT_LATENCY_MS 640
 /* Consider 1kbps maximum symbol rate from a navigation satellite */
 #define MAX_NAV_BIT_SYMBOL_RATE_KHZ 1
 /* Size of nav bit FIFO */
