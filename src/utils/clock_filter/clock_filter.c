@@ -15,9 +15,11 @@
 #include <libswiftnav/linear_algebra.h>
 #include <libswiftnav/logging.h>
 
-/** Process noise parameters for clock state Kalman filter */
-#define CLOCK_BIAS_VAR 1e-19
-#define CLOCK_DRIFT_VAR 1e-23
+/** Process noise parameters for clock state Kalman filter.
+ *  Determined empirically from the raw PVT solutions of several boards on HITL
+ */
+#define CLOCK_BIAS_VAR 5.0e-20
+#define CLOCK_DRIFT_VAR 6.6e-22
 
 /* Time in which clock state uncertainty does not change significantly */
 #define CLOCK_STATE_MIN_PROPAGATE_TIME_S 1e-3
