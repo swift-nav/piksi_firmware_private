@@ -47,7 +47,6 @@ typedef struct {
   double code_phase;      /**< Code phase (chips). */
   u32 chips_to_correlate; /**< Chips to integrate over. */
   float cn0_init;         /**< C/N0 estimate (dBHz). */
-  s8 elevation;           /**< Elevation (deg). */
 } tracking_startup_params_t;
 
 #ifdef __cplusplus

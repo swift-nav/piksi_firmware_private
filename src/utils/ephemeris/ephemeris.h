@@ -13,6 +13,7 @@
 #ifndef SWIFTNAV_EPHEMERIS_H
 #define SWIFTNAV_EPHEMERIS_H
 
+#include <libswiftnav/almanac.h>
 #include <libswiftnav/constants.h>
 #include <libswiftnav/ephemeris.h>
 #include <libswiftnav/signal.h>
@@ -77,6 +78,12 @@ bool xcorr_match_positions(gnss_signal_t sid0,
 xcorr_match_res_t xcorr_match_alm_position(gnss_signal_t sid0,
                                            gnss_signal_t sid,
                                            const xcorr_positions_t *eph_pos);
+s8 update_azel_from_ephemeris(const ephemeris_t *e,
+                              const gps_time_t *t,
+                              const double pos_ecef[]);
+s8 update_azel_from_almanac(const almanac_t *a,
+                            const gps_time_t *t,
+                            const double pos_ecef[]);
 
 /**
  * Helper for converting 32-bit timestamp into GPS time structure.

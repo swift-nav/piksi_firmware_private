@@ -127,8 +127,7 @@ void gal_e7_to_e1_handover(u32 sample_count,
       /* chips to correlate during first 1 ms of tracking */
       .chips_to_correlate = code_to_chip_rate(mesid_e1.code) * 1e-3,
       /* get initial cn0 from parent E1 channel */
-      .cn0_init = cn0_init,
-      .elevation = TRACKING_ELEVATION_UNKNOWN};
+      .cn0_init = cn0_init};
 
   switch (tracking_startup_request(&startup_params)) {
     case 0:
