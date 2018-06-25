@@ -14,7 +14,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define PROFILE_STARLING 1
+#define PROFILE_STARLING 0
 
 #include <libsbp/sbp.h>
 #include <libswiftnav/constants.h>
