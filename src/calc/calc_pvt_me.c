@@ -601,6 +601,14 @@ static void me_calc_pvt_thread(void *arg) {
                           &current_fix,
                           &dops,
                           &raim_removed_sids);
+
+    log_info("calc_PVT: %.1f, %.6f, %.6f, %.2f, %d",
+             current_fix.time.tow,
+             current_fix.pos_llh[0] * R2D,
+             current_fix.pos_llh[1] * R2D,
+             current_fix.pos_llh[2],
+             current_fix.valid);
+
     if (pvt_ret < 0 || (lgf.position_quality == POSITION_FIX &&
                         gate_covariance(&current_fix))) {
       if (pvt_ret < 0) {
