@@ -29,7 +29,7 @@ typedef struct {
 /** Info associated with a decoder channel. */
 typedef struct {
   me_gnss_signal_t mesid; /**< Current ME signal being decoded. */
-  u8 channel_id;    /**< Associated tracking channel. */
+  u8 channel_id;          /**< Associated tracking channel. */
 } decoder_channel_info_t;
 
 /** Decoder interface function template. */

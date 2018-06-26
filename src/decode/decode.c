@@ -64,11 +64,17 @@
 
 typedef enum {
   DECODER_CHANNEL_STATE_DISABLED,
+  DECODER_CHANNEL_STATE_ENABLE_REQUESTED,
   DECODER_CHANNEL_STATE_ENABLED,
   DECODER_CHANNEL_STATE_DISABLE_REQUESTED
 } decoder_channel_state_t;
 
-typedef enum { EVENT_ENABLE, EVENT_DISABLE_REQUEST, EVENT_DISABLE } event_t;
+typedef enum {
+  EVENT_ENABLE_REQUEST,
+  EVENT_ENABLE,
+  EVENT_DISABLE,
+  EVENT_DISABLE_REQUEST
+} event_t;
 
 /** Top-level generic decoder channel. */
 typedef struct {
@@ -168,14 +174,14 @@ bool decoder_channel_available(u8 channel_id, const me_gnss_signal_t mesid) {
 bool decoder_channel_init(u8 channel_id, const me_gnss_signal_t mesid) {
   decoder_channel_t *d = decoder_channel_get(channel_id);
   if (decoder_channel_state_get(d) != DECODER_CHANNEL_STATE_DISABLED) {
-    log_debug_mesid(mesid, "DECODER_CHANNEL_STATE_DISABLED");
+    log_error_mesid(mesid, "DECODER_CHANNEL_STATE_DISABLED");
     return false;
   }
 
   const decoder_interface_t *interface = decoder_interface_get(mesid);
   decoder_t *decoder;
   if (!available_decoder_get(interface, &decoder)) {
-    log_debug_mesid(mesid, "!available_decoder_get()");
+    log_error_mesid(mesid, "!available_decoder_get()");
     return false;
   }
 
@@ -184,34 +190,42 @@ bool decoder_channel_init(u8 channel_id, const me_gnss_signal_t mesid) {
   d->info.mesid = mesid;
   d->decoder = decoder;
 
-  /* Empty the nav bit FIFO */
-  while (tracker_nav_bit_get(d->info.channel_id, NULL)) {
-    ;
-  }
-
-  interface_function(d, interface->init);
-  event(d, EVENT_ENABLE);
+  event(d, EVENT_ENABLE_REQUEST);
   return true;
 }
 
 /** Disable the decoder channel associated with the specified
  * tracking channel.
  *
- * \param tracking_channel  Tracking channel to use.
+ * \param channel_id  Tracking channel to use.
  *
  * \return true if a decoder channel was disabled, false otherwise.
  */
-bool decoder_channel_disable(u8 tracking_channel) {
-  decoder_channel_t *d = decoder_channel_get(tracking_channel);
-  if (decoder_channel_state_get(d) != DECODER_CHANNEL_STATE_ENABLED) {
-    return false;
-  }
+bool decoder_channel_disable(u8 channel_id) {
+  decoder_channel_t *d = decoder_channel_get(channel_id);
+  /*
+    if (decoder_channel_state_get(d) != DECODER_CHANNEL_STATE_ENABLED) {
+      return false;
+    }
+  */
 
   /* Request disable */
   event(d, EVENT_DISABLE_REQUEST);
   return true;
 }
 
+/** Flush the navigation data FIFO
+ *
+ * \param channel_id  Tracking channel to use.
+ */
+static void nav_fifo_flush(const u8 channel_id) {
+  while (tracker_nav_bit_get(channel_id, NULL)) {
+    ;
+  }
+}
+
+/** Decoder thread
+ */
 static void decode_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("decode");
@@ -222,6 +236,13 @@ static void decode_thread(void *arg) {
       const decoder_interface_t *interface =
           decoder_interface_get(d->info.mesid);
       switch (decoder_channel_state_get(d)) {
+        case DECODER_CHANNEL_STATE_ENABLE_REQUESTED: {
+          /* Empty the nav bit FIFO */
+          nav_fifo_flush(d->info.channel_id);
+          interface_function(d, interface->init);
+          event(d, EVENT_ENABLE);
+        } break;
+
         case DECODER_CHANNEL_STATE_ENABLED: {
           interface_function(d, interface->process);
         } break;
@@ -339,23 +360,36 @@ static void interface_function(decoder_channel_t *d,
  */
 static void event(decoder_channel_t *d, event_t event) {
   switch (event) {
-    case EVENT_ENABLE: {
-      assert(d->state == DECODER_CHANNEL_STATE_DISABLED);
+    case EVENT_ENABLE_REQUEST: {
       assert(d->decoder->active == false);
-      d->decoder->active = true;
-      /* Sequence point for enable is setting channel state = STATE_ENABLED */
+      assert(d->state == DECODER_CHANNEL_STATE_DISABLED);
+
       asm volatile("" : : : "memory"); /* Prevent compiler reordering */
+      d->state = DECODER_CHANNEL_STATE_ENABLE_REQUESTED;
+    } break;
+
+    case EVENT_ENABLE: {
+      assert(d->decoder->active == false);
+      assert(d->state == DECODER_CHANNEL_STATE_ENABLE_REQUESTED);
+
+      asm volatile("" : : : "memory"); /* Prevent compiler reordering */
+      d->decoder->active = true;
       d->state = DECODER_CHANNEL_STATE_ENABLED;
     } break;
 
     case EVENT_DISABLE_REQUEST: {
+      assert(d->decoder->active == true);
       assert(d->state == DECODER_CHANNEL_STATE_ENABLED);
+      /* Sequence point for disable is setting channel state = STATE_DISABLED
+       * and/or decoder active = false (order of these two is irrelevant here)
+       */
+      asm volatile("" : : : "memory"); /* Prevent compiler reordering */
       d->state = DECODER_CHANNEL_STATE_DISABLE_REQUESTED;
     } break;
 
     case EVENT_DISABLE: {
-      assert(d->state == DECODER_CHANNEL_STATE_DISABLE_REQUESTED);
       assert(d->decoder->active == true);
+      assert(d->state == DECODER_CHANNEL_STATE_DISABLE_REQUESTED);
       /* Sequence point for disable is setting channel state = STATE_DISABLED
        * and/or decoder active = false (order of these two is irrelevant here)
        */
