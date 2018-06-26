@@ -29,7 +29,7 @@ typedef struct {
 /** Info associated with a decoder channel. */
 typedef struct {
   me_gnss_signal_t mesid; /**< Current ME signal being decoded. */
-  u8 tracking_channel;    /**< Associated tracking channel. */
+  u8 channel_id;    /**< Associated tracking channel. */
 } decoder_channel_info_t;
 
 /** Decoder interface function template. */
@@ -46,16 +46,9 @@ typedef struct {
   /** Process function. Called periodically. Should be used to receive and
    * decode navigation message bits. */
   decoder_interface_function_t process;
-  decoder_t
-      *decoders;   /**< Array of decoder instances used by this interface. */
-  u8 num_decoders; /**< Number of decoder instances in decoders array. */
+  decoder_t *decoders; /**< Array of decoder instances. */
+  u8 num_decoders;     /**< Number of decoder instances in array. */
 } decoder_interface_t;
-
-/** List element passed to decoder_interface_register(). */
-typedef struct decoder_interface_list_element_t {
-  const decoder_interface_t *interface;
-  struct decoder_interface_list_element_t *next;
-} decoder_interface_list_element_t;
 
 /** \} */
 
@@ -64,7 +57,7 @@ extern "C" {
 #endif
 
 void decode_setup(void);
-void decoder_interface_register(decoder_interface_list_element_t *element);
+void decoder_interface_register(const decoder_interface_t *element);
 
 bool decoder_channel_available(u8 tracking_channel,
                                const me_gnss_signal_t mesid);

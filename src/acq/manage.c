@@ -545,16 +545,26 @@ void acq_result_send(const me_gnss_signal_t mesid,
  * \return Index of first unused tracking channel.
  */
 static u8 manage_track_new_acq(const me_gnss_signal_t mesid) {
-  /* Decide which (if any) tracking channel to put
-   * a newly acquired satellite into.
-   */
+  /* Loop for free tracking and decoding channels. Decoding channel might be
+     optional based on signal. */
   for (u8 i = 0; i < nap_track_n_channels; i++) {
-    if (code_requires_decoder(mesid.code) && tracker_available(i, mesid) &&
-        decoder_channel_available(i, mesid)) {
+    if (!tracker_available(i, mesid)) {
+      /* This tracking channel is reserved */
+      continue;
+    }
+
+    if (!code_requires_decoder(mesid.code)) {
+      /* Free tracking channel found and no decoder needed -> OK */
       return i;
-    } else if (!code_requires_decoder(mesid.code) &&
-               tracker_available(i, mesid)) {
+    }
+
+    if (decoder_channel_available(i, mesid)) {
+      /* Free tracking and decoder channels found -> OK */
       return i;
+    } else {
+      /* No free decoder channel */
+      log_info_mesid(mesid, "manage_track_new_acq() no decoder available");
+      continue;
     }
   }
 
@@ -1269,8 +1279,8 @@ static void manage_tracking_startup(void) {
           acq->dopp_hint_high = MIN(freq + ACQ_FULL_CF_STEP, doppler_max);
         }
       }
-      log_info_mesid(startup_params.mesid,
-                     "No free tracking channel available.");
+      log_error_mesid(startup_params.mesid,
+                      "No free tracking channel available.");
       continue;
     }
 

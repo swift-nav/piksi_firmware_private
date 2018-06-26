@@ -69,7 +69,9 @@ bool nav_bit_fifo_write(nav_bit_fifo_t *fifo, const nav_bit_t *element) {
  */
 bool nav_bit_fifo_read(nav_bit_fifo_t *fifo, nav_bit_t *element) {
   if (NAV_BIT_FIFO_LENGTH(fifo) > 0) {
-    (*element) = fifo->elements[fifo->read_index % (fifo->size)];
+    if (NULL != element) {
+      (*element) = fifo->elements[fifo->read_index % (fifo->size)];
+    }
     fifo->read_index++;
     return true;
   }

@@ -55,9 +55,6 @@ static const decoder_interface_t decoder_interface_gps_l1ca = {
     .decoders = gps_l1ca_decoders,
     .num_decoders = ARRAY_SIZE(gps_l1ca_decoders)};
 
-static decoder_interface_list_element_t list_element_gps_l1ca = {
-    .interface = &decoder_interface_gps_l1ca, .next = NULL};
-
 /**
  * Check that an almanac matches with the ephemeris of that satellite but not
  * with any other.
@@ -361,7 +358,7 @@ void decode_gps_l1ca_register(void) {
     gps_l1ca_decoders[i].data = &gps_l1ca_decoder_data[i];
   }
 
-  decoder_interface_register(&list_element_gps_l1ca);
+  decoder_interface_register(&decoder_interface_gps_l1ca);
 }
 
 static void decoder_gps_l1ca_init(const decoder_channel_info_t *channel_info,
@@ -380,7 +377,7 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
   /* Process incoming nav bits */
   nav_bit_t nav_bit;
   s8 prev_polarity = BIT_POLARITY_UNKNOWN;
-  while (tracker_nav_bit_get(channel_info->tracking_channel, &nav_bit)) {
+  while (tracker_nav_bit_get(channel_info->channel_id, &nav_bit)) {
     /* Don't decode data while in sensitivity mode. */
     if (0 == nav_bit) {
       nav_msg_init(&data->nav_msg);
@@ -399,7 +396,7 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
       /* Only update polarity. */
       from_decoder.sync_flags = SYNC_POL;
     }
-    tracker_data_sync(channel_info->tracking_channel, &from_decoder);
+    tracker_data_sync(channel_info->channel_id, &from_decoder);
   }
 
   /* Check if there is a new nav msg subframe to process. */

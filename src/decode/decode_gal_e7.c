@@ -37,16 +37,13 @@ static void decoder_gal_e7_init(const decoder_channel_info_t *channel_info,
 static void decoder_gal_e7_process(const decoder_channel_info_t *channel_info,
                                    decoder_data_t *decoder_data);
 
-static const decoder_interface_t decoder_interface_gal = {
+static const decoder_interface_t decoder_interface_gal_e7 = {
     .code = CODE_GAL_E7I,
     .init = decoder_gal_e7_init,
     .disable = decoder_disable,
     .process = decoder_gal_e7_process,
     .decoders = gal_e7_decoders,
     .num_decoders = ARRAY_SIZE(gal_e7_decoders)};
-
-static decoder_interface_list_element_t list_element_gal = {
-    .interface = &decoder_interface_gal, .next = NULL};
 
 void decode_gal_e7_register(void) {
   /* workaround for `comparison is always false due to limited range of data
@@ -56,7 +53,7 @@ void decode_gal_e7_register(void) {
     gal_e7_decoders[i - 1].data = &gal_e7_decoder_data[i - 1];
   }
 
-  decoder_interface_register(&list_element_gal);
+  decoder_interface_register(&decoder_interface_gal_e7);
 }
 
 static void decoder_gal_e7_init(const decoder_channel_info_t *channel_info,
@@ -80,7 +77,7 @@ static void decoder_gal_e7_process(const decoder_channel_info_t *channel_info,
 
   /* Process incoming nav bits */
   nav_bit_t nav_bit;
-  u8 channel = channel_info->tracking_channel;
+  u8 channel = channel_info->channel_id;
 
   while (tracker_nav_bit_get(channel, &nav_bit)) {
     tracker_data_sync_init(&from_decoder);
@@ -100,7 +97,7 @@ static void decoder_gal_e7_process(const decoder_channel_info_t *channel_info,
         TOWms = (s32)rint(t.tow * 1000);
         from_decoder.TOW_ms = TOWms + 2000;
         from_decoder.bit_polarity = data->bit_polarity;
-        tracker_data_sync(channel_info->tracking_channel, &from_decoder);
+        tracker_data_sync(channel_info->channel_id, &from_decoder);
         break;
       case INAV_EPH:
         make_utc_tm(&(k->toc), &date);
@@ -163,7 +160,7 @@ static void decoder_gal_e7_process(const decoder_channel_info_t *channel_info,
         TOWms = (s32)rint(t.tow * 1000);
         from_decoder.TOW_ms = TOWms + 2000;
         from_decoder.bit_polarity = data->bit_polarity;
-        tracker_data_sync(channel_info->tracking_channel, &from_decoder);
+        tracker_data_sync(channel_info->channel_id, &from_decoder);
         break;
       case INAV_ALM:
         break;

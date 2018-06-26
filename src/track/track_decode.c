@@ -21,19 +21,14 @@
  * tracking_channel_time_sync().
  *
  * \param id       ID of the tracker channel to read from.
- * \param nav_bit  Struct containing nav_bit data.
+ * \param nav_bit  Navigation data bit.
  *
  * \return true if valid nav_bit is available, false otherwise.
  */
 bool tracker_nav_bit_get(u8 id, nav_bit_t *nav_bit) {
   tracker_t *tracker = tracker_get(id);
 
-  nav_bit_t element;
-  if (nav_bit_fifo_read(&tracker->nav_bit_fifo, &element)) {
-    *nav_bit = element;
-    return true;
-  }
-  return false;
+  return nav_bit_fifo_read(&tracker->nav_bit_fifo, nav_bit);
 }
 
 /** Initializes the data structure used to sync data between decoder and tracker

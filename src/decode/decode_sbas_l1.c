@@ -54,16 +54,13 @@ static const decoder_interface_t decoder_interface_sbas_l1 = {
     .decoders = sbas_l1_decoders,
     .num_decoders = ARRAY_SIZE(sbas_l1_decoders)};
 
-static decoder_interface_list_element_t list_element_sbas_l1 = {
-    .interface = &decoder_interface_sbas_l1, .next = NULL};
-
 void decode_sbas_l1_register(void) {
   for (u16 i = 1; i <= ARRAY_SIZE(sbas_l1_decoders); i++) {
     sbas_l1_decoders[i - 1].active = false;
     sbas_l1_decoders[i - 1].data = &sbas_l1_decoder_data[i - 1];
   }
 
-  decoder_interface_register(&list_element_sbas_l1);
+  decoder_interface_register(&decoder_interface_sbas_l1);
 }
 
 static void decoder_sbas_l1_init(const decoder_channel_info_t *channel_info,
@@ -84,7 +81,7 @@ static void decoder_sbas_l1_process(const decoder_channel_info_t *channel_info,
   sbas_l1_decoder_data_t *data = decoder_data;
 
   /* Process incoming nav bits */
-  u8 channel = channel_info->tracking_channel;
+  u8 channel = channel_info->channel_id;
   nav_bit_t nav_bit;
   while (tracker_nav_bit_get(channel, &nav_bit)) {
     /* Don't decode data while in sensitivity mode. */
@@ -121,6 +118,6 @@ static void decoder_sbas_l1_process(const decoder_channel_info_t *channel_info,
     from_decoder.TOW_ms = data->sbas_msg.tow_ms;
     from_decoder.bit_polarity = data->sbas_msg.bit_polarity;
     from_decoder.health = data->sbas_msg.health;
-    tracker_data_sync(channel_info->tracking_channel, &from_decoder);
+    tracker_data_sync(channel_info->channel_id, &from_decoder);
   }
 }
