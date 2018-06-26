@@ -52,16 +52,13 @@ static const decoder_interface_t decoder_interface_gps_l2c = {
     .decoders = gps_l2c_decoders,
     .num_decoders = ARRAY_SIZE(gps_l2c_decoders)};
 
-static decoder_interface_list_element_t list_element_gps_l2c = {
-    .interface = &decoder_interface_gps_l2c, .next = 0};
-
 void decode_gps_l2c_register(void) {
   for (u16 i = 0; i < ARRAY_SIZE(gps_l2c_decoders); i++) {
     gps_l2c_decoders[i].active = false;
     gps_l2c_decoders[i].data = &gps_l2c_decoder_data[i];
   }
 
-  decoder_interface_register(&list_element_gps_l2c);
+  decoder_interface_register(&decoder_interface_gps_l2c);
 }
 
 static void decoder_gps_l2c_init(const decoder_channel_info_t *channel_info,
@@ -81,7 +78,7 @@ static void decoder_gps_l2c_process(const decoder_channel_info_t *channel_info,
 
   /* Process incoming nav bits */
   nav_bit_t nav_bit;
-  while (tracker_nav_bit_get(channel_info->tracking_channel, &nav_bit)) {
+  while (tracker_nav_bit_get(channel_info->channel_id, &nav_bit)) {
     /* Don't decode data while in sensitivity mode. */
     if (0 == nav_bit) {
       data->cnav_msg.bit_polarity = BIT_POLARITY_UNKNOWN;
@@ -179,7 +176,7 @@ static void decoder_gps_l2c_process(const decoder_channel_info_t *channel_info,
     log_debug("G%02d data->cnav_msg.bit_polarity %+2d",
               channel_info->mesid.sat,
               data->cnav_msg.bit_polarity);
-    tracker_data_sync(channel_info->tracking_channel, &from_decoder);
+    tracker_data_sync(channel_info->channel_id, &from_decoder);
 
     /* check PRN conformity */
     bool prn_fail = channel_info->mesid.sat != (u16)data->cnav_msg.prn;

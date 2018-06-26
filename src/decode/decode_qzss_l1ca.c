@@ -49,9 +49,6 @@ static const decoder_interface_t decoder_interface_qzss_l1ca = {
     .decoders = qzss_l1ca_decoders,
     .num_decoders = ARRAY_SIZE(qzss_l1ca_decoders)};
 
-static decoder_interface_list_element_t list_element_qzss_l1ca = {
-    .interface = &decoder_interface_qzss_l1ca, .next = NULL};
-
 void decode_qzss_l1ca_register(void) {
   /* workaround for `comparison is always false due to limited range of data
    * type` */
@@ -60,7 +57,7 @@ void decode_qzss_l1ca_register(void) {
     qzss_l1ca_decoders[i - 1].data = &qzss_l1ca_decoder_data[i - 1];
   }
 
-  decoder_interface_register(&list_element_qzss_l1ca);
+  decoder_interface_register(&decoder_interface_qzss_l1ca);
 }
 
 static void decoder_qzss_l1ca_init(const decoder_channel_info_t *channel_info,
@@ -78,7 +75,7 @@ static void decoder_qzss_l1ca_process(
 
   /* Process incoming nav bits */
   nav_bit_t nav_bit;
-  while (tracker_nav_bit_get(channel_info->tracking_channel, &nav_bit)) {
+  while (tracker_nav_bit_get(channel_info->channel_id, &nav_bit)) {
     /* Don't decode data while in sensitivity mode. */
     if (0 == nav_bit) {
       nav_msg_init(&data->nav_msg);
@@ -95,6 +92,6 @@ static void decoder_qzss_l1ca_process(
                     from_decoder.TOW_ms);
 
     from_decoder.bit_polarity = data->nav_msg.bit_polarity;
-    tracker_data_sync(channel_info->tracking_channel, &from_decoder);
+    tracker_data_sync(channel_info->channel_id, &from_decoder);
   }
 }

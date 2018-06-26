@@ -48,16 +48,13 @@ static const decoder_interface_t decoder_interface_bds_b1 = {
     .decoders = bds_b1_decoders,
     .num_decoders = ARRAY_SIZE(bds_b1_decoders)};
 
-static decoder_interface_list_element_t list_element_bds_b1 = {
-    .interface = &decoder_interface_bds_b1, .next = NULL};
-
 void decode_bds_b1_register(void) {
   for (u16 i = 1; i <= ARRAY_SIZE(bds_b1_decoders); i++) {
     bds_b1_decoders[i - 1].active = false;
     bds_b1_decoders[i - 1].data = &bds_b1_decoder_data[i - 1];
   }
 
-  decoder_interface_register(&list_element_bds_b1);
+  decoder_interface_register(&decoder_interface_bds_b1);
 }
 
 static void decoder_bds_b1_init(const decoder_channel_info_t *channel_info,
@@ -84,7 +81,7 @@ static void decoder_bds_b1_process(const decoder_channel_info_t *channel_info,
 
   /* Process incoming nav bits */
   nav_bit_t nav_bit;
-  u8 channel = channel_info->tracking_channel;
+  u8 channel = channel_info->channel_id;
 
   while (tracker_nav_bit_get(channel, &nav_bit)) {
     bool bit_val = nav_bit > 0;
@@ -130,7 +127,7 @@ static void decoder_bds_b1_process(const decoder_channel_info_t *channel_info,
         }
       }
       from_decoder.bit_polarity = data->nav_msg.bit_polarity;
-      tracker_data_sync(channel_info->tracking_channel, &from_decoder);
+      tracker_data_sync(channel_info->channel_id, &from_decoder);
     }
   }
   return;

@@ -15,6 +15,7 @@
 #include <ch.h>
 #include <libswiftnav/glo_map.h>
 #include <libswiftnav/logging.h>
+#include "board/v3/platform_signal.h"
 #include "signal_db/signal_db.h"
 #include "track/track_decode.h"
 
@@ -76,7 +77,7 @@ typedef struct {
   decoder_t *decoder;            /**< Associated decoder instance. */
 } decoder_channel_t;
 
-static decoder_interface_list_element_t *decoder_interface_list = 0;
+static decoder_interface_t const *decoder_interface[CODE_COUNT];
 static decoder_channel_t decoder_channels[NUM_DECODER_CHANNELS];
 
 static THD_WORKING_AREA(wa_decode_thread, DECODE_THREAD_STACK);
@@ -124,34 +125,32 @@ void decode_setup(void) {
  *
  * \param element   Struct describing the interface to register.
  */
-void decoder_interface_register(decoder_interface_list_element_t *element) {
+void decoder_interface_register(const decoder_interface_t *element) {
   /* p_next = address of next pointer which must be updated */
-  decoder_interface_list_element_t **p_next = &decoder_interface_list;
-
-  while (*p_next != 0) p_next = &(*p_next)->next;
-
-  element->next = 0;
-  *p_next = element;
+  decoder_interface[element->code] = element;
 }
 
 /** Determine if a decoder channel is available for the specified tracking
  * channel and ME sid.
  *
- * \param tracking_channel  Tracking channel to use.
- * \param mesid             ME signal to be decoded.
+ * \param channel_id  Tracking channel to use.
+ * \param mesid       ME signal to be decoded.
  *
  * \return true if a decoder channel is available, false otherwise.
  */
-bool decoder_channel_available(u8 tracking_channel,
-                               const me_gnss_signal_t mesid) {
-  decoder_channel_t *d = decoder_channel_get(tracking_channel);
+bool decoder_channel_available(u8 channel_id, const me_gnss_signal_t mesid) {
+  decoder_channel_t *d = decoder_channel_get(channel_id);
   if (decoder_channel_state_get(d) != DECODER_CHANNEL_STATE_DISABLED) {
+    log_info_mesid(
+        mesid,
+        "decoder_channel_available(%d) DECODER_CHANNEL_STATE_DISABLED",
+        channel_id);
     return false;
   }
 
   const decoder_interface_t *interface = decoder_interface_get(mesid);
-  decoder_t *decoder;
-  if (!available_decoder_get(interface, &decoder)) {
+  if (!available_decoder_get(interface, NULL)) {
+    log_info_mesid(mesid, "no available decoder for the interface");
     return false;
   }
 
@@ -166,8 +165,8 @@ bool decoder_channel_available(u8 tracking_channel,
  *
  * \return true if a decoder channel was initialized, false otherwise.
  */
-bool decoder_channel_init(u8 tracking_channel, const me_gnss_signal_t mesid) {
-  decoder_channel_t *d = decoder_channel_get(tracking_channel);
+bool decoder_channel_init(u8 channel_id, const me_gnss_signal_t mesid) {
+  decoder_channel_t *d = decoder_channel_get(channel_id);
   if (decoder_channel_state_get(d) != DECODER_CHANNEL_STATE_DISABLED) {
     log_debug_mesid(mesid, "DECODER_CHANNEL_STATE_DISABLED");
     return false;
@@ -181,13 +180,12 @@ bool decoder_channel_init(u8 tracking_channel, const me_gnss_signal_t mesid) {
   }
 
   /* Set up channel */
-  d->info.tracking_channel = tracking_channel;
+  d->info.channel_id = channel_id;
   d->info.mesid = mesid;
   d->decoder = decoder;
 
   /* Empty the nav bit FIFO */
-  nav_bit_t nav_bit;
-  while (tracker_nav_bit_get(d->info.tracking_channel, &nav_bit)) {
+  while (tracker_nav_bit_get(d->info.channel_id, NULL)) {
     ;
   }
 
@@ -219,18 +217,16 @@ static void decode_thread(void *arg) {
   chRegSetThreadName("decode");
 
   while (true) {
-    for (u32 i = 0; i < NUM_DECODER_CHANNELS; i++) {
+    for (u8 i = 0; i < NUM_DECODER_CHANNELS; i++) {
       decoder_channel_t *d = &decoder_channels[i];
+      const decoder_interface_t *interface =
+          decoder_interface_get(d->info.mesid);
       switch (decoder_channel_state_get(d)) {
         case DECODER_CHANNEL_STATE_ENABLED: {
-          const decoder_interface_t *interface =
-              decoder_interface_get(d->info.mesid);
           interface_function(d, interface->process);
         } break;
 
         case DECODER_CHANNEL_STATE_DISABLE_REQUESTED: {
-          const decoder_interface_t *interface =
-              decoder_interface_get(d->info.mesid);
           interface_function(d, interface->disable);
           event(d, EVENT_DISABLE);
         } break;
@@ -257,31 +253,28 @@ static void decode_thread(void *arg) {
  */
 static const decoder_interface_t *decoder_interface_get(
     const me_gnss_signal_t mesid) {
-  const decoder_interface_list_element_t *e = decoder_interface_list;
-  while (e != 0) {
-    const decoder_interface_t *interface = e->interface;
-    if (interface->code == mesid.code) {
-      return interface;
-    }
-    e = e->next;
+  const decoder_interface_t *e = decoder_interface[mesid.code];
+
+  if (NULL == e) {
+    return &decoder_interface_default;
   }
 
-  return &decoder_interface_default;
+  return e;
 }
 
 /** Retrieve the decoder channel associated with the specified tracking channel.
  *
- * \param tracking_channel  Tracking channel to use.
+ * \param channel_id  Tracking channel to use.
  *
  * \return Associated decoder channel.
  */
-static decoder_channel_t *decoder_channel_get(u8 tracking_channel) {
+static decoder_channel_t *decoder_channel_get(u8 channel_id) {
   /* TODO: Decouple tracking / decoder channels somewhat.
    * Just need to make sure that only a single decoder channel can be allocated
    * to a given tracking channel.
    */
-  assert(tracking_channel < NUM_DECODER_CHANNELS);
-  return &decoder_channels[tracking_channel];
+  assert(channel_id < NUM_DECODER_CHANNELS);
+  return &decoder_channels[channel_id];
 }
 
 /** Find an inactive decoder instance for the specified decoder interface.
@@ -295,9 +288,11 @@ static decoder_channel_t *decoder_channel_get(u8 tracking_channel) {
 static bool available_decoder_get(const decoder_interface_t *interface,
                                   decoder_t **decoder) {
   /* Search for a free decoder */
-  for (u32 j = 0; j < interface->num_decoders; j++) {
+  for (u8 j = 0; j < interface->num_decoders; j++) {
     if (!decoder_active(&interface->decoders[j])) {
-      *decoder = &interface->decoders[j];
+      if (NULL != decoder) {
+        *decoder = &interface->decoders[j];
+      }
       return true;
     }
   }
@@ -307,34 +302,22 @@ static bool available_decoder_get(const decoder_interface_t *interface,
 
 /** Return the state of a decoder channel.
  *
- * \note This function performs an acquire operation, meaning that it ensures
- * the returned state was read before any subsequent memory accesses.
- *
  * \param d         Decoder channel to use.
  *
  * \return state of the decoder channel.
  */
 static decoder_channel_state_t decoder_channel_state_get(
     const decoder_channel_t *d) {
-  decoder_channel_state_t state = d->state;
-  asm volatile("" : : : "memory"); /* Prevent compiler reordering */
-  return state;
+  return d->state;
 }
 
 /** Return the state of a decoder instance.
- *
- * \note This function performs an acquire operation, meaning that it ensures
- * the returned state was read before any subsequent memory accesses.
  *
  * \param decoder   Decoder to use.
  *
  * \return true if the decoder is active, false if inactive.
  */
-static bool decoder_active(const decoder_t *decoder) {
-  bool active = decoder->active;
-  asm volatile("" : : : "memory"); /* Prevent compiler reordering */
-  return active;
-}
+static bool decoder_active(const decoder_t *decoder) { return decoder->active; }
 
 /** Execute an interface function on a decoder channel.
  *

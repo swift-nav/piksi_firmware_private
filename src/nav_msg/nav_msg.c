@@ -78,7 +78,7 @@ void nav_msg_init(nav_msg_t *n) {
   memset(n, 0, sizeof(*n));
   n->next_subframe_id = 0; /* The very first subframe number is not known  */
   n->bit_polarity = BIT_POLARITY_UNKNOWN;
-  for (unsigned i = 0; i < GPS_LNAV_SUBFRAME_CNT; ++i) {
+  for (u8 i = 0; i < GPS_LNAV_SUBFRAME_CNT; ++i) {
     n->frame_age[i] = GPS_LNAV_SUBFRAME_AGE_INVALID;
   }
 }
@@ -576,7 +576,7 @@ bool subframe_ready(const nav_msg_t *n) {
  * \return None
  */
 static void age_subframe_data(nav_msg_t *n) {
-  for (unsigned sf = 0; sf < GPS_LNAV_SUBFRAME_CNT; ++sf) {
+  for (u8 sf = 0; sf < GPS_LNAV_SUBFRAME_CNT; ++sf) {
     if (n->frame_age[sf] < GPS_LNAV_SUBFRAME_AGE_MAX) {
       /* Increase age as it is under the limit */
       n->frame_age[sf]++;
