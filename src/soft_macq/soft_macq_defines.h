@@ -65,8 +65,8 @@ typedef struct _acqResults_t {
 #define FAU_GPSL1CA_COHE 4
 #define FAU_GPSL1CA_NONC 1
 
-#define FAU_GLOG1_COHE 2
-#define FAU_GLOG1_NONC 2
+#define FAU_GLOG1_COHE 4
+#define FAU_GLOG1_NONC 1
 
 #define FAU_SBASL1_COHE 1
 #define FAU_SBASL1_NONC 4
