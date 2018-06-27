@@ -245,11 +245,7 @@ static void decode_thread(void *arg) {
       }
     }
 
-    /* it's unnecessary to wake up the decoder every ms,
-     * this just increases context switching and cache pollution
-     * one order of magnitude less than the navigation data bit
-     * FIFO duration should do just fine */
-    chThdSleep(MS2ST(MAX_NAV_BIT_LATENCY_MS / 20));
+    chThdSleep(MS2ST(1));
   }
 }
 
