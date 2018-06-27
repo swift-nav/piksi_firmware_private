@@ -1296,6 +1296,9 @@ static void manage_tracking_startup(void) {
       continue;
     }
 
+    /* Change state to TRACKING */
+    acq->state = ACQ_PRN_TRACKING;
+
     /* Start the tracking channel */
     if (!tracker_init(chan,
                       startup_params.mesid,
@@ -1306,11 +1309,8 @@ static void manage_tracking_startup(void) {
                       startup_params.chips_to_correlate,
                       startup_params.cn0_init)) {
       log_error("tracker channel init failed");
-      continue;
+      acq->state = ACQ_PRN_ACQUIRING;
     }
-
-    /* Change state to TRACKING */
-    acq->state = ACQ_PRN_TRACKING;
   }
 }
 
