@@ -65,35 +65,16 @@ bool mdbzp_static(sc16_t *_cSignal,
   sc16_t *pCodePt;
   sc16_t *pSignalPt;
 
-#ifdef DEBUG_MDZP
-  FILE *fid;
-  char fName[64];
-#endif
-
   /** alloc forward FFT and support structures */
   /* One-time configuration */
   if (sCorrFftConf.N != samples_block) {
     InitIntFFTr2(&sCorrFftConf, samples_block);
   }
 
-  log_debug("code_slices %" PRIu32 " code_ms %" PRIu32 " code_coh %" PRIu32
-            " code_nonc %" PRIu32 " samples_ms %" PRIu32 " slices_coh %" PRIu32
-            " samples_code %" PRIu32 " samples_slice %" PRIu32
-            " num_codes %" PRIu32,
-            code_slices,
-            code_ms,
-            code_coh,
-            code_nonc,
-            samples_ms,
-            slices_coh,
-            samples_code,
-            samples_slice,
-            num_codes);
-
   /***********************************
    *         STORE CODE FFTs         *
    ************************************/
-  u32 scale_mask = 0x0003;
+  u32 scale_mask = 0x0000;
   for (u32 j = 0; j < code_slices; j++) {
     memset(cFftWork, 0, samples_block * sizeof(sc16_t));
 
@@ -106,19 +87,11 @@ bool mdbzp_static(sc16_t *_cSignal,
            cFftWork,
            samples_block * sizeof(sc16_t));
   }
-#ifdef DEBUG_MDZP
-  sprintf(fName, "G%02d_codefft.sc16", _pRes->iUsi + 1);
-  fid = fopen(fName, "wb");
-  if (NULL != fid) {
-    fwrite(pCodeMat, sizeof(sc16_t), 1 * code_slices * samples_block, fid);
-    fclose(fid);
-  }
-#endif
 
   /*******************************
    *     STORE SIGNAL FFTs       *
    *******************************/
-  scale_mask = 0x0003;
+  scale_mask = 0x0000;
   for (u32 j = 0; j < num_codes * code_slices; j++) {
     memset(cFftWork, 0, sizeof(cFftWork));
 
@@ -132,22 +105,11 @@ bool mdbzp_static(sc16_t *_cSignal,
            cFftWork,
            samples_block * sizeof(sc16_t));
   }
-#ifdef DEBUG_MDZP
-  sprintf(fName, "G%02d_sigfft.sc16", _pRes->iUsi + 1);
-  fid = fopen(fName, "wb");
-  if (NULL != fid) {
-    fwrite(pSignalMat,
-           sizeof(sc16_t),
-           num_codes * code_slices * samples_block,
-           fid);
-    fclose(fid);
-  }
-#endif
 
   /******************************
    * COMPUTE THE BIG DBZP MATRIX
    ******************************/
-  scale_mask = 0x0003;
+  scale_mask = 0x0155;
   for (u32 j = 0; j < code_slices; j++) {
     for (u32 h = 0; h < num_codes; h++) {
       for (u32 k = 0; k < code_slices; k++) {
@@ -167,17 +129,6 @@ bool mdbzp_static(sc16_t *_cSignal,
       }
     }
   }
-#ifdef DEBUG_MDZP
-  sprintf(fName, "G%02d_mdbzp.sc16", _pRes->iUsi + 1);
-  fid = fopen(fName, "wb");
-  if (NULL != fid) {
-    fwrite(pCorrMat,
-           sizeof(sc16_t),
-           (num_codes * code_slices) * (samples_code),
-           fid);
-    fclose(fid);
-  }
-#endif
 
   /*********************************
    *  COMPUTE FINAL FREQUENCY FFT
@@ -188,7 +139,7 @@ bool mdbzp_static(sc16_t *_cSignal,
 
   /** alloc final code-frequency matrix */
   memset(pFreqCodeMat, 0, freqfft_sz * samples_code * sizeof(float));
-  scale_mask = 0x003f;
+  scale_mask = 0x0155;
 
   for (u32 m = 0; m < samples_code; m++) {
     for (u32 n = 0; n < code_nonc; n++) {
@@ -201,15 +152,6 @@ bool mdbzp_static(sc16_t *_cSignal,
       Sc16ArrayAddAbsTo(pFreqCodeMat + m * freqfft_sz, cFftWork, freqfft_sz);
     } /* for n in (code_nonc) */
   }   /* for m in (samples_code) */
-
-#ifdef DEBUG_MDZP
-  sprintf(fName, "G%02d_codefreq_sc16.float", _pRes->iUsi + 1);
-  fid = fopen(fName, "wb");
-  if (NULL != fid) {
-    fwrite(pFreqCodeMat, sizeof(float), freqfft_sz * samples_code, fid);
-    fclose(fid);
-  }
-#endif
 
   float max_freqidx, max_codeidx;
   _pRes->bAcquired = IsAcquired3D(pFreqCodeMat,
