@@ -187,8 +187,8 @@ static void imu_thread(void *arg) {
     }
     if (new_mag && raw_mag_output) {
       /* Read out the magnetometer data and fill out the SBP message. */
-      mag_raw.mag_x = mag[0];
-      mag_raw.mag_y = mag[1];
+      mag_raw.mag_x = mag[1];
+      mag_raw.mag_y = -mag[0];
       mag_raw.mag_z = mag[2];
       mag_raw.tow = tow;
       mag_raw.tow_f = tow_f;
