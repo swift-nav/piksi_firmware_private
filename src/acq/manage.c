@@ -1274,7 +1274,20 @@ static void manage_tracking_startup(void) {
       continue;
     }
 
-    /* Change state to TRACKING */
+    /* Start the decoder channel if needed.
+     * Starting the decoder before the tracking is necessary so that
+     * if tracking starts and fails the decoder isn't initialized,
+     * leading to a stale unrecoverable state */
+    if (code_requires_decoder(startup_params.mesid.code) &&
+        !decoder_channel_init(chan, startup_params.mesid)) {
+      log_error("decoder channel init failed");
+      continue;
+    }
+
+    /* Change state to TRACKING.
+     * This has to be done here as the acquisition thread has very low priority
+     * so a tracker could start and fail and the acquisition mark the state to
+     * tracking after it all happened, leading to a stale acquisition state */
     acq->state = ACQ_PRN_TRACKING;
 
     /* Start the tracking channel */
@@ -1289,13 +1302,6 @@ static void manage_tracking_startup(void) {
       log_error("tracker channel init failed");
       /* If starting of a channel fails, change state to ACQUIRING */
       acq->state = ACQ_PRN_ACQUIRING;
-      continue;
-    }
-
-    /* Start the decoder channel if needed */
-    if (code_requires_decoder(startup_params.mesid.code) &&
-        !decoder_channel_init(chan, startup_params.mesid)) {
-      log_error("decoder channel init failed");
     }
   }
 }
