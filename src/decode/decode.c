@@ -65,16 +65,10 @@
 typedef enum {
   DECODER_CHANNEL_STATE_DISABLED,
   DECODER_CHANNEL_STATE_ENABLE_REQUESTED,
-  DECODER_CHANNEL_STATE_ENABLED,
-  DECODER_CHANNEL_STATE_DISABLE_REQUESTED
+  DECODER_CHANNEL_STATE_ENABLED
 } decoder_channel_state_t;
 
-typedef enum {
-  EVENT_ENABLE_REQUEST,
-  EVENT_ENABLE,
-  EVENT_DISABLE,
-  EVENT_DISABLE_REQUEST
-} event_t;
+typedef enum { EVENT_ENABLE_REQUEST, EVENT_ENABLE, EVENT_DISABLE } event_t;
 
 /** Top-level generic decoder channel. */
 typedef struct {
@@ -203,14 +197,11 @@ bool decoder_channel_init(u8 channel_id, const me_gnss_signal_t mesid) {
  */
 bool decoder_channel_disable(u8 channel_id) {
   decoder_channel_t *d = decoder_channel_get(channel_id);
-  /*
-    if (decoder_channel_state_get(d) != DECODER_CHANNEL_STATE_ENABLED) {
-      return false;
-    }
-  */
+  const decoder_interface_t *interface = decoder_interface_get(d->info.mesid);
+  interface_function(d, interface->disable);
 
   /* Request disable */
-  event(d, EVENT_DISABLE_REQUEST);
+  event(d, EVENT_DISABLE);
   return true;
 }
 
@@ -245,11 +236,6 @@ static void decode_thread(void *arg) {
 
         case DECODER_CHANNEL_STATE_ENABLED: {
           interface_function(d, interface->process);
-        } break;
-
-        case DECODER_CHANNEL_STATE_DISABLE_REQUESTED: {
-          interface_function(d, interface->disable);
-          event(d, EVENT_DISABLE);
         } break;
 
         case DECODER_CHANNEL_STATE_DISABLED:
@@ -377,19 +363,9 @@ static void event(decoder_channel_t *d, event_t event) {
       d->state = DECODER_CHANNEL_STATE_ENABLED;
     } break;
 
-    case EVENT_DISABLE_REQUEST: {
-      assert(d->decoder->active == true);
-      assert(d->state == DECODER_CHANNEL_STATE_ENABLED);
-      /* Sequence point for disable is setting channel state = STATE_DISABLED
-       * and/or decoder active = false (order of these two is irrelevant here)
-       */
-      asm volatile("" : : : "memory"); /* Prevent compiler reordering */
-      d->state = DECODER_CHANNEL_STATE_DISABLE_REQUESTED;
-    } break;
-
     case EVENT_DISABLE: {
       assert(d->decoder->active == true);
-      assert(d->state == DECODER_CHANNEL_STATE_DISABLE_REQUESTED);
+      assert(d->state == DECODER_CHANNEL_STATE_ENABLED);
       /* Sequence point for disable is setting channel state = STATE_DISABLED
        * and/or decoder active = false (order of these two is irrelevant here)
        */
