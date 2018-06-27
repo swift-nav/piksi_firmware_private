@@ -31,37 +31,29 @@
 /** QZSS L1 C/A decoder data */
 typedef struct { nav_msg_t nav_msg; } qzss_l1ca_decoder_data_t;
 
-static decoder_t qzss_l1ca_decoders[NUM_QZSS_L1CA_DECODERS];
 static qzss_l1ca_decoder_data_t
-    qzss_l1ca_decoder_data[ARRAY_SIZE(qzss_l1ca_decoders)];
+    qzss_l1ca_decoder_data[NUM_QZSS_L1CA_DECODERS];
 
 static void decoder_qzss_l1ca_init(const decoder_channel_info_t *channel_info,
-                                   decoder_data_t *decoder_data);
+                                   void *decoder_data);
 
 static void decoder_qzss_l1ca_process(
-    const decoder_channel_info_t *channel_info, decoder_data_t *decoder_data);
+    const decoder_channel_info_t *channel_info, void *decoder_data);
 
 static const decoder_interface_t decoder_interface_qzss_l1ca = {
     .code = CODE_QZS_L1CA,
     .init = decoder_qzss_l1ca_init,
     .disable = decoder_disable,
     .process = decoder_qzss_l1ca_process,
-    .decoders = qzss_l1ca_decoders,
-    .num_decoders = ARRAY_SIZE(qzss_l1ca_decoders)};
+    .decoders = qzss_l1ca_decoder_data,
+    .num_decoders = ARRAY_SIZE(qzss_l1ca_decoder_data)};
 
 void decode_qzss_l1ca_register(void) {
-  /* workaround for `comparison is always false due to limited range of data
-   * type` */
-  for (u16 i = 1; i <= ARRAY_SIZE(qzss_l1ca_decoders); i++) {
-    qzss_l1ca_decoders[i - 1].active = false;
-    qzss_l1ca_decoders[i - 1].data = &qzss_l1ca_decoder_data[i - 1];
-  }
-
   decoder_interface_register(&decoder_interface_qzss_l1ca);
 }
 
 static void decoder_qzss_l1ca_init(const decoder_channel_info_t *channel_info,
-                                   decoder_data_t *decoder_data) {
+                                   void *decoder_data) {
   (void)channel_info;
   qzss_l1ca_decoder_data_t *data = decoder_data;
 
@@ -70,7 +62,7 @@ static void decoder_qzss_l1ca_init(const decoder_channel_info_t *channel_info,
 }
 
 static void decoder_qzss_l1ca_process(
-    const decoder_channel_info_t *channel_info, decoder_data_t *decoder_data) {
+    const decoder_channel_info_t *channel_info, void *decoder_data) {
   qzss_l1ca_decoder_data_t *data = decoder_data;
 
   /* Process incoming nav bits */

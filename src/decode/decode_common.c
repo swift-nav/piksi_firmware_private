@@ -216,8 +216,7 @@ void erase_cnav_data(gnss_signal_t target_sid, gnss_signal_t src_sid) {
   clear_tow_in_sid_db(target_sid);
 }
 
-void decoder_disable(const decoder_channel_info_t *channel_info,
-                     decoder_data_t *decoder_data) {
-  (void)channel_info;
+void decoder_disable(const u8 *channel_id, void *decoder_data) {
+  (void)channel_id;
   (void)decoder_data;
 }

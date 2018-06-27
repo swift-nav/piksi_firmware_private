@@ -22,63 +22,7 @@
 #define DECODE_THREAD_STACK (4 * 1024)
 #define DECODE_THREAD_PRIORITY (NORMALPRIO - 1)
 
-/** \defgroup decoding Decoding
- * Receive data bits from tracking channels and decode navigation messages.
- * \{ */
-
-/*
- * Channel States and Transitions:
- *
- * DISABLED
- *  - Channel will not be accessed by the decoder thread. Set configuration,
- *    associate an inactive decoder instance, and then issue *EVENT_ENABLE* to
- *    set the decoder active and transition state to ENABLED.
- *
- * ENABLED
- *  - Channel is running and may be accessed by the decoder thread. Only
- *    allowed external action is an atomic state transition from ENABLED to
- *    DISABLE_REQUEST by issuing *EVENT_DISABLE_REQUEST*.
- *
- * DISABLE_REQUEST
- *  - Channel is running but will be disabled by the decoder thread imminently.
- *    No external action is allowed. Decoder thread should issue *EVENT_DISABLE*
- *    to set the decoder inactive and transition state to DISABLED.
- *
- *
- *
- * Notes on atomicity and thread safety:
- * - When enabling a decoder channel, the only sequence point is setting channel
- *   state = STATE_ENABLED. Parameters may be set in any order, and it does not
- *   matter when the decoder instance is set to active, as long as all of this
- *   is completed before channel state = STATE_ENABLED. Channel state gates all
- *   accesses to a decoder channel and associated decoder instance from the
- *   decoder thread.
- *
- * - When disabling a decoder channel (from the decoder thread), the only
- *   sequence points are releasing the decoder channel (channel state =
- *   STATE_DISABLED) and the decoder instance (active = false). All accesses
- *   to the these structures must complete before the corresponding release.
- *   It does not matter in which order the two structures are released as they
- *   are allocated independently when initializing decoding.
- */
-
-typedef enum {
-  DECODER_CHANNEL_STATE_DISABLED,
-  DECODER_CHANNEL_STATE_ENABLE_REQUESTED,
-  DECODER_CHANNEL_STATE_ENABLED
-} decoder_channel_state_t;
-
-typedef enum { EVENT_ENABLE_REQUEST, EVENT_ENABLE, EVENT_DISABLE } event_t;
-
-/** Top-level generic decoder channel. */
-typedef struct {
-  decoder_channel_state_t state; /**< State of this channel. */
-  decoder_channel_info_t info;   /**< Info associated with this channel. */
-  decoder_t *decoder;            /**< Associated decoder instance. */
-} decoder_channel_t;
-
-static decoder_interface_t const *decoder_interface[CODE_COUNT];
-static decoder_channel_t decoder_channels[NUM_DECODER_CHANNELS];
+static decoder_interface_t const *decoder_interface[NUM_DECODER_CHANNELS];
 
 static THD_WORKING_AREA(wa_decode_thread, DECODE_THREAD_STACK);
 
@@ -87,29 +31,21 @@ static const decoder_interface_t *decoder_interface_get(
     const me_gnss_signal_t mesid);
 static decoder_channel_t *decoder_channel_get(u8 tracking_channel);
 static bool available_decoder_get(const decoder_interface_t *interface,
-                                  decoder_t **decoder);
-static decoder_channel_state_t decoder_channel_state_get(
-    const decoder_channel_t *d);
-static bool decoder_active(const decoder_t *decoder);
+                                  void **decoder);
+
 static void interface_function(decoder_channel_t *d,
                                decoder_interface_function_t func);
-static void event(decoder_channel_t *d, event_t event);
 
 static const decoder_interface_t decoder_interface_default = {
+    .busy = false,
     .code = CODE_INVALID,
-    .init = 0,
-    .disable = 0,
-    .process = 0,
-    .decoders = 0,
-    .num_decoders = 0};
+    .init = NULL,
+    .process = NULL,
+    .disable = NULL,
+    .decoder_data = NULL};
 
 /** Set up the decoding module. */
 void decode_setup(void) {
-  for (u32 i = 0; i < NUM_DECODER_CHANNELS; i++) {
-    decoder_channels[i].state = DECODER_CHANNEL_STATE_DISABLED;
-    decoder_channels[i].decoder = 0;
-  }
-
   platform_decode_setup();
 
   chThdCreateStatic(wa_decode_thread,
@@ -125,9 +61,9 @@ void decode_setup(void) {
  *
  * \param element   Struct describing the interface to register.
  */
-void decoder_interface_register(const decoder_interface_t *element) {
+void decoder_interface_register(const u8 channel_id, decoder_interface_t *element) {
   /* p_next = address of next pointer which must be updated */
-  decoder_interface[element->code] = element;
+  decoder_interface[channel_id] = element;
 }
 
 /** Determine if a decoder channel is available for the specified tracking
@@ -140,10 +76,10 @@ void decoder_interface_register(const decoder_interface_t *element) {
  */
 bool decoder_channel_available(u8 channel_id, const me_gnss_signal_t mesid) {
   decoder_channel_t *d = decoder_channel_get(channel_id);
-  if (decoder_channel_state_get(d) != DECODER_CHANNEL_STATE_DISABLED) {
+  if (d->busy) {
     log_info_mesid(
         mesid,
-        "decoder_channel_available(%d) DECODER_CHANNEL_STATE_DISABLED",
+        "decoder_channel_available() channel_id %d is busy",
         channel_id);
     return false;
   }
@@ -167,13 +103,13 @@ bool decoder_channel_available(u8 channel_id, const me_gnss_signal_t mesid) {
  */
 bool decoder_channel_init(u8 channel_id, const me_gnss_signal_t mesid) {
   decoder_channel_t *d = decoder_channel_get(channel_id);
-  if (decoder_channel_state_get(d) != DECODER_CHANNEL_STATE_DISABLED) {
-    log_error_mesid(mesid, "DECODER_CHANNEL_STATE_DISABLED");
+  if (d->busy) {
+    log_error_mesid(mesid, "decoder_channel_init() channel_id %d is busy", channel_id);
     return false;
   }
 
   const decoder_interface_t *interface = decoder_interface_get(mesid);
-  decoder_t *decoder;
+  void *decoder;
   if (!available_decoder_get(interface, &decoder)) {
     log_error_mesid(mesid, "!available_decoder_get()");
     return false;
@@ -226,9 +162,14 @@ static void decode_thread(void *arg) {
       decoder_channel_t *d = &decoder_channels[i];
       const decoder_interface_t *interface =
           decoder_interface_get(d->info.mesid);
-      switch (decoder_channel_state_get(d)) {
+
+      if (d->busy) {
+        interface_function(d, interface->process);
+      }
+
+      /*switch (decoder_channel_state_get(d)) {
         case DECODER_CHANNEL_STATE_ENABLE_REQUESTED: {
-          /* Empty the nav bit FIFO */
+           Empty the nav bit FIFO
           nav_fifo_flush(d->info.channel_id);
           interface_function(d, interface->init);
           event(d, EVENT_ENABLE);
@@ -239,16 +180,16 @@ static void decode_thread(void *arg) {
         } break;
 
         case DECODER_CHANNEL_STATE_DISABLED:
-          /* Do nothing */
+           Do nothing
           break;
 
         default:
           assert(!"Invalid state");
           break;
-      }
+      }*/
     }
 
-    chThdSleep(MS2ST(1));
+    chThdSleep(MS2ST(MAX_NAV_BIT_LATENCY_MS/20));
   }
 }
 
@@ -293,12 +234,12 @@ static decoder_channel_t *decoder_channel_get(u8 channel_id) {
  * false otherwise.
  */
 static bool available_decoder_get(const decoder_interface_t *interface,
-                                  decoder_t **decoder) {
+                                  void **decoder) {
   /* Search for a free decoder */
   for (u8 j = 0; j < interface->num_decoders; j++) {
-    if (!decoder_active(&interface->decoders[j])) {
+    if (NULL != (interface->decoders[j])) {
       if (NULL != decoder) {
-        *decoder = &interface->decoders[j];
+        *decoder = interface->decoders[j];
       }
       return true;
     }
@@ -307,24 +248,6 @@ static bool available_decoder_get(const decoder_interface_t *interface,
   return false;
 }
 
-/** Return the state of a decoder channel.
- *
- * \param d         Decoder channel to use.
- *
- * \return state of the decoder channel.
- */
-static decoder_channel_state_t decoder_channel_state_get(
-    const decoder_channel_t *d) {
-  return d->state;
-}
-
-/** Return the state of a decoder instance.
- *
- * \param decoder   Decoder to use.
- *
- * \return true if the decoder is active, false if inactive.
- */
-static bool decoder_active(const decoder_t *decoder) { return decoder->active; }
 
 /** Execute an interface function on a decoder channel.
  *
@@ -333,7 +256,7 @@ static bool decoder_active(const decoder_t *decoder) { return decoder->active; }
  */
 static void interface_function(decoder_channel_t *d,
                                decoder_interface_function_t func) {
-  return func(&d->info, d->decoder->data);
+  return func(&d->info, d->decoder);
 }
 
 /** Update the state of a decoder channel and its associated decoder instance.

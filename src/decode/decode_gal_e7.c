@@ -27,37 +27,28 @@
 #include "track/track_decode.h"
 #include "track/track_sid_db.h"
 
-static decoder_t gal_e7_decoders[NUM_GAL_E7_DECODERS];
-
-static nav_msg_gal_inav_t gal_e7_decoder_data[ARRAY_SIZE(gal_e7_decoders)];
+static nav_msg_gal_inav_t gal_e7_decoder_data[NUM_GAL_E7_DECODERS];
 
 static void decoder_gal_e7_init(const decoder_channel_info_t *channel_info,
-                                decoder_data_t *decoder_data);
+                                void *decoder_data);
 
 static void decoder_gal_e7_process(const decoder_channel_info_t *channel_info,
-                                   decoder_data_t *decoder_data);
+                                   void *decoder_data);
 
 static const decoder_interface_t decoder_interface_gal_e7 = {
     .code = CODE_GAL_E7I,
     .init = decoder_gal_e7_init,
     .disable = decoder_disable,
     .process = decoder_gal_e7_process,
-    .decoders = gal_e7_decoders,
-    .num_decoders = ARRAY_SIZE(gal_e7_decoders)};
+    .decoders = gal_e7_decoder_data,
+    .num_decoders = ARRAY_SIZE(gal_e7_decoder_data)};
 
 void decode_gal_e7_register(void) {
-  /* workaround for `comparison is always false due to limited range of data
-   * type` */
-  for (u16 i = 1; i <= ARRAY_SIZE(gal_e7_decoders); i++) {
-    gal_e7_decoders[i - 1].active = false;
-    gal_e7_decoders[i - 1].data = &gal_e7_decoder_data[i - 1];
-  }
-
   decoder_interface_register(&decoder_interface_gal_e7);
 }
 
 static void decoder_gal_e7_init(const decoder_channel_info_t *channel_info,
-                                decoder_data_t *decoder_data) {
+                                void *decoder_data) {
   nav_msg_gal_inav_t *data = decoder_data;
 
   memset(data, 0, sizeof(*data));
@@ -65,7 +56,7 @@ static void decoder_gal_e7_init(const decoder_channel_info_t *channel_info,
 }
 
 static void decoder_gal_e7_process(const decoder_channel_info_t *channel_info,
-                                   decoder_data_t *decoder_data) {
+                                   void *decoder_data) {
   assert(channel_info);
   assert(decoder_data);
 

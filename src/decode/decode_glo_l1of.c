@@ -29,34 +29,28 @@
 /** GLO L1CA decoder data */
 typedef struct { nav_msg_glo_t nav_msg; } glo_l1of_decoder_data_t;
 
-static decoder_t glo_l1of_decoders[NUM_GLO_L1OF_DECODERS];
 static glo_l1of_decoder_data_t
-    glo_l1of_decoder_data[ARRAY_SIZE(glo_l1of_decoders)];
+    glo_l1of_decoder_data[NUM_GLO_L1OF_DECODERS];
 
 static void decoder_glo_l1of_init(const decoder_channel_info_t *channel_info,
-                                  decoder_data_t *decoder_data);
+                                  void *decoder_data);
 static void decoder_glo_l1of_process(const decoder_channel_info_t *channel_info,
-                                     decoder_data_t *decoder_data);
+                                     void *decoder_data);
 
 static const decoder_interface_t decoder_interface_glo_l1of = {
     .code = CODE_GLO_L1OF,
     .init = decoder_glo_l1of_init,
     .disable = decoder_disable,
     .process = decoder_glo_l1of_process,
-    .decoders = glo_l1of_decoders,
-    .num_decoders = ARRAY_SIZE(glo_l1of_decoders)};
+    .decoders = glo_l1of_decoder_data,
+    .num_decoders = ARRAY_SIZE(glo_l1of_decoder_data)};
 
 void decode_glo_l1of_register(void) {
-  for (u16 i = 1; i <= ARRAY_SIZE(glo_l1of_decoders); i++) {
-    glo_l1of_decoders[i - 1].active = false;
-    glo_l1of_decoders[i - 1].data = &glo_l1of_decoder_data[i - 1];
-  }
-
   decoder_interface_register(&decoder_interface_glo_l1of);
 }
 
 static void decoder_glo_l1of_init(const decoder_channel_info_t *channel_info,
-                                  decoder_data_t *decoder_data) {
+                                  void *decoder_data) {
   glo_l1of_decoder_data_t *data = decoder_data;
 
   memset(data, 0, sizeof(*data));
@@ -64,7 +58,7 @@ static void decoder_glo_l1of_init(const decoder_channel_info_t *channel_info,
 }
 
 static void decoder_glo_l1of_process(const decoder_channel_info_t *channel_info,
-                                     decoder_data_t *decoder_data) {
+                                     void *decoder_data) {
   glo_l1of_decoder_data_t *data = decoder_data;
 
   /* Process incoming nav bits */

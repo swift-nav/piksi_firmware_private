@@ -28,45 +28,36 @@
 #include "track/track_sid_db.h"
 
 /** BDS B1 decoder data */
-typedef struct { nav_msg_bds_t nav_msg; } bds_b1_decoder_data_t;
-
-static decoder_t bds_b1_decoders[NUM_BDS2_B11_DECODERS];
-
-static bds_b1_decoder_data_t bds_b1_decoder_data[ARRAY_SIZE(bds_b1_decoders)];
+static nav_msg_bds_t bds_b1_decoder_data[NUM_BDS2_B11_DECODERS];
 
 static void decoder_bds_b1_init(const decoder_channel_info_t *channel_info,
-                                decoder_data_t *decoder_data);
+                                void *decoder_data);
 
 static void decoder_bds_b1_process(const decoder_channel_info_t *channel_info,
-                                   decoder_data_t *decoder_data);
+                                   void *decoder_data);
 
 static const decoder_interface_t decoder_interface_bds_b1 = {
     .code = CODE_BDS2_B11,
     .init = decoder_bds_b1_init,
     .disable = decoder_disable,
     .process = decoder_bds_b1_process,
-    .decoders = bds_b1_decoders,
-    .num_decoders = ARRAY_SIZE(bds_b1_decoders)};
+    .decoders = bds_b1_decoder_data,
+    .num_decoders = ARRAY_SIZE(bds_b1_decoder_data)};
 
 void decode_bds_b1_register(void) {
-  for (u16 i = 1; i <= ARRAY_SIZE(bds_b1_decoders); i++) {
-    bds_b1_decoders[i - 1].active = false;
-    bds_b1_decoders[i - 1].data = &bds_b1_decoder_data[i - 1];
-  }
-
   decoder_interface_register(&decoder_interface_bds_b1);
 }
 
 static void decoder_bds_b1_init(const decoder_channel_info_t *channel_info,
-                                decoder_data_t *decoder_data) {
-  bds_b1_decoder_data_t *data = decoder_data;
+                                void *decoder_data) {
+  nav_msg_bds_t *data = decoder_data;
 
   memset(data, 0, sizeof(*data));
-  bds_nav_msg_init(&data->nav_msg, channel_info->mesid.sat);
+  bds_nav_msg_init(data, channel_info->mesid.sat);
 }
 
 static void decoder_bds_b1_process(const decoder_channel_info_t *channel_info,
-                                   decoder_data_t *decoder_data) {
+                                   void *decoder_data) {
   bds_d1_decoded_data_t dd_d1nav;
   bds_d2_decoded_data_t dd_d2nav;
 
@@ -76,7 +67,7 @@ static void decoder_bds_b1_process(const decoder_channel_info_t *channel_info,
   memset(&dd_d1nav, 0, sizeof(bds_d1_decoded_data_t));
   memset(&dd_d2nav, 0, sizeof(bds_d2_decoded_data_t));
 
-  bds_b1_decoder_data_t *data = decoder_data;
+  nav_msg_bds_t *data = decoder_data;
   me_gnss_signal_t mesid = channel_info->mesid;
 
   /* Process incoming nav bits */
@@ -86,13 +77,13 @@ static void decoder_bds_b1_process(const decoder_channel_info_t *channel_info,
   while (tracker_nav_bit_get(channel, &nav_bit)) {
     bool bit_val = nav_bit > 0;
 
-    bool tlm_rx = bds_nav_msg_update(&data->nav_msg, bit_val);
+    bool tlm_rx = bds_nav_msg_update(data, bit_val);
     if (tlm_rx) {
       s32 TOWms = TOW_INVALID;
       nav_data_sync_t from_decoder;
       tracker_data_sync_init(&from_decoder);
       if (bds_d2nav(mesid)) {
-        TOWms = bds_d2_process_subframe(&data->nav_msg, mesid, &dd_d2nav);
+        TOWms = bds_d2_process_subframe(data, mesid, &dd_d2nav);
         if (TOW_INVALID != TOWms) {
           from_decoder.TOW_ms = TOWms - 60;
         }
@@ -109,7 +100,7 @@ static void decoder_bds_b1_process(const decoder_channel_info_t *channel_info,
           dd_d2nav.ephemeris_upd_flag = false;
         }
       } else {
-        TOWms = bds_d1_process_subframe(&data->nav_msg, mesid, &dd_d1nav);
+        TOWms = bds_d1_process_subframe(data, mesid, &dd_d1nav);
         if (TOW_INVALID != TOWms) {
           from_decoder.TOW_ms = TOWms;
         }
@@ -126,7 +117,7 @@ static void decoder_bds_b1_process(const decoder_channel_info_t *channel_info,
           dd_d1nav.ephemeris_upd_flag = false;
         }
       }
-      from_decoder.bit_polarity = data->nav_msg.bit_polarity;
+      from_decoder.bit_polarity = data->bit_polarity;
       tracker_data_sync(channel_info->channel_id, &from_decoder);
     }
   }

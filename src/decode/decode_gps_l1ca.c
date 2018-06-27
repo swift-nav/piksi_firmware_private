@@ -35,25 +35,15 @@
 #define IONO_HYSTERESIS_MS 1000
 
 /** GPS L1 C/A decoder data */
-typedef struct { nav_msg_t nav_msg; } gps_l1ca_decoder_data_t;
+typedef struct { u8 sat; nav_msg_t nav_msg; } gps_l1ca_decoder_data_t;
 
-static decoder_t gps_l1ca_decoders[NUM_GPS_L1CA_DECODERS];
-static gps_l1ca_decoder_data_t
-    gps_l1ca_decoder_data[ARRAY_SIZE(gps_l1ca_decoders)];
+static gps_l1ca_decoder_data_t gps_l1ca_decoder_data[NUM_GPS_L1CA_DECODERS];
+static decoder_interface_t decoder_interface_gps_l1ca[NUM_GPS_L1CA_DECODERS];
 
-static void decoder_gps_l1ca_init(const decoder_channel_info_t *channel_info,
-                                  decoder_data_t *decoder_data);
+static void decoder_gps_l1ca_init(const code_t *code, void *decoder_data);
 
-static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
-                                     decoder_data_t *decoder_data);
+static void decoder_gps_l1ca_process(const code_t *code, void *decoder_data);
 
-static const decoder_interface_t decoder_interface_gps_l1ca = {
-    .code = CODE_GPS_L1CA,
-    .init = decoder_gps_l1ca_init,
-    .disable = decoder_disable,
-    .process = decoder_gps_l1ca_process,
-    .decoders = gps_l1ca_decoders,
-    .num_decoders = ARRAY_SIZE(gps_l1ca_decoders)};
 
 /**
  * Check that an almanac matches with the ephemeris of that satellite but not
@@ -353,60 +343,66 @@ static void decode_almanac_health_new(gnss_signal_t src_sid,
 }
 
 void decode_gps_l1ca_register(void) {
-  for (u16 i = 0; i < ARRAY_SIZE(gps_l1ca_decoders); i++) {
-    gps_l1ca_decoders[i].active = false;
-    gps_l1ca_decoders[i].data = &gps_l1ca_decoder_data[i];
+  for (u8 i = 0; i < NAP_NUM_GPS_L1_CHANNELS; i++) {
+    decoder_interface_t *intf = &decoder_interface_gps_l1ca[i];
+    intf->channel_id = NAP_FIRST_GPS_L1_CHANNEL + i;
+    intf->code = CODE_GPS_L1CA;
+    intf->init = decoder_gps_l1ca_init;
+    intf->process = decoder_gps_l1ca_process;
+    intf->disable = decoder_disable;
+    intf->decoder_data = &gps_l1ca_decoder_data[i];
+    decoder_interface_register(NAP_FIRST_GPS_L1_CHANNEL + i, intf);
   }
-
-  decoder_interface_register(&decoder_interface_gps_l1ca);
 }
 
-static void decoder_gps_l1ca_init(const decoder_channel_info_t *channel_info,
-                                  decoder_data_t *decoder_data) {
-  (void)channel_info;
+static void decoder_gps_l1ca_init(const u8 *channel_id,
+                                  void *decoder_data) {
+  (void)channel_id;
   gps_l1ca_decoder_data_t *data = decoder_data;
+  nav_msg_t *nav_msg = &(data->nav_msg);
 
-  memset(data, 0, sizeof(*data));
-  nav_msg_init(&data->nav_msg);
+  memset(nav_msg, 0, sizeof(nav_msg_t));
+  nav_msg_init(nav_msg);
 }
 
-static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
-                                     decoder_data_t *decoder_data) {
+static void decoder_gps_l1ca_process(const u8 *channel_id,
+                                     void *decoder_data) {
   gps_l1ca_decoder_data_t *data = decoder_data;
+  nav_msg_t *nav_msg = &(data->nav_msg);
 
   /* Process incoming nav bits */
   nav_bit_t nav_bit;
   s8 prev_polarity = BIT_POLARITY_UNKNOWN;
-  while (tracker_nav_bit_get(channel_info->channel_id, &nav_bit)) {
+  while (tracker_nav_bit_get(channel_id, &nav_bit)) {
     /* Don't decode data while in sensitivity mode. */
     if (0 == nav_bit) {
-      nav_msg_init(&data->nav_msg);
+      nav_msg_init(nav_msg);
       continue;
     }
     /* Update TOW */
     bool bit_val = nav_bit > 0;
     nav_data_sync_t from_decoder;
     tracker_data_sync_init(&from_decoder);
-    prev_polarity = data->nav_msg.bit_polarity;
-    from_decoder.TOW_ms = nav_msg_update(&data->nav_msg, bit_val);
-    from_decoder.bit_polarity = data->nav_msg.bit_polarity;
+    prev_polarity = nav_msg->bit_polarity;
+    from_decoder.TOW_ms = nav_msg_update(nav_msg, bit_val);
+    from_decoder.bit_polarity = nav_msg->bit_polarity;
     /* Let's not update TOW together with fast HCA resolution. */
     if (BIT_POLARITY_UNKNOWN == prev_polarity &&
         BIT_POLARITY_UNKNOWN != from_decoder.bit_polarity) {
       /* Only update polarity. */
       from_decoder.sync_flags = SYNC_POL;
     }
-    tracker_data_sync(channel_info->channel_id, &from_decoder);
+    tracker_data_sync(channel_id, &from_decoder);
   }
 
   /* Check if there is a new nav msg subframe to process. */
-  if (!subframe_ready(&data->nav_msg)) {
+  if (!subframe_ready(nav_msg)) {
     return;
   }
 
   /* Decode nav data to temporary structure */
   gps_l1ca_decoded_data_t dd;
-  s8 ret = process_subframe(&data->nav_msg, channel_info->mesid, &dd);
+  s8 ret = process_subframe(nav_msg, channel_info->mesid, &dd);
 
   if (ret <= 0) {
     return;
@@ -429,7 +425,7 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
     return;
   }
 
-  shm_gps_set_shi_lnav_how_alert(l1ca_sid.sat, !data->nav_msg.alert);
+  shm_gps_set_shi_lnav_how_alert(l1ca_sid.sat, !nav_msg->alert);
 
   if (dd.shi_ephemeris_upd_flag) {
     log_debug_mesid(
@@ -449,7 +445,7 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
     /* Clear NDB and TOW cache */
     erase_nav_data(l1ca_sid, l1ca_sid);
     /* Clear decoded subframe data */
-    nav_msg_clear_decoded(&data->nav_msg);
+    nav_msg_clear_decoded(nav_msg);
     return;
   }
 

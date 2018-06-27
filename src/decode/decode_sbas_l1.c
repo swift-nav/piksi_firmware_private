@@ -36,35 +36,29 @@ typedef struct {
   sbas_msg_decoder_t sbas_msg_decoder;
 } sbas_l1_decoder_data_t;
 
-static decoder_t sbas_l1_decoders[NUM_SBAS_L1_DECODERS];
 static sbas_l1_decoder_data_t
-    sbas_l1_decoder_data[ARRAY_SIZE(sbas_l1_decoders)];
+    sbas_l1_decoder_data[NUM_SBAS_L1_DECODERS];
 
 static void decoder_sbas_l1_init(const decoder_channel_info_t *channel_info,
-                                 decoder_data_t *decoder_data);
+                                 void *decoder_data);
 
 static void decoder_sbas_l1_process(const decoder_channel_info_t *channel_info,
-                                    decoder_data_t *decoder_data);
+                                    void *decoder_data);
 
 static const decoder_interface_t decoder_interface_sbas_l1 = {
     .code = CODE_SBAS_L1CA,
     .init = decoder_sbas_l1_init,
     .disable = decoder_disable,
     .process = decoder_sbas_l1_process,
-    .decoders = sbas_l1_decoders,
-    .num_decoders = ARRAY_SIZE(sbas_l1_decoders)};
+    .decoders = sbas_l1_decoder_data,
+    .num_decoders = ARRAY_SIZE(sbas_l1_decoder_data)};
 
 void decode_sbas_l1_register(void) {
-  for (u16 i = 1; i <= ARRAY_SIZE(sbas_l1_decoders); i++) {
-    sbas_l1_decoders[i - 1].active = false;
-    sbas_l1_decoders[i - 1].data = &sbas_l1_decoder_data[i - 1];
-  }
-
   decoder_interface_register(&decoder_interface_sbas_l1);
 }
 
 static void decoder_sbas_l1_init(const decoder_channel_info_t *channel_info,
-                                 decoder_data_t *decoder_data) {
+                                 void *decoder_data) {
   sbas_l1_decoder_data_t *data = decoder_data;
   memset(data, 0, sizeof(sbas_l1_decoder_data_t));
   data->sbas_msg.sid =
@@ -77,7 +71,7 @@ static void decoder_sbas_l1_init(const decoder_channel_info_t *channel_info,
 }
 
 static void decoder_sbas_l1_process(const decoder_channel_info_t *channel_info,
-                                    decoder_data_t *decoder_data) {
+                                    void *decoder_data) {
   sbas_l1_decoder_data_t *data = decoder_data;
 
   /* Process incoming nav bits */
