@@ -545,16 +545,26 @@ void acq_result_send(const me_gnss_signal_t mesid,
  * \return Index of first unused tracking channel.
  */
 static u8 manage_track_new_acq(const me_gnss_signal_t mesid) {
-  /* Decide which (if any) tracking channel to put
-   * a newly acquired satellite into.
-   */
+  /* Loop for free tracking and decoding channels. Decoding channel might be
+     optional based on signal. */
   for (u8 i = 0; i < nap_track_n_channels; i++) {
-    if (code_requires_decoder(mesid.code) && tracker_available(i, mesid) &&
-        decoder_channel_available(i, mesid)) {
+    if (!tracker_available(i, mesid)) {
+      /* This tracking channel is reserved */
+      continue;
+    }
+
+    if (!code_requires_decoder(mesid.code)) {
+      /* Free tracking channel found and no decoder needed -> OK */
       return i;
-    } else if (!code_requires_decoder(mesid.code) &&
-               tracker_available(i, mesid)) {
+    }
+
+    if (decoder_channel_available(i, mesid)) {
+      /* Free tracking and decoder channels found -> OK */
       return i;
+    } else {
+      /* No free decoder channel */
+      log_info_mesid(mesid, "manage_track_new_acq() no decoder available");
+      continue;
     }
   }
 
@@ -1269,13 +1279,22 @@ static void manage_tracking_startup(void) {
           acq->dopp_hint_high = MIN(freq + ACQ_FULL_CF_STEP, doppler_max);
         }
       }
-      log_info_mesid(startup_params.mesid,
-                     "No free tracking channel available.");
+      log_error_mesid(startup_params.mesid,
+                      "No free tracking channel available.");
       continue;
     }
 
-    /* Change state to TRACKING */
-    acq->state = ACQ_PRN_TRACKING;
+    /* Start the decoder channel if needed.
+     * Because the decoder thread is lower priority than the tracking thread,
+     * and the acquisition thread is the lowest priority thread of all,
+     * starting decoder before tracking avoids race conditions in init/disposal
+     * of the decoder when the corresponding tracker is initialized and disposed
+     * */
+    if (code_requires_decoder(startup_params.mesid.code) &&
+        !decoder_channel_init(chan, startup_params.mesid)) {
+      log_error("decoder channel init failed");
+      continue;
+    }
 
     /* Start the tracking channel */
     if (!tracker_init(chan,
@@ -1287,16 +1306,11 @@ static void manage_tracking_startup(void) {
                       startup_params.chips_to_correlate,
                       startup_params.cn0_init)) {
       log_error("tracker channel init failed");
-      /* If starting of a channel fails, change state to ACQUIRING */
-      acq->state = ACQ_PRN_ACQUIRING;
       continue;
     }
 
-    /* Start the decoder channel if needed */
-    if (code_requires_decoder(startup_params.mesid.code) &&
-        !decoder_channel_init(chan, startup_params.mesid)) {
-      log_error("decoder channel init failed");
-    }
+    /* Change state to TRACKING */
+    acq->state = ACQ_PRN_TRACKING;
   }
 }
 

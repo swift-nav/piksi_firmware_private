@@ -18,44 +18,20 @@
 /** \addtogroup decoding
  * \{ */
 
-typedef void decoder_data_t;
-
-/** Instance of a decoder implementation. */
-typedef struct {
-  bool active;          /**< true if decoder is in use. */
-  decoder_data_t *data; /**< Pointer to data used by decoder instance. */
-} decoder_t;
-
-/** Info associated with a decoder channel. */
-typedef struct {
-  me_gnss_signal_t mesid; /**< Current ME signal being decoded. */
-  u8 tracking_channel;    /**< Associated tracking channel. */
-} decoder_channel_info_t;
-
 /** Decoder interface function template. */
 typedef void (*decoder_interface_function_t)(
-    const decoder_channel_info_t *channel_info, decoder_data_t *decoder_data);
+    const u8 *channel_id, void *decoder_data);
 
 /** Interface to a decoder implementation. */
 typedef struct {
-  code_t code; /**< Code type for which the implementation may be used. */
-  /** Init function. Called to set up decoder instance when decoding begins. */
+  bool busy;
+  u8 channel_id;
+  code_t code;
   decoder_interface_function_t init;
-  /** Disable function. Called when decoding stops. */
-  decoder_interface_function_t disable;
-  /** Process function. Called periodically. Should be used to receive and
-   * decode navigation message bits. */
   decoder_interface_function_t process;
-  decoder_t
-      *decoders;   /**< Array of decoder instances used by this interface. */
-  u8 num_decoders; /**< Number of decoder instances in decoders array. */
+  decoder_interface_function_t disable;
+  void *decoder_data;
 } decoder_interface_t;
-
-/** List element passed to decoder_interface_register(). */
-typedef struct decoder_interface_list_element_t {
-  const decoder_interface_t *interface;
-  struct decoder_interface_list_element_t *next;
-} decoder_interface_list_element_t;
 
 /** \} */
 
@@ -64,7 +40,7 @@ extern "C" {
 #endif
 
 void decode_setup(void);
-void decoder_interface_register(decoder_interface_list_element_t *element);
+void decoder_interface_register(const u8 channel_id, decoder_interface_t *element);
 
 bool decoder_channel_available(u8 tracking_channel,
                                const me_gnss_signal_t mesid);

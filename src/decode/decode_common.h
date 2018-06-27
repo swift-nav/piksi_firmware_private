@@ -50,8 +50,8 @@ bool glo_data_sync(nav_msg_glo_t *n,
 void erase_nav_data(gnss_signal_t target_sid, gnss_signal_t src_sid);
 void erase_cnav_data(gnss_signal_t target_sid, gnss_signal_t src_sid);
 
-void decoder_disable(const decoder_channel_info_t *channel_info,
-                     decoder_data_t *decoder_data);
+void decoder_disable(const u8 *channel_id,
+                     void *decoder_data);
 
 #ifdef __cplusplus
 }

@@ -30,38 +30,28 @@
 /** BDS B2 decoder data */
 typedef struct { nav_msg_bds_t nav_msg; } bds_b2_decoder_data_t;
 
-static decoder_t bds_b2_decoders[NUM_BDS2_B2_DECODERS];
-
-static bds_b2_decoder_data_t bds_b2_decoder_data[ARRAY_SIZE(bds_b2_decoders)];
+static bds_b2_decoder_data_t bds_b2_decoder_data[NUM_BDS2_B2_DECODERS];
 
 static void decoder_bds_b2_init(const decoder_channel_info_t *channel_info,
-                                decoder_data_t *decoder_data);
+                                void *decoder_data);
 
 static void decoder_bds_b2_process(const decoder_channel_info_t *channel_info,
-                                   decoder_data_t *decoder_data);
+                                   void *decoder_data);
 
 static const decoder_interface_t decoder_interface_bds_b2 = {
     .code = CODE_BDS2_B2,
     .init = decoder_bds_b2_init,
     .disable = decoder_disable,
     .process = decoder_bds_b2_process,
-    .decoders = bds_b2_decoders,
-    .num_decoders = ARRAY_SIZE(bds_b2_decoders)};
-
-static decoder_interface_list_element_t list_element_bds_b2 = {
-    .interface = &decoder_interface_bds_b2, .next = NULL};
+    .decoders = bds_b2_decoder_data,
+    .num_decoders = ARRAY_SIZE(bds_b2_decoder_data)};
 
 void decode_bds_b2_register(void) {
-  for (u16 i = 1; i <= ARRAY_SIZE(bds_b2_decoders); i++) {
-    bds_b2_decoders[i - 1].active = false;
-    bds_b2_decoders[i - 1].data = &bds_b2_decoder_data[i - 1];
-  }
-
-  decoder_interface_register(&list_element_bds_b2);
+ decoder_interface_register(&decoder_interface_bds_b2);
 }
 
 static void decoder_bds_b2_init(const decoder_channel_info_t *channel_info,
-                                decoder_data_t *decoder_data) {
+                                void *decoder_data) {
   bds_b2_decoder_data_t *data = decoder_data;
 
   memset(data, 0, sizeof(*data));
@@ -69,7 +59,7 @@ static void decoder_bds_b2_init(const decoder_channel_info_t *channel_info,
 }
 
 static void decoder_bds_b2_process(const decoder_channel_info_t *channel_info,
-                                   decoder_data_t *decoder_data) {
+                                   void *decoder_data) {
   bds_d1_decoded_data_t dd_d1nav;
   bds_d2_decoded_data_t dd_d2nav;
 
@@ -84,7 +74,7 @@ static void decoder_bds_b2_process(const decoder_channel_info_t *channel_info,
 
   /* Process incoming nav bits */
   nav_bit_t nav_bit;
-  u8 channel = channel_info->tracking_channel;
+  u8 channel = channel_info->channel_id;
 
   while (tracker_nav_bit_get(channel, &nav_bit)) {
     bool bit_val = nav_bit > 0;
@@ -130,7 +120,7 @@ static void decoder_bds_b2_process(const decoder_channel_info_t *channel_info,
         }
       }
       from_decoder.bit_polarity = data->nav_msg.bit_polarity;
-      tracker_data_sync(channel_info->tracking_channel, &from_decoder);
+      tracker_data_sync(channel_info->channel_id, &from_decoder);
     }
   }
   return;

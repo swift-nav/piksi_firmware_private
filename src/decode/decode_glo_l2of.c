@@ -29,38 +29,29 @@
 /** GLO L2CA decoder data */
 typedef struct { nav_msg_glo_t nav_msg; } glo_l2of_decoder_data_t;
 
-static decoder_t glo_l2of_decoders[NUM_GLO_L2OF_DECODERS];
 static glo_l2of_decoder_data_t
-    glo_l2of_decoder_data[ARRAY_SIZE(glo_l2of_decoders)];
+    glo_l2of_decoder_data[NUM_GLO_L2OF_DECODERS];
 
 static void decoder_glo_l2of_init(const decoder_channel_info_t *channel_info,
-                                  decoder_data_t *decoder_data);
+                                  void *decoder_data);
 
 static void decoder_glo_l2of_process(const decoder_channel_info_t *channel_info,
-                                     decoder_data_t *decoder_data);
+                                     void *decoder_data);
 
 static const decoder_interface_t decoder_interface_glo_l2of = {
     .code = CODE_GLO_L2OF,
     .init = decoder_glo_l2of_init,
     .disable = decoder_disable,
     .process = decoder_glo_l2of_process,
-    .decoders = glo_l2of_decoders,
-    .num_decoders = ARRAY_SIZE(glo_l2of_decoders)};
-
-static decoder_interface_list_element_t list_element_glo_l2of = {
-    .interface = &decoder_interface_glo_l2of, .next = 0};
+    .decoders = glo_l2of_decoder_data,
+    .num_decoders = ARRAY_SIZE(glo_l2of_decoder_data)};
 
 void decode_glo_l2of_register(void) {
-  for (u16 i = 1; i <= ARRAY_SIZE(glo_l2of_decoders); i++) {
-    glo_l2of_decoders[i - 1].active = false;
-    glo_l2of_decoders[i - 1].data = &glo_l2of_decoder_data[i - 1];
-  }
-
-  decoder_interface_register(&list_element_glo_l2of);
+  decoder_interface_register(&decoder_interface_glo_l2of);
 }
 
 static void decoder_glo_l2of_init(const decoder_channel_info_t *channel_info,
-                                  decoder_data_t *decoder_data) {
+                                  void *decoder_data) {
   glo_l2of_decoder_data_t *data = decoder_data;
 
   memset(data, 0, sizeof(*data));
@@ -68,13 +59,13 @@ static void decoder_glo_l2of_init(const decoder_channel_info_t *channel_info,
 }
 
 static void decoder_glo_l2of_process(const decoder_channel_info_t *channel_info,
-                                     decoder_data_t *decoder_data) {
+                                     void *decoder_data) {
   glo_l2of_decoder_data_t *data = decoder_data;
 
   /* Process incoming nav bits */
   nav_bit_t nav_bit;
   me_gnss_signal_t mesid = channel_info->mesid;
-  u8 channel = channel_info->tracking_channel;
+  u8 channel = channel_info->channel_id;
 
   while (tracker_nav_bit_get(channel, &nav_bit)) {
     /* Decode GLO ephemeris. */

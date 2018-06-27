@@ -28,49 +28,40 @@
 #include "track/track_sid_db.h"
 
 /** Galileo decoder data */
-static decoder_t gal_e1_decoders[NUM_GAL_E1_DECODERS];
+typedef struct { u8 sat; nav_msg_gal_inav_t nav_msg; } gal_e1b_decoder_data_t;
 
-static nav_msg_gal_inav_t gal_e1_decoder_data[ARRAY_SIZE(gal_e1_decoders)];
+static gal_e1b_decoder_data_t gal_e1_decoder_data[NUM_GAL_E1_DECODERS];
+static decoder_interface_t decoder_interface_gal_e1[NUM_GAL_E1_DECODERS];
 
-static void decoder_gal_e1_init(const decoder_channel_info_t *channel_info,
-                                decoder_data_t *decoder_data);
+static void decoder_gal_e1_init(const u8 *channel_id,
+                                void *decoder_data);
 
-static void decoder_gal_e1_process(const decoder_channel_info_t *channel_info,
-                                   decoder_data_t *decoder_data);
-
-static const decoder_interface_t decoder_interface_gal = {
-    .code = CODE_GAL_E1B,
-    .init = decoder_gal_e1_init,
-    .disable = decoder_disable,
-    .process = decoder_gal_e1_process,
-    .decoders = gal_e1_decoders,
-    .num_decoders = ARRAY_SIZE(gal_e1_decoders)};
-
-static decoder_interface_list_element_t list_element_gal = {
-    .interface = &decoder_interface_gal, .next = NULL};
+static void decoder_gal_e1_process(const u8 *channel_id,
+                                   void *decoder_data);
 
 void decode_gal_e1_register(void) {
-  /* workaround for `comparison is always false due to limited range of data
-   * type` */
-  for (u16 i = 1; i <= ARRAY_SIZE(gal_e1_decoders); i++) {
-    gal_e1_decoders[i - 1].active = false;
-    gal_e1_decoders[i - 1].data = &gal_e1_decoder_data[i - 1];
+  for (u8 i = 0; i < NUM_GAL_E1_DECODERS; i++) {
+    decoder_interface_t *intf = &decoder_interface_gal_e1[i];
+    intf->channel_id = NAP_FIRST_GAL_E1_CHANNEL + i;
+    intf->code = CODE_GAL_E1B;
+    intf->init = decoder_gal_e1_init;
+    intf->process = decoder_gal_e1_process;
+    intf->disable = decoder_disable;
+    intf->decoder_data = &gal_e1_decoder_data[i];
+    decoder_interface_register(NAP_FIRST_GAL_E1_CHANNEL + i, intf);
   }
-
-  decoder_interface_register(&list_element_gal);
 }
 
-static void decoder_gal_e1_init(const decoder_channel_info_t *channel_info,
-                                decoder_data_t *decoder_data) {
+static void decoder_gal_e1_init(const u8 *channel_id,
+                                void *decoder_data) {
   nav_msg_gal_inav_t *data = decoder_data;
 
   memset(data, 0, sizeof(*data));
   gal_inav_msg_init(data, channel_info->mesid.sat);
 }
 
-static void decoder_gal_e1_process(const decoder_channel_info_t *channel_info,
-                                   decoder_data_t *decoder_data) {
-  assert(channel_info);
+static void decoder_gal_e1_process(const u8 *channel_id,
+                                   void *decoder_data) {
   assert(decoder_data);
 
   gal_inav_decoded_t dd;
@@ -81,9 +72,9 @@ static void decoder_gal_e1_process(const decoder_channel_info_t *channel_info,
 
   /* Process incoming nav bits */
   nav_bit_t nav_bit;
-  u8 channel = channel_info->tracking_channel;
+  u8 channel = channel_id;
 
-  while (tracker_nav_bit_get(channel, &nav_bit)) {
+  while (tracker_nav_bit_get(channel_id, &nav_bit)) {
     tracker_data_sync_init(&from_decoder);
 
     bool upd = gal_inav_msg_update(data, nav_bit);
@@ -101,7 +92,7 @@ static void decoder_gal_e1_process(const decoder_channel_info_t *channel_info,
         TOWms = (s32)rint(t.tow * 1000);
         from_decoder.TOW_ms = TOWms + 2000;
         from_decoder.bit_polarity = data->bit_polarity;
-        tracker_data_sync(channel_info->tracking_channel, &from_decoder);
+        tracker_data_sync(channel_info->channel_id, &from_decoder);
         break;
       case INAV_EPH:
         make_utc_tm(&(k->toc), &date);
@@ -169,7 +160,7 @@ static void decoder_gal_e1_process(const decoder_channel_info_t *channel_info,
         TOWms = (s32)rint(t.tow * 1000);
         from_decoder.TOW_ms = TOWms + 2000;
         from_decoder.bit_polarity = data->bit_polarity;
-        tracker_data_sync(channel_info->tracking_channel, &from_decoder);
+        tracker_data_sync(channel_id, &from_decoder);
         break;
       case INAV_ALM:
         break;
