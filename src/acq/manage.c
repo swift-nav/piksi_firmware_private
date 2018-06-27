@@ -1284,8 +1284,17 @@ static void manage_tracking_startup(void) {
       continue;
     }
 
-    /* Change state to TRACKING */
-    acq->state = ACQ_PRN_TRACKING;
+    /* Start the decoder channel if needed.
+     * Because the decoder thread is lower priority than the tracking thread,
+     * and the acquisition thread is the lowest priority thread of all,
+     * starting decoder before tracking avoids race conditions in init/disposal
+     * of the decoder when the corresponding tracker is initialized and disposed
+     * */
+    if (code_requires_decoder(startup_params.mesid.code) &&
+        !decoder_channel_init(chan, startup_params.mesid)) {
+      log_error("decoder channel init failed");
+      continue;
+    }
 
     /* Start the tracking channel */
     if (!tracker_init(chan,
@@ -1297,16 +1306,11 @@ static void manage_tracking_startup(void) {
                       startup_params.chips_to_correlate,
                       startup_params.cn0_init)) {
       log_error("tracker channel init failed");
-      /* If starting of a channel fails, change state to ACQUIRING */
-      acq->state = ACQ_PRN_ACQUIRING;
       continue;
     }
 
-    /* Start the decoder channel if needed */
-    if (code_requires_decoder(startup_params.mesid.code) &&
-        !decoder_channel_init(chan, startup_params.mesid)) {
-      log_error("decoder channel init failed");
-    }
+    /* Change state to TRACKING */
+    acq->state = ACQ_PRN_TRACKING;
   }
 }
 
