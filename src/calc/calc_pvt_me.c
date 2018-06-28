@@ -703,7 +703,7 @@ static void me_calc_pvt_thread(void *arg) {
         navigation_measurement_t *nm = &nav_meas[i];
 
         /* remove clock offset from the measurement */
-        remove_clock_offset(nm, output_offset, smoothed_drift, current_tc);
+        //remove_clock_offset(nm, output_offset, smoothed_drift, current_tc);
 
         /* Recompute satellite position, velocity and clock errors */
         /* NOTE: calc_sat_state changes `tot` */
