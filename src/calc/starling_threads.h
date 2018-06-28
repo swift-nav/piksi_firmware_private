@@ -69,6 +69,11 @@ typedef struct {
   navigation_measurement_t nm[MAX_CHANNELS];
 } obss_t;
 
+typedef struct {
+    obss_t rover_obs;
+    obss_t base_obs;
+} paired_obss_t;
+
 #define MAX_REMOTE_OBS 150
 /**
  * Uncollapsed observation input type.
