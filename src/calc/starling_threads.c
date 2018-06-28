@@ -176,7 +176,7 @@ static void update_filter_manager_rtk_reference_position(
   }
 }
 
-static void convert_nm_to_obss(obss_t * obss,
+static void convert_nm_to_obss(obss_t *obss,
                                u8 n,
                                const navigation_measurement_t m[],
                                const gps_time_t *t,
@@ -214,15 +214,16 @@ static void post_observations(paired_obss_t *obss) {
   if (paired_obs == NULL) {
     /* Pool is empty, grab a buffer from the mailbox instead, i.e.
      * overwrite the oldest item in the queue. */
-    ret =
-        platform_time_matched_obs_mailbox_fetch((msg_t *)&paired_obs, TIME_IMMEDIATE);
+    ret = platform_time_matched_obs_mailbox_fetch((msg_t *)&paired_obs,
+                                                  TIME_IMMEDIATE);
     if (ret != MSG_OK) {
       log_error("Pool full and mailbox empty!");
     }
   }
   if (NULL != paired_obs) {
     *paired_obs = *obss;
-    ret = platform_time_matched_obs_mailbox_post((msg_t)paired_obs, TIME_IMMEDIATE);
+    ret = platform_time_matched_obs_mailbox_post((msg_t)paired_obs,
+                                                 TIME_IMMEDIATE);
     if (ret != MSG_OK) {
       /* We could grab another item from the mailbox, discard it and then
        * post our obs again but if the size of the mailbox and the pool
@@ -446,34 +447,34 @@ static void time_matched_obs_thread(void *arg) {
 
     platform_mutex_unlock(&time_matched_filter_manager_lock);
 
-    dgnss_solution_mode_t dgnss_soln_mode = starling_get_solution_mode();
-
     paired_obss_t *paired_obs;
-    /* Look through the mailbox (FIFO queue) of locally generated observations
-     * looking for one that matches in time. */
     while (platform_time_matched_obs_mailbox_fetch((msg_t *)&paired_obs,
                                                    TIME_INFINITE) == MSG_OK) {
-    PVT_ENGINE_INTERFACE_RC time_matched_rc = PVT_ENGINE_FAILURE;
-    StarlingFilterSolution solution = {0};
+      PVT_ENGINE_INTERFACE_RC time_matched_rc = PVT_ENGINE_FAILURE;
+      StarlingFilterSolution solution = {0};
 
-    /* Perform the time-matched filter update. */
-    static gps_time_t last_update_time = {.wn = 0, .tow = 0.0};
-    if (update_time_matched(&last_update_time, &paired_obs->rover_obs.tor, paired_obs->rover_obs.n) ||
-          dgnss_soln_mode == STARLING_SOLN_MODE_TIME_MATCHED) {
-        time_matched_rc = process_matched_obs(&paired_obs->rover_obs, &paired_obs->base_obs,
-          &solution.dops, &solution.result);
+      /* Perform the time-matched filter update. */
+      static gps_time_t last_update_time = {.wn = 0, .tow = 0.0};
+      if (update_time_matched(&last_update_time,
+                              &paired_obs->rover_obs.tor,
+                              paired_obs->rover_obs.n) ||
+          starling_get_solution_mode() == STARLING_SOLN_MODE_TIME_MATCHED) {
+        time_matched_rc = process_matched_obs(&paired_obs->rover_obs,
+                                              &paired_obs->base_obs,
+                                              &solution.dops,
+                                              &solution.result);
         last_update_time = paired_obs->rover_obs.tor;
-    }
+      }
 
-    /* Pass on NULL for the solution if it wasn't successful. */
-    StarlingFilterSolution *p_solution = NULL;
-    if (PVT_ENGINE_SUCCESS == time_matched_rc) {
-      p_solution = &solution;
-    }
-    send_solution_time_matched(p_solution, &paired_obs->rover_obs, &paired_obs->base_obs);
+      /* Pass on NULL for the solution if it wasn't successful. */
+      StarlingFilterSolution *p_solution = NULL;
+      if (PVT_ENGINE_SUCCESS == time_matched_rc) {
+        p_solution = &solution;
+      }
+      send_solution_time_matched(
+          p_solution, &paired_obs->rover_obs, &paired_obs->base_obs);
 
-    platform_time_matched_obs_free(paired_obs);
-    break;
+      platform_time_matched_obs_free(paired_obs);
     }
   }
 }
@@ -540,10 +541,9 @@ static void process_any_sbas_messages(void) {
 }
 
 void process_time_matched_data(u8 n,
-                              const navigation_measurement_t m[],
-                              const gps_time_t *epoch_time,
-                              const pvt_engine_result_t *soln) {
-
+                               const navigation_measurement_t m[],
+                               const gps_time_t *epoch_time,
+                               const pvt_engine_result_t *soln) {
   if (starling_get_solution_mode() == STARLING_SOLN_MODE_NO_DGNSS) {
     /* Not doing any DGNSS.  Toss the obs away. */
     return;
@@ -552,7 +552,7 @@ void process_time_matched_data(u8 n,
   /* TODO - Post the current epoch to the mailbox */
   obss_t current_obss;
   convert_nm_to_obss(&current_obss, n, m, epoch_time, soln);
-  platform_rover_obs_mailbox_post((msg_t)&current_obss,TIME_IMMEDIATE);
+  platform_rover_obs_mailbox_post((msg_t)&current_obss, TIME_IMMEDIATE);
 
   /* The old order was to process all available base obs, here I'm switching
    * the order and going to cycle through the available rover obs looking for
@@ -560,44 +560,48 @@ void process_time_matched_data(u8 n,
   obss_t *base_obs = NULL;
   obss_t *rover_obs = NULL;
   static paired_obss_t paired_obs;
-  while (platform_rover_obs_mailbox_fetch((msg_t *)rover_obs, TIME_IMMEDIATE) == MSG_OK ) {
+  while (platform_rover_obs_mailbox_fetch((msg_t *)rover_obs, TIME_IMMEDIATE) ==
+         MSG_OK) {
     msg_t fetch_ret = MSG_OK;
-    while( fetch_ret == MSG_OK) {
-      fetch_ret = platform_base_obs_mailbox_fetch((msg_t *)base_obs, TIME_IMMEDIATE);
+    while (fetch_ret == MSG_OK) {
+      fetch_ret =
+          platform_base_obs_mailbox_fetch((msg_t *)base_obs, TIME_IMMEDIATE);
       if (fetch_ret != MSG_OK) {
-        /* Put the rover obs back at the head of the mailbox, no base obs availble */
+        /* Put the rover obs back at the head of the mailbox, no base obs
+         * availble */
         platform_rover_obs_mailbox_post_ahead((msg_t)rover_obs, TIME_IMMEDIATE);
         return;
       }
 
       /* Communication latency is a slight misnomer here as what we're really
        * testing is that we see the base obs within 15s of it being sent */
-       if (gps_time_valid(epoch_time) &&
+      if (gps_time_valid(epoch_time) &&
           gpsdifftime(epoch_time, &base_obs->tor) > BASE_LATENCY_TIMEOUT) {
-            log_info("Communication Latency exceeds 15 seconds");
-       }
+        log_info("Communication Latency exceeds 15 seconds");
+      }
 
-       double dt = gpsdifftime(&rover_obs->tor, &base_obs->tor);
+      double dt = gpsdifftime(&rover_obs->tor, &base_obs->tor);
 
-       if (fabs(dt) < TIME_MATCH_THRESHOLD && base_obs->has_pos == 1) {
-         paired_obs.base_obs = *base_obs;
-         paired_obs.rover_obs = *rover_obs;
-         platform_base_obs_free(base_obs);
-         platform_rover_obs_free(rover_obs);
-         /* Post the observation */
-         post_observations(&paired_obs);
+      if (fabs(dt) < TIME_MATCH_THRESHOLD && base_obs->has_pos == 1) {
+        paired_obs.base_obs = *base_obs;
+        paired_obs.rover_obs = *rover_obs;
+        platform_base_obs_free(base_obs);
+        platform_rover_obs_free(rover_obs);
+        /* Post the observation */
+        post_observations(&paired_obs);
 
-         return;
-       } else if (dt < 0) {
-         /* Time of rover obs before base obs, as the queues are FIFO ordering can be assumed
-          * we can free the rover obs and get the next one */
-          platform_rover_obs_free(rover_obs);
-          break;
-       } else {
-         /* Time of base obs before rover obs, free base obs and get the next one. */
-         platform_base_obs_free(base_obs);
-         continue;
-       }
+        return;
+      } else if (dt < 0) {
+        /* Time of rover obs before base obs, as the queues are FIFO ordering
+         * can be assumed we can free the rover obs and get the next one */
+        platform_rover_obs_free(rover_obs);
+        break;
+      } else {
+        /* Time of base obs before rover obs, free base obs and get the next
+         * one. */
+        platform_base_obs_free(base_obs);
+        continue;
+      }
     }
   }
 }
@@ -791,7 +795,8 @@ static void starling_thread(void) {
 
     /* We only post to time-matched thread on SPP success. */
     if (PVT_ENGINE_SUCCESS == spp_rc) {
-      process_time_matched_data(n_ready, nav_meas, &obs_time, &spp_solution.result);
+      process_time_matched_data(
+          n_ready, nav_meas, &obs_time, &spp_solution.result);
     }
 
     /* Figure out if we want to run the RTK filter. */

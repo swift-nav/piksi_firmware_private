@@ -50,8 +50,7 @@ void platform_time_matched_obs_free(paired_obss_t *ptr);
 /* internal communication between threads */
 void platform_rover_obs_mailbox_init(void);
 int32_t platform_rover_obs_mailbox_post(int32_t msg, uint32_t timeout);
-int32_t platform_rover_obs_mailbox_post_ahead(int32_t msg,
-                                              uint32_t timeout);
+int32_t platform_rover_obs_mailbox_post_ahead(int32_t msg, uint32_t timeout);
 int32_t platform_rover_obs_mailbox_fetch(int32_t *msg, uint32_t timeout);
 
 /* memory management for internal communication */

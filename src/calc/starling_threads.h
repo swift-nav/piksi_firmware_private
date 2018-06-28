@@ -70,8 +70,8 @@ typedef struct {
 } obss_t;
 
 typedef struct {
-    obss_t rover_obs;
-    obss_t base_obs;
+  obss_t rover_obs;
+  obss_t base_obs;
 } paired_obss_t;
 
 #define MAX_REMOTE_OBS 150
