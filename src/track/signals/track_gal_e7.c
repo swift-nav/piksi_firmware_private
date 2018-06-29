@@ -65,10 +65,6 @@ static void tracker_gal_e7_update(tracker_t *tracker) {
     return;
   }
 
-  /* TOW manipulation on bit edge */
-
-  tracker_tow_cache(tracker);
-
   bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
   bool inlock = ((0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) &&
                  (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK)));
@@ -76,12 +72,6 @@ static void tracker_gal_e7_update(tracker_t *tracker) {
   if (inlock && confirmed) {
     tracker->bit_polarity = BIT_POLARITY_NORMAL;
     tracker_update_bit_polarity_flags(tracker);
-
-    gal_e7_to_e1_handover(tracker->sample_count,
-                          tracker->mesid.sat,
-                          tracker->code_phase_prompt,
-                          tracker->carrier_freq,
-                          tracker->cn0);
   }
 }
 
@@ -107,8 +97,7 @@ void gal_e1_to_e7_handover(u32 sample_count,
                            double code_phase,
                            double carrier_freq,
                            float cn0_init) {
-  static s8 rand_seed = 0;
-  s8 rand_start;
+  s8 rand_start = 0;
   /* compose E7 MESID: same SV, but code is E7 */
   me_gnss_signal_t mesid_e7 = construct_mesid(CODE_GAL_E7I, sat);
 
@@ -121,8 +110,6 @@ void gal_e1_to_e7_handover(u32 sample_count,
     log_warn_mesid(mesid_e7, "E1-E7 handover code phase %f", code_phase);
     return;
   }
-
-  rand_start = rand_seed * 5;
 
   tracking_startup_params_t startup_params = {
       .mesid = mesid_e7,
@@ -143,7 +130,7 @@ void gal_e1_to_e7_handover(u32 sample_count,
 
     case 1:
       /* sat is already in fifo, no need to inform */
-      log_warn_mesid(mesid_e7, "already in fifo");
+      log_debug_mesid(mesid_e7, "already in fifo");
       break;
 
     case 2:
@@ -154,5 +141,4 @@ void gal_e1_to_e7_handover(u32 sample_count,
       assert(!"Unknown code returned");
       break;
   }
-  rand_seed = (rand_seed >= 0) ? (rand_seed - 1) : +1;
 }

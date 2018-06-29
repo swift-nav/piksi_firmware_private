@@ -65,6 +65,9 @@ static void tracker_gal_e1_update(tracker_t *tracker) {
     return;
   }
 
+  /* TOW manipulation on bit edge */
+  tracker_tow_cache(tracker);
+
   bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
   bool inlock = ((0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) &&
                  (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK)));
@@ -73,11 +76,11 @@ static void tracker_gal_e1_update(tracker_t *tracker) {
     tracker->bit_polarity = BIT_POLARITY_NORMAL;
     tracker_update_bit_polarity_flags(tracker);
 
-    //    DO_EVERY(32, gal_e1_to_e7_handover(tracker->sample_count,
-    //                          tracker->mesid.sat,
-    //                          tracker->code_phase_prompt,
-    //                          tracker->carrier_freq,
-    //                          tracker->cn0); );
+    gal_e1_to_e7_handover(tracker->sample_count,
+                          tracker->mesid.sat,
+                          tracker->code_phase_prompt,
+                          tracker->carrier_freq,
+                          tracker->cn0);
   }
 }
 
@@ -85,65 +88,4 @@ static void tracker_gal_e1_update(tracker_t *tracker) {
  */
 void track_gal_e1_register(void) {
   tracker_interface_register(&tracker_interface_gal_e1);
-}
-
-/** Do E7X to E1X handover.
- *
- * The condition for the handover is that TOW must be known and secondary code
- * matched.
- *
- * \param[in] sample_count NAP sample count
- * \param[in] sat          Satellite ID
- * \param[in] code_phase   code phase [chips]
- * \param[in] carrier_freq Doppler [Hz]
- * \param[in] cn0          CN0 estimate [dB-Hz]
- */
-void gal_e7_to_e1_handover(u32 sample_count,
-                           u16 sat,
-                           double code_phase,
-                           double carrier_freq,
-                           float cn0_init) {
-  static s8 rand_start = 0;
-  /* compose E1 MESID: same SV, but code is E1 */
-  me_gnss_signal_t mesid_e1 = construct_mesid(CODE_GAL_E1B, sat);
-
-  if (!tracking_startup_ready(mesid_e1)) {
-    log_debug_mesid(mesid_e1, "already in track");
-    return; /* E7 signal from the SV is already in track */
-  }
-
-  if (!handover_valid(code_phase, GAL_E7_CHIPS_NUM)) {
-    log_warn_mesid(mesid_e1, "E7-E1 handover code phase %f", code_phase);
-    return;
-  }
-
-  tracking_startup_params_t startup_params = {
-      .mesid = mesid_e1,
-      .sample_count = sample_count,
-      /* recalculate doppler freq for E7 from E1 */
-      .carrier_freq = carrier_freq * GAL_E1_HZ / GAL_E7_HZ,
-      .code_phase = fmod(code_phase / 10.0 + rand_start * 1023,
-                         code_to_chip_count(CODE_GAL_E1B)),
-      /* chips to correlate during first 1 ms of tracking */
-      .chips_to_correlate = code_to_chip_rate(mesid_e1.code) * 1e-3,
-      /* get initial cn0 from parent E1 channel */
-      .cn0_init = cn0_init};
-
-  switch (tracking_startup_request(&startup_params)) {
-    case 0:
-      log_debug_mesid(mesid_e1, "handover done with %+d", rand_start);
-      break;
-
-    case 1:
-      /* sat is already in FIFO, no need to inform */
-      break;
-
-    case 2:
-      log_warn_mesid(mesid_e1, "failed to start tracking");
-      break;
-
-    default:
-      assert(!"Unknown code returned");
-      break;
-  }
 }
