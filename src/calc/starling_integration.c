@@ -98,6 +98,12 @@ static u8 current_base_sender_id = STARLING_BASE_SENDER_ID_DEFAULT;
 static VehicleDynamicsFilter *default_dynamics_filter = NULL;
 static VehicleDynamicsFilter *tractor_dynamics_filter = NULL;
 static VehicleDynamicsFilter *dynamics_filter = NULL;
+/* Settings for the dynamics filters. */
+MUTEX_DECL(dynamics_filter_settings_lock);
+struct DynamicsFilterSettings {
+  double lowpass_constant;
+  double max_acceleration;
+} dynamics_filter_settings;
 
 /*******************************************************************************
  * Output Callback Helpers
@@ -858,10 +864,26 @@ void send_solution_time_matched(const StarlingFilterSolution *solution,
 }
 
 /**
+ * Simply apply whatever the current settings are to the
+ * given dynamics filter.
+ */
+static void update_dynamics_filter_settings(VehicleDynamicsFilter *filter) {
+  chMtxLock(&dynamics_filter_settings_lock);
+  vehicle_dynamics_filter_set_param(filter, 
+                                    VEHICLE_DYNAMICS_LOWPASS_TIME_CONSTANT_S,
+                                    dynamics_filter_settings.lowpass_constant);
+  vehicle_dynamics_filter_set_param(filter,
+                                    VEHICLE_DYNAMICS_MAX_LINEAR_ACCELERATION_MS2,
+                                    dynamics_filter_settings.max_acceleration);
+  chMtxUnlock(&dynamics_filter_settings_lock);
+}
+
+/**
  * This function behaves in a somewhat unexpected way.
  * Given two (possibly NULL) solutions, this function chooses
  * the "better" of the two solutions and feeds it through the 
- * dynamics filter.
+ * dynamics filter. If they are both null, the output parameter
+ * won't be touched.
  */
 static void apply_dynamics_filter_to_solutions(
     const StarlingFilterSolution *spp_solution,
@@ -874,6 +896,7 @@ static void apply_dynamics_filter_to_solutions(
     input = &spp_solution->result;
   }
   if (input && output) {
+    update_dynamics_filter_settings(dynamics_filter);
     vehicle_dynamics_filter_process(dynamics_filter, input, output);
   }
 }
