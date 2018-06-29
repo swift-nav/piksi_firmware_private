@@ -74,6 +74,8 @@ void sm_get_visibility_flags(gnss_signal_t sid, bool *visible, bool *known) {
       RX_DT_NOMINAL);
 
   sv_visibility_status_get(&vis_cfg, visible, known);
+  log_debug_sid(
+      sid, "visible %c known %c", (*visible) ? 'T' : 'F', (*known) ? 'T' : 'F');
 }
 
 /** Get HW time of the last good fix (LGF)

@@ -118,13 +118,13 @@ static float solution_elevation_mask = 10.0;
 /** Flag if almanacs can be used in acq */
 static bool almanacs_enabled = false;
 /** Flag if GLONASS enabled */
-static bool glo_enabled = CODE_GLO_L1OF_SUPPORT || CODE_GLO_L2OF_SUPPORT;
+static bool glo_enabled = false;
 /** Flag if SBAS enabled */
-static bool sbas_enabled = CODE_SBAS_L1CA_SUPPORT;
+static bool sbas_enabled = false;
 /** Flag if BEIDOU2 enabled */
-static bool bds2_enabled = CODE_BDS2_B1_SUPPORT || CODE_BDS2_B2_SUPPORT;
+static bool bds2_enabled = false;
 /** Flag if QZSS enabled */
-static bool qzss_enabled = CODE_QZSS_L1CA_SUPPORT || CODE_QZSS_L2C_SUPPORT;
+static bool qzss_enabled = false;
 /** Flag if Galileo enabled */
 static bool galileo_enabled = CODE_GAL_E1_SUPPORT || CODE_GAL_E7_SUPPORT;
 
@@ -244,7 +244,7 @@ static bool glo_enable_notify(struct setting *s, const char *val) {
   }
   for (u16 i = 0; i < ARRAY_SIZE(acq_status); i++) {
     if (IS_GLO(acq_status[i].mesid)) {
-      acq_status[i].masked = !glo_enabled;
+      acq_status[i].masked = true;
     }
   }
   return true;
@@ -266,7 +266,7 @@ static bool sbas_enable_notify(struct setting *s, const char *val) {
   }
   for (u16 i = 0; i < ARRAY_SIZE(acq_status); i++) {
     if (IS_SBAS(acq_status[i].mesid)) {
-      acq_status[i].masked = !sbas_enabled || !sbas_active(acq_status[i].mesid);
+      acq_status[i].masked = true;
     }
   }
   return true;
@@ -288,7 +288,7 @@ static bool bds2_enable_notify(struct setting *s, const char *val) {
   }
   for (u16 i = 0; i < ARRAY_SIZE(acq_status); i++) {
     if (IS_BDS2(acq_status[i].mesid)) {
-      acq_status[i].masked = !bds2_enabled || !bds_active(acq_status[i].mesid);
+      acq_status[i].masked = true;
     }
   }
   return true;
@@ -310,7 +310,7 @@ static bool qzss_enable_notify(struct setting *s, const char *val) {
   }
   for (u16 i = 0; i < ARRAY_SIZE(acq_status); i++) {
     if (IS_QZSS(acq_status[i].mesid)) {
-      acq_status[i].masked = !qzss_enabled || !qzss_active(acq_status[i].mesid);
+      acq_status[i].masked = true;
     }
   }
   return true;
@@ -493,14 +493,6 @@ static void manage_acq(void) {
     me_gnss_signal_t mesid_trk = acq->mesid;
     float cp = acq_result.cp;
     float cf = acq_result.cf;
-
-    if ((CODE_GAL_E1B == acq->mesid.code) ||
-        (CODE_GAL_E1C == acq->mesid.code) ||
-        (CODE_GAL_E1X == acq->mesid.code)) {
-      mesid_trk.code = CODE_GAL_E7I;
-      cp = fmodf(cp * 10.0f, code_to_chip_count(CODE_GAL_E7I));
-      cf = cf * GAL_E7_HZ / GAL_E1_HZ;
-    }
 
     tracking_startup_params_t tracking_startup_params = {
         .mesid = mesid_trk,

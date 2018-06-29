@@ -286,6 +286,12 @@ static void sch_run_common(acq_jobs_state_t *jobs_data, acq_job_t *job) {
 
   job->start_time = timing_getms();
 
+  if ((acq_param->doppler_max_hz - acq_param->doppler_min_hz) < 5000) {
+    log_debug_mesid(job->mesid,
+                    "doppler_min_hz %+7.1f  doppler_max_hz %+7.1f",
+                    acq_param->doppler_min_hz,
+                    acq_param->doppler_max_hz);
+  }
   peak_found = soft_multi_acq_search(job->mesid,
                                      acq_param->doppler_min_hz,
                                      acq_param->doppler_max_hz,
@@ -313,14 +319,6 @@ static void sch_run_common(acq_jobs_state_t *jobs_data, acq_job_t *job) {
     me_gnss_signal_t mesid_trk = job->mesid;
     float cp = acq_result.cp;
     float cf = acq_result.cf;
-
-    if ((CODE_GAL_E1B == job->mesid.code) ||
-        (CODE_GAL_E1C == job->mesid.code) ||
-        (CODE_GAL_E1X == job->mesid.code)) {
-      mesid_trk.code = CODE_GAL_E7I;
-      cp = fmodf(cp * 10.0f, code_to_chip_count(CODE_GAL_E7I));
-      cf = cf * GAL_E7_HZ / GAL_E1_HZ;
-    }
 
     tracking_startup_params_t tracking_startup_params = {
         .mesid = mesid_trk,

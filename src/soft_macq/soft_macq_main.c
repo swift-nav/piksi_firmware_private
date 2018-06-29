@@ -145,7 +145,8 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
    *
    * NOTE: right now this is just to have he compiler going down
    * this route, but eventually could swap serial search */
-  if ((_fCarrFreqMax - _fCarrFreqMin) > 5000) {
+  if (((_fCarrFreqMax - _fCarrFreqMin) > 5000) ||
+      ((mesid.code != CODE_GPS_L1CA) && (mesid.code != CODE_GLO_L1OF))) {
     bool ret = SoftMacqMdbzp(mesid, &sLocalResult);
     p_acqres->cp =
         (1.0f - sLocalResult.fCodeDelay) * code_to_chip_count(mesid.code);
