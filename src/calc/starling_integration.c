@@ -17,6 +17,7 @@
 #include <libswiftnav/coord_system.h>
 #include <libswiftnav/linear_algebra.h>
 #include <libswiftnav/memcpy_s.h>
+#include <libswiftnav/pvt_engine/vehicle_dynamics_filter.h>
 
 #include "calc/calc_pvt_common.h"
 #include "calc/calc_pvt_me.h"
@@ -91,6 +92,13 @@ static soln_dgnss_stats_t last_dgnss_stats = {.systime = PIKSI_SYSTIME_INIT,
  * in any RTK solutions. */
 static MUTEX_DECL(current_base_sender_id_lock);
 static u8 current_base_sender_id = STARLING_BASE_SENDER_ID_DEFAULT;
+
+/* We are going to keep around several of these, and switch between
+ * them at runtime. */
+static VehicleDynamicsFilter *default_dynamics_filter = NULL;
+static VehicleDynamicsFilter *tractor_dynamics_filter = NULL;
+static VehicleDynamicsFilter *dynamics_filter = NULL;
+static bool is_vehicle_dynamics_filter_enabled = false;
 
 /*******************************************************************************
  * Output Callback Helpers
@@ -269,11 +277,7 @@ void starling_integration_sbp_messages_init(sbp_messages_t *sbp_messages,
   sbp_init_vel_ned_cov(&sbp_messages->vel_ned_cov, t);
 }
 
-/**
- * Accessed externally from starling_threads.c
- * TODO(kevin) fix this.
- */
-void starling_integration_solution_send_low_latency_output(
+static void starling_integration_solution_send_low_latency_output(
     u8 base_sender_id,
     const sbp_messages_t *sbp_messages,
     u8 n_meas,
@@ -769,10 +773,20 @@ static void initialize_starling_settings(void) {
                  heading_offset_changed);
 }
 
+static void initialize_vehicle_dynamics_filters(void) {
+  default_dynamics_filter = vehicle_dynamics_filter_create(DYNAMICS_NONE);
+  tractor_dynamics_filter = vehicle_dynamics_filter_create(DYNAMICS_TRACTOR); 
+
+  dynamics_filter = tractor_dynamics_filter;
+
+  /* TODO(kevin) register settings. */
+}
+
 static THD_FUNCTION(initialize_and_run_starling, arg) {
   (void)arg;
   chRegSetThreadName("starling");
 
+  initialize_vehicle_dynamics_filters();
   initialize_starling_settings();
 
   /* Set time of last differential solution in the past. */
@@ -863,6 +877,26 @@ void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
   assert(solution_epoch_time);
   assert(nav_meas);
 
+  pvt_engine_result_t rtk_filter_result = {0};
+  pvt_engine_result_t spp_filter_result = {0};
+  /* Apply the vehicle dynamics filter when enabled. 
+   * We need to make sure to pass through the most accurate solution
+   * available. */
+  if (is_vehicle_dynamics_filter_enabled) {
+    pvt_engine_result_t const *input = NULL; 
+    pvt_engine_result_t       *output = NULL;
+    if (rtk_solution) {
+      input = &rtk_solution->result;
+      output = &rtk_filter_result;
+    } else if (spp_solution) {
+      input = &spp_solution->result;
+      output = &spp_filter_result;
+    }
+    if (input && output) {
+      vehicle_dynamics_filter_process(dynamics_filter, input, output);
+    }
+  } 
+
   /* Check if observations do not have valid time. We may have locally a
    * reasonable estimate of current GPS time, so we can round that to the
    * nearest epoch and use instead if necessary.
@@ -882,10 +916,9 @@ void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
 
   u8 base_sender_id = STARLING_BASE_SENDER_ID_DEFAULT;
   if (spp_solution) {
-    solution_make_sbp(
-        &spp_solution->result, &spp_solution->dops, &sbp_messages);
+    solution_make_sbp(&spp_filter_result, &spp_solution->dops, &sbp_messages);
     if (rtk_solution) {
-      solution_make_baseline_sbp(&rtk_solution->result,
+      solution_make_baseline_sbp(&rtk_filter_result,
                                  spp_solution->result.baseline,
                                  &rtk_solution->dops,
                                  &sbp_messages);
