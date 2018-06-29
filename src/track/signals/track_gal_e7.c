@@ -72,6 +72,12 @@ static void tracker_gal_e7_update(tracker_t *tracker) {
   if (inlock && confirmed) {
     tracker->bit_polarity = BIT_POLARITY_NORMAL;
     tracker_update_bit_polarity_flags(tracker);
+
+    gal_e7_to_e1_handover(tracker->sample_count,
+                          tracker->mesid.sat,
+                          tracker->code_phase_prompt,
+                          tracker->carrier_freq,
+                          tracker->cn0);
   }
 }
 
