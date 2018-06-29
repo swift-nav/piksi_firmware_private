@@ -779,6 +779,7 @@ static void initialize_vehicle_dynamics_filters(void) {
 
   dynamics_filter = tractor_dynamics_filter;
 
+  is_vehicle_dynamics_filter_enabled = true;
   /* TODO(kevin) register settings. */
 }
 
@@ -881,7 +882,7 @@ void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
   pvt_engine_result_t spp_filter_result = {0};
   /* Apply the vehicle dynamics filter when enabled. 
    * We need to make sure to pass through the most accurate solution
-   * available. */
+   * available -- RTK is preferred over SPP. */
   if (is_vehicle_dynamics_filter_enabled) {
     pvt_engine_result_t const *input = NULL; 
     pvt_engine_result_t       *output = NULL;
