@@ -98,7 +98,6 @@ static u8 current_base_sender_id = STARLING_BASE_SENDER_ID_DEFAULT;
 static VehicleDynamicsFilter *default_dynamics_filter = NULL;
 static VehicleDynamicsFilter *tractor_dynamics_filter = NULL;
 static VehicleDynamicsFilter *dynamics_filter = NULL;
-static bool is_vehicle_dynamics_filter_enabled = false;
 
 /*******************************************************************************
  * Output Callback Helpers
@@ -779,7 +778,6 @@ static void initialize_vehicle_dynamics_filters(void) {
 
   dynamics_filter = tractor_dynamics_filter;
 
-  is_vehicle_dynamics_filter_enabled = true;
   /* TODO(kevin) register settings. */
 }
 
@@ -860,6 +858,27 @@ void send_solution_time_matched(const StarlingFilterSolution *solution,
 }
 
 /**
+ * This function behaves in a somewhat unexpected way.
+ * Given two (possibly NULL) solutions, this function chooses
+ * the "better" of the two solutions and feeds it through the 
+ * dynamics filter.
+ */
+static void apply_dynamics_filter_to_solutions(
+    const StarlingFilterSolution *spp_solution,
+    const StarlingFilterSolution *rtk_solution,
+    pvt_engine_result_t *output) {
+  pvt_engine_result_t const *input = NULL; 
+  if (rtk_solution) {
+    input = &rtk_solution->result;
+  } else if (spp_solution) {
+    input = &spp_solution->result;
+  }
+  if (input && output) {
+    vehicle_dynamics_filter_process(dynamics_filter, input, output);
+  }
+}
+
+/**
  * Pass along a low-latency solution to the outside world.
  *
  * At every processing epoch, possible solutions include both
@@ -878,25 +897,11 @@ void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
   assert(solution_epoch_time);
   assert(nav_meas);
 
-  pvt_engine_result_t rtk_filter_result = {0};
-  pvt_engine_result_t spp_filter_result = {0};
-  /* Apply the vehicle dynamics filter when enabled. 
+/* Apply the vehicle dynamics filter when enabled. 
    * We need to make sure to pass through the most accurate solution
    * available -- RTK is preferred over SPP. */
-  if (is_vehicle_dynamics_filter_enabled) {
-    pvt_engine_result_t const *input = NULL; 
-    pvt_engine_result_t       *output = NULL;
-    if (rtk_solution) {
-      input = &rtk_solution->result;
-      output = &rtk_filter_result;
-    } else if (spp_solution) {
-      input = &spp_solution->result;
-      output = &spp_filter_result;
-    }
-    if (input && output) {
-      vehicle_dynamics_filter_process(dynamics_filter, input, output);
-    }
-  } 
+  pvt_engine_result_t filtered_pvt_result = {0};
+  apply_dynamics_filter_to_solutions(spp_solution, rtk_solution, &filtered_pvt_result);
 
   /* Check if observations do not have valid time. We may have locally a
    * reasonable estimate of current GPS time, so we can round that to the
@@ -917,9 +922,9 @@ void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
 
   u8 base_sender_id = STARLING_BASE_SENDER_ID_DEFAULT;
   if (spp_solution) {
-    solution_make_sbp(&spp_filter_result, &spp_solution->dops, &sbp_messages);
+    solution_make_sbp(&filtered_pvt_result, &spp_solution->dops, &sbp_messages);
     if (rtk_solution) {
-      solution_make_baseline_sbp(&rtk_filter_result,
+      solution_make_baseline_sbp(&filtered_pvt_result,
                                  spp_solution->result.baseline,
                                  &rtk_solution->dops,
                                  &sbp_messages);
