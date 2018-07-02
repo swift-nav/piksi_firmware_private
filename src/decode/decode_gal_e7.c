@@ -83,6 +83,12 @@ static void decoder_gal_e7_process(const decoder_channel_info_t *channel_info,
   u8 channel = channel_info->tracking_channel;
 
   while (tracker_nav_bit_get(channel, &nav_bit)) {
+    /* Don't decode data while in sensitivity mode. */
+    if (0 == nav_bit) {
+      gal_inav_msg_init(data, channel_info->mesid.sat);
+      continue;
+    }
+
     tracker_data_sync_init(&from_decoder);
 
     bool upd = gal_inav_msg_update(data, nav_bit);
