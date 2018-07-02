@@ -145,9 +145,16 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
 
   /** call DBZP-like acquisition with current sensitivity parameters
    *
-   * NOTE: right now this is just to have he compiler going down
-   * this route, but eventually could swap serial search */
-  if ((_fCarrFreqMax - _fCarrFreqMin) > 5000) {
+   * NOTE1: right now this is just to have he compiler going down
+   * this route, but eventually could swap serial search
+   *
+   * NOTE2: the serial acquisition really does not work well with
+   * SBAS, BDS and Galileo because of the nav data transitions,
+   * DBZP is slower in this case, but should give more chances of successful
+   * acquisition
+   * */
+  if ((!is_gps(mesid.code) && !is_qzss(mesid.code) && !is_glo(mesid.code)) ||
+      ((_fCarrFreqMax - _fCarrFreqMin) > 5000)) {
     bool ret = SoftMacqMdbzp(mesid, &sLocalResult);
     p_acqres->cp =
         (1.0f - sLocalResult.fCodeDelay) * code_to_chip_count(mesid.code);
