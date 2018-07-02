@@ -99,11 +99,11 @@ static VehicleDynamicsFilter *default_dynamics_filter = NULL;
 static VehicleDynamicsFilter *tractor_dynamics_filter = NULL;
 static VehicleDynamicsFilter *dynamics_filter = NULL;
 /* Settings for the dynamics filters. */
-MUTEX_DECL(dynamics_filter_settings_lock);
+MUTEX_DECL(dynamics_filter_lock);
 struct DynamicsFilterSettings {
   double lowpass_constant;
   double max_acceleration;
-} dynamics_filter_settings;
+} dynamics_filter_settings = {.lowpass_constant = 3.0, .max_acceleration = 0.5};
 
 /*******************************************************************************
  * Output Callback Helpers
@@ -655,6 +655,32 @@ static bool set_dgnss_soln_mode(struct setting *s, const char *val) {
   return ret;
 }
 
+static bool setting_notify_vehicle_dynamics_filter_mode(struct setting *s, const char *val) {
+  bool ret = s->type->from_string(s->type->priv, s->addr, s->len, val);
+  if (!ret) {
+    return false;
+  }
+  chMtxLock(&dynamics_filter_lock); 
+  switch(*(VehicleDynamicsFilterType*)s->addr) {
+    case DYNAMICS_NONE:
+      dynamics_filter = default_dynamics_filter;
+      break;
+    case DYNAMICS_TRACTOR:
+      dynamics_filter = tractor_dynamics_filter;
+      break;
+    case DYNAMICS_DRONE:
+    case DYNAMICS_INTERGALACTIC_VOYAGER:
+    default:
+      ret = false;
+      break;
+  }
+  chMtxUnlock(&dynamics_filter_lock); 
+  if (!ret) {
+    log_error("Invalid Vehicle Dynamics Filter mode selection. No change made.");
+  }
+  return true;
+}
+
 static bool set_max_age(struct setting *s, const char *val) {
   int value = 0;
   bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
@@ -785,6 +811,17 @@ static void initialize_vehicle_dynamics_filters(void) {
   dynamics_filter = tractor_dynamics_filter;
 
   /* TODO(kevin) register settings. */
+  static const char *const vehicle_dynamics_filter_mode_enum[] = {
+    "None", "Tractor"};
+  static struct setting_type vehicle_dynamics_filter_mode_setting;
+  int TYPE_VEHICLE_DYNAMICS_FILTER_MODE = settings_type_register_enum(
+      vehicle_dynamics_filter_mode_enum, &vehicle_dynamics_filter_mode_setting); 
+  static VehicleDynamicsFilterType vehicle_dynamics_filter_mode;
+  SETTING_NOTIFY("solution", 
+                 "vehicle_dynamics_filter_mode",
+                 vehicle_dynamics_filter_mode,
+                 TYPE_VEHICLE_DYNAMICS_FILTER_MODE,
+                 setting_notify_vehicle_dynamics_filter_mode);
 }
 
 static THD_FUNCTION(initialize_and_run_starling, arg) {
@@ -868,14 +905,12 @@ void send_solution_time_matched(const StarlingFilterSolution *solution,
  * given dynamics filter.
  */
 static void update_dynamics_filter_settings(VehicleDynamicsFilter *filter) {
-  chMtxLock(&dynamics_filter_settings_lock);
   vehicle_dynamics_filter_set_param(filter, 
                                     VEHICLE_DYNAMICS_LOWPASS_TIME_CONSTANT_S,
                                     dynamics_filter_settings.lowpass_constant);
   vehicle_dynamics_filter_set_param(filter,
                                     VEHICLE_DYNAMICS_MAX_LINEAR_ACCELERATION_MS2,
                                     dynamics_filter_settings.max_acceleration);
-  chMtxUnlock(&dynamics_filter_settings_lock);
 }
 
 /**
@@ -896,8 +931,12 @@ static void apply_dynamics_filter_to_solutions(
     input = &spp_solution->result;
   }
   if (input && output) {
+    chMtxLock(&dynamics_filter_lock);
     update_dynamics_filter_settings(dynamics_filter);
-    vehicle_dynamics_filter_process(dynamics_filter, input, output);
+    VehicleDynamicsFilter *current_filter = dynamics_filter;
+    chMtxUnlock(&dynamics_filter_lock);
+
+    vehicle_dynamics_filter_process(current_filter, input, output);
   }
 }
 
