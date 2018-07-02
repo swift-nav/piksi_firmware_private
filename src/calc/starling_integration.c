@@ -671,15 +671,19 @@ static bool setting_notify_vehicle_dynamics_filter_mode(struct setting *s, const
     case DYNAMICS_DRONE:
     case DYNAMICS_INTERGALACTIC_VOYAGER:
     default:
-      log_error("Invalid Vehicle Dynamics Filter mode selection. No change made.");
       break;
   }
-  /* Reset the new filter whenever it is changed. */
-  chMtxLock(&dynamics_filter_lock); 
-  dynamics_filter = new_filter;
-  vehicle_dynamics_filter_reset(dynamics_filter);
-  chMtxUnlock(&dynamics_filter_lock); 
-  return true;
+  if (NULL != new_filter) {
+    /* Reset the new filter whenever it is changed. */
+    chMtxLock(&dynamics_filter_lock); 
+    dynamics_filter = new_filter;
+    vehicle_dynamics_filter_reset(dynamics_filter);
+    chMtxUnlock(&dynamics_filter_lock); 
+    return true;
+  } else {
+    log_error("Invalid Vehicle Dynamics Filter mode selection. No change made.");
+    return false;
+  }
 }
 
 static bool setting_notify_vehicle_dynamics_filter_param(
@@ -825,7 +829,7 @@ static void initialize_vehicle_dynamics_filters(void) {
   static struct setting_type vehicle_dynamics_filter_mode_setting;
   int TYPE_VEHICLE_DYNAMICS_FILTER_MODE = settings_type_register_enum(
       vehicle_dynamics_filter_mode_enum, &vehicle_dynamics_filter_mode_setting); 
-  static VehicleDynamicsFilterType vehicle_dynamics_filter_mode;
+  static VehicleDynamicsFilterType vehicle_dynamics_filter_mode = DYNAMICS_NONE;
   SETTING_NOTIFY("vehicle_dynamics_filter", 
                  "mode",
                  vehicle_dynamics_filter_mode,
@@ -891,12 +895,6 @@ void send_solution_time_matched(const StarlingFilterSolution *solution,
   assert(obss_base);
   assert(obss_rover);
   
-  /* Notify the user that the vehicle dynamics filter has no effect in
-   * time-matched mode (if applicable). */
-  if (dynamics_filter != default_dynamics_filter) {
-    log_warn("Non-default Vehicle Dynamics Filter has no effect in Time-Matched mode.");
-  }
-
   /* Fill in the output messages. We always use the SPP message first.
    * Then if there is a successful time-matched result, we will
    * overwrite the relevant messages. */
@@ -917,6 +915,11 @@ void send_solution_time_matched(const StarlingFilterSolution *solution,
    * and our current time-matched result occurs after the most recent
    * SPP output. */
   if (spp_timeout(&last_spp, &last_dgnss, starling_get_solution_mode())) {
+    /* Notify the user that the vehicle dynamics filter has no effect in
+     * time-matched mode (if applicable). */
+    if (dynamics_filter != default_dynamics_filter) {
+      log_warn("Non-default Vehicle Dynamics Filter has no effect in Time-Matched mode.");
+    }
     solution_send_pos_messages(
         obss_base->sender_id, &sbp_messages, obss_rover->n, obss_rover->nm);
   }
