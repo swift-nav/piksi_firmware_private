@@ -559,7 +559,20 @@ void nap_track_read_results(u8 channel,
   }
 
   if (GET_NAP_TRK_CH_STATUS_CORR_OVERFLOW(trk_ch.STATUS)) {
-    log_warn_mesid(s->mesid, "Tracking correlator overflow.");
+    log_warn_mesid(s->mesid,
+                   "Tracking correlator overflow "
+                   "VE:[%+7ld:%+7ld] E: [%+7ld:%+7ld] P:[%+7ld:%+7ld] "
+                   "L:[%+7ld:%+7ld] VL:[%+7ld:%+7ld]",
+                   corrs[3].I,
+                   corrs[3].Q,
+                   corrs[0].I,
+                   corrs[0].Q,
+                   corrs[1].I,
+                   corrs[1].Q,
+                   corrs[2].I,
+                   corrs[2].Q,
+                   corrs[4].I,
+                   corrs[4].Q);
   }
 
   /* Check carrier phase reckoning */
