@@ -71,7 +71,7 @@ static bool alm_complete(nav_msg_gal_inav_t *nav_msg);
 static float sisa_map(u32 sisa);
 static void parse_inav_eph(nav_msg_gal_inav_t *nav_msg,
                            gal_inav_decoded_t *dd,
-                           const s16 wn);
+                           const gps_time_t *t_dec);
 static void parse_inav_alm3(nav_msg_gal_inav_t *nav_msg,
                             gal_inav_decoded_t *dd);
 static u32 parse_inav_utc(const u8 content[GAL_INAV_CONTENT_BYTE],
@@ -301,7 +301,7 @@ inav_data_type_t parse_inav_word(nav_msg_gal_inav_t *nav_msg,
     parse_inav_bgd(content, dd);
     parse_inav_health6(content, dd);
     (*t_dec) = parse_inav_w5tow(content);
-    parse_inav_eph(nav_msg, dd, t_dec->wn);
+    parse_inav_eph(nav_msg, dd, t_dec);
     return INAV_EPH;
   }
 
@@ -414,11 +414,9 @@ static u32 parse_inav_utc(const u8 content[GAL_INAV_CONTENT_BYTE],
 
 static void parse_inav_eph(nav_msg_gal_inav_t *nav_msg,
                            gal_inav_decoded_t *dd,
-                           const s16 wn) {
+                           const gps_time_t *t_dec) {
   ephemeris_t *eph = &(dd->ephemeris);
   ephemeris_kepler_t *kep = &(dd->ephemeris.kepler);
-  eph->toe.wn = wn;
-  kep->toc.wn = wn;
   kep->iode = getbitu(nav_msg->raw_eph[0], 6, 10);
   kep->iodc = kep->iode;
   eph->fit_interval = GAL_FIT_INTERVAL_SECONDS;
@@ -470,6 +468,11 @@ static void parse_inav_eph(nav_msg_gal_inav_t *nav_msg,
   kep->af0 = BITS_SIGN_EXTEND_32(31, af0) * C_1_2P34;
   kep->af1 = BITS_SIGN_EXTEND_32(21, af1) * C_1_2P46;
   kep->af2 = BITS_SIGN_EXTEND_32(6, af2) * C_1_2P59;
+
+  /* Match TOE week number with the time of transmission, fixes the case
+   * near week roll-over where time of ephemeris is across the week boundary */
+  gps_time_match_weeks(&eph->toe, t_dec);
+  gps_time_match_weeks(&kep->toc, t_dec);
 }
 
 static void parse_inav_alm3(nav_msg_gal_inav_t *nav_msg,
