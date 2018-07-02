@@ -158,7 +158,7 @@ static const state_table_t mode_1ms_2ms = {
  */
 static const state_table_t mode_1ms_sc4 = {
   .int_ms = 1,
-  .cn0_ms = 10,
+  .cn0_ms = 4,
   .lockdet_ms = 1,
   .alias_ms = 0, /* not used as equal to flld_ms */
   .flld_ms = 1,
@@ -549,7 +549,7 @@ static const state_table_t mode_5ms_nh20ms = {
  */
 static const state_table_t mode_10ms_sc4 = {
   .int_ms = 10,
-  .cn0_ms = 10,
+  .cn0_ms = 4,
   .lockdet_ms = 10,
   .alias_ms = 0, /* not used in this profile as replaced by FLL */
   .flld_ms = 5,
@@ -690,7 +690,7 @@ static const state_table_t mode_10ms_nh20ms = {
  */
 static const state_table_t mode_20ms_sc4 = {
   .int_ms = 20,
-  .cn0_ms = 10,
+  .cn0_ms = 4,
   .lockdet_ms = 20,
   .alias_ms = 4,
   .flld_ms = 10,
