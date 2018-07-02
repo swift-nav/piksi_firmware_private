@@ -16,6 +16,7 @@
 #include <stdint.h>
 #include <string.h>
 
+#include <libswiftnav/linear_algebra.h>
 #include <libswiftnav/logging.h>
 
 #include "board/v3/nap/grabber.h"
@@ -132,8 +133,9 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
    *   with the current one
    * - for Glonass, `sat` holds the FCN and we might want to do this again
    *  */
-  if ((tmp_timetag) || (!code_equiv(mesid_last.code, mesid.code)) ||
-      ((mesid_last.code == CODE_GLO_L1OF) && (mesid_last.sat != mesid.sat))) {
+  if ((tmp_timetag) ||
+      !double_approx_eq(mesid_to_carr_freq(mesid_last),
+                        mesid_to_carr_freq(mesid))) {
     /** perform baseband down-conversion + decimation depending on mesid */
     BbMixAndDecimate(mesid);
   }
@@ -150,7 +152,7 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
     p_acqres->cp =
         (1.0f - sLocalResult.fCodeDelay) * code_to_chip_count(mesid.code);
     p_acqres->cf = sLocalResult.fDoppFreq;
-    p_acqres->cn0 = ACQ_EARLY_THRESHOLD;
+    p_acqres->cn0 = ret ? ACQ_EARLY_THRESHOLD : sLocalResult->fMaxCorr;
     return ret;
   }
 
@@ -467,14 +469,14 @@ static bool SoftMacqMdbzp(const me_gnss_signal_t mesid,
   }
   /** call now MDBZP */
   bool ret = mdbzp_static(baseband, code_upsamp, &fau_conf, pacq_res);
-
-  log_debug_mesid(mesid,
-                  "%16" PRIu64
-                  "  fMaxCorr %4.1f  fDoppFreq %.1f  fCodeDelay %.4f",
-                  pacq_res->uFirstLocIdx,
-                  pacq_res->fMaxCorr,
-                  pacq_res->fDoppFreq,
-                  pacq_res->fCodeDelay);
-
+  if (ret) {
+    log_debug_mesid(mesid,
+                    "%16" PRIu64
+                    "  fMaxCorr %4.1f  fDoppFreq %.1f  fCodeDelay %.4f",
+                    pacq_res->uFirstLocIdx,
+                    pacq_res->fMaxCorr,
+                    pacq_res->fDoppFreq,
+                    pacq_res->fCodeDelay);
+  }
   return ret;
 }
