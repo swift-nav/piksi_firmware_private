@@ -561,8 +561,8 @@ void nap_track_read_results(u8 channel,
   if (GET_NAP_TRK_CH_STATUS_CORR_OVERFLOW(trk_ch.STATUS)) {
     log_warn_mesid(
         s->mesid,
-        "Tracking correlator overflow ",
-        "VE:[+7d:+7d] E: [+7d:+7d] P:[+7d:+7d] L:[+7d:+7d] VL:[+7d:+7d]",
+        "Tracking correlator overflow "
+        "VE:[%+7ld:%+7ld] E: [%+7ld:%+7ld] P:[%+7ld:%+7ld] L:[%+7ld:%+7ld] VL:[%+7ld:%+7ld]",
         corrs[3].I,
         corrs[3].Q,
         corrs[0].I,
