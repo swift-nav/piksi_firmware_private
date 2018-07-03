@@ -314,14 +314,6 @@ static void sch_run_common(acq_jobs_state_t *jobs_data, acq_job_t *job) {
     float cp = acq_result.cp;
     float cf = acq_result.cf;
 
-    if ((CODE_GAL_E1B == job->mesid.code) ||
-        (CODE_GAL_E1C == job->mesid.code) ||
-        (CODE_GAL_E1X == job->mesid.code)) {
-      mesid_trk.code = CODE_GAL_E7I;
-      cp = fmodf(cp * 10.0f, code_to_chip_count(CODE_GAL_E7I));
-      cf = cf * GAL_E7_HZ / GAL_E1_HZ;
-    }
-
     tracking_startup_params_t tracking_startup_params = {
         .mesid = mesid_trk,
         .sample_count = acq_result.sample_count,
