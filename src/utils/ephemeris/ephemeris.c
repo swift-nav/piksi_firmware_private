@@ -501,6 +501,8 @@ static void ephemeris_msg_callback(u16 sender_id,
 
   if (len != sizeof(msg_ephemeris_gps_t) &&
       len != sizeof(msg_ephemeris_glo_t) &&
+      len != sizeof(msg_ephemeris_bds_t) &&
+      len != sizeof(msg_ephemeris_gal_t) &&
       len != sizeof(msg_ephemeris_sbas_t)) {
     log_warn("Received bad ephemeris from peer");
     return;
