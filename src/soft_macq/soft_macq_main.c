@@ -152,7 +152,7 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
    * DBZP is slower in this case, but should give more chances of successful
    * acquisition
    * */
-  if (is_gal(mesid.code) || is_bds(mesid.code) ||
+  if (is_gal(mesid.code) || is_bds2(mesid.code) ||
       ((_fCarrFreqMax - _fCarrFreqMin) > 5000)) {
     bool ret = SoftMacqMdbzp(mesid, &sLocalResult);
     p_acqres->cp =
