@@ -60,6 +60,9 @@ static u32 gsa_msg_rate = 10;
 /* SBAS NMEA SV IDs are from 33 to 54 */
 #define NMEA_SV_ID_OFFSET_SBAS (-87)
 
+/* BDS NMEA SV IDs are from 201 to 235 */
+#define NMEA_SV_ID_OFFSET_BDS2 (200)
+
 /* Max SVs reported per GSA message */
 #define GSA_MAX_SV 12
 
@@ -374,9 +377,11 @@ static u8 nmea_get_id(const gnss_signal_t sid) {
   u8 id = -1;
 
   switch (sid_to_constellation(sid)) {
-    case CONSTELLATION_GPS:
     case CONSTELLATION_BDS2:
+      id = NMEA_SV_ID_OFFSET_BDS2 + sid.sat;
+      break;
     case CONSTELLATION_GAL:
+    case CONSTELLATION_GPS:
       id = sid.sat;
       break;
     case CONSTELLATION_GLO:
