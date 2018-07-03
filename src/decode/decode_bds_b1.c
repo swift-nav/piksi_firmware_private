@@ -87,6 +87,12 @@ static void decoder_bds_b1_process(const decoder_channel_info_t *channel_info,
   u8 channel = channel_info->tracking_channel;
 
   while (tracker_nav_bit_get(channel, &nav_bit)) {
+    /* Don't decode data while in sensitivity mode. */
+    if (0 == nav_bit) {
+      bds_nav_msg_init(&data->nav_msg, mesid.sat);
+      continue;
+    }
+
     bool bit_val = nav_bit > 0;
 
     bool tlm_rx = bds_nav_msg_update(&data->nav_msg, bit_val);
