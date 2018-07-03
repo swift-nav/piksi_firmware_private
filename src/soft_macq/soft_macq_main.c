@@ -129,9 +129,8 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
 
   /** Perform signal conditioning (down-conversion, filtering and decimation):
    * - if we updated the signal snapshot or
-   * - if the last searched `me_gnss_signal_t` was not compatible
-   *   with the current one
-   * - for Glonass, `sat` holds the FCN and we might want to do this again
+   * - if the carrier frequency of the last searched `sid` does not match the
+   * current one
    *  */
   if ((tmp_timetag) ||
       !double_approx_eq(mesid_to_carr_freq(mesid_last),
@@ -149,17 +148,17 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
    * this route, but eventually could swap serial search
    *
    * NOTE2: the serial acquisition really does not work well with
-   * SBAS, BDS and Galileo because of the nav data transitions,
+   * BDS and Galileo because of the nav data transitions,
    * DBZP is slower in this case, but should give more chances of successful
    * acquisition
    * */
-  if ((!is_gps(mesid.code) && !is_qzss(mesid.code) && !is_glo(mesid.code)) ||
+  if (is_gal(mesid.code) || is_bds(mesid.code) ||
       ((_fCarrFreqMax - _fCarrFreqMin) > 5000)) {
     bool ret = SoftMacqMdbzp(mesid, &sLocalResult);
     p_acqres->cp =
         (1.0f - sLocalResult.fCodeDelay) * code_to_chip_count(mesid.code);
     p_acqres->cf = sLocalResult.fDoppFreq;
-    p_acqres->cn0 = ret ? ACQ_EARLY_THRESHOLD : sLocalResult->fMaxCorr;
+    p_acqres->cn0 = ret ? ACQ_EARLY_THRESHOLD : sLocalResult.fMaxCorr;
     return ret;
   }
 
