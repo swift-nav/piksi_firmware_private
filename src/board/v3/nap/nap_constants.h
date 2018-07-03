@@ -40,13 +40,12 @@
  * @brief   This is 2 ms expressed as integer number of tracking samples
  * @note    needed for Glonass carrier phase stability
  */
-#define FCN_NCO_RESET_COUNT (39750ULL)
+#define FCN_NCO_RESET_COUNT ((u64)(NAP_TRACK_SAMPLE_RATE_Hz / 500))
 
 #define NAP_PPS_TIMING_COUNT_OFFSET (-20)
 #define NAP_EXT_TIMING_COUNT_OFFSET (8)
 
 #define NAP_EPL_SPACING_SAMPLES (1)
-#define NAP_VE_E_SPACING_CHIPS (0)
 #define NAP_VE_E_GPS_SPACING_SAMPLES (63)
 #define NAP_VE_E_GLO_SPACING_SAMPLES (63)
 #define NAP_VE_E_BDS2_SPACING_SAMPLES (63)

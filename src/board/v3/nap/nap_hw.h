@@ -18,12 +18,6 @@
 /* Include register maps */
 #include "swiftnap.h"
 
-#define NAP_TRK_SPACING_CHIPS_Pos (6U)
-#define NAP_TRK_SPACING_CHIPS_Msk (0x1U)
-
-#define NAP_TRK_SPACING_SAMPLES_Pos (0U)
-#define NAP_TRK_SPACING_SAMPLES_Msk (0x3FU)
-
 /* Instances */
 #define NAP ((swiftnap_t *)0x43C00000)
 
