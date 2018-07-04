@@ -383,16 +383,18 @@ void nmea_gpgga(const msg_pos_llh_t *sbp_pos_llh,
   NMEA_SENTENCE_DONE();
 }
 
-int gsa_cmp(const void *a, const void *b) { return (*(u8 *)a - *(u8 *)b); }
+int gsa_cmp(const void *a, const void *b) { return (*(u16 *)a - *(u16 *)b); }
 
-static u8 nmea_get_id(const gnss_signal_t sid) {
-  u8 id = -1;
+static u16 nmea_get_id(const gnss_signal_t sid) {
+  u16 id = -1;
 
   switch (sid_to_constellation(sid)) {
     case CONSTELLATION_BDS2:
       id = NMEA_SV_ID_OFFSET_BDS2 + sid.sat;
       break;
     case CONSTELLATION_GAL:
+      id = NMEA_SV_ID_OFFSET_GAL + sid.sat;
+      break;
     case CONSTELLATION_GPS:
       id = sid.sat;
       break;
@@ -411,55 +413,6 @@ static u8 nmea_get_id(const gnss_signal_t sid) {
   }
 
   return id;
-}
-
-/** Print a NMEA GSA string and send it out NMEA USARTs.
- * NMEA GSA message contains GNSS DOP and Active Satellites.
- *
- * \param prns         Array of PRNs to output.
- * \param num_prns     Number of valid PRNs in array.
- * \param sbp_pos_llh  Pos data pointer.
- * \param sbp_dops     Pointer to SBP MSG DOP struct (PDOP, HDOP, VDOP).
- * \param talker       Talker ID to use.
- */
-void nmea_gsa_print(u8 *prns,
-                    const u8 num_prns,
-                    const msg_pos_llh_t *sbp_pos_llh,
-                    const msg_dops_t *sbp_dops,
-                    const char *talker) {
-  assert(prns);
-  assert(sbp_dops);
-  assert(sbp_pos_llh);
-
-  bool fix = NO_POSITION != (sbp_pos_llh->flags & POSITION_MODE_MASK);
-
-  /* Our fix is always 3D */
-  char fix_mode = fix ? '3' : '1';
-
-  NMEA_SENTENCE_START(120);
-  /* Always automatic mode */
-  NMEA_SENTENCE_PRINTF("$%sGSA,A,%c,", talker, fix_mode);
-
-  qsort(prns, num_prns, sizeof(u8), gsa_cmp);
-
-  for (u8 i = 0; i < GSA_MAX_SV; i++) {
-    if (i < num_prns) {
-      NMEA_SENTENCE_PRINTF("%02d,", prns[i]);
-    } else {
-      NMEA_SENTENCE_PRINTF(",");
-    }
-  }
-
-  if (fix && (NULL != sbp_dops)) {
-    NMEA_SENTENCE_PRINTF("%.1f,%.1f,%.1f",
-                         round(sbp_dops->pdop * 0.1) / 10,
-                         round(sbp_dops->hdop * 0.1) / 10,
-                         round(sbp_dops->vdop * 0.1) / 10);
-  } else {
-    NMEA_SENTENCE_PRINTF(",,");
-  }
-
-  NMEA_SENTENCE_DONE();
 }
 
 static const char *talker_id_to_str(const talker_id_t id) {
@@ -501,6 +454,55 @@ static talker_id_t sid_to_talker_id(const gnss_signal_t sid) {
   }
 }
 
+/** Print a NMEA GSA string and send it out NMEA USARTs.
+ * NMEA GSA message contains GNSS DOP and Active Satellites.
+ *
+ * \param prns         Array of PRNs to output.
+ * \param num_prns     Number of valid PRNs in array.
+ * \param sbp_pos_llh  Pos data pointer.
+ * \param sbp_dops     Pointer to SBP MSG DOP struct (PDOP, HDOP, VDOP).
+ * \param talker       Talker ID to use.
+ */
+void nmea_gsa_print(u16 *prns,
+                    const u8 num_prns,
+                    const msg_pos_llh_t *sbp_pos_llh,
+                    const msg_dops_t *sbp_dops,
+                    const char *talker) {
+  assert(prns);
+  assert(sbp_dops);
+  assert(sbp_pos_llh);
+
+  bool fix = NO_POSITION != (sbp_pos_llh->flags & POSITION_MODE_MASK);
+
+  /* Our fix is always 3D */
+  char fix_mode = fix ? '3' : '1';
+
+  NMEA_SENTENCE_START(120);
+  /* Always automatic mode */
+  NMEA_SENTENCE_PRINTF("$%sGSA,A,%c,", talker, fix_mode);
+
+  qsort(prns, num_prns, sizeof(u16), gsa_cmp);
+
+  for (u8 i = 0; i < GSA_MAX_SV; i++) {
+    if (i < num_prns) {
+      NMEA_SENTENCE_PRINTF("%02d,", prns[i]);
+    } else {
+      NMEA_SENTENCE_PRINTF(",");
+    }
+  }
+
+  if (fix && (NULL != sbp_dops)) {
+    NMEA_SENTENCE_PRINTF("%.1f,%.1f,%.1f",
+                         round(sbp_dops->pdop * 0.1) / 10,
+                         round(sbp_dops->hdop * 0.1) / 10,
+                         round(sbp_dops->vdop * 0.1) / 10);
+  } else {
+    NMEA_SENTENCE_PRINTF(",,");
+  }
+
+  NMEA_SENTENCE_DONE();
+}
+
 /** Group measurements by constellation and forward information to GSA
  *  printing function.
  *
@@ -529,7 +531,7 @@ static void nmea_gsa(const msg_pos_llh_t *sbp_pos,
   assert(sbp_dops);
   assert(nav_meas);
 
-  u8 prns[TALKER_ID_COUNT][GSA_MAX_SV] = {0};
+  u16 prns[TALKER_ID_COUNT][GSA_MAX_SV] = {0};
   u8 num_prns[TALKER_ID_COUNT] = {0};
 
   /* Assemble list of currently active SVs */
@@ -556,7 +558,7 @@ static void nmea_gsa(const msg_pos_llh_t *sbp_pos,
       continue;
     }
 
-    if (is_value_in_array(prns[id], num_prns[id], nmea_get_id(info.sid))) {
+    if (is_value_in_array_u16(prns[id], num_prns[id], nmea_get_id(info.sid))) {
       /* SV already listed by another signal */
       continue;
     }
