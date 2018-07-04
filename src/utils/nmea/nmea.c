@@ -625,20 +625,8 @@ int compare_ch_meas(const void *a, const void *b) {
  */
 static void nmea_gsv_print(const u8 n_used,
                            const channel_measurement_t *ch_meas[],
-                           const constellation_t talker) {
-  char *gnss_s = "";
-  if (CONSTELLATION_GPS == talker || CONSTELLATION_SBAS == talker) {
-    gnss_s = "GPGSV";
-  } else if (CONSTELLATION_GLO == talker) {
-    gnss_s = "GLGSV";
-  } else if (CONSTELLATION_BDS2 == talker) {
-    gnss_s = "GBGSV";
-  } else if (CONSTELLATION_GAL == talker) {
-    gnss_s = "GAGSV";
-  } else {
-    log_error("NMEA: Unsupported GNSS type");
-    return;
-  }
+                           const talker_id_t talker) {
+  const char *talker_str = talker_id_to_str(talker);
 
   qsort(ch_meas, n_used, sizeof(channel_measurement_t *), compare_ch_meas);
 
@@ -648,7 +636,11 @@ static void nmea_gsv_print(const u8 n_used,
 
   for (u8 i = 0; i < n_messages; i++) {
     NMEA_SENTENCE_START(120);
-    NMEA_SENTENCE_PRINTF("$%s,%u,%u,%02u", gnss_s, n_messages, i + 1, n_used);
+    NMEA_SENTENCE_PRINTF("$%sGSV,%u,%u,%02u",
+                         talker_str,
+                         n_messages,
+                         i + 1,
+                         n_used);
 
     for (u8 j = 0; j < 4 && n < n_used; n++) {
       s8 ele = track_sid_db_elevation_degrees_get(ch_meas[n]->sid);
@@ -695,29 +687,22 @@ static void nmea_gsv_print(const u8 n_used,
  * \param[in] ch_meas     array of ch_measurement structs from SVs in track
  */
 static void nmea_gsv(u8 n_used, const channel_measurement_t *ch_meas) {
-  if (0 == n_used || NULL == ch_meas) {
-    NMEA_SENTENCE_START(120);
-    NMEA_SENTENCE_PRINTF("$GPGSV,1,1,0");
-    NMEA_SENTENCE_DONE();
-    return;
-  }
-
   /* Group by constellation */
-  const channel_measurement_t *ch_meas_grouped[CONSTELLATION_COUNT][n_used];
-  u8 n_gnss_used[CONSTELLATION_COUNT] = {0};
+  const channel_measurement_t *ch_meas_grouped[TALKER_ID_COUNT][n_used];
+  u8 num_ch_meas[TALKER_ID_COUNT] = {0};
 
-  for (u8 i = 0; i < n_used; i++) {
-    constellation_t cons = code_to_constellation(ch_meas[i].sid.code);
+  for (u8 i = 0; i < n_used; ++i) {
+    talker_id_t id = sid_to_talker_id(ch_meas[i].sid);
 
-    /* Special case, SBAS uses GP talker ID */
-    if (CONSTELLATION_SBAS == cons) {
-      cons = CONSTELLATION_GPS;
+    if (TALKER_ID_INVALID == id) {
+      /* Unsupported constellation */
+      continue;
     }
 
     /* check if sat is already picked up from another code */
     bool in_array = false;
-    for (u8 j = 0; j < n_gnss_used[cons]; j++) {
-      if (ch_meas_grouped[cons][j]->sid.sat == ch_meas[i].sid.sat) {
+    for (u8 j = 0; j < num_ch_meas[id]; ++j) {
+      if (ch_meas_grouped[id][j]->sid.sat == ch_meas[i].sid.sat) {
         in_array = true;
         break;
       }
@@ -728,15 +713,25 @@ static void nmea_gsv(u8 n_used, const channel_measurement_t *ch_meas) {
       continue;
     }
 
-    ch_meas_grouped[cons][n_gnss_used[cons]++] = &ch_meas[i];
+    ch_meas_grouped[id][num_ch_meas[id]++] = &ch_meas[i];
   }
 
   /* Print grouped sentences */
-  for (u8 cons = 0; cons < CONSTELLATION_COUNT; cons++) {
-    if (0 == n_gnss_used[cons]) {
+  u8 talkers = 0;
+  for (u8 i = 0; i < TALKER_ID_COUNT; ++i) {
+    if (0 == num_ch_meas[i]) {
       continue;
     }
-    nmea_gsv_print(n_gnss_used[cons], ch_meas_grouped[cons], cons);
+    nmea_gsv_print(num_ch_meas[i], ch_meas_grouped[i], i);
+    talkers++;
+  }
+
+  /* Check if anything was printed */
+  if (0 == talkers) {
+    /* Print bare minimum */
+    NMEA_SENTENCE_START(120);
+    NMEA_SENTENCE_PRINTF("$GPGSV,1,1,0");
+    NMEA_SENTENCE_DONE();
   }
 }
 
