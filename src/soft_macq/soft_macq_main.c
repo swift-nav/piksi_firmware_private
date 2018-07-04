@@ -201,7 +201,7 @@ static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
 
       for (k = 0, carr_nco = 0; k < FAU_SAMPLE_GRABBER_LENGTH; k++) {
         /** B1-B0 are Channel 1 */
-        sample_bitmap = ((sample_buff[k] >> 0) & 0x3) << BBNCO_CARRPH_BITS;
+        sample_bitmap = ((sample_buff[k] >> 2) & 0x3) << BBNCO_CARRPH_BITS;
         phase_bitmap =
             (carr_nco >> (32 - BBNCO_CARRPH_BITS)) & BBNCO_CARRPH_MASK;
 
@@ -221,7 +221,7 @@ static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
 
       for (k = 0, carr_nco = 0; k < FAU_SAMPLE_GRABBER_LENGTH; k++) {
         /** B3-B2 are Channel 2 */
-        sample_bitmap = ((sample_buff[k] >> 2) & 0x3) << BBNCO_CARRPH_BITS;
+        sample_bitmap = ((sample_buff[k] >> 0) & 0x3) << BBNCO_CARRPH_BITS;
         phase_bitmap =
             (carr_nco >> (32 - BBNCO_CARRPH_BITS)) & BBNCO_CARRPH_MASK;
 
@@ -239,7 +239,7 @@ static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
 
       for (k = 0, carr_nco = 0; k < FAU_SAMPLE_GRABBER_LENGTH; k++) {
         /** B1-B0 are Channel 1 */
-        sample_bitmap = ((sample_buff[k] >> 0) & 0x3) << BBNCO_CARRPH_BITS;
+        sample_bitmap = ((sample_buff[k] >> 2) & 0x3) << BBNCO_CARRPH_BITS;
         phase_bitmap =
             (carr_nco >> (32 - BBNCO_CARRPH_BITS)) & BBNCO_CARRPH_MASK;
 

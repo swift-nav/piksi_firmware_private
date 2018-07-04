@@ -338,25 +338,26 @@ static void configure_v2(void) {
   spi_write(4, 0x03);
   spi_write(5, 0x00);
   spi_write(6, 0x1D);
-  spi_write(11, 0x08); /* clock divider ratio (scaled by 2) e.g. 0x08 = /16 and
-                          0x0F = /30 */
+  spi_write(11, 0x08); /* clock divider ratio (/2) e.g.
+                          0x08==/16 and
+                          0x0F==/30 */
   spi_write(12, 0x1C); /* clock source and signal type */
-  spi_write(13, 0x03); /* channel 1 enabled and Upper/Lower side-band */
-  spi_write(14, 0x52); /* GPS L1 and BDS2 B11 LPF at 32.4 MHz */
+  spi_write(13, 0x01); /* channel 1 enabled and Upper/Lower side-band */
+  spi_write(14, 0x26); /* Glonass L1OF LPF */
   spi_write(15, 0x0B);
   spi_write(16, 0x34);
   spi_write(17, 0xF1);
   spi_write(18, 0xEA);
   spi_write(19, 0x0B);
-  spi_write(20, 0x01); /* channel 2 enabled and Upper/Lower side-band */
-  spi_write(21, 0x26); /* LPF setting for channel 2 - Glonass G1 */
+  spi_write(20, 0x03); /* channel 2 enabled and Upper/Lower side-band */
+  spi_write(21, 0x52); /* GPS L1 and BDS2 B11 LPF at 32.4 MHz */
   spi_write(22, 0x0B);
   spi_write(23, 0x34);
   spi_write(24, 0xF1);
   spi_write(25, 0xEA);
   spi_write(26, 0x0B);
   spi_write(27, 0x01); /* channel 3 enabled and Upper/Lower side-band */
-  spi_write(28, 0x1D); /* LPF setting for channel 3 - Glonass G2 */
+  spi_write(28, 0x1D); /* Glonass L2OF LPF */
   spi_write(29, 0x0B);
   spi_write(30, 0x34);
   spi_write(31, 0xF1);
