@@ -63,6 +63,9 @@ static u32 gsa_msg_rate = 10;
 /* BDS NMEA SV IDs are from 401 to 437 */
 #define NMEA_SV_ID_OFFSET_BDS2 (400)
 
+/* GAL NMEA SV IDs are from 301 to 336 */
+#define NMEA_SV_ID_OFFSET_BDS2 (300)
+
 /* Max SVs reported per GSA message */
 #define GSA_MAX_SV 12
 
@@ -482,8 +485,10 @@ static void nmea_gsa(const msg_pos_llh_t *sbp_pos,
   u8 num_prns_gp = 0;
   u8 prns_gl[GSA_MAX_SV];
   u8 num_prns_gl = 0;
-  u8 prns_bd[GSA_MAX_SV];
-  u8 num_prns_bd = 0;
+  u8 prns_gb[GSA_MAX_SV];
+  u8 num_prns_gb = 0;
+  u8 prns_ga[GSA_MAX_SV];
+  u8 num_prns_ga = 0;
 
   /* Assemble list of currently active SVs */
   for (u8 i = 0; i < n_meas; i++) {
@@ -492,7 +497,8 @@ static void nmea_gsa(const msg_pos_llh_t *sbp_pos,
      *   - constellation to group by correct talker ID
      *       * GPS and SBAS use GP
      *       * GLO uses GL
-     *       * BDS uses BD
+     *       * BDS uses GB
+     *       * GAL uses GA
      *       * If at least 2 of GP, GL or BD are present, replace them with GN
      *   - maximum group size is GSA_MAX_SV
      *   - if SV is reported already by another signal (eg. GPS L1CA vs L2C)
@@ -509,14 +515,20 @@ static void nmea_gsa(const msg_pos_llh_t *sbp_pos,
       continue;
     }
 
-    if (IS_BDS2(info.sid) && num_prns_bd < GSA_MAX_SV &&
-        !is_value_in_array(prns_bd, num_prns_bd, nmea_get_id(info.sid))) {
-      prns_bd[num_prns_bd++] = nmea_get_id(info.sid);
+    if (IS_BDS2(info.sid) && num_prns_gb < GSA_MAX_SV &&
+        !is_value_in_array(prns_gb, num_prns_gb, nmea_get_id(info.sid))) {
+      prns_gb[num_prns_gb++] = nmea_get_id(info.sid);
+      continue;
+    }
+
+    if (IS_GAL(info.sid) && num_prns_ga < GSA_MAX_SV &&
+        !is_value_in_array(prns_ga, num_prns_ga, nmea_get_id(info.sid))) {
+      prns_ga[num_prns_ga++] = nmea_get_id(info.sid);
       continue;
     }
   }
 
-  if (0 == num_prns_gp && 0 == num_prns_gl && 0 == num_prns_bd) {
+  if (0 == num_prns_gp && 0 == num_prns_gl && 0 == prns_gb && 0 == prns_ga) {
     /* At bare minimum, print empty GPGSA and be done with it */
     nmea_gsa_print(prns_gp, num_prns_gp, sbp_pos, sbp_dops, "GP");
     return;
@@ -527,7 +539,8 @@ static void nmea_gsa(const msg_pos_llh_t *sbp_pos,
   u8 constellations = 0;
   constellations += (0 != num_prns_gp) ? 1 : 0;
   constellations += (0 != num_prns_gl) ? 1 : 0;
-  constellations += (0 != num_prns_bd) ? 1 : 0;
+  constellations += (0 != num_prns_gb) ? 1 : 0;
+  constellations += (0 != num_prns_ga) ? 1 : 0;
 
   if (constellations >= 2) {
     /* At least two constellations detected, use GN talker ID */
@@ -546,10 +559,16 @@ static void nmea_gsa(const msg_pos_llh_t *sbp_pos,
         prns_gl, num_prns_gl, sbp_pos, sbp_dops, use_gn ? "GN" : "GL");
   }
 
-  /* Print active BD identified SVs */
-  if (0 != num_prns_bd) {
+  /* Print active GB identified SVs */
+  if (0 != num_prns_gb) {
     nmea_gsa_print(
-        prns_bd, num_prns_bd, sbp_pos, sbp_dops, use_gn ? "GN" : "GB");
+        prns_gb, num_prns_gb, sbp_pos, sbp_dops, use_gn ? "GN" : "GB");
+  }
+
+  /* Print active GA identified SVs */
+  if (0 != num_prns_gb) {
+    nmea_gsa_print(
+        prns_ga, num_prns_ga, sbp_pos, sbp_dops, use_gn ? "GN" : "GA");
   }
 }
 
