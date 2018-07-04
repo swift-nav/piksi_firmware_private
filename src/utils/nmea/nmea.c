@@ -60,8 +60,8 @@ static u32 gsa_msg_rate = 10;
 /* SBAS NMEA SV IDs are from 33 to 54 */
 #define NMEA_SV_ID_OFFSET_SBAS (-87)
 
-/* BDS NMEA SV IDs are from 201 to 235 */
-#define NMEA_SV_ID_OFFSET_BDS2 (200)
+/* BDS NMEA SV IDs are from 401 to 437 */
+#define NMEA_SV_ID_OFFSET_BDS2 (400)
 
 /* Max SVs reported per GSA message */
 #define GSA_MAX_SV 12
