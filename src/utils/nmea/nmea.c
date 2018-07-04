@@ -549,7 +549,7 @@ static void nmea_gsa(const msg_pos_llh_t *sbp_pos,
   /* Print active BD identified SVs */
   if (0 != num_prns_bd) {
     nmea_gsa_print(
-        prns_bd, num_prns_bd, sbp_pos, sbp_dops, use_gn ? "GN" : "BD");
+        prns_bd, num_prns_bd, sbp_pos, sbp_dops, use_gn ? "GN" : "GB");
   }
 }
 
@@ -586,7 +586,7 @@ static void nmea_gsv_print(const u8 n_used,
   } else if (CONSTELLATION_GLO == talker) {
     gnss_s = "GLGSV";
   } else if (CONSTELLATION_BDS2 == talker) {
-    gnss_s = "BDGSV";
+    gnss_s = "GBGSV";
   } else if (CONSTELLATION_GAL == talker) {
     gnss_s = "GAGSV";
   } else {
