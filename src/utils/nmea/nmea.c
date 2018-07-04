@@ -434,7 +434,6 @@ static const char *talker_id_to_str(const talker_id_t id) {
 }
 
 static talker_id_t sid_to_talker_id(const gnss_signal_t sid) {
-
   switch (sid_to_constellation(sid)) {
     case CONSTELLATION_GAL:
       return TALKER_ID_GA;
@@ -575,11 +574,8 @@ static void nmea_gsa(const msg_pos_llh_t *sbp_pos,
   /* Check if no SVs identified */
   if (0 == constellations) {
     /* At bare minimum, print empty GPGSA and be done with it */
-    nmea_gsa_print(prns[TALKER_ID_GP],
-                   num_prns[TALKER_ID_GP],
-                   sbp_pos,
-                   sbp_dops,
-                   "GP");
+    nmea_gsa_print(
+        prns[TALKER_ID_GP], num_prns[TALKER_ID_GP], sbp_pos, sbp_dops, "GP");
     return;
   }
 
@@ -638,11 +634,8 @@ static void nmea_gsv_print(const u8 n_used,
 
   for (u8 i = 0; i < n_messages; i++) {
     NMEA_SENTENCE_START(120);
-    NMEA_SENTENCE_PRINTF("$%sGSV,%u,%u,%02u",
-                         talker_str,
-                         n_messages,
-                         i + 1,
-                         n_used);
+    NMEA_SENTENCE_PRINTF(
+        "$%sGSV,%u,%u,%02u", talker_str, n_messages, i + 1, n_used);
 
     for (u8 j = 0; j < 4 && n < n_used; n++) {
       s8 ele = track_sid_db_elevation_degrees_get(ch_meas[n]->sid);
