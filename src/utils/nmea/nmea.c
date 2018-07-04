@@ -89,10 +89,10 @@ static u32 gsa_msg_rate = 10;
 
 typedef enum talker_id_e {
   TALKER_ID_INVALID = -1,
-  TALKER_ID_GA = 0,
-  TALKER_ID_GB = 1,
-  TALKER_ID_GL = 2,
-  TALKER_ID_GP = 3,
+  TALKER_ID_GP = 0,
+  TALKER_ID_GL = 1,
+  TALKER_ID_GA = 2,
+  TALKER_ID_GB = 3,
   TALKER_ID_COUNT = 4
 } talker_id_t;
 
