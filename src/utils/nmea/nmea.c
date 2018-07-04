@@ -434,7 +434,6 @@ static const char *talker_id_to_str(const talker_id_t id) {
 }
 
 static talker_id_t sid_to_talker_id(const gnss_signal_t sid) {
-
   switch (sid_to_constellation(sid)) {
     case CONSTELLATION_GAL:
       return TALKER_ID_GA;
@@ -575,11 +574,8 @@ static void nmea_gsa(const msg_pos_llh_t *sbp_pos,
   /* Check if no SVs identified */
   if (0 == constellations) {
     /* At bare minimum, print empty GPGSA and be done with it */
-    nmea_gsa_print(prns[TALKER_ID_GP],
-                   num_prns[TALKER_ID_GP],
-                   sbp_pos,
-                   sbp_dops,
-                   "GP");
+    nmea_gsa_print(
+        prns[TALKER_ID_GP], num_prns[TALKER_ID_GP], sbp_pos, sbp_dops, "GP");
     return;
   }
 
