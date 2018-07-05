@@ -52,10 +52,10 @@ struct sbp_fileio_closure {
   u8 len;
 };
 
-static void sbp_fileio_callback(u16 sender_id,
-                                u8 len,
-                                u8 msg_raw[],
-                                void *context) {
+static void sbp_fileio_read_callback(u16 sender_id,
+                                     u8 len,
+                                     u8 msg_raw[],
+                                     void *context) {
   assert(NULL != context);
   struct sbp_fileio_closure *closure = context;
   msg_fileio_write_resp_t *msg = (msg_fileio_write_resp_t *)msg_raw;
@@ -66,12 +66,50 @@ static void sbp_fileio_callback(u16 sender_id,
     closure->len = len;
     chBSemSignal(&closure->sem);
   } else {
-    log_error("sbp_fileio_callback()  sender %5u  msg->sequence %08" PRIx32
+    log_error("sbp_fileio_read_callback()  sender %5u  msg->sequence %08" PRIx32
               " closure->seq %02" PRIx8 " len %3" PRIu8,
               sender_id,
               msg->sequence,
               closure->seq,
               len);
+    if (len == 4) {
+      log_error("data: %02x %02x %02x %02x",
+                msg_raw[0],
+                msg_raw[1],
+                msg_raw[2],
+                msg_raw[3]);
+    }
+  }
+}
+
+static void sbp_fileio_write_callback(u16 sender_id,
+                                      u8 len,
+                                      u8 msg_raw[],
+                                      void *context) {
+  assert(NULL != context);
+  struct sbp_fileio_closure *closure = context;
+  msg_fileio_write_resp_t *msg = (msg_fileio_write_resp_t *)msg_raw;
+  (void)sender_id;
+
+  if (msg->sequence == closure->seq) {
+    MEMCPY_S(closure->msg, SBP_FILEIO_MSG_LEN, msg_raw, len);
+    closure->len = len;
+    chBSemSignal(&closure->sem);
+  } else {
+    log_error(
+        "sbp_fileio_write_callback()  sender %5u  msg->sequence %08" PRIx32
+        " closure->seq %02" PRIx8 " len %3" PRIu8,
+        sender_id,
+        msg->sequence,
+        closure->seq,
+        len);
+    if (len == 4) {
+      log_error("data: %02x %02x %02x %02x",
+                msg_raw[0],
+                msg_raw[1],
+                msg_raw[2],
+                msg_raw[3]);
+    }
   }
 }
 
@@ -98,7 +136,7 @@ ssize_t sbp_fileio_write(const char *filename,
 
   sbp_msg_callbacks_node_t node;
   sbp_register_cbk_with_closure(
-      SBP_MSG_FILEIO_WRITE_RESP, sbp_fileio_callback, &node, &closure);
+      SBP_MSG_FILEIO_WRITE_RESP, sbp_fileio_write_callback, &node, &closure);
 
   while (s < size) {
     msg->sequence = closure.seq = next_seq();
@@ -155,7 +193,7 @@ ssize_t sbp_fileio_read(const char *filename,
 
   sbp_msg_callbacks_node_t node;
   sbp_register_cbk_with_closure(
-      SBP_MSG_FILEIO_READ_RESP, sbp_fileio_callback, &node, &closure);
+      SBP_MSG_FILEIO_READ_RESP, sbp_fileio_read_callback, &node, &closure);
 
   while (s < size) {
     msg->sequence = closure.seq = next_seq();
