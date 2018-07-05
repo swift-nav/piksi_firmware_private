@@ -24,6 +24,7 @@
 #include "timing/timing.h"
 
 #include "lib/fixed_fft_r2.h"
+#include "main.h"
 #include "specan_main.h"
 
 #define SPECAN_THREAD_STACK (4 * 1024)
@@ -78,6 +79,13 @@ void ThreadManageSpecan(void *arg) {
    * */
   while (TRUE) {
     chThdSleepMilliseconds(500);
+
+    extern u16 heartbeat(int prio, u16 prev_ms);
+    DO_EACH_MS(3000, {
+      static u16 prev_ms = 0;
+      prev_ms = heartbeat(SPECAN_THREAD_PRIORITY, prev_ms);
+    });
+
     if (!run_spectrum) continue;
 
     pSampleBuf = GrabberGetBufferPt(&uBuffLen);

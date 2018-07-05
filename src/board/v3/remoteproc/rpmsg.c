@@ -24,6 +24,7 @@
 #include <hal.h>
 
 #include "lib/fifo.h"
+#include "main.h"
 #include "remoteproc_config.h"
 #include "remoteproc_env.h"
 #include "rpmsg.h"
@@ -215,5 +216,11 @@ static THD_FUNCTION(rpmsg_thread, arg) {
         fifo_remove(fifo, buffer_length);
       }
     }
+
+    extern u16 heartbeat(int prio, u16 prev_ms);
+    DO_EACH_MS(1000, {
+      static u16 prev_ms = 0;
+      prev_ms = heartbeat(RPMSG_THD_PRIO, prev_ms);
+    });
   }
 }

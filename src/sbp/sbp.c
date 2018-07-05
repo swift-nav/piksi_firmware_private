@@ -66,6 +66,12 @@ static u32 sbp_buffer_length;
 
 static MUTEX_DECL(sbp_cb_mutex);
 
+void stat_dump(void);
+
+void stat_print(u16 msg_type, u16 max_ms) {
+  log_info("S# %d %d", msg_type, max_ms);
+}
+
 static THD_WORKING_AREA(wa_sbp_thread, SBP_THREAD_STACK);
 static void sbp_thread(void *arg) {
   (void)arg;
@@ -82,7 +88,16 @@ static void sbp_thread(void *arg) {
 
   while (TRUE) {
     chThdSleepMilliseconds(10);
+
+    extern u16 heartbeat(int prio, u16 prev_ms);
+    DO_EACH_MS(1000, {
+      static u16 prev_ms = 0;
+      prev_ms = heartbeat(SBP_THREAD_PRIORITY, prev_ms);
+    });
+
     sbp_process_messages();
+
+    DO_EACH_MS(2000, stat_dump(););
 
     DO_EVERY(
         100,

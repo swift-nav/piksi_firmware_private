@@ -738,6 +738,12 @@ static void me_calc_pvt_thread(void *arg) {
                current_fix.clock_offset * SECS_MS,
                MAX_CLOCK_ERROR_S * SECS_MS);
     }
+
+    extern u16 heartbeat(int prio, u16 prev_ms);
+    DO_EACH_MS(1000, {
+      static u16 prev_ms = 0;
+      prev_ms = heartbeat(ME_CALC_PVT_THREAD_PRIORITY, prev_ms);
+    });
   }
 }
 

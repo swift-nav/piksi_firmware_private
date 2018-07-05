@@ -200,6 +200,8 @@ static void handle_nap_track_irq(void) {
   DO_EVERY(4096, watchdog_notify(WD_NOTIFY_NAP_ISR));
 }
 
+extern u16 heartbeat(int prio, u16 prev_ms);
+
 static void nap_irq_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("NAP");
@@ -209,8 +211,15 @@ static void nap_irq_thread(void *arg) {
     chBSemWaitTimeout(&nap_irq_sem, MS2ST(PROCESS_PERIOD_MS));
 
     handle_nap_irq();
+
+    DO_EACH_MS(3000, {
+      static u16 prev_ms = 0;
+      prev_ms = heartbeat(NAP_IRQ_THREAD_PRIORITY, prev_ms);
+    });
   }
 }
+
+#define NAP_TRACK_IRQ_THREAD_PRIORITY (HIGHPRIO - 1)
 
 void nap_track_irq_thread(void *arg) {
   piksi_systime_t sys_time;
@@ -218,6 +227,11 @@ void nap_track_irq_thread(void *arg) {
   chRegSetThreadName("NAP Tracking");
 
   while (TRUE) {
+    DO_EACH_MS(3000, {
+      static u16 prev_ms = 0;
+      prev_ms = heartbeat(NAP_TRACK_IRQ_THREAD_PRIORITY, prev_ms);
+    });
+
     piksi_systime_get(&sys_time);
 
     handle_nap_track_irq();

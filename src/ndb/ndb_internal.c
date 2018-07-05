@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "libsbp/piksi.h"
+#include "main.h"
 #include "ndb.h"
 #include "ndb_fs_access.h"
 #include "signal_db/signal_db.h"
@@ -337,6 +338,13 @@ static void ndb_service_thread(void *p) {
   chThdSleepMilliseconds(NV_WRITE_REQ_TIMEOUT);
   while (true) {
     chThdSleepMilliseconds(NV_WRITE_REQ_TIMEOUT);
+
+    extern u16 heartbeat(int prio, u16 prev_ms);
+    DO_EACH_MS(1000, {
+      static u16 prev_ms = 0;
+      prev_ms = heartbeat(NDB_THREAD_PRIORITY, prev_ms);
+    });
+
     while (true) {
       enum ndb_op_code res = ndb_wq_process();
       if (NDB_ERR_NO_DATA == res) {

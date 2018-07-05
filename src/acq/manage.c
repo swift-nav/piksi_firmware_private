@@ -225,6 +225,12 @@ static void manage_acq_thread(void *arg) {
 
     manage_tracking_startup();
     watchdog_notify(WD_NOTIFY_ACQ_MGMT);
+
+    extern u16 heartbeat(int prio, u16 prev_ms);
+    DO_EACH_MS(2000, {
+      static u16 prev_ms = 0;
+      prev_ms = heartbeat(MANAGE_ACQ_THREAD_PRIORITY, prev_ms);
+    });
   }
 }
 

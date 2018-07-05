@@ -121,6 +121,14 @@ static void check_frontend_errors(void) {
   }
 }
 
+extern u64 timing_getms(void);
+
+u16 heartbeat(int prio, u16 prev_ms) {
+  u16 now_ms = (u16)timing_getms();
+  log_info("H# %d %" PRIu16, prio, (u16)(now_ms - prev_ms));
+  return now_ms;
+}
+
 static THD_WORKING_AREA(wa_system_monitor_thread, SYSTEM_MONITOR_THREAD_STACK);
 static void system_monitor_thread(void *arg) {
   (void)arg;
@@ -129,6 +137,11 @@ static void system_monitor_thread(void *arg) {
   piksi_systime_t time;
 
   while (TRUE) {
+    DO_EACH_MS(3000, {
+      static u16 prev_ms = 0;
+      prev_ms = heartbeat(SYSTEM_MONITOR_THREAD_PRIORITY, prev_ms);
+    });
+
     piksi_systime_get(&time);
 
     u32 status_flags = antenna_present() << 31 | antenna_shorted() << 30 |
@@ -201,6 +214,11 @@ static void watchdog_thread(void *arg) {
     /* Wait for all threads to set a flag indicating they are still
        alive and performing their function */
     chThdSleepMilliseconds(WATCHDOG_THREAD_PERIOD_MS);
+
+    DO_EACH_MS(3000, {
+      static u16 prev_ms = 0;
+      prev_ms = heartbeat(WATCHDOG_THREAD_PRIORITY, prev_ms);
+    });
 
     chSysLock();
     u32 threads_dead = watchdog_notify_flags ^ WATCHDOG_NOTIFY_FLAG_ALL;

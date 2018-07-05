@@ -219,6 +219,12 @@ static void decode_thread(void *arg) {
   chRegSetThreadName("decode");
 
   while (true) {
+    extern u16 heartbeat(int prio, u16 prev_ms);
+    DO_EACH_MS(1000, {
+      static u16 prev_ms = 0;
+      prev_ms = heartbeat(DECODE_THREAD_PRIORITY, prev_ms);
+    });
+
     for (u32 i = 0; i < NUM_DECODER_CHANNELS; i++) {
       decoder_channel_t *d = &decoder_channels[i];
       switch (decoder_channel_state_get(d)) {

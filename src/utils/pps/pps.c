@@ -49,6 +49,12 @@ static void pps_thread(void *arg) {
   chRegSetThreadName("PPS");
 
   while (TRUE) {
+    extern u16 heartbeat(int prio, u16 prev_ms);
+    DO_EACH_MS(3000, {
+      static u16 prev_ms = 0;
+      prev_ms = heartbeat(PPS_THREAD_PRIORITY, prev_ms);
+    });
+
     if (get_time_quality() >= TIME_PROPAGATED && !nap_pps_armed()) {
       gps_time_t t = get_current_time();
 

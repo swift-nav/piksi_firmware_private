@@ -18,6 +18,7 @@
 #include <hal.h>
 
 #include "calc_pvt_me.h"
+#include "main.h"
 #include "peripherals/antenna.h"
 #include "piksi_systime.h"
 #include "starling_integration.h"
@@ -131,6 +132,12 @@ static void manage_pv_thread(void *arg) {
     palWriteLine(POS_VALID_GPIO_LINE, pv_state ? PAL_HIGH : PAL_LOW);
 
     piksi_systime_sleep_ms(MANAGE_PV_THREAD_PERIOD_MS);
+
+    extern u16 heartbeat(int prio, u16 prev_ms);
+    DO_EACH_MS(3000, {
+      static u16 prev_ms = 0;
+      prev_ms = heartbeat(MANAGE_PV_THREAD_PRIO, prev_ms);
+    });
   }
 }
 

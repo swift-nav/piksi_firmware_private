@@ -24,6 +24,7 @@
 #include <libswiftnav/logging.h>
 #include <math.h>
 #include <sbp.h>
+#include "main.h"
 
 #define IMU_THREAD_PRIO (HIGHPRIO - 1)
 #define IMU_THREAD_STACK (2 * 1024)
@@ -79,6 +80,8 @@ static void imu_aux_send(void) {
   sbp_send_msg(SBP_MSG_IMU_AUX, sizeof(imu_aux), (u8 *)&imu_aux);
 }
 
+extern u16 heartbeat(int prio, u16 prev_ms);
+
 /** IMU auxiliary data processing thread. */
 static void imu_aux_thread(void *arg) {
   (void)arg;
@@ -90,6 +93,11 @@ static void imu_aux_thread(void *arg) {
     }
 
     chThdSleepMilliseconds(1000);
+
+    DO_EACH_MS(3000, {
+      static u16 prev_ms = 0;
+      prev_ms = heartbeat(IMU_AUX_THREAD_PRIO, prev_ms);
+    });
   }
 }
 
@@ -196,6 +204,11 @@ static void imu_thread(void *arg) {
       /* Send out MAG_RAW SBP message. */
       sbp_send_msg(SBP_MSG_MAG_RAW, sizeof(mag_raw), (u8 *)&mag_raw);
     }
+
+    DO_EACH_MS(3000, {
+      static u16 prev_ms = 0;
+      prev_ms = heartbeat(IMU_THREAD_PRIO, prev_ms);
+    });
   }
 }
 

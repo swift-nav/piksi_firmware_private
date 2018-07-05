@@ -37,6 +37,7 @@
 #include "board/v3/nap/nap_hw.h"
 #include "timing/timing.h"
 #endif
+#include "main.h"
 
 extern bool starling_integration_simulation_enabled(void);
 extern void starling_integration_simulation_run(const me_msg_obs_t *me_msg);
@@ -427,6 +428,8 @@ bool update_time_matched(gps_time_t *last_update_time,
   return true;
 }
 
+extern u16 heartbeat(int prio, u16 prev_ms);
+
 static THD_WORKING_AREA(wa_time_matched_obs_thread,
                         TIME_MATCHED_OBS_THREAD_STACK);
 static void time_matched_obs_thread(void *arg) {
@@ -437,6 +440,11 @@ static void time_matched_obs_thread(void *arg) {
   static obss_t base_obss_copy;
 
   while (1) {
+    DO_EACH_MS(1000, {
+      static u16 prev_ms = 0;
+      prev_ms = heartbeat(TIME_MATCHED_OBS_THREAD_PRIORITY, prev_ms);
+    });
+
     base_obs = NULL;
     const msg_t fetch_ret =
         platform_base_obs_mailbox_fetch((msg_t *)&base_obs, DGNSS_TIMEOUT_MS);
@@ -631,7 +639,14 @@ static void starling_thread(void) {
   filter_manager_init(spp_filter_manager);
   platform_mutex_unlock(&spp_filter_manager_lock);
 
+#define STARLING_THREAD_PRIORITY (HIGHPRIO - 4)
+
   while (TRUE) {
+    DO_EACH_MS(1000, {
+      static u16 prev_ms = 0;
+      prev_ms = heartbeat(STARLING_THREAD_PRIORITY, prev_ms);
+    });
+
     platform_watchdog_notify_starling_main_thread();
 
     process_any_sbas_messages();
