@@ -30,6 +30,7 @@ typedef struct {
   u8 read_index;
   u8 write_index;
   u8 size;
+  u8 written;
   nav_bit_t elements[MAX_NAV_BIT_FIFO_SIZE];
 } nav_bit_fifo_t;
 

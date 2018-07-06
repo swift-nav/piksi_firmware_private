@@ -27,6 +27,7 @@ void nav_bit_fifo_init(nav_bit_fifo_t *fifo, const u8 size) {
   fifo->read_index = 0;
   fifo->write_index = 0;
   fifo->size = size;
+  fifo->written = 0;
 }
 
 /** Determine if a nav bit FIFO is full.
@@ -36,7 +37,7 @@ void nav_bit_fifo_init(nav_bit_fifo_t *fifo, const u8 size) {
  * \return true if the nav bit FIFO is full, false otherwise.
  */
 bool nav_bit_fifo_full(const nav_bit_fifo_t *fifo) {
-  return (NAV_BIT_FIFO_LENGTH(fifo) == (fifo->size));
+  return (fifo->written == fifo->size);
 }
 
 /** Write data to the nav bit FIFO.
@@ -49,9 +50,10 @@ bool nav_bit_fifo_full(const nav_bit_fifo_t *fifo) {
  * \return true if element was read, false otherwise.
  */
 bool nav_bit_fifo_write(nav_bit_fifo_t *fifo, const nav_bit_t *element) {
-  if (NAV_BIT_FIFO_LENGTH(fifo) < (fifo->size)) {
-    fifo->elements[fifo->write_index % (fifo->size)] = (*element);
-    fifo->write_index++;
+  if (fifo->written < fifo->size) {
+    fifo->elements[fifo->write_index] = (*element);
+    fifo->write_index = (u8)((fifo->write_index + 1) % fifo->size);
+    fifo->written++;
     return true;
   }
 
@@ -68,9 +70,10 @@ bool nav_bit_fifo_write(nav_bit_fifo_t *fifo, const nav_bit_t *element) {
  * \return true if element was read, false otherwise.
  */
 bool nav_bit_fifo_read(nav_bit_fifo_t *fifo, nav_bit_t *element) {
-  if (NAV_BIT_FIFO_LENGTH(fifo) > 0) {
-    (*element) = fifo->elements[fifo->read_index % (fifo->size)];
-    fifo->read_index++;
+  if (fifo->written > 0) {
+    (*element) = fifo->elements[fifo->read_index];
+    fifo->read_index = (u8)((fifo->read_index + 1) % fifo->size);
+    fifo->written--;
     return true;
   }
 
