@@ -44,7 +44,7 @@ static bool rf_clk_config_notify(struct setting *s, const char *val) {
 
 void rf_clk_init(bool allow_ext_clk) {
   /* Start DAC off at it's midpoint if present */
-  set_clk_dac(2048, CLK_DAC_MODE_0);
+  set_clk_dac(2222, CLK_DAC_MODE_0);
 
   palSetLineMode(CLK_SEL_GPIO_LINE, PAL_MODE_OUTPUT);
 

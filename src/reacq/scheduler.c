@@ -298,12 +298,6 @@ static void sch_run_common(acq_jobs_state_t *jobs_data, acq_job_t *job) {
   job->cost += (u32)MAX(1, job->stop_time - job->start_time);
   sch_limit_costs(jobs_data, job->cost);
 
-  /* It is unclear should peak checks take place in acq module
-     or here. */
-  if (peak_found && acq_result.cn0 < acq_param->cn0_threshold_dbhz) {
-    peak_found = false;
-  }
-
   if (peak_found) { /* Send to track */
     u16 glo_orbit_slot = GLO_ORBIT_SLOT_UNKNOWN;
     if (IS_GLO(job->mesid)) {

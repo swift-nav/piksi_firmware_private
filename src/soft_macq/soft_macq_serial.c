@@ -197,6 +197,13 @@ bool soft_acq_search(const sc16_t *_cSignal,
                     sample_fft,
                     &doppler);
 
+    /* blank edges of FFT to compensate for numerical instability of the fixed
+     * point FFT */
+    result_fft[0].r = 0;
+    result_fft[0].i = 0;
+    result_fft[FAU_FFTLEN - 1].r = 0;
+    result_fft[FAU_FFTLEN - 1].i = 0;
+
     /* Find highest peak of the current doppler bin */
     if (!peak_search(
             mesid, result_fft, FAU_FFTLEN, doppler, FAU_BIN_WIDTH, &peak)) {
@@ -227,21 +234,9 @@ bool soft_acq_search(const sc16_t *_cSignal,
     }
   }
 
-  /* False acquisition code phase hack. The vast majority of our false
-   * acquisitions return a code phase zero. Not allowing zero code phase
-   * will reject a small number of true acquisitions, but prevents nearly
-   * all of the false acquisitions. */
-  /* TODO: Check later if this can be removed. */
-  if (0 == peak.sample_offset) {
-    log_debug_mesid(mesid, "false acq");
-    return false;
-  }
-
   /* Compute code phase */
   float chips_per_sample = chip_rate / FAU_SAMPLE_RATE_Hz;
   float cp = chips_per_sample * (peak.sample_offset);
-  log_debug_mesid(
-      mesid, "cp %.1f cf %.1f cn0 %.1f", cp, peak.doppler, peak.cn0);
 
   /* Set output */
   acq_result->cp = cp;
