@@ -133,6 +133,12 @@ s8 calc_navigation_measurement(u8 n_channels,
     /* Propagate carrier phase with carrier frequency */
     nav_meas[i]->raw_carrier_phase += dt * nav_meas[i]->raw_measured_doppler;
 
+    if (IS_GAL(nav_meas[i]->sid)) {
+      /* ?? ad-hoc fix test for EX-225 */
+      nav_meas[i]->tot.tow -= 0.005;
+      normalize_gps_time(&nav_meas[i]->tot);
+    }
+
     /* Compute flags.
      *
      * \note currently algorithm uses 1 to 1 flag mapping, however it can use
