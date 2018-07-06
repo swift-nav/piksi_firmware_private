@@ -121,6 +121,7 @@ static void check_frontend_errors(void) {
   }
 }
 
+// TEST
 static THD_WORKING_AREA(wa_system_monitor_thread, SYSTEM_MONITOR_THREAD_STACK);
 static void system_monitor_thread(void *arg) {
   (void)arg;
