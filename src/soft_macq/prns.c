@@ -16,7 +16,7 @@
 
 #include <libswiftnav/constants.h>
 
-#include "bds2_prns.h"
+#include "bds_prns.h"
 #include "gal_prns.h"
 #include "prns.h"
 #include "qzss_prns.h"
@@ -102,7 +102,17 @@ static const u32 sbas_l1ca_prns_last_values[] = {
   [16] = 00360, [17] = 01403, [18] = 00224
 };
 
-
+/* The computed GPS L5i init values for the 2nd LFSR. */
+static const u32 gps_l5i_prns_init_values[] = {
+  [ 0] = 002352, [ 1] = 017032, [ 2] = 001002, [ 3] = 006215,
+  [ 4] = 016567, [ 5] = 005746, [ 6] = 017445, [ 7] = 002275,
+  [ 8] = 015237, [ 9] = 007576, [10] = 005620, [11] = 011747,
+  [12] = 003470, [13] = 016202, [14] = 005526, [15] = 011170,
+  [16] = 017062, [17] = 007417, [18] = 017423, [19] = 013326,
+  [20] = 001004, [21] = 017367, [22] = 007741, [23] = 002643,
+  [24] = 013313, [25] = 006465, [26] = 007552, [27] = 006536,
+  [28] = 010372, [29] = 016641, [30] = 007450, [31] = 011640
+};
 
 /* The computed GPS L5Q init values for the 2nd LFSR. */
 static const u32 gps_l5q_prns_init_values[] = {
@@ -115,7 +125,6 @@ static const u32 gps_l5q_prns_init_values[] = {
   [24] = 015442, [25] = 003652, [26] = 005741, [27] = 004137,
   [28] = 002212, [29] = 011701, [30] = 012372, [31] = 005211
 };
-
 
 /* The GPS L2CM LFSR init values are taken from IS-GPS-200H Table 3-IIa
  * "Code phase assignments (IIR-M, IIF, and subsequent blocks only)"
@@ -694,6 +703,9 @@ u32 mesid_to_lfsr1_init(const me_gnss_signal_t mesid, const u8 index) {
       ret = gps_l2cl_prns_init_values[mesid.sat - GPS_FIRST_PRN][index] &
             0x7FFFFFF;
       break;
+    case CODE_GPS_L5I:
+      ret = gps_l5i_prns_init_values[mesid.sat - GPS_FIRST_PRN] & 0x1FFF;
+      break;
     case CODE_GPS_L5Q:
       ret = gps_l5q_prns_init_values[mesid.sat - GPS_FIRST_PRN] & 0x1FFF;
       break;
@@ -731,7 +743,6 @@ u32 mesid_to_lfsr1_init(const me_gnss_signal_t mesid, const u8 index) {
     case CODE_GPS_L1P:
     case CODE_GPS_L2P:
     case CODE_GPS_L2CX:
-    case CODE_GPS_L5I:
     case CODE_GPS_L5X:
     case CODE_GAL_E1B:
     case CODE_GAL_E1C:

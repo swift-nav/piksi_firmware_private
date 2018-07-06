@@ -10,8 +10,8 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ifndef BDS2_PRNS_H
-#define BDS2_PRNS_H
+#ifndef BDS_PRNS_H
+#define BDS_PRNS_H
 
 #include <libswiftnav/common.h>
 #include <libswiftnav/signal.h>
@@ -26,10 +26,12 @@ extern "C" {
 
 extern const u32 bds2_prns_init_values[];
 extern const u32 bds2_prns_last_values[];
+extern const u32 bds3_b2a_prns_init_values[];
+
 extern const u8 bds2_codes[][BDS2_B11_PRN_BYTES];
 
 #ifdef __cplusplus
 } /* extern "C" */
 #endif /* __cplusplus */
 
-#endif /* BDS2_PRNS_H */
+#endif /* BDS_PRNS_H */
