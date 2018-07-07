@@ -53,16 +53,10 @@
 
 #define SET_NAP_CORR_LEN(len) (len - 1)
 
-/** Structure is used to define spacing between two correlators */
-typedef struct {
-  u8 chips : 1;   /**< Correlator spacing in chips. */
-  u8 samples : 6; /**< Correlator spacing in samples. */
-} nap_spacing_t;
-
 /** Internal tracking channel state */
 static struct nap_ch_state {
   me_gnss_signal_t mesid;     /**< Channel ME sid */
-  nap_spacing_t spacing;      /**< Correlator spacing */
+  u8 spacing;                 /**< Correlator spacing in samples */
   u32 length[2];              /**< Correlation length in samples of Fs */
   s32 carr_pinc[2];           /**< Carrier phase increment */
   u32 code_pinc[2];           /**< Code phase increment */
@@ -97,9 +91,11 @@ static u8 mesid_to_nap_code(const me_gnss_signal_t mesid) {
   u8 ret = ~0;
   switch (mesid.code) {
     case CODE_GPS_L1CA:
-    case CODE_SBAS_L1CA:
     case CODE_QZS_L1CA:
       ret = NAP_TRK_CODE_GPS_L1;
+      break;
+    case CODE_SBAS_L1CA:
+      ret = NAP_TRK_CODE_SBAS_L1;
       break;
     case CODE_GPS_L2CM:
     case CODE_GPS_L2CL:
@@ -159,17 +155,6 @@ static u8 mesid_to_nap_code(const me_gnss_signal_t mesid) {
       break;
   }
   return ret;
-}
-
-/** Convert spacing structure to NAP offset register value.
- * \param spacing Correlator spacing.
- * \return NAP offfset register value.
- */
-static u16 spacing_to_nap_offset(nap_spacing_t spacing) {
-  return ((u16)(spacing.chips & NAP_TRK_SPACING_CHIPS_Msk)
-          << NAP_TRK_SPACING_CHIPS_Pos) |
-         ((spacing.samples & NAP_TRK_SPACING_SAMPLES_Msk)
-          << NAP_TRK_SPACING_SAMPLES_Pos);
 }
 
 /** Compute the number of samples per code chip.
@@ -234,20 +219,15 @@ void nap_track_init(u8 channel,
 
   /* Correlator spacing: VE -> E */
   if (IS_GLO(mesid)) {
-    s->spacing = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
-                                 .samples = NAP_VE_E_GLO_SPACING_SAMPLES};
+    s->spacing = NAP_VE_E_GLO_SPACING_SAMPLES;
   } else if (IS_BDS2(mesid)) {
-    s->spacing = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
-                                 .samples = NAP_VE_E_BDS2_SPACING_SAMPLES};
+    s->spacing = NAP_VE_E_BDS2_SPACING_SAMPLES;
   } else if (CODE_GAL_E1B == mesid.code) {
-    s->spacing = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
-                                 .samples = NAP_VE_E_GPS_SPACING_SAMPLES};
+    s->spacing = NAP_VE_E_GPS_SPACING_SAMPLES;
   } else if (CODE_GAL_E7I == mesid.code) {
-    s->spacing = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
-                                 .samples = NAP_VE_E_GALE7_SPACING_SAMPLES};
+    s->spacing = NAP_VE_E_GALE7_SPACING_SAMPLES;
   } else {
-    s->spacing = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
-                                 .samples = NAP_VE_E_GPS_SPACING_SAMPLES};
+    s->spacing = NAP_VE_E_GPS_SPACING_SAMPLES;
   }
 
   /* Set correlator spacing */
@@ -258,9 +238,7 @@ void nap_track_init(u8 channel,
       (1.0 + doppler_freq_hz / carrier_freq_hz) * code_to_chip_rate(mesid.code);
 
   /* Spacing between VE and P correlators */
-  s16 delta_samples =
-      NAP_EPL_SPACING_SAMPLES + s->spacing.samples +
-      round(s->spacing.chips * calc_samples_per_chip(chip_rate));
+  s16 delta_samples = NAP_EPL_SPACING_SAMPLES + s->spacing;
 
   /* MIC_COMMENT: nap_track_update_init() so that nap_track_update()
    * does not have to branch for the special "init" situation */
@@ -274,17 +252,16 @@ void nap_track_init(u8 channel,
   s->length[1] = s->length[0] = length;
   if ((length < NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MIN_MS)) ||
       (length > NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MAX_MS))) {
-    log_warn_mesid(s->mesid,
-                   "Wrong inital NAP correlation length: "
-                   "(%" PRIu32 " %" PRIu32 " %" PRIu32 " %lf)",
-                   chips_to_correlate,
-                   cp_rate_units,
-                   length,
-                   chip_rate);
+    log_error_mesid(s->mesid,
+                    "Wrong inital NAP correlation length: "
+                    "(%" PRIu32 " %" PRIu32 " %" PRIu32 " %lf)",
+                    chips_to_correlate,
+                    cp_rate_units,
+                    length,
+                    chip_rate);
   }
-  t->CORR_SET =
-      SET_NAP_CORR_LEN(length) + ((u32)spacing_to_nap_offset(s->spacing)
-                                  << NAP_TRK_CH_CORR_SET_SPACING_Pos);
+  t->CORR_SET = ((u32)(s->spacing) << NAP_TRK_CH_CORR_SET_SPACING_Pos) |
+                SET_NAP_CORR_LEN(length);
   s->length_adjust = delta_samples;
   /* Carrier phase rate */
   double carrier_dopp_hz = -(s->fcn_freq_hz + doppler_freq_hz);
@@ -449,10 +426,9 @@ void nap_track_update(u8 channel,
   s->length[0] = length;
 
   t->CORR_SET =
-      SET_NAP_CORR_LEN(length) +
-      ((u32)has_pilot_sync << NAP_TRK_CH_CORR_SET_SEC_CODE_ENABLE_Pos) +
-      ((u32)spacing_to_nap_offset(s->spacing)
-       << NAP_TRK_CH_CORR_SET_SPACING_Pos);
+      ((u32)has_pilot_sync << NAP_TRK_CH_CORR_SET_SEC_CODE_ENABLE_Pos) |
+      ((u32)(s->spacing) << NAP_TRK_CH_CORR_SET_SPACING_Pos) |
+      SET_NAP_CORR_LEN(length);
 
   if ((length < NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MIN_MS)) ||
       (length > NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MAX_MS))) {
@@ -514,9 +490,8 @@ void nap_track_read_results(u8 channel,
   corrs[4].Q = (s16)((trk_ch.CORR[4] >> 16) & 0xFFFF);
 
   /* Spacing between VE and P correlators */
-  double prompt_offset = s->spacing.chips +
-                         (NAP_EPL_SPACING_SAMPLES + s->spacing.samples) /
-                             calc_samples_per_chip(s->code_phase_rate[1]);
+  double prompt_offset = (NAP_EPL_SPACING_SAMPLES + s->spacing) /
+                         calc_samples_per_chip(s->code_phase_rate[1]);
 
   /* Code and carrier phase reckoning */
   s64 carr_phase_incr = ((s64)s->length[1]) * s->carr_pinc[1];
@@ -559,7 +534,20 @@ void nap_track_read_results(u8 channel,
   }
 
   if (GET_NAP_TRK_CH_STATUS_CORR_OVERFLOW(trk_ch.STATUS)) {
-    log_warn_mesid(s->mesid, "Tracking correlator overflow.");
+    log_warn_mesid(s->mesid,
+                   "Tracking correlator overflow "
+                   "VE:[%+7ld:%+7ld] E: [%+7ld:%+7ld] P:[%+7ld:%+7ld] "
+                   "L:[%+7ld:%+7ld] VL:[%+7ld:%+7ld]",
+                   corrs[3].I,
+                   corrs[3].Q,
+                   corrs[0].I,
+                   corrs[0].Q,
+                   corrs[1].I,
+                   corrs[1].Q,
+                   corrs[2].I,
+                   corrs[2].Q,
+                   corrs[4].I,
+                   corrs[4].Q);
   }
 
   /* Check carrier phase reckoning */

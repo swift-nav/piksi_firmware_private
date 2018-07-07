@@ -66,7 +66,6 @@ static void tracker_gal_e7_update(tracker_t *tracker) {
   }
 
   /* TOW manipulation on bit edge */
-
   tracker_tow_cache(tracker);
 
   bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
@@ -77,12 +76,11 @@ static void tracker_gal_e7_update(tracker_t *tracker) {
     tracker->bit_polarity = BIT_POLARITY_NORMAL;
     tracker_update_bit_polarity_flags(tracker);
 
-    DO_EVERY(8,
-             gal_e7_to_e1_handover(tracker->sample_count,
-                                   tracker->mesid.sat,
-                                   tracker->code_phase_prompt,
-                                   tracker->carrier_freq,
-                                   tracker->cn0););
+    gal_e7_to_e1_handover(tracker->sample_count,
+                          tracker->mesid.sat,
+                          tracker->code_phase_prompt,
+                          tracker->carrier_freq,
+                          tracker->cn0);
   }
 }
 
@@ -108,8 +106,6 @@ void gal_e1_to_e7_handover(u32 sample_count,
                            double code_phase,
                            double carrier_freq,
                            float cn0_init) {
-  static s8 rand_seed = 0;
-  s8 rand_start;
   /* compose E7 MESID: same SV, but code is E7 */
   me_gnss_signal_t mesid_e7 = construct_mesid(CODE_GAL_E7I, sat);
 
@@ -123,15 +119,12 @@ void gal_e1_to_e7_handover(u32 sample_count,
     return;
   }
 
-  rand_start = rand_seed * 5;
-
   tracking_startup_params_t startup_params = {
       .mesid = mesid_e7,
       .sample_count = sample_count,
       /* recalculate doppler freq for E7 from E1 */
       .carrier_freq = carrier_freq * GAL_E7_HZ / GAL_E1_HZ,
-      .code_phase = fmod(code_phase * 10.0 + rand_start,
-                         code_to_chip_count(CODE_GAL_E7I)),
+      .code_phase = fmod(code_phase * 10.0, code_to_chip_count(CODE_GAL_E7I)),
       /* chips to correlate during first 1 ms of tracking */
       .chips_to_correlate = code_to_chip_rate(mesid_e7.code) * 1e-3,
       /* get initial cn0 from parent E1 channel */
@@ -139,12 +132,10 @@ void gal_e1_to_e7_handover(u32 sample_count,
 
   switch (tracking_startup_request(&startup_params)) {
     case 0:
-      log_debug_mesid(mesid_e7, "handover done with %+d", rand_start);
       break;
 
     case 1:
       /* sat is already in fifo, no need to inform */
-      log_warn_mesid(mesid_e7, "already in fifo");
       break;
 
     case 2:
@@ -155,5 +146,4 @@ void gal_e1_to_e7_handover(u32 sample_count,
       assert(!"Unknown code returned");
       break;
   }
-  rand_seed = (rand_seed >= 0) ? (rand_seed - 1) : +1;
 }

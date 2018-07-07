@@ -11,6 +11,7 @@
  */
 
 #include <math.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -172,13 +173,13 @@ void Sc16ArrayAddAbsTo(float *_fOut, sc16_t *_fIn, u32 _iSize) {
  *  \brief takes in a matrix in array form and produces the maximum
  * value along with relevant code and frequency indexes
  */
-int IsAcquired3D(const float *vec,
-                 const u32 _iCodeSh,
-                 const u32 _iFreqSh,
-                 const u32 _iNonCoh,
-                 float *_fMval,
-                 float *_pfCodeMaxI,
-                 float *_pfFreqMaxI) {
+bool IsAcquired3D(const float *vec,
+                  const u32 _iCodeSh,
+                  const u32 _iFreqSh,
+                  const u32 _iNonCoh,
+                  float *_fMval,
+                  float *_pfCodeMaxI,
+                  float *_pfFreqMaxI) {
   u32 k, i;
   u32 code_len_4th, max_freq_index;
   float m[4] = {0.0};
@@ -254,7 +255,7 @@ int IsAcquired3D(const float *vec,
   }
   mean_clean /= (float)code_len_4th;
 
-  (*_fMval) = max * sqrtf(_iNonCoh) / (mean_clean + 1.0f);
+  (*_fMval) = max * sqrtf(_iNonCoh) / (mean_clean + 0.1f);
 
   /* is threshold higher? */
   if ((*_fMval) > 18.0f) {
@@ -274,9 +275,9 @@ int IsAcquired3D(const float *vec,
     } else {
       (*_pfFreqMaxI) = (float)max_freq_index + freq_delta;
     }
-    return 1;
+    return true;
   }
-  return 0;
+  return false;
 }
 
 /** Resample PRN code for the given ME sid.

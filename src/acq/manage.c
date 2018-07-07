@@ -494,14 +494,6 @@ static void manage_acq(void) {
     float cp = acq_result.cp;
     float cf = acq_result.cf;
 
-    if ((CODE_GAL_E1B == acq->mesid.code) ||
-        (CODE_GAL_E1C == acq->mesid.code) ||
-        (CODE_GAL_E1X == acq->mesid.code)) {
-      mesid_trk.code = CODE_GAL_E7I;
-      cp = fmodf(cp * 10.0f, code_to_chip_count(CODE_GAL_E7I));
-      cf = cf * GAL_E7_HZ / GAL_E1_HZ;
-    }
-
     tracking_startup_params_t tracking_startup_params = {
         .mesid = mesid_trk,
         .glo_slot_id = GLO_ORBIT_SLOT_UNKNOWN,
@@ -1274,7 +1266,20 @@ static void manage_tracking_startup(void) {
       continue;
     }
 
-    /* Change state to TRACKING */
+    /* Start the decoder channel if needed.
+     * Starting the decoder before the tracking is necessary so that
+     * if tracking starts and fails the decoder isn't initialized,
+     * leading to a stale unrecoverable state */
+    if (code_requires_decoder(startup_params.mesid.code) &&
+        !decoder_channel_init(chan, startup_params.mesid)) {
+      log_error("decoder channel init failed");
+      continue;
+    }
+
+    /* Change state to TRACKING.
+     * This has to be done here as the acquisition thread has very low priority
+     * so a tracker could start and fail and the acquisition mark the state to
+     * tracking after it all happened, leading to a stale acquisition state */
     acq->state = ACQ_PRN_TRACKING;
 
     /* Start the tracking channel */
@@ -1289,13 +1294,6 @@ static void manage_tracking_startup(void) {
       log_error("tracker channel init failed");
       /* If starting of a channel fails, change state to ACQUIRING */
       acq->state = ACQ_PRN_ACQUIRING;
-      continue;
-    }
-
-    /* Start the decoder channel if needed */
-    if (code_requires_decoder(startup_params.mesid.code) &&
-        !decoder_channel_init(chan, startup_params.mesid)) {
-      log_error("decoder channel init failed");
     }
   }
 }

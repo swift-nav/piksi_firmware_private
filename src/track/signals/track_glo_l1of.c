@@ -91,11 +91,10 @@ static void tracker_glo_l1of_update(tracker_t *tracker_channel) {
 
   if (inlock && confirmed && cn0_high) {
     /* Start GLO L2CA tracker if not running */
-    DO_EVERY(4,
-             do_glo_l1of_to_l2of_handover(tracker_channel->sample_count,
-                                          tracker_channel->mesid.sat,
-                                          tracker_channel->code_phase_prompt,
-                                          tracker_channel->carrier_freq,
-                                          tracker_channel->cn0););
+    do_glo_l1of_to_l2of_handover(tracker_channel->sample_count,
+                                 tracker_channel->mesid.sat,
+                                 tracker_channel->code_phase_prompt,
+                                 tracker_channel->carrier_freq,
+                                 tracker_channel->cn0);
   }
 }
