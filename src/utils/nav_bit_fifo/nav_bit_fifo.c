@@ -14,24 +14,9 @@
 #include "main.h"
 
 #define NAV_BIT_FIFO_LENGTH(p_fifo) \
-  ((u16)((p_fifo)->write_index - (p_fifo)->read_index))
+  ((u8)((p_fifo)->write_index - (p_fifo)->read_index))
 
-static u16 upper_power_of_two(const u8 size) {
-  switch (size) {
-    case 20:
-      return 32;
-    case 40:
-      return 64;
-    case 100:
-      return 128;
-    case 200:
-      return 256;
-    default:
-      break;
-  }
-  assert(0);
-  return 0;
-}
+#define IS_POWER_OF_TWO(x) (0 == (((x)-1) & (x)))
 
 /** Initialize a nav_bit_fifo_t struct.
  *
@@ -40,10 +25,11 @@ static u16 upper_power_of_two(const u8 size) {
 void nav_bit_fifo_init(nav_bit_fifo_t *fifo, const u8 size) {
   assert(NULL != fifo);
   assert(size > 0);
+  assert(IS_POWER_OF_TWO(size));
 
   fifo->read_index = 0;
   fifo->write_index = 0;
-  fifo->size = upper_power_of_two(size);
+  fifo->size = size;
 }
 
 /** Determine if a nav bit FIFO is full.
