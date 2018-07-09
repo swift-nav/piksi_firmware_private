@@ -278,14 +278,8 @@ bool tracker_init(const u8 id,
     tracker->bit_polarity = BIT_POLARITY_UNKNOWN;
     tracker->glo_orbit_slot = glo_orbit_slot;
 
-    u8 symbol_ms = code_to_symbol_ms(mesid.code);
-    if (0 == symbol_ms) {
-      log_error_mesid(
-          mesid, "going to initialize a FIFO with unknown symbol duration");
-      assert(0);
-    }
-    nav_bit_fifo_init(&tracker->nav_bit_fifo,
-                      MAX_NAV_BIT_LATENCY_MS / symbol_ms);
+    u8 fifo_size = code_to_nav_bit_fifo_size(mesid.code);
+    nav_bit_fifo_init(&tracker->nav_bit_fifo, fifo_size);
 
     nav_data_sync_init(&tracker->nav_data_sync);
 
