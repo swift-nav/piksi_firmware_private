@@ -30,7 +30,8 @@ typedef uint16_t cyc_cnt_t;
 #define CH_CFG_THREAD_EXTRA_FIELDS     \
   /* Add threads custom fields here.*/ \
   uint64_t p_ctime;                    \
-  cyc_cnt_t p_cref;
+  cyc_cnt_t p_cref;                    \
+  cyc_cnt_t p_max;
 
 /**
  * @brief   Threads initialization hook.
@@ -46,6 +47,7 @@ typedef uint16_t cyc_cnt_t;
     /* see http://sourceforge.net/p/chibios/feature-requests/23/ .*/ \
     tp->p_ctime = 0;                                                 \
     tp->p_cref = CYC_CNT;                                            \
+    tp->p_max = 0;                                                   \
   }
 
 /**
@@ -63,6 +65,7 @@ extern uint64_t g_ctime;
       cyc_cnt_t cnt = ntp->p_cref - otp->p_cref; \
       otp->p_ctime += cnt;                       \
       g_ctime += cnt;                            \
+      otp->p_max = (otp->p_max > cnt) ? otp->p_max : cnt; \
     }                                            \
   }
 

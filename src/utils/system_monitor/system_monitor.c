@@ -77,6 +77,8 @@ u32 check_stack_free(thread_t *tp) {
   return 4 * (i - 1);
 }
 
+extern u64 st2ms(u64 st);
+
 void send_thread_states(void) {
   thread_t *tp = chRegFirstThread();
   while (tp) {
@@ -91,6 +93,8 @@ void send_thread_states(void) {
       memset(tp_state.name, 0, sizeof(tp_state.name));
     }
     sbp_send_msg(SBP_MSG_THREAD_STATE, sizeof(tp_state), (u8 *)&tp_state);
+
+    log_info("D# %d %d", (int)tp->p_prio, (int)st2ms(tp->p_max));
 
     tp->p_ctime = 0; /* Reset thread CPU cycle count */
     tp = chRegNextThread(tp);
@@ -124,8 +128,10 @@ static void check_frontend_errors(void) {
 extern u64 timing_getms(void);
 
 u16 heartbeat(int prio, u16 prev_ms) {
+  (void)prio;
+  (void)prev_ms;
   u16 now_ms = (u16)timing_getms();
-  log_info("H# %d %" PRIu16, prio, (u16)(now_ms - prev_ms));
+  //log_info("H# %d %" PRIu16, prio, (u16)(now_ms - prev_ms));
   return now_ms;
 }
 
