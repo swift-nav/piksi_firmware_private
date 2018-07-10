@@ -361,12 +361,4 @@ double mesid_to_carr_fcn_hz(const me_gnss_signal_t mesid) {
   return carr_fcn_hz;
 }
 
-/** Return navigation data bit FIFO size for code_t
- * \param code code_t to retrieve the size for
- * \return The FIFO size.
- */
-u8 code_to_nav_bit_fifo_size(const code_t code) {
-  (void)code;
-  return 128;
-}
 /* \} */
