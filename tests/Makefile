@@ -70,6 +70,7 @@ INCLUDE_DIRS += -I$(USER_SRC_DIR)/cfg
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/reacq
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/soft_macq
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/track
+INCLUDE_DIRS += -I$(USER_SRC_DIR)/main
 INCLUDE_DIRS += -I../libsbp/c/include
 
 # All Google Test headers.  Usually you shouldn't change this
@@ -146,6 +147,7 @@ vpath %.c $(USER_SRC_DIR) \
           $(USER_SRC_DIR)/reacq \
           $(USER_SRC_DIR)/sbp \
           $(USER_SRC_DIR)/utils/shm \
+          $(USER_SRC_DIR)/utils/nav_bit_fifo \
           $(STUBS_DIR)
 
 vpath %.cc $(TEST_SRC_DIR)
@@ -178,7 +180,8 @@ C_SRCS = fixed_fft_r2.c \
          nav_msg_bds.c \
          sbp_utils.c \
          shm.c \
-         cnav_msg_storage.c
+         cnav_msg_storage.c \
+         nav_bit_fifo.c
 
 # Test source files
 CXX_SRCS = $(notdir $(shell find $(TEST_SRC_DIR) -name '*.cc'))

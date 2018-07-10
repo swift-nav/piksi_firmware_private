@@ -361,26 +361,4 @@ double mesid_to_carr_fcn_hz(const me_gnss_signal_t mesid) {
   return carr_fcn_hz;
 }
 
-/** Return duration of the navigation data symbol
- * \param code code_t to retrieve the length for
- * \return duration of navigation data symbol
- */
-u8 code_to_symbol_ms(code_t code) {
-  if ((CODE_GPS_L1CA == code) || (CODE_GPS_L2CM == code) ||
-      (CODE_GPS_L5I == code)) {
-    return 20;
-  } else if ((CODE_GLO_L1OF == code) || (CODE_GLO_L2OF == code)) {
-    return 10;
-  } else if (CODE_SBAS_L1CA == code) {
-    return 2;
-  } else if ((CODE_BDS2_B11 == code) || (CODE_BDS2_B2 == code)) {
-    return 20;
-  } else if ((CODE_GAL_E1B == code) || (CODE_GAL_E7I == code)) {
-    return 4;
-  } else if ((CODE_GAL_E5I == code)) {
-    return 20;
-  }
-
-  return 0;
-}
 /* \} */
