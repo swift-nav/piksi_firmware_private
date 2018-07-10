@@ -278,8 +278,7 @@ bool tracker_init(const u8 id,
     tracker->bit_polarity = BIT_POLARITY_UNKNOWN;
     tracker->glo_orbit_slot = glo_orbit_slot;
 
-    u8 fifo_size = code_to_nav_bit_fifo_size(mesid.code);
-    nav_bit_fifo_init(&tracker->nav_bit_fifo, fifo_size);
+    nav_bit_fifo_init(&tracker->nav_bit_fifo, mesid.code);
 
     nav_data_sync_init(&tracker->nav_data_sync);
 

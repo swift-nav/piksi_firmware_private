@@ -13,23 +13,52 @@
 #include "nav_bit_fifo/nav_bit_fifo.h"
 #include "main.h"
 
-#define NAV_BIT_FIFO_LENGTH(p_fifo) \
-  ((u8)((p_fifo)->write_index - (p_fifo)->read_index))
+/** Return navigation data bit FIFO size for code_t
+ * \param code code_t to retrieve the size for
+ * \return The FIFO size (variable so all system have 400 ms max latency)
+ */
+static u8 code_to_nav_bit_fifo_size(const code_t code) {
+  if ((CODE_GPS_L1CA == code) || (CODE_GPS_L2CM == code) ||
+      (CODE_GPS_L5I == code)) {
+    return 20;
+  } else if ((CODE_GLO_L1OF == code) || (CODE_GLO_L2OF == code)) {
+    return 40;
+  } else if (CODE_SBAS_L1CA == code) {
+    return 200;
+  } else if ((CODE_BDS2_B11 == code) || (CODE_BDS2_B2 == code)) {
+    return 20;
+  } else if ((CODE_GAL_E1B == code) || (CODE_GAL_E7I == code)) {
+    return 100;
+  } else if ((CODE_GAL_E5I == code)) {
+    return 20;
+  }
+  log_error("unknown code %d in code_to_nav_bit_fifo_size()", code);
+  return 255;
+}
 
-#define IS_POWER_OF_TWO(x) (0 == (((x)-1) & (x)))
+/** Return occupied navigation data bit FIFO size
+ * \param  nav_bit_fifo_t *fifo object pointer
+ * \return Number of bits in FIFO.
+ */
+u8 nav_bit_fifo_length(const nav_bit_fifo_t *fifo) {
+  const u8 size = fifo->size;
+  const u8 wr = fifo->write_index;
+  const u8 rd = fifo->read_index;
+
+  return (wr >= rd) ? (wr - rd) : ((size - rd) + wr);
+}
 
 /** Initialize a nav_bit_fifo_t struct.
  *
  * \param fifo        nav_bit_fifo_t struct to use.
  */
-void nav_bit_fifo_init(nav_bit_fifo_t *fifo, const u8 size) {
+void nav_bit_fifo_init(nav_bit_fifo_t *fifo, const code_t code) {
   assert(NULL != fifo);
-  assert(size > 0);
-  assert(IS_POWER_OF_TWO(size));
+  assert(code_valid(code));
 
   fifo->read_index = 0;
   fifo->write_index = 0;
-  fifo->size = size;
+  fifo->size = code_to_nav_bit_fifo_size(code);
 }
 
 /** Determine if a nav bit FIFO is full.
@@ -39,7 +68,7 @@ void nav_bit_fifo_init(nav_bit_fifo_t *fifo, const u8 size) {
  * \return true if the nav bit FIFO is full, false otherwise.
  */
 bool nav_bit_fifo_full(const nav_bit_fifo_t *fifo) {
-  return (NAV_BIT_FIFO_LENGTH(fifo) == (fifo->size));
+  return (nav_bit_fifo_length(fifo) == (fifo->size - 1));
 }
 
 /** Write data to the nav bit FIFO.
@@ -52,9 +81,9 @@ bool nav_bit_fifo_full(const nav_bit_fifo_t *fifo) {
  * \return true if element was read, false otherwise.
  */
 bool nav_bit_fifo_write(nav_bit_fifo_t *fifo, const nav_bit_t *element) {
-  if (NAV_BIT_FIFO_LENGTH(fifo) < (fifo->size)) {
+  if (!nav_bit_fifo_full(fifo)) {
     fifo->elements[fifo->write_index % (fifo->size)] = (*element);
-    fifo->write_index++;
+    fifo->write_index = (fifo->write_index + 1) % (fifo->size);
     return true;
   }
 
@@ -71,9 +100,9 @@ bool nav_bit_fifo_write(nav_bit_fifo_t *fifo, const nav_bit_t *element) {
  * \return true if element was read, false otherwise.
  */
 bool nav_bit_fifo_read(nav_bit_fifo_t *fifo, nav_bit_t *element) {
-  if (NAV_BIT_FIFO_LENGTH(fifo) > 0) {
+  if (nav_bit_fifo_length(fifo) > 0) {
     (*element) = fifo->elements[fifo->read_index % (fifo->size)];
-    fifo->read_index++;
+    fifo->read_index = (fifo->read_index + 1) % (fifo->size);
     return true;
   }
 
