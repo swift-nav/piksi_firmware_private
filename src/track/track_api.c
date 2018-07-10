@@ -89,7 +89,8 @@ static s32 adjust_tow_by_bit_fifo_delay(tracker_t *tracker,
                                         const nav_data_sync_t *to_tracker) {
   s32 TOW_ms = TOW_INVALID;
   /* Compute time since the pending data was read from the FIFO */
-  u8 fifo_length = nav_bit_fifo_length(&tracker->nav_bit_fifo);
+  u8 fifo_length = nav_bit_fifo_length_for_rd_index(&tracker->nav_bit_fifo,
+                                                    to_tracker->read_index);
   u32 fifo_time_diff_ms = fifo_length * tracker->bit_sync.bit_length;
 
   /* Add full bit times + fractional bit time to the specified TOW */

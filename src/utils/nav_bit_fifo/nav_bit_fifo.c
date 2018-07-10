@@ -36,15 +36,18 @@ static u8 code_to_nav_bit_fifo_size(const code_t code) {
   return 255;
 }
 
-/** Return occupied navigation data bit FIFO size
+/** Return occupied navigation data bit FIFO size for a given read index
  * \param  nav_bit_fifo_t *fifo object pointer
+ * \param  rd The read index the FIFO length is computed for
  * \return Number of bits in FIFO.
  */
-u8 nav_bit_fifo_length(const nav_bit_fifo_t *fifo) {
+u8 nav_bit_fifo_length_for_rd_index(const nav_bit_fifo_t *fifo, const u8 rd) {
   const u8 size = fifo->size;
   const u8 wr = fifo->write_index;
-  const u8 rd = fifo->read_index;
 
+  if (nav_bit_fifo_full(fifo)) {
+    return fifo->size;
+  }
   return (wr >= rd) ? (wr - rd) : ((size - rd) + wr);
 }
 
@@ -59,6 +62,7 @@ void nav_bit_fifo_init(nav_bit_fifo_t *fifo, const code_t code) {
   fifo->read_index = 0;
   fifo->write_index = 0;
   fifo->size = code_to_nav_bit_fifo_size(code);
+  fifo->length = 0;
 }
 
 /** Determine if a nav bit FIFO is full.
@@ -68,7 +72,7 @@ void nav_bit_fifo_init(nav_bit_fifo_t *fifo, const code_t code) {
  * \return true if the nav bit FIFO is full, false otherwise.
  */
 bool nav_bit_fifo_full(const nav_bit_fifo_t *fifo) {
-  return (nav_bit_fifo_length(fifo) == (fifo->size - 1));
+  return (fifo->length == fifo->size);
 }
 
 /** Write data to the nav bit FIFO.
@@ -81,9 +85,10 @@ bool nav_bit_fifo_full(const nav_bit_fifo_t *fifo) {
  * \return true if element was read, false otherwise.
  */
 bool nav_bit_fifo_write(nav_bit_fifo_t *fifo, const nav_bit_t *element) {
-  if (!nav_bit_fifo_full(fifo)) {
-    fifo->elements[fifo->write_index % (fifo->size)] = (*element);
+  if (fifo->length < fifo->size) {
+    fifo->elements[fifo->write_index] = (*element);
     fifo->write_index = (fifo->write_index + 1) % (fifo->size);
+    fifo->length++;
     return true;
   }
 
@@ -100,9 +105,10 @@ bool nav_bit_fifo_write(nav_bit_fifo_t *fifo, const nav_bit_t *element) {
  * \return true if element was read, false otherwise.
  */
 bool nav_bit_fifo_read(nav_bit_fifo_t *fifo, nav_bit_t *element) {
-  if (nav_bit_fifo_length(fifo) > 0) {
-    (*element) = fifo->elements[fifo->read_index % (fifo->size)];
+  if (fifo->length > 0) {
+    (*element) = fifo->elements[fifo->read_index];
     fifo->read_index = (fifo->read_index + 1) % (fifo->size);
+    fifo->length--;
     return true;
   }
 
