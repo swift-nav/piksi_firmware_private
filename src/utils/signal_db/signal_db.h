@@ -130,8 +130,6 @@ gnss_signal_t sv_index_to_sid(u16 sv_index);
 u16 sid_to_sv_index(gnss_signal_t sid);
 double mesid_to_carr_fcn_hz(const me_gnss_signal_t mesid);
 
-u8 code_to_symbol_ms(code_t code);
-
 #ifdef __cplusplus
 } /* extern "C" */
 #endif /* __cplusplus */
