@@ -134,7 +134,7 @@ void save_glo_eph(const nav_msg_glo_t *n, me_gnss_signal_t mesid) {
   }
 }
 
-bool glo_data_sync(nav_msg_glo_t *n,
+void glo_data_sync(nav_msg_glo_t *n,
                    me_gnss_signal_t mesid,
                    u8 tracking_channel,
                    glo_decode_status_t status) {
@@ -142,7 +142,7 @@ bool glo_data_sync(nav_msg_glo_t *n,
   decode_sync_flags_t flags = get_data_sync_flags(n, mesid, status);
   /* If flags is empty, no updates needed. */
   if (!flags) {
-    return false;
+    return;
   }
 
   nav_data_sync_t from_decoder;
@@ -156,7 +156,7 @@ bool glo_data_sync(nav_msg_glo_t *n,
   if ((0 != (flags & SYNC_TOW)) &&
       ((rounded_TOW_ms > INT32_MAX) || (rounded_TOW_ms < 0))) {
     log_warn_mesid(mesid, "Unexpected TOW value: %lf ms", rounded_TOW_ms);
-    return false;
+    return;
   }
   from_decoder.TOW_ms = (s32)rounded_TOW_ms;
 
@@ -171,7 +171,6 @@ bool glo_data_sync(nav_msg_glo_t *n,
     from_decoder.health = SV_UNHEALTHY;
   }
   tracker_data_sync(tracking_channel, &from_decoder);
-  return true;
 }
 
 void erase_nav_data(gnss_signal_t target_sid, gnss_signal_t src_sid) {
