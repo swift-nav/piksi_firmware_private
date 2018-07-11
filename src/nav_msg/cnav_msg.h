@@ -69,8 +69,8 @@ extern "C" {
     is not available. Sign extended to s16*/
 #define INVALID_GROUP_DELAY_VALUE ((s16)0xF000)
 
-/** Group delay value scale factor*/
-#define GROUP_DELAY_SCALE() (1.0 / 34359738368.0)
+/** Group delay value scale factor 2^-35*/
+#define GROUP_DELAY_SCALE C_1_2P35
 
 typedef enum {
   CNAV_MSG_TYPE_10 = 10,

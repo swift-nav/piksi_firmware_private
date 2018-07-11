@@ -29,9 +29,10 @@ s8 calc_navigation_measurement(u8 n_channels,
                                navigation_measurement_t *nav_meas[],
                                const gps_time_t *rec_time);
 
-void calc_isc(u8 n_channels,
-              navigation_measurement_t *nav_meas[],
-              const cnav_msg_type_30_t *p_cnav_30[]);
+void apply_gps_cnav_isc(u8 n_channels,
+                        navigation_measurement_t *nav_meas[],
+                        const cnav_msg_type_30_t *p_cnav_30[],
+                        const ephemeris_t *e[]);
 
 u8 tdcp_doppler(u8 n_new,
                 navigation_measurement_t *m_new,

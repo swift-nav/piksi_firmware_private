@@ -160,26 +160,37 @@ s8 calc_navigation_measurement(u8 n_channels,
   return 0;
 }
 
-/** Calculate and return ISC value for selected code if value is available.
- *  Otherwise return 0.
+/** Calculate and ISC value for selected code if value is available.
+ *  Return true or false upon success.
  *
- * Note: TGD (the ISC from L2P to L1P) is already applied in calc_sat_state().
+ * See IS-GPS-200H 30.3.3.3.1.1.1
  *
  * \param code Code used
  * \param msg ISC data message
+ * \param[out] isc pointer to the result
+ * \return true if ISC was available from CNAV, false otherwise
  */
-static double get_isc_corr(code_t code, const cnav_msg_type_30_t *msg) {
-  if (NULL == msg) return 0;
+static bool get_isc_corr(const code_t code,
+                         const cnav_msg_type_30_t *msg,
+                         double *isc) {
+  if (NULL == msg) {
+    return false;
+  }
 
   switch (code) {
     case CODE_GPS_L1CA:
-      if (msg->isc_l1ca_valid)
-        return msg->isc_l1ca * GROUP_DELAY_SCALE() * GPS_C;
+      if (msg->tgd_valid && msg->isc_l1ca_valid) {
+        *isc = (-msg->tgd + msg->isc_l1ca) * GROUP_DELAY_SCALE * GPS_C;
+        return true;
+      }
       break;
 
     case CODE_GPS_L2CL:
     case CODE_GPS_L2CM:
-      if (msg->isc_l2c_valid) return msg->isc_l2c * GROUP_DELAY_SCALE() * GPS_C;
+      if (msg->tgd_valid && msg->isc_l2c_valid) {
+        *isc = (-msg->tgd + msg->isc_l2c) * GROUP_DELAY_SCALE * GPS_C;
+        return true;
+      }
       break;
 
     case CODE_INVALID:
@@ -219,31 +230,34 @@ static double get_isc_corr(code_t code, const cnav_msg_type_30_t *msg) {
     case CODE_QZS_L5Q:
     case CODE_QZS_L5X:
     default:
-      /* If code not supported we just return a zero correction. */
       break;
   }
 
-  return 0;
+  return false;
 }
 
 /** Apply ISC corrections
  * This function applies ISC corrections to the measurements calculated by
  * calc_navigation_measurement().
  *
- * Note: this function does not check pseudorange
- * flags as a correction to an invalid value will just result in another invalid
- * value.
+ * Note: the correction computed from CNAV is to be applied instead of the plain
+ * TGD available in LNAV ephemeris. Thus this function removes the already
+ * applied TGD from the measurements where CNAV is available.
  */
-void calc_isc(u8 n_channels,
-              navigation_measurement_t *nav_meas[],
-              const cnav_msg_type_30_t *p_cnav_30[]) {
+void apply_gps_cnav_isc(u8 n_channels,
+                        navigation_measurement_t *nav_meas[],
+                        const cnav_msg_type_30_t *p_cnav_30[],
+                        const ephemeris_t *p_ephe[]) {
   u8 i = 0;
   for (i = 0; i < n_channels; i++) {
-    nav_meas[i]->pseudorange +=
-        get_isc_corr(nav_meas[i]->sid.code, p_cnav_30[i]);
-    nav_meas[i]->carrier_phase -=
-        get_isc_corr(nav_meas[i]->sid.code, p_cnav_30[i]) / GPS_C *
-        sid_to_carr_freq(nav_meas[i]->sid);
+    double isc;
+    if (get_isc_corr(nav_meas[i]->sid.code, p_cnav_30[i], &isc)) {
+      /* remove the already applied TGD correction */
+      isc += get_tgd_correction(p_ephe[i], &nav_meas[i]->sid) * GPS_C;
+      /* apply the new minus old */
+      nav_meas[i]->pseudorange += isc;
+      nav_meas[i]->carrier_phase -= isc / sid_to_lambda(nav_meas[i]->sid);
+    }
   }
 }
 
