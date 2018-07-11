@@ -59,6 +59,10 @@
 static memory_pool_t time_matched_obs_buff_pool;
 static mailbox_t time_matched_obs_mailbox;
 
+/* Time-matched observations data-structures. */
+static memory_pool_t rover_obs_buff_pool;
+static mailbox_t rover_obs_mailbox;
+
 /* SBAS Data API data-structures. */
 #define SBAS_DATA_N_BUFF 6
 static mailbox_t sbas_data_mailbox;
@@ -102,13 +106,26 @@ void platform_time_matched_obs_mailbox_init() {
   chMBObjectInit(&time_matched_obs_mailbox,
                  time_matched_obs_mailbox_buff,
                  STARLING_OBS_N_BUFF);
-  chPoolObjectInit(&time_matched_obs_buff_pool, sizeof(obss_t), NULL);
-  static obss_t obs_buff[STARLING_OBS_N_BUFF] _CCM;
+  chPoolObjectInit(&time_matched_obs_buff_pool, sizeof(paired_obss_t), NULL);
+  static paired_obss_t obs_buff[STARLING_OBS_N_BUFF] _CCM;
   chPoolLoadArray(&time_matched_obs_buff_pool, obs_buff, STARLING_OBS_N_BUFF);
+}
+
+void platform_rover_obs_mailbox_init() {
+  static msg_t rover_obs_mailbox_buff[STARLING_OBS_N_BUFF];
+  chMBObjectInit(
+      &rover_obs_mailbox, rover_obs_mailbox_buff, STARLING_OBS_N_BUFF);
+  chPoolObjectInit(&rover_obs_buff_pool, sizeof(obss_t), NULL);
+  static obss_t obs_buff[STARLING_OBS_N_BUFF] _CCM;
+  chPoolLoadArray(&rover_obs_buff_pool, obs_buff, STARLING_OBS_N_BUFF);
 }
 
 int32_t platform_time_matched_obs_mailbox_post(int32_t msg, uint32_t timeout) {
   return chMBPost(&time_matched_obs_mailbox, (msg_t)msg, (systime_t)timeout);
+}
+
+int32_t platform_rover_obs_mailbox_post(int32_t msg, uint32_t timeout) {
+  return chMBPost(&rover_obs_mailbox, (msg_t)msg, (systime_t)timeout);
 }
 
 int32_t platform_time_matched_obs_mailbox_post_ahead(int32_t msg,
@@ -117,16 +134,33 @@ int32_t platform_time_matched_obs_mailbox_post_ahead(int32_t msg,
       &time_matched_obs_mailbox, (msg_t)msg, (systime_t)timeout);
 }
 
+int32_t platform_rover_obs_mailbox_post_ahead(int32_t msg, uint32_t timeout) {
+  return chMBPostAhead(&rover_obs_mailbox, (msg_t)msg, (systime_t)timeout);
+}
+
 int32_t platform_time_matched_obs_mailbox_fetch(int32_t *msg,
                                                 uint32_t timeout) {
   return chMBFetch(&time_matched_obs_mailbox, (msg_t *)msg, (systime_t)timeout);
 }
 
-obss_t *platform_time_matched_obs_alloc(void) {
+int32_t platform_rover_obs_mailbox_fetch(int32_t *msg, uint32_t timeout) {
+  return chMBFetch(&rover_obs_mailbox, (msg_t *)msg, (systime_t)timeout);
+}
+
+paired_obss_t *platform_time_matched_obs_alloc(void) {
   return chPoolAlloc(&time_matched_obs_buff_pool);
 }
-void platform_time_matched_obs_free(obss_t *ptr) {
+
+obss_t *platform_rover_obs_alloc(void) {
+  return chPoolAlloc(&rover_obs_buff_pool);
+}
+
+void platform_time_matched_obs_free(paired_obss_t *ptr) {
   chPoolFree(&time_matched_obs_buff_pool, ptr);
+}
+
+void platform_rover_obs_free(obss_t *ptr) {
+  chPoolFree(&rover_obs_buff_pool, ptr);
 }
 
 void platform_base_obs_free(obss_t *ptr) {
