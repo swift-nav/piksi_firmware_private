@@ -624,7 +624,7 @@ int compare_ch_meas(const void *a, const void *b) {
 static void nmea_gsv_print(const u8 n_used,
                            const channel_measurement_t *ch_meas[],
                            const talker_id_t talker) {
-  const char *gnss_s = talker_id_to_str(talker);
+  const char *talker_str = talker_id_to_str(talker);
 
   qsort(ch_meas, n_used, sizeof(channel_measurement_t *), compare_ch_meas);
 
@@ -634,7 +634,8 @@ static void nmea_gsv_print(const u8 n_used,
 
   for (u8 i = 0; i < n_messages; i++) {
     NMEA_SENTENCE_START(120);
-    NMEA_SENTENCE_PRINTF("$%s,%u,%u,%02u", gnss_s, n_messages, i + 1, n_used);
+    NMEA_SENTENCE_PRINTF(
+        "$%sGSV,%u,%u,%02u", talker_str, n_messages, i + 1, n_used);
 
     for (u8 j = 0; j < 4 && n < n_used; n++) {
       s8 ele = track_sid_db_elevation_degrees_get(ch_meas[n]->sid);
