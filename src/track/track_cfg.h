@@ -181,6 +181,9 @@
 /** C/N0 hysteresis threshold */
 #define TRACK_CN0_HYSTERESIS_THRES_DBHZ (3.f)
 
+/* The outliers are likely due to genuine acceleration if CN0 > 35.f */
+#define TP_OUTLIERS_CN0_THRES_DBHZ 35.f
+
 /** Correct the false lock if the absolute detected freq error is more than
     this value in [Hz]. In practice, observed alias frequencies were
     above 12Hz, so 10Hz is deemed a reasonable threshold. */
