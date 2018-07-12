@@ -651,7 +651,7 @@ static void nmea_gsv_print(const u8 n_used,
       }
 
       if (track_sid_db_azimuth_degrees_get(ch_meas[n]->sid, &azi)) {
-        NMEA_SENTENCE_PRINTF(",%03d", (s16)roundf(azi));
+        NMEA_SENTENCE_PRINTF(",%03u", (u16)roundf(azi));
       } else {
         NMEA_SENTENCE_PRINTF(",");
       }
