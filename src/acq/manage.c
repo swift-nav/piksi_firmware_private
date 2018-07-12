@@ -1084,8 +1084,10 @@ u32 get_tracking_channel_sid_flags(const gnss_signal_t sid,
                                    const ephemeris_t *pephe) {
   u32 flags = 0;
 
-  /* Satellite elevation is above the solution mask. */
-  if (track_sid_db_elevation_degrees_get(sid) >= solution_elevation_mask) {
+  /* Satellite elevation is either unknown or above the solution mask. */
+  double elevation;
+  if (!track_sid_db_elevation_degrees_get(sid, &elevation) ||
+      elevation >= solution_elevation_mask) {
     flags |= TRACKER_FLAG_ELEVATION;
   }
 

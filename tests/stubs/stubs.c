@@ -261,7 +261,9 @@ void sbp_register_cbk(u16 msg_type,
   (void)node;
 }
 
-s8 track_sid_db_elevation_degrees_get(gnss_signal_t sid) {
+bool track_sid_db_elevation_degrees_get(const gnss_signal_t sid,
+                                        double *result) {
   (void)sid;
-  return TRACKING_ELEVATION_UNKNOWN;
+  (void)result;
+  return false;
 }

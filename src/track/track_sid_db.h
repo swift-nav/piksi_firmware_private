@@ -24,9 +24,6 @@
 /** Maximum SV azimuth/elevation age in [s]: 1 minute is about 0.5 degrees */
 #define MAX_AZ_EL_AGE_SEC 60
 
-#define TRACKING_AZIMUTH_UNKNOWN 400
-#define TRACKING_ELEVATION_UNKNOWN 100 /* Default to above elev. mask */
-
 /**
  * ToW cache entry.
  */
@@ -40,9 +37,9 @@ typedef struct {
  * SV elevation cache entry.
  */
 typedef struct {
-  u16 azimuth_d;    /**< SV azimuth [degrees] */
-  s8 elevation_d;   /**< SV elevation [degrees] */
-  u64 timestamp_tk; /**< Azimuth and elevation evaluation time [ticks] */
+  double azimuth_d;   /**< SV azimuth [degrees] */
+  double elevation_d; /**< SV elevation [degrees] */
+  u64 timestamp_tk;   /**< Azimuth and elevation evaluation time [ticks] */
 } tp_azel_entry_t;
 
 void track_sid_db_init(void);
@@ -52,12 +49,13 @@ bool tp_tow_is_sane(s32 tow_ms);
 void track_sid_db_load_tow(const gnss_signal_t sid, tp_tow_entry_t *tow_entry);
 void track_sid_db_update_tow(const gnss_signal_t sid,
                              const tp_tow_entry_t *tow_entry);
-void track_sid_db_azel_degrees_set(gnss_signal_t sid,
-                                   u16 azimuth,
-                                   s8 elevation,
+void track_sid_db_azel_degrees_set(const gnss_signal_t sid,
+                                   double azimuth,
+                                   double elevation,
                                    u64 timestamp);
-u16 track_sid_db_azimuth_degrees_get(gnss_signal_t sid);
-s8 track_sid_db_elevation_degrees_get(gnss_signal_t sid);
+bool track_sid_db_azimuth_degrees_get(const gnss_signal_t sid, double *azimuth);
+bool track_sid_db_elevation_degrees_get(const gnss_signal_t sid,
+                                        double *elevation);
 
 bool track_sid_db_load_positions(const gnss_signal_t sid,
                                  xcorr_positions_t *position_entry);
