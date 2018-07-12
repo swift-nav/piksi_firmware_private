@@ -174,6 +174,10 @@ void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
 
 /* Enable glonass constellation in the Starling engine. */
 void starling_set_is_glonass_enabled(bool is_glonass_enabled);
+/* Enable galileo constellation in the Starling engine. */
+void starling_set_is_galileo_enabled(bool is_galileo_enabled);
+/* Enable beidou constellation in the Starling engine. */
+void starling_set_is_beidou_enabled(bool is_beidou_enabled);
 /* Enable fixed RTK mode in the Starling engine. */
 void starling_set_is_fix_enabled(bool is_fix_enabled);
 /* Enable klobuchar corrections in the time-matched filter. */
