@@ -31,9 +31,8 @@ TEST(shm, test_shm_signal_healthy) {
   shm_gps_set_shi_ephemeris(17, 0x00);
 
   // CNAV health flags unhealthy
-  cnav_msg_type_10_t msg10 = {.l1_health = false,
-                              .l2_health = false,
-                              .l5_health = true};
+  cnav_msg_type_10_t msg10 = {
+      .l1_health = false, .l2_health = false, .l5_health = true};
 
   cnav_msg_t msg = {.prn = 17,
                     .msg_id = CNAV_MSG_TYPE_10,
@@ -50,9 +49,7 @@ TEST(shm, test_shm_signal_healthy) {
   }
 
   // Navigation OK
-  msg10 = {.l1_health = true,
-           .l2_health = true,
-           .l5_health = true};
+  msg10 = {.l1_health = true, .l2_health = true, .l5_health = true};
   msg.data.type_10 = msg10;
   cnav_msg_put(&msg);
 
