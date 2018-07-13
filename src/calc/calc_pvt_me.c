@@ -222,7 +222,7 @@ static void me_send_failed_obs(u8 _num_obs,
     _meas[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION;
 
     /* propagate the measurements with the smoothed drift value */
-    remove_clock_offset(&_meas[i], clock_offset, clock_drift, ref_tc);
+    /* remove_clock_offset(&_meas[i], clock_offset, clock_drift, ref_tc); */
   }
 
   me_post_observations(_num_obs, _meas, _ephem, _t);
@@ -703,7 +703,7 @@ static void me_calc_pvt_thread(void *arg) {
         navigation_measurement_t *nm = &nav_meas[i];
 
         /* remove clock offset from the measurement */
-        //remove_clock_offset(nm, output_offset, smoothed_drift, current_tc);
+        /* remove_clock_offset(nm, output_offset, smoothed_drift, current_tc); */
 
         /* Recompute satellite position, velocity and clock errors */
         /* NOTE: calc_sat_state changes `tot` */
