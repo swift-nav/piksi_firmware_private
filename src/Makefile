@@ -165,7 +165,6 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/calc/calc_base_obs.o \
         $(SWIFTNAV_ROOT)/src/simulator/simulator.o \
         $(SWIFTNAV_ROOT)/src/simulator/simulator_data.o \
-        $(SWIFTNAV_ROOT)/src/utils/syscalls/syscalls.o \
         $(SWIFTNAV_ROOT)/src/utils/nmea/nmea.o \
         $(SWIFTNAV_ROOT)/src/utils/system_monitor/system_monitor.o \
         $(SWIFTNAV_ROOT)/src/utils/ephemeris/ephemeris.o \
@@ -282,7 +281,7 @@ INCDIR = $(STARTUPINC) $(PORTINC) $(KERNINC) \
 # Compiler settings
 #
 
-TRGT = arm-none-eabi-
+TRGT = arm-linux-gnueabi-
 CC   = $(TRGT)gcc
 CPPC = $(TRGT)g++
 # Enable loading with g++ only if you need C++ runtime support.
@@ -364,7 +363,7 @@ DLIBDIR = $(LIBSBP_BUILDDIR)/src \
 
 # List all default libraries here
 DLIBS = $(BOARDLIBS) -lsbp-static -lswiftnav -lswiftnav-common \
-        -lm -Wl,--start-group -lstdc++ -lc -lnosys -Wl,--end-group -lfec
+        -lm -Wl,--start-group -lstdc++ -lc -Wl,--end-group -lfec -Wl,--build-id=none
 
 #
 # End of default section

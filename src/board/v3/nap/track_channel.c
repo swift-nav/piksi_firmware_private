@@ -523,7 +523,7 @@ void nap_track_read_results(u8 channel,
 
   if ((s->mesid.code == CODE_GAL_E7I) || (s->mesid.code == CODE_GAL_E7Q) ||
       (s->mesid.code == CODE_GAL_E7X)) {
-    log_debug("EPL %02d   %+3ld %+3ld   %+3ld %+3ld   %+3ld %+3ld",
+    log_debug("EPL %02d   %+3d %+3d   %+3d %+3d   %+3d %+3d",
               s->mesid.sat,
               corrs[3].I >> 6,
               corrs[3].Q >> 6,
@@ -536,8 +536,8 @@ void nap_track_read_results(u8 channel,
   if (GET_NAP_TRK_CH_STATUS_CORR_OVERFLOW(trk_ch.STATUS)) {
     log_warn_mesid(s->mesid,
                    "Tracking correlator overflow "
-                   "VE:[%+7ld:%+7ld] E: [%+7ld:%+7ld] P:[%+7ld:%+7ld] "
-                   "L:[%+7ld:%+7ld] VL:[%+7ld:%+7ld]",
+                   "VE:[%+7d:%+7d] E: [%+7d:%+7d] P:[%+7d:%+7d] "
+                   "L:[%+7d:%+7d] VL:[%+7d:%+7d]",
                    corrs[3].I,
                    corrs[3].Q,
                    corrs[0].I,

@@ -322,7 +322,7 @@ u8 uuid_string_get(char *uuid_string) {
   struct uuid temp_uuid;
   uuid_unpack(factory_params.uuid, &temp_uuid);
   sprintf(uuid_string,
-          "%08lX-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X",
+          "%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X",
           temp_uuid.time_low,
           temp_uuid.time_mid,
           temp_uuid.time_hi_and_version,
