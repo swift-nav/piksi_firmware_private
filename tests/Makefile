@@ -51,7 +51,7 @@ CWARN = -Wall -Wextra -Werror -Wimplicit \
 CFLAGS += -g $(CWARN) -std=gnu99 -D_GNU_SOURCE
 
 # Flags passed to the C++ compiler.
-CXXFLAGS += -g -Wall -Wextra -Werror --coverage -std=c++14
+CXXFLAGS += -g -Wall -Wextra -Werror --coverage -std=c++11
 
 # Compiler include directories.
 INCLUDE_DIRS :=
