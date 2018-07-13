@@ -50,6 +50,8 @@ static bool is_starling_api_initialized = false;
 /* Settings which control the filter behavior of the Starling engine. */
 typedef struct StarlingSettings {
   bool is_glonass_enabled;
+  bool is_galileo_enabled;
+  bool is_beidou_enabled;
   bool is_time_matched_klobuchar_enabled;
   float glonass_downweight_factor;
   float elevation_mask;
@@ -71,6 +73,8 @@ typedef struct ReferencePosition {
 
 /* Initial settings values (internal to Starling). */
 #define INIT_IS_GLONASS_ENABLED true
+#define INIT_IS_GALILEO_ENABLED true
+#define INIT_IS_BEIDOU_ENABLED true
 #define INIT_IS_TIME_MATCHED_KLOBUCHAR_ENABLED true
 #define INIT_GLONASS_DOWNWEIGHT_FACTOR 4.0f
 #define INIT_ELEVATION_MASK 10.0f
@@ -81,6 +85,8 @@ typedef struct ReferencePosition {
 static MUTEX_DECL(global_settings_lock);
 static StarlingSettings global_settings = {
     .is_glonass_enabled = INIT_IS_GLONASS_ENABLED,
+    .is_galileo_enabled = INIT_IS_GALILEO_ENABLED,
+    .is_beidou_enabled = INIT_IS_BEIDOU_ENABLED,
     .is_time_matched_klobuchar_enabled = INIT_IS_TIME_MATCHED_KLOBUCHAR_ENABLED,
     .glonass_downweight_factor = INIT_GLONASS_DOWNWEIGHT_FACTOR,
     .elevation_mask = INIT_ELEVATION_MASK,
@@ -137,7 +143,12 @@ static void update_filter_manager_settings(FilterManager *fm) {
 
   /* Apply the most recent settings values to the Filter Manager. */
   assert(fm);
-  set_pvt_engine_enable_glonass(fm, settings.is_glonass_enabled);
+  set_pvt_engine_enable_constellation(
+      fm, CONSTELLATION_GLO, settings.is_glonass_enabled);
+  set_pvt_engine_enable_constellation(
+      fm, CONSTELLATION_GAL, settings.is_galileo_enabled);
+  set_pvt_engine_enable_constellation(
+      fm, CONSTELLATION_BDS2, settings.is_beidou_enabled);
   set_pvt_engine_obs_downweight_factor(
       fm, settings.glonass_downweight_factor, CODE_GLO_L1OF);
   set_pvt_engine_obs_downweight_factor(
@@ -886,6 +897,18 @@ void starling_add_sbas_data(const sbas_raw_data_t *sbas_data,
 void starling_set_is_glonass_enabled(bool is_glonass_enabled) {
   platform_mutex_lock(&global_settings_lock);
   global_settings.is_glonass_enabled = is_glonass_enabled;
+  platform_mutex_unlock(&global_settings_lock);
+}
+
+void starling_set_is_galileo_enabled(bool is_galileo_enabled) {
+  platform_mutex_lock(&global_settings_lock);
+  global_settings.is_galileo_enabled = is_galileo_enabled;
+  platform_mutex_unlock(&global_settings_lock);
+}
+
+void starling_set_is_beidou_enabled(bool is_beidou_enabled) {
+  platform_mutex_lock(&global_settings_lock);
+  global_settings.is_beidou_enabled = is_beidou_enabled;
   platform_mutex_unlock(&global_settings_lock);
 }
 

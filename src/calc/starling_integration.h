@@ -25,6 +25,8 @@
 #include "hal/piksi_systime.h"
 
 extern bool enable_glonass;
+extern bool enable_galileo;
+extern bool enable_beidou;
 extern bool send_heading;
 
 typedef struct {
