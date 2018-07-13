@@ -72,9 +72,13 @@ static sbas_raw_data_t sbas_data_buff[SBAS_DATA_N_BUFF];
  * Platform Shim Calls
  ******************************************************************************/
 
-void platform_mutex_lock(void *mtx) { pthread_mutex_lock((pthread_mutex_t *)mtx); }
+void platform_mutex_lock(void *mtx) {
+  pthread_mutex_lock((pthread_mutex_t *)mtx);
+}
 
-void platform_mutex_unlock(void *mtx) { pthread_mutex_unlock((pthread_mutex_t *)mtx); }
+void platform_mutex_unlock(void *mtx) {
+  pthread_mutex_unlock((pthread_mutex_t *)mtx);
+}
 
 /* void platform_pool_free(void *pool, void *buf) { chPoolFree(pool, buf); } */
 
@@ -83,7 +87,9 @@ void platform_thread_create_static(
   chThdCreateStatic(wa, wa_size, prio, fn, user);
 }
 
-void platform_thread_set_name(const char *name) { pthread_setname_np(pthread_self(), name); }
+void platform_thread_set_name(const char *name) {
+  pthread_setname_np(pthread_self(), name);
+}
 
 /* Return true on success. */
 bool platform_try_read_ephemeris(const gnss_signal_t sid, ephemeris_t *eph) {
