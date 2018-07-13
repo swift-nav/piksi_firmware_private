@@ -208,12 +208,12 @@ static void me_send_failed_obs(u8 _num_obs,
   }
 
   /* offset assumed steered to zero */
-  //double clock_offset = 0;
+  // double clock_offset = 0;
 
-  //u64 ref_tc = gpstime2napcount(_t);
+  // u64 ref_tc = gpstime2napcount(_t);
 
   /* get the estimated clock drift value */
-  //double clock_drift = get_clock_drift();
+  // double clock_drift = get_clock_drift();
 
   for (u8 i = 0; i < _num_obs; i++) {
     /* mark the measurement unusable to be on the safe side */
@@ -703,7 +703,8 @@ static void me_calc_pvt_thread(void *arg) {
         navigation_measurement_t *nm = &nav_meas[i];
 
         /* remove clock offset from the measurement */
-        /* remove_clock_offset(nm, output_offset, smoothed_drift, current_tc); */
+        /* remove_clock_offset(nm, output_offset, smoothed_drift, current_tc);
+         */
 
         /* Recompute satellite position, velocity and clock errors */
         /* NOTE: calc_sat_state changes `tot` */
