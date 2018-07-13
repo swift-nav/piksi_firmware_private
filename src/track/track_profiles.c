@@ -788,7 +788,8 @@ bool tp_profile_has_new_profile(tracker_t *tracker) {
   state->profile_update = false;
 
   if (0 != (flags & TP_LOW_CN0)) {
-    if (tracker->cn0_est.weak_signal_ms > 0) {
+    bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
+    if (confirmed && (tracker->cn0_est.weak_signal_ms > 0)) {
       if ((state->filt_cn0 > THRESH_20MS_DBHZ) &&
           profile_switch_requested(tracker, IDX_SENS, "low cn0")) {
         /* filt_cn0 reports a reasonably strong signal, but
