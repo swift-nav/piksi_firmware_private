@@ -363,7 +363,8 @@ DLIBDIR = $(LIBSBP_BUILDDIR)/src \
 
 # List all default libraries here
 DLIBS = $(BOARDLIBS) -lsbp-static -lswiftnav -lswiftnav-common \
-        -lm -Wl,--start-group -lstdc++ -lc -Wl,--end-group -lfec -Wl,--build-id=none
+        -lm -Wl,--start-group -lstdc++ -lc -Wl,--end-group -lfec \
+        -Wl,--build-id=none -lpthread
 
 #
 # End of default section
@@ -374,7 +375,7 @@ DLIBS = $(BOARDLIBS) -lsbp-static -lswiftnav -lswiftnav-common \
 #
 
 # List all user C define here, like -D_DEBUG=1
-UDEFS =
+UDEFS = -D_GNU_SOURCE
 
 # Define ASM defines here
 UADEFS =

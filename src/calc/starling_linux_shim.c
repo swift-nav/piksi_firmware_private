@@ -9,6 +9,7 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
+
 #include <assert.h>
 #include <math.h>
 #include <pthread.h>
@@ -75,14 +76,14 @@ void platform_mutex_lock(void *mtx) { pthread_mutex_lock((pthread_mutex_t *)mtx)
 
 void platform_mutex_unlock(void *mtx) { pthread_mutex_unlock((pthread_mutex_t *)mtx); }
 
-void platform_pool_free(void *pool, void *buf) { chPoolFree(pool, buf); }
+/* void platform_pool_free(void *pool, void *buf) { chPoolFree(pool, buf); } */
 
 void platform_thread_create_static(
     void *wa, size_t wa_size, int prio, void (*fn)(void *), void *user) {
   chThdCreateStatic(wa, wa_size, prio, fn, user);
 }
 
-void platform_thread_set_name(const char *name) { chRegSetThreadName(name); }
+void platform_thread_set_name(const char *name) { pthread_setname_np(pthread_self(), name); }
 
 /* Return true on success. */
 bool platform_try_read_ephemeris(const gnss_signal_t sid, ephemeris_t *eph) {
