@@ -23,19 +23,6 @@
 #include <libswiftnav/sbas_raw_data.h>
 #include <libswiftnav/single_epoch_solver.h>
 
-/**
- * Various solution output modes supported by the Starling Engine.
- *
- * LOW_LATENCY:  Output a solution immediately for every rover observation.
- * TIME_MATCHED: Output a solution whenever a base observation is received.
- * NO_DGNSS:     Output single-point low-latency solution.
- */
-typedef enum {
-  STARLING_SOLN_MODE_LOW_LATENCY,
-  STARLING_SOLN_MODE_TIME_MATCHED,
-  STARLING_SOLN_MODE_NO_DGNSS
-} dgnss_solution_mode_t;
-
 typedef enum {
   FILTER_FLOAT,
   FILTER_FIXED,

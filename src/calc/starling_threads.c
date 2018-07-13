@@ -143,7 +143,7 @@ static void update_filter_manager_settings(FilterManager *fm) {
   set_pvt_engine_obs_downweight_factor(
       fm, settings.glonass_downweight_factor, CODE_GLO_L2OF);
   set_pvt_engine_elevation_mask(fm, settings.elevation_mask);
-  set_pvt_engine_update_frequency(fm, settings.solution_frequency);
+  set_pvt_engine_update_max_sats(fm, settings.solution_frequency, settings.solution_output_mode);
 }
 
 /**
