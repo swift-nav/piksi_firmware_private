@@ -11,6 +11,7 @@
  */
 #include <assert.h>
 #include <math.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -70,9 +71,9 @@ static sbas_raw_data_t sbas_data_buff[SBAS_DATA_N_BUFF];
  * Platform Shim Calls
  ******************************************************************************/
 
-void platform_mutex_lock(void *mtx) { chMtxLock((mutex_t *)mtx); }
+void platform_mutex_lock(void *mtx) { pthread_mutex_lock((pthread_mutex_t *)mtx); }
 
-void platform_mutex_unlock(void *mtx) { chMtxUnlock((mutex_t *)mtx); }
+void platform_mutex_unlock(void *mtx) { pthread_mutex_unlock((pthread_mutex_t *)mtx); }
 
 void platform_pool_free(void *pool, void *buf) { chPoolFree(pool, buf); }
 
