@@ -42,7 +42,6 @@ extern bool starling_integration_simulation_enabled(void);
 extern void starling_integration_simulation_run(const me_msg_obs_t *me_msg);
 
 #define TIME_MATCHED_OBS_THREAD_PRIORITY (NORMALPRIO - 3)
-#define TIME_MATCHED_OBS_THREAD_STACK (6 * 1024 * 1024)
 
 /* Tracks if the API has been properly initialized or not. */
 static bool is_starling_api_initialized = false;
@@ -438,8 +437,6 @@ bool update_time_matched(gps_time_t *last_update_time,
   return true;
 }
 
-static THD_WORKING_AREA(wa_time_matched_obs_thread,
-                        TIME_MATCHED_OBS_THREAD_STACK);
 static void time_matched_obs_thread(void *arg) {
   (void)arg;
   platform_thread_set_name("time matched obs");
@@ -621,16 +618,18 @@ static void process_any_sbas_messages(void) {
 
 static void starling_thread(void) {
   msg_t ret;
+  platform_thread_info_t *thd_info = NULL;
 
   /* Initialize all filters, settings, and SBP callbacks. */
   init_filters_and_settings();
 
+  platform_thread_info_init(THREAD_ID_TMO, thd_info);
+
   /* Spawn the time_matched thread. */
-  platform_thread_create_static(wa_time_matched_obs_thread,
-                                sizeof(wa_time_matched_obs_thread),
-                                TIME_MATCHED_OBS_THREAD_PRIORITY,
-                                time_matched_obs_thread,
-                                NULL);
+  platform_thread_create(thd_info,
+                         TIME_MATCHED_OBS_THREAD_PRIORITY,
+                         time_matched_obs_thread,
+                         NULL);
 
   static navigation_measurement_t nav_meas[MAX_CHANNELS];
   static ephemeris_t e_meas[MAX_CHANNELS];
@@ -860,6 +859,7 @@ static void starling_thread(void) {
     }
 #endif
   }
+  platform_thread_info_destroy(thd_info);
 }
 
 /* Run the starling engine on the current thread. Blocks indefinitely. */

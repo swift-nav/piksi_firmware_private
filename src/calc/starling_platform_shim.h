@@ -13,6 +13,8 @@
 #ifndef STARLING_CALC_STARLING_PLATFORM_SHIM_H
 #define STARLING_CALC_STARLING_PLATFORM_SHIM_H
 
+#include <stdlib.h>
+
 #include <libswiftnav/ephemeris.h>
 #include <libswiftnav/ionosphere.h>
 #include <libswiftnav/sbas_raw_data.h>
@@ -23,12 +25,24 @@
 #include "calc/starling_threads.h"
 #include "me_msg/me_msg.h"
 
+typedef struct platform_thread_info_s platform_thread_info_t;
+
+typedef enum thread_id_e { THREAD_ID_TMO = 0 } thread_id_t;
+
 /* Mutex */
 void platform_mutex_lock(void *mtx);
 void platform_mutex_unlock(void *mtx);
 /* Thread */
-void platform_thread_create_static(
-    void *wa, size_t wa_size, int prio, void (*fn)(void *), void *user);
+typedef void(platform_routine_t)(void *);
+void platform_thread_info_init(const thread_id_t id,
+                               platform_thread_info_t *info);
+inline void platform_thread_info_destroy(platform_thread_info_t *info) {
+  free(info);
+};
+void platform_thread_create(platform_thread_info_t *info,
+                            int prio,
+                            platform_routine_t *fn,
+                            void *user);
 void platform_thread_set_name(const char *name);
 /* Database */
 bool platform_try_read_ephemeris(const gnss_signal_t sid, ephemeris_t *eph);
@@ -60,5 +74,7 @@ void platform_sbas_data_mailbox_setup(void);
 void platform_sbas_data_mailbox_post(const sbas_raw_data_t *sbas_data);
 int32_t platform_sbas_data_mailbox_fetch(int32_t *msg, uint32_t timeout);
 void platform_sbas_data_free(sbas_raw_data_t *ptr);
+
+#define TIME_MATCHED_OBS_THREAD_STACK (6 * 1024 * 1024)
 
 #endif

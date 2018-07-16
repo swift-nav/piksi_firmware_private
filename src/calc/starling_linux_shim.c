@@ -72,6 +72,11 @@ static sbas_raw_data_t sbas_data_buff[SBAS_DATA_N_BUFF];
  * Platform Shim Calls
  ******************************************************************************/
 
+struct platform_thread_info_s {
+  pthread_t id;
+  size_t size;
+};
+
 void platform_mutex_lock(void *mtx) {
   pthread_mutex_lock((pthread_mutex_t *)mtx);
 }
@@ -80,11 +85,53 @@ void platform_mutex_unlock(void *mtx) {
   pthread_mutex_unlock((pthread_mutex_t *)mtx);
 }
 
-/* void platform_pool_free(void *pool, void *buf) { chPoolFree(pool, buf); } */
+void platform_pool_free(void *pool, void *buf) { chPoolFree(pool, buf); }
 
-void platform_thread_create_static(
-    void *wa, size_t wa_size, int prio, void (*fn)(void *), void *user) {
-  chThdCreateStatic(wa, wa_size, prio, fn, user);
+/* phtread_create expects a pointer to type (void *)()(void *).
+ * starling routines are of type (void)()(void *) */
+static void *start_routine_wrapper(void *arg) {
+  ((platform_routine_t *)arg)(NULL);
+  return NULL;
+}
+
+void platform_thread_info_init(const thread_id_t id,
+                               platform_thread_info_t *info) {
+  info = (platform_thread_info_t *)malloc(sizeof(platform_thread_info_t));
+  switch (id) {
+    case THREAD_ID_TMO:
+      info->size = TIME_MATCHED_OBS_THREAD_STACK;
+
+    default:
+      assert(!"Unkonwn thread ID");
+  }
+}
+
+void platform_thread_create(platform_thread_info_t *info,
+                            int prio,
+                            platform_routine_t *fn,
+                            void *arg) {
+  /* TODO: set prio */
+  (void)prio;
+  (void)arg;
+  pthread_attr_t attr;
+
+  if (0 != pthread_attr_init(&attr)) {
+    assert(!"pthread_attr_init()");
+  }
+
+  if (0 < info->size) {
+    if (0 != pthread_attr_setstacksize(&attr, info->size)) {
+      assert(!"pthread_attr_setstacksize");
+    }
+  }
+
+  if (0 != pthread_create(&info->id, &attr, &start_routine_wrapper, fn)) {
+    assert(!"pthread_create()");
+  }
+
+  if (0 != pthread_attr_destroy(&attr)) {
+    assert(!"pthread_attr_destroy()");
+  }
 }
 
 void platform_thread_set_name(const char *name) {

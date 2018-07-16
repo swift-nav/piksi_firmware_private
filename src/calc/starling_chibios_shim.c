@@ -70,15 +70,38 @@ static sbas_raw_data_t sbas_data_buff[SBAS_DATA_N_BUFF];
  * Platform Shim Calls
  ******************************************************************************/
 
+struct platform_thread_info_s {
+  void *wsp;
+  size_t size;
+};
+
+static THD_WORKING_AREA(wa_time_matched_obs_thread,
+                        TIME_MATCHED_OBS_THREAD_STACK);
+
 void platform_mutex_lock(void *mtx) { chMtxLock((mutex_t *)mtx); }
 
 void platform_mutex_unlock(void *mtx) { chMtxUnlock((mutex_t *)mtx); }
 
 void platform_pool_free(void *pool, void *buf) { chPoolFree(pool, buf); }
 
-void platform_thread_create_static(
-    void *wa, size_t wa_size, int prio, void (*fn)(void *), void *user) {
-  chThdCreateStatic(wa, wa_size, prio, fn, user);
+void platform_thread_info_init(const thread_id_t id,
+                               platform_thread_info_t *info) {
+  info = (platform_thread_info_t *)malloc(sizeof(platform_thread_info_t));
+  switch (id) {
+    case THREAD_ID_TMO:
+      info->wsp = wa_time_matched_obs_thread;
+      info->size = sizeof(wa_time_matched_obs_thread);
+
+    default:
+      assert(!"Unkonwn thread ID");
+  }
+}
+
+void platform_thread_create(platform_thread_info_t *info,
+                            int prio,
+                            platform_routine_t *fn,
+                            void *arg) {
+  chThdCreateStatic(info->wsp, info->size, prio, fn, arg);
 }
 
 void platform_thread_set_name(const char *name) { chRegSetThreadName(name); }
