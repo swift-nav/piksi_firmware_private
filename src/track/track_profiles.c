@@ -769,6 +769,45 @@ static bool profile_switch_requested(tracker_t *tracker,
   return true;
 }
 
+static bool low_cn0_profile_switch_requested(tracker_t *tracker) {
+  tp_profile_t *state = &tracker->profile;
+  const tp_profile_entry_t *cur_profile = &state->profiles[state->cur.index];
+
+  if ((state->filt_cn0 < cur_profile->cn0_low_threshold) &&
+      profile_switch_requested(tracker, cur_profile->next_cn0_low, "low cn0")) {
+    return true;
+  }
+
+  bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
+  if (!confirmed) {
+    return false;
+  }
+
+  bool settled = (tracker->age_ms >= tracker->settle_time_ms);
+  if (!settled) {
+    return false;
+  }
+
+  if (tracker->cn0_est.weak_signal_ms > 0) {
+    if ((state->filt_cn0 > THRESH_20MS_DBHZ) &&
+        profile_switch_requested(tracker, IDX_SENS, "low cn0")) {
+      /* filt_cn0 reports a reasonably strong signal, but
+         weak_signal_ms derived from raw CN0 says there is no signal.
+         So we expedite the transition to sensitivity profile. */
+      return true;
+    }
+    if ((tracker->cn0_est.weak_signal_ms >= TP_WEAK_SIGNAL_THRESHOLD_MS) &&
+        profile_switch_requested(tracker, IDX_SENS, "low cn0")) {
+      return true;
+    }
+  }
+  if ((state->filt_cn0 < THRESH_SENS_DBHZ) &&
+      profile_switch_requested(tracker, IDX_SENS, "low cn0")) {
+    return true;
+  }
+  return false;
+}
+
 /**
  * Method to check if there is a pending profile change.
  *
@@ -787,31 +826,8 @@ bool tp_profile_has_new_profile(tracker_t *tracker) {
 
   state->profile_update = false;
 
-  if (0 != (flags & TP_LOW_CN0)) {
-    bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
-    if (confirmed && (tracker->cn0_est.weak_signal_ms > 0)) {
-      if ((state->filt_cn0 > THRESH_20MS_DBHZ) &&
-          profile_switch_requested(tracker, IDX_SENS, "low cn0")) {
-        /* filt_cn0 reports a reasonably strong signal, but
-           weak_signal_ms derived from raw CN0 says there is no signal.
-           So we expedite the transition to sensitivity profile. */
-        return true;
-      }
-      if ((tracker->cn0_est.weak_signal_ms >= TP_WEAK_SIGNAL_THRESHOLD_MS) &&
-          profile_switch_requested(tracker, IDX_SENS, "low cn0")) {
-        return true;
-      }
-    }
-    if ((state->filt_cn0 < THRESH_SENS_DBHZ) &&
-        profile_switch_requested(tracker, IDX_SENS, "low cn0")) {
-      return true;
-    }
-
-    if ((state->filt_cn0 < cur_profile->cn0_low_threshold) &&
-        profile_switch_requested(
-            tracker, cur_profile->next_cn0_low, "low cn0")) {
-      return true;
-    }
+  if (0 != (flags & TP_LOW_CN0) && low_cn0_profile_switch_requested(tracker)) {
+    return true;
   }
 
   bool bsync = (0 != (tracker->flags & TRACKER_FLAG_BIT_SYNC));

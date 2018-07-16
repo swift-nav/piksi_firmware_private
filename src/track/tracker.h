@@ -414,6 +414,7 @@ typedef struct {
   u64 init_timestamp_ms;           /**< Tracking channel init timestamp [ms] */
   u64 update_timestamp_ms;         /**< Tracking channel last update
                                         timestamp [ms] */
+  u64 age_ms;                      /**< Tracking channel age [ms] */
   u32 settle_time_ms;              /**< Apply some sanity checks once settled */
 
   bool updated_once; /**< Tracker was updated at least once flag. */

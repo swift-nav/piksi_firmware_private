@@ -842,6 +842,7 @@ void sanitize_tracker(tracker_t *tracker, u64 now_ms) {
 
   /* Give newly-initialized channels a chance to converge. */
   u32 age_ms = now_ms - tracker->init_timestamp_ms;
+  tracker->age_ms = age_ms;
   if (age_ms < tracker->settle_time_ms) {
     return;
   }
