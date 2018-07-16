@@ -98,7 +98,7 @@ void platform_decode_setup(void) {
 void platform_ndb_init(void) {
   ndb_ephemeris_init();
   ndb_almanac_init();
-  ndb_l2c_capb_init();
+  ndb_gnss_capb_init();
   ndb_iono_init();
   ndb_lgf_init();
   ndb_utc_params_init();

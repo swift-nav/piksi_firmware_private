@@ -12,58 +12,34 @@
 #include <assert.h>
 #include <stdio.h>
 
+#include <libsbp/observation.h>
 #include <libswiftnav/common.h>
 
 #include "gnss_capabilities.h"
-
-/* one can use a simple Matlab script to generate these:
-PRNS_PRESENT = [11 12 19  26 24 30 ...
-                 8  9  1   2  7  3 ...
-                 4  5 21  25 27 31];
-mask = repmat('0', 1, 64);
-mask(PRNS_PRESENT) = '1';
-fl_mask = fliplr(mask);
-fprintf(1, '0x%016Xull \n', bin2dec(fl_mask))
-fprintf(1, 'E%02d\n', strfind(mask, '1'));
-*/
-
-/* as of June 2018 */
-gnss_capabilities_t gnss_capab = {.gps_active = 0x0ffffffffULL,
-                                  .gps_l2c = 0x0f7814bf5ULL,
-                                  .gps_l5 = 0x0a78003a5ULL,
-
-                                  .glo_active = 0x03ffffff,
-                                  .glo_l2of = 0x03ffffff,
-                                  .glo_l3 = 0x00080100,
-
-                                  .sbas_active = 0x7ffff,
-                                  .sbas_l5 = 0x5b8c8,
-
-                                  /* Note: BDS GEO SVs are marked as inactive,
-                                  in order to prevent their acquisition.
-                                  Configuration compliant with to
-                                  http://www.csno-tarc.cn/system/basicinfo
-                                  retrieved on May 2nd*/
-                                  .bds_active = 0x07fe0ULL,
-                                  .bds_d2nav = 0x1001fULL,
-                                  .bds_b2 = 0x17fffULL,
-
-                                  .qzss_active = 0x3ff,
-
-                                  .gal_active = 0x0000000067940DDFull,
-                                  .gal_e5 = 0x0000000067940DDFull,
-                                  .gps_e6 = 0x0000000067940DDFull};
+#include "ndb/ndb.h"
+#include "sbp_utils.h"
 
 /** \defgroup gnss_capabilities Constellation capabilities
  * Functions used in gnss capabilities
  * \{ */
+
+bool gps_l2c_active(const me_gnss_signal_t mesid) {
+  assert(IS_GPS(mesid));
+  const gnss_capb_t *gc = ndb_get_gnss_capb();
+  assert(gc);
+  u64 capb = gc->gps_l2c;
+  return (0 != (capb & ((u64)1 << (mesid.sat - GPS_FIRST_PRN))));
+}
 
 /** Returns true if Glonass satellite is active.
  * \param mesid   satellite identifier
  */
 bool glo_active(const me_gnss_signal_t mesid) {
   assert(IS_GLO(mesid));
-  return (0 != (gnss_capab.glo_active & (1 << (mesid.sat - GLO_FIRST_PRN))));
+  const gnss_capb_t *gc = ndb_get_gnss_capb();
+  assert(gc);
+  u32 capb = gc->gps_active;
+  return (0 != (capb & ((u32)1 << (mesid.sat - GLO_FIRST_PRN))));
 }
 
 /** Returns true if SBAS satellite is active.
@@ -71,7 +47,10 @@ bool glo_active(const me_gnss_signal_t mesid) {
  */
 bool sbas_active(const me_gnss_signal_t mesid) {
   assert(IS_SBAS(mesid));
-  return (0 != (gnss_capab.sbas_active & (1 << (mesid.sat - SBAS_FIRST_PRN))));
+  const gnss_capb_t *gc = ndb_get_gnss_capb();
+  assert(gc);
+  u32 capb = gc->sbas_active;
+  return (0 != (capb & ((u32)1 << (mesid.sat - SBAS_FIRST_PRN))));
 }
 
 /** Returns true if Beidou satellite is active.
@@ -79,7 +58,10 @@ bool sbas_active(const me_gnss_signal_t mesid) {
  */
 bool bds_active(const me_gnss_signal_t mesid) {
   assert(IS_BDS2(mesid));
-  return (0 != (gnss_capab.bds_active & (1ULL << (mesid.sat - BDS_FIRST_PRN))));
+  const gnss_capb_t *gc = ndb_get_gnss_capb();
+  assert(gc);
+  u64 capb = gc->bds_active;
+  return (0 != (capb & ((u64)1 << (mesid.sat - BDS_FIRST_PRN))));
 }
 
 /** Returns true if Beidou satellite is geostationary using D2 navigation
@@ -88,7 +70,10 @@ bool bds_active(const me_gnss_signal_t mesid) {
  */
 bool bds_d2nav(const me_gnss_signal_t mesid) {
   assert(IS_BDS2(mesid));
-  return (0 != (gnss_capab.bds_d2nav & (1ULL << (mesid.sat - BDS_FIRST_PRN))));
+  const gnss_capb_t *gc = ndb_get_gnss_capb();
+  assert(gc);
+  u64 capb = gc->bds_d2nav;
+  return (0 != (capb & ((u64)1 << (mesid.sat - BDS_FIRST_PRN))));
 }
 
 /** Returns true if Beidou satellite uses the B2 (2 MHz) frequency
@@ -96,7 +81,10 @@ bool bds_d2nav(const me_gnss_signal_t mesid) {
  */
 bool bds_b2(const me_gnss_signal_t mesid) {
   assert(IS_BDS2(mesid));
-  return (0 != (gnss_capab.bds_b2 & (1ULL << (mesid.sat - BDS_FIRST_PRN))));
+  const gnss_capb_t *gc = ndb_get_gnss_capb();
+  assert(gc);
+  u64 capb = gc->bds_b2;
+  return (0 != (capb & ((u64)1 << (mesid.sat - BDS_FIRST_PRN))));
 }
 
 /** Returns true if QZSS satellite is active
@@ -104,7 +92,10 @@ bool bds_b2(const me_gnss_signal_t mesid) {
  */
 bool qzss_active(const me_gnss_signal_t mesid) {
   assert(IS_QZSS(mesid));
-  return (0 != (gnss_capab.qzss_active & (1 << (mesid.sat - QZS_FIRST_PRN))));
+  const gnss_capb_t *gc = ndb_get_gnss_capb();
+  assert(gc);
+  u32 capb = gc->qzss_active;
+  return (0 != (capb & ((u32)1 << (mesid.sat - QZS_FIRST_PRN))));
 }
 
 /** Returns true if Galileo satellite is active
@@ -112,7 +103,10 @@ bool qzss_active(const me_gnss_signal_t mesid) {
  */
 bool gal_active(const me_gnss_signal_t mesid) {
   assert(IS_GAL(mesid));
-  return (0 != (gnss_capab.gal_active & (1ULL << (mesid.sat - GAL_FIRST_PRN))));
+  const gnss_capb_t *gc = ndb_get_gnss_capb();
+  assert(gc);
+  u64 capb = gc->gal_active;
+  return (0 != (capb & ((u64)1 << (mesid.sat - GAL_FIRST_PRN))));
 }
 
 /** \} */
@@ -163,6 +157,11 @@ void decode_l2c_capability(const u32 *subframe4_words, u32 *l2c_cpbl) {
       sv_id++;
     }
   }
+}
+
+void gnss_capb_send_over_sbp(void) {
+  const gnss_capb_t *gc = ndb_get_gnss_capb();
+  sbp_send_gnss_capb(gc);
 }
 
 /** \} */

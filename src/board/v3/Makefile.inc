@@ -125,7 +125,6 @@ BOARDSRC := \
         $(SWIFTNAV_ROOT)/src/decode/decode_gal_e1.o \
         $(SWIFTNAV_ROOT)/src/decode/decode_gal_e7.o \
         $(SWIFTNAV_ROOT)/src/decode/decode_common.o \
-        $(SWIFTNAV_ROOT)/src/ndb/ndb_l2c_capb.o \
 
 BOARDASM := \
         $(REVASM) \

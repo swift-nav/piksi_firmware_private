@@ -227,6 +227,19 @@ ndb_op_code_t ndb_almanac_read(gnss_signal_t sid, almanac_t *a) {
   return NDB_ERR_MISSING_IE;
 }
 
+ndb_op_code_t ndb_store_gnss_capb(const gnss_signal_t *sid,
+                                  const gnss_capb_t *gc,
+                                  ndb_data_source_t src,
+                                  u16 sender_id) {
+  (void)sid;
+  (void)gc;
+  (void)src;
+  (void)sender_id;
+  return NDB_ERR_MISSING_IE;
+}
+
+const gnss_capb_t *ndb_get_gnss_capb(void) { return NULL; }
+
 u8 code_track_count(code_t code) {
   (void)code;
   return 0;
