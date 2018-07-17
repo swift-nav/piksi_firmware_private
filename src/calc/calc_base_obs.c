@@ -287,7 +287,7 @@ static void update_obss(uncollapsed_obss_t *new_uncollapsed_obss) {
       *new_base_obs = base_obss;
 
       const msg_t post_ret =
-          platform_base_obs_mailbox_post((msg_t)new_base_obs, TIME_IMMEDIATE);
+          platform_base_obs_mailbox_post(new_base_obs, TIME_IMMEDIATE);
       if (post_ret != MSG_OK) {
         log_error("Base obs mailbox should have space!");
         platform_base_obs_free(new_base_obs);

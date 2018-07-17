@@ -148,17 +148,17 @@ void platform_time_matched_obs_mailbox_init() {
   chPoolLoadArray(&time_matched_obs_buff_pool, obs_buff, STARLING_OBS_N_BUFF);
 }
 
-int32_t platform_time_matched_obs_mailbox_post(int32_t msg, uint32_t timeout_ms) {
+int32_t platform_time_matched_obs_mailbox_post(obss_t *msg, uint32_t timeout_ms) {
   return chMBPost(&time_matched_obs_mailbox, (msg_t)msg, MS2ST(timeout_ms));
 }
 
-int32_t platform_time_matched_obs_mailbox_post_ahead(int32_t msg,
+int32_t platform_time_matched_obs_mailbox_post_ahead(obss_t *msg,
                                                      uint32_t timeout_ms) {
   return chMBPostAhead(
       &time_matched_obs_mailbox, (msg_t)msg, MS2ST(timeout_ms));
 }
 
-int32_t platform_time_matched_obs_mailbox_fetch(int32_t *msg,
+int32_t platform_time_matched_obs_mailbox_fetch(obss_t **msg,
                                                 uint32_t timeout_ms) {
   return chMBFetch(&time_matched_obs_mailbox, (msg_t *)msg, MS2ST(timeout_ms));
 }
@@ -179,11 +179,11 @@ void platform_base_obs_mailbox_init() {
   chPoolLoadArray(&base_obs_buff_pool, base_obs_buff, BASE_OBS_N_BUFF);
 }
 
-int32_t platform_base_obs_mailbox_post(int32_t msg, uint32_t timeout_ms) {
+int32_t platform_base_obs_mailbox_post(obss_t *msg, uint32_t timeout_ms) {
   return chMBPost(&base_obs_mailbox, (msg_t)msg, MS2ST(timeout_ms));
 }
 
-int32_t platform_base_obs_mailbox_fetch(int32_t *msg, uint32_t timeout_ms) {
+int32_t platform_base_obs_mailbox_fetch(obss_t **msg, uint32_t timeout_ms) {
   return chMBFetch(&base_obs_mailbox, (msg_t *)msg, MS2ST(timeout_ms));
 }
 
@@ -204,11 +204,11 @@ void platform_me_obs_mailbox_init(void) {
   chPoolLoadArray(&me_obs_buff_pool, me_obs_buff, ME_OBS_MSG_N_BUFF);
 }
 
-int32_t platform_me_obs_mailbox_post(int32_t msg, uint32_t timeout_ms) {
+int32_t platform_me_obs_mailbox_post(me_msg_obs_t *msg, uint32_t timeout_ms) {
   return chMBPost(&me_obs_mailbox, (msg_t)msg, MS2ST(timeout_ms));
 }
 
-int32_t platform_me_obs_mailbox_fetch(int32_t *msg, uint32_t timeout_ms) {
+int32_t platform_me_obs_mailbox_fetch(me_msg_obs_t **msg, uint32_t timeout_ms) {
   return chMBFetch(&me_obs_mailbox, (msg_t *)msg, MS2ST(timeout_ms));
 }
 
@@ -244,7 +244,7 @@ void platform_sbas_data_mailbox_post(const sbas_raw_data_t *sbas_data) {
   }
 }
 
-int32_t platform_sbas_data_mailbox_fetch(int32_t *msg, uint32_t timeout_ms) {
+int32_t platform_sbas_data_mailbox_fetch(sbas_raw_data_t **msg, uint32_t timeout_ms) {
   return chMBFetch(&sbas_data_mailbox, (msg_t *)msg, MS2ST(timeout_ms));
 }
 

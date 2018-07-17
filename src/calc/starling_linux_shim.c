@@ -183,11 +183,13 @@ void platform_watchdog_notify_starling_main_thread() {
   watchdog_notify(WD_NOTIFY_STARLING);
 }
 
+/* Time Matchied Obs */
+
 void platform_time_matched_obs_mailbox_init() {
   struct mq_attr attr;
 
   attr.mq_maxmsg = STARLING_OBS_N_BUFF;
-  attr.mq_msgsize = sizeof(obss_t);
+  attr.mq_msgsize = sizeof(obss_t *);
   attr.mq_flags = 0;
 
   /* Blocking / non-blocking? */
@@ -204,32 +206,28 @@ static void platform_get_timeout(const uint32_t timeout_ms, struct timespec *ts)
   ts->tv_nsec += timeout_ms * 1e6;
 }
 
-static int32_t platform_tmo_mb_post_internal(int32_t msg, uint32_t timeout_ms, uint32_t msg_prio) {
+static int32_t platform_tmo_mb_post_internal(obss_t *msg, uint32_t timeout_ms, uint32_t msg_prio) {
   struct timespec ts = {0};
   platform_get_timeout(timeout_ms, &ts);
 
-  return mq_timedsend(tmo_mqdes, (char *)msg, sizeof(obss_t), msg_prio, &ts);
+  return mq_timedsend(tmo_mqdes, (char *)&msg, sizeof(obss_t *), msg_prio, &ts);
 }
 
-int32_t platform_time_matched_obs_mailbox_post(int32_t msg, uint32_t timeout_ms) {
+int32_t platform_time_matched_obs_mailbox_post(obss_t *msg, uint32_t timeout_ms) {
   return platform_tmo_mb_post_internal(msg, timeout_ms, TMO_QUEUE_NORMAL_PRIO);
 }
 
-int32_t platform_time_matched_obs_mailbox_post_ahead(int32_t msg,
+int32_t platform_time_matched_obs_mailbox_post_ahead(obss_t *msg,
                                                      uint32_t timeout_ms) {
   return platform_tmo_mb_post_internal(msg, timeout_ms, TMO_QUEUE_HIGH_PRIO);
 }
 
-static int platform_mb_fetch(int32_t *msg, uint32_t timeout_ms, mqd_t mqdes) {
+int32_t platform_time_matched_obs_mailbox_fetch(obss_t **msg,
+                                                uint32_t timeout_ms) {
   struct timespec ts = {0};
   platform_get_timeout(timeout_ms, &ts);
 
-  return mq_timedreceive(mqdes, (char *)msg, sizeof(obss_t), NULL, &ts);
-}
-
-int32_t platform_time_matched_obs_mailbox_fetch(int32_t *msg,
-                                                uint32_t timeout_ms) {
-  return platform_mb_fetch(msg, timeout_ms, tmo_mqdes);
+  return mq_timedreceive(tmo_mqdes, (char *)*msg, sizeof(obss_t *), NULL, &ts);
 }
 
 obss_t *platform_time_matched_obs_alloc(void) {
@@ -247,7 +245,7 @@ void platform_base_obs_mailbox_init() {
   struct mq_attr attr;
 
   attr.mq_maxmsg = BASE_OBS_N_BUFF;
-  attr.mq_msgsize = sizeof(obss_t);
+  attr.mq_msgsize = sizeof(obss_t *);
   attr.mq_flags = 0;
 
   /* Blocking / non-blocking? */
@@ -257,18 +255,18 @@ void platform_base_obs_mailbox_init() {
   mq_unlink(BO_QUEUE_NAME);
 }
 
-int32_t platform_base_obs_mailbox_post(int32_t msg, uint32_t timeout_ms) {
+int32_t platform_base_obs_mailbox_post(obss_t *msg, uint32_t timeout_ms) {
   struct timespec ts = {0};
   platform_get_timeout(timeout_ms, &ts);
 
-  return mq_timedsend(bo_mqdes, (char *)msg, sizeof(obss_t), BO_QUEUE_NORMAL_PRIO, &ts);
+  return mq_timedsend(bo_mqdes, (char *)&msg, sizeof(obss_t *), BO_QUEUE_NORMAL_PRIO, &ts);
 }
 
-int32_t platform_base_obs_mailbox_fetch(int32_t *msg, uint32_t timeout_ms) {
+int32_t platform_base_obs_mailbox_fetch(obss_t **msg, uint32_t timeout_ms) {
   struct timespec ts = {0};
   platform_get_timeout(timeout_ms, &ts);
 
-  return mq_timedreceive(bo_mqdes, (char *)msg, sizeof(obss_t), NULL, &ts);
+  return mq_timedreceive(bo_mqdes, (char *)*msg, sizeof(obss_t *), NULL, &ts);
 }
 
 obss_t *platform_base_obs_alloc(void) {
@@ -286,7 +284,7 @@ void platform_me_obs_mailbox_init(void) {
   struct mq_attr attr;
 
   attr.mq_maxmsg = ME_OBS_MSG_N_BUFF;
-  attr.mq_msgsize = sizeof(me_msg_obs_t);
+  attr.mq_msgsize = sizeof(me_msg_obs_t *);
   attr.mq_flags = 0;
 
   /* Blocking / non-blocking? */
@@ -296,18 +294,18 @@ void platform_me_obs_mailbox_init(void) {
   mq_unlink(MEO_QUEUE_NAME);
 }
 
-int32_t platform_me_obs_mailbox_post(int32_t msg, uint32_t timeout_ms) {
+int32_t platform_me_obs_mailbox_post(me_msg_obs_t *msg, uint32_t timeout_ms) {
   struct timespec ts = {0};
   platform_get_timeout(timeout_ms, &ts);
 
-  return mq_timedsend(meo_mqdes, (char *)msg, sizeof(me_msg_obs_t), MEO_QUEUE_NORMAL_PRIO, &ts);
+  return mq_timedsend(meo_mqdes, (char *)msg, sizeof(me_msg_obs_t *), MEO_QUEUE_NORMAL_PRIO, &ts);
 }
 
-int32_t platform_me_obs_mailbox_fetch(int32_t *msg, uint32_t timeout_ms) {
+int32_t platform_me_obs_mailbox_fetch(me_msg_obs_t **msg, uint32_t timeout_ms) {
   struct timespec ts = {0};
   platform_get_timeout(timeout_ms, &ts);
 
-  return mq_timedreceive(meo_mqdes, (char *)msg, sizeof(me_msg_obs_t), NULL, &ts);
+  return mq_timedreceive(meo_mqdes, (char *)msg, sizeof(me_msg_obs_t *), NULL, &ts);
 }
 
 me_msg_obs_t *platform_me_obs_alloc(void) {
@@ -324,7 +322,7 @@ void platform_sbas_data_mailbox_setup(void) {
   struct mq_attr attr;
 
   attr.mq_maxmsg = SBAS_DATA_N_BUFF;
-  attr.mq_msgsize = sizeof(sbas_raw_data_t);
+  attr.mq_msgsize = sizeof(sbas_raw_data_t *);
   attr.mq_flags = 0;
 
   /* Blocking / non-blocking? */
@@ -344,17 +342,17 @@ void platform_sbas_data_mailbox_post(const sbas_raw_data_t *sbas_data) {
   assert(sbas_data);
   *msg = *sbas_data;
 
-  if (0 != mq_send(meo_mqdes, (char *)msg, sizeof(sbas_raw_data_t), MEO_QUEUE_NORMAL_PRIO)) {
+  if (0 != mq_send(meo_mqdes, (char *)&msg, sizeof(sbas_raw_data_t *), MEO_QUEUE_NORMAL_PRIO)) {
     log_error("ME: Mailbox should have space for SBAS!");
-    free(msg);
+    platform_sbas_data_free(msg);
   }
 }
 
-int32_t platform_sbas_data_mailbox_fetch(int32_t *msg, uint32_t timeout_ms) {
+int32_t platform_sbas_data_mailbox_fetch(sbas_raw_data_t **msg, uint32_t timeout_ms) {
   struct timespec ts = {0};
   platform_get_timeout(timeout_ms, &ts);
 
-  return mq_timedreceive(meo_mqdes, (char *)msg, sizeof(sbas_raw_data_t), NULL, &ts);
+  return mq_timedreceive(meo_mqdes, (char *)*msg, sizeof(sbas_raw_data_t *), NULL, &ts);
 }
 
 void platform_sbas_data_free(sbas_raw_data_t *ptr) {

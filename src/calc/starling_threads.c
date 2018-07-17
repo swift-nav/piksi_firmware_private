@@ -201,7 +201,7 @@ static void post_observations(u8 n,
     /* Pool is empty, grab a buffer from the mailbox instead, i.e.
      * overwrite the oldest item in the queue. */
     ret =
-        platform_time_matched_obs_mailbox_fetch((msg_t *)&obs, TIME_IMMEDIATE);
+        platform_time_matched_obs_mailbox_fetch(&obs, TIME_IMMEDIATE);
     if (ret != MSG_OK) {
       log_error("Pool full and mailbox empty!");
     }
@@ -228,7 +228,7 @@ static void post_observations(u8 n,
       obs->soln.velocity_valid = 0;
     }
 
-    ret = platform_time_matched_obs_mailbox_post((msg_t)obs, TIME_IMMEDIATE);
+    ret = platform_time_matched_obs_mailbox_post(obs, TIME_IMMEDIATE);
     if (ret != MSG_OK) {
       /* We could grab another item from the mailbox, discard it and then
        * post our obs again but if the size of the mailbox and the pool
@@ -445,7 +445,7 @@ static void time_matched_obs_thread(void *arg) {
   while (1) {
     base_obs = NULL;
     const msg_t fetch_ret =
-        platform_base_obs_mailbox_fetch((msg_t *)&base_obs, DGNSS_TIMEOUT_MS);
+        platform_base_obs_mailbox_fetch(&base_obs, DGNSS_TIMEOUT_MS);
 
     if (fetch_ret != MSG_OK) {
       if (NULL != base_obs) {
@@ -481,7 +481,7 @@ static void time_matched_obs_thread(void *arg) {
     obss_t *obss;
     /* Look through the mailbox (FIFO queue) of locally generated observations
      * looking for one that matches in time. */
-    while (platform_time_matched_obs_mailbox_fetch((msg_t *)&obss,
+    while (platform_time_matched_obs_mailbox_fetch(&obss,
                                                    TIME_IMMEDIATE) == MSG_OK) {
       if (dgnss_soln_mode == STARLING_SOLN_MODE_NO_DGNSS) {
         /* Not doing any DGNSS.  Toss the obs away. */
@@ -534,7 +534,7 @@ static void time_matched_obs_thread(void *arg) {
               base_obss_copy.tor.tow);
           /* Return the buffer to the mailbox so we can try it again later. */
           const msg_t post_ret = platform_time_matched_obs_mailbox_post_ahead(
-              (msg_t)obss, TIME_IMMEDIATE);
+              obss, TIME_IMMEDIATE);
           if (post_ret != MSG_OK) {
             /* Something went wrong with returning it to the buffer, better just
              * free it and carry on. */
@@ -596,7 +596,7 @@ static void process_any_sbas_messages(void) {
   msg_t ret = MSG_OK;
   while (MSG_OK == ret) {
     sbas_raw_data_t *sbas_data = NULL;
-    ret = platform_sbas_data_mailbox_fetch((msg_t *)&sbas_data, TIME_IMMEDIATE);
+    ret = platform_sbas_data_mailbox_fetch(&sbas_data, TIME_IMMEDIATE);
     if (MSG_OK == ret) {
       /* We have successfully received SBAS data, forward on to the
        * filter managers. */
@@ -645,7 +645,7 @@ static void starling_thread(void) {
     process_any_sbas_messages();
 
     me_msg_obs_t *me_msg = NULL;
-    ret = platform_me_obs_mailbox_fetch((msg_t *)&me_msg, DGNSS_TIMEOUT_MS);
+    ret = platform_me_obs_mailbox_fetch(&me_msg, DGNSS_TIMEOUT_MS);
     if (ret != MSG_OK) {
       if (NULL != me_msg) {
         log_error("STARLING: mailbox fetch failed with %" PRIi32, ret);
