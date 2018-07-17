@@ -412,7 +412,7 @@ static void process_alias_error(tracker_t *tracker, float I, float Q) {
 
   bool plock = (0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK));
   bool flock = (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK));
-  log_warn_mesid(tracker->mesid,
+  log_info_mesid(tracker->mesid,
                  "False freq detected: %.1f Hz (plock=%d,flock=%d)",
                  err_hz,
                  (int)plock,

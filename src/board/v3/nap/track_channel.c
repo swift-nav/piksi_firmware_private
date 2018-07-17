@@ -198,30 +198,6 @@ void nap_track_init(u8 channel,
   swiftnap_tracking_wr_t *t = &NAP->TRK_CH_WR[channel];
   struct nap_ch_state *s = &nap_ch_desc[channel];
 
-  if (mesid.code == CODE_BDS2_B2) {
-    log_debug("C%02" PRIu8 " channel %" PRIu8 " t %" PRIxPTR " s %" PRIxPTR,
-              mesid.sat,
-              channel,
-              (uintptr_t)t,
-              (uintptr_t)s);
-  }
-  if (mesid.code == CODE_GAL_E1B) {
-    log_debug("E%02" PRIu8 " e1bc channel %" PRIu8 " t %" PRIxPTR
-              " s %" PRIxPTR,
-              mesid.sat,
-              channel,
-              (uintptr_t)t,
-              (uintptr_t)s);
-  }
-  if (mesid.code == CODE_GAL_E7I) {
-    log_debug("E%02" PRIu8 " e5bIQ channel %" PRIu8 " t %" PRIxPTR
-              " s %" PRIxPTR,
-              mesid.sat,
-              channel,
-              (uintptr_t)t,
-              (uintptr_t)s);
-  }
-
   if (swiftnap_code_map[channel] != mesid_to_nap_code(mesid)) {
     log_error_mesid(
         mesid, "Tracking channel %u doesn't support this signal.", channel);
@@ -542,54 +518,6 @@ void nap_track_read_results(u8 channel,
       s->fcn_freq_hz * (s->length[1] / NAP_TRACK_SAMPLE_RATE_Hz);
 
   *carrier_phase = (s->reckoned_carr_phase);
-
-#ifndef PIKSI_RELEASE
-  /* Useful for debugging correlators */
-
-  if ((s->mesid.code == CODE_GAL_E7I) || (s->mesid.code == CODE_GAL_E7Q) ||
-      (s->mesid.code == CODE_GAL_E7X)) {
-    log_debug("EPL %02d   %+3ld %+3ld   %+3ld %+3ld   %+3ld %+3ld",
-              s->mesid.sat,
-              corrs[3].I >> 6,
-              corrs[3].Q >> 6,
-              corrs[1].I >> 6,
-              corrs[1].Q >> 6,
-              corrs[4].I >> 6,
-              corrs[4].Q >> 6);
-  }
-
-  if (GET_NAP_TRK_CH_STATUS_CORR_OVERFLOW(trk_ch.STATUS)) {
-    log_warn_mesid(s->mesid, "Tracking correlator overflow.");
-  }
-
-  /* Check carrier phase reckoning */
-  u8 sw_carr_phase = (s->sw_carr_phase >> 29) & 0x3F;
-  u8 hw_carr_phase = GET_NAP_TRK_CH_STATUS_CARR_PHASE_INT(trk_ch.STATUS)
-                         << NAP_TRK_CH_STATUS_CARR_PHASE_FRAC_Len |
-                     GET_NAP_TRK_CH_STATUS_CARR_PHASE_FRAC(trk_ch.STATUS);
-  if (sw_carr_phase != hw_carr_phase) {
-    log_error_mesid(s->mesid,
-                    "Carrier reckoning: SW=%u.%u, HW=%u.%u",
-                    (sw_carr_phase >> 3),
-                    (sw_carr_phase & 0x7),
-                    (hw_carr_phase >> 3),
-                    (hw_carr_phase & 0x7));
-  }
-
-  /* Check code phase reckoning */
-  u8 sw_code_phase = (s->sw_code_phase >> 29) & 0x3F;
-  u8 hw_code_phase = GET_NAP_TRK_CH_STATUS_CODE_PHASE_INT(trk_ch.STATUS)
-                         << NAP_TRK_CH_STATUS_CODE_PHASE_FRAC_Len |
-                     GET_NAP_TRK_CH_STATUS_CODE_PHASE_FRAC(trk_ch.STATUS);
-  if (sw_code_phase != hw_code_phase) {
-    log_error_mesid(s->mesid,
-                    "Code reckoning: SW=%u.%u, HW=%u.%u",
-                    (sw_code_phase >> 3),
-                    (sw_code_phase & 0x7),
-                    (hw_code_phase >> 3),
-                    (hw_code_phase & 0x7));
-  }
-#endif /* PIKSI_RELEASE */
 }
 
 void nap_track_enable(u8 channel) {

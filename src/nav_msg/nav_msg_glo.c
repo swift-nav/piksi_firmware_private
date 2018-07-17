@@ -290,7 +290,7 @@ void seek_timemark_glo(nav_msg_glo_t *n, bool symbol) {
     return;
   }
   if (prev_bit_polarity != n->bit_polarity) {
-    log_warn_mesid(n->mesid, "Bit polarity mismatch");
+    log_info_mesid(n->mesid, "Bit polarity mismatch");
   }
 }
 
