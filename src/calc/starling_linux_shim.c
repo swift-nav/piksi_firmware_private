@@ -64,6 +64,12 @@
 #define TMO_QUEUE_HIGH_PRIO 1
 static mqd_t tmo_mqdes;
 
+/** Keep a mailbox of received base obs so we can process all of them in
+ * order even if we have a bursty base station connection. */
+#define BO_QUEUE_NAME "base-obs"
+#define BO_QUEUE_NORMAL_PRIO 0
+static mqd_t bo_mqdes;
+
 /* SBAS Data API data-structures. */
 #define SBAS_DATA_N_BUFF 6
 static mailbox_t sbas_data_mailbox;
@@ -233,12 +239,43 @@ void platform_time_matched_obs_free(obss_t *ptr) {
   free(ptr);
 }
 
-void platform_base_obs_free(obss_t *ptr) {
-  free(ptr);
+/* Base obs */
+
+void platform_base_obs_mailbox_init() {
+  struct mq_attr attr;
+
+  attr.mq_maxmsg = BASE_OBS_N_BUFF;
+  attr.mq_msgsize = sizeof(obss_t);
+  attr.mq_flags = 0;
+
+  /* Blocking / non-blocking? */
+  tmo_mqdes = mq_open(BO_QUEUE_NAME, O_RDWR | O_CREAT, 0777, &attr);
+
+  /* Temporary queue. As soon as it's closed, it will be removed */
+  mq_unlink(BO_QUEUE_NAME);
+}
+
+int32_t platform_base_obs_mailbox_post(int32_t msg, uint32_t timeout_ms) {
+  struct timespec ts = {0};
+  platform_get_timeout(timeout_ms, &ts);
+
+  return mq_timedsend(bo_mqdes, (char *)msg, sizeof(obss_t), BO_QUEUE_NORMAL_PRIO, &ts);
 }
 
 int32_t platform_base_obs_mailbox_fetch(int32_t *msg, uint32_t timeout_ms) {
-  return chMBFetch(&base_obs_mailbox, (msg_t *)msg, (systime_t)timeout_ms);
+  struct timespec ts = {0};
+  platform_get_timeout(timeout_ms, &ts);
+
+  return mq_timedreceive(bo_mqdes, (char *)msg, sizeof(obss_t), NULL, &ts);
+}
+
+obss_t *platform_base_obs_alloc(void) {
+  /* Do we want memory pool rather than straight from heap? */
+  return malloc(sizeof(obss_t));
+}
+
+void platform_base_obs_free(obss_t *ptr) {
+  free(ptr);
 }
 
 /* ME obs messages */

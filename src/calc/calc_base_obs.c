@@ -41,6 +41,7 @@
 #include "shm/shm.h"
 #include "signal_db/signal_db.h"
 #include "simulator.h"
+#include "starling_platform_shim.h"
 #include "starling_threads.h"
 #include "timing/timing.h"
 
@@ -49,10 +50,6 @@ bool disable_raim = false;
 /** \defgroup base_obs Base station observation handling
  * \{ */
 
-/** Keep a mailbox of received base obs so we can process all of them in
- * order even if we have a bursty base station connection. */
-memory_pool_t base_obs_buff_pool;
-mailbox_t base_obs_mailbox;
 /** Most recent observations from the base station. */
 obss_t base_obss;
 
@@ -278,7 +275,7 @@ static void update_obss(uncollapsed_obss_t *new_uncollapsed_obss) {
 
       base_obss.has_pos = 1;
 
-      obss_t *new_base_obs = chPoolAlloc(&base_obs_buff_pool);
+      obss_t *new_base_obs = platform_base_obs_alloc();
       if (new_base_obs == NULL) {
         log_warn(
             "Base obs pool full, discarding base obs at: wn: %d, tow: %.2f",
@@ -290,10 +287,10 @@ static void update_obss(uncollapsed_obss_t *new_uncollapsed_obss) {
       *new_base_obs = base_obss;
 
       const msg_t post_ret =
-          chMBPost(&base_obs_mailbox, (msg_t)new_base_obs, TIME_IMMEDIATE);
+          platform_base_obs_mailbox_post((msg_t)new_base_obs, TIME_IMMEDIATE);
       if (post_ret != MSG_OK) {
         log_error("Base obs mailbox should have space!");
-        chPoolFree(&base_obs_buff_pool, new_base_obs);
+        platform_base_obs_free(new_base_obs);
       }
     } else {
       base_obss.has_pos = 0;
@@ -547,15 +544,9 @@ void base_obs_setup() {
   // The base obs can optionally enable RAIM exclusion algorithm.
   SETTING("solution", "disable_raim", disable_raim, TYPE_BOOL);
 
+  platform_base_obs_mailbox_init();
+
   /* Register callbacks on base station messages. */
-
-  static msg_t base_obs_mailbox_buff[BASE_OBS_N_BUFF];
-  chMBObjectInit(&base_obs_mailbox, base_obs_mailbox_buff, BASE_OBS_N_BUFF);
-
-  chPoolObjectInit(&base_obs_buff_pool, sizeof(obss_t), NULL);
-  static obss_t base_obs_buff[BASE_OBS_N_BUFF] _CCM;
-  chPoolLoadArray(&base_obs_buff_pool, base_obs_buff, BASE_OBS_N_BUFF);
-
   static sbp_msg_callbacks_node_t base_pos_llh_node;
   sbp_register_cbk(
       SBP_MSG_BASE_POS_LLH, &base_pos_llh_callback, &base_pos_llh_node);

@@ -59,6 +59,11 @@
 static memory_pool_t time_matched_obs_buff_pool;
 static mailbox_t time_matched_obs_mailbox;
 
+/** Keep a mailbox of received base obs so we can process all of them in
+ * order even if we have a bursty base station connection. */
+memory_pool_t base_obs_buff_pool;
+mailbox_t base_obs_mailbox;
+
 /* SBAS Data API data-structures. */
 #define SBAS_DATA_N_BUFF 6
 static mailbox_t sbas_data_mailbox;
@@ -152,16 +157,36 @@ int32_t platform_time_matched_obs_mailbox_fetch(int32_t *msg,
 obss_t *platform_time_matched_obs_alloc(void) {
   return chPoolAlloc(&time_matched_obs_buff_pool);
 }
+
 void platform_time_matched_obs_free(obss_t *ptr) {
   chPoolFree(&time_matched_obs_buff_pool, ptr);
 }
 
-void platform_base_obs_free(obss_t *ptr) {
-  chPoolFree(&base_obs_buff_pool, ptr);
+/* Base obs */
+
+void platform_base_obs_mailbox_init() {
+  static msg_t base_obs_mailbox_buff[BASE_OBS_N_BUFF];
+  chMBObjectInit(&base_obs_mailbox, base_obs_mailbox_buff, BASE_OBS_N_BUFF);
+
+  chPoolObjectInit(&base_obs_buff_pool, sizeof(obss_t), NULL);
+  static obss_t base_obs_buff[BASE_OBS_N_BUFF] _CCM;
+  chPoolLoadArray(&base_obs_buff_pool, base_obs_buff, BASE_OBS_N_BUFF);
+}
+
+int32_t platform_base_obs_mailbox_post(int32_t msg, uint32_t timeout_ms) {
+  return chMBPost(&base_obs_mailbox, (msg_t)msg, MS2ST(timeout_ms));
 }
 
 int32_t platform_base_obs_mailbox_fetch(int32_t *msg, uint32_t timeout_ms) {
   return chMBFetch(&base_obs_mailbox, (msg_t *)msg, MS2ST(timeout_ms));
+}
+
+obss_t *platform_base_obs_alloc(void) {
+  return chPoolAlloc(&base_obs_buff_pool);
+}
+
+void platform_base_obs_free(obss_t *ptr) {
+  chPoolFree(&base_obs_buff_pool, ptr);
 }
 
 /* ME obs messages */

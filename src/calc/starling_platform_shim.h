@@ -62,7 +62,10 @@ obss_t *platform_time_matched_obs_alloc(void);
 void platform_time_matched_obs_free(obss_t *ptr);
 
 /* used for receiving obs messages */
+void platform_base_obs_mailbox_init(void);
+int32_t platform_base_obs_mailbox_post(int32_t msg, uint32_t timeout_ms);
 int32_t platform_base_obs_mailbox_fetch(int32_t *msg, uint32_t timeout_ms);
+obss_t *platform_base_obs_alloc(void);
 void platform_base_obs_free(obss_t *ptr);
 
 /* used for receiving me messages */
