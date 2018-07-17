@@ -76,5 +76,7 @@ int32_t platform_sbas_data_mailbox_fetch(int32_t *msg, uint32_t timeout);
 void platform_sbas_data_free(sbas_raw_data_t *ptr);
 
 #define TIME_MATCHED_OBS_THREAD_STACK (6 * 1024 * 1024)
+/* Reference is <TBD> prio */
+#define TIME_MATCHED_OBS_THREAD_PRIORITY (-3)
 
 #endif

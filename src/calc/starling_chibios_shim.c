@@ -73,6 +73,7 @@ static sbas_raw_data_t sbas_data_buff[SBAS_DATA_N_BUFF];
 struct platform_thread_info_s {
   void *wsp;
   size_t size;
+  int prio;
 };
 
 static THD_WORKING_AREA(wa_time_matched_obs_thread,
@@ -91,9 +92,12 @@ void platform_thread_info_init(const thread_id_t id,
     case THREAD_ID_TMO:
       info->wsp = wa_time_matched_obs_thread;
       info->size = sizeof(wa_time_matched_obs_thread);
+      info->prio = NORMALPRIO + TIME_MATCHED_OBS_THREAD_PRIORITY;
+      break;
 
     default:
       assert(!"Unkonwn thread ID");
+      break;
   }
 }
 

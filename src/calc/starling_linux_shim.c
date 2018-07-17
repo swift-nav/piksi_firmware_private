@@ -75,6 +75,7 @@ static sbas_raw_data_t sbas_data_buff[SBAS_DATA_N_BUFF];
 struct platform_thread_info_s {
   pthread_t id;
   size_t size;
+  int prio;
 };
 
 void platform_mutex_lock(void *mtx) {
@@ -85,8 +86,6 @@ void platform_mutex_unlock(void *mtx) {
   pthread_mutex_unlock((pthread_mutex_t *)mtx);
 }
 
-void platform_pool_free(void *pool, void *buf) { chPoolFree(pool, buf); }
-
 /* phtread_create expects a pointer to type (void *)()(void *).
  * starling routines are of type (void)()(void *) */
 static void *start_routine_wrapper(void *arg) {
@@ -94,26 +93,43 @@ static void *start_routine_wrapper(void *arg) {
   return NULL;
 }
 
+static int sch_policy = SCHED_FIFO;
+
 void platform_thread_info_init(const thread_id_t id,
                                platform_thread_info_t *info) {
   info = (platform_thread_info_t *)malloc(sizeof(platform_thread_info_t));
+
+  int max_prio = sched_get_priority_max(sch_policy);
+
+  assert(0 < max_prio);
+
   switch (id) {
     case THREAD_ID_TMO:
       info->size = TIME_MATCHED_OBS_THREAD_STACK;
+      /* TODO: scale priority properly to pthread context
+       * See http://man7.org/linux/man-pages/man7/sched.7.html 
+       * Processes scheduled under one of the real-time policies (SCHED_FIFO,
+       * SCHED_RR) have a sched_priority value in the range 1 (low) to 99
+       * (high). */
+      info->prio = max_prio + TIME_MATCHED_OBS_THREAD_PRIORITY;
+      break;
 
     default:
       assert(!"Unkonwn thread ID");
+      break;
   }
+
+  assert(0 < info->prio);
 }
 
 void platform_thread_create(platform_thread_info_t *info,
                             int prio,
                             platform_routine_t *fn,
                             void *arg) {
-  /* TODO: set prio */
-  (void)prio;
   (void)arg;
   pthread_attr_t attr;
+  struct sched_param sch_params;
+  sch_params.sched_priority = prio;
 
   if (0 != pthread_attr_init(&attr)) {
     assert(!"pthread_attr_init()");
@@ -127,6 +143,10 @@ void platform_thread_create(platform_thread_info_t *info,
 
   if (0 != pthread_create(&info->id, &attr, &start_routine_wrapper, fn)) {
     assert(!"pthread_create()");
+  }
+
+  if (0 != pthread_setschedparam(info->id, sch_policy, &sch_params)) {
+    assert(!"pthread_setschedparam()");
   }
 
   if (0 != pthread_attr_destroy(&attr)) {
@@ -151,6 +171,8 @@ bool platform_try_read_iono_corr(ionosphere_t *params) {
 void platform_watchdog_notify_starling_main_thread() {
   watchdog_notify(WD_NOTIFY_STARLING);
 }
+
+void platform_pool_free(void *pool, void *buf) { chPoolFree(pool, buf); }
 
 void platform_time_matched_obs_mailbox_init() {
   static msg_t time_matched_obs_mailbox_buff[STARLING_OBS_N_BUFF];
