@@ -53,6 +53,8 @@
 
 #define SET_NAP_CORR_LEN(len) (len - 1)
 
+#define PIKSI_RELEASE
+
 /** Structure is used to define spacing between two correlators */
 typedef struct {
   u8 chips : 1;   /**< Correlator spacing in chips. */
@@ -197,30 +199,6 @@ void nap_track_init(u8 channel,
 
   swiftnap_tracking_wr_t *t = &NAP->TRK_CH_WR[channel];
   struct nap_ch_state *s = &nap_ch_desc[channel];
-
-  if (mesid.code == CODE_BDS2_B2) {
-    log_debug("C%02" PRIu8 " channel %" PRIu8 " t %" PRIxPTR " s %" PRIxPTR,
-              mesid.sat,
-              channel,
-              (uintptr_t)t,
-              (uintptr_t)s);
-  }
-  if (mesid.code == CODE_GAL_E1B) {
-    log_debug("E%02" PRIu8 " e1bc channel %" PRIu8 " t %" PRIxPTR
-              " s %" PRIxPTR,
-              mesid.sat,
-              channel,
-              (uintptr_t)t,
-              (uintptr_t)s);
-  }
-  if (mesid.code == CODE_GAL_E7I) {
-    log_debug("E%02" PRIu8 " e5bIQ channel %" PRIu8 " t %" PRIxPTR
-              " s %" PRIxPTR,
-              mesid.sat,
-              channel,
-              (uintptr_t)t,
-              (uintptr_t)s);
-  }
 
   if (swiftnap_code_map[channel] != mesid_to_nap_code(mesid)) {
     log_error_mesid(

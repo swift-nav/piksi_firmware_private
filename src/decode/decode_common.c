@@ -56,7 +56,7 @@ glo_decode_status_t glo_data_decoding(nav_msg_glo_t *n,
   /* Check for bit errors in the collected string */
   s8 bit_errors = error_detection_glo(n);
   if (bit_errors != 0) {
-    log_warn_mesid(mesid, "Parity error");
+    log_info_mesid(mesid, "Parity error");
     return GLO_DECODE_WAIT;
   }
 
