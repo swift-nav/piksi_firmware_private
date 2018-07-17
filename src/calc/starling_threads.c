@@ -200,8 +200,7 @@ static void post_observations(u8 n,
   if (obs == NULL) {
     /* Pool is empty, grab a buffer from the mailbox instead, i.e.
      * overwrite the oldest item in the queue. */
-    ret =
-        platform_time_matched_obs_mailbox_fetch(&obs, TIME_IMMEDIATE);
+    ret = platform_time_matched_obs_mailbox_fetch(&obs, TIME_IMMEDIATE);
     if (ret != MSG_OK) {
       log_error("Pool full and mailbox empty!");
     }
@@ -481,8 +480,8 @@ static void time_matched_obs_thread(void *arg) {
     obss_t *obss;
     /* Look through the mailbox (FIFO queue) of locally generated observations
      * looking for one that matches in time. */
-    while (platform_time_matched_obs_mailbox_fetch(&obss,
-                                                   TIME_IMMEDIATE) == MSG_OK) {
+    while (platform_time_matched_obs_mailbox_fetch(&obss, TIME_IMMEDIATE) ==
+           MSG_OK) {
       if (dgnss_soln_mode == STARLING_SOLN_MODE_NO_DGNSS) {
         /* Not doing any DGNSS.  Toss the obs away. */
         platform_time_matched_obs_free(obss);

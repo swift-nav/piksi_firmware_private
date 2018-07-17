@@ -68,7 +68,6 @@ static mailbox_t base_obs_mailbox;
 static msg_t base_obs_mailbox_buff[BASE_OBS_N_BUFF];
 static obss_t base_obs_buff[BASE_OBS_N_BUFF] _CCM;
 
-
 /* ME Data API data-structures. */
 static memory_pool_t me_obs_buff_pool;
 static mailbox_t me_obs_mailbox;
@@ -148,7 +147,8 @@ void platform_time_matched_obs_mailbox_init() {
   chPoolLoadArray(&time_matched_obs_buff_pool, obs_buff, STARLING_OBS_N_BUFF);
 }
 
-int32_t platform_time_matched_obs_mailbox_post(obss_t *msg, uint32_t timeout_ms) {
+int32_t platform_time_matched_obs_mailbox_post(obss_t *msg,
+                                               uint32_t timeout_ms) {
   return chMBPost(&time_matched_obs_mailbox, (msg_t)msg, MS2ST(timeout_ms));
 }
 
@@ -198,8 +198,7 @@ void platform_base_obs_free(obss_t *ptr) {
 /* ME obs messages */
 
 void platform_me_obs_mailbox_init(void) {
-  chMBObjectInit(
-      &me_obs_mailbox, me_obs_mailbox_buff, ME_OBS_MSG_N_BUFF);
+  chMBObjectInit(&me_obs_mailbox, me_obs_mailbox_buff, ME_OBS_MSG_N_BUFF);
   chPoolObjectInit(&me_obs_buff_pool, sizeof(me_msg_obs_t), NULL);
   chPoolLoadArray(&me_obs_buff_pool, me_obs_buff, ME_OBS_MSG_N_BUFF);
 }
@@ -244,7 +243,8 @@ void platform_sbas_data_mailbox_post(const sbas_raw_data_t *sbas_data) {
   }
 }
 
-int32_t platform_sbas_data_mailbox_fetch(sbas_raw_data_t **msg, uint32_t timeout_ms) {
+int32_t platform_sbas_data_mailbox_fetch(sbas_raw_data_t **msg,
+                                         uint32_t timeout_ms) {
   return chMBFetch(&sbas_data_mailbox, (msg_t *)msg, MS2ST(timeout_ms));
 }
 
