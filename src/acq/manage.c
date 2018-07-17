@@ -95,6 +95,9 @@ static bool track_mask[ARRAY_SIZE(acq_status)];
 /* Refer to SBAS MOPS section A.4.4.1 */
 #define ACQ_SBAS_MSG0_TIMEOUT_SEC (MINUTE_SECS)
 
+/* BDS2 & GAL Unhealthy time out */
+#define ACQ_UNHEALTHY_TIMEOUT_SEC (5 * MINUTE_SECS)
+
 #define MANAGE_ACQ_THREAD_PRIORITY (LOWPRIO)
 #define MANAGE_ACQ_THREAD_STACK (32 * 1024)
 
@@ -138,6 +141,12 @@ static acq_timer_t glo_acq_timer[NUM_SATS_GLO] = {0};
 
 /* The array keeps time when SBAS SV was detected as unhealthy. */
 static acq_timer_t sbas_acq_timer[NUM_SATS_SBAS] = {0};
+
+/* The array keeps time when BDS2 SV was detected as unhealthy */
+static acq_timer_t bds2_acq_timer[NUM_SATS_BDS2] = {0};
+
+/* The array keeps time when GAL SV was detected as unhealthy. */
+static acq_timer_t gal_acq_timer[NUM_SATS_GAL] = {0};
 
 static u8 manage_track_new_acq(const me_gnss_signal_t mesid);
 static void manage_acq(void);
@@ -582,6 +591,14 @@ void check_clear_unhealthy(void) {
     revert_expired_unhealthiness(
         sbas_acq_timer, ARRAY_SIZE(sbas_acq_timer), ACQ_SBAS_MSG0_TIMEOUT_SEC);
   }
+  if (is_bds2_enabled()) {
+    revert_expired_unhealthiness(
+        bds2_acq_timer, ARRAY_SIZE(bds2_acq_timer), ACQ_UNHEALTHY_TIMEOUT_SEC);
+  }
+  if (is_galileo_enabled()) {
+    revert_expired_unhealthiness(
+        gal_acq_timer, ARRAY_SIZE(gal_acq_timer), ACQ_UNHEALTHY_TIMEOUT_SEC);
+  }
 }
 
 void me_settings_setup(void) {
@@ -729,15 +746,13 @@ static void drop_channel(tracker_t *tracker, ch_drop_reason_t reason) {
  * \return
  */
 void restore_acq(const tracker_t *tracker) {
-  u32 flags = tracker->flags;
   me_gnss_signal_t mesid = tracker->mesid;
   acq_status_t *acq = &acq_status[mesid_to_global_index(mesid)];
 
   /* Now restore satellite acq */
   acq->state = ACQ_PRN_ACQUIRING;
   if (IS_GLO(mesid)) {
-    bool glo_health_decoded = (0 != (flags & TRACKER_FLAG_GLO_HEALTH_DECODED));
-    if (glo_health_decoded && (SV_UNHEALTHY == tracker->health) &&
+    if ((SV_UNHEALTHY == tracker->health) &&
         (tracker->glo_orbit_slot != GLO_ORBIT_SLOT_UNKNOWN)) {
       /* GLO acq quarantine timer is only armed for GLO L1OF
          as it is the only direct acq GLO signal we care about in acq module */
@@ -756,6 +771,26 @@ void restore_acq(const tracker_t *tracker) {
       assert(index < ARRAY_SIZE(sbas_acq_timer));
       sbas_acq_timer[index].status = acq;
       piksi_systime_get(&sbas_acq_timer[index].tick); /* channel drop time */
+    }
+  } else if (IS_BDS2(mesid)) {
+    if (SV_UNHEALTHY == tracker->health) {
+      mesid = construct_mesid(CODE_BDS2_B11, mesid.sat);
+      acq = &acq_status[mesid_to_global_index(mesid)];
+      acq->state = ACQ_PRN_UNHEALTHY;
+      u16 index = tracker->mesid.sat - BDS2_FIRST_PRN;
+      assert(index < ARRAY_SIZE(bds2_acq_timer));
+      bds2_acq_timer[index].status = acq;
+      piksi_systime_get(&bds2_acq_timer[index].tick); /* channel drop time */
+    }
+  } else if (IS_GAL(mesid)) {
+    if (SV_UNHEALTHY == tracker->health) {
+      mesid = construct_mesid(CODE_GAL_E1B, mesid.sat);
+      acq = &acq_status[mesid_to_global_index(mesid)];
+      acq->state = ACQ_PRN_UNHEALTHY;
+      u16 index = tracker->mesid.sat - GAL_FIRST_PRN;
+      assert(index < ARRAY_SIZE(gal_acq_timer));
+      gal_acq_timer[index].status = acq;
+      piksi_systime_get(&gal_acq_timer[index].tick); /* channel drop time */
     }
   }
 }
@@ -883,14 +918,9 @@ void sanitize_tracker(tracker_t *tracker, u64 now_ms) {
     return;
   }
 
-  /* Drop GLO if the SV is unhealthy */
-  if (IS_GLO(mesid)) {
-    bool glo_health_decoded = (0 != (flags & TRACKER_FLAG_GLO_HEALTH_DECODED));
-    if (glo_health_decoded && (SV_UNHEALTHY == tracker->health)) {
-      drop_channel(tracker, CH_DROP_REASON_SV_UNHEALTHY);
-      return;
-    }
-  } else if (IS_SBAS(mesid)) {
+  /* Drop the SV if it is unhealthy.
+   * GPS satellites are not dropped for xcorr reason. */
+  if (!IS_GPS(mesid)) {
     if (SV_UNHEALTHY == tracker->health) {
       drop_channel(tracker, CH_DROP_REASON_SV_UNHEALTHY);
       return;
@@ -1220,19 +1250,12 @@ static void manage_tracking_startup(void) {
     acq_status_t *acq =
         &acq_status[mesid_to_global_index(startup_params.mesid)];
 
-    if (ACQ_PRN_TRACKING == acq->state) {
+    if (ACQ_PRN_TRACKING == acq->state || ACQ_PRN_UNHEALTHY == acq->state) {
       continue;
     }
 
     if (IS_SBAS(acq->mesid)) {
       if (constellation_track_count(CONSTELLATION_SBAS) >= SBAS_SV_NUM_LIMIT) {
-        continue;
-      }
-      if (ACQ_PRN_UNHEALTHY == acq->state) {
-        continue;
-      }
-    } else if (IS_GLO(acq->mesid)) {
-      if (ACQ_PRN_UNHEALTHY == acq->state) {
         continue;
       }
     }

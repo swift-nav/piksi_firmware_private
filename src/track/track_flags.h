@@ -39,8 +39,6 @@
 #define TRACKER_FLAG_XCORR_SUSPECT (1 << 11)
 /** Tracker flag: tracker xcorr doppler filter is active */
 #define TRACKER_FLAG_XCORR_FILTER_ACTIVE (1 << 12)
-/** Tracker flag: GLO tracker has decoded health information */
-#define TRACKER_FLAG_GLO_HEALTH_DECODED (1 << 14)
 /** Tracker flag: signal is healthy. */
 #define TRACKER_FLAG_HEALTHY (1 << 15)
 

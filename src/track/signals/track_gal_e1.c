@@ -58,6 +58,14 @@ static void tracker_gal_e1_init(tracker_t *tracker) {
 static void tracker_gal_e1_update(tracker_t *tracker) {
   u32 cflags = tp_tracker_update(tracker, &gal_e1_config);
 
+  /* If GAL SV is marked unhealthy from E1, also drop E7 tracker */
+  if (SV_UNHEALTHY == tracker->health) {
+    me_gnss_signal_t mesid_drop;
+    mesid_drop = construct_mesid(CODE_GAL_E7I, tracker->mesid.sat);
+    tracker_drop_unhealthy(mesid_drop);
+    return;
+  }
+
   bool bit_aligned =
       ((0 != (cflags & TPF_BSYNC_UPD)) && tracker_bit_aligned(tracker));
 

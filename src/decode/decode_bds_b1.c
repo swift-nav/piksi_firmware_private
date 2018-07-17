@@ -117,6 +117,11 @@ static void decoder_bds_b1_process(const decoder_channel_info_t *channel_info,
           }
           dd_d2nav.ephemeris_upd_flag = false;
         }
+        if (shm_ephe_healthy(&dd_d2nav.ephemeris, mesid.code)) {
+          from_decoder.health = SV_HEALTHY;
+        } else {
+          from_decoder.health = SV_UNHEALTHY;
+        }
       } else {
         TOWms = bds_d1_process_subframe(&data->nav_msg, mesid, &dd_d1nav);
         if (TOW_INVALID != TOWms) {
@@ -133,6 +138,11 @@ static void decoder_bds_b1_process(const decoder_channel_info_t *channel_info,
                            r);
           }
           dd_d1nav.ephemeris_upd_flag = false;
+        }
+        if (shm_ephe_healthy(&dd_d1nav.ephemeris, mesid.code)) {
+          from_decoder.health = SV_HEALTHY;
+        } else {
+          from_decoder.health = SV_UNHEALTHY;
         }
       }
       from_decoder.bit_polarity = data->nav_msg.bit_polarity;

@@ -351,6 +351,11 @@ inav_data_type_t parse_inav_word(nav_msg_gal_inav_t *nav_msg,
     return INAV_ALM;
   }
 
+  if (63 == word_type) {
+    log_debug("Dummy msg received from GAL SV: %" PRIu8 "", nav_msg->prn);
+    return INAV_DUMMY;
+  }
+
   return INAV_INCOMPLETE;
 }
 

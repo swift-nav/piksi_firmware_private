@@ -106,6 +106,7 @@ static void decoder_gal_e7_process(const decoder_channel_info_t *channel_info,
         TOWms = (s32)rint(t.tow * 1000);
         from_decoder.TOW_ms = TOWms + 2000;
         from_decoder.bit_polarity = data->bit_polarity;
+        from_decoder.sync_flags = SYNC_POL | SYNC_TOW;
         tracker_data_sync(channel_info->tracking_channel, &from_decoder);
         break;
       case INAV_EPH:
@@ -163,17 +164,30 @@ static void decoder_gal_e7_process(const decoder_channel_info_t *channel_info,
                          "Eph status: %" PRIu8 " ",
                          estat);
         }
+        if (shm_ephe_healthy(&dd.ephemeris, CODE_GAL_E7I)) {
+          from_decoder.health = SV_HEALTHY;
+        } else {
+          from_decoder.health = SV_UNHEALTHY;
+        }
+        from_decoder.sync_flags = SYNC_EPH;
+        tracker_data_sync(channel_info->tracking_channel, &from_decoder);
         break;
       case INAV_UTC:
         log_debug_mesid(channel_info->mesid, "TOW %.3f", t.tow);
         TOWms = (s32)rint(t.tow * 1000);
         from_decoder.TOW_ms = TOWms + 2000;
         from_decoder.bit_polarity = data->bit_polarity;
+        from_decoder.sync_flags = SYNC_POL | SYNC_TOW;
         tracker_data_sync(channel_info->tracking_channel, &from_decoder);
         break;
       case INAV_ALM:
-        break;
       case INAV_INCOMPLETE:
+        break;
+      case INAV_DUMMY:
+        from_decoder.health = SV_UNHEALTHY;
+        from_decoder.sync_flags = SYNC_EPH;
+        tracker_data_sync(channel_info->tracking_channel, &from_decoder);
+        break;
       default:
         break;
     }

@@ -153,7 +153,6 @@ static void update_eph(tracker_t *tracker, const nav_data_sync_t *data_sync) {
  * \param int_ms               Integration period (ms).
  * \param[out] TOW_residual_ns TOW residual [ns]
  * \param[out] decoded_tow     Decoded TOW indicator
- * \param[out] decoded_health  Decoded health indicator
  *
  * \return Updated TOW (ms).
  */
@@ -161,8 +160,7 @@ s32 tracker_tow_update(tracker_t *tracker,
                        s32 current_TOW_ms,
                        u32 int_ms,
                        s32 *TOW_residual_ns,
-                       bool *decoded_tow,
-                       bool *decoded_health) {
+                       bool *decoded_tow) {
   assert(tracker);
   assert(TOW_residual_ns);
   assert(decoded_tow);
@@ -186,7 +184,6 @@ s32 tracker_tow_update(tracker_t *tracker,
 
     if (0 != (flags & SYNC_EPH)) {
       update_eph(tracker, &to_tracker);
-      *decoded_health = true;
     }
   }
 
@@ -395,17 +392,6 @@ void tracker_ambiguity_set(tracker_t *tracker, s8 polarity) {
  */
 u16 tracker_glo_orbit_slot_get(tracker_t *tracker) {
   return tracker->glo_orbit_slot;
-}
-
-/** Get the channel's GLO health information.
- *
- * \param tracker  Tracker channel.
- *
- * \return GLO health information
- */
-health_t tracker_glo_sv_health_get(tracker_t *tracker) {
-  assert(IS_GLO(tracker->mesid));
-  return tracker->health;
 }
 
 /** Output a correlation data message for a tracker channel.

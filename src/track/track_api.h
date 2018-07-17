@@ -33,8 +33,7 @@ s32 tracker_tow_update(tracker_t *tracker,
                        s32 current_TOW_ms,
                        u32 int_ms,
                        s32 *TOW_residual_ns,
-                       bool *decoded_tow,
-                       bool *decoded_health);
+                       bool *decoded_tow);
 void tracker_bit_sync_set(tracker_t *tracker, s8 bit_phase_ref);
 void tracker_bit_sync_update(tracker_t *tracker,
                              u32 int_ms,
