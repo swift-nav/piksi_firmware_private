@@ -245,7 +245,7 @@ static void decode_thread(void *arg) {
       }
     }
 
-    chThdSleep(MS2ST(1));
+    chThdSleep(MS2ST(10));
   }
 }
 
