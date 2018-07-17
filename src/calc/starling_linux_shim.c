@@ -12,6 +12,7 @@
 
 #include <assert.h>
 #include <math.h>
+#include <mqueue.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <string.h>
@@ -58,8 +59,10 @@
  ******************************************************************************/
 
 /* Time-matched observations data-structures. */
-static memory_pool_t time_matched_obs_buff_pool;
-static mailbox_t time_matched_obs_mailbox;
+#define TMO_QUEUE_NAME "time-matched-obs"
+#define TMO_QUEUE_NORMAL_PRIO 0
+#define TMO_QUEUE_HIGH_PRIO 1
+static mqd_t tmo_mqdes;
 
 /* SBAS Data API data-structures. */
 #define SBAS_DATA_N_BUFF 6
@@ -172,46 +175,70 @@ void platform_watchdog_notify_starling_main_thread() {
   watchdog_notify(WD_NOTIFY_STARLING);
 }
 
-void platform_pool_free(void *pool, void *buf) { chPoolFree(pool, buf); }
-
 void platform_time_matched_obs_mailbox_init() {
-  static msg_t time_matched_obs_mailbox_buff[STARLING_OBS_N_BUFF];
-  chMBObjectInit(&time_matched_obs_mailbox,
-                 time_matched_obs_mailbox_buff,
-                 STARLING_OBS_N_BUFF);
-  chPoolObjectInit(&time_matched_obs_buff_pool, sizeof(obss_t), NULL);
-  static obss_t obs_buff[STARLING_OBS_N_BUFF] _CCM;
-  chPoolLoadArray(&time_matched_obs_buff_pool, obs_buff, STARLING_OBS_N_BUFF);
+  struct mq_attr attr;
+
+  attr.mq_maxmsg = STARLING_OBS_N_BUFF;
+  attr.mq_msgsize = sizeof(obss_t);
+  attr.mq_flags = 0;
+
+  /* Blocking / non-blocking? */
+  tmo_mqdes = mq_open(TMO_QUEUE_NAME, O_RDWR | O_CREAT, 0777, &attr);
+
+  /* Temporary queue. As soon as it's closed, it will be removed */
+  mq_unlink(TMO_QUEUE_NAME);
 }
 
-int32_t platform_time_matched_obs_mailbox_post(int32_t msg, uint32_t timeout) {
-  return chMBPost(&time_matched_obs_mailbox, (msg_t)msg, (systime_t)timeout);
+static void platform_get_timeout(const uint32_t timeout_ms, struct timespec *ts) {
+  if (0 != clock_gettime(CLOCK_REALTIME, ts)) {
+    assert(!"clock_gettime");
+  }
+  ts->tv_nsec += timeout_ms * 1e6;
+}
+
+static int32_t platform_tmo_mb_post_internal(int32_t msg, uint32_t timeout_ms, uint32_t msg_prio) {
+  struct timespec ts = {0};
+  platform_get_timeout(timeout_ms, &ts);
+
+  return mq_timedsend(tmo_mqdes, (char *)msg, sizeof(obss_t), msg_prio, &ts);
+}
+
+int32_t platform_time_matched_obs_mailbox_post(int32_t msg, uint32_t timeout_ms) {
+  return platform_tmo_mb_post_internal(msg, timeout_ms, TMO_QUEUE_NORMAL_PRIO);
 }
 
 int32_t platform_time_matched_obs_mailbox_post_ahead(int32_t msg,
-                                                     uint32_t timeout) {
-  return chMBPostAhead(
-      &time_matched_obs_mailbox, (msg_t)msg, (systime_t)timeout);
+                                                     uint32_t timeout_ms) {
+  return platform_tmo_mb_post_internal(msg, timeout_ms, TMO_QUEUE_HIGH_PRIO);
+}
+
+static int platform_mb_fetch(int32_t *msg, uint32_t timeout_ms, mqd_t mqdes) {
+  struct timespec ts = {0};
+  platform_get_timeout(timeout_ms, &ts);
+
+  return mq_timedreceive(mqdes, (char *)msg, sizeof(obss_t), NULL, &ts);
 }
 
 int32_t platform_time_matched_obs_mailbox_fetch(int32_t *msg,
-                                                uint32_t timeout) {
-  return chMBFetch(&time_matched_obs_mailbox, (msg_t *)msg, (systime_t)timeout);
+                                                uint32_t timeout_ms) {
+  return platform_mb_fetch(msg, timeout_ms, tmo_mqdes);
 }
 
 obss_t *platform_time_matched_obs_alloc(void) {
-  return chPoolAlloc(&time_matched_obs_buff_pool);
+  /* Do we want memory pool rather than straight from heap? */
+  return malloc(sizeof(obss_t));
 }
+
 void platform_time_matched_obs_free(obss_t *ptr) {
-  chPoolFree(&time_matched_obs_buff_pool, ptr);
+  free(ptr);
 }
 
 void platform_base_obs_free(obss_t *ptr) {
-  chPoolFree(&base_obs_buff_pool, ptr);
+  free(ptr);
 }
 
-int32_t platform_base_obs_mailbox_fetch(int32_t *msg, uint32_t timeout) {
-  return chMBFetch(&base_obs_mailbox, (msg_t *)msg, (systime_t)timeout);
+int32_t platform_base_obs_mailbox_fetch(int32_t *msg, uint32_t timeout_ms) {
+  return chMBFetch(&base_obs_mailbox, (msg_t *)msg, (systime_t)timeout_ms);
 }
 
 /* ME obs messages */

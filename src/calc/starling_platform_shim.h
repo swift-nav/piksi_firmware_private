@@ -52,27 +52,27 @@ void platform_watchdog_notify_starling_main_thread(void);
 
 /* internal communication between threads */
 void platform_time_matched_obs_mailbox_init(void);
-int32_t platform_time_matched_obs_mailbox_post(int32_t msg, uint32_t timeout);
+int32_t platform_time_matched_obs_mailbox_post(int32_t msg, uint32_t timeout_ms);
 int32_t platform_time_matched_obs_mailbox_post_ahead(int32_t msg,
-                                                     uint32_t timeout);
-int32_t platform_time_matched_obs_mailbox_fetch(int32_t *msg, uint32_t timeout);
+                                                     uint32_t timeout_ms);
+int32_t platform_time_matched_obs_mailbox_fetch(int32_t *msg, uint32_t timeout_ms);
 
 /* memory management for internal communication */
 obss_t *platform_time_matched_obs_alloc(void);
 void platform_time_matched_obs_free(obss_t *ptr);
 
 /* used for receiving obs messages */
-int32_t platform_base_obs_mailbox_fetch(int32_t *msg, uint32_t timeout);
+int32_t platform_base_obs_mailbox_fetch(int32_t *msg, uint32_t timeout_ms);
 void platform_base_obs_free(obss_t *ptr);
 
 /* used for receiving me messages */
-int32_t platform_me_obs_msg_mailbox_fetch(int32_t *msg, uint32_t timeout);
+int32_t platform_me_obs_msg_mailbox_fetch(int32_t *msg, uint32_t timeout_ms);
 void platform_me_obs_msg_free(me_msg_obs_t *ptr);
 
 /* used for receiving sbas messages */
 void platform_sbas_data_mailbox_setup(void);
 void platform_sbas_data_mailbox_post(const sbas_raw_data_t *sbas_data);
-int32_t platform_sbas_data_mailbox_fetch(int32_t *msg, uint32_t timeout);
+int32_t platform_sbas_data_mailbox_fetch(int32_t *msg, uint32_t timeout_ms);
 void platform_sbas_data_free(sbas_raw_data_t *ptr);
 
 #define TIME_MATCHED_OBS_THREAD_STACK (6 * 1024 * 1024)

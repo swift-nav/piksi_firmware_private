@@ -364,7 +364,7 @@ DLIBDIR = $(LIBSBP_BUILDDIR)/src \
 # List all default libraries here
 DLIBS = $(BOARDLIBS) -lsbp-static -lswiftnav -lswiftnav-common \
         -lm -Wl,--start-group -lstdc++ -lc -Wl,--end-group -lfec \
-        -Wl,--build-id=none -lpthread
+        -Wl,--build-id=none -lpthread -lrt
 
 #
 # End of default section
