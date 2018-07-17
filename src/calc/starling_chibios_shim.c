@@ -58,11 +58,22 @@
 /* Time-matched observations data-structures. */
 static memory_pool_t time_matched_obs_buff_pool;
 static mailbox_t time_matched_obs_mailbox;
+static msg_t time_matched_obs_mailbox_buff[STARLING_OBS_N_BUFF];
+static obss_t obs_buff[STARLING_OBS_N_BUFF] _CCM;
 
 /** Keep a mailbox of received base obs so we can process all of them in
  * order even if we have a bursty base station connection. */
-memory_pool_t base_obs_buff_pool;
-mailbox_t base_obs_mailbox;
+static memory_pool_t base_obs_buff_pool;
+static mailbox_t base_obs_mailbox;
+static msg_t base_obs_mailbox_buff[BASE_OBS_N_BUFF];
+static obss_t base_obs_buff[BASE_OBS_N_BUFF] _CCM;
+
+
+/* ME Data API data-structures. */
+static memory_pool_t me_obs_buff_pool;
+static mailbox_t me_obs_mailbox;
+static msg_t me_obs_mailbox_buff[ME_OBS_MSG_N_BUFF];
+static me_msg_obs_t me_obs_buff[ME_OBS_MSG_N_BUFF];
 
 /* SBAS Data API data-structures. */
 #define SBAS_DATA_N_BUFF 6
@@ -130,12 +141,10 @@ void platform_watchdog_notify_starling_main_thread() {
 }
 
 void platform_time_matched_obs_mailbox_init() {
-  static msg_t time_matched_obs_mailbox_buff[STARLING_OBS_N_BUFF];
   chMBObjectInit(&time_matched_obs_mailbox,
                  time_matched_obs_mailbox_buff,
                  STARLING_OBS_N_BUFF);
   chPoolObjectInit(&time_matched_obs_buff_pool, sizeof(obss_t), NULL);
-  static obss_t obs_buff[STARLING_OBS_N_BUFF] _CCM;
   chPoolLoadArray(&time_matched_obs_buff_pool, obs_buff, STARLING_OBS_N_BUFF);
 }
 
@@ -165,11 +174,8 @@ void platform_time_matched_obs_free(obss_t *ptr) {
 /* Base obs */
 
 void platform_base_obs_mailbox_init() {
-  static msg_t base_obs_mailbox_buff[BASE_OBS_N_BUFF];
   chMBObjectInit(&base_obs_mailbox, base_obs_mailbox_buff, BASE_OBS_N_BUFF);
-
   chPoolObjectInit(&base_obs_buff_pool, sizeof(obss_t), NULL);
-  static obss_t base_obs_buff[BASE_OBS_N_BUFF] _CCM;
   chPoolLoadArray(&base_obs_buff_pool, base_obs_buff, BASE_OBS_N_BUFF);
 }
 
@@ -190,12 +196,28 @@ void platform_base_obs_free(obss_t *ptr) {
 }
 
 /* ME obs messages */
-int32_t platform_me_obs_msg_mailbox_fetch(int32_t *msg, uint32_t timeout_ms) {
-  return chMBFetch(&me_obs_msg_mailbox, (msg_t *)msg, MS2ST(timeout_ms));
+
+void platform_me_obs_mailbox_init(void) {
+  chMBObjectInit(
+      &me_obs_mailbox, me_obs_mailbox_buff, ME_OBS_MSG_N_BUFF);
+  chPoolObjectInit(&me_obs_buff_pool, sizeof(me_msg_obs_t), NULL);
+  chPoolLoadArray(&me_obs_buff_pool, me_obs_buff, ME_OBS_MSG_N_BUFF);
 }
 
-void platform_me_obs_msg_free(me_msg_obs_t *ptr) {
-  chPoolFree(&me_obs_msg_buff_pool, ptr);
+int32_t platform_me_obs_mailbox_post(int32_t msg, uint32_t timeout_ms) {
+  return chMBPost(&me_obs_mailbox, (msg_t)msg, MS2ST(timeout_ms));
+}
+
+int32_t platform_me_obs_mailbox_fetch(int32_t *msg, uint32_t timeout_ms) {
+  return chMBFetch(&me_obs_mailbox, (msg_t *)msg, MS2ST(timeout_ms));
+}
+
+me_msg_obs_t *platform_me_obs_alloc(void) {
+  return chPoolAlloc(&me_obs_buff_pool);
+}
+
+void platform_me_obs_free(me_msg_obs_t *ptr) {
+  chPoolFree(&me_obs_buff_pool, ptr);
 }
 
 /* SBAS messages */

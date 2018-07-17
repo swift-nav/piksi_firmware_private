@@ -42,6 +42,7 @@
 #include "simulator.h"
 #include "specan/specan_main.h"
 #include "starling_integration.h"
+#include "starling_platform_shim.h"
 #include "system_monitor/system_monitor.h"
 #include "timing/timing.h"
 #include "track/track_state.h"
@@ -63,7 +64,7 @@ int main(void) {
 
   io_support_init();
   sbp_setup();
-  me_obs_msg_setup();
+  platform_me_obs_mailbox_init();
   settings_setup();
 
   /* Must initialize the Starling API prior to any use. */

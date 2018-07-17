@@ -44,6 +44,7 @@
 #include "settings/settings.h"
 #include "shm/shm.h"
 #include "simulator.h"
+#include "starling_platform_shim.h"
 #include "system_monitor/system_monitor.h"
 #include "timing/timing.h"
 #include "track/track_sid_db.h"
@@ -93,7 +94,7 @@ static void me_post_observations(u8 n,
    * pushing the message into the mailbox then we just wasted an
    * observation from the mailbox for no good reason. */
 
-  me_msg_obs_t *me_msg_obs = chPoolAlloc(&me_obs_msg_buff_pool);
+  me_msg_obs_t *me_msg_obs = platform_me_obs_alloc();
   if (NULL == me_msg_obs) {
     log_error("ME: Could not allocate pool for obs!");
     return;
@@ -117,7 +118,7 @@ static void me_post_observations(u8 n,
     me_msg_obs->obs_time.tow = TOW_UNKNOWN;
   }
 
-  msg_t ret = chMBPost(&me_obs_msg_mailbox, (msg_t)me_msg_obs, TIME_IMMEDIATE);
+  msg_t ret = platform_me_obs_mailbox_post((msg_t)me_msg_obs, TIME_IMMEDIATE);
   if (ret != MSG_OK) {
     /* We could grab another item from the mailbox, discard it and then
      * post our obs again but if the size of the mailbox and the pool
@@ -125,7 +126,7 @@ static void me_post_observations(u8 n,
      * mailbox is full when we handled the case that the pool was full.
      * */
     log_error("ME: Mailbox should have space for obs!");
-    chPoolFree(&me_obs_msg_buff_pool, me_msg_obs);
+    platform_me_obs_free(me_msg_obs);
   }
 }
 

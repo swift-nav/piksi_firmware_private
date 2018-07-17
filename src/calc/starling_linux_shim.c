@@ -70,6 +70,10 @@ static mqd_t tmo_mqdes;
 #define BO_QUEUE_NORMAL_PRIO 0
 static mqd_t bo_mqdes;
 
+#define MEO_QUEUE_NAME "meo-obs"
+#define MEO_QUEUE_NORMAL_PRIO 0
+static mqd_t meo_mqdes;
+
 /* SBAS Data API data-structures. */
 #define SBAS_DATA_N_BUFF 6
 static mailbox_t sbas_data_mailbox;
@@ -279,12 +283,42 @@ void platform_base_obs_free(obss_t *ptr) {
 }
 
 /* ME obs messages */
-int32_t platform_me_obs_msg_mailbox_fetch(int32_t *msg, uint32_t timeout) {
-  return chMBFetch(&me_obs_msg_mailbox, (msg_t *)msg, (systime_t)timeout);
+
+void platform_me_obs_mailbox_init(void) {
+  struct mq_attr attr;
+
+  attr.mq_maxmsg = ME_OBS_MSG_N_BUFF;
+  attr.mq_msgsize = sizeof(me_msg_obs_t);
+  attr.mq_flags = 0;
+
+  /* Blocking / non-blocking? */
+  tmo_mqdes = mq_open(MEO_QUEUE_NAME, O_RDWR | O_CREAT, 0777, &attr);
+
+  /* Temporary queue. As soon as it's closed, it will be removed */
+  mq_unlink(MEO_QUEUE_NAME);
 }
 
-void platform_me_obs_msg_free(me_msg_obs_t *ptr) {
-  chPoolFree(&me_obs_msg_buff_pool, ptr);
+int32_t platform_me_obs_mailbox_post(int32_t msg, uint32_t timeout_ms) {
+  struct timespec ts = {0};
+  platform_get_timeout(timeout_ms, &ts);
+
+  return mq_timedsend(meo_mqdes, (char *)msg, sizeof(me_msg_obs_t), MEO_QUEUE_NORMAL_PRIO, &ts);
+}
+
+int32_t platform_me_obs_mailbox_fetch(int32_t *msg, uint32_t timeout_ms) {
+  struct timespec ts = {0};
+  platform_get_timeout(timeout_ms, &ts);
+
+  return mq_timedreceive(meo_mqdes, (char *)msg, sizeof(me_msg_obs_t), NULL, &ts);
+}
+
+me_msg_obs_t *platform_me_obs_alloc(void) {
+  /* Do we want memory pool rather than straight from heap? */
+  return malloc(sizeof(me_msg_obs_t));
+}
+
+void platform_me_obs_free(me_msg_obs_t *ptr) {
+  free(ptr);
 }
 
 /* SBAS messages */
