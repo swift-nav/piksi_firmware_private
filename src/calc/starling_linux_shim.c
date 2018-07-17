@@ -76,10 +76,8 @@ static mqd_t meo_mqdes;
 
 /* SBAS Data API data-structures. */
 #define SBAS_DATA_N_BUFF 6
-static mailbox_t sbas_data_mailbox;
-static memory_pool_t sbas_data_buff_pool;
-static msg_t sbas_data_mailbox_buff[SBAS_DATA_N_BUFF];
-static sbas_raw_data_t sbas_data_buff[SBAS_DATA_N_BUFF];
+#define SBAS_QUEUE_NAME "sbas-data"
+static mqd_t sbas_mqdes;
 
 /*******************************************************************************
  * Platform Shim Calls
@@ -323,32 +321,42 @@ void platform_me_obs_free(me_msg_obs_t *ptr) {
 
 /* SBAS messages */
 void platform_sbas_data_mailbox_setup(void) {
-  chMBObjectInit(&sbas_data_mailbox, sbas_data_mailbox_buff, SBAS_DATA_N_BUFF);
-  chPoolObjectInit(&sbas_data_buff_pool, sizeof(sbas_raw_data_t), NULL);
-  chPoolLoadArray(&sbas_data_buff_pool, sbas_data_buff, SBAS_DATA_N_BUFF);
+  struct mq_attr attr;
+
+  attr.mq_maxmsg = SBAS_DATA_N_BUFF;
+  attr.mq_msgsize = sizeof(sbas_raw_data_t);
+  attr.mq_flags = 0;
+
+  /* Blocking / non-blocking? */
+  sbas_mqdes = mq_open(SBAS_QUEUE_NAME, O_RDWR | O_CREAT, 0777, &attr);
+
+  /* Temporary queue. As soon as it's closed, it will be removed */
+  mq_unlink(SBAS_QUEUE_NAME);
 }
 
 /* TODO(kevin) error handling by return code for platform functions. */
 void platform_sbas_data_mailbox_post(const sbas_raw_data_t *sbas_data) {
-  sbas_raw_data_t *sbas_data_msg = chPoolAlloc(&sbas_data_buff_pool);
-  if (NULL == sbas_data_msg) {
+  sbas_raw_data_t *msg = malloc(sizeof(sbas_raw_data_t));
+  if (NULL == msg) {
     log_error("ME: Could not allocate pool for SBAS!");
     return;
   }
   assert(sbas_data);
-  *sbas_data_msg = *sbas_data;
-  msg_t ret =
-      chMBPost(&sbas_data_mailbox, (msg_t)sbas_data_msg, TIME_IMMEDIATE);
-  if (ret != MSG_OK) {
+  *msg = *sbas_data;
+
+  if (0 != mq_send(meo_mqdes, (char *)msg, sizeof(sbas_raw_data_t), MEO_QUEUE_NORMAL_PRIO)) {
     log_error("ME: Mailbox should have space for SBAS!");
-    chPoolFree(&sbas_data_buff_pool, sbas_data_msg);
+    free(msg);
   }
 }
 
-int32_t platform_sbas_data_mailbox_fetch(int32_t *msg, uint32_t timeout) {
-  return chMBFetch(&sbas_data_mailbox, (msg_t *)msg, (systime_t)timeout);
+int32_t platform_sbas_data_mailbox_fetch(int32_t *msg, uint32_t timeout_ms) {
+  struct timespec ts = {0};
+  platform_get_timeout(timeout_ms, &ts);
+
+  return mq_timedreceive(meo_mqdes, (char *)msg, sizeof(sbas_raw_data_t), NULL, &ts);
 }
 
 void platform_sbas_data_free(sbas_raw_data_t *ptr) {
-  chPoolFree(&sbas_data_buff_pool, ptr);
+  free(ptr);
 }
