@@ -498,6 +498,7 @@ static void ephemeris_msg_callback(u16 sender_id,
                                    u8 msg[],
                                    void *context) {
   (void)context;
+  (void)sender_id;
 
   if (len != sizeof(msg_ephemeris_gps_t) &&
       len != sizeof(msg_ephemeris_glo_t) &&
@@ -518,7 +519,9 @@ static void ephemeris_msg_callback(u16 sender_id,
     return;
   }
 
+  /* storing of received ephemeris into NDB disabled for now, pending testing
   ndb_ephemeris_store(&e, NDB_DS_SBP, sender_id);
+  */
 }
 
 void ephemeris_setup(void) { sbp_ephe_reg_cbks(ephemeris_msg_callback); }
