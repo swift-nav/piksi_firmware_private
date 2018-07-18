@@ -273,7 +273,6 @@ bool tracker_init(const u8 id,
     tracker->updated_once = false;
     tracker->cp_sync.polarity = BIT_POLARITY_UNKNOWN;
     tracker->cp_sync.synced = false;
-    tracker->health = SV_HEALTHY;
 
     tracker->bit_polarity = BIT_POLARITY_UNKNOWN;
     tracker->glo_orbit_slot = glo_orbit_slot;

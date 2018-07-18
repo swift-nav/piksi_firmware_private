@@ -233,7 +233,9 @@ void tracker_drop_unhealthy(const me_gnss_signal_t mesid) {
   if (!(tracker->busy)) {
     return;
   }
-  tracker->health = SV_UNHEALTHY;
+
+  tracker->flags |= TRACKER_FLAG_UNHEALTHY;
+  tracker_flag_drop(tracker, CH_DROP_REASON_SV_UNHEALTHY);
 }
 
 /**

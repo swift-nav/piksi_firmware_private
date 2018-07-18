@@ -175,7 +175,7 @@ static void decoder_gal_e1_process(const decoder_channel_info_t *channel_info,
         } else {
           from_decoder.health = SV_UNHEALTHY;
         }
-        from_decoder.sync_flags = SYNC_EPH;
+        from_decoder.sync_flags = SYNC_POL | SYNC_EPH;
         tracker_data_sync(channel_info->tracking_channel, &from_decoder);
         break;
       case INAV_UTC:

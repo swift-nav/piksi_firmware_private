@@ -751,9 +751,14 @@ void restore_acq(const tracker_t *tracker) {
 
   /* Now restore satellite acq */
   acq->state = ACQ_PRN_ACQUIRING;
+
+  if (0 == (tracker->flags & TRACKER_FLAG_UNHEALTHY)) {
+    return;
+  }
+
+  /* Set quarantine timer for unhealthy SVs */
   if (IS_GLO(mesid)) {
-    if ((SV_UNHEALTHY == tracker->health) &&
-        (tracker->glo_orbit_slot != GLO_ORBIT_SLOT_UNKNOWN)) {
+    if (tracker->glo_orbit_slot != GLO_ORBIT_SLOT_UNKNOWN) {
       /* GLO acq quarantine timer is only armed for GLO L1OF
          as it is the only direct acq GLO signal we care about in acq module */
       mesid = construct_mesid(CODE_GLO_L1OF, mesid.sat);
@@ -765,33 +770,27 @@ void restore_acq(const tracker_t *tracker) {
       piksi_systime_get(&glo_acq_timer[index].tick); /* channel drop time */
     }
   } else if (IS_SBAS(mesid)) {
-    if (SV_UNHEALTHY == tracker->health) {
-      acq->state = ACQ_PRN_UNHEALTHY;
-      u16 index = tracker->mesid.sat - SBAS_FIRST_PRN;
-      assert(index < ARRAY_SIZE(sbas_acq_timer));
-      sbas_acq_timer[index].status = acq;
-      piksi_systime_get(&sbas_acq_timer[index].tick); /* channel drop time */
-    }
+    acq->state = ACQ_PRN_UNHEALTHY;
+    u16 index = tracker->mesid.sat - SBAS_FIRST_PRN;
+    assert(index < ARRAY_SIZE(sbas_acq_timer));
+    sbas_acq_timer[index].status = acq;
+    piksi_systime_get(&sbas_acq_timer[index].tick); /* channel drop time */
   } else if (IS_BDS2(mesid)) {
-    if (SV_UNHEALTHY == tracker->health) {
-      mesid = construct_mesid(CODE_BDS2_B11, mesid.sat);
-      acq = &acq_status[mesid_to_global_index(mesid)];
-      acq->state = ACQ_PRN_UNHEALTHY;
-      u16 index = tracker->mesid.sat - BDS2_FIRST_PRN;
-      assert(index < ARRAY_SIZE(bds2_acq_timer));
-      bds2_acq_timer[index].status = acq;
-      piksi_systime_get(&bds2_acq_timer[index].tick); /* channel drop time */
-    }
+    mesid = construct_mesid(CODE_BDS2_B11, mesid.sat);
+    acq = &acq_status[mesid_to_global_index(mesid)];
+    acq->state = ACQ_PRN_UNHEALTHY;
+    u16 index = tracker->mesid.sat - BDS2_FIRST_PRN;
+    assert(index < ARRAY_SIZE(bds2_acq_timer));
+    bds2_acq_timer[index].status = acq;
+    piksi_systime_get(&bds2_acq_timer[index].tick); /* channel drop time */
   } else if (IS_GAL(mesid)) {
-    if (SV_UNHEALTHY == tracker->health) {
-      mesid = construct_mesid(CODE_GAL_E1B, mesid.sat);
-      acq = &acq_status[mesid_to_global_index(mesid)];
-      acq->state = ACQ_PRN_UNHEALTHY;
-      u16 index = tracker->mesid.sat - GAL_FIRST_PRN;
-      assert(index < ARRAY_SIZE(gal_acq_timer));
-      gal_acq_timer[index].status = acq;
-      piksi_systime_get(&gal_acq_timer[index].tick); /* channel drop time */
-    }
+    mesid = construct_mesid(CODE_GAL_E1B, mesid.sat);
+    acq = &acq_status[mesid_to_global_index(mesid)];
+    acq->state = ACQ_PRN_UNHEALTHY;
+    u16 index = tracker->mesid.sat - GAL_FIRST_PRN;
+    assert(index < ARRAY_SIZE(gal_acq_timer));
+    gal_acq_timer[index].status = acq;
+    piksi_systime_get(&gal_acq_timer[index].tick); /* channel drop time */
   }
 }
 
@@ -916,15 +915,6 @@ void sanitize_tracker(tracker_t *tracker, u64 now_ms) {
   if (cn0_drop_ms > TRACK_DROP_CN0_MS) {
     drop_channel(tracker, CH_DROP_REASON_LOW_CN0);
     return;
-  }
-
-  /* Drop the SV if it is unhealthy.
-   * GPS satellites are not dropped for xcorr reason. */
-  if (!IS_GPS(mesid)) {
-    if (SV_UNHEALTHY == tracker->health) {
-      drop_channel(tracker, CH_DROP_REASON_SV_UNHEALTHY);
-      return;
-    }
   }
 }
 

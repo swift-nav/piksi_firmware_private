@@ -59,7 +59,7 @@ static void tracker_gal_e1_update(tracker_t *tracker) {
   u32 cflags = tp_tracker_update(tracker, &gal_e1_config);
 
   /* If GAL SV is marked unhealthy from E1, also drop E7 tracker */
-  if (SV_UNHEALTHY == tracker->health) {
+  if (0 != (tracker->flags & TRACKER_FLAG_UNHEALTHY)) {
     me_gnss_signal_t mesid_drop;
     mesid_drop = construct_mesid(CODE_GAL_E7I, tracker->mesid.sat);
     tracker_drop_unhealthy(mesid_drop);
