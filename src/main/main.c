@@ -64,7 +64,7 @@ int main(void) {
 
   io_support_init();
   sbp_setup();
-  platform_me_obs_mailbox_init();
+  platform_mailbox_init(MB_ID_ME_OBS);
   settings_setup();
 
   /* Must initialize the Starling API prior to any use. */

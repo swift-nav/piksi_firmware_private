@@ -275,7 +275,7 @@ static void update_obss(uncollapsed_obss_t *new_uncollapsed_obss) {
 
       base_obss.has_pos = 1;
 
-      obss_t *new_base_obs = platform_base_obs_alloc();
+      obss_t *new_base_obs = platform_mailbox_alloc(MB_ID_BASE_OBS);
       if (new_base_obs == NULL) {
         log_warn(
             "Base obs pool full, discarding base obs at: wn: %d, tow: %.2f",
@@ -287,10 +287,10 @@ static void update_obss(uncollapsed_obss_t *new_uncollapsed_obss) {
       *new_base_obs = base_obss;
 
       const msg_t post_ret =
-          platform_base_obs_mailbox_post(new_base_obs, TIME_IMMEDIATE);
+          platform_mailbox_post(MB_ID_BASE_OBS, new_base_obs, TIME_IMMEDIATE);
       if (post_ret != MSG_OK) {
         log_error("Base obs mailbox should have space!");
-        platform_base_obs_free(new_base_obs);
+        platform_mailbox_free(MB_ID_BASE_OBS, new_base_obs);
       }
     } else {
       base_obss.has_pos = 0;
@@ -544,7 +544,7 @@ void base_obs_setup() {
   // The base obs can optionally enable RAIM exclusion algorithm.
   SETTING("solution", "disable_raim", disable_raim, TYPE_BOOL);
 
-  platform_base_obs_mailbox_init();
+  platform_mailbox_init(MB_ID_BASE_OBS);
 
   /* Register callbacks on base station messages. */
   static sbp_msg_callbacks_node_t base_pos_llh_node;

@@ -195,12 +195,13 @@ static void post_observations(u8 n,
    * pushing the message into the mailbox then we just wasted an
    * observation from the mailbox for no good reason. */
 
-  obss_t *obs = platform_time_matched_obs_alloc();
+  obss_t *obs = platform_mailbox_alloc(MB_ID_TIME_MATCHED_OBS);
   msg_t ret;
   if (obs == NULL) {
     /* Pool is empty, grab a buffer from the mailbox instead, i.e.
      * overwrite the oldest item in the queue. */
-    ret = platform_time_matched_obs_mailbox_fetch(&obs, TIME_IMMEDIATE);
+    ret = platform_mailbox_fetch(
+        MB_ID_TIME_MATCHED_OBS, (void **)&obs, TIME_IMMEDIATE);
     if (ret != MSG_OK) {
       log_error("Pool full and mailbox empty!");
     }
@@ -227,7 +228,7 @@ static void post_observations(u8 n,
       obs->soln.velocity_valid = 0;
     }
 
-    ret = platform_time_matched_obs_mailbox_post(obs, TIME_IMMEDIATE);
+    ret = platform_mailbox_post(MB_ID_TIME_MATCHED_OBS, obs, TIME_IMMEDIATE);
     if (ret != MSG_OK) {
       /* We could grab another item from the mailbox, discard it and then
        * post our obs again but if the size of the mailbox and the pool
@@ -235,7 +236,7 @@ static void post_observations(u8 n,
        * mailbox is full when we handled the case that the pool was full.
        * */
       log_error("Mailbox should have space!");
-      platform_time_matched_obs_free(obs);
+      platform_mailbox_free(MB_ID_TIME_MATCHED_OBS, obs);
     } else {
       last_time_matched_rover_obs_post = *t;
     }
@@ -443,13 +444,13 @@ static void time_matched_obs_thread(void *arg) {
 
   while (1) {
     base_obs = NULL;
-    const msg_t fetch_ret =
-        platform_base_obs_mailbox_fetch(&base_obs, DGNSS_TIMEOUT_MS);
+    const msg_t fetch_ret = platform_mailbox_fetch(
+        MB_ID_BASE_OBS, (void **)&base_obs, DGNSS_TIMEOUT_MS);
 
     if (fetch_ret != MSG_OK) {
       if (NULL != base_obs) {
         log_error("Base obs mailbox fetch failed with %" PRIi32, fetch_ret);
-        platform_base_obs_free(base_obs);
+        platform_mailbox_free(MB_ID_BASE_OBS, base_obs);
       }
       continue;
     }
@@ -461,7 +462,7 @@ static void time_matched_obs_thread(void *arg) {
     }
 
     base_obss_copy = *base_obs;
-    platform_base_obs_free(base_obs);
+    platform_mailbox_free(MB_ID_BASE_OBS, base_obs);
 
     /* Check if the el mask has changed and update */
     platform_mutex_lock(&time_matched_filter_manager_lock);
@@ -480,11 +481,12 @@ static void time_matched_obs_thread(void *arg) {
     obss_t *obss;
     /* Look through the mailbox (FIFO queue) of locally generated observations
      * looking for one that matches in time. */
-    while (platform_time_matched_obs_mailbox_fetch(&obss, TIME_IMMEDIATE) ==
-           MSG_OK) {
+    while (platform_mailbox_fetch(MB_ID_TIME_MATCHED_OBS,
+                                  (void **)&obss,
+                                  TIME_IMMEDIATE) == MSG_OK) {
       if (dgnss_soln_mode == STARLING_SOLN_MODE_NO_DGNSS) {
         /* Not doing any DGNSS.  Toss the obs away. */
-        platform_time_matched_obs_free(obss);
+        platform_mailbox_free(MB_ID_TIME_MATCHED_OBS, obss);
         continue;
       }
 
@@ -511,7 +513,7 @@ static void time_matched_obs_thread(void *arg) {
         }
         send_solution_time_matched(p_solution, &base_obss_copy, obss);
 
-        platform_time_matched_obs_free(obss);
+        platform_mailbox_free(MB_ID_TIME_MATCHED_OBS, obss);
         break;
       } else {
         if (dt > 0) {
@@ -532,19 +534,19 @@ static void time_matched_obs_thread(void *arg) {
               base_obss_copy.tor.wn,
               base_obss_copy.tor.tow);
           /* Return the buffer to the mailbox so we can try it again later. */
-          const msg_t post_ret = platform_time_matched_obs_mailbox_post_ahead(
-              obss, TIME_IMMEDIATE);
+          const msg_t post_ret = platform_mailbox_post_ahead(
+              MB_ID_TIME_MATCHED_OBS, obss, TIME_IMMEDIATE);
           if (post_ret != MSG_OK) {
             /* Something went wrong with returning it to the buffer, better just
              * free it and carry on. */
             log_warn("Obs Matching: mailbox full, discarding observation!");
-            platform_time_matched_obs_free(obss);
+            platform_mailbox_free(MB_ID_TIME_MATCHED_OBS, obss);
           }
           break;
         } else {
           /* Time of base obs later than time of local obs,
            * keep moving through the mailbox. */
-          platform_time_matched_obs_free(obss);
+          platform_mailbox_free(MB_ID_TIME_MATCHED_OBS, obss);
         }
       }
     }
@@ -554,7 +556,7 @@ static void time_matched_obs_thread(void *arg) {
 static void init_filters_and_settings(void) {
   last_time_matched_rover_obs_post = GPS_TIME_UNKNOWN;
 
-  platform_time_matched_obs_mailbox_init();
+  platform_mailbox_init(MB_ID_TIME_MATCHED_OBS);
 
   platform_mutex_lock(&time_matched_filter_manager_lock);
   time_matched_filter_manager = create_filter_manager_rtk();
@@ -595,7 +597,8 @@ static void process_any_sbas_messages(void) {
   msg_t ret = MSG_OK;
   while (MSG_OK == ret) {
     sbas_raw_data_t *sbas_data = NULL;
-    ret = platform_sbas_data_mailbox_fetch(&sbas_data, TIME_IMMEDIATE);
+    ret = platform_mailbox_fetch(
+        MB_ID_SBAS_DATA, (void **)&sbas_data, TIME_IMMEDIATE);
     if (MSG_OK == ret) {
       /* We have successfully received SBAS data, forward on to the
        * filter managers. */
@@ -608,7 +611,7 @@ static void process_any_sbas_messages(void) {
     /* Under any circumstances, if the message pointer was assigned to, it
      * must be released back to the pool. */
     if (NULL != sbas_data) {
-      platform_sbas_data_free(sbas_data);
+      platform_mailbox_free(MB_ID_SBAS_DATA, sbas_data);
     }
   }
 }
@@ -644,11 +647,12 @@ static void starling_thread(void) {
     process_any_sbas_messages();
 
     me_msg_obs_t *me_msg = NULL;
-    ret = platform_me_obs_mailbox_fetch(&me_msg, DGNSS_TIMEOUT_MS);
+    ret = platform_mailbox_fetch(
+        MB_ID_ME_OBS, (void **)&me_msg, DGNSS_TIMEOUT_MS);
     if (ret != MSG_OK) {
       if (NULL != me_msg) {
         log_error("STARLING: mailbox fetch failed with %" PRIi32, ret);
-        platform_me_obs_free(me_msg);
+        platform_mailbox_free(MB_ID_ME_OBS, me_msg);
       }
       continue;
     }
@@ -675,7 +679,7 @@ static void starling_thread(void) {
      * somewhere else. */
     if (starling_integration_simulation_enabled()) {
       starling_integration_simulation_run(me_msg);
-      platform_me_obs_free(me_msg);
+      platform_mailbox_free(MB_ID_ME_OBS, me_msg);
       continue;
     }
 
@@ -684,7 +688,7 @@ static void starling_thread(void) {
     /* If there are no messages, or the observation time is invalid,
      * we send an empty solution. */
     if (me_msg->size == 0 || !gps_time_valid(&epoch_time)) {
-      platform_me_obs_free(me_msg);
+      platform_mailbox_free(MB_ID_ME_OBS, me_msg);
       send_solution_low_latency(NULL, NULL, &epoch_time, nav_meas, 0);
       continue;
     }
@@ -693,7 +697,7 @@ static void starling_thread(void) {
       /* When we change the solution rate down, we sometimes can round the
        * time to an epoch earlier than the previous one processed, in that
        * case we want to ignore any epochs with an earlier timestamp */
-      platform_me_obs_free(me_msg);
+      platform_mailbox_free(MB_ID_ME_OBS, me_msg);
       continue;
     }
 
@@ -716,7 +720,7 @@ static void starling_thread(void) {
 
     obs_time = me_msg->obs_time;
 
-    platform_me_obs_free(me_msg);
+    platform_mailbox_free(MB_ID_ME_OBS, me_msg);
 
     ionosphere_t i_params;
     /* get iono parameters if available, otherwise use default ones */
@@ -868,7 +872,7 @@ void starling_initialize_api(void) {
   /* It is invalid to call more than once. */
   assert(!is_starling_api_initialized);
 
-  platform_sbas_data_mailbox_init();
+  platform_mailbox_init(MB_ID_SBAS_DATA);
 
   is_starling_api_initialized = true;
 }
@@ -878,17 +882,18 @@ void starling_add_sbas_data(const sbas_raw_data_t *sbas_data,
                             const size_t n_sbas_data) {
   assert(is_starling_api_initialized);
   for (size_t i = 0; i < n_sbas_data; ++i) {
-    sbas_raw_data_t *sbas_data_msg = platform_sbas_data_alloc();
+    sbas_raw_data_t *sbas_data_msg = platform_mailbox_alloc(MB_ID_SBAS_DATA);
     if (NULL == sbas_data_msg) {
       log_error("platform_sbas_data_alloc() failed!");
       continue;
     }
     assert(sbas_data);
     *sbas_data_msg = *sbas_data;
-    msg_t ret = platform_sbas_data_mailbox_post(sbas_data_msg, TIME_IMMEDIATE);
+    msg_t ret =
+        platform_mailbox_post(MB_ID_SBAS_DATA, sbas_data_msg, TIME_IMMEDIATE);
     if (ret != MSG_OK) {
       log_error("platform_sbas_data_mailbox_post() failed!");
-      platform_sbas_data_free(sbas_data_msg);
+      platform_mailbox_free(MB_ID_SBAS_DATA, sbas_data_msg);
     }
   }
 }

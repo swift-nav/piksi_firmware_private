@@ -58,36 +58,27 @@
  * Local Variables
  ******************************************************************************/
 
+#define QUEUE_NORMAL_PRIO 0
+#define QUEUE_HIGH_PRIO 1
+
 /* Time-matched observations data-structures. */
 #define TMO_QUEUE_NAME "time-matched-obs"
-#define TMO_QUEUE_NORMAL_PRIO 0
-#define TMO_QUEUE_HIGH_PRIO 1
-static mqd_t tmo_mqdes;
 
 /** Keep a mailbox of received base obs so we can process all of them in
  * order even if we have a bursty base station connection. */
 #define BO_QUEUE_NAME "base-obs"
-#define BO_QUEUE_NORMAL_PRIO 0
-static mqd_t bo_mqdes;
 
 #define MEO_QUEUE_NAME "meo-obs"
-#define MEO_QUEUE_NORMAL_PRIO 0
-static mqd_t meo_mqdes;
 
 /* SBAS Data API data-structures. */
 #define SBAS_DATA_N_BUFF 6
-#define SBAS_QUEUE_NAME "sbas-data"
-static mqd_t sbas_mqdes;
+#define SBAS_DATA_QUEUE_NAME "sbas-data"
 
 /*******************************************************************************
  * Platform Shim Calls
  ******************************************************************************/
 
-struct platform_thread_info_s {
-  pthread_t id;
-  size_t size;
-  int prio;
-};
+/* Mutex */
 
 void platform_mutex_lock(void *mtx) {
   pthread_mutex_lock((pthread_mutex_t *)mtx);
@@ -96,6 +87,14 @@ void platform_mutex_lock(void *mtx) {
 void platform_mutex_unlock(void *mtx) {
   pthread_mutex_unlock((pthread_mutex_t *)mtx);
 }
+
+/* Threading */
+
+struct platform_thread_info_s {
+  pthread_t id;
+  size_t size;
+  int prio;
+};
 
 /* phtread_create expects a pointer to type (void *)()(void *).
  * starling routines are of type (void)()(void *) */
@@ -169,6 +168,8 @@ void platform_thread_set_name(const char *name) {
   pthread_setname_np(pthread_self(), name);
 }
 
+/* NDB */
+
 /* Return true on success. */
 bool platform_try_read_ephemeris(const gnss_signal_t sid, ephemeris_t *eph) {
   return (ndb_ephemeris_read(sid, eph) == NDB_ERR_NONE);
@@ -180,23 +181,50 @@ bool platform_try_read_iono_corr(ionosphere_t *params) {
 }
 
 void platform_watchdog_notify_starling_main_thread() {
+  /* TODO */
   watchdog_notify(WD_NOTIFY_STARLING);
 }
 
-/* Time Matchied Obs */
+/* Mailbox */
 
-void platform_time_matched_obs_mailbox_init() {
+typedef struct mailbox_info_s {
+  mqd_t mailbox;
+  char *mailbox_name;
+  uint8_t mailbox_len;
+  size_t item_size;
+} mailbox_info_t;
+
+static mailbox_info_t mailbox_info[MB_ID_COUNT] =
+    {[MB_ID_TIME_MATCHED_OBS] = {0,
+                                 TMO_QUEUE_NAME,
+                                 STARLING_OBS_N_BUFF,
+                                 sizeof(obss_t *)},
+     [MB_ID_BASE_OBS] = {0,
+                         BO_QUEUE_NAME,
+                         BASE_OBS_N_BUFF,
+                         sizeof(obss_t *)},
+     [MB_ID_ME_OBS] = {0,
+                       MEO_QUEUE_NAME,
+                       ME_OBS_MSG_N_BUFF,
+                       sizeof(me_msg_obs_t *)},
+     [MB_ID_SBAS_DATA] = {0,
+                          SBAS_DATA_QUEUE_NAME,
+                          SBAS_DATA_N_BUFF,
+                          sizeof(sbas_raw_data_t *)}};
+
+void platform_mailbox_init(mailbox_id_t id) {
   struct mq_attr attr;
 
-  attr.mq_maxmsg = STARLING_OBS_N_BUFF;
-  attr.mq_msgsize = sizeof(obss_t *);
+  attr.mq_maxmsg = mailbox_info[id].mailbox_len;
+  attr.mq_msgsize = mailbox_info[id].item_size;
   attr.mq_flags = 0;
 
   /* Blocking / non-blocking? */
-  tmo_mqdes = mq_open(TMO_QUEUE_NAME, O_RDWR | O_CREAT, 0777, &attr);
+  mailbox_info[id].mailbox =
+      mq_open(mailbox_info[id].mailbox_name, O_RDWR | O_CREAT, 0777, &attr);
 
   /* Temporary queue. As soon as it's closed, it will be removed */
-  mq_unlink(TMO_QUEUE_NAME);
+  mq_unlink(mailbox_info[id].mailbox_name);
 }
 
 static void platform_get_timeout(const uint32_t timeout_ms,
@@ -207,160 +235,49 @@ static void platform_get_timeout(const uint32_t timeout_ms,
   ts->tv_nsec += timeout_ms * 1e6;
 }
 
-static int32_t platform_tmo_mb_post_internal(obss_t *msg,
-                                             uint32_t timeout_ms,
-                                             uint32_t msg_prio) {
+static int32_t platform_mailbox_post_internal(mailbox_id_t id,
+                                              void *msg,
+                                              uint32_t timeout_ms,
+                                              uint32_t msg_prio) {
   struct timespec ts = {0};
   platform_get_timeout(timeout_ms, &ts);
 
-  return mq_timedsend(tmo_mqdes, (char *)&msg, sizeof(obss_t *), msg_prio, &ts);
-}
-
-int32_t platform_time_matched_obs_mailbox_post(obss_t *msg,
-                                               uint32_t timeout_ms) {
-  return platform_tmo_mb_post_internal(msg, timeout_ms, TMO_QUEUE_NORMAL_PRIO);
-}
-
-int32_t platform_time_matched_obs_mailbox_post_ahead(obss_t *msg,
-                                                     uint32_t timeout_ms) {
-  return platform_tmo_mb_post_internal(msg, timeout_ms, TMO_QUEUE_HIGH_PRIO);
-}
-
-int32_t platform_time_matched_obs_mailbox_fetch(obss_t **msg,
-                                                uint32_t timeout_ms) {
-  struct timespec ts = {0};
-  platform_get_timeout(timeout_ms, &ts);
-
-  return mq_timedreceive(tmo_mqdes, (char *)*msg, sizeof(obss_t *), NULL, &ts);
-}
-
-obss_t *platform_time_matched_obs_alloc(void) {
-  /* Do we want memory pool rather than straight from heap? */
-  return malloc(sizeof(obss_t));
-}
-
-void platform_time_matched_obs_free(obss_t *ptr) { free(ptr); }
-
-/* Base obs */
-
-void platform_base_obs_mailbox_init() {
-  struct mq_attr attr;
-
-  attr.mq_maxmsg = BASE_OBS_N_BUFF;
-  attr.mq_msgsize = sizeof(obss_t *);
-  attr.mq_flags = 0;
-
-  /* Blocking / non-blocking? */
-  tmo_mqdes = mq_open(BO_QUEUE_NAME, O_RDWR | O_CREAT, 0777, &attr);
-
-  /* Temporary queue. As soon as it's closed, it will be removed */
-  mq_unlink(BO_QUEUE_NAME);
-}
-
-int32_t platform_base_obs_mailbox_post(obss_t *msg, uint32_t timeout_ms) {
-  struct timespec ts = {0};
-  platform_get_timeout(timeout_ms, &ts);
-
-  return mq_timedsend(
-      bo_mqdes, (char *)&msg, sizeof(obss_t *), BO_QUEUE_NORMAL_PRIO, &ts);
-}
-
-int32_t platform_base_obs_mailbox_fetch(obss_t **msg, uint32_t timeout_ms) {
-  struct timespec ts = {0};
-  platform_get_timeout(timeout_ms, &ts);
-
-  return mq_timedreceive(bo_mqdes, (char *)*msg, sizeof(obss_t *), NULL, &ts);
-}
-
-obss_t *platform_base_obs_alloc(void) {
-  /* Do we want memory pool rather than straight from heap? */
-  return malloc(sizeof(obss_t));
-}
-
-void platform_base_obs_free(obss_t *ptr) { free(ptr); }
-
-/* ME obs messages */
-
-void platform_me_obs_mailbox_init(void) {
-  struct mq_attr attr;
-
-  attr.mq_maxmsg = ME_OBS_MSG_N_BUFF;
-  attr.mq_msgsize = sizeof(me_msg_obs_t *);
-  attr.mq_flags = 0;
-
-  /* Blocking / non-blocking? */
-  tmo_mqdes = mq_open(MEO_QUEUE_NAME, O_RDWR | O_CREAT, 0777, &attr);
-
-  /* Temporary queue. As soon as it's closed, it will be removed */
-  mq_unlink(MEO_QUEUE_NAME);
-}
-
-int32_t platform_me_obs_mailbox_post(me_msg_obs_t *msg, uint32_t timeout_ms) {
-  struct timespec ts = {0};
-  platform_get_timeout(timeout_ms, &ts);
-
-  return mq_timedsend(meo_mqdes,
-                      (char *)msg,
-                      sizeof(me_msg_obs_t *),
-                      MEO_QUEUE_NORMAL_PRIO,
+  return mq_timedsend(mailbox_info[id].mailbox,
+                      (char *)&msg,
+                      mailbox_info[id].item_size,
+                      msg_prio,
                       &ts);
 }
 
-int32_t platform_me_obs_mailbox_fetch(me_msg_obs_t **msg, uint32_t timeout_ms) {
+int32_t platform_mailbox_post(mailbox_id_t id, void *msg, uint32_t timeout_ms) {
+  return platform_mailbox_post_internal(id, msg, timeout_ms, QUEUE_NORMAL_PRIO);
+}
+
+int32_t platform_mailbox_post_ahead(mailbox_id_t id,
+                                    void *msg,
+                                    uint32_t timeout_ms) {
+  return platform_mailbox_post_internal(id, msg, timeout_ms, QUEUE_HIGH_PRIO);
+}
+
+int32_t platform_mailbox_fetch(mailbox_id_t id,
+                               void **msg,
+                               uint32_t timeout_ms) {
   struct timespec ts = {0};
   platform_get_timeout(timeout_ms, &ts);
 
-  return mq_timedreceive(
-      meo_mqdes, (char *)msg, sizeof(me_msg_obs_t *), NULL, &ts);
+  return mq_timedreceive(mailbox_info[id].mailbox,
+                         (char *)*msg,
+                         mailbox_info[id].item_size,
+                         NULL,
+                         &ts);
 }
 
-me_msg_obs_t *platform_me_obs_alloc(void) {
+void *platform_mailbox_alloc(mailbox_id_t id) {
   /* Do we want memory pool rather than straight from heap? */
-  return malloc(sizeof(me_msg_obs_t));
+  return malloc(mailbox_info[id].item_size);
 }
 
-void platform_me_obs_free(me_msg_obs_t *ptr) { free(ptr); }
-
-/* SBAS messages */
-
-void platform_sbas_data_mailbox_init(void) {
-  struct mq_attr attr;
-
-  attr.mq_maxmsg = SBAS_DATA_N_BUFF;
-  attr.mq_msgsize = sizeof(sbas_raw_data_t *);
-  attr.mq_flags = 0;
-
-  /* Blocking / non-blocking? */
-  sbas_mqdes = mq_open(SBAS_QUEUE_NAME, O_RDWR | O_CREAT, 0777, &attr);
-
-  /* Temporary queue. As soon as it's closed, it will be removed */
-  mq_unlink(SBAS_QUEUE_NAME);
+void platform_mailbox_free(mailbox_id_t id, void *ptr) {
+  (void)id;
+  free(ptr);
 }
-
-int32_t platform_sbas_data_mailbox_post(sbas_raw_data_t *msg,
-                                        uint32_t timeout_ms) {
-  struct timespec ts = {0};
-  platform_get_timeout(timeout_ms, &ts);
-
-  return mq_timedsend(meo_mqdes,
-                      (char *)msg,
-                      sizeof(sbas_raw_data_t *),
-                      MEO_QUEUE_NORMAL_PRIO,
-                      &ts);
-}
-
-int32_t platform_sbas_data_mailbox_fetch(sbas_raw_data_t **msg,
-                                         uint32_t timeout_ms) {
-  struct timespec ts = {0};
-  platform_get_timeout(timeout_ms, &ts);
-
-  return mq_timedreceive(
-      meo_mqdes, (char *)*msg, sizeof(sbas_raw_data_t *), NULL, &ts);
-}
-
-sbas_raw_data_t *platform_sbas_data_alloc(void) {
-  /* Do we want memory pool rather than straight from heap? */
-  return malloc(sizeof(sbas_raw_data_t));
-}
-
-void platform_sbas_data_free(sbas_raw_data_t *ptr) { free(ptr); }

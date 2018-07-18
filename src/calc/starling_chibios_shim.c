@@ -56,34 +56,34 @@
  ******************************************************************************/
 
 /* Time-matched observations data-structures. */
-static memory_pool_t time_matched_obs_buff_pool;
-static mailbox_t time_matched_obs_mailbox;
 static msg_t time_matched_obs_mailbox_buff[STARLING_OBS_N_BUFF];
 static obss_t obs_buff[STARLING_OBS_N_BUFF] _CCM;
 
 /** Keep a mailbox of received base obs so we can process all of them in
  * order even if we have a bursty base station connection. */
-static memory_pool_t base_obs_buff_pool;
-static mailbox_t base_obs_mailbox;
 static msg_t base_obs_mailbox_buff[BASE_OBS_N_BUFF];
 static obss_t base_obs_buff[BASE_OBS_N_BUFF] _CCM;
 
 /* ME Data API data-structures. */
-static memory_pool_t me_obs_buff_pool;
-static mailbox_t me_obs_mailbox;
 static msg_t me_obs_mailbox_buff[ME_OBS_MSG_N_BUFF];
 static me_msg_obs_t me_obs_buff[ME_OBS_MSG_N_BUFF];
 
 /* SBAS Data API data-structures. */
 #define SBAS_DATA_N_BUFF 6
-static mailbox_t sbas_data_mailbox;
-static memory_pool_t sbas_data_buff_pool;
 static msg_t sbas_data_mailbox_buff[SBAS_DATA_N_BUFF];
 static sbas_raw_data_t sbas_data_buff[SBAS_DATA_N_BUFF];
 
 /*******************************************************************************
  * Platform Shim Calls
  ******************************************************************************/
+
+/* Mutex */
+
+void platform_mutex_lock(void *mtx) { chMtxLock((mutex_t *)mtx); }
+
+void platform_mutex_unlock(void *mtx) { chMtxUnlock((mutex_t *)mtx); }
+
+/* Threading */
 
 struct platform_thread_info_s {
   void *wsp;
@@ -93,12 +93,6 @@ struct platform_thread_info_s {
 
 static THD_WORKING_AREA(wa_time_matched_obs_thread,
                         TIME_MATCHED_OBS_THREAD_STACK);
-
-void platform_mutex_lock(void *mtx) { chMtxLock((mutex_t *)mtx); }
-
-void platform_mutex_unlock(void *mtx) { chMtxUnlock((mutex_t *)mtx); }
-
-void platform_pool_free(void *pool, void *buf) { chPoolFree(pool, buf); }
 
 void platform_thread_info_init(const thread_id_t id,
                                platform_thread_info_t *info) {
@@ -125,6 +119,8 @@ void platform_thread_create(platform_thread_info_t *info,
 
 void platform_thread_set_name(const char *name) { chRegSetThreadName(name); }
 
+/* NDB */
+
 /* Return true on success. */
 bool platform_try_read_ephemeris(const gnss_signal_t sid, ephemeris_t *eph) {
   return (ndb_ephemeris_read(sid, eph) == NDB_ERR_NONE);
@@ -139,108 +135,69 @@ void platform_watchdog_notify_starling_main_thread() {
   watchdog_notify(WD_NOTIFY_STARLING);
 }
 
-void platform_time_matched_obs_mailbox_init() {
-  chMBObjectInit(&time_matched_obs_mailbox,
-                 time_matched_obs_mailbox_buff,
-                 STARLING_OBS_N_BUFF);
-  chPoolObjectInit(&time_matched_obs_buff_pool, sizeof(obss_t), NULL);
-  chPoolLoadArray(&time_matched_obs_buff_pool, obs_buff, STARLING_OBS_N_BUFF);
+/* Mailbox */
+
+typedef struct mailbox_info_s {
+  mailbox_t mailbox;
+  memory_pool_t mpool;
+  msg_t *mailbox_buf;
+  void *mpool_buf;
+  uint8_t mailbox_len;
+  size_t item_size;
+} mailbox_info_t;
+
+static mailbox_info_t mailbox_info[MB_ID_COUNT] =
+    {[MB_ID_TIME_MATCHED_OBS] = {{0},
+                                 {0},
+                                 time_matched_obs_mailbox_buff,
+                                 obs_buff,
+                                 STARLING_OBS_N_BUFF,
+                                 sizeof(obss_t)},
+     [MB_ID_BASE_OBS] = {{0},
+                         {0},
+                         base_obs_mailbox_buff,
+                         base_obs_buff,
+                         BASE_OBS_N_BUFF,
+                         sizeof(obss_t)},
+     [MB_ID_ME_OBS] = {{0},
+                       {0},
+                       me_obs_mailbox_buff,
+                       me_obs_buff,
+                       ME_OBS_MSG_N_BUFF,
+                       sizeof(me_msg_obs_t)},
+     [MB_ID_SBAS_DATA] = {{0},
+                          {0},
+                          sbas_data_mailbox_buff,
+                          sbas_data_buff,
+                          SBAS_DATA_N_BUFF,
+                          sizeof(sbas_raw_data_t)}};
+
+void platform_mailbox_init(mailbox_id_t id) {
+  chMBObjectInit(&mailbox_info[id].mailbox, mailbox_info[id].mailbox_buf, mailbox_info[id].mailbox_len);
+  chPoolObjectInit(&mailbox_info[id].mpool, mailbox_info[id].item_size, NULL);
+  chPoolLoadArray(&mailbox_info[id].mpool, mailbox_info[id].mpool_buf, mailbox_info[id].item_size);
 }
 
-int32_t platform_time_matched_obs_mailbox_post(obss_t *msg,
-                                               uint32_t timeout_ms) {
-  return chMBPost(&time_matched_obs_mailbox, (msg_t)msg, MS2ST(timeout_ms));
+int32_t platform_mailbox_post(mailbox_id_t id, void *msg, uint32_t timeout_ms) {
+  return chMBPost(&mailbox_info[id].mailbox, (msg_t)msg, MS2ST(timeout_ms));
 }
 
-int32_t platform_time_matched_obs_mailbox_post_ahead(obss_t *msg,
-                                                     uint32_t timeout_ms) {
-  return chMBPostAhead(
-      &time_matched_obs_mailbox, (msg_t)msg, MS2ST(timeout_ms));
+int32_t platform_mailbox_post_ahead(mailbox_id_t id,
+                                    void *msg,
+                                    uint32_t timeout_ms) {
+  return chMBPostAhead(&mailbox_info[id].mailbox, (msg_t)msg, MS2ST(timeout_ms));
 }
 
-int32_t platform_time_matched_obs_mailbox_fetch(obss_t **msg,
-                                                uint32_t timeout_ms) {
-  return chMBFetch(&time_matched_obs_mailbox, (msg_t *)msg, MS2ST(timeout_ms));
+int32_t platform_mailbox_fetch(mailbox_id_t id,
+                               void **msg,
+                               uint32_t timeout_ms) {
+  return chMBFetch(&mailbox_info[id].mailbox, (msg_t *)msg, MS2ST(timeout_ms));
 }
 
-obss_t *platform_time_matched_obs_alloc(void) {
-  return chPoolAlloc(&time_matched_obs_buff_pool);
+void *platform_mailbox_alloc(mailbox_id_t id) {
+  return chPoolAlloc(&mailbox_info[id].mpool);
 }
 
-void platform_time_matched_obs_free(obss_t *ptr) {
-  chPoolFree(&time_matched_obs_buff_pool, ptr);
-}
-
-/* Base obs */
-
-void platform_base_obs_mailbox_init() {
-  chMBObjectInit(&base_obs_mailbox, base_obs_mailbox_buff, BASE_OBS_N_BUFF);
-  chPoolObjectInit(&base_obs_buff_pool, sizeof(obss_t), NULL);
-  chPoolLoadArray(&base_obs_buff_pool, base_obs_buff, BASE_OBS_N_BUFF);
-}
-
-int32_t platform_base_obs_mailbox_post(obss_t *msg, uint32_t timeout_ms) {
-  return chMBPost(&base_obs_mailbox, (msg_t)msg, MS2ST(timeout_ms));
-}
-
-int32_t platform_base_obs_mailbox_fetch(obss_t **msg, uint32_t timeout_ms) {
-  return chMBFetch(&base_obs_mailbox, (msg_t *)msg, MS2ST(timeout_ms));
-}
-
-obss_t *platform_base_obs_alloc(void) {
-  return chPoolAlloc(&base_obs_buff_pool);
-}
-
-void platform_base_obs_free(obss_t *ptr) {
-  chPoolFree(&base_obs_buff_pool, ptr);
-}
-
-/* ME obs messages */
-
-void platform_me_obs_mailbox_init(void) {
-  chMBObjectInit(&me_obs_mailbox, me_obs_mailbox_buff, ME_OBS_MSG_N_BUFF);
-  chPoolObjectInit(&me_obs_buff_pool, sizeof(me_msg_obs_t), NULL);
-  chPoolLoadArray(&me_obs_buff_pool, me_obs_buff, ME_OBS_MSG_N_BUFF);
-}
-
-int32_t platform_me_obs_mailbox_post(me_msg_obs_t *msg, uint32_t timeout_ms) {
-  return chMBPost(&me_obs_mailbox, (msg_t)msg, MS2ST(timeout_ms));
-}
-
-int32_t platform_me_obs_mailbox_fetch(me_msg_obs_t **msg, uint32_t timeout_ms) {
-  return chMBFetch(&me_obs_mailbox, (msg_t *)msg, MS2ST(timeout_ms));
-}
-
-me_msg_obs_t *platform_me_obs_alloc(void) {
-  return chPoolAlloc(&me_obs_buff_pool);
-}
-
-void platform_me_obs_free(me_msg_obs_t *ptr) {
-  chPoolFree(&me_obs_buff_pool, ptr);
-}
-
-/* SBAS messages */
-
-void platform_sbas_data_mailbox_init(void) {
-  chMBObjectInit(&sbas_data_mailbox, sbas_data_mailbox_buff, SBAS_DATA_N_BUFF);
-  chPoolObjectInit(&sbas_data_buff_pool, sizeof(sbas_raw_data_t), NULL);
-  chPoolLoadArray(&sbas_data_buff_pool, sbas_data_buff, SBAS_DATA_N_BUFF);
-}
-
-int32_t platform_sbas_data_mailbox_post(sbas_raw_data_t *msg,
-                                        uint32_t timeout_ms) {
-  return chMBPost(&sbas_data_mailbox, (msg_t)msg, MS2ST(timeout_ms));
-}
-
-int32_t platform_sbas_data_mailbox_fetch(sbas_raw_data_t **msg,
-                                         uint32_t timeout_ms) {
-  return chMBFetch(&sbas_data_mailbox, (msg_t *)msg, MS2ST(timeout_ms));
-}
-
-sbas_raw_data_t *platform_sbas_data_alloc(void) {
-  return chPoolAlloc(&sbas_data_buff_pool);
-}
-
-void platform_sbas_data_free(sbas_raw_data_t *ptr) {
-  chPoolFree(&sbas_data_buff_pool, ptr);
+void platform_mailbox_free(mailbox_id_t id, void *ptr) {
+  chPoolFree(&mailbox_info[id].mpool, ptr);
 }
