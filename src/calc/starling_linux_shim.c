@@ -236,6 +236,8 @@ static shim_rtc_t platform_mailbox_post_internal(mailbox_id_t id,
   struct timespec ts = {0};
   platform_get_timeout(timeout_ms, &ts);
 
+  /* Similar to ChibiOS mail system, do not post the actual struct but the
+   * pointer value indicating the memory address where the struct is. */
   if (0 == mq_timedsend(mailbox_info[id].mailbox,
                         (char *)&msg,
                         mailbox_info[id].item_size,
