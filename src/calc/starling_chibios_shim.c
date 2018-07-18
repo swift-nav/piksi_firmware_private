@@ -220,32 +220,25 @@ void platform_me_obs_free(me_msg_obs_t *ptr) {
 }
 
 /* SBAS messages */
-void platform_sbas_data_mailbox_setup(void) {
+
+void platform_sbas_data_mailbox_init(void) {
   chMBObjectInit(&sbas_data_mailbox, sbas_data_mailbox_buff, SBAS_DATA_N_BUFF);
   chPoolObjectInit(&sbas_data_buff_pool, sizeof(sbas_raw_data_t), NULL);
   chPoolLoadArray(&sbas_data_buff_pool, sbas_data_buff, SBAS_DATA_N_BUFF);
 }
 
-/* TODO(kevin) error handling by return code for platform functions. */
-void platform_sbas_data_mailbox_post(const sbas_raw_data_t *sbas_data) {
-  sbas_raw_data_t *sbas_data_msg = chPoolAlloc(&sbas_data_buff_pool);
-  if (NULL == sbas_data_msg) {
-    log_error("ME: Could not allocate pool for SBAS!");
-    return;
-  }
-  assert(sbas_data);
-  *sbas_data_msg = *sbas_data;
-  msg_t ret =
-      chMBPost(&sbas_data_mailbox, (msg_t)sbas_data_msg, TIME_IMMEDIATE);
-  if (ret != MSG_OK) {
-    log_error("ME: Mailbox should have space for SBAS!");
-    chPoolFree(&sbas_data_buff_pool, sbas_data_msg);
-  }
+int32_t platform_sbas_data_mailbox_post(sbas_raw_data_t *msg,
+                                        uint32_t timeout_ms) {
+  return chMBPost(&sbas_data_mailbox, (msg_t)msg, MS2ST(timeout_ms));
 }
 
 int32_t platform_sbas_data_mailbox_fetch(sbas_raw_data_t **msg,
                                          uint32_t timeout_ms) {
   return chMBFetch(&sbas_data_mailbox, (msg_t *)msg, MS2ST(timeout_ms));
+}
+
+sbas_raw_data_t *platform_sbas_data_alloc(void) {
+  return chPoolAlloc(&sbas_data_buff_pool);
 }
 
 void platform_sbas_data_free(sbas_raw_data_t *ptr) {

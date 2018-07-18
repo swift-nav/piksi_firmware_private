@@ -322,7 +322,8 @@ me_msg_obs_t *platform_me_obs_alloc(void) {
 void platform_me_obs_free(me_msg_obs_t *ptr) { free(ptr); }
 
 /* SBAS messages */
-void platform_sbas_data_mailbox_setup(void) {
+
+void platform_sbas_data_mailbox_init(void) {
   struct mq_attr attr;
 
   attr.mq_maxmsg = SBAS_DATA_N_BUFF;
@@ -336,23 +337,16 @@ void platform_sbas_data_mailbox_setup(void) {
   mq_unlink(SBAS_QUEUE_NAME);
 }
 
-/* TODO(kevin) error handling by return code for platform functions. */
-void platform_sbas_data_mailbox_post(const sbas_raw_data_t *sbas_data) {
-  sbas_raw_data_t *msg = malloc(sizeof(sbas_raw_data_t));
-  if (NULL == msg) {
-    log_error("ME: Could not allocate pool for SBAS!");
-    return;
-  }
-  assert(sbas_data);
-  *msg = *sbas_data;
+int32_t platform_sbas_data_mailbox_post(sbas_raw_data_t *msg,
+                                        uint32_t timeout_ms) {
+  struct timespec ts = {0};
+  platform_get_timeout(timeout_ms, &ts);
 
-  if (0 != mq_send(meo_mqdes,
-                   (char *)&msg,
-                   sizeof(sbas_raw_data_t *),
-                   MEO_QUEUE_NORMAL_PRIO)) {
-    log_error("ME: Mailbox should have space for SBAS!");
-    platform_sbas_data_free(msg);
-  }
+  return mq_timedsend(meo_mqdes,
+                      (char *)msg,
+                      sizeof(sbas_raw_data_t *),
+                      MEO_QUEUE_NORMAL_PRIO,
+                      &ts);
 }
 
 int32_t platform_sbas_data_mailbox_fetch(sbas_raw_data_t **msg,
@@ -362,6 +356,11 @@ int32_t platform_sbas_data_mailbox_fetch(sbas_raw_data_t **msg,
 
   return mq_timedreceive(
       meo_mqdes, (char *)*msg, sizeof(sbas_raw_data_t *), NULL, &ts);
+}
+
+sbas_raw_data_t *platform_sbas_data_alloc(void) {
+  /* Do we want memory pool rather than straight from heap? */
+  return malloc(sizeof(sbas_raw_data_t));
 }
 
 void platform_sbas_data_free(sbas_raw_data_t *ptr) { free(ptr); }

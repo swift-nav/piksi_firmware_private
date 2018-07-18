@@ -868,7 +868,7 @@ void starling_initialize_api(void) {
   /* It is invalid to call more than once. */
   assert(!is_starling_api_initialized);
 
-  platform_sbas_data_mailbox_setup();
+  platform_sbas_data_mailbox_init();
 
   is_starling_api_initialized = true;
 }
@@ -878,7 +878,18 @@ void starling_add_sbas_data(const sbas_raw_data_t *sbas_data,
                             const size_t n_sbas_data) {
   assert(is_starling_api_initialized);
   for (size_t i = 0; i < n_sbas_data; ++i) {
-    platform_sbas_data_mailbox_post(sbas_data + i);
+    sbas_raw_data_t *sbas_data_msg = platform_sbas_data_alloc();
+    if (NULL == sbas_data_msg) {
+      log_error("platform_sbas_data_alloc() failed!");
+      continue;
+    }
+    assert(sbas_data);
+    *sbas_data_msg = *sbas_data;
+    msg_t ret = platform_sbas_data_mailbox_post(sbas_data_msg, TIME_IMMEDIATE);
+    if (ret != MSG_OK) {
+      log_error("platform_sbas_data_mailbox_post() failed!");
+      platform_sbas_data_free(sbas_data_msg);
+    }
   }
 }
 

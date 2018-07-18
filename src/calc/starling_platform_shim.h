@@ -76,10 +76,12 @@ me_msg_obs_t *platform_me_obs_alloc(void);
 void platform_me_obs_free(me_msg_obs_t *ptr);
 
 /* used for receiving sbas messages */
-void platform_sbas_data_mailbox_setup(void);
-void platform_sbas_data_mailbox_post(const sbas_raw_data_t *sbas_data);
+void platform_sbas_data_mailbox_init(void);
+int32_t platform_sbas_data_mailbox_post(sbas_raw_data_t *msg,
+                                        uint32_t timeout_ms);
 int32_t platform_sbas_data_mailbox_fetch(sbas_raw_data_t **msg,
                                          uint32_t timeout_ms);
+sbas_raw_data_t *platform_sbas_data_alloc(void);
 void platform_sbas_data_free(sbas_raw_data_t *ptr);
 
 #define TIME_MATCHED_OBS_THREAD_STACK (6 * 1024 * 1024)
