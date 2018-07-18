@@ -633,7 +633,7 @@ const almanac_t
                 .toa = {.wn = 1878, .tow = 233472.000000},
                 .ura = 900.000000,
                 .fit_interval = 518400,
-                .health_bits = 0x3F,
+                .health_bits = 0x0,
                 .valid = 1,
             },
             {
