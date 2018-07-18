@@ -68,6 +68,8 @@ typedef struct {
  * Globals
  ******************************************************************************/
 bool enable_glonass = true;
+bool enable_galileo = true;
+bool enable_beidou = true;
 bool send_heading = false;
 double heading_offset = 0.0;
 
@@ -719,6 +721,30 @@ static bool set_is_glonass_enabled(struct setting *s, const char *val) {
   return ret;
 }
 
+static bool set_is_galileo_enabled(struct setting *s, const char *val) {
+  int value = 0;
+  bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
+  if (!ret) {
+    return ret;
+  }
+  bool is_galileo_enabled = (value != 0);
+  starling_set_is_galileo_enabled(is_galileo_enabled);
+  *(bool *)s->addr = is_galileo_enabled;
+  return ret;
+}
+
+static bool set_is_beidou_enabled(struct setting *s, const char *val) {
+  int value = 0;
+  bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
+  if (!ret) {
+    return ret;
+  }
+  bool is_beidou_enabled = (value != 0);
+  starling_set_is_beidou_enabled(is_beidou_enabled);
+  *(bool *)s->addr = is_beidou_enabled;
+  return ret;
+}
+
 static bool set_glonass_downweight_factor(struct setting *s, const char *val) {
   float value = 0;
   bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
@@ -784,6 +810,18 @@ static void initialize_starling_settings(void) {
                  enable_glonass,
                  TYPE_BOOL,
                  set_is_glonass_enabled);
+
+  SETTING_NOTIFY("solution",
+                 "enable_galielo",
+                 enable_galileo,
+                 TYPE_BOOL,
+                 set_is_galileo_enabled);
+
+  SETTING_NOTIFY("solution",
+                 "enable_beidou",
+                 enable_beidou,
+                 TYPE_BOOL,
+                 set_is_beidou_enabled);
 
   static float glonass_downweight_factor = 4.0;
   SETTING_NOTIFY("solution",

@@ -42,7 +42,7 @@ decode_sync_flags_t get_data_sync_flags(const nav_msg_glo_t *n,
                                         me_gnss_signal_t mesid,
                                         glo_decode_status_t status);
 void save_glo_eph(const nav_msg_glo_t *n, me_gnss_signal_t mesid);
-bool glo_data_sync(nav_msg_glo_t *n,
+void glo_data_sync(nav_msg_glo_t *n,
                    me_gnss_signal_t mesid,
                    u8 tracking_channel,
                    glo_decode_status_t status);

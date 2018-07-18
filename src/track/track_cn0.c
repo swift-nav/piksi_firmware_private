@@ -337,6 +337,7 @@ float track_cn0_update(const me_gnss_signal_t mesid,
   }
 
   cn0 = update_estimator(e, &pp->est_params, t, I, Q, ve_I, ve_Q);
+  e->cn0_raw_dbhz = cn0;
   cn0 = cn0_filter_update(&e->filter, &pp->filter_params, cn0);
 
   return cn0;

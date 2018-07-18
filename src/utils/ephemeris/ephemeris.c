@@ -498,11 +498,14 @@ static void ephemeris_msg_callback(u16 sender_id,
                                    u8 msg[],
                                    void *context) {
   (void)context;
+  (void)sender_id;
 
   if (len != sizeof(msg_ephemeris_gps_t) &&
       len != sizeof(msg_ephemeris_glo_t) &&
+      len != sizeof(msg_ephemeris_bds_t) &&
+      len != sizeof(msg_ephemeris_gal_t) &&
       len != sizeof(msg_ephemeris_sbas_t)) {
-    log_warn("Received bad ephemeris from peer");
+    log_warn("Received ephemeris message of incorrect size %d from peer", len);
     return;
   }
 
@@ -510,11 +513,15 @@ static void ephemeris_msg_callback(u16 sender_id,
   memset(&e, 0, sizeof(e));
   unpack_ephemeris((msg_ephemeris_t *)msg, &e);
   if (!sid_supported(e.sid)) {
-    log_warn("Ignoring ephemeris for invalid sat");
+    log_warn_sid(
+        e.sid,
+        "Received ephemeris for an invalid/unsupported satellite from peer");
     return;
   }
 
+  /* storing of received ephemeris into NDB disabled for now, pending testing
   ndb_ephemeris_store(&e, NDB_DS_SBP, sender_id);
+  */
 }
 
 void ephemeris_setup(void) { sbp_ephe_reg_cbks(ephemeris_msg_callback); }

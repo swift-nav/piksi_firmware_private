@@ -880,7 +880,9 @@ static void tp_tracker_flag_outliers(tracker_t *tracker) {
     /* the elapsed time could be slightly larger than diff_interval_ms.
        So let's account for it in max_diff_hz */
     double max_diff_hz = max_freq_rate_hz_per_s * elapsed_s;
-    if ((fabs(diff_hz) > max_diff_hz)) {
+    /* If raw CN0 is high the outliers are likely due to genuine acceleration */
+    bool low_cn0 = (tracker->cn0_est.cn0_raw_dbhz < TP_OUTLIERS_CN0_THRES_DBHZ);
+    if (low_cn0 && (fabs(diff_hz) > max_diff_hz)) {
       log_debug_mesid(
           tracker->mesid, "Doppler difference %.2f is too high", diff_hz);
       tracker_flag_drop(tracker, CH_DROP_REASON_OUTLIER);

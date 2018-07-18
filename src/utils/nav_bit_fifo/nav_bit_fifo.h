@@ -15,6 +15,7 @@
 
 #include <libswiftnav/common.h>
 #include <libswiftnav/memcpy_s.h>
+#include <libswiftnav/signal.h>
 
 /* Maximum latency that can be accumulated by the FIFO for all constellations */
 #define MAX_NAV_BIT_LATENCY_MS 400
@@ -30,6 +31,7 @@ typedef struct {
   u8 read_index;
   u8 write_index;
   u8 size;
+  u8 length;
   nav_bit_t elements[MAX_NAV_BIT_FIFO_SIZE];
 } nav_bit_fifo_t;
 
@@ -37,7 +39,8 @@ typedef struct {
 extern "C" {
 #endif /* __cplusplus */
 
-void nav_bit_fifo_init(nav_bit_fifo_t *fifo, const u8 size);
+void nav_bit_fifo_init(nav_bit_fifo_t *fifo, const code_t code);
+u8 nav_bit_fifo_length_for_rd_index(const nav_bit_fifo_t *fifo, const u8 rd);
 bool nav_bit_fifo_full(const nav_bit_fifo_t *fifo);
 bool nav_bit_fifo_write(nav_bit_fifo_t *fifo, const nav_bit_t *element);
 bool nav_bit_fifo_read(nav_bit_fifo_t *fifo, nav_bit_t *element);
