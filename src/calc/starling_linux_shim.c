@@ -229,7 +229,7 @@ static void platform_get_timeout(const uint32_t timeout_ms,
   ts->tv_nsec += timeout_ms * 1e6;
 }
 
-static shim_rtc_t platform_mailbox_post_internal(mailbox_id_t id,
+static int platform_mailbox_post_internal(mailbox_id_t id,
                                                  void *msg,
                                                  uint32_t timeout_ms,
                                                  uint32_t msg_prio) {
@@ -238,44 +238,46 @@ static shim_rtc_t platform_mailbox_post_internal(mailbox_id_t id,
 
   /* Similar to ChibiOS mail system, do not post the actual struct but the
    * pointer value indicating the memory address where the struct is. */
-  if (0 == mq_timedsend(mailbox_info[id].mailbox,
+  errno = 0;
+  if (0 != mq_timedsend(mailbox_info[id].mailbox,
                         (char *)&msg,
                         mailbox_info[id].item_size,
                         msg_prio,
                         &ts)) {
-    return SHIM_RTC_OK;
-  } else {
-    return SHIM_RTC_FAIL;
+    return errno;
   }
+
+  return 0;
 }
 
-shim_rtc_t platform_mailbox_post(mailbox_id_t id,
+int platform_mailbox_post(mailbox_id_t id,
                                  void *msg,
                                  uint32_t timeout_ms) {
   return platform_mailbox_post_internal(id, msg, timeout_ms, MSG_PRIO_NORMAL);
 }
 
-shim_rtc_t platform_mailbox_post_ahead(mailbox_id_t id,
+int platform_mailbox_post_ahead(mailbox_id_t id,
                                        void *msg,
                                        uint32_t timeout_ms) {
   return platform_mailbox_post_internal(id, msg, timeout_ms, MSG_PRIO_HIGH);
 }
 
-shim_rtc_t platform_mailbox_fetch(mailbox_id_t id,
+int platform_mailbox_fetch(mailbox_id_t id,
                                   void **msg,
                                   uint32_t timeout_ms) {
   struct timespec ts = {0};
   platform_get_timeout(timeout_ms, &ts);
 
-  if (0 == mq_timedreceive(mailbox_info[id].mailbox,
+  errno = 0;
+  if (0 != mq_timedreceive(mailbox_info[id].mailbox,
                            (char *)*msg,
                            mailbox_info[id].item_size,
                            NULL,
                            &ts)) {
-    return SHIM_RTC_OK;
-  } else {
-    return SHIM_RTC_FAIL;
+    return errno;
   }
+
+  return 0;
 }
 
 void *platform_mailbox_item_alloc(mailbox_id_t id) {

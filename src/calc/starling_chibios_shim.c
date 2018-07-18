@@ -182,37 +182,40 @@ void platform_mailbox_init(mailbox_id_t id) {
                   mailbox_info[id].item_size);
 }
 
-shim_rtc_t platform_mailbox_post(mailbox_id_t id,
+errno_t platform_mailbox_post(mailbox_id_t id,
                                  void *msg,
                                  uint32_t timeout_ms) {
   if (MSG_OK ==
       chMBPost(&mailbox_info[id].mailbox, (msg_t)msg, MS2ST(timeout_ms))) {
-    return SHIM_RTC_OK;
-  } else {
-    return SHIM_RTC_FAIL;
+    /* Full or mailbox reset while waiting */
+    return EBUSY;
   }
+
+  return 0;
 }
 
-shim_rtc_t platform_mailbox_post_ahead(mailbox_id_t id,
-                                       void *msg,
-                                       uint32_t timeout_ms) {
-  if (MSG_OK ==
+errno_t platform_mailbox_post_ahead(mailbox_id_t id,
+                                    void *msg,
+                                    uint32_t timeout_ms) {
+  if (MSG_OK !=
       chMBPostAhead(&mailbox_info[id].mailbox, (msg_t)msg, MS2ST(timeout_ms))) {
-    return SHIM_RTC_OK;
-  } else {
-    return SHIM_RTC_FAIL;
+    /* Full or mailbox reset while waiting */
+    return EBUSY;
   }
+
+  return 0;
 }
 
-shim_rtc_t platform_mailbox_fetch(mailbox_id_t id,
+errno_t platform_mailbox_fetch(mailbox_id_t id,
                                   void **msg,
                                   uint32_t timeout_ms) {
   if (MSG_OK ==
       chMBFetch(&mailbox_info[id].mailbox, (msg_t *)msg, MS2ST(timeout_ms))) {
-    return SHIM_RTC_OK;
-  } else {
-    return SHIM_RTC_FAIL;
+    /* Empty or mailbox reset while waiting */
+    return EBUSY;
   }
+
+  return 0;
 }
 
 void *platform_mailbox_item_alloc(mailbox_id_t id) {

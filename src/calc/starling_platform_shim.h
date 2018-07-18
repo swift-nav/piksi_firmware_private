@@ -13,6 +13,7 @@
 #ifndef STARLING_CALC_STARLING_PLATFORM_SHIM_H
 #define STARLING_CALC_STARLING_PLATFORM_SHIM_H
 
+#include <errno.h>
 #include <stdlib.h>
 
 #include <libswiftnav/ephemeris.h>
@@ -25,6 +26,10 @@
 #include "calc/starling_threads.h"
 #include "me_msg/me_msg.h"
 
+#ifndef __STDC_LIB_EXT1__
+typedef int errno_t;
+#endif
+
 typedef enum thread_id_e { THREAD_ID_TMO = 0 } thread_id_t;
 typedef enum mailbox_id_e {
   MB_ID_TIME_MATCHED_OBS = 0,
@@ -33,8 +38,6 @@ typedef enum mailbox_id_e {
   MB_ID_SBAS_DATA = 3,
   MB_ID_COUNT = 4
 } mailbox_id_t;
-
-typedef enum shim_rtc_e { SHIM_RTC_FAIL = -1, SHIM_RTC_OK = 0 } shim_rtc_t;
 
 /* Mutex */
 void platform_mutex_lock(void *mtx);
@@ -52,13 +55,13 @@ void platform_watchdog_notify_starling_main_thread(void);
 
 /* internal communication between threads */
 void platform_mailbox_init(mailbox_id_t id);
-shim_rtc_t platform_mailbox_post(mailbox_id_t id,
+errno_t platform_mailbox_post(mailbox_id_t id,
                                  void *msg,
                                  uint32_t timeout_ms);
-shim_rtc_t platform_mailbox_post_ahead(mailbox_id_t id,
+errno_t platform_mailbox_post_ahead(mailbox_id_t id,
                                        void *msg,
                                        uint32_t timeout_ms);
-shim_rtc_t platform_mailbox_fetch(mailbox_id_t id,
+errno_t platform_mailbox_fetch(mailbox_id_t id,
                                   void **msg,
                                   uint32_t timeout_ms);
 void *platform_mailbox_item_alloc(mailbox_id_t id);

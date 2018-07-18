@@ -196,13 +196,13 @@ static void post_observations(u8 n,
    * observation from the mailbox for no good reason. */
 
   obss_t *obs = platform_mailbox_item_alloc(MB_ID_TIME_MATCHED_OBS);
-  shim_rtc_t ret;
+  errno_t ret;
   if (obs == NULL) {
     /* Pool is empty, grab a buffer from the mailbox instead, i.e.
      * overwrite the oldest item in the queue. */
     ret = platform_mailbox_fetch(
         MB_ID_TIME_MATCHED_OBS, (void **)&obs, TIME_IMMEDIATE);
-    if (ret != SHIM_RTC_OK) {
+    if (ret != 0) {
       log_error("Pool full and mailbox empty!");
     }
   }
@@ -229,7 +229,7 @@ static void post_observations(u8 n,
     }
 
     ret = platform_mailbox_post(MB_ID_TIME_MATCHED_OBS, obs, TIME_IMMEDIATE);
-    if (ret != SHIM_RTC_OK) {
+    if (ret != 0) {
       /* We could grab another item from the mailbox, discard it and then
        * post our obs again but if the size of the mailbox and the pool
        * are equal then we should have already handled the case where the
@@ -444,10 +444,10 @@ static void time_matched_obs_thread(void *arg) {
 
   while (1) {
     base_obs = NULL;
-    const shim_rtc_t fetch_ret = platform_mailbox_fetch(
+    const errno_t fetch_ret = platform_mailbox_fetch(
         MB_ID_BASE_OBS, (void **)&base_obs, DGNSS_TIMEOUT_MS);
 
-    if (fetch_ret != SHIM_RTC_OK) {
+    if (fetch_ret != 0) {
       if (NULL != base_obs) {
         log_error("Base obs mailbox fetch failed with %" PRIi32, fetch_ret);
         platform_mailbox_item_free(MB_ID_BASE_OBS, base_obs);
@@ -483,7 +483,7 @@ static void time_matched_obs_thread(void *arg) {
      * looking for one that matches in time. */
     while (platform_mailbox_fetch(MB_ID_TIME_MATCHED_OBS,
                                   (void **)&obss,
-                                  TIME_IMMEDIATE) == SHIM_RTC_OK) {
+                                  TIME_IMMEDIATE) == 0) {
       if (dgnss_soln_mode == STARLING_SOLN_MODE_NO_DGNSS) {
         /* Not doing any DGNSS.  Toss the obs away. */
         platform_mailbox_item_free(MB_ID_TIME_MATCHED_OBS, obss);
@@ -534,9 +534,9 @@ static void time_matched_obs_thread(void *arg) {
               base_obss_copy.tor.wn,
               base_obss_copy.tor.tow);
           /* Return the buffer to the mailbox so we can try it again later. */
-          const shim_rtc_t post_ret = platform_mailbox_post_ahead(
+          const errno_t post_ret = platform_mailbox_post_ahead(
               MB_ID_TIME_MATCHED_OBS, obss, TIME_IMMEDIATE);
-          if (post_ret != SHIM_RTC_OK) {
+          if (post_ret != 0) {
             /* Something went wrong with returning it to the buffer, better just
              * free it and carry on. */
             log_warn("Obs Matching: mailbox full, discarding observation!");
@@ -594,12 +594,12 @@ static void process_sbas_data(const sbas_raw_data_t *sbas_data) {
  * nevermind.
  */
 static void process_any_sbas_messages(void) {
-  shim_rtc_t ret = SHIM_RTC_OK;
-  while (SHIM_RTC_OK == ret) {
+  errno_t ret = 0;
+  while (0 == ret) {
     sbas_raw_data_t *sbas_data = NULL;
     ret = platform_mailbox_fetch(
         MB_ID_SBAS_DATA, (void **)&sbas_data, TIME_IMMEDIATE);
-    if (SHIM_RTC_OK == ret) {
+    if (0 == ret) {
       /* We have successfully received SBAS data, forward on to the
        * filter managers. */
       process_sbas_data(sbas_data);
@@ -617,7 +617,7 @@ static void process_any_sbas_messages(void) {
 }
 
 static void starling_thread(void) {
-  shim_rtc_t ret;
+  errno_t ret;
 
   /* Initialize all filters, settings, and SBP callbacks. */
   init_filters_and_settings();
@@ -643,7 +643,7 @@ static void starling_thread(void) {
     me_msg_obs_t *me_msg = NULL;
     ret = platform_mailbox_fetch(
         MB_ID_ME_OBS, (void **)&me_msg, DGNSS_TIMEOUT_MS);
-    if (ret != SHIM_RTC_OK) {
+    if (ret != 0) {
       if (NULL != me_msg) {
         log_error("STARLING: mailbox fetch failed with %" PRIi32, ret);
         platform_mailbox_item_free(MB_ID_ME_OBS, me_msg);
@@ -882,10 +882,10 @@ void starling_add_sbas_data(const sbas_raw_data_t *sbas_data,
     }
     assert(sbas_data);
     *sbas_data_msg = *sbas_data;
-    shim_rtc_t ret =
+    errno_t ret =
         platform_mailbox_post(MB_ID_SBAS_DATA, sbas_data_msg, TIME_IMMEDIATE);
-    if (ret != SHIM_RTC_OK) {
-      log_error("platform_sbas_data_mailbox_post() failed!");
+    if (ret != 0) {
+      log_error("platform_mailbox_post() failed!");
       platform_mailbox_item_free(MB_ID_SBAS_DATA, sbas_data_msg);
     }
   }
