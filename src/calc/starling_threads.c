@@ -195,7 +195,7 @@ static void post_observations(u8 n,
    * pushing the message into the mailbox then we just wasted an
    * observation from the mailbox for no good reason. */
 
-  obss_t *obs = platform_mailbox_alloc(MB_ID_TIME_MATCHED_OBS);
+  obss_t *obs = platform_mailbox_item_alloc(MB_ID_TIME_MATCHED_OBS);
   shim_rtc_t ret;
   if (obs == NULL) {
     /* Pool is empty, grab a buffer from the mailbox instead, i.e.
@@ -236,7 +236,7 @@ static void post_observations(u8 n,
        * mailbox is full when we handled the case that the pool was full.
        * */
       log_error("Mailbox should have space!");
-      platform_mailbox_free(MB_ID_TIME_MATCHED_OBS, obs);
+      platform_mailbox_item_free(MB_ID_TIME_MATCHED_OBS, obs);
     } else {
       last_time_matched_rover_obs_post = *t;
     }
@@ -450,7 +450,7 @@ static void time_matched_obs_thread(void *arg) {
     if (fetch_ret != SHIM_RTC_OK) {
       if (NULL != base_obs) {
         log_error("Base obs mailbox fetch failed with %" PRIi32, fetch_ret);
-        platform_mailbox_free(MB_ID_BASE_OBS, base_obs);
+        platform_mailbox_item_free(MB_ID_BASE_OBS, base_obs);
       }
       continue;
     }
@@ -462,7 +462,7 @@ static void time_matched_obs_thread(void *arg) {
     }
 
     base_obss_copy = *base_obs;
-    platform_mailbox_free(MB_ID_BASE_OBS, base_obs);
+    platform_mailbox_item_free(MB_ID_BASE_OBS, base_obs);
 
     /* Check if the el mask has changed and update */
     platform_mutex_lock(&time_matched_filter_manager_lock);
@@ -486,7 +486,7 @@ static void time_matched_obs_thread(void *arg) {
                                   TIME_IMMEDIATE) == SHIM_RTC_OK) {
       if (dgnss_soln_mode == STARLING_SOLN_MODE_NO_DGNSS) {
         /* Not doing any DGNSS.  Toss the obs away. */
-        platform_mailbox_free(MB_ID_TIME_MATCHED_OBS, obss);
+        platform_mailbox_item_free(MB_ID_TIME_MATCHED_OBS, obss);
         continue;
       }
 
@@ -513,7 +513,7 @@ static void time_matched_obs_thread(void *arg) {
         }
         send_solution_time_matched(p_solution, &base_obss_copy, obss);
 
-        platform_mailbox_free(MB_ID_TIME_MATCHED_OBS, obss);
+        platform_mailbox_item_free(MB_ID_TIME_MATCHED_OBS, obss);
         break;
       } else {
         if (dt > 0) {
@@ -540,13 +540,13 @@ static void time_matched_obs_thread(void *arg) {
             /* Something went wrong with returning it to the buffer, better just
              * free it and carry on. */
             log_warn("Obs Matching: mailbox full, discarding observation!");
-            platform_mailbox_free(MB_ID_TIME_MATCHED_OBS, obss);
+            platform_mailbox_item_free(MB_ID_TIME_MATCHED_OBS, obss);
           }
           break;
         } else {
           /* Time of base obs later than time of local obs,
            * keep moving through the mailbox. */
-          platform_mailbox_free(MB_ID_TIME_MATCHED_OBS, obss);
+          platform_mailbox_item_free(MB_ID_TIME_MATCHED_OBS, obss);
         }
       }
     }
@@ -611,7 +611,7 @@ static void process_any_sbas_messages(void) {
     /* Under any circumstances, if the message pointer was assigned to, it
      * must be released back to the pool. */
     if (NULL != sbas_data) {
-      platform_mailbox_free(MB_ID_SBAS_DATA, sbas_data);
+      platform_mailbox_item_free(MB_ID_SBAS_DATA, sbas_data);
     }
   }
 }
@@ -646,7 +646,7 @@ static void starling_thread(void) {
     if (ret != SHIM_RTC_OK) {
       if (NULL != me_msg) {
         log_error("STARLING: mailbox fetch failed with %" PRIi32, ret);
-        platform_mailbox_free(MB_ID_ME_OBS, me_msg);
+        platform_mailbox_item_free(MB_ID_ME_OBS, me_msg);
       }
       continue;
     }
@@ -673,7 +673,7 @@ static void starling_thread(void) {
      * somewhere else. */
     if (starling_integration_simulation_enabled()) {
       starling_integration_simulation_run(me_msg);
-      platform_mailbox_free(MB_ID_ME_OBS, me_msg);
+      platform_mailbox_item_free(MB_ID_ME_OBS, me_msg);
       continue;
     }
 
@@ -682,7 +682,7 @@ static void starling_thread(void) {
     /* If there are no messages, or the observation time is invalid,
      * we send an empty solution. */
     if (me_msg->size == 0 || !gps_time_valid(&epoch_time)) {
-      platform_mailbox_free(MB_ID_ME_OBS, me_msg);
+      platform_mailbox_item_free(MB_ID_ME_OBS, me_msg);
       send_solution_low_latency(NULL, NULL, &epoch_time, nav_meas, 0);
       continue;
     }
@@ -691,7 +691,7 @@ static void starling_thread(void) {
       /* When we change the solution rate down, we sometimes can round the
        * time to an epoch earlier than the previous one processed, in that
        * case we want to ignore any epochs with an earlier timestamp */
-      platform_mailbox_free(MB_ID_ME_OBS, me_msg);
+      platform_mailbox_item_free(MB_ID_ME_OBS, me_msg);
       continue;
     }
 
@@ -714,7 +714,7 @@ static void starling_thread(void) {
 
     obs_time = me_msg->obs_time;
 
-    platform_mailbox_free(MB_ID_ME_OBS, me_msg);
+    platform_mailbox_item_free(MB_ID_ME_OBS, me_msg);
 
     ionosphere_t i_params;
     /* get iono parameters if available, otherwise use default ones */
@@ -875,7 +875,7 @@ void starling_add_sbas_data(const sbas_raw_data_t *sbas_data,
                             const size_t n_sbas_data) {
   assert(is_starling_api_initialized);
   for (size_t i = 0; i < n_sbas_data; ++i) {
-    sbas_raw_data_t *sbas_data_msg = platform_mailbox_alloc(MB_ID_SBAS_DATA);
+    sbas_raw_data_t *sbas_data_msg = platform_mailbox_item_alloc(MB_ID_SBAS_DATA);
     if (NULL == sbas_data_msg) {
       log_error("platform_sbas_data_alloc() failed!");
       continue;
@@ -886,7 +886,7 @@ void starling_add_sbas_data(const sbas_raw_data_t *sbas_data,
         platform_mailbox_post(MB_ID_SBAS_DATA, sbas_data_msg, TIME_IMMEDIATE);
     if (ret != SHIM_RTC_OK) {
       log_error("platform_sbas_data_mailbox_post() failed!");
-      platform_mailbox_free(MB_ID_SBAS_DATA, sbas_data_msg);
+      platform_mailbox_item_free(MB_ID_SBAS_DATA, sbas_data_msg);
     }
   }
 }

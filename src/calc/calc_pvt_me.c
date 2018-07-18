@@ -94,7 +94,7 @@ static void me_post_observations(u8 n,
    * pushing the message into the mailbox then we just wasted an
    * observation from the mailbox for no good reason. */
 
-  me_msg_obs_t *me_msg_obs = platform_mailbox_alloc(MB_ID_ME_OBS);
+  me_msg_obs_t *me_msg_obs = platform_mailbox_item_alloc(MB_ID_ME_OBS);
   if (NULL == me_msg_obs) {
     log_error("ME: Could not allocate pool for obs!");
     return;
@@ -127,7 +127,7 @@ static void me_post_observations(u8 n,
      * mailbox is full when we handled the case that the pool was full.
      * */
     log_error("ME: Mailbox should have space for obs!");
-    platform_mailbox_free(MB_ID_ME_OBS, me_msg_obs);
+    platform_mailbox_item_free(MB_ID_ME_OBS, me_msg_obs);
   }
 }
 

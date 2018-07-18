@@ -215,10 +215,10 @@ shim_rtc_t platform_mailbox_fetch(mailbox_id_t id,
   }
 }
 
-void *platform_mailbox_alloc(mailbox_id_t id) {
+void *platform_mailbox_item_alloc(mailbox_id_t id) {
   return chPoolAlloc(&mailbox_info[id].mpool);
 }
 
-void platform_mailbox_free(mailbox_id_t id, void *ptr) {
+void platform_mailbox_item_free(mailbox_id_t id, void *ptr) {
   chPoolFree(&mailbox_info[id].mpool, ptr);
 }

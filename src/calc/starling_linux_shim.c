@@ -278,12 +278,12 @@ shim_rtc_t platform_mailbox_fetch(mailbox_id_t id,
   }
 }
 
-void *platform_mailbox_alloc(mailbox_id_t id) {
+void *platform_mailbox_item_alloc(mailbox_id_t id) {
   /* Do we want memory pool rather than straight from heap? */
   return malloc(mailbox_info[id].item_size);
 }
 
-void platform_mailbox_free(mailbox_id_t id, void *ptr) {
+void platform_mailbox_item_free(mailbox_id_t id, void *ptr) {
   (void)id;
   free(ptr);
 }

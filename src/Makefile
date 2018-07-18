@@ -158,7 +158,7 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/calc/calc_pvt_common.o \
         $(SWIFTNAV_ROOT)/src/calc/starling_integration.o \
         $(SWIFTNAV_ROOT)/src/calc/starling_threads.o \
-        $(SWIFTNAV_ROOT)/src/calc/starling_chibios_shim.o \
+        $(SWIFTNAV_ROOT)/src/calc/starling_linux_shim.o \
         $(SWIFTNAV_ROOT)/src/calc/calc_pvt_me.o \
         $(SWIFTNAV_ROOT)/src/calc/calc_nav_meas.o \
         $(SWIFTNAV_ROOT)/src/utils/obs_bias/obs_bias.o \

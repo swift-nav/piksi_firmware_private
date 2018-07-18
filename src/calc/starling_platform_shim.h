@@ -61,8 +61,8 @@ shim_rtc_t platform_mailbox_post_ahead(mailbox_id_t id,
 shim_rtc_t platform_mailbox_fetch(mailbox_id_t id,
                                   void **msg,
                                   uint32_t timeout_ms);
-void *platform_mailbox_alloc(mailbox_id_t id);
-void platform_mailbox_free(mailbox_id_t id, void *ptr);
+void *platform_mailbox_item_alloc(mailbox_id_t id);
+void platform_mailbox_item_free(mailbox_id_t id, void *ptr);
 
 #define TIME_MATCHED_OBS_THREAD_STACK (6 * 1024 * 1024)
 /* Reference is <TBD> prio */

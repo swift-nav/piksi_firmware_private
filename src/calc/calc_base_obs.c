@@ -275,7 +275,7 @@ static void update_obss(uncollapsed_obss_t *new_uncollapsed_obss) {
 
       base_obss.has_pos = 1;
 
-      obss_t *new_base_obs = platform_mailbox_alloc(MB_ID_BASE_OBS);
+      obss_t *new_base_obs = platform_mailbox_item_alloc(MB_ID_BASE_OBS);
       if (new_base_obs == NULL) {
         log_warn(
             "Base obs pool full, discarding base obs at: wn: %d, tow: %.2f",
@@ -290,7 +290,7 @@ static void update_obss(uncollapsed_obss_t *new_uncollapsed_obss) {
           platform_mailbox_post(MB_ID_BASE_OBS, new_base_obs, TIME_IMMEDIATE);
       if (post_ret != SHIM_RTC_OK) {
         log_error("Base obs mailbox should have space!");
-        platform_mailbox_free(MB_ID_BASE_OBS, new_base_obs);
+        platform_mailbox_item_free(MB_ID_BASE_OBS, new_base_obs);
       }
     } else {
       base_obss.has_pos = 0;
