@@ -556,8 +556,7 @@ static void me_calc_pvt_thread(void *arg) {
       continue;
     }
 
-    calc_isc(n_ready, p_nav_meas, p_cnav_30);
-
+    apply_gps_cnav_isc(n_ready, p_nav_meas, p_cnav_30, p_e_meas);
     apply_isc_table(n_ready, p_nav_meas);
 
     gnss_sid_set_t codes;
