@@ -85,18 +85,17 @@ void platform_mutex_unlock(void *mtx) { chMtxUnlock((mutex_t *)mtx); }
 
 /* Threading */
 
-struct platform_thread_info_s {
+typedef struct platform_thread_info_s {
   void *wsp;
   size_t size;
   int prio;
-};
+} platform_thread_info_t;
 
 static THD_WORKING_AREA(wa_time_matched_obs_thread,
                         TIME_MATCHED_OBS_THREAD_STACK);
 
-void platform_thread_info_init(const thread_id_t id,
-                               platform_thread_info_t *info) {
-  info = (platform_thread_info_t *)malloc(sizeof(platform_thread_info_t));
+static void platform_thread_info_init(const thread_id_t id,
+                                      platform_thread_info_t *info) {
   switch (id) {
     case THREAD_ID_TMO:
       info->wsp = wa_time_matched_obs_thread;
@@ -110,11 +109,12 @@ void platform_thread_info_init(const thread_id_t id,
   }
 }
 
-void platform_thread_create(platform_thread_info_t *info,
-                            int prio,
-                            platform_routine_t *fn,
-                            void *arg) {
-  chThdCreateStatic(info->wsp, info->size, prio, fn, arg);
+void platform_thread_create(const thread_id_t id,
+                            platform_routine_t *fn) {
+  assert(fn);
+  platform_thread_info_t info;
+  platform_thread_info_init(id, &info);
+  chThdCreateStatic(info.wsp, info.size, info.prio, fn, NULL);
 }
 
 void platform_thread_set_name(const char *name) { chRegSetThreadName(name); }

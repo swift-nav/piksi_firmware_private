@@ -25,8 +25,6 @@
 #include "calc/starling_threads.h"
 #include "me_msg/me_msg.h"
 
-typedef struct platform_thread_info_s platform_thread_info_t;
-
 typedef enum thread_id_e { THREAD_ID_TMO = 0 } thread_id_t;
 typedef enum mailbox_id_e {
   MB_ID_TIME_MATCHED_OBS = 0,
@@ -43,15 +41,8 @@ void platform_mutex_lock(void *mtx);
 void platform_mutex_unlock(void *mtx);
 /* Thread */
 typedef void(platform_routine_t)(void *);
-void platform_thread_info_init(const thread_id_t id,
-                               platform_thread_info_t *info);
-inline void platform_thread_info_destroy(platform_thread_info_t *info) {
-  free(info);
-};
-void platform_thread_create(platform_thread_info_t *info,
-                            int prio,
-                            platform_routine_t *fn,
-                            void *user);
+
+void platform_thread_create(const thread_id_t id, platform_routine_t *fn);
 void platform_thread_set_name(const char *name);
 /* Database */
 bool platform_try_read_ephemeris(const gnss_signal_t sid, ephemeris_t *eph);

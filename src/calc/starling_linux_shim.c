@@ -90,11 +90,11 @@ void platform_mutex_unlock(void *mtx) {
 
 /* Threading */
 
-struct platform_thread_info_s {
-  pthread_t id;
+typedef struct platform_thread_info_s {
+  pthread_t thread_id;
   size_t size;
   int prio;
-};
+} platform_thread_info_t;
 
 /* phtread_create expects a pointer to type (void *)()(void *).
  * starling routines are of type (void)()(void *) */
@@ -105,10 +105,8 @@ static void *start_routine_wrapper(void *arg) {
 
 static int sch_policy = SCHED_FIFO;
 
-void platform_thread_info_init(const thread_id_t id,
-                               platform_thread_info_t *info) {
-  info = (platform_thread_info_t *)malloc(sizeof(platform_thread_info_t));
-
+static void platform_thread_info_init(const thread_id_t id,
+                                      platform_thread_info_t *info) {
   int max_prio = sched_get_priority_max(sch_policy);
 
   assert(0 < max_prio);
@@ -132,30 +130,32 @@ void platform_thread_info_init(const thread_id_t id,
   assert(0 < info->prio);
 }
 
-void platform_thread_create(platform_thread_info_t *info,
-                            int prio,
-                            platform_routine_t *fn,
-                            void *arg) {
-  (void)arg;
+void platform_thread_create(const thread_id_t id,
+                            platform_routine_t *fn) {
+  assert(fn);
   pthread_attr_t attr;
+  platform_thread_info_t info;
   struct sched_param sch_params;
-  sch_params.sched_priority = prio;
+
+  platform_thread_info_init(id, &info);
+
+  sch_params.sched_priority = info.prio;
 
   if (0 != pthread_attr_init(&attr)) {
     assert(!"pthread_attr_init()");
   }
 
-  if (0 < info->size) {
-    if (0 != pthread_attr_setstacksize(&attr, info->size)) {
+  if (0 < info.size) {
+    if (0 != pthread_attr_setstacksize(&attr, info.size)) {
       assert(!"pthread_attr_setstacksize");
     }
   }
 
-  if (0 != pthread_create(&info->id, &attr, &start_routine_wrapper, fn)) {
+  if (0 != pthread_create(&info.thread_id, &attr, &start_routine_wrapper, fn)) {
     assert(!"pthread_create()");
   }
 
-  if (0 != pthread_setschedparam(info->id, sch_policy, &sch_params)) {
+  if (0 != pthread_setschedparam(info.thread_id, sch_policy, &sch_params)) {
     assert(!"pthread_setschedparam()");
   }
 

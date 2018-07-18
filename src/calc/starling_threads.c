@@ -618,18 +618,12 @@ static void process_any_sbas_messages(void) {
 
 static void starling_thread(void) {
   shim_rtc_t ret;
-  platform_thread_info_t *thd_info = NULL;
 
   /* Initialize all filters, settings, and SBP callbacks. */
   init_filters_and_settings();
 
-  platform_thread_info_init(THREAD_ID_TMO, thd_info);
-
   /* Spawn the time_matched thread. */
-  platform_thread_create(thd_info,
-                         TIME_MATCHED_OBS_THREAD_PRIORITY,
-                         time_matched_obs_thread,
-                         NULL);
+  platform_thread_create(THREAD_ID_TMO, time_matched_obs_thread);
 
   static navigation_measurement_t nav_meas[MAX_CHANNELS];
   static ephemeris_t e_meas[MAX_CHANNELS];
@@ -860,7 +854,6 @@ static void starling_thread(void) {
     }
 #endif
   }
-  platform_thread_info_destroy(thd_info);
 }
 
 /* Run the starling engine on the current thread. Blocks indefinitely. */
