@@ -228,6 +228,6 @@ void *platform_mailbox_item_alloc(mailbox_id_t id) {
   return chPoolAlloc(&mailbox_info[id].mpool);
 }
 
-void platform_mailbox_item_free(mailbox_id_t id, void *ptr) {
-  chPoolFree(&mailbox_info[id].mpool, ptr);
+void platform_mailbox_item_free(mailbox_id_t id, const void *ptr) {
+  chPoolFree(&mailbox_info[id].mpool, (void*)ptr);
 }

@@ -284,7 +284,7 @@ void *platform_mailbox_item_alloc(mailbox_id_t id) {
   return malloc(mailbox_info[id].item_size);
 }
 
-void platform_mailbox_item_free(mailbox_id_t id, void *ptr) {
+void platform_mailbox_item_free(mailbox_id_t id, const void *ptr) {
   (void)id;
-  free(ptr);
+  free((void*)ptr);
 }
