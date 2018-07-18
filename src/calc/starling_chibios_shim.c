@@ -94,6 +94,9 @@ typedef struct platform_thread_info_s {
 static THD_WORKING_AREA(wa_time_matched_obs_thread,
                         TIME_MATCHED_OBS_THREAD_STACK);
 
+/* Working area for the main starling thread. */
+static THD_WORKING_AREA(wa_starling_thread, STARLING_THREAD_STACK);
+
 static void platform_thread_info_init(const thread_id_t id,
                                       platform_thread_info_t *info) {
   switch (id) {
@@ -103,14 +106,19 @@ static void platform_thread_info_init(const thread_id_t id,
       info->prio = NORMALPRIO + TIME_MATCHED_OBS_THREAD_PRIORITY;
       break;
 
+    case THREAD_ID_STARLING:
+      info->wsp = wa_starling_thread;
+      info->size = sizeof(wa_starling_thread);
+      info->prio = HIGHPRIO + STARLING_THREAD_PRIORITY;
+      break;
+
     default:
       assert(!"Unkonwn thread ID");
       break;
   }
 }
 
-void platform_thread_create(const thread_id_t id,
-                            platform_routine_t *fn) {
+void platform_thread_create(const thread_id_t id, platform_routine_t *fn) {
   assert(fn);
   platform_thread_info_t info;
   platform_thread_info_init(id, &info);
@@ -182,9 +190,7 @@ void platform_mailbox_init(mailbox_id_t id) {
                   mailbox_info[id].item_size);
 }
 
-errno_t platform_mailbox_post(mailbox_id_t id,
-                                 void *msg,
-                                 uint32_t timeout_ms) {
+errno_t platform_mailbox_post(mailbox_id_t id, void *msg, uint32_t timeout_ms) {
   if (MSG_OK ==
       chMBPost(&mailbox_info[id].mailbox, (msg_t)msg, MS2ST(timeout_ms))) {
     /* Full or mailbox reset while waiting */
@@ -207,8 +213,8 @@ errno_t platform_mailbox_post_ahead(mailbox_id_t id,
 }
 
 errno_t platform_mailbox_fetch(mailbox_id_t id,
-                                  void **msg,
-                                  uint32_t timeout_ms) {
+                               void **msg,
+                               uint32_t timeout_ms) {
   if (MSG_OK ==
       chMBFetch(&mailbox_info[id].mailbox, (msg_t *)msg, MS2ST(timeout_ms))) {
     /* Empty or mailbox reset while waiting */

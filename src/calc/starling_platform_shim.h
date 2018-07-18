@@ -30,7 +30,10 @@
 typedef int errno_t;
 #endif
 
-typedef enum thread_id_e { THREAD_ID_TMO = 0 } thread_id_t;
+typedef enum thread_id_e {
+  THREAD_ID_TMO = 0,
+  THREAD_ID_STARLING = 1
+} thread_id_t;
 typedef enum mailbox_id_e {
   MB_ID_TIME_MATCHED_OBS = 0,
   MB_ID_BASE_OBS = 1,
@@ -55,21 +58,24 @@ void platform_watchdog_notify_starling_main_thread(void);
 
 /* internal communication between threads */
 void platform_mailbox_init(mailbox_id_t id);
-errno_t platform_mailbox_post(mailbox_id_t id,
-                                 void *msg,
-                                 uint32_t timeout_ms);
+errno_t platform_mailbox_post(mailbox_id_t id, void *msg, uint32_t timeout_ms);
 errno_t platform_mailbox_post_ahead(mailbox_id_t id,
-                                       void *msg,
-                                       uint32_t timeout_ms);
+                                    void *msg,
+                                    uint32_t timeout_ms);
 errno_t platform_mailbox_fetch(mailbox_id_t id,
-                                  void **msg,
-                                  uint32_t timeout_ms);
+                               void **msg,
+                               uint32_t timeout_ms);
 void *platform_mailbox_item_alloc(mailbox_id_t id);
 void platform_mailbox_item_free(mailbox_id_t id, void *ptr);
 
 #define TIME_MATCHED_OBS_THREAD_STACK (6 * 1024 * 1024)
 /* Reference is <TBD> prio */
 #define TIME_MATCHED_OBS_THREAD_PRIORITY (-3)
+
+/* TODO: one reference point for all priorities, currently they are referenced
+ * against LOWPRIO, NORMALPRIO, HIGHPRIO.. */
+#define STARLING_THREAD_PRIORITY (-4)
+#define STARLING_THREAD_STACK (6 * 1024 * 1024)
 
 #define ME_OBS_MSG_N_BUFF 6
 

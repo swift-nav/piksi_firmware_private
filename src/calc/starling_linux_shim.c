@@ -122,6 +122,12 @@ static void platform_thread_info_init(const thread_id_t id,
       info->prio = max_prio + TIME_MATCHED_OBS_THREAD_PRIORITY;
       break;
 
+    case THREAD_ID_STARLING:
+      info->size = STARLING_THREAD_STACK;
+      /* Starling needs to be higher prio than tmo.. this needs work still */
+      info->prio = max_prio + STARLING_THREAD_PRIORITY + 2;
+      break;
+
     default:
       assert(!"Unkonwn thread ID");
       break;
@@ -130,8 +136,7 @@ static void platform_thread_info_init(const thread_id_t id,
   assert(0 < info->prio);
 }
 
-void platform_thread_create(const thread_id_t id,
-                            platform_routine_t *fn) {
+void platform_thread_create(const thread_id_t id, platform_routine_t *fn) {
   assert(fn);
   pthread_attr_t attr;
   platform_thread_info_t info;
@@ -180,9 +185,7 @@ bool platform_try_read_iono_corr(ionosphere_t *params) {
   return (ndb_iono_corr_read(params) == NDB_ERR_NONE);
 }
 
-void platform_watchdog_notify_starling_main_thread() {
-  /* TODO */
-}
+void platform_watchdog_notify_starling_main_thread() { /* TODO */ }
 
 /* Mailbox */
 
@@ -230,9 +233,9 @@ static void platform_get_timeout(const uint32_t timeout_ms,
 }
 
 static int platform_mailbox_post_internal(mailbox_id_t id,
-                                                 void *msg,
-                                                 uint32_t timeout_ms,
-                                                 uint32_t msg_prio) {
+                                          void *msg,
+                                          uint32_t timeout_ms,
+                                          uint32_t msg_prio) {
   struct timespec ts = {0};
   platform_get_timeout(timeout_ms, &ts);
 
@@ -250,21 +253,17 @@ static int platform_mailbox_post_internal(mailbox_id_t id,
   return 0;
 }
 
-int platform_mailbox_post(mailbox_id_t id,
-                                 void *msg,
-                                 uint32_t timeout_ms) {
+int platform_mailbox_post(mailbox_id_t id, void *msg, uint32_t timeout_ms) {
   return platform_mailbox_post_internal(id, msg, timeout_ms, MSG_PRIO_NORMAL);
 }
 
 int platform_mailbox_post_ahead(mailbox_id_t id,
-                                       void *msg,
-                                       uint32_t timeout_ms) {
+                                void *msg,
+                                uint32_t timeout_ms) {
   return platform_mailbox_post_internal(id, msg, timeout_ms, MSG_PRIO_HIGH);
 }
 
-int platform_mailbox_fetch(mailbox_id_t id,
-                                  void **msg,
-                                  uint32_t timeout_ms) {
+int platform_mailbox_fetch(mailbox_id_t id, void **msg, uint32_t timeout_ms) {
   struct timespec ts = {0};
   platform_get_timeout(timeout_ms, &ts);
 

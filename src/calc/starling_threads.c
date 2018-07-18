@@ -481,9 +481,8 @@ static void time_matched_obs_thread(void *arg) {
     obss_t *obss;
     /* Look through the mailbox (FIFO queue) of locally generated observations
      * looking for one that matches in time. */
-    while (platform_mailbox_fetch(MB_ID_TIME_MATCHED_OBS,
-                                  (void **)&obss,
-                                  TIME_IMMEDIATE) == 0) {
+    while (platform_mailbox_fetch(
+               MB_ID_TIME_MATCHED_OBS, (void **)&obss, TIME_IMMEDIATE) == 0) {
       if (dgnss_soln_mode == STARLING_SOLN_MODE_NO_DGNSS) {
         /* Not doing any DGNSS.  Toss the obs away. */
         platform_mailbox_item_free(MB_ID_TIME_MATCHED_OBS, obss);
@@ -875,7 +874,8 @@ void starling_add_sbas_data(const sbas_raw_data_t *sbas_data,
                             const size_t n_sbas_data) {
   assert(is_starling_api_initialized);
   for (size_t i = 0; i < n_sbas_data; ++i) {
-    sbas_raw_data_t *sbas_data_msg = platform_mailbox_item_alloc(MB_ID_SBAS_DATA);
+    sbas_raw_data_t *sbas_data_msg =
+        platform_mailbox_item_alloc(MB_ID_SBAS_DATA);
     if (NULL == sbas_data_msg) {
       log_error("platform_sbas_data_alloc() failed!");
       continue;
