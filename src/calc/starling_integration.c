@@ -762,7 +762,7 @@ static void initialize_starling_settings(void) {
                  set_is_glonass_enabled);
 
   SETTING_NOTIFY("solution",
-                 "enable_galielo",
+                 "enable_galileo",
                  enable_galileo,
                  TYPE_BOOL,
                  set_is_galileo_enabled);
