@@ -36,6 +36,8 @@ typedef enum mailbox_id_e {
   MB_ID_COUNT = 4
 } mailbox_id_t;
 
+typedef enum shim_rtc_e { SHIM_RTC_FAIL = -1, SHIM_RTC_OK = 0 } shim_rtc_t;
+
 /* Mutex */
 void platform_mutex_lock(void *mtx);
 void platform_mutex_unlock(void *mtx);
@@ -59,13 +61,15 @@ void platform_watchdog_notify_starling_main_thread(void);
 
 /* internal communication between threads */
 void platform_mailbox_init(mailbox_id_t id);
-int32_t platform_mailbox_post(mailbox_id_t id, void *msg, uint32_t timeout_ms);
-int32_t platform_mailbox_post_ahead(mailbox_id_t id,
-                                    void *msg,
-                                    uint32_t timeout_ms);
-int32_t platform_mailbox_fetch(mailbox_id_t id,
-                               void **msg,
-                               uint32_t timeout_ms);
+shim_rtc_t platform_mailbox_post(mailbox_id_t id,
+                                 void *msg,
+                                 uint32_t timeout_ms);
+shim_rtc_t platform_mailbox_post_ahead(mailbox_id_t id,
+                                       void *msg,
+                                       uint32_t timeout_ms);
+shim_rtc_t platform_mailbox_fetch(mailbox_id_t id,
+                                  void **msg,
+                                  uint32_t timeout_ms);
 void *platform_mailbox_alloc(mailbox_id_t id);
 void platform_mailbox_free(mailbox_id_t id, void *ptr);
 

@@ -286,9 +286,9 @@ static void update_obss(uncollapsed_obss_t *new_uncollapsed_obss) {
 
       *new_base_obs = base_obss;
 
-      const msg_t post_ret =
+      const shim_rtc_t post_ret =
           platform_mailbox_post(MB_ID_BASE_OBS, new_base_obs, TIME_IMMEDIATE);
-      if (post_ret != MSG_OK) {
+      if (post_ret != SHIM_RTC_OK) {
         log_error("Base obs mailbox should have space!");
         platform_mailbox_free(MB_ID_BASE_OBS, new_base_obs);
       }

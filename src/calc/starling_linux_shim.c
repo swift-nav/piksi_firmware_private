@@ -199,18 +199,13 @@ static mailbox_info_t mailbox_info[MB_ID_COUNT] =
                                  TMO_QUEUE_NAME,
                                  STARLING_OBS_N_BUFF,
                                  sizeof(obss_t *)},
-     [MB_ID_BASE_OBS] = {0,
-                         BO_QUEUE_NAME,
-                         BASE_OBS_N_BUFF,
-                         sizeof(obss_t *)},
+     [MB_ID_BASE_OBS] = {0, BO_QUEUE_NAME, BASE_OBS_N_BUFF, sizeof(obss_t *)},
      [MB_ID_ME_OBS] = {0,
                        MEO_QUEUE_NAME,
                        ME_OBS_MSG_N_BUFF,
                        sizeof(me_msg_obs_t *)},
-     [MB_ID_SBAS_DATA] = {0,
-                          SBAS_DATA_QUEUE_NAME,
-                          SBAS_DATA_N_BUFF,
-                          sizeof(sbas_raw_data_t *)}};
+     [MB_ID_SBAS_DATA] = {
+         0, SBAS_DATA_QUEUE_NAME, SBAS_DATA_N_BUFF, sizeof(sbas_raw_data_t *)}};
 
 void platform_mailbox_init(mailbox_id_t id) {
   struct mq_attr attr;
@@ -235,41 +230,51 @@ static void platform_get_timeout(const uint32_t timeout_ms,
   ts->tv_nsec += timeout_ms * 1e6;
 }
 
-static int32_t platform_mailbox_post_internal(mailbox_id_t id,
-                                              void *msg,
-                                              uint32_t timeout_ms,
-                                              uint32_t msg_prio) {
+static shim_rtc_t platform_mailbox_post_internal(mailbox_id_t id,
+                                                 void *msg,
+                                                 uint32_t timeout_ms,
+                                                 uint32_t msg_prio) {
   struct timespec ts = {0};
   platform_get_timeout(timeout_ms, &ts);
 
-  return mq_timedsend(mailbox_info[id].mailbox,
-                      (char *)&msg,
-                      mailbox_info[id].item_size,
-                      msg_prio,
-                      &ts);
+  if (0 == mq_timedsend(mailbox_info[id].mailbox,
+                        (char *)&msg,
+                        mailbox_info[id].item_size,
+                        msg_prio,
+                        &ts)) {
+    return SHIM_RTC_OK;
+  } else {
+    return SHIM_RTC_FAIL;
+  }
 }
 
-int32_t platform_mailbox_post(mailbox_id_t id, void *msg, uint32_t timeout_ms) {
+shim_rtc_t platform_mailbox_post(mailbox_id_t id,
+                                 void *msg,
+                                 uint32_t timeout_ms) {
   return platform_mailbox_post_internal(id, msg, timeout_ms, QUEUE_NORMAL_PRIO);
 }
 
-int32_t platform_mailbox_post_ahead(mailbox_id_t id,
-                                    void *msg,
-                                    uint32_t timeout_ms) {
+shim_rtc_t platform_mailbox_post_ahead(mailbox_id_t id,
+                                       void *msg,
+                                       uint32_t timeout_ms) {
   return platform_mailbox_post_internal(id, msg, timeout_ms, QUEUE_HIGH_PRIO);
 }
 
-int32_t platform_mailbox_fetch(mailbox_id_t id,
-                               void **msg,
-                               uint32_t timeout_ms) {
+shim_rtc_t platform_mailbox_fetch(mailbox_id_t id,
+                                  void **msg,
+                                  uint32_t timeout_ms) {
   struct timespec ts = {0};
   platform_get_timeout(timeout_ms, &ts);
 
-  return mq_timedreceive(mailbox_info[id].mailbox,
-                         (char *)*msg,
-                         mailbox_info[id].item_size,
-                         NULL,
-                         &ts);
+  if (0 == mq_timedreceive(mailbox_info[id].mailbox,
+                           (char *)*msg,
+                           mailbox_info[id].item_size,
+                           NULL,
+                           &ts)) {
+    return SHIM_RTC_OK;
+  } else {
+    return SHIM_RTC_FAIL;
+  }
 }
 
 void *platform_mailbox_alloc(mailbox_id_t id) {

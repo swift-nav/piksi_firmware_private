@@ -173,25 +173,46 @@ static mailbox_info_t mailbox_info[MB_ID_COUNT] =
                           sizeof(sbas_raw_data_t)}};
 
 void platform_mailbox_init(mailbox_id_t id) {
-  chMBObjectInit(&mailbox_info[id].mailbox, mailbox_info[id].mailbox_buf, mailbox_info[id].mailbox_len);
+  chMBObjectInit(&mailbox_info[id].mailbox,
+                 mailbox_info[id].mailbox_buf,
+                 mailbox_info[id].mailbox_len);
   chPoolObjectInit(&mailbox_info[id].mpool, mailbox_info[id].item_size, NULL);
-  chPoolLoadArray(&mailbox_info[id].mpool, mailbox_info[id].mpool_buf, mailbox_info[id].item_size);
+  chPoolLoadArray(&mailbox_info[id].mpool,
+                  mailbox_info[id].mpool_buf,
+                  mailbox_info[id].item_size);
 }
 
-int32_t platform_mailbox_post(mailbox_id_t id, void *msg, uint32_t timeout_ms) {
-  return chMBPost(&mailbox_info[id].mailbox, (msg_t)msg, MS2ST(timeout_ms));
+shim_rtc_t platform_mailbox_post(mailbox_id_t id,
+                                 void *msg,
+                                 uint32_t timeout_ms) {
+  if (MSG_OK ==
+      chMBPost(&mailbox_info[id].mailbox, (msg_t)msg, MS2ST(timeout_ms))) {
+    return SHIM_RTC_OK;
+  } else {
+    return SHIM_RTC_FAIL;
+  }
 }
 
-int32_t platform_mailbox_post_ahead(mailbox_id_t id,
-                                    void *msg,
-                                    uint32_t timeout_ms) {
-  return chMBPostAhead(&mailbox_info[id].mailbox, (msg_t)msg, MS2ST(timeout_ms));
+shim_rtc_t platform_mailbox_post_ahead(mailbox_id_t id,
+                                       void *msg,
+                                       uint32_t timeout_ms) {
+  if (MSG_OK ==
+      chMBPostAhead(&mailbox_info[id].mailbox, (msg_t)msg, MS2ST(timeout_ms))) {
+    return SHIM_RTC_OK;
+  } else {
+    return SHIM_RTC_FAIL;
+  }
 }
 
-int32_t platform_mailbox_fetch(mailbox_id_t id,
-                               void **msg,
-                               uint32_t timeout_ms) {
-  return chMBFetch(&mailbox_info[id].mailbox, (msg_t *)msg, MS2ST(timeout_ms));
+shim_rtc_t platform_mailbox_fetch(mailbox_id_t id,
+                                  void **msg,
+                                  uint32_t timeout_ms) {
+  if (MSG_OK ==
+      chMBFetch(&mailbox_info[id].mailbox, (msg_t *)msg, MS2ST(timeout_ms))) {
+    return SHIM_RTC_OK;
+  } else {
+    return SHIM_RTC_FAIL;
+  }
 }
 
 void *platform_mailbox_alloc(mailbox_id_t id) {

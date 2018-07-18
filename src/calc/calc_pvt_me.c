@@ -118,8 +118,9 @@ static void me_post_observations(u8 n,
     me_msg_obs->obs_time.tow = TOW_UNKNOWN;
   }
 
-  msg_t ret = platform_mailbox_post(MB_ID_ME_OBS, me_msg_obs, TIME_IMMEDIATE);
-  if (ret != MSG_OK) {
+  shim_rtc_t ret =
+      platform_mailbox_post(MB_ID_ME_OBS, me_msg_obs, TIME_IMMEDIATE);
+  if (ret != SHIM_RTC_OK) {
     /* We could grab another item from the mailbox, discard it and then
      * post our obs again but if the size of the mailbox and the pool
      * are equal then we should have already handled the case where the
