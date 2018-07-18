@@ -182,7 +182,6 @@ bool platform_try_read_iono_corr(ionosphere_t *params) {
 
 void platform_watchdog_notify_starling_main_thread() {
   /* TODO */
-  watchdog_notify(WD_NOTIFY_STARLING);
 }
 
 /* Mailbox */
