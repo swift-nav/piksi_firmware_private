@@ -58,8 +58,8 @@
  * Local Variables
  ******************************************************************************/
 
-#define QUEUE_NORMAL_PRIO 0
-#define QUEUE_HIGH_PRIO 1
+#define MSG_PRIO_NORMAL 0
+#define MSG_PRIO_HIGH 1
 
 /* Time-matched observations data-structures. */
 #define TMO_QUEUE_NAME "time-matched-obs"
@@ -252,13 +252,13 @@ static shim_rtc_t platform_mailbox_post_internal(mailbox_id_t id,
 shim_rtc_t platform_mailbox_post(mailbox_id_t id,
                                  void *msg,
                                  uint32_t timeout_ms) {
-  return platform_mailbox_post_internal(id, msg, timeout_ms, QUEUE_NORMAL_PRIO);
+  return platform_mailbox_post_internal(id, msg, timeout_ms, MSG_PRIO_NORMAL);
 }
 
 shim_rtc_t platform_mailbox_post_ahead(mailbox_id_t id,
                                        void *msg,
                                        uint32_t timeout_ms) {
-  return platform_mailbox_post_internal(id, msg, timeout_ms, QUEUE_HIGH_PRIO);
+  return platform_mailbox_post_internal(id, msg, timeout_ms, MSG_PRIO_HIGH);
 }
 
 shim_rtc_t platform_mailbox_fetch(mailbox_id_t id,
