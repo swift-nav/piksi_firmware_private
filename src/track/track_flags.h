@@ -39,10 +39,8 @@
 #define TRACKER_FLAG_XCORR_SUSPECT (1 << 11)
 /** Tracker flag: tracker xcorr doppler filter is active */
 #define TRACKER_FLAG_XCORR_FILTER_ACTIVE (1 << 12)
-/** Tracker flag: signal is healthy. */
-#define TRACKER_FLAG_HEALTHY (1 << 15)
 /** Tracker flag: signal is unhealthy. */
-#define TRACKER_FLAG_UNHEALTHY (1 << 16)
+#define TRACKER_FLAG_UNHEALTHY (1 << 15)
 
 #define TRACKER_FLAG_BIT_POLARITY_KNOWN (1 << 18)
 #define TRACKER_FLAG_BIT_INVERTED (1 << 19)

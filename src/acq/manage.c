@@ -1118,16 +1118,9 @@ u32 get_tracking_channel_sid_flags(const gnss_signal_t sid,
   if ((NULL != pephe) && (TOW_UNKNOWN != tow_ms) &&
       ephemeris_valid(pephe, &t)) {
     flags |= TRACKER_FLAG_HAS_EPHE;
-
-    if (shm_ephe_healthy(pephe, sid.code)) {
-      flags |= TRACKER_FLAG_HEALTHY;
-    }
   }
 
-  if ((IS_GPS(sid) || IS_BDS2(sid) || IS_GAL(sid)) &&
-      shm_navigation_suitable(sid)) {
-    flags |= TRACKER_FLAG_NAV_SUITABLE;
-  } else if (IS_GLO(sid) && (flags & TRACKER_FLAG_HEALTHY)) {
+  if (shm_navigation_suitable(sid)) {
     flags |= TRACKER_FLAG_NAV_SUITABLE;
   }
 
