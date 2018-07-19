@@ -645,13 +645,13 @@ static void nmea_gsv_print(const u8 n_used,
       NMEA_SENTENCE_PRINTF(",%02u", sv_id);
 
       if (track_sid_db_elevation_degrees_get(ch_meas[n]->sid, &ele)) {
-        NMEA_SENTENCE_PRINTF(",%02d", (s8)roundf(ele));
+        NMEA_SENTENCE_PRINTF(",%02d", (s8)round(ele));
       } else {
         NMEA_SENTENCE_PRINTF(",");
       }
 
       if (track_sid_db_azimuth_degrees_get(ch_meas[n]->sid, &azi)) {
-        NMEA_SENTENCE_PRINTF(",%03u", (u16)roundf(azi));
+        NMEA_SENTENCE_PRINTF(",%03u", (u16)round(azi));
       } else {
         NMEA_SENTENCE_PRINTF(",");
       }
