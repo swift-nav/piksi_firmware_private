@@ -175,7 +175,7 @@ static void debug_threads(void) {
   const char *state[] = {CH_STATE_NAMES};
   thread_t *tp = chRegFirstThread();
   while (tp) {
-    log_info("%s (%u: %s): prio: %u, flags: %u, wtobjp: %p",
+    log_info("%s (%u: %s): prio: %" PRIu32 ", flags: %u, wtobjp: %p",
              tp->p_name,
              tp->p_state,
              state[tp->p_state],

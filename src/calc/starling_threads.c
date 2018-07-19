@@ -449,7 +449,7 @@ static void time_matched_obs_thread(void *arg) {
 
     if (fetch_ret != 0) {
       if (NULL != base_obs) {
-        log_error("Base obs mailbox fetch failed with %" PRIi32, fetch_ret);
+        log_error("Base obs mailbox fetch failed with %d", fetch_ret);
         platform_mailbox_item_free(MB_ID_BASE_OBS, base_obs);
       }
       continue;
@@ -605,7 +605,7 @@ static void process_any_sbas_messages(void) {
     } else if (NULL != sbas_data) {
       /* If the fetch operation failed after assigning to the message pointer,
        * something has gone unexpectedly wrong. */
-      log_error("STARLING: sbas mailbox fetch failed with %" PRIi32, ret);
+      log_error("STARLING: sbas mailbox fetch failed with %d", ret);
     }
     /* Under any circumstances, if the message pointer was assigned to, it
      * must be released back to the pool. */
@@ -644,7 +644,7 @@ static void starling_thread(void) {
         MB_ID_ME_OBS, (void **)&me_msg, DGNSS_TIMEOUT_MS);
     if (ret != 0) {
       if (NULL != me_msg) {
-        log_error("STARLING: mailbox fetch failed with %" PRIi32, ret);
+        log_error("STARLING: mailbox fetch failed with %d", ret);
         platform_mailbox_item_free(MB_ID_ME_OBS, me_msg);
       }
       continue;

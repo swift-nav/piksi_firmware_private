@@ -185,7 +185,8 @@ bool platform_try_read_iono_corr(ionosphere_t *params) {
   return (ndb_iono_corr_read(params) == NDB_ERR_NONE);
 }
 
-void platform_watchdog_notify_starling_main_thread() { /* TODO */ }
+void platform_watchdog_notify_starling_main_thread() { /* TODO */
+}
 
 /* Mailbox */
 
@@ -286,5 +287,5 @@ void *platform_mailbox_item_alloc(mailbox_id_t id) {
 
 void platform_mailbox_item_free(mailbox_id_t id, const void *ptr) {
   (void)id;
-  free((void*)ptr);
+  free((void *)ptr);
 }

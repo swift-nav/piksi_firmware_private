@@ -124,10 +124,10 @@ ssize_t sbp_fileio_write(const char *filename,
     } while (++tries < SBP_FILEIO_TRIES);
 
     if (!success) {
-      log_error("sbp_fileio_write(): fn %s  offset %" PRIu32
-                " buf %p  size %d  tries %d  chunksize %d   s %d",
+      log_error("sbp_fileio_write(): fn %s  offset %" PRIi32
+                " buf %p  size %zu  tries %" PRIu8 "  chunksize %zd   s %zu",
                 dbg_filename,
-                (u32)offset,
+                (int32_t)offset,
                 buf,
                 size,
                 tries,
