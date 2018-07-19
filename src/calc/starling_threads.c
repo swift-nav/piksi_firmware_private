@@ -877,7 +877,7 @@ void starling_add_sbas_data(const sbas_raw_data_t *sbas_data,
     sbas_raw_data_t *sbas_data_msg =
         platform_mailbox_item_alloc(MB_ID_SBAS_DATA);
     if (NULL == sbas_data_msg) {
-      log_error("platform_sbas_data_alloc() failed!");
+      log_error("platform_mailbox_item_alloc(MB_ID_SBAS_DATA) failed!");
       continue;
     }
     assert(sbas_data);
@@ -885,7 +885,7 @@ void starling_add_sbas_data(const sbas_raw_data_t *sbas_data,
     errno_t ret =
         platform_mailbox_post(MB_ID_SBAS_DATA, sbas_data_msg, TIME_IMMEDIATE);
     if (ret != 0) {
-      log_error("platform_mailbox_post() failed!");
+      log_error("platform_mailbox_post(MB_ID_SBAS_DATA) failed!");
       platform_mailbox_item_free(MB_ID_SBAS_DATA, sbas_data_msg);
     }
   }

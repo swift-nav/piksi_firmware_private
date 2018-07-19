@@ -129,7 +129,7 @@ static void platform_thread_info_init(const thread_id_t id,
       break;
 
     default:
-      assert(!"Unkonwn thread ID");
+      assert(!"Unknown thread ID");
       break;
   }
 
