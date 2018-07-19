@@ -80,7 +80,7 @@ static void decoder_bds_b1_process(const decoder_channel_info_t *channel_info,
   memset(&dd_d2nav, 0, sizeof(bds_d2_decoded_data_t));
 
   bds_b1_decoder_data_t *data = decoder_data;
-  me_gnss_signal_t mesid = channel_info->mesid;
+  const me_gnss_signal_t mesid = channel_info->mesid;
 
   /* Process incoming nav bits */
   nav_bit_t nav_bit;

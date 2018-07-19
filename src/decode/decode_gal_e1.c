@@ -82,7 +82,7 @@ static void decoder_gal_e1_process(const decoder_channel_info_t *channel_info,
   /* Process incoming nav bits */
   nav_bit_t nav_bit;
   u8 channel = channel_info->tracking_channel;
-  me_gnss_signal_t mesid = channel_info->mesid;
+  const me_gnss_signal_t mesid = channel_info->mesid;
 
   while (tracker_nav_bit_get(channel, &nav_bit)) {
     /* Don't decode data while in sensitivity mode. */
@@ -190,7 +190,7 @@ static void decoder_gal_e1_process(const decoder_channel_info_t *channel_info,
         break;
       case INAV_DUMMY:
         from_decoder.health = SV_UNHEALTHY;
-        from_decoder.sync_flags = SYNC_EPH;
+        from_decoder.sync_flags = SYNC_POL | SYNC_EPH;
         tracker_data_sync(channel, &from_decoder);
         break;
       default:
