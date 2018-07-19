@@ -191,7 +191,7 @@ void platform_mailbox_init(mailbox_id_t id) {
 }
 
 errno_t platform_mailbox_post(mailbox_id_t id, void *msg, uint32_t timeout_ms) {
-  if (MSG_OK ==
+  if (MSG_OK !=
       chMBPost(&mailbox_info[id].mailbox, (msg_t)msg, MS2ST(timeout_ms))) {
     /* Full or mailbox reset while waiting */
     return EBUSY;
@@ -215,7 +215,7 @@ errno_t platform_mailbox_post_ahead(mailbox_id_t id,
 errno_t platform_mailbox_fetch(mailbox_id_t id,
                                void **msg,
                                uint32_t timeout_ms) {
-  if (MSG_OK ==
+  if (MSG_OK !=
       chMBFetch(&mailbox_info[id].mailbox, (msg_t *)msg, MS2ST(timeout_ms))) {
     /* Empty or mailbox reset while waiting */
     return EBUSY;
