@@ -102,9 +102,12 @@ static void decoder_bds_b1_process(const decoder_channel_info_t *channel_info,
       tracker_data_sync_init(&from_decoder);
       if (bds_d2nav(mesid)) {
         TOWms = bds_d2_process_subframe(&data->nav_msg, mesid, &dd_d2nav);
-        if (TOW_INVALID != TOWms) {
-          from_decoder.TOW_ms = TOWms - 60;
+        if (TOW_INVALID == TOWms) {
+          bds_nav_msg_init(&data->nav_msg, mesid.sat);
+          continue;
         }
+        from_decoder.TOW_ms = TOWms - 60;
+        from_decoder.sync_flags = SYNC_POL | SYNC_TOW;
         if (dd_d2nav.ephemeris_upd_flag) {
           shm_bds_set_shi(dd_d2nav.ephemeris.sid.sat,
                           dd_d2nav.ephemeris.health_bits);
@@ -116,15 +119,19 @@ static void decoder_bds_b1_process(const decoder_channel_info_t *channel_info,
                            r);
           }
           dd_d2nav.ephemeris_upd_flag = false;
+          from_decoder.health =
+              shm_ephe_healthy(&dd_d2nav.ephemeris, mesid.code) ? SV_HEALTHY
+                                                                : SV_UNHEALTHY;
+          from_decoder.sync_flags |= SYNC_EPH;
         }
-        from_decoder.health = shm_ephe_healthy(&dd_d2nav.ephemeris, mesid.code)
-                                  ? SV_HEALTHY
-                                  : SV_UNHEALTHY;
       } else {
         TOWms = bds_d1_process_subframe(&data->nav_msg, mesid, &dd_d1nav);
-        if (TOW_INVALID != TOWms) {
-          from_decoder.TOW_ms = TOWms;
+        if (TOW_INVALID == TOWms) {
+          bds_nav_msg_init(&data->nav_msg, mesid.sat);
+          continue;
         }
+        from_decoder.TOW_ms = TOWms;
+        from_decoder.sync_flags = SYNC_POL | SYNC_TOW;
         if (dd_d1nav.ephemeris_upd_flag) {
           shm_bds_set_shi(dd_d1nav.ephemeris.sid.sat,
                           dd_d1nav.ephemeris.health_bits);
@@ -136,10 +143,11 @@ static void decoder_bds_b1_process(const decoder_channel_info_t *channel_info,
                            r);
           }
           dd_d1nav.ephemeris_upd_flag = false;
+          from_decoder.health =
+              shm_ephe_healthy(&dd_d1nav.ephemeris, mesid.code) ? SV_HEALTHY
+                                                                : SV_UNHEALTHY;
+          from_decoder.sync_flags |= SYNC_EPH;
         }
-        from_decoder.health = shm_ephe_healthy(&dd_d1nav.ephemeris, mesid.code)
-                                  ? SV_HEALTHY
-                                  : SV_UNHEALTHY;
       }
       from_decoder.bit_polarity = data->nav_msg.bit_polarity;
       tracker_data_sync(channel_info->tracking_channel, &from_decoder);
