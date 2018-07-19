@@ -79,8 +79,7 @@ bool sbas_active(const me_gnss_signal_t mesid) {
  */
 bool bds_active(const me_gnss_signal_t mesid) {
   assert(IS_BDS2(mesid));
-  return (0 !=
-          (gnss_capab.bds_active & (1ULL << (mesid.sat - BDS2_FIRST_PRN))));
+  return (0 != (gnss_capab.bds_active & (1ULL << (mesid.sat - BDS_FIRST_PRN))));
 }
 
 /** Returns true if Beidou satellite is geostationary using D2 navigation
@@ -89,7 +88,7 @@ bool bds_active(const me_gnss_signal_t mesid) {
  */
 bool bds_d2nav(const me_gnss_signal_t mesid) {
   assert(IS_BDS2(mesid));
-  return (0 != (gnss_capab.bds_d2nav & (1ULL << (mesid.sat - BDS2_FIRST_PRN))));
+  return (0 != (gnss_capab.bds_d2nav & (1ULL << (mesid.sat - BDS_FIRST_PRN))));
 }
 
 /** Returns true if Beidou satellite uses the B2 (2 MHz) frequency
@@ -97,7 +96,7 @@ bool bds_d2nav(const me_gnss_signal_t mesid) {
  */
 bool bds_b2(const me_gnss_signal_t mesid) {
   assert(IS_BDS2(mesid));
-  return (0 != (gnss_capab.bds_b2 & (1ULL << (mesid.sat - BDS2_FIRST_PRN))));
+  return (0 != (gnss_capab.bds_b2 & (1ULL << (mesid.sat - BDS_FIRST_PRN))));
 }
 
 /** Returns true if QZSS satellite is active

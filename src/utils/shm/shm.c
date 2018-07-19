@@ -31,7 +31,7 @@ static MUTEX_DECL(shm_data_access);
 
 static gps_sat_health_indicators_t gps_shis[NUM_SATS_GPS];
 static glo_sat_health_indicators_t glo_shis[NUM_SATS_GLO];
-static bds_sat_health_indicators_t bds_shis[NUM_SATS_BDS2];
+static bds_sat_health_indicators_t bds_shis[NUM_SATS_BDS];
 static gal_sat_health_indicators_t gal_shis[NUM_SATS_GAL];
 
 static void bool_shi_2_str(bool set, bool shi, char* str) {
@@ -94,7 +94,7 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
   chMtxLock(&shm_data_access);
   gps_sat_health_indicators_t shis = gps_shis[sid.sat - GPS_FIRST_PRN];
   glo_sat_health_indicators_t shi = glo_shis[sid.sat - GLO_FIRST_PRN];
-  bds_sat_health_indicators_t shi_bds = bds_shis[sid.sat - BDS2_FIRST_PRN];
+  bds_sat_health_indicators_t shi_bds = bds_shis[sid.sat - BDS_FIRST_PRN];
   gal_sat_health_indicators_t shi_gal = gal_shis[sid.sat - GAL_FIRST_PRN];
   chMtxUnlock(&shm_data_access);
 
@@ -124,7 +124,7 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
     }
   }
 
-  switch (sid.code) {
+  switch ((s8)sid.code) {
     case CODE_GPS_L1CA:
     case CODE_GPS_L1P: {
       /*
@@ -210,7 +210,7 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
       }
       return CODE_NAV_STATE_UNKNOWN;
 
-    case CODE_BDS2_B11:
+    case CODE_BDS2_B1:
     case CODE_BDS2_B2:
       if (shi_bds.shi_set && (SV_UNHEALTHY == shi_bds.shi)) {
         return CODE_NAV_STATE_INVALID;
@@ -235,29 +235,13 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
       }
       return CODE_NAV_STATE_UNKNOWN;
 
-    case CODE_GPS_L5I:
-    case CODE_GPS_L5Q:
-    case CODE_GPS_L5X:
-    case CODE_GAL_E6B:
-    case CODE_GAL_E6C:
-    case CODE_GAL_E6X:
-    case CODE_GAL_E8:
-    case CODE_GAL_E5I:
-    case CODE_GAL_E5Q:
-    case CODE_GAL_E5X:
-    case CODE_QZS_L1CA:
-    case CODE_QZS_L2CM:
-    case CODE_QZS_L2CL:
-    case CODE_QZS_L2CX:
-    case CODE_QZS_L5I:
-    case CODE_QZS_L5Q:
-    case CODE_QZS_L5X:
-      return CODE_NAV_STATE_UNKNOWN;
-
     case CODE_INVALID:
     case CODE_COUNT:
-    default:
       assert(!"Invalid code");
+      break;
+
+    default:
+      return CODE_NAV_STATE_UNKNOWN;
   }
   return CODE_NAV_STATE_UNKNOWN;
 }
@@ -402,10 +386,10 @@ void shm_glo_set_shi(u16 sat, u8 new_value) {
  * \param new_value value to set SHI to
  */
 void shm_bds_set_shi(u16 sat, u8 new_value) {
-  assert(sat >= BDS2_FIRST_PRN && sat < BDS2_FIRST_PRN + NUM_SATS_BDS2);
+  assert(sat >= BDS_FIRST_PRN && sat < BDS_FIRST_PRN + NUM_SATS_BDS);
   chMtxLock(&shm_data_access);
-  bds_shis[sat - BDS2_FIRST_PRN].shi = new_value;
-  bds_shis[sat - BDS2_FIRST_PRN].shi_set = true;
+  bds_shis[sat - BDS_FIRST_PRN].shi = new_value;
+  bds_shis[sat - BDS_FIRST_PRN].shi_set = true;
   chMtxUnlock(&shm_data_access);
 }
 

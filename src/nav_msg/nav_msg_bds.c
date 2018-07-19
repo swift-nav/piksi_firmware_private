@@ -301,7 +301,7 @@ s32 bds_d1_process_subframe(nav_msg_bds_t *n,
     add_secs(&iono->toa, BDS_SECOND_TO_GPS_SECOND);
     /* Mark ephemeris from B2 as if it was coming from B1. */
     if (CODE_BDS2_B2 == mesid.code) {
-      e->sid.code = CODE_BDS2_B11;
+      e->sid.code = CODE_BDS2_B1;
     }
     e->fit_interval = BDS_FIT_INTERVAL_SECONDS;
     e->valid = 1;

@@ -12,7 +12,7 @@
 /* Reference BDS ephemeris */
 static const ephemeris_t ref_eph = {
     {10,                      /* sid.sat */
-     CODE_BDS2_B11},          /* sid.code */
+     CODE_BDS2_B1},           /* sid.code */
     {2.01600000000E+05,       /* toe.tow */
      1998},                   /* toe.wn */
     2.00000000000E+00,        /* ura */
@@ -118,7 +118,7 @@ u32 interleave(u16 hi, u16 lo) {
 
 TEST(nav_msg_bds_tests, bch_decoder_real_data) {
   /* Initialize bit buffer with correct BDS subframe. */
-  me_gnss_signal_t mesid = {12, CODE_BDS2_B11};
+  me_gnss_signal_t mesid = {12, CODE_BDS2_B1};
   nav_msg_bds_t nav_msg1;
   bds_nav_msg_init(&nav_msg1, mesid.sat);
 
@@ -184,7 +184,7 @@ TEST(nav_msg_bds_tests, bch_decoder_real_data) {
 }
 
 TEST(nav_msg_bds_tests, bch_decoder_random_data) {
-  me_gnss_signal_t mesid = {12, CODE_BDS2_B11};
+  me_gnss_signal_t mesid = {12, CODE_BDS2_B1};
   nav_msg_bds_t nav_msg;
   /* Generate all possible messages and see that decoding succeeds.
    * There are 11 information bits, i.e. 2^11 different messages. */
@@ -215,7 +215,7 @@ TEST(nav_msg_bds_tests, bch_decoder_random_data) {
 }
 
 TEST(nav_msg_bds_tests, ephemeris_decoding) {
-  me_gnss_signal_t mesid = {10, CODE_BDS2_B11};
+  me_gnss_signal_t mesid = {10, CODE_BDS2_B1};
   nav_msg_bds_t nav_msg;
   bds_nav_msg_init(&nav_msg, mesid.sat);
 

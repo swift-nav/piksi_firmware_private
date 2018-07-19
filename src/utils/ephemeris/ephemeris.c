@@ -232,8 +232,8 @@ static bool xcorr_check_eph_to_eph(const ephemeris_t *e) {
     num_sats = NUM_SATS_GPS;
     gnss = "GPS";
   } else if (IS_BDS2(e->sid)) {
-    first_prn = BDS2_FIRST_PRN;
-    num_sats = NUM_SATS_BDS2;
+    first_prn = BDS_FIRST_PRN;
+    num_sats = NUM_SATS_BDS;
     gnss = "BDS";
   } else if (IS_GAL(e->sid)) {
     first_prn = GAL_FIRST_PRN;

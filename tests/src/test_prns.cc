@@ -61,7 +61,7 @@ TEST(test_prns_ca_code, code) {
   }
 
   for (u8 k = 0; k < 37; k++) {
-    mesid = construct_mesid(CODE_BDS2_B11, k + BDS2_FIRST_PRN);
+    mesid = construct_mesid(CODE_BDS2_B1, k + BDS_FIRST_PRN);
     ptr = ca_code(mesid);
     EXPECT_TRUE(NULL != ptr);
   }

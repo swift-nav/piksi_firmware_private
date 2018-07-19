@@ -43,7 +43,7 @@ static tracker_interface_function_t tracker_bds2_b11_update;
 
 /** BDS2 B11 tracker interface */
 static const tracker_interface_t tracker_interface_bds2_b11 = {
-    .code = CODE_BDS2_B11,
+    .code = CODE_BDS2_B1,
     .init = tracker_bds2_b11_init,
     .disable = tp_tracker_disable,
     .update = tracker_bds2_b11_update,

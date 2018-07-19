@@ -389,7 +389,7 @@ static u16 nmea_get_id(const gnss_signal_t sid) {
   u16 id = -1;
 
   switch (sid_to_constellation(sid)) {
-    case CONSTELLATION_BDS2:
+    case CONSTELLATION_BDS:
       id = NMEA_SV_ID_OFFSET_BDS2 + sid.sat;
       break;
     case CONSTELLATION_GAL:
@@ -437,7 +437,7 @@ static talker_id_t sid_to_talker_id(const gnss_signal_t sid) {
   switch (sid_to_constellation(sid)) {
     case CONSTELLATION_GAL:
       return TALKER_ID_GA;
-    case CONSTELLATION_BDS2:
+    case CONSTELLATION_BDS:
       return TALKER_ID_GB;
     case CONSTELLATION_GLO:
       return TALKER_ID_GL;

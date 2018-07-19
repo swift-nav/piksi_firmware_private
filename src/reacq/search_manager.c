@@ -70,12 +70,12 @@ u16 sm_constellation_to_start_index(constellation_t gnss) {
       return NUM_SATS_GPS;
     case CONSTELLATION_SBAS:
       return NUM_SATS_GPS + NUM_SATS_GLO;
-    case CONSTELLATION_BDS2:
+    case CONSTELLATION_BDS:
       return NUM_SATS_GPS + NUM_SATS_GLO + NUM_SATS_SBAS;
     case CONSTELLATION_QZS:
-      return NUM_SATS_GPS + NUM_SATS_GLO + NUM_SATS_SBAS + NUM_SATS_BDS2;
+      return NUM_SATS_GPS + NUM_SATS_GLO + NUM_SATS_SBAS + NUM_SATS_BDS;
     case CONSTELLATION_GAL:
-      return NUM_SATS_GPS + NUM_SATS_GLO + NUM_SATS_SBAS + NUM_SATS_BDS2 +
+      return NUM_SATS_GPS + NUM_SATS_GLO + NUM_SATS_SBAS + NUM_SATS_BDS +
              NUM_SATS_QZS;
     default:
       assert(!"Incorrect constellation");
@@ -126,7 +126,7 @@ void sm_init(acq_jobs_state_t *data) {
   } reacq_gnss[] = {{CONSTELLATION_GPS, GPS_FIRST_PRN},
                     {CONSTELLATION_GLO, GLO_FIRST_PRN},
                     {CONSTELLATION_SBAS, SBAS_FIRST_PRN},
-                    {CONSTELLATION_BDS2, BDS2_FIRST_PRN},
+                    {CONSTELLATION_BDS, BDS_FIRST_PRN},
                     {CONSTELLATION_QZS, QZS_FIRST_PRN},
                     {CONSTELLATION_GAL, GAL_FIRST_PRN}};
 
@@ -419,7 +419,7 @@ bool is_constellation_enabled(constellation_t con) {
       return is_glo_enabled();
       break;
 
-    case CONSTELLATION_BDS2:
+    case CONSTELLATION_BDS:
       return is_bds2_enabled();
       break;
 
