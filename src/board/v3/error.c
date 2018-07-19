@@ -120,12 +120,10 @@ void fault_handling_setup(void) {}
 
 /* Called by fault handlers in error_asm.s */
 void fault_handler_screaming_death(const char *msg_str, u32 lr) {
-  (void)msg_str;
-  (void)lr;
-  /*char msg[128];
+  char msg[128];
   extern int fallback_sprintf(char *str, const char *fmt, ...);
   fallback_sprintf(msg, "%s lr=%08X", msg_str, (unsigned int)lr);
-  screaming_death(msg);*/
+  screaming_death(msg);
 }
 
 /** \} */

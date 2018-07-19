@@ -158,13 +158,14 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/calc/calc_pvt_common.o \
         $(SWIFTNAV_ROOT)/src/calc/starling_integration.o \
         $(SWIFTNAV_ROOT)/src/calc/starling_threads.o \
-        $(SWIFTNAV_ROOT)/src/calc/starling_linux_shim.o \
+        $(SWIFTNAV_ROOT)/src/calc/starling_chibios_shim.o \
         $(SWIFTNAV_ROOT)/src/calc/calc_pvt_me.o \
         $(SWIFTNAV_ROOT)/src/calc/calc_nav_meas.o \
         $(SWIFTNAV_ROOT)/src/utils/obs_bias/obs_bias.o \
         $(SWIFTNAV_ROOT)/src/calc/calc_base_obs.o \
         $(SWIFTNAV_ROOT)/src/simulator/simulator.o \
         $(SWIFTNAV_ROOT)/src/simulator/simulator_data.o \
+        $(SWIFTNAV_ROOT)/src/utils/syscalls/syscalls.o \
         $(SWIFTNAV_ROOT)/src/utils/nmea/nmea.o \
         $(SWIFTNAV_ROOT)/src/utils/system_monitor/system_monitor.o \
         $(SWIFTNAV_ROOT)/src/utils/ephemeris/ephemeris.o \
@@ -280,7 +281,7 @@ INCDIR = $(STARTUPINC) $(PORTINC) $(KERNINC) \
 # Compiler settings
 #
 
-TRGT = arm-linux-gnueabi-
+TRGT = arm-none-eabi-
 CC   = $(TRGT)gcc
 CPPC = $(TRGT)g++
 # Enable loading with g++ only if you need C++ runtime support.
@@ -362,8 +363,7 @@ DLIBDIR = $(LIBSBP_BUILDDIR)/src \
 
 # List all default libraries here
 DLIBS = $(BOARDLIBS) -lsbp-static -lswiftnav -lswiftnav-common \
-        -lm -Wl,--start-group -lstdc++ -lc -Wl,--end-group -lfec \
-        -Wl,--build-id=none -lpthread -lrt
+        -lm -Wl,--start-group -lstdc++ -lc -Wl,--end-group -lfec -lnosys
 
 #
 # End of default section
@@ -374,7 +374,7 @@ DLIBS = $(BOARDLIBS) -lsbp-static -lswiftnav -lswiftnav-common \
 #
 
 # List all user C define here, like -D_DEBUG=1
-UDEFS = -D_GNU_SOURCE
+UDEFS =
 
 # Define ASM defines here
 UADEFS =
