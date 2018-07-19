@@ -74,7 +74,9 @@ extern "C" {
 
 /**
  * Galileo fit_interval definition
- * "Galileo open service. Service definition document"
+ * "Galileo Open Service: Service Definition Document"
+ * Issue 1 Revision 0, 2016 December
+ * Section 2.4.1
  * https://www.gsc-europa.eu/system/files/galileo_documents/Galileo-OS-SDD.pdf
  */
 #define GAL_FIT_INTERVAL_SECONDS (4 * HOUR_SECS)

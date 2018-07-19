@@ -42,10 +42,12 @@ extern "C" {
 /** BDS D1 subframe length [seconds] */
 #define BDS_D1_SUBFRAME_LEN_SECONDS (6)
 
-/* "The Open Service Signal in Space Navigation Data Comparison
-   of the Global Positioning System and the BeiDou Navigation Satellite System"
-   Shau-Shiun Jan and An-Lin Tao, 2014 August
-   https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4178995/ */
+/**
+ * "The Open Service Signal in Space Navigation Data Comparison
+ * of the Global Positioning System and the BeiDou Navigation Satellite System"
+ * Shau-Shiun Jan and An-Lin Tao, 2014 August
+ * https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4178995/
+ */
 #define BDS_FIT_INTERVAL_SECONDS (3 * HOUR_SECS)
 
 /**
