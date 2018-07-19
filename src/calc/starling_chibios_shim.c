@@ -187,7 +187,7 @@ void platform_mailbox_init(mailbox_id_t id) {
   chPoolObjectInit(&mailbox_info[id].mpool, mailbox_info[id].item_size, NULL);
   chPoolLoadArray(&mailbox_info[id].mpool,
                   mailbox_info[id].mpool_buf,
-                  mailbox_info[id].item_size);
+                  mailbox_info[id].mailbox_len);
 }
 
 errno_t platform_mailbox_post(mailbox_id_t id, void *msg, uint32_t timeout_ms) {
