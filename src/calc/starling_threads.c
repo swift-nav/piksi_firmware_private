@@ -148,7 +148,7 @@ static void update_filter_manager_settings(FilterManager *fm) {
   set_pvt_engine_enable_constellation(
       fm, CONSTELLATION_GAL, settings.is_galileo_enabled);
   set_pvt_engine_enable_constellation(
-      fm, CONSTELLATION_BDS2, settings.is_beidou_enabled);
+      fm, CONSTELLATION_BDS, settings.is_beidou_enabled);
   set_pvt_engine_obs_downweight_factor(
       fm, settings.glonass_downweight_factor, CODE_GLO_L1OF);
   set_pvt_engine_obs_downweight_factor(

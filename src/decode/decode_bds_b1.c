@@ -41,7 +41,7 @@ static void decoder_bds_b1_process(const decoder_channel_info_t *channel_info,
                                    decoder_data_t *decoder_data);
 
 static const decoder_interface_t decoder_interface_bds_b1 = {
-    .code = CODE_BDS2_B11,
+    .code = CODE_BDS2_B1,
     .init = decoder_bds_b1_init,
     .disable = decoder_disable,
     .process = decoder_bds_b1_process,

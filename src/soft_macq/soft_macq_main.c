@@ -198,7 +198,7 @@ static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
   /** first of all reset the destination buffer */
   memset(baseband, 0, FAU_BASEBAND_SIZE * sizeof(sc16_t));
 
-  switch (mesid.code) {
+  switch ((s8)mesid.code) {
     case CODE_GPS_L1CA:
     case CODE_SBAS_L1CA:
     case CODE_QZS_L1CA:
@@ -242,7 +242,7 @@ static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
       }
       break;
 
-    case CODE_BDS2_B11:
+    case CODE_BDS2_B1:
       nco_step = CirclesToUint32(BDS2_B11_HZ / (double)FAU_RAW_FS);
 
       for (k = 0, carr_nco = 0; k < FAU_SAMPLE_GRABBER_LENGTH; k++) {
@@ -280,34 +280,8 @@ static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
       }
       break;
 
-    case CODE_INVALID:
-    case CODE_GLO_L2OF:
-    case CODE_GPS_L2CM:
-    case CODE_GPS_L2CL:
-    case CODE_GPS_L1P:
-    case CODE_GPS_L2P:
-    case CODE_GPS_L2CX:
-    case CODE_GPS_L5I:
-    case CODE_GPS_L5Q:
-    case CODE_GPS_L5X:
-    case CODE_BDS2_B2:
-    case CODE_GAL_E6B:
-    case CODE_GAL_E6C:
-    case CODE_GAL_E6X:
-    case CODE_GAL_E8:
-    case CODE_GAL_E5I:
-    case CODE_GAL_E5Q:
-    case CODE_GAL_E5X:
-    case CODE_QZS_L2CM:
-    case CODE_QZS_L2CL:
-    case CODE_QZS_L2CX:
-    case CODE_QZS_L5I:
-    case CODE_QZS_L5Q:
-    case CODE_QZS_L5X:
-    case CODE_COUNT:
     default:
       return false;
-      break;
   }
 
   return true;
@@ -329,7 +303,7 @@ static bool SoftMacqMdbzp(const me_gnss_signal_t mesid,
 
   fau_conf.iSampMs = FAU_SPMS;
 
-  switch (mesid.code) {
+  switch ((s8)mesid.code) {
     case CODE_GPS_L1CA:
     case CODE_QZS_L1CA:
       fau_conf.iNumCodeSlices = FAU_MDBZP_MS_SLICES * GPS_L1CA_PRN_PERIOD_MS;
@@ -379,7 +353,7 @@ static bool SoftMacqMdbzp(const me_gnss_signal_t mesid,
                     BPSK);
       break;
 
-    case CODE_BDS2_B11:
+    case CODE_BDS2_B1:
       fau_conf.iNumCodeSlices = FAU_MDBZP_MS_SLICES * BDS2_B11_SYMB_LENGTH_MS;
       fau_conf.iCodeTimeMs = BDS2_B11_SYMB_LENGTH_MS;
       fau_conf.iCohCodes = FAU_BDSB11_COHE;
@@ -447,31 +421,8 @@ static bool SoftMacqMdbzp(const me_gnss_signal_t mesid,
                     BPSK);
       break;
 
-    case CODE_INVALID:
-    case CODE_GLO_L2OF:
-    case CODE_GPS_L2CM:
-    case CODE_GPS_L2CL:
-    case CODE_GPS_L1P:
-    case CODE_GPS_L2P:
-    case CODE_GPS_L2CX:
-    case CODE_GPS_L5I:
-    case CODE_GPS_L5Q:
-    case CODE_GPS_L5X:
-    case CODE_BDS2_B2:
-    case CODE_GAL_E6B:
-    case CODE_GAL_E6C:
-    case CODE_GAL_E6X:
-    case CODE_GAL_E8:
-    case CODE_QZS_L2CM:
-    case CODE_QZS_L2CL:
-    case CODE_QZS_L2CX:
-    case CODE_QZS_L5I:
-    case CODE_QZS_L5Q:
-    case CODE_QZS_L5X:
-    case CODE_COUNT:
     default:
       return false;
-      break;
   }
   /** call now MDBZP */
   bool ret = mdbzp_static(baseband, code_upsamp, &fau_conf, pacq_res);

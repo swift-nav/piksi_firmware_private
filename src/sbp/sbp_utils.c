@@ -880,11 +880,11 @@ static ephe_type_table_element_t ephe_type_table[CONSTELLATION_COUNT] = {
                                {0}},
 
         /* BDS */
-        [CONSTELLATION_BDS2] = {{SBP_MSG_EPHEMERIS_BDS,
-                                 sizeof(msg_ephemeris_bds_t)},
-                                pack_ephemeris_bds,
-                                unpack_ephemeris_bds,
-                                {0}},
+        [CONSTELLATION_BDS] = {{SBP_MSG_EPHEMERIS_BDS,
+                                sizeof(msg_ephemeris_bds_t)},
+                               pack_ephemeris_bds,
+                               unpack_ephemeris_bds,
+                               {0}},
 
         /* GAL */
         [CONSTELLATION_GAL] = {{SBP_MSG_EPHEMERIS_GAL,

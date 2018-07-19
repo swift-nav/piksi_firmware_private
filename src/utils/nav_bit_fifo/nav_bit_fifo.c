@@ -25,7 +25,7 @@ static u8 code_to_nav_bit_fifo_size(const code_t code) {
     return 40;
   } else if (CODE_SBAS_L1CA == code) {
     return 200;
-  } else if ((CODE_BDS2_B11 == code) || (CODE_BDS2_B2 == code)) {
+  } else if ((CODE_BDS2_B1 == code) || (CODE_BDS2_B2 == code)) {
     return 20;
   } else if ((CODE_GAL_E1B == code) || (CODE_GAL_E7I == code)) {
     return 100;

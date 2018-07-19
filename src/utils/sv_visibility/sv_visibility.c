@@ -50,7 +50,7 @@ void sv_visibility_status_get(const sv_vis_config_t *config,
     case CODE_GPS_L1CA:
     case CODE_GPS_L2CL:
     case CODE_GPS_L2CM:
-    case CODE_BDS2_B11:
+    case CODE_BDS2_B1:
     case CODE_BDS2_B2:
     case CODE_GAL_E1B:
     case CODE_GAL_E1C:

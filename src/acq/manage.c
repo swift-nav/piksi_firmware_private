@@ -454,7 +454,7 @@ static void manage_acq(void) {
   assert((CODE_GPS_L1CA == acq->mesid.code) ||
          (CODE_GLO_L1OF == acq->mesid.code) ||
          (CODE_SBAS_L1CA == acq->mesid.code) ||
-         (CODE_BDS2_B11 == acq->mesid.code) ||
+         (CODE_BDS2_B1 == acq->mesid.code) ||
          (CODE_QZS_L1CA == acq->mesid.code) ||
          (CODE_GAL_E1B == acq->mesid.code));
 

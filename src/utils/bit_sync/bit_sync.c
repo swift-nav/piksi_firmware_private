@@ -72,7 +72,7 @@ void bit_sync_init(bit_sync_t *b, const me_gnss_signal_t mesid) {
   u8 bit_length = 1;
   u8 prev_chip, curr_chip;
 
-  switch (mesid.code) {
+  switch ((s8)mesid.code) {
     case CODE_GPS_L1CA:
     case CODE_GPS_L2CM:
     case CODE_GPS_L2CL:
@@ -95,7 +95,7 @@ void bit_sync_init(bit_sync_t *b, const me_gnss_signal_t mesid) {
       bit_length = SBAS_L1CA_SYMBOL_LENGTH_MS;
       break;
 
-    case CODE_BDS2_B11:
+    case CODE_BDS2_B1:
     case CODE_BDS2_B2:
       if (bds_d2nav(mesid)) {
         bit_length = BDS2_B11_D2NAV_SYMBOL_LENGTH_MS;
@@ -147,18 +147,6 @@ void bit_sync_init(bit_sync_t *b, const me_gnss_signal_t mesid) {
       }
       break;
 
-    case CODE_GPS_L1P:
-    case CODE_GPS_L2P:
-    case CODE_GPS_L2CX:
-    case CODE_GPS_L5X:
-    case CODE_GAL_E6B:
-    case CODE_GAL_E6C:
-    case CODE_GAL_E6X:
-    case CODE_GAL_E8:
-    case CODE_QZS_L2CX:
-    case CODE_QZS_L5X:
-    case CODE_INVALID:
-    case CODE_COUNT:
     default:
       assert(!"Unsupported code type");
       break;
