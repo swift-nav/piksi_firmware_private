@@ -55,12 +55,12 @@ static const gnss_capb_t gnss_capb_defaults = {
   .bds_active = (u64)0x07fe0,
   .bds_d2nav = (u64)0x1001f,
   .bds_b2 = (u64)0x17fff,
+  .bds_b2a = (u64)0,
 
   .qzss_active = (u32)0x3ff,
 
   .gal_active = (u64)0x0000000067940DDF,
   .gal_e5 = (u64)0x0000000067940DDF,
-  .gal_e6 = (u64)0x0000000067940DDF
 };
 /* clang-format on */
 
