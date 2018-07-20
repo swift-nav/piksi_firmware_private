@@ -166,7 +166,7 @@ static void imu_thread(void *arg) {
     expected_dt = BMI160_DT_LOOKUP[imu_rate];
     bmi160_new_data_available(&new_acc, &new_gyro, &new_mag);
 
-    if (new_acc != new_gyro) {
+    if (new_acc != new_gyro && raw_imu_output) {
       log_warn("IMU interrupt without both accel and gyro ready: (%u, %u)",
                new_acc,
                new_gyro);
@@ -178,6 +178,11 @@ static void imu_thread(void *arg) {
       continue;
     }
 
+    /* read data */
+
+    s16 *mag_ptr = (new_mag) ? mag : NULL;
+    bmi160_get_data(acc, gyro, mag_ptr, &sensor_time);
+
     /* Warn if dt error exceeds threshhold according to IMU. Ignore
        large errors since there is an undiagnosed discontinuity problem where
        the sensor_time register reads bogus information. The datasheet seems
@@ -185,8 +190,6 @@ static void imu_thread(void *arg) {
     */
 
     if (raw_imu_output) {
-      s16 *mag_ptr = (new_mag) ? mag : NULL;
-      bmi160_get_data(acc, gyro, mag_ptr, &sensor_time);
       dt = (sensor_time - p_sensor_time) * BMI160_SENSOR_TIME_TO_SECONDS;
       dt_err_pcent = (fabs(dt - expected_dt) / expected_dt * 100.0);
 
@@ -201,10 +204,9 @@ static void imu_thread(void *arg) {
                  bmi160_read_status());
       }
       p_sensor_time = sensor_time;
-    }
-
-    if (rate_change_in_progress) {
-      p_sensor_time = 0;
+      if (rate_change_in_progress) {
+        p_sensor_time = 0;
+      }
     }
 
     u32 tow;
