@@ -334,8 +334,7 @@ s8 update_azel_from_ephemeris(const ephemeris_t *e,
   if (0 != calc_sat_az_el(e, t, pos_ecef, &az, &el, false)) {
     return -1;
   }
-  track_sid_db_azel_degrees_set(
-      e->sid, round(az * R2D), round(el * R2D), nap_timing_count());
+  track_sid_db_azel_degrees_set(e->sid, az * R2D, el * R2D, nap_timing_count());
   log_debug_sid(e->sid, "Updated elevation from ephemeris %.1f deg", el * R2D);
   return 0;
 }
@@ -359,8 +358,7 @@ s8 update_azel_from_almanac(const almanac_t *a,
   if (0 != calc_sat_az_el_almanac(a, t, pos_ecef, &az, &el)) {
     return -1;
   }
-  track_sid_db_azel_degrees_set(
-      a->sid, round(az * R2D), round(el * R2D), nap_timing_count());
+  track_sid_db_azel_degrees_set(a->sid, az * R2D, el * R2D, nap_timing_count());
   log_debug_sid(a->sid, "Updated elevation from almanac %.1f deg", el * R2D);
   return 0;
 }

@@ -65,8 +65,7 @@ void track_sid_db_init(void) {
     volatile sid_db_cache_entry_t *entry = &sid_db_cache.entries[i];
     entry->tow.TOW_ms = TOW_UNKNOWN;
     entry->tow.TOW_residual_ns = 0;
-    entry->azel.azimuth_d = TRACKING_AZIMUTH_UNKNOWN;
-    entry->azel.elevation_d = TRACKING_ELEVATION_UNKNOWN;
+    entry->azel.timestamp_tk = 0;
   }
 }
 
@@ -124,17 +123,17 @@ void track_sid_db_update_tow(const gnss_signal_t sid,
  */
 static bool track_sid_db_load_azel(const gnss_signal_t sid,
                                    tp_azel_entry_t *azel_entry) {
-  bool result = false;
-
-  if (NULL != azel_entry) {
-    u16 sv_index = sid_to_sv_index(sid);
-    chMtxLock(&sid_db_cache.mutex);
-    *azel_entry = sid_db_cache.entries[sv_index].azel;
-    chMtxUnlock(&sid_db_cache.mutex);
-    result = true;
+  if (NULL == azel_entry) {
+    return false;
   }
 
-  return result;
+  u16 sv_index = sid_to_sv_index(sid);
+  chMtxLock(&sid_db_cache.mutex);
+  *azel_entry = sid_db_cache.entries[sv_index].azel;
+  chMtxUnlock(&sid_db_cache.mutex);
+
+  /* if timestamp is not set, then the entry has not been set yet */
+  return (azel_entry->timestamp_tk > 0);
 }
 
 /**
@@ -162,9 +161,9 @@ static void track_sid_db_update_azel(const gnss_signal_t sid,
  *
  * \sa sv_elevation_degrees_get
  */
-void track_sid_db_azel_degrees_set(gnss_signal_t sid,
-                                   u16 azimuth,
-                                   s8 elevation,
+void track_sid_db_azel_degrees_set(const gnss_signal_t sid,
+                                   double azimuth,
+                                   double elevation,
                                    u64 timestamp) {
   tp_azel_entry_t entry = {.azimuth_d = azimuth,
                            .elevation_d = elevation,
@@ -174,51 +173,47 @@ void track_sid_db_azel_degrees_set(gnss_signal_t sid,
 
 /** Return the azimuth angle for a satellite.
  *
- * \param[in] sid Signal identifier for which the azimuth should be returned.
+ * \param[in] sid Signal identifier for which the elevation should be returned.
+ * \param[out] elevation Pointer for storing the SV azimuth in degrees
  *
- * \return SV elevation in degrees, or #TRACKING_AZIMUTH_UNKNOWN.
- * \retval TRACKING_AZIMUTH_UNKNOWN Azimuth is not present in the cache,
- *                                  cache entry is too old, or GNSS
- *                                  constellation is not supported.
+ * \return true if success, false if azimuth is not present in the cache,
+ *                                   cache entry is too old, or GNSS
+ *                                   constellation is not supported.
  *
  * \sa sv_azimuth_degrees_set
  */
-u16 track_sid_db_azimuth_degrees_get(gnss_signal_t sid) {
-  u16 result = TRACKING_AZIMUTH_UNKNOWN;
+bool track_sid_db_azimuth_degrees_get(const gnss_signal_t sid, double *result) {
   tp_azel_entry_t entry = {0};
-  if (track_sid_db_load_azel(sid, &entry)) {
-    /* If azimuth cache entry is loaded, do the entry age check */
-    if (TRACKING_AZIMUTH_UNKNOWN != entry.azimuth_d &&
-        nap_timing_count() - entry.timestamp_tk < SEC2TICK(MAX_AZ_EL_AGE_SEC)) {
-      result = entry.azimuth_d;
-    }
+  /* If azimuth cache entry is loaded, do the entry age check */
+  if (track_sid_db_load_azel(sid, &entry) &&
+      nap_timing_count() - entry.timestamp_tk < SEC2TICK(MAX_AZ_EL_AGE_SEC)) {
+    *result = entry.azimuth_d;
+    return true;
   }
-  return result;
+  return false;
 }
 
 /** Return the elevation angle for a satellite.
  *
  * \param[in] sid Signal identifier for which the elevation should be returned.
+ * \param[out] elevation Pointer for storing the SV elevation in degrees
  *
- * \return SV elevation in degrees, or #TRACKING_ELEVATION_UNKNOWN.
- * \retval TRACKING_ELEVATION_UNKNOWN Elevation is not present in the cache,
- *                                    cache entry is too old, or GNSS
- *                                    constellation is not supported.
+ * \return true if success, false if elevation is not present in the cache,
+ *                                   cache entry is too old, or GNSS
+ *                                   constellation is not supported.
  *
  * \sa sv_elevation_degrees_set
  */
-s8 track_sid_db_elevation_degrees_get(gnss_signal_t sid) {
-  s8 result = TRACKING_ELEVATION_UNKNOWN;
-
+bool track_sid_db_elevation_degrees_get(const gnss_signal_t sid,
+                                        double *result) {
   tp_azel_entry_t entry = {0};
-  if (track_sid_db_load_azel(sid, &entry)) {
-    /* If elevation cache entry is loaded, do the entry age check */
-    if (TRACKING_ELEVATION_UNKNOWN != entry.elevation_d &&
-        nap_timing_count() - entry.timestamp_tk < SEC2TICK(MAX_AZ_EL_AGE_SEC)) {
-      result = entry.elevation_d;
-    }
+  /* If elevation cache entry is loaded, do the entry age check */
+  if (track_sid_db_load_azel(sid, &entry) &&
+      nap_timing_count() - entry.timestamp_tk < SEC2TICK(MAX_AZ_EL_AGE_SEC)) {
+    *result = entry.elevation_d;
+    return true;
   }
-  return result;
+  return false;
 }
 
 /**

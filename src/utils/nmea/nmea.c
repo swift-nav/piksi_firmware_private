@@ -631,6 +631,8 @@ static void nmea_gsv_print(const u8 n_used,
   u8 n_messages = (n_used + 3) / 4;
 
   u8 n = 0;
+  double ele;
+  double azi;
 
   for (u8 i = 0; i < n_messages; i++) {
     NMEA_SENTENCE_START(120);
@@ -638,23 +640,20 @@ static void nmea_gsv_print(const u8 n_used,
         "$%sGSV,%u,%u,%02u", talker_str, n_messages, i + 1, n_used);
 
     for (u8 j = 0; j < 4 && n < n_used; n++) {
-      s8 ele = track_sid_db_elevation_degrees_get(ch_meas[n]->sid);
-      u16 azi = track_sid_db_azimuth_degrees_get(ch_meas[n]->sid);
-
       u16 sv_id = nmea_get_id(ch_meas[n]->sid);
 
       NMEA_SENTENCE_PRINTF(",%02u", sv_id);
 
-      if (TRACKING_ELEVATION_UNKNOWN == ele) {
-        NMEA_SENTENCE_PRINTF(",");
+      if (track_sid_db_elevation_degrees_get(ch_meas[n]->sid, &ele)) {
+        NMEA_SENTENCE_PRINTF(",%02d", (s8)round(ele));
       } else {
-        NMEA_SENTENCE_PRINTF(",%02d", ele);
+        NMEA_SENTENCE_PRINTF(",");
       }
 
-      if (TRACKING_AZIMUTH_UNKNOWN == azi) {
-        NMEA_SENTENCE_PRINTF(",");
+      if (track_sid_db_azimuth_degrees_get(ch_meas[n]->sid, &azi)) {
+        NMEA_SENTENCE_PRINTF(",%03u", (u16)round(azi));
       } else {
-        NMEA_SENTENCE_PRINTF(",%03u", azi);
+        NMEA_SENTENCE_PRINTF(",");
       }
 
       NMEA_SENTENCE_PRINTF(",%02u", (u8)roundf(ch_meas[n]->cn0));

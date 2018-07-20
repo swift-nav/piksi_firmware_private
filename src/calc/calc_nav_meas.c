@@ -97,9 +97,8 @@ s8 calc_navigation_measurement(u8 n_channels,
     nav_meas[i]->raw_measured_doppler = meas[i]->carrier_freq;
 
     /* Get the approximate elevation from track DB */
-    nav_meas[i]->elevation =
-        (double)track_sid_db_elevation_degrees_get(nav_meas[i]->sid);
-    if (TRACKING_ELEVATION_UNKNOWN == nav_meas[i]->elevation) {
+    if (!track_sid_db_elevation_degrees_get(nav_meas[i]->sid,
+                                            &nav_meas[i]->elevation)) {
       /* Use 0 degrees as unknown elevation to assign it the smallest weight */
       log_debug_sid(nav_meas[i]->sid, "Elevation unknown, using 0");
       nav_meas[i]->elevation = 0;
