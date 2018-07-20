@@ -771,11 +771,12 @@ static void send_solution_time_matched(const StarlingFilterSolution *solution,
   chMtxUnlock(&current_base_sender_id_lock);
 }
 
-static void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
-                                      const StarlingFilterSolution *rtk_solution,
-                                      const gps_time_t *solution_epoch_time,
-                                      const navigation_measurement_t *nav_meas,
-                                      const size_t num_nav_meas) {
+static void send_solution_low_latency(
+    const StarlingFilterSolution *spp_solution,
+    const StarlingFilterSolution *rtk_solution,
+    const gps_time_t *solution_epoch_time,
+    const navigation_measurement_t *nav_meas,
+    const size_t num_nav_meas) {
   assert(solution_epoch_time);
   assert(nav_meas);
 
@@ -908,8 +909,8 @@ static THD_FUNCTION(initialize_and_run_starling, arg) {
 
   /* Register output callbacks. */
   StarlingOutputCallbacks output_callbacks = {
-    .handle_solution_low_latency = send_solution_low_latency,
-    .handle_solution_time_matched = send_solution_time_matched,
+      .handle_solution_low_latency = send_solution_low_latency,
+      .handle_solution_time_matched = send_solution_time_matched,
   };
   starling_set_output_callbacks(&output_callbacks);
 

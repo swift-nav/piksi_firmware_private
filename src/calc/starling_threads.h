@@ -154,8 +154,8 @@ void starling_add_sbas_data(const sbas_raw_data_t *sbas_data,
 
 /**
  * The Starling Engine output is made available over user provided callback
- * functions. These functions are guaranteed to always be called from the 
- * Starling main thread. 
+ * functions. These functions are guaranteed to always be called from the
+ * Starling main thread.
  */
 
 typedef struct StarlingOutputCallbacks {
@@ -187,10 +187,9 @@ typedef struct StarlingOutputCallbacks {
    * NOTE: The pointers are only valid within the enclosing scope.
    *       Any copies of the data must be deep copies.
    */
-  void (*handle_solution_time_matched)(
-      const StarlingFilterSolution *solution,
-      const obss_t *obss_base,
-      const obss_t *obss_rover);
+  void (*handle_solution_time_matched)(const StarlingFilterSolution *solution,
+                                       const obss_t *obss_base,
+                                       const obss_t *obss_rover);
 } StarlingOutputCallbacks;
 
 /* Should be called at startup before running the starling thread. */

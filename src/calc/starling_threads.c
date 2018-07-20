@@ -44,11 +44,10 @@ extern void starling_integration_simulation_run(const me_msg_obs_t *me_msg);
 /* Tracks if the API has been properly initialized or not. */
 static bool is_starling_api_initialized = false;
 
-/* User configurable endpoints for transmitting data out 
+/* User configurable endpoints for transmitting data out
  * of the Starling Engine. */
 static StarlingOutputCallbacks output_callbacks = {
-  .handle_solution_low_latency = NULL,
-  .handle_solution_time_matched = NULL,
+    .handle_solution_low_latency = NULL, .handle_solution_time_matched = NULL,
 };
 
 /* Settings which control the filter behavior of the Starling engine. */
@@ -519,7 +518,8 @@ static void time_matched_obs_thread(void *arg) {
         }
 
         if (NULL != output_callbacks.handle_solution_time_matched) {
-          output_callbacks.handle_solution_time_matched(p_solution, &base_obss_copy, obss);
+          output_callbacks.handle_solution_time_matched(
+              p_solution, &base_obss_copy, obss);
         }
 
         platform_mailbox_item_free(MB_ID_TIME_MATCHED_OBS, obss);
@@ -693,7 +693,8 @@ static void starling_thread(void) {
     if (me_msg->size == 0 || !gps_time_valid(&epoch_time)) {
       platform_mailbox_item_free(MB_ID_ME_OBS, me_msg);
       if (NULL != output_callbacks.handle_solution_low_latency) {
-        output_callbacks.handle_solution_low_latency(NULL, NULL, &epoch_time, nav_meas, 0);
+        output_callbacks.handle_solution_low_latency(
+            NULL, NULL, &epoch_time, nav_meas, 0);
       }
       continue;
     }
@@ -847,7 +848,7 @@ static void starling_thread(void) {
     /* Forward solutions to outside world. */
     if (NULL != output_callbacks.handle_solution_low_latency) {
       output_callbacks.handle_solution_low_latency(
-        p_spp_solution, p_rtk_solution, &epoch_time, nav_meas, n_ready);
+          p_spp_solution, p_rtk_solution, &epoch_time, nav_meas, n_ready);
     }
 #if defined PROFILE_STARLING && PROFILE_STARLING > 0
     u32 nap_snapshot_diff = (u32)(NAP->TIMING_COUNT - nap_snapshot_begin);
