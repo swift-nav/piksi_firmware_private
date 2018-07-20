@@ -600,7 +600,7 @@ static bool alm_complete(nav_msg_gal_inav_t *nav_msg) {
 }
 
 static float sisa_map(u32 sisa) {
-  float ura = INVALID_GPS_URA_VALUE;
+  float ura = UNDEFINED_GAL_SISA_VALUE;
   sisa &= 0xff;
   if (sisa < 50) {
     ura = sisa * 0.01f;
@@ -610,8 +610,11 @@ static float sisa_map(u32 sisa) {
     ura = 1.0f + (sisa - 75) * 0.04f;
   } else if (sisa < 126) {
     ura = 2.0f + (sisa - 100) * 0.16f;
+  } else if (INVALID_GAL_SISA_INDEX == sisa) {
+    ura = INVALID_URA_VALUE;
   }
-  if (INVALID_GPS_URA_VALUE != ura) {
+  if (ura >= 0.0f) {
+    /* Valid URA */
     ura = rintf(ura / 0.01f) * 0.01f;
   }
   return ura;
