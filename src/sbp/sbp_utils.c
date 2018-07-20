@@ -956,22 +956,19 @@ void sbp_send_iono(const ionosphere_t *iono) {
 }
 
 /**
- * This is helper function packs and sends L2C capabilities over SBP
- * @param[in] l2c_cap pointer to L2C capabilities mask
+ * This is helper function packs and sends gnss capabilities over SBP
+ * @param[in] gc pointer to gnss capabilities
  */
-void sbp_send_l2c_capabilities(const u32 *l2c_cap) {
-  msg_sv_configuration_gps_t msg_l2c = {
-      .t_nmct =
-          {/* TODO: set this as 0 for now, beccause functionality
-            * decodes tnmct is not available */
-           .tow = 0,
-           .wn = 0},
-      .l2c_mask = *l2c_cap};
+void sbp_send_gnss_capb(const gnss_capb_t *gc) {
+  assert(gc);
+  msg_gnss_capb_t msg = {.t_nmct =
+                             {/* TODO: set this as 0 for now, beccause
+                               * functionality decodes tnmct is not available */
+                              .tow = 0,
+                              .wn = 0},
+                         .gc = *gc};
 
-  /* send data over sbp */
-  sbp_send_msg(SBP_MSG_SV_CONFIGURATION_GPS,
-               sizeof(msg_sv_configuration_gps_t),
-               (u8 *)&msg_l2c);
+  sbp_send_msg(SBP_MSG_GNSS_CAPB, sizeof(msg), (u8 *)&msg);
 }
 
 /**

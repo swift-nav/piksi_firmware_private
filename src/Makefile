@@ -181,6 +181,7 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/ndb/ndb_lgf.o \
         $(SWIFTNAV_ROOT)/src/ndb/ndb_utc.o \
         $(SWIFTNAV_ROOT)/src/ndb/ndb.o \
+        $(SWIFTNAV_ROOT)/src/ndb/ndb_gnss_capabilities.o \
         $(SWIFTNAV_ROOT)/src/utils/shm/shm.o \
         $(SWIFTNAV_ROOT)/src/reacq/reacq_manage.o \
         $(SWIFTNAV_ROOT)/src/reacq/reacq_sbp_utility.o \

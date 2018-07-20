@@ -65,9 +65,10 @@ typedef enum {
   NDB_EVENT_OTYPE_ALMANAC = 2,
   NDB_EVENT_OTYPE_ALMANAC_WN = 3,
   NDB_EVENT_OTYPE_IONO = 4,
-  NDB_EVENT_OTYPE_L2C_CAP = 5,
+  /* NDB_EVENT_OTYPE_L2C_CAP = 5 is obsoleted by NDB_EVENT_OTYPE_GNSS_CAP */
   NDB_EVENT_OTYPE_LGF = 6,
   NDB_EVENT_OTYPE_UTC_PARAMS = 7,
+  NDB_EVENT_OTYPE_GNSS_CAPB = 8
 } ndb_event_obj_type_t;
 
 #define NDB_EVENT_SENDER_ID_VOID 0
@@ -252,7 +253,7 @@ gnss_signal_t sid_from_sbp(const sbp_gnss_signal_t from);
 sbp_gnss_signal_t sid_to_sbp(const gnss_signal_t from);
 
 void sbp_send_iono(const ionosphere_t *iono);
-void sbp_send_l2c_capabilities(const u32 *l2c_cap);
+void sbp_send_gnss_capb(const gnss_capb_t *gc);
 void sbp_send_group_delay(const cnav_msg_t *cnav);
 void sbp_pack_sbas_raw_data(const gnss_signal_t sid,
                             u32 tow_ms,
