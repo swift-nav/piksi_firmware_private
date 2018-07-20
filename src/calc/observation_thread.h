@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2017 Swift Navigation Inc.
- * Contact: Measurement Engine team <michele@swift-nav.com>
+ * Copyright (C) 2018 Swift Navigation Inc.
+ * Contact: Swift Navigation <dev@swiftnav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -10,8 +10,8 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ifndef ME_CALC_PVT_H
-#define ME_CALC_PVT_H
+#ifndef ME_OBS_H
+#define ME_OBS_H
 
 #include <libsbp/navigation.h>
 #include <libsbp/observation.h>
@@ -24,10 +24,9 @@
 
 #include <ch.h>
 
-typedef struct {
-  u8 signals_tracked;
-  u8 signals_useable;
-} soln_stats_t;
+/** Maximum time that an observation will be propagated for to align it with a
+ * solution epoch before it is discarded.  */
+#define OBS_PROPAGATION_LIMIT 10e-3
 
 /* Maximum receiver clock error before it is adjusted back to GPS time.
  * The value of 1.01 ms keeps the receiver close enough to GPS time to
@@ -40,8 +39,9 @@ typedef struct {
  * drop the channel and the corresponding ephemeris */
 #define RAIM_DROP_CHANNEL_THRESHOLD_M 1000
 
-soln_stats_t solution_last_stats_get(void);
+extern u32 obs_output_divisor;
+extern double soln_freq_setting;
 
-void me_calc_pvt_setup(void);
+void me_obs_setup(void);
 
 #endif

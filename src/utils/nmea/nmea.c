@@ -25,10 +25,10 @@
 #include <libswiftnav/pvt_engine/firmware_binding.h>
 
 #include "board/nap/track_channel.h"
-#include "calc_pvt_me.h"
 #include "io_support.h"
 #include "main.h"
 #include "nmea.h"
+#include "observation_thread.h"
 #include "piksi_systime.h"
 #include "sbp.h"
 #include "sbp_utils.h"

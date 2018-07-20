@@ -49,13 +49,6 @@
 #include "track/track_sid_db.h"
 #include "track/track_utils.h"
 
-/** Mandatory flags filter for measurements */
-#define MANAGE_TRACK_FLAGS_FILTER                               \
-  (MANAGE_TRACK_FLAG_ACTIVE | MANAGE_TRACK_FLAG_NO_ERROR |      \
-   MANAGE_TRACK_FLAG_CONFIRMED | MANAGE_TRACK_FLAG_CN0_SHORT |  \
-   MANAGE_TRACK_FLAG_ELEVATION | MANAGE_TRACK_FLAG_HAS_EPHE |   \
-   MANAGE_TRACK_FLAG_HEALTHY | MANAGE_TRACK_FLAG_NAV_SUITABLE | \
-   MANAGE_TRACK_FLAG_TOW)
 /** Minimum number of satellites to use with PVT */
 #define MINIMUM_SV_COUNT 5
 
@@ -65,208 +58,9 @@
 #define ME_CALC_PVT_THREAD_PRIORITY (HIGHPRIO - 3)
 #define ME_CALC_PVT_THREAD_STACK (64 * 1024)
 
-/* Limits the sets of possible solution frequencies (in increasing order) */
-static const double valid_soln_freqs_hz[] = {1.0, 2.0, 4.0, 5.0, 10.0};
-
-#define SOLN_FREQ_SETTING_MIN (valid_soln_freqs_hz[0])
-#define SOLN_FREQ_SETTING_MAX \
-  (valid_soln_freqs_hz[ARRAY_SIZE(valid_soln_freqs_hz) - 1])
-
-double soln_freq_setting = 10.0;
-u32 obs_output_divisor = 10;
-
-s16 msg_obs_max_size = SBP_FRAMING_MAX_PAYLOAD_SIZE;
-
 static soln_stats_t last_stats = {.signals_tracked = 0, .signals_useable = 0};
 
-/* RFT_TODO *
- * check that Klobuchar is used in SPP solver */
-
 /* STATIC FUNCTIONS */
-
-static void me_post_ephemerides(u8 n, const ephemeris_t ephemerides[]) {
-  ephemeris_array_t *eph_array = platform_mailbox_item_alloc(MB_ID_EPHEMERIS);
-  if (NULL == eph_array) {
-    /* If we can't get allocate an item, fetch the oldest one and use that
-     * instead. */
-    int error = platform_mailbox_fetch(
-        MB_ID_EPHEMERIS, (void **)&eph_array, MB_NONBLOCKING);
-    if (error) {
-      log_error(
-          "ME: Unable to allocate ephemeris array, and mailbox is empty.");
-      if (eph_array) {
-        platform_mailbox_item_free(MB_ID_EPHEMERIS, eph_array);
-      }
-      return;
-    }
-  }
-
-  assert(NULL != eph_array);
-  /* Copy in all of the information. */
-  eph_array->n = n;
-  if (n > 0) {
-    MEMCPY_S(eph_array->ephemerides,
-             sizeof(eph_array->ephemerides),
-             ephemerides,
-             n * sizeof(ephemeris_t));
-  }
-  /* Try to post to Starling. */
-  int error = platform_mailbox_post(MB_ID_EPHEMERIS, eph_array, MB_BLOCKING);
-  if (error) {
-    log_error("ME: Unable to send ephemeris array.");
-    platform_mailbox_item_free(MB_ID_EPHEMERIS, eph_array);
-  }
-}
-
-static void me_post_observations(u8 n,
-                                 const navigation_measurement_t _meas[],
-                                 const ephemeris_t _ephem[],
-                                 const gps_time_t *_t) {
-  /* Post all ephemerides prior to posting any measurements. This way
-   * when Starling engine wakes on receiving measurements, the ephemerides
-   * are guaranteed to already be there. */
-  me_post_ephemerides(n, _ephem);
-
-  /* TODO: use a buffer from the pool from the start instead of
-   * allocating nav_meas as well. Downside, if we don't end up
-   * pushing the message into the mailbox then we just wasted an
-   * observation from the mailbox for no good reason. */
-
-  me_msg_obs_t *me_msg_obs = platform_mailbox_item_alloc(MB_ID_ME_OBS);
-  if (NULL == me_msg_obs) {
-    log_error("ME: Could not allocate pool for obs!");
-    return;
-  }
-
-  me_msg_obs->size = n;
-  if (n) {
-    MEMCPY_S(me_msg_obs->obs,
-             sizeof(me_msg_obs->obs),
-             _meas,
-             n * sizeof(navigation_measurement_t));
-  }
-  if (_t != NULL) {
-    me_msg_obs->obs_time = *_t;
-  } else {
-    me_msg_obs->obs_time.wn = WN_UNKNOWN;
-    me_msg_obs->obs_time.tow = TOW_UNKNOWN;
-  }
-
-  errno_t ret = platform_mailbox_post(MB_ID_ME_OBS, me_msg_obs, MB_NONBLOCKING);
-  if (ret != 0) {
-    /* We could grab another item from the mailbox, discard it and then
-     * post our obs again but if the size of the mailbox and the pool
-     * are equal then we should have already handled the case where the
-     * mailbox is full when we handled the case that the pool was full.
-     * */
-    log_error("ME: Mailbox should have space for obs!");
-    platform_mailbox_item_free(MB_ID_ME_OBS, me_msg_obs);
-  }
-}
-
-static bool decimate_observations(const gps_time_t *_t) {
-  /* We can use the solution setting directly here as we have no
-   * later dependencies on being consistent, all we want to know
-   * is should this epoch be decimated from output. */
-  gps_time_t epoch =
-      gps_time_round_to_epoch(_t, soln_freq_setting / obs_output_divisor);
-  return fabs(gpsdifftime(_t, &epoch)) < TIME_MATCH_THRESHOLD;
-}
-
-static void me_send_all(u8 _num_obs,
-                        const navigation_measurement_t _meas[],
-                        const ephemeris_t _ephem[],
-                        const gps_time_t *_t) {
-  me_post_observations(_num_obs, _meas, _ephem, _t);
-  /* Output observations only every obs_output_divisor times, taking
-   * care to ensure that the observations are aligned. */
-  if (decimate_observations(_t) && !simulation_enabled()) {
-    send_observations(_num_obs, msg_obs_max_size, _meas, _t);
-  }
-  DO_EVERY(biases_message_freq_setting, send_glonass_biases());
-}
-
-static void me_send_emptyobs(void) {
-  me_post_observations(0, NULL, NULL, NULL);
-  /* When we don't have a time solve, we still want to decimate our
-   * observation output, we can use the GPS time if we have one,
-   * otherwise we'll default to using receiver time. */
-  gps_time_t current_time = get_current_time();
-  if (!gps_time_valid(&current_time)) {
-    /* gps time not available, so fill the tow with seconds from restart */
-    current_time.tow = nap_timing_count() * RX_DT_NOMINAL;
-    current_time = gps_time_round_to_epoch(&current_time, soln_freq_setting);
-  }
-  if (decimate_observations(&current_time) && !simulation_enabled()) {
-    send_observations(0, msg_obs_max_size, NULL, NULL);
-  }
-}
-
-/* remove the effect of local clock offset and drift from measurements */
-static void remove_clock_offset(navigation_measurement_t *nm,
-                                double clock_offset,
-                                double clock_drift,
-                                u64 current_tc) {
-  assert(0 != (nm->flags & NAV_MEAS_FLAG_MEAS_DOPPLER_VALID));
-
-  /* Adjust Doppler with smoothed oscillator drift. */
-  nm->raw_measured_doppler += clock_drift * GPS_C / sid_to_lambda(nm->sid);
-  nm->raw_computed_doppler = nm->raw_measured_doppler;
-
-  /* Range correction caused by clock offset */
-  double corr_cycles = clock_offset * nm->raw_measured_doppler;
-  nm->raw_pseudorange -= corr_cycles * sid_to_lambda(nm->sid);
-  nm->raw_carrier_phase -= corr_cycles;
-
-  /* Compensate for NAP counter drift since cpo computation */
-  double cpo_drift = subsecond_cpo_correction(current_tc);
-  nm->raw_carrier_phase += cpo_drift * sid_to_carr_freq(nm->sid);
-
-  /* Also apply the time correction to the time of transmission so the
-   * satellite positions can be calculated for the correct time. */
-  nm->tot.tow += clock_offset;
-  normalize_gps_time(&(nm->tot));
-}
-
-/** Roughly propagate and send the observations when PVT solution failed or is
- * not available. Flag all with RAIM exclusion so they do not get used
- * downstream. */
-static void me_send_failed_obs(u8 _num_obs,
-                               navigation_measurement_t _meas[],
-                               const ephemeris_t _ephem[],
-                               const gps_time_t *_t) {
-  /* require at least some timing quality */
-  if (TIME_PROPAGATED > get_time_quality() || !gps_time_valid(_t) ||
-      _num_obs == 0) {
-    me_send_emptyobs();
-    return;
-  }
-
-  /* offset assumed steered to zero */
-  double clock_offset = 0;
-
-  u64 ref_tc = gpstime2napcount(_t);
-
-  /* get the estimated clock drift value */
-  double clock_drift = get_clock_drift();
-
-  for (u8 i = 0; i < _num_obs; i++) {
-    /* mark the measurement unusable to be on the safe side */
-    /* TODO: could relax this in order to send also under-determined measurement
-     * sets to Starling */
-    _meas[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION;
-
-    /* propagate the measurements with the smoothed drift value */
-    remove_clock_offset(&_meas[i], clock_offset, clock_drift, ref_tc);
-  }
-
-  me_post_observations(_num_obs, _meas, _ephem, _t);
-  /* Output observations only every obs_output_divisor times, taking
-   * care to ensure that the observations are aligned. */
-  if (decimate_observations(_t) && !simulation_enabled()) {
-    send_observations(_num_obs, msg_obs_max_size, _meas, _t);
-  }
-}
 
 /** Update the satellite azimuth & elevation database with current angles
  * \param rcv_pos Approximate receiver position
@@ -398,34 +192,6 @@ static void collect_measurements(u64 rec_tc,
 
 static THD_WORKING_AREA(wa_me_calc_pvt_thread, ME_CALC_PVT_THREAD_STACK);
 
-static void drop_gross_outlier(const navigation_measurement_t *nav_meas,
-                               const gnss_solution *current_fix) {
-  /* Check how large the outlier roughly is, and if it is a gross one,
-   * drop the channel and delete the possibly corrupt ephemeris */
-  double geometric_range[3];
-  for (u8 j = 0; j < 3; j++) {
-    geometric_range[j] = nav_meas->sat_pos[j] - current_fix->pos_ecef[j];
-  }
-  double pseudorng_error =
-      fabs(nav_meas->pseudorange - current_fix->clock_offset * GPS_C -
-           vector_norm(3, geometric_range));
-
-  bool generic_gross_outlier = pseudorng_error > RAIM_DROP_CHANNEL_THRESHOLD_M;
-  if (generic_gross_outlier) {
-    /* mark channel for dropping */
-    tracker_set_raim_flag(nav_meas->sid);
-    /* clear the ephemeris for this signal */
-    ndb_ephemeris_erase(nav_meas->sid);
-  }
-
-  bool boc_halfchip_outlier =
-      (CODE_GAL_E1B == nav_meas->sid.code) && (pseudorng_error > 100);
-  if (boc_halfchip_outlier) {
-    /* mark channel for dropping */
-    tracker_set_raim_flag(nav_meas->sid);
-  }
-}
-
 static void me_calc_pvt_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("me_calc_pvt");
@@ -437,17 +203,14 @@ static void me_calc_pvt_thread(void *arg) {
     lgf.position_quality = POSITION_UNKNOWN;
   }
 
+  /* solve position once a second */
+  const double soln_freq = 1;
+
   piksi_systime_t next_epoch;
   piksi_systime_get(&next_epoch);
-  piksi_systime_inc_us(&next_epoch, SECS_US / soln_freq_setting);
+  piksi_systime_inc_us(&next_epoch, SECS_US / soln_freq);
 
   while (TRUE) {
-    /* read current value of soln_freq into a local variable that does not
-     * change during this loop iteration */
-    chSysLock();
-    double soln_freq = soln_freq_setting;
-    chSysUnlock();
-
     drop_glo_signals_on_leap_second();
 
     /* sleep until next epoch, and update the deadline */
@@ -538,7 +301,6 @@ static void me_calc_pvt_thread(void *arg) {
     last_stats.signals_useable = n_ready;
 
     if (n_ready == 0) {
-      me_send_emptyobs();
       continue;
     }
 
@@ -577,7 +339,6 @@ static void me_calc_pvt_thread(void *arg) {
 
     if (nm_ret != 0) {
       log_error("calc_navigation_measurement() returned an error");
-      me_send_emptyobs();
       continue;
     }
 
@@ -585,7 +346,6 @@ static void me_calc_pvt_thread(void *arg) {
 
     if (sc_ret != 0) {
       log_error("calc_sat_clock_correction() returned an error");
-      me_send_emptyobs();
       continue;
     }
 
@@ -612,7 +372,6 @@ static void me_calc_pvt_thread(void *arg) {
 
     if (sid_set_get_sat_count(&codes) < 4) {
       /* Not enough sats to compute PVT, send them as unusable */
-      me_send_failed_obs(n_ready, nav_meas, e_meas, &current_time);
       continue;
     }
 
@@ -645,33 +404,12 @@ static void me_calc_pvt_thread(void *arg) {
                             pvt_ret));
       }
 
-      /* If we can't report a SPP position, something is wrong and no point
-       * continuing to process this epoch - mark observations unusable but send
-       * them out to enable debugging. */
-      me_send_failed_obs(n_ready, nav_meas, e_meas, &current_time);
-
       /* If we already had a good fix, degrade its quality to STATIC */
       if (lgf.position_quality > POSITION_STATIC) {
         lgf.position_quality = POSITION_STATIC;
       }
 
       continue;
-    }
-
-    /* If we have a success RAIM repair, mark the removed observations as
-       invalid, and ask tracker to drop the channels (if needed). */
-    if (pvt_ret == PVT_CONVERGED_RAIM_REPAIR) {
-      for (u8 i = 0; i < n_ready; i++) {
-        if (sid_set_contains(&raim_removed_sids, nav_meas[i].sid)) {
-          log_debug_sid(nav_meas[i].sid,
-                        "RAIM repair, setting observation invalid.");
-          nav_meas[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION;
-
-          /* Check how large the outlier roughly is, and if it is a gross one,
-           * drop the channel and delete the possibly corrupt ephemeris */
-          drop_gross_outlier(&nav_meas[i], &current_fix);
-        }
-      }
     }
 
     time_quality_t old_time_quality = get_time_quality();
@@ -714,52 +452,9 @@ static void me_calc_pvt_thread(void *arg) {
                current_fix.clock_offset,
                current_fix.clock_drift);
 
-      me_send_failed_obs(n_ready, nav_meas, e_meas, &current_time);
       /* adjust the deadline of the next fix to land on output epoch */
       piksi_systime_add_us(&next_epoch, round(output_offset * SECS_US));
       continue;
-    }
-
-    /* Only send observations that are closely aligned with the desired
-     * solution epochs to ensure they haven't been propagated too far. */
-    if (fabs(output_offset) < OBS_PROPAGATION_LIMIT) {
-      log_debug(
-          "clk_offset %.4e, output offset %.4e, clk_drift %.3e, "
-          "smoothed_drift %.3e",
-          current_fix.clock_offset,
-          output_offset,
-          current_fix.clock_drift,
-          smoothed_drift);
-
-      for (u8 i = 0; i < n_ready; i++) {
-        navigation_measurement_t *nm = &nav_meas[i];
-
-        /* remove clock offset from the measurement */
-        remove_clock_offset(nm, output_offset, smoothed_drift, current_tc);
-
-        /* Recompute satellite position, velocity and clock errors */
-        /* NOTE: calc_sat_state changes `tot` */
-        if (0 != calc_sat_state(&e_meas[i],
-                                &(nm->tot),
-                                nm->sat_pos,
-                                nm->sat_vel,
-                                nm->sat_acc,
-                                &(nm->sat_clock_err),
-                                &(nm->sat_clock_err_rate),
-                                &(nm->IODC),
-                                &(nm->IODE))) {
-          log_error_sid(nm->sid, "Recomputing sat state failed");
-          continue;
-        }
-      }
-
-      /* Send the observations. */
-      me_send_all(n_ready, nav_meas, e_meas, &output_time);
-    } else {
-      log_info("clock_offset %.3f s greater than OBS_PROPAGATION_LIMIT",
-               output_offset);
-      /* Send the observations, but marked unusable */
-      me_send_failed_obs(n_ready, nav_meas, e_meas, &current_time);
     }
 
     if (fabs(current_fix.clock_offset) > MAX_CLOCK_ERROR_S) {
@@ -775,65 +470,7 @@ static void me_calc_pvt_thread(void *arg) {
 
 soln_stats_t solution_last_stats_get(void) { return last_stats; }
 
-static double validate_soln_freq(double requested_freq_hz) {
-  /* Loop over valid frequencies, start from highest frequency */
-  for (s8 i = ARRAY_SIZE(valid_soln_freqs_hz) - 1; i >= 0; --i) {
-    double freq = valid_soln_freqs_hz[i];
-
-    /* Equal */
-    if (fabs(freq - requested_freq_hz) < DBL_EPSILON) {
-      log_info("Solution frequency validated to %.2f Hz", freq);
-      return freq;
-    }
-
-    /* No match available, floor to closest valid frequency */
-    if (freq < requested_freq_hz) {
-      log_info("Solution frequency floored to %.2f Hz", freq);
-      return freq;
-    }
-  }
-
-  log_warn(
-      "Input solution frequency %.2f Hz couldn't be validated, "
-      "defaulting to %.2f Hz",
-      requested_freq_hz,
-      SOLN_FREQ_SETTING_MIN);
-  return SOLN_FREQ_SETTING_MIN;
-}
-
-/* Update the solution frequency used by the ME and by Starling. */
-static bool soln_freq_setting_notify(struct setting *s, const char *val) {
-  double old_value = soln_freq_setting;
-  bool res = s->type->from_string(s->type->priv, s->addr, s->len, val);
-  if (!res) {
-    return false;
-  }
-  /* Certain values are disallowed. */
-  if (soln_freq_setting < (SOLN_FREQ_SETTING_MIN - DBL_EPSILON) ||
-      soln_freq_setting > (SOLN_FREQ_SETTING_MAX + DBL_EPSILON)) {
-    log_warn(
-        "Solution frequency setting outside acceptable range: [%.2f, %.2f] Hz. "
-        "Reverting to previous value: %.2f Hz.",
-        0.0,
-        SOLN_FREQ_SETTING_MAX,
-        old_value);
-    soln_freq_setting = old_value;
-    return false;
-  }
-  soln_freq_setting = validate_soln_freq(soln_freq_setting);
-  starling_set_solution_frequency(soln_freq_setting);
-  return true;
-}
-
 void me_calc_pvt_setup() {
-  SETTING_NOTIFY("solution",
-                 "soln_freq",
-                 soln_freq_setting,
-                 TYPE_FLOAT,
-                 soln_freq_setting_notify);
-  SETTING("solution", "output_every_n_obs", obs_output_divisor, TYPE_INT);
-  SETTING("sbp", "obs_msg_max_size", msg_obs_max_size, TYPE_INT);
-
   /* Start solution thread */
   chThdCreateStatic(wa_me_calc_pvt_thread,
                     sizeof(wa_me_calc_pvt_thread),

@@ -23,6 +23,7 @@
 
 #include "calc/calc_pvt_common.h"
 #include "calc/calc_pvt_me.h"
+#include "calc/observation_thread.h"
 #include "calc/starling_base_obs.h"
 #include "calc/starling_integration.h"
 #include "ndb/ndb.h"

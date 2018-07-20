@@ -160,6 +160,7 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/calc/starling_chibios_shim.o \
         $(SWIFTNAV_ROOT)/src/calc/calc_pvt_me.o \
         $(SWIFTNAV_ROOT)/src/calc/calc_starling_obs_array.o \
+        $(SWIFTNAV_ROOT)/src/calc/observation_thread.o \
         $(SWIFTNAV_ROOT)/src/utils/obs_bias/obs_bias.o \
         $(SWIFTNAV_ROOT)/src/calc/calc_base_obs.o \
         $(SWIFTNAV_ROOT)/src/calc/starling_base_obs.o \

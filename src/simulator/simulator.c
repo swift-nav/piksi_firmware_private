@@ -25,7 +25,7 @@
 
 #include "settings/settings.h"
 
-#include "calc_pvt_me.h"
+#include "observation_thread.h"
 #include "peripherals/leds.h"
 #include "piksi_systime.h"
 #include "sbp.h"
