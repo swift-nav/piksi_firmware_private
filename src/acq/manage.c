@@ -143,7 +143,7 @@ static acq_timer_t glo_acq_timer[NUM_SATS_GLO] = {0};
 static acq_timer_t sbas_acq_timer[NUM_SATS_SBAS] = {0};
 
 /* The array keeps time when BDS2 SV was detected as unhealthy */
-static acq_timer_t bds2_acq_timer[NUM_SATS_BDS2] = {0};
+static acq_timer_t bds2_acq_timer[NUM_SATS_BDS] = {0};
 
 /* The array keeps time when GAL SV was detected as unhealthy. */
 static acq_timer_t gal_acq_timer[NUM_SATS_GAL] = {0};
@@ -776,10 +776,10 @@ void restore_acq(const tracker_t *tracker) {
     sbas_acq_timer[index].status = acq;
     piksi_systime_get(&sbas_acq_timer[index].tick); /* channel drop time */
   } else if (IS_BDS2(mesid)) {
-    mesid = construct_mesid(CODE_BDS2_B11, mesid.sat);
+    mesid = construct_mesid(CODE_BDS2_B1, mesid.sat);
     acq = &acq_status[mesid_to_global_index(mesid)];
     acq->state = ACQ_PRN_UNHEALTHY;
-    u16 index = tracker->mesid.sat - BDS2_FIRST_PRN;
+    u16 index = tracker->mesid.sat - BDS_FIRST_PRN;
     assert(index < ARRAY_SIZE(bds2_acq_timer));
     bds2_acq_timer[index].status = acq;
     piksi_systime_get(&bds2_acq_timer[index].tick); /* channel drop time */
