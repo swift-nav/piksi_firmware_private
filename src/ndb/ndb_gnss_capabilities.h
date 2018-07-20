@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Swift Navigation Inc.
+ * Copyright (C) 2016 - 2018 Swift Navigation Inc.
  * Contact: Michele Bavaro <michele@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -10,17 +10,14 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ifndef SWIFTNAV_NDB_H
-#define SWIFTNAV_NDB_H
+#ifndef SRC_NDB_GNSS_CAPB_H_
+#define SRC_NDB_GNSS_CAPB_H_
 
-#include <ndb/ndb_almanac.h>
-#include <ndb/ndb_ephemeris.h>
-#include <ndb/ndb_gnss_capabilities.h>
-#include <ndb/ndb_iono.h>
-#include <ndb/ndb_lgf.h>
-#include <ndb/ndb_utc.h>
+#include <libsbp/observation.h>
+#include <ndb/ndb_common.h>
 
-void ndb_setup(void);
-void ndb_sbp_updates(void);
+void ndb_gnss_capb_init(void);
+const gnss_capb_t* ndb_get_gnss_capb(void);
+ndb_op_code_t ndb_store_gps_l2c_capb(u64 capb, const gnss_signal_t* src_sid);
 
-#endif /* SWIFTNAV_NDB_H */
+#endif /* SRC_NDB_GNSS_CAPB_H_ */

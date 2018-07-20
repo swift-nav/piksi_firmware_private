@@ -89,7 +89,7 @@ static u32 calc_length_samples(u32 chips_to_correlate,
  */
 static u8 mesid_to_nap_code(const me_gnss_signal_t mesid) {
   u8 ret = ~0;
-  switch (mesid.code) {
+  switch ((s8)mesid.code) {
     case CODE_GPS_L1CA:
     case CODE_QZS_L1CA:
       ret = NAP_TRK_CODE_GPS_L1;
@@ -98,9 +98,7 @@ static u8 mesid_to_nap_code(const me_gnss_signal_t mesid) {
       ret = NAP_TRK_CODE_SBAS_L1;
       break;
     case CODE_GPS_L2CM:
-    case CODE_GPS_L2CL:
     case CODE_QZS_L2CM:
-    case CODE_QZS_L2CL:
       ret = NAP_TRK_CODE_GPS_L2;
       break;
     case CODE_GLO_L1OF:
@@ -109,7 +107,7 @@ static u8 mesid_to_nap_code(const me_gnss_signal_t mesid) {
     case CODE_GLO_L2OF:
       ret = NAP_TRK_CODE_GLO_G2;
       break;
-    case CODE_BDS2_B11:
+    case CODE_BDS2_B1:
       ret = NAP_TRK_CODE_BDS_B1;
       break;
     case CODE_BDS2_B2:
@@ -120,8 +118,6 @@ static u8 mesid_to_nap_code(const me_gnss_signal_t mesid) {
       assert(!"Unsupported SID");
       break;
     case CODE_GAL_E1B:
-    case CODE_GAL_E1C:
-    case CODE_GAL_E1X:
 #if defined CODE_GAL_E1_SUPPORT && CODE_GAL_E1_SUPPORT > 0
       ret = NAP_TRK_CODE_GAL_E1;
 #else
@@ -129,27 +125,8 @@ static u8 mesid_to_nap_code(const me_gnss_signal_t mesid) {
 #endif /* CODE_GAL_E1_SUPPORT*/
       break;
     case CODE_GAL_E7I:
-    case CODE_GAL_E7Q:
-    case CODE_GAL_E7X:
       ret = NAP_TRK_CODE_GAL_E7;
       break;
-    case CODE_GPS_L2CX:
-    case CODE_GPS_L5I:
-    case CODE_GPS_L5Q:
-    case CODE_GPS_L5X:
-    case CODE_GAL_E6B:
-    case CODE_GAL_E6C:
-    case CODE_GAL_E6X:
-    case CODE_GAL_E8:
-    case CODE_GAL_E5I:
-    case CODE_GAL_E5Q:
-    case CODE_GAL_E5X:
-    case CODE_QZS_L2CX:
-    case CODE_QZS_L5I:
-    case CODE_QZS_L5Q:
-    case CODE_QZS_L5X:
-    case CODE_INVALID:
-    case CODE_COUNT:
     default:
       assert(!"Invalid code");
       break;
@@ -174,7 +151,7 @@ void nap_track_init(u8 channel,
   assert((mesid.code == CODE_GPS_L1CA) || (mesid.code == CODE_GPS_L2CM) ||
          (mesid.code == CODE_GPS_L2CL) || (mesid.code == CODE_GPS_L5X) ||
          (mesid.code == CODE_GLO_L1OF) || (mesid.code == CODE_GLO_L2OF) ||
-         (mesid.code == CODE_SBAS_L1CA) || (mesid.code == CODE_BDS2_B11) ||
+         (mesid.code == CODE_SBAS_L1CA) || (mesid.code == CODE_BDS2_B1) ||
          (mesid.code == CODE_BDS2_B2) || (mesid.code == CODE_QZS_L1CA) ||
          (mesid.code == CODE_QZS_L2CM) || (mesid.code == CODE_QZS_L2CL) ||
          (mesid.code == CODE_QZS_L5X) || (mesid.code == CODE_GAL_E1B) ||
@@ -523,7 +500,8 @@ void nap_track_read_results(u8 channel,
 
   if ((s->mesid.code == CODE_GAL_E7I) || (s->mesid.code == CODE_GAL_E7Q) ||
       (s->mesid.code == CODE_GAL_E7X)) {
-    log_debug("EPL %02d   %+3ld %+3ld   %+3ld %+3ld   %+3ld %+3ld",
+    log_debug("EPL %02" PRIu8 "   %+3" PRIi32 " %+3" PRIi32 "   %+3" PRIi32
+              " %+3" PRIi32 "   %+3" PRIi32 " %+3" PRIi32,
               s->mesid.sat,
               corrs[3].I >> 6,
               corrs[3].Q >> 6,
@@ -535,9 +513,10 @@ void nap_track_read_results(u8 channel,
 
   if (GET_NAP_TRK_CH_STATUS_CORR_OVERFLOW(trk_ch.STATUS)) {
     log_warn_mesid(s->mesid,
-                   "Tracking correlator overflow "
-                   "VE:[%+7ld:%+7ld] E: [%+7ld:%+7ld] P:[%+7ld:%+7ld] "
-                   "L:[%+7ld:%+7ld] VL:[%+7ld:%+7ld]",
+                   "Tracking correlator overflow VE:[%+7" PRIi32 ":%+7" PRIi32
+                   "] E:[%+7" PRIi32 ":%+7" PRIi32 "] P:[%+7" PRIi32
+                   ":%+7" PRIi32 "] L:[%+7" PRIi32 ":%+7" PRIi32
+                   "] VL:[%+7" PRIi32 ":%+7" PRIi32 "]",
                    corrs[3].I,
                    corrs[3].Q,
                    corrs[0].I,
@@ -557,7 +536,8 @@ void nap_track_read_results(u8 channel,
                      GET_NAP_TRK_CH_STATUS_CARR_PHASE_FRAC(trk_ch.STATUS);
   if (sw_carr_phase != hw_carr_phase) {
     log_error_mesid(s->mesid,
-                    "Carrier reckoning: SW=%u.%u, HW=%u.%u",
+                    "Carrier reckoning: SW=%" PRIu8 ".%" PRIu8 ", HW=%" PRIu8
+                    ".%" PRIu8,
                     (sw_carr_phase >> 3),
                     (sw_carr_phase & 0x7),
                     (hw_carr_phase >> 3),
@@ -571,7 +551,8 @@ void nap_track_read_results(u8 channel,
                      GET_NAP_TRK_CH_STATUS_CODE_PHASE_FRAC(trk_ch.STATUS);
   if (sw_code_phase != hw_code_phase) {
     log_error_mesid(s->mesid,
-                    "Code reckoning: SW=%u.%u, HW=%u.%u",
+                    "Code reckoning: SW=%" PRIu8 ".%" PRIu8 ", HW=%" PRIu8
+                    ".%" PRIu8,
                     (sw_code_phase >> 3),
                     (sw_code_phase & 0x7),
                     (hw_code_phase >> 3),

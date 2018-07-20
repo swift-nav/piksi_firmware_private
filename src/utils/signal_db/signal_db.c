@@ -41,14 +41,14 @@ static constellation_table_element_t constellation_table[CONSTELLATION_COUNT] =
     {[CONSTELLATION_GPS] = {GPS_FIRST_PRN, 0},
      [CONSTELLATION_SBAS] = {SBAS_FIRST_PRN, NUM_SATS_GPS},
      [CONSTELLATION_GLO] = {GLO_FIRST_PRN, NUM_SATS_GPS + NUM_SATS_SBAS},
-     [CONSTELLATION_BDS2] = {BDS2_FIRST_PRN,
-                             NUM_SATS_GPS + NUM_SATS_SBAS + NUM_SATS_GLO},
+     [CONSTELLATION_BDS] = {BDS_FIRST_PRN,
+                            NUM_SATS_GPS + NUM_SATS_SBAS + NUM_SATS_GLO},
      [CONSTELLATION_QZS] = {QZS_FIRST_PRN,
                             NUM_SATS_GPS + NUM_SATS_SBAS + NUM_SATS_GLO +
-                                NUM_SATS_BDS2},
+                                NUM_SATS_BDS},
      [CONSTELLATION_GAL] = {GAL_FIRST_PRN,
                             NUM_SATS_GPS + NUM_SATS_SBAS + NUM_SATS_GLO +
-                                NUM_SATS_BDS2 + NUM_SATS_QZS}};
+                                NUM_SATS_BDS + NUM_SATS_QZS}};
 
 /** Number of signals for each code which are supported on
  * the current hardware platform. */
@@ -61,7 +61,7 @@ static const u16 code_signal_counts[CODE_COUNT] =
      [CODE_SBAS_L1CA] = PLATFORM_SIGNAL_COUNT_SBAS_L1CA,
      [CODE_GLO_L1OF] = PLATFORM_SIGNAL_COUNT_GLO_L1OF,
      [CODE_GLO_L2OF] = PLATFORM_SIGNAL_COUNT_GLO_L2OF,
-     [CODE_BDS2_B11] = PLATFORM_SIGNAL_COUNT_BDS2_B1,
+     [CODE_BDS2_B1] = PLATFORM_SIGNAL_COUNT_BDS2_B1,
      [CODE_BDS2_B2] = PLATFORM_SIGNAL_COUNT_BDS2_B2,
      [CODE_QZS_L1CA] = PLATFORM_SIGNAL_COUNT_QZS_L1CA,
      [CODE_QZS_L2CM] = PLATFORM_SIGNAL_COUNT_QZS_L2C,
@@ -81,7 +81,7 @@ static const u16 me_code_signal_counts[CODE_COUNT] =
      [CODE_SBAS_L1CA] = PLATFORM_SIGNAL_COUNT_SBAS_L1CA,
      [CODE_GLO_L1OF] = PLATFORM_FREQ_COUNT_GLO_L1OF,
      [CODE_GLO_L2OF] = PLATFORM_FREQ_COUNT_GLO_L2OF,
-     [CODE_BDS2_B11] = PLATFORM_SIGNAL_COUNT_BDS2_B1,
+     [CODE_BDS2_B1] = PLATFORM_SIGNAL_COUNT_BDS2_B1,
      [CODE_BDS2_B2] = PLATFORM_SIGNAL_COUNT_BDS2_B2,
      [CODE_QZS_L1CA] = PLATFORM_SIGNAL_COUNT_QZS_L1CA,
      [CODE_QZS_L2CM] = PLATFORM_SIGNAL_COUNT_QZS_L2C,

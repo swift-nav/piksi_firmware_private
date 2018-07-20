@@ -454,7 +454,7 @@ static void manage_acq(void) {
   assert((CODE_GPS_L1CA == acq->mesid.code) ||
          (CODE_GLO_L1OF == acq->mesid.code) ||
          (CODE_SBAS_L1CA == acq->mesid.code) ||
-         (CODE_BDS2_B11 == acq->mesid.code) ||
+         (CODE_BDS2_B1 == acq->mesid.code) ||
          (CODE_QZS_L1CA == acq->mesid.code) ||
          (CODE_GAL_E1B == acq->mesid.code));
 
@@ -1084,8 +1084,10 @@ u32 get_tracking_channel_sid_flags(const gnss_signal_t sid,
                                    const ephemeris_t *pephe) {
   u32 flags = 0;
 
-  /* Satellite elevation is above the solution mask. */
-  if (track_sid_db_elevation_degrees_get(sid) >= solution_elevation_mask) {
+  /* Satellite elevation is either unknown or above the solution mask. */
+  double elevation;
+  if (!track_sid_db_elevation_degrees_get(sid, &elevation) ||
+      elevation >= solution_elevation_mask) {
     flags |= TRACKER_FLAG_ELEVATION;
   }
 

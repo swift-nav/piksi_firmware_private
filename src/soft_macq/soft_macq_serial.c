@@ -92,7 +92,7 @@ bool soft_acq_search(const sc16_t *_cSignal,
   u32 code_length = code_to_chip_count(mesid.code);
   double chip_rate = code_to_chip_rate(mesid.code);
   memset(code_resamp, 0, sizeof(s8) * INTFFT_MAXSIZE);
-  if ((CODE_SBAS_L1CA == mesid.code) || (CODE_BDS2_B11 == mesid.code) ||
+  if ((CODE_SBAS_L1CA == mesid.code) || (CODE_BDS2_B1 == mesid.code) ||
       (CODE_GAL_E7I == mesid.code) || (CODE_GAL_E7Q == mesid.code) ||
       (CODE_GAL_E7X == mesid.code) || (CODE_GAL_E5I == mesid.code) ||
       (CODE_GAL_E5Q == mesid.code) || (CODE_GAL_E5X == mesid.code)) {
@@ -136,7 +136,7 @@ bool soft_acq_search(const sc16_t *_cSignal,
   DoFwdIntFFTr2(&sFftConfig, sample_fft, FFT_SCALE_SCHED_SAMPLES, 1);
 
   /* simple notch filter */
-  if (CODE_BDS2_B11 == mesid.code) {
+  if (CODE_BDS2_B1 == mesid.code) {
     sample_fft[11857].r = 0;
     sample_fft[11857].i = 0;
     sample_fft[11858].r = 0;
@@ -361,7 +361,7 @@ static bool peak_search(const me_gnss_signal_t mesid,
 
   /* For constellations with frequent symbol transitions,
    * accumulate non-coherently */
-  if ((CODE_SBAS_L1CA == mesid.code) || (CODE_BDS2_B11 == mesid.code)) {
+  if ((CODE_SBAS_L1CA == mesid.code) || (CODE_BDS2_B1 == mesid.code)) {
     result_mag[0] = 0;
     result_mag[1] = 0;
     u8 non_coh = array_sz / CODE_SPMS;
@@ -399,7 +399,7 @@ static bool peak_search(const me_gnss_signal_t mesid,
   if (CODE_SBAS_L1CA == mesid.code) {
     cn0 += 4.0;
   }
-  if (CODE_BDS2_B11 == mesid.code) {
+  if (CODE_BDS2_B1 == mesid.code) {
     cn0 += 4.0;
   }
 

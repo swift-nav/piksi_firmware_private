@@ -462,12 +462,10 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
   }
 
   if (dd.gps_l2c_sv_capability_upd_flag) {
-    /* store new L2C value into NDB */
-    if (ndb_gps_l2cm_l2c_cap_store(&l1ca_sid,
-                                   &dd.gps_l2c_sv_capability,
-                                   NDB_DS_RECEIVER,
-                                   NDB_EVENT_SENDER_ID_VOID) == NDB_ERR_NONE) {
-      sbp_send_l2c_capabilities(&dd.gps_l2c_sv_capability);
+    ndb_op_code_t err;
+    err = ndb_store_gps_l2c_capb(dd.gps_l2c_sv_capability, &l1ca_sid);
+    if (NDB_ERR_NONE == err) {
+      gnss_capb_send_over_sbp();
     }
   }
 

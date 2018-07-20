@@ -42,6 +42,7 @@
 #include "simulator.h"
 #include "specan/specan_main.h"
 #include "starling_integration.h"
+#include "starling_platform_shim.h"
 #include "system_monitor/system_monitor.h"
 #include "timing/timing.h"
 #include "track/track_state.h"
@@ -63,7 +64,7 @@ int main(void) {
 
   io_support_init();
   sbp_setup();
-  me_obs_msg_setup();
+  platform_mailbox_init(MB_ID_ME_OBS);
   settings_setup();
 
   /* Must initialize the Starling API prior to any use. */
@@ -175,10 +176,7 @@ int main(void) {
     sbp_send_iono(&iono);
   }
 
-  u32 l2c_mask;
-  if (ndb_gps_l2cm_l2c_cap_read(&l2c_mask) == NDB_ERR_NONE) {
-    sbp_send_l2c_capabilities(&l2c_mask);
-  }
+  gnss_capb_send_over_sbp();
 
   SpecanStart();
 

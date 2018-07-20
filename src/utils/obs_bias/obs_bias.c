@@ -75,11 +75,10 @@ void apply_isc_table(u8 n_channels, navigation_measurement_t *nav_meas[]) {
   for (u8 i = 0; i < n_channels; i++) {
     double pseudorange_corr = 0;
     double carrier_phase_corr = 0;
-    switch (nav_meas[i]->sid.code) {
+    switch ((s8)nav_meas[i]->sid.code) {
       case CODE_GPS_L1CA:
         break;
 
-      case CODE_GPS_L2CL:
       case CODE_GPS_L2CM:
         pseudorange_corr = gps_l2_isc;
         break;
@@ -98,7 +97,7 @@ void apply_isc_table(u8 n_channels, navigation_measurement_t *nav_meas[]) {
                              glo_l2_carrier_phase_bias;
         break;
 
-      case CODE_BDS2_B11:
+      case CODE_BDS2_B1:
         pseudorange_corr = bds2_b11_isc;
         break;
 
@@ -119,31 +118,6 @@ void apply_isc_table(u8 n_channels, navigation_measurement_t *nav_meas[]) {
         assert(!"Invalid code.");
         break;
 
-      case CODE_SBAS_L1CA:
-      case CODE_GPS_L1P:
-      case CODE_GPS_L2P:
-      case CODE_GPS_L2CX:
-      case CODE_GPS_L5I:
-      case CODE_GPS_L5Q:
-      case CODE_GPS_L5X:
-      case CODE_GAL_E1C:
-      case CODE_GAL_E1X:
-      case CODE_GAL_E6B:
-      case CODE_GAL_E6C:
-      case CODE_GAL_E6X:
-      case CODE_GAL_E7Q:
-      case CODE_GAL_E7X:
-      case CODE_GAL_E8:
-      case CODE_GAL_E5I:
-      case CODE_GAL_E5Q:
-      case CODE_GAL_E5X:
-      case CODE_QZS_L1CA:
-      case CODE_QZS_L2CM:
-      case CODE_QZS_L2CL:
-      case CODE_QZS_L2CX:
-      case CODE_QZS_L5I:
-      case CODE_QZS_L5Q:
-      case CODE_QZS_L5X:
       default:
         /* If code not supported we just return a zero correction. */
         break;

@@ -372,7 +372,7 @@ static const tp_profile_entry_t *mesid_to_profiles(const me_gnss_signal_t mesid,
     case CONSTELLATION_GPS:
     case CONSTELLATION_GLO:
     case CONSTELLATION_SBAS:
-    case CONSTELLATION_BDS2:
+    case CONSTELLATION_BDS:
     case CONSTELLATION_QZS:
     case CONSTELLATION_GAL:
       profiles = gnss_track_profiles;

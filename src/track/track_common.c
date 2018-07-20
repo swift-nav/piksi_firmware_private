@@ -1056,7 +1056,7 @@ static bool should_update_tow_cache(const tracker_t *tracker) {
 
   if ((CODE_GPS_L1CA == mesid.code) || (CODE_GLO_L1OF == mesid.code) ||
       (CODE_SBAS_L1CA == mesid.code) || (CODE_QZS_L1CA == mesid.code) ||
-      (CODE_BDS2_B11 == mesid.code) || (CODE_GAL_E1B == mesid.code) ||
+      (CODE_BDS2_B1 == mesid.code) || (CODE_GAL_E1B == mesid.code) ||
       (CODE_GAL_E7I == mesid.code)) {
     responsible_for_update = true;
   } else {
@@ -1068,7 +1068,7 @@ static bool should_update_tow_cache(const tracker_t *tracker) {
     } else if (CODE_QZS_L2CM == mesid.code) {
       mesid_L1 = construct_mesid(CODE_QZS_L1CA, mesid.sat);
     } else if (CODE_BDS2_B2 == mesid.code) {
-      mesid_L1 = construct_mesid(CODE_BDS2_B11, mesid.sat);
+      mesid_L1 = construct_mesid(CODE_BDS2_B1, mesid.sat);
     } else {
       assert(!"Unsupported TOW cache code");
     }

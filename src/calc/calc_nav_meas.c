@@ -97,9 +97,8 @@ s8 calc_navigation_measurement(u8 n_channels,
     nav_meas[i]->raw_measured_doppler = meas[i]->carrier_freq;
 
     /* Get the approximate elevation from track DB */
-    nav_meas[i]->elevation =
-        (double)track_sid_db_elevation_degrees_get(nav_meas[i]->sid);
-    if (TRACKING_ELEVATION_UNKNOWN == nav_meas[i]->elevation) {
+    if (!track_sid_db_elevation_degrees_get(nav_meas[i]->sid,
+                                            &nav_meas[i]->elevation)) {
       /* Use 0 degrees as unknown elevation to assign it the smallest weight */
       log_debug_sid(nav_meas[i]->sid, "Elevation unknown, using 0");
       nav_meas[i]->elevation = 0;
@@ -177,7 +176,7 @@ static bool get_isc_corr(const code_t code,
     return false;
   }
 
-  switch (code) {
+  switch ((s8)code) {
     case CODE_GPS_L1CA:
       if (msg->tgd_valid && msg->isc_l1ca_valid) {
         *isc = (-msg->tgd + msg->isc_l1ca) * GROUP_DELAY_SCALE * GPS_C;
@@ -185,7 +184,6 @@ static bool get_isc_corr(const code_t code,
       }
       break;
 
-    case CODE_GPS_L2CL:
     case CODE_GPS_L2CM:
       if (msg->tgd_valid && msg->isc_l2c_valid) {
         *isc = (-msg->tgd + msg->isc_l2c) * GROUP_DELAY_SCALE * GPS_C;
@@ -198,37 +196,6 @@ static bool get_isc_corr(const code_t code,
       assert(!"Invalid code.");
       break;
 
-    case CODE_SBAS_L1CA:
-    case CODE_GLO_L1OF:
-    case CODE_GLO_L2OF:
-    case CODE_GPS_L1P:
-    case CODE_GPS_L2P:
-    case CODE_GPS_L2CX:
-    case CODE_GPS_L5I:
-    case CODE_GPS_L5Q:
-    case CODE_GPS_L5X:
-    case CODE_BDS2_B11:
-    case CODE_BDS2_B2:
-    case CODE_GAL_E1B:
-    case CODE_GAL_E1C:
-    case CODE_GAL_E1X:
-    case CODE_GAL_E6B:
-    case CODE_GAL_E6C:
-    case CODE_GAL_E6X:
-    case CODE_GAL_E7I:
-    case CODE_GAL_E7Q:
-    case CODE_GAL_E7X:
-    case CODE_GAL_E8:
-    case CODE_GAL_E5I:
-    case CODE_GAL_E5Q:
-    case CODE_GAL_E5X:
-    case CODE_QZS_L1CA:
-    case CODE_QZS_L2CM:
-    case CODE_QZS_L2CL:
-    case CODE_QZS_L2CX:
-    case CODE_QZS_L5I:
-    case CODE_QZS_L5Q:
-    case CODE_QZS_L5X:
     default:
       break;
   }

@@ -322,7 +322,9 @@ u8 uuid_string_get(char *uuid_string) {
   struct uuid temp_uuid;
   uuid_unpack(factory_params.uuid, &temp_uuid);
   sprintf(uuid_string,
-          "%08lX-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X",
+          "%08" PRIX32 "-%04" PRIX16 "-%04" PRIX16 "-%02" PRIX8 "%02" PRIX8
+          "-%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8
+          "%02" PRIX8,
           temp_uuid.time_low,
           temp_uuid.time_mid,
           temp_uuid.time_hi_and_version,
@@ -339,7 +341,8 @@ u8 uuid_string_get(char *uuid_string) {
 
 u8 mac_address_string_get(char *mac_string) {
   sprintf(mac_string,
-          "%02X-%02X-%02X-%02X-%02X-%02X",
+          "%02" PRIX8 "-%02" PRIX8 "-%02" PRIX8 "-%02" PRIX8 "-%02" PRIX8
+          "-%02" PRIX8,
           factory_params.mac_address[5],
           factory_params.mac_address[4],
           factory_params.mac_address[3],
@@ -352,7 +355,7 @@ u8 mac_address_string_get(char *mac_string) {
 u8 hw_version_string_get(char *hw_version_string) {
   u16 major_ver = factory_params.hardware_version >> 16;
   u16 minor_ver = factory_params.hardware_version & 0xFFFF;
-  sprintf(hw_version_string, "%d.%d", major_ver, minor_ver);
+  sprintf(hw_version_string, "%" PRIu16 ".%" PRIu16, major_ver, minor_ver);
   return strlen(hw_version_string);
 }
 

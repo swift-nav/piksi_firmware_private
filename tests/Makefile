@@ -71,6 +71,7 @@ INCLUDE_DIRS += -I$(USER_SRC_DIR)/reacq
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/soft_macq
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/track
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/main
+INCLUDE_DIRS += -I$(USER_SRC_DIR)/sbp
 INCLUDE_DIRS += -I../libsbp/c/include
 
 # All Google Test headers.  Usually you shouldn't change this

@@ -92,9 +92,7 @@ void do_l1ca_to_l2c_handover(u32 sample_count,
     return; /* L2C signal from the SV is already in track */
   }
 
-  u32 capb;
-  ndb_gps_l2cm_l2c_cap_read(&capb);
-  if (0 == (capb & ((u32)1 << (sat - 1)))) {
+  if (!gps_l2c_active(mesid)) {
     return;
   }
 

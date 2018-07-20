@@ -14,6 +14,7 @@
 #define SWIFTNAV_FACTORY_DATAL_H
 
 #include <libswiftnav/common.h>
+#include <stddef.h>
 #include <string.h>
 
 /* This assumes the CPU is little endian */

@@ -35,9 +35,6 @@
 /* \} */
 extern bool disable_raim;
 
-extern memory_pool_t base_obs_buff_pool;
-extern mailbox_t base_obs_mailbox;
-
 extern bool base_pos_known;
 extern double base_pos_ecef[3];
 
