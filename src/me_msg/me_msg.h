@@ -26,9 +26,4 @@ typedef struct _me_msg_obs_t {
   gps_time_t obs_time;
 } me_msg_obs_t;
 
-extern mailbox_t me_obs_msg_mailbox;
-extern memory_pool_t me_obs_msg_buff_pool;
-
-void me_obs_msg_setup(void);
-
 #endif /* #ifndef ME_MSG_H */

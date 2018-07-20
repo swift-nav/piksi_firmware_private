@@ -29,13 +29,12 @@
 #include "sbp/sbp_utils.h"
 #include "settings/settings.h"
 #include "simulator/simulator.h"
+#include "starling_platform_shim.h"
 #include "utils/timing/timing.h"
 
 /*******************************************************************************
  * Constants
  ******************************************************************************/
-#define STARLING_THREAD_PRIORITY (HIGHPRIO - 4)
-#define STARLING_THREAD_STACK (6 * 1024 * 1024)
 
 #define STARLING_BASE_SENDER_ID_DEFAULT 0
 
@@ -75,9 +74,6 @@ double heading_offset = 0.0;
 /*******************************************************************************
  * Locals
  ******************************************************************************/
-
-/* Working area for the main starling thread. */
-static THD_WORKING_AREA(wa_starling_thread, STARLING_THREAD_STACK);
 
 static MUTEX_DECL(last_sbp_lock);
 static gps_time_t last_dgnss;
@@ -943,11 +939,7 @@ void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
 
 void starling_calc_pvt_setup() {
   /* Start main starling thread. */
-  chThdCreateStatic(wa_starling_thread,
-                    sizeof(wa_starling_thread),
-                    STARLING_THREAD_PRIORITY,
-                    initialize_and_run_starling,
-                    NULL);
+  platform_thread_create(THREAD_ID_STARLING, initialize_and_run_starling);
 }
 
 soln_dgnss_stats_t solution_last_dgnss_stats_get(void) {

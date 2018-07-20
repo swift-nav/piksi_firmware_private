@@ -76,11 +76,11 @@ static int int_to_string(
 
   switch (blen) {
     case 1:
-      return snprintf(str, slen, "%hhd", *(s8 *)blob);
+      return snprintf(str, slen, "%" PRIi8, *(s8 *)blob);
     case 2:
-      return snprintf(str, slen, "%hd", *(s16 *)blob);
+      return snprintf(str, slen, "%" PRIi16, *(s16 *)blob);
     case 4:
-      return snprintf(str, slen, "%ld", *(s32 *)blob);
+      return snprintf(str, slen, "%" PRIi32, *(s32 *)blob);
     default:
       return -1;
   }
@@ -96,16 +96,16 @@ static bool int_from_string(const void *priv,
     case 1: {
       s16 tmp;
       /* Newlib's crappy sscanf doesn't understand %hhd */
-      if (sscanf(str, "%hd", &tmp) == 1) {
+      if (sscanf(str, "%" SCNi16, &tmp) == 1) {
         *(s8 *)blob = tmp;
         return true;
       }
       return false;
     }
     case 2:
-      return sscanf(str, "%hd", (s16 *)blob) == 1;
+      return sscanf(str, "%" SCNi16, (s16 *)blob) == 1;
     case 4:
-      return sscanf(str, "%ld", (s32 *)blob) == 1;
+      return sscanf(str, "%" SCNi32, (s32 *)blob) == 1;
     default:
       return false;
   }
@@ -240,7 +240,7 @@ void settings_register(struct setting *setting, enum setting_types type) {
   struct setting *s;
   const struct setting_type *t = &type_int;
 
-  for (int i = 0; t && (i < type); i++, t = t->next) {
+  for (u32 i = 0; t && (i < type); i++, t = t->next) {
     ; /* Do nothing */
   }
   /* FIXME Abort if type is NULL */

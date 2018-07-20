@@ -257,7 +257,8 @@ void tracker_bit_sync_update(tracker_t *tracker,
 
   if ((CODE_GAL_E7I == mesid.code) || (CODE_GAL_E7Q == mesid.code) ||
       (CODE_GAL_E7X == mesid.code)) {
-    log_debug("E%02d energy %+4ld %+4ld  %+4ld %+4ld",
+    log_debug("E%02" PRIu8 " energy %+4" PRIi32 " %+4" PRIi32 "  %+4" PRIi32
+              " %+4" PRIi32,
               mesid.sat,
               tracker->corrs.corr_cn0.prompt.I,
               tracker->corrs.corr_cn0.prompt.Q,

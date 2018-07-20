@@ -158,7 +158,7 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/calc/calc_pvt_common.o \
         $(SWIFTNAV_ROOT)/src/calc/starling_integration.o \
         $(SWIFTNAV_ROOT)/src/calc/starling_threads.o \
-	$(SWIFTNAV_ROOT)/src/calc/starling_platform_shim.o \
+        $(SWIFTNAV_ROOT)/src/calc/starling_chibios_shim.o \
         $(SWIFTNAV_ROOT)/src/calc/calc_pvt_me.o \
         $(SWIFTNAV_ROOT)/src/calc/calc_nav_meas.o \
         $(SWIFTNAV_ROOT)/src/utils/obs_bias/obs_bias.o \
@@ -223,7 +223,6 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/utils/run_stats/run_stats.o \
         $(SWIFTNAV_ROOT)/src/utils/nav_bit_fifo/nav_bit_fifo.o \
         $(SWIFTNAV_ROOT)/src/utils/nav_data_sync/nav_data_sync.o \
-        $(SWIFTNAV_ROOT)/src/me_msg/me_msg.o \
         $(BOARDDIR)/ndb_fs_access.o \
         $(SWIFTNAV_ROOT)/src/main/main.o
 
@@ -364,7 +363,7 @@ DLIBDIR = $(LIBSBP_BUILDDIR)/src \
 
 # List all default libraries here
 DLIBS = $(BOARDLIBS) -lsbp-static -lswiftnav -lswiftnav-common \
-        -lm -Wl,--start-group -lstdc++ -lc -lnosys -Wl,--end-group -lfec
+        -lm -Wl,--start-group -lstdc++ -lc -Wl,--end-group -lfec -lnosys
 
 #
 # End of default section

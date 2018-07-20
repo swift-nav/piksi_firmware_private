@@ -500,7 +500,8 @@ void nap_track_read_results(u8 channel,
 
   if ((s->mesid.code == CODE_GAL_E7I) || (s->mesid.code == CODE_GAL_E7Q) ||
       (s->mesid.code == CODE_GAL_E7X)) {
-    log_debug("EPL %02d   %+3ld %+3ld   %+3ld %+3ld   %+3ld %+3ld",
+    log_debug("EPL %02" PRIu8 "   %+3" PRIi32 " %+3" PRIi32 "   %+3" PRIi32
+              " %+3" PRIi32 "   %+3" PRIi32 " %+3" PRIi32,
               s->mesid.sat,
               corrs[3].I >> 6,
               corrs[3].Q >> 6,
@@ -512,9 +513,10 @@ void nap_track_read_results(u8 channel,
 
   if (GET_NAP_TRK_CH_STATUS_CORR_OVERFLOW(trk_ch.STATUS)) {
     log_warn_mesid(s->mesid,
-                   "Tracking correlator overflow "
-                   "VE:[%+7ld:%+7ld] E: [%+7ld:%+7ld] P:[%+7ld:%+7ld] "
-                   "L:[%+7ld:%+7ld] VL:[%+7ld:%+7ld]",
+                   "Tracking correlator overflow VE:[%+7" PRIi32 ":%+7" PRIi32
+                   "] E:[%+7" PRIi32 ":%+7" PRIi32 "] P:[%+7" PRIi32
+                   ":%+7" PRIi32 "] L:[%+7" PRIi32 ":%+7" PRIi32
+                   "] VL:[%+7" PRIi32 ":%+7" PRIi32 "]",
                    corrs[3].I,
                    corrs[3].Q,
                    corrs[0].I,
@@ -534,7 +536,8 @@ void nap_track_read_results(u8 channel,
                      GET_NAP_TRK_CH_STATUS_CARR_PHASE_FRAC(trk_ch.STATUS);
   if (sw_carr_phase != hw_carr_phase) {
     log_error_mesid(s->mesid,
-                    "Carrier reckoning: SW=%u.%u, HW=%u.%u",
+                    "Carrier reckoning: SW=%" PRIu8 ".%" PRIu8 ", HW=%" PRIu8
+                    ".%" PRIu8,
                     (sw_carr_phase >> 3),
                     (sw_carr_phase & 0x7),
                     (hw_carr_phase >> 3),
@@ -548,7 +551,8 @@ void nap_track_read_results(u8 channel,
                      GET_NAP_TRK_CH_STATUS_CODE_PHASE_FRAC(trk_ch.STATUS);
   if (sw_code_phase != hw_code_phase) {
     log_error_mesid(s->mesid,
-                    "Code reckoning: SW=%u.%u, HW=%u.%u",
+                    "Code reckoning: SW=%" PRIu8 ".%" PRIu8 ", HW=%" PRIu8
+                    ".%" PRIu8,
                     (sw_code_phase >> 3),
                     (sw_code_phase & 0x7),
                     (hw_code_phase >> 3),
