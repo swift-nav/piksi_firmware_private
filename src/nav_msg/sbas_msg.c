@@ -11,7 +11,7 @@
  */
 
 #include "nav_msg/sbas_msg.h"
-#include "calc/starling_threads.h"
+#include "calc/starling_integration.h"
 #include "nav_msg/nav_msg.h" /* For BIT_POLARITY_... constants */
 #include "sbp_utils.h"
 #include "timing/timing.h"

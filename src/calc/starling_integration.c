@@ -780,6 +780,27 @@ static void reset_filters_callback(u16 sender_id,
   }
 }
 
+/* Add SBAS data to the Starling engine. */
+void starling_add_sbas_data(const sbas_raw_data_t *sbas_data,
+                            const size_t n_sbas_data) {
+  for (size_t i = 0; i < n_sbas_data; ++i) {
+    sbas_raw_data_t *sbas_data_msg =
+        platform_mailbox_item_alloc(MB_ID_SBAS_DATA);
+    if (NULL == sbas_data_msg) {
+      log_error("platform_mailbox_item_alloc(MB_ID_SBAS_DATA) failed!");
+      continue;
+    }
+    assert(sbas_data);
+    *sbas_data_msg = *sbas_data;
+    errno_t ret =
+        platform_mailbox_post(MB_ID_SBAS_DATA, sbas_data_msg, TIME_IMMEDIATE);
+    if (ret != 0) {
+      log_error("platform_mailbox_post(MB_ID_SBAS_DATA) failed!");
+      platform_mailbox_item_free(MB_ID_SBAS_DATA, sbas_data_msg);
+    }
+  }
+}
+
 /**
  * Simply apply whatever the current settings are to the
  * given dynamics filter.
@@ -1090,6 +1111,25 @@ static int read_obs_base(int blocking, obss_t *obs) {
   return ret;
 };
 
+/* TODO(kevin) refactor common code. */
+static int read_sbas_data(int blocking, sbas_raw_data_t *data) {
+  uint32_t timeout_ms = blocking ? TIME_INFINITE : 0;
+  sbas_raw_data_t *local_data = NULL;
+  errno_t ret =
+      platform_mailbox_fetch(MB_ID_SBAS_DATA, (void **)&local_data, timeout_ms);
+  if (local_data) {
+    if (STARLING_READ_OK == ret) {
+      *data = *local_data;
+    } else {
+      /* Erroneous behavior for fetch to return non-NULL pointer and indicate
+       * read failure. */
+      log_error("STARLING: sbas mailbox fetch failed with %d", ret);
+    }
+    platform_mailbox_item_free(MB_ID_SBAS_DATA, local_data);
+  }
+  return ret;
+}
+
 static THD_FUNCTION(initialize_and_run_starling, arg) {
   (void)arg;
   chRegSetThreadName("starling");
@@ -1110,6 +1150,7 @@ static THD_FUNCTION(initialize_and_run_starling, arg) {
   StarlingInputFunctionTable inputs = {
       .read_obs_rover = read_obs_rover,
       .read_obs_base = read_obs_base,
+      .read_sbas_data = read_sbas_data,
   };
   starling_set_input_functions(&inputs);
 

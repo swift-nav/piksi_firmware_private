@@ -44,11 +44,10 @@
 extern bool starling_integration_simulation_enabled(void);
 extern void starling_integration_simulation_run(const me_msg_obs_t *me_msg);
 
-/* Tracks if the API has been properly initialized or not. */
-static bool is_starling_api_initialized = false;
-
 static StarlingInputFunctionTable inputs = {
-    .read_obs_rover = NULL, .read_obs_base = NULL,
+    .read_obs_rover = NULL,
+    .read_obs_base = NULL,
+    .read_sbas_data = NULL,
 };
 
 /* User configurable endpoints for transmitting data out
@@ -604,25 +603,14 @@ static void process_sbas_data(const sbas_raw_data_t *sbas_data) {
  * nevermind.
  */
 static void process_any_sbas_messages(void) {
-  errno_t ret = 0;
-  while (0 == ret) {
-    sbas_raw_data_t *sbas_data = NULL;
-    ret = platform_mailbox_fetch(
-        MB_ID_SBAS_DATA, (void **)&sbas_data, TIME_IMMEDIATE);
-    if (0 == ret) {
-      /* We have successfully received SBAS data, forward on to the
-       * filter managers. */
-      process_sbas_data(sbas_data);
-    } else if (NULL != sbas_data) {
-      /* If the fetch operation failed after assigning to the message pointer,
-       * something has gone unexpectedly wrong. */
-      log_error("STARLING: sbas mailbox fetch failed with %d", ret);
-    }
-    /* Under any circumstances, if the message pointer was assigned to, it
-     * must be released back to the pool. */
-    if (NULL != sbas_data) {
-      platform_mailbox_item_free(MB_ID_SBAS_DATA, sbas_data);
-    }
+  if (NULL == inputs.read_sbas_data) {
+    return;
+  }
+
+  sbas_raw_data_t data;
+  while (STARLING_READ_OK ==
+         inputs.read_sbas_data(STARLING_READ_NONBLOCKING, &data)) {
+    process_sbas_data(&data);
   }
 }
 
@@ -867,39 +855,6 @@ static void starling_thread(void) {
 
 /* Run the starling engine on the current thread. Blocks indefinitely. */
 void starling_run(void) { starling_thread(); }
-
-/* Set up all persistent data-structures used by the API. All
- * API calls should be valid after a call to this function. */
-void starling_initialize_api(void) {
-  /* It is invalid to call more than once. */
-  assert(!is_starling_api_initialized);
-
-  platform_mailbox_init(MB_ID_SBAS_DATA);
-
-  is_starling_api_initialized = true;
-}
-
-/* Add SBAS data to the Starling engine. */
-void starling_add_sbas_data(const sbas_raw_data_t *sbas_data,
-                            const size_t n_sbas_data) {
-  assert(is_starling_api_initialized);
-  for (size_t i = 0; i < n_sbas_data; ++i) {
-    sbas_raw_data_t *sbas_data_msg =
-        platform_mailbox_item_alloc(MB_ID_SBAS_DATA);
-    if (NULL == sbas_data_msg) {
-      log_error("platform_mailbox_item_alloc(MB_ID_SBAS_DATA) failed!");
-      continue;
-    }
-    assert(sbas_data);
-    *sbas_data_msg = *sbas_data;
-    errno_t ret =
-        platform_mailbox_post(MB_ID_SBAS_DATA, sbas_data_msg, TIME_IMMEDIATE);
-    if (ret != 0) {
-      log_error("platform_mailbox_post(MB_ID_SBAS_DATA) failed!");
-      platform_mailbox_item_free(MB_ID_SBAS_DATA, sbas_data_msg);
-    }
-  }
-}
 
 void starling_set_input_functions(const StarlingInputFunctionTable *functions) {
   inputs = *functions;

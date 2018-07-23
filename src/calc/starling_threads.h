@@ -156,23 +156,19 @@ void starling_run(void);
 typedef struct StarlingInputFunctionTable {
   int (*read_obs_rover)(int blocking, me_msg_obs_t *me_msg);
   int (*read_obs_base)(int blocking, obss_t *obs);
+  int (*read_sbas_data)(int blocking, sbas_raw_data_t *data);
 } StarlingInputFunctionTable;
 
 #if 0
 // TODO(kevin) future work..
   int (*read_ephemeris)  (int flags, ephemeris_t *e);
   int (*read_utc_params) (int flags, utc_params_t *p);
-  int (*read_sbas_data)  (int flags, sbas_data_t *s);
   int (*read_imu_data)   (int flags, imu_data_t *i);
 #endif
 
 /* Set the table of read functions. Should only be called on startup.
  * TODO(kevin) make this a parameter to initialize or run. */
 void starling_set_input_functions(const StarlingInputFunctionTable *functions);
-
-/* Add raw sbas data to the starling engine. */
-void starling_add_sbas_data(const sbas_raw_data_t *sbas_data,
-                            const size_t n_sbas_data);
 
 /**
  * The Starling Engine output is made available over user provided callback
