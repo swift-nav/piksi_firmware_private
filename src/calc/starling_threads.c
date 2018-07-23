@@ -453,6 +453,12 @@ static void time_matched_obs_thread(void *arg) {
   (void)arg;
   platform_thread_set_name("time matched obs");
 
+  if (NULL == inputs.read_obs_base) {
+    log_error(
+        "No base obs source provided. Running base obs thread is impossible.");
+    return;
+  }
+
   while (1) {
     obss_t base_obs;
     int ret = inputs.read_obs_base(STARLING_READ_BLOCKING, &base_obs);
@@ -625,8 +631,10 @@ static void starling_thread(void) {
   /* Initialize all filters, settings, and SBP callbacks. */
   init_filters_and_settings();
 
-  /* Spawn the time_matched thread. */
-  platform_thread_create(THREAD_ID_TMO, time_matched_obs_thread);
+  /* Spawn the time_matched thread only if base obs are available. */
+  if (NULL != inputs.read_obs_base) {
+    platform_thread_create(THREAD_ID_TMO, time_matched_obs_thread);
+  }
 
   static navigation_measurement_t nav_meas[MAX_CHANNELS];
   static ephemeris_t e_meas[MAX_CHANNELS];
@@ -637,6 +645,11 @@ static void starling_thread(void) {
   assert(spp_filter_manager);
   filter_manager_init(spp_filter_manager);
   platform_mutex_unlock(&spp_filter_manager_lock);
+
+  if (NULL == inputs.read_obs_rover) {
+    log_error(
+        "No rover obs source provided. Running Starling Engine is impossible.");
+  }
 
   while (TRUE) {
     platform_watchdog_notify_starling_main_thread();
