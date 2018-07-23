@@ -206,23 +206,23 @@ tracker_t *tracker_channel_get_by_mesid(const me_gnss_signal_t mesid) {
   return NULL;
 }
 
-/** Drop unhealthy GLO signal.
+/** Drop unhealthy signal.
  *
- *  Both L1CA and L2CA decode the health information independently.
+ *  Health information is independently decoded from multiple frequencies.
  *  In case one channel does not contain valid data,
  *  it cannot detect unhealthy status.
  *
  *  If one channel is marked unhealthy,
  *  then also drop the other channel.
  *
- *  This function is called from both GLO L1 and L2 trackers.
+ *  This function is called from both GLO, BDS and GAL trackers.
  *
  * \param[in] mesid ME signal to be dropped.
  *
  * \return None
  */
-void tracker_drop_unhealthy_glo(const me_gnss_signal_t mesid) {
-  assert(IS_GLO(mesid));
+void tracker_drop_unhealthy(const me_gnss_signal_t mesid) {
+  assert(IS_GLO(mesid) || IS_BDS2(mesid) || IS_GAL(mesid));
   tracker_t *tracker = tracker_channel_get_by_mesid(mesid);
   if (tracker == NULL) {
     return;
@@ -233,8 +233,9 @@ void tracker_drop_unhealthy_glo(const me_gnss_signal_t mesid) {
   if (!(tracker->busy)) {
     return;
   }
-  tracker->flags |= TRACKER_FLAG_GLO_HEALTH_DECODED;
-  tracker->health = SV_UNHEALTHY;
+
+  tracker->flags |= TRACKER_FLAG_UNHEALTHY;
+  tracker_flag_drop(tracker, CH_DROP_REASON_SV_UNHEALTHY);
 }
 
 /**

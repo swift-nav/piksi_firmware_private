@@ -122,6 +122,7 @@ typedef enum _inav_data_type_e {
   INAV_EPH = 1,
   INAV_UTC = 6,
   INAV_ALM = 7,
+  INAV_DUMMY = 63,
 } inav_data_type_t;
 
 typedef struct _gal_inav_decoded_t {
