@@ -42,8 +42,13 @@ extern "C" {
 /** BDS D1 subframe length [seconds] */
 #define BDS_D1_SUBFRAME_LEN_SECONDS (6)
 
-/** TODO: Check Beidou fit_interval definition */
-#define BDS_FIT_INTERVAL_SECONDS (2 * HOUR_SECS)
+/**
+ * "The Open Service Signal in Space Navigation Data Comparison
+ * of the Global Positioning System and the BeiDou Navigation Satellite System"
+ * Shau-Shiun Jan and An-Lin Tao, 2014 August
+ * https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4178995/
+ */
+#define BDS_FIT_INTERVAL_SECONDS (3 * HOUR_SECS)
 
 /**
  * BDS D1 and D2 message decoder object.
