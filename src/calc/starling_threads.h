@@ -170,6 +170,10 @@ void starling_run(void);
 /* Return codes for read functions. */
 #define STARLING_READ_OK                   0
 
+/* Blocking indicator values. */
+#define STARLING_READ_NONBLOCKING 0
+#define STARLING_READ_BLOCKING    1
+
 /* Table of read functions for regularly occurring data streams. */
 typedef struct StarlingInputFunctionTable {
   int (*read_obs_rover) (int blocking, obss_t *o);

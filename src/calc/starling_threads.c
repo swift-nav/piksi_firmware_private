@@ -445,30 +445,18 @@ static void time_matched_obs_thread(void *arg) {
   (void)arg;
   platform_thread_set_name("time matched obs");
 
-  obss_t *base_obs;
-  static obss_t base_obss_copy;
-
   while (1) {
-    base_obs = NULL;
-    const errno_t fetch_ret = platform_mailbox_fetch(
-        MB_ID_BASE_OBS, (void **)&base_obs, DGNSS_TIMEOUT_MS);
-
-    if (fetch_ret != 0) {
-      if (NULL != base_obs) {
-        log_error("Base obs mailbox fetch failed with %d", fetch_ret);
-        platform_mailbox_item_free(MB_ID_BASE_OBS, base_obs);
-      }
+    obss_t base_obs;
+    int ret = inputs.read_obs_base(STARLING_READ_BLOCKING, &base_obs);
+    if (STARLING_READ_OK != ret) {
       continue;
     }
 
     if (gps_time_valid(&last_time_matched_rover_obs_post) &&
-        gpsdifftime(&last_time_matched_rover_obs_post, &base_obs->tor) >
+        gpsdifftime(&last_time_matched_rover_obs_post, &base_obs.tor) >
             BASE_LATENCY_TIMEOUT) {
       log_info("Communication Latency exceeds 15 seconds");
     }
-
-    base_obss_copy = *base_obs;
-    platform_mailbox_item_free(MB_ID_BASE_OBS, base_obs);
 
     /* Check if the el mask has changed and update */
     platform_mutex_lock(&time_matched_filter_manager_lock);
@@ -495,9 +483,9 @@ static void time_matched_obs_thread(void *arg) {
         continue;
       }
 
-      double dt = gpsdifftime(&obss->tor, &base_obss_copy.tor);
+      double dt = gpsdifftime(&obss->tor, &base_obs.tor);
 
-      if (fabs(dt) < TIME_MATCH_THRESHOLD && base_obss_copy.has_pos == 1) {
+      if (fabs(dt) < TIME_MATCH_THRESHOLD && base_obs.has_pos == 1) {
         /* Local variables to capture the filter result. */
         PVT_ENGINE_INTERFACE_RC time_matched_rc = PVT_ENGINE_FAILURE;
         StarlingFilterSolution solution = {0};
@@ -507,7 +495,7 @@ static void time_matched_obs_thread(void *arg) {
         if (update_time_matched(&last_update_time, &obss->tor, obss->n) ||
             dgnss_soln_mode == STARLING_SOLN_MODE_TIME_MATCHED) {
           time_matched_rc = process_matched_obs(
-              obss, &base_obss_copy, &solution.dops, &solution.result);
+              obss, &base_obs, &solution.dops, &solution.result);
           last_update_time = obss->tor;
         }
 
@@ -516,7 +504,7 @@ static void time_matched_obs_thread(void *arg) {
         if (PVT_ENGINE_SUCCESS == time_matched_rc) {
           p_solution = &solution;
         }
-        send_solution_time_matched(p_solution, &base_obss_copy, obss);
+        send_solution_time_matched(p_solution, &base_obs, obss);
 
         platform_mailbox_item_free(MB_ID_TIME_MATCHED_OBS, obss);
         break;
@@ -536,8 +524,8 @@ static void time_matched_obs_thread(void *arg) {
               dt,
               obss->tor.wn,
               obss->tor.tow,
-              base_obss_copy.tor.wn,
-              base_obss_copy.tor.tow);
+              base_obs.tor.wn,
+              base_obs.tor.tow);
           /* Return the buffer to the mailbox so we can try it again later. */
           const errno_t post_ret = platform_mailbox_post_ahead(
               MB_ID_TIME_MATCHED_OBS, obss, TIME_IMMEDIATE);
