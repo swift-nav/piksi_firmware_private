@@ -141,21 +141,21 @@ void starling_run(void);
  *      -- Starling Engine requires that data is copied in. Support for
  *         message passing will come later.
  * 3. RETURNS
- *      -- Read functions may return implementation specific return codes. 
+ *      -- Read functions may return implementation specific return codes.
  *         Zero must always indicate success.
  */
 
 /* Return codes for read functions. */
-#define STARLING_READ_OK                   0
+#define STARLING_READ_OK 0
 
 /* Blocking indicator values. */
 #define STARLING_READ_NONBLOCKING 0
-#define STARLING_READ_BLOCKING    1
+#define STARLING_READ_BLOCKING 1
 
 /* Table of read functions for regularly occurring data streams. */
 typedef struct StarlingInputFunctionTable {
-  int (*read_obs_rover) (int blocking, me_msg_obs_t *me_msg);
-  int (*read_obs_base)  (int blocking, obss_t *obs);
+  int (*read_obs_rover)(int blocking, me_msg_obs_t *me_msg);
+  int (*read_obs_base)(int blocking, obss_t *obs);
 } StarlingInputFunctionTable;
 
 #if 0
@@ -166,7 +166,7 @@ typedef struct StarlingInputFunctionTable {
   int (*read_imu_data)   (int flags, imu_data_t *i);
 #endif
 
-/* Set the table of read functions. Should only be called on startup. 
+/* Set the table of read functions. Should only be called on startup.
  * TODO(kevin) make this a parameter to initialize or run. */
 void starling_set_input_functions(const StarlingInputFunctionTable *functions);
 

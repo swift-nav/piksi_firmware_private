@@ -886,15 +886,14 @@ static void initialize_vehicle_dynamics_filters(void) {
 
 /* Determines how long each read operation will block for. */
 #define READ_OBS_ROVER_TIMEOUT DGNSS_TIMEOUT_MS
-#define READ_OBS_BASE_TIMEOUT  DGNSS_TIMEOUT_MS
+#define READ_OBS_BASE_TIMEOUT DGNSS_TIMEOUT_MS
 
 /* TODO(kevin) refactor common code. */
 static int read_obs_rover(int blocking, me_msg_obs_t *me_msg) {
-  uint32_t timeout_ms = blocking ? READ_OBS_ROVER_TIMEOUT : 0; 
+  uint32_t timeout_ms = blocking ? READ_OBS_ROVER_TIMEOUT : 0;
   me_msg_obs_t *local_me_msg = NULL;
-  errno_t ret = platform_mailbox_fetch(MB_ID_ME_OBS,
-                                       (void **)&local_me_msg,
-                                       timeout_ms);
+  errno_t ret =
+      platform_mailbox_fetch(MB_ID_ME_OBS, (void **)&local_me_msg, timeout_ms);
   if (local_me_msg) {
     if (STARLING_READ_OK == ret) {
       *me_msg = *local_me_msg;
@@ -910,11 +909,10 @@ static int read_obs_rover(int blocking, me_msg_obs_t *me_msg) {
 
 /* TODO(kevin) refactor common code. */
 static int read_obs_base(int blocking, obss_t *obs) {
-  uint32_t timeout_ms = blocking ? READ_OBS_BASE_TIMEOUT : 0; 
+  uint32_t timeout_ms = blocking ? READ_OBS_BASE_TIMEOUT : 0;
   obss_t *local_obs = NULL;
-  errno_t ret = platform_mailbox_fetch(MB_ID_BASE_OBS, 
-                                       (void **)&local_obs, 
-                                       timeout_ms);
+  errno_t ret =
+      platform_mailbox_fetch(MB_ID_BASE_OBS, (void **)&local_obs, timeout_ms);
   if (local_obs) {
     if (STARLING_READ_OK == ret) {
       *obs = *local_obs;
@@ -946,8 +944,8 @@ static THD_FUNCTION(initialize_and_run_starling, arg) {
 
   /* Connect all inputs. */
   StarlingInputFunctionTable inputs = {
-    .read_obs_rover = read_obs_rover,
-    .read_obs_base = read_obs_base,
+      .read_obs_rover = read_obs_rover,
+      .read_obs_base = read_obs_base,
   };
   starling_set_input_functions(&inputs);
 

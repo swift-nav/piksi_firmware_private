@@ -44,13 +44,12 @@
 extern bool starling_integration_simulation_enabled(void);
 extern void starling_integration_simulation_run(const me_msg_obs_t *me_msg);
 
-
 /* Tracks if the API has been properly initialized or not. */
 static bool is_starling_api_initialized = false;
 
 static StarlingInputFunctionTable inputs = {
-  .read_obs_rover = NULL,
-  .read_obs_base  = NULL,
+    .read_obs_rover = NULL,
+    .read_obs_base = NULL,
 };
 
 /* Settings which control the filter behavior of the Starling engine. */
