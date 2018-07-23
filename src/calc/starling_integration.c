@@ -891,7 +891,7 @@ static void initialize_vehicle_dynamics_filters(void) {
 /* TODO(kevin) refactor common code. */
 static int read_obs_rover(int blocking, me_msg_obs_t *me_msg) {
   uint32_t timeout_ms = blocking ? READ_OBS_ROVER_TIMEOUT : 0; 
-  me_msg_obs_t *local_me_msg;
+  me_msg_obs_t *local_me_msg = NULL;
   errno_t ret = platform_mailbox_fetch(MB_ID_ME_OBS,
                                        (void **)&local_me_msg,
                                        timeout_ms);
@@ -911,7 +911,7 @@ static int read_obs_rover(int blocking, me_msg_obs_t *me_msg) {
 /* TODO(kevin) refactor common code. */
 static int read_obs_base(int blocking, obss_t *obs) {
   uint32_t timeout_ms = blocking ? READ_OBS_BASE_TIMEOUT : 0; 
-  obss_t *local_obs;
+  obss_t *local_obs = NULL;
   errno_t ret = platform_mailbox_fetch(MB_ID_BASE_OBS, 
                                        (void **)&local_obs, 
                                        timeout_ms);

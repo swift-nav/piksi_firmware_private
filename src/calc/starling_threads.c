@@ -613,8 +613,6 @@ static void process_any_sbas_messages(void) {
 }
 
 static void starling_thread(void) {
-  errno_t ret;
-
   /* Initialize all filters, settings, and SBP callbacks. */
   init_filters_and_settings();
 
@@ -637,13 +635,8 @@ static void starling_thread(void) {
     process_any_sbas_messages();
 
     me_msg_obs_t me_msg;
-    ret = platform_mailbox_fetch(
-        MB_ID_ME_OBS, (void **)&me_msg, DGNSS_TIMEOUT_MS);
-    if (ret != 0) {
-      if (NULL != me_msg) {
-        log_error("STARLING: mailbox fetch failed with %d", ret);
-        platform_mailbox_item_free(MB_ID_ME_OBS, me_msg);
-      }
+    int ret = inputs.read_obs_rover(STARLING_READ_BLOCKING, &me_msg);
+    if (STARLING_READ_OK != ret) {
       continue;
     }
 
@@ -668,36 +661,33 @@ static void starling_thread(void) {
      * TODO(kevin) move all this onto a separate thread
      * somewhere else. */
     if (starling_integration_simulation_enabled()) {
-      starling_integration_simulation_run(me_msg);
-      platform_mailbox_item_free(MB_ID_ME_OBS, me_msg);
+      starling_integration_simulation_run(&me_msg);
       continue;
     }
 
-    gps_time_t epoch_time = me_msg->obs_time;
+    gps_time_t epoch_time = me_msg.obs_time;
 
     /* If there are no messages, or the observation time is invalid,
      * we send an empty solution. */
-    if (me_msg->size == 0 || !gps_time_valid(&epoch_time)) {
-      platform_mailbox_item_free(MB_ID_ME_OBS, me_msg);
+    if (me_msg.size == 0 || !gps_time_valid(&epoch_time)) {
       send_solution_low_latency(NULL, NULL, &epoch_time, nav_meas, 0);
       continue;
     }
 
-    if (gpsdifftime(&me_msg->obs_time, &obs_time) <= 0.0) {
-      /* When we change the solution rate down, we sometimes can round the
-       * time to an epoch earlier than the previous one processed, in that
-       * case we want to ignore any epochs with an earlier timestamp */
-      platform_mailbox_item_free(MB_ID_ME_OBS, me_msg);
+    /* When we change the solution rate down, we sometimes can round the
+     * time to an epoch earlier than the previous one processed, in that
+     * case we want to ignore any epochs with an earlier timestamp */
+    if (gpsdifftime(&me_msg.obs_time, &obs_time) <= 0.0) {
       continue;
     }
 
-    u8 n_ready = me_msg->size;
+    u8 n_ready = me_msg.size;
     memset(nav_meas, 0, sizeof(nav_meas));
 
     if (n_ready) {
       MEMCPY_S(nav_meas,
                sizeof(nav_meas),
-               me_msg->obs,
+               me_msg.obs,
                n_ready * sizeof(navigation_measurement_t));
     }
 
@@ -705,12 +695,10 @@ static void starling_thread(void) {
 
     if (n_ready) {
       MEMCPY_S(
-          e_meas, sizeof(e_meas), me_msg->ephem, n_ready * sizeof(ephemeris_t));
+          e_meas, sizeof(e_meas), me_msg.ephem, n_ready * sizeof(ephemeris_t));
     }
 
-    obs_time = me_msg->obs_time;
-
-    platform_mailbox_item_free(MB_ID_ME_OBS, me_msg);
+    obs_time = me_msg.obs_time;
 
     ionosphere_t i_params;
     /* get iono parameters if available, otherwise use default ones */
