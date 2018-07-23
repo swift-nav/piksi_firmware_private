@@ -175,20 +175,47 @@ void starling_add_sbas_data(const sbas_raw_data_t *sbas_data,
                             const size_t n_sbas_data);
 
 /**
- * These functions must be implemented by the integration layer
- * in order to process the Starling engine outputs.
- *
- * TODO(kevin) Change to more formal callback mechanism.
+ * The Starling Engine output is made available over user provided callback
+ * functions. These functions are guaranteed to always be called from the
+ * Starling main thread.
  */
-void send_solution_time_matched(const StarlingFilterSolution *solution,
-                                const obss_t *obss_base,
-                                const obss_t *obss_rover);
 
-void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
-                               const StarlingFilterSolution *rtk_solution,
-                               const gps_time_t *solution_epoch_time,
-                               const navigation_measurement_t *nav_meas,
-                               const size_t num_nav_meas);
+typedef struct StarlingOutputCallbacks {
+  /**
+   * User handling of a low-latency solution.
+   *
+   * At every processing epoch, possible solutions include both
+   * an SPP solution, and an RTK solution. Either one may be invalid,
+   * (indicated by NULL pointer), although existence of an RTK
+   * solution implies existence of an SPP solution.
+   *
+   * NOTE: The pointers are only valid within the enclosing scope.
+   *       Any copies of the data must be deep copies.
+   */
+  void (*handle_solution_low_latency)(
+      const StarlingFilterSolution *spp_solution,
+      const StarlingFilterSolution *rtk_solution,
+      const gps_time_t *solution_epoch_time,
+      const navigation_measurement_t *nav_meas,
+      const size_t num_nav_meas);
+
+  /**
+   * User handling of a time-matched solution.
+   *
+   * The solution pointer may optionally be NULL if there was no
+   * valid solution for this epoch of processing. The observation
+   * pointers are expected to always be valid.
+   *
+   * NOTE: The pointers are only valid within the enclosing scope.
+   *       Any copies of the data must be deep copies.
+   */
+  void (*handle_solution_time_matched)(const StarlingFilterSolution *solution,
+                                       const obss_t *obss_base,
+                                       const obss_t *obss_rover);
+} StarlingOutputCallbacks;
+
+/* Should be called at startup before running the starling thread. */
+void starling_set_output_callbacks(const StarlingOutputCallbacks *callbacks);
 
 /*******************************************************************************
  * Starling Configuration API

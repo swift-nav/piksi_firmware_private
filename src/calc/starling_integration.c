@@ -780,6 +780,170 @@ static void reset_filters_callback(u16 sender_id,
   }
 }
 
+/**
+ * Simply apply whatever the current settings are to the
+ * given dynamics filter.
+ */
+static void update_dynamics_filter_settings(VehicleDynamicsFilter *filter) {
+  vehicle_dynamics_filter_set_param(filter,
+                                    VEHICLE_DYNAMICS_LOWPASS_TIME_CONSTANT_S,
+                                    dynamics_filter_settings.lowpass_constant);
+  vehicle_dynamics_filter_set_param(
+      filter,
+      VEHICLE_DYNAMICS_MAX_LINEAR_ACCELERATION_MS2,
+      dynamics_filter_settings.max_acceleration);
+}
+
+/**
+ * This function behaves in a somewhat unexpected way.
+ * Given two (possibly NULL) solutions, this function chooses
+ * the "better" of the two solutions and feeds it through the
+ * dynamics filter. If they are both null, the output parameter
+ * won't be touched.
+ */
+static void apply_dynamics_filter_to_solutions(
+    const StarlingFilterSolution *spp_solution,
+    const StarlingFilterSolution *rtk_solution,
+    pvt_engine_result_t *output) {
+  pvt_engine_result_t const *input = NULL;
+  if (rtk_solution) {
+    input = &rtk_solution->result;
+  } else if (spp_solution) {
+    input = &spp_solution->result;
+  }
+  if (input && output) {
+    chMtxLock(&dynamics_filter_lock);
+    update_dynamics_filter_settings(dynamics_filter);
+    VehicleDynamicsFilter *current_filter = dynamics_filter;
+    chMtxUnlock(&dynamics_filter_lock);
+
+    vehicle_dynamics_filter_process(current_filter, input, output);
+  }
+}
+
+/*******************************************************************************
+ * Starling Output Callbacks
+ ******************************************************************************/
+
+/**
+ * Pass along a time-matched solution to the outside world.
+ *
+ * The solution pointer may optionally be NULL if there was no
+ * valid solution for this epoch of processing. The observation
+ * pointers are expected to always be valid.
+ *
+ * NOTE: The pointers are only valid within the enclosing scope.
+ *       Any copies of the data must be deep copies.
+ */
+void send_solution_time_matched(const StarlingFilterSolution *solution,
+                                const obss_t *obss_base,
+                                const obss_t *obss_rover) {
+  assert(obss_base);
+  assert(obss_rover);
+
+  /* Fill in the output messages. We always use the SPP message first.
+   * Then if there is a successful time-matched result, we will
+   * overwrite the relevant messages. */
+  sbp_messages_t sbp_messages;
+  starling_integration_sbp_messages_init(&sbp_messages, &obss_base->tor);
+
+  pvt_engine_result_t soln_copy = obss_rover->soln;
+  solution_make_sbp(&soln_copy, NULL, &sbp_messages);
+
+  if (solution) {
+    solution_make_baseline_sbp(&solution->result,
+                               obss_rover->pos_ecef,
+                               &solution->dops,
+                               &sbp_messages);
+  }
+
+  /* Only send time-matched output if we are not in low-latency mode
+   * and our current time-matched result occurs after the most recent
+   * SPP output. */
+  if (spp_timeout(&last_spp, &last_dgnss, starling_get_solution_mode())) {
+    /* Notify the user that the vehicle dynamics filter has no effect in
+     * time-matched mode (if applicable). */
+    if (dynamics_filter != default_dynamics_filter) {
+      log_warn(
+          "Non-default Vehicle Dynamics Filter has no effect in Time-Matched "
+          "mode.");
+    }
+    solution_send_pos_messages(
+        obss_base->sender_id, &sbp_messages, obss_rover->n, obss_rover->nm);
+  }
+
+  /* Always keep track of which base station is sending in the
+   * base observations. */
+  chMtxLock(&current_base_sender_id_lock);
+  current_base_sender_id = obss_base->sender_id;
+  chMtxUnlock(&current_base_sender_id_lock);
+}
+
+/**
+ * Pass along a low-latency solution to the outside world.
+ *
+ * At every processing epoch, possible solutions include both
+ * an SPP solution, and an RTK solution. Either one may be invalid,
+ * (indicated by NULL pointer), although existence of an RTK
+ * solution implies existence of an SPP solution.
+ *
+ * NOTE: The pointers are only valid within the enclosing scope.
+ *       Any copies of the data must be deep copies.
+ */
+void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
+                               const StarlingFilterSolution *rtk_solution,
+                               const gps_time_t *solution_epoch_time,
+                               const navigation_measurement_t *nav_meas,
+                               const size_t num_nav_meas) {
+  assert(solution_epoch_time);
+  assert(nav_meas);
+
+  /* Apply the vehicle dynamics filter when enabled.
+   * We need to make sure to pass through the most accurate solution
+   * available -- RTK is preferred over SPP. */
+  pvt_engine_result_t filtered_pvt_result = {0};
+  apply_dynamics_filter_to_solutions(
+      spp_solution, rtk_solution, &filtered_pvt_result);
+
+  /* Check if observations do not have valid time. We may have locally a
+   * reasonable estimate of current GPS time, so we can round that to the
+   * nearest epoch and use instead if necessary.
+   */
+  gps_time_t epoch_time = *solution_epoch_time;
+  if (!gps_time_valid(&epoch_time) && TIME_PROPAGATED <= get_time_quality()) {
+    epoch_time = get_current_time();
+    epoch_time = gps_time_round_to_epoch(&epoch_time, soln_freq_setting);
+  }
+
+  /* Initialize the output messages. If there is an SPP solution, we first
+   * apply that. Then if there is an RTK solution, overwrite the relevant
+   * messages with the RTK baseline result. When there are no valid
+   * solutions, we simply pass on the set of default messages. */
+  sbp_messages_t sbp_messages;
+  starling_integration_sbp_messages_init(&sbp_messages, &epoch_time);
+
+  u8 base_sender_id = STARLING_BASE_SENDER_ID_DEFAULT;
+  if (spp_solution) {
+    solution_make_sbp(&filtered_pvt_result, &spp_solution->dops, &sbp_messages);
+    if (rtk_solution) {
+      solution_make_baseline_sbp(&filtered_pvt_result,
+                                 spp_solution->result.baseline,
+                                 &rtk_solution->dops,
+                                 &sbp_messages);
+
+      chMtxLock(&current_base_sender_id_lock);
+      base_sender_id = current_base_sender_id;
+      chMtxUnlock(&current_base_sender_id_lock);
+    }
+  }
+  starling_integration_solution_send_low_latency_output(
+      base_sender_id, &sbp_messages, num_nav_meas, nav_meas);
+}
+
+/*******************************************************************************
+ * Starling Initialization
+ ******************************************************************************/
+
 static void initialize_starling_settings(void) {
   static const char *const dgnss_filter_enum[] = {"Float", "Fixed", NULL};
   static struct setting_type dgnss_filter_setting;
@@ -949,6 +1113,13 @@ static THD_FUNCTION(initialize_and_run_starling, arg) {
   };
   starling_set_input_functions(&inputs);
 
+  /* Register output callbacks. */
+  StarlingOutputCallbacks output_callbacks = {
+      .handle_solution_low_latency = send_solution_low_latency,
+      .handle_solution_time_matched = send_solution_time_matched,
+  };
+  starling_set_output_callbacks(&output_callbacks);
+
   /* This runs forever. */
   starling_run();
 
@@ -957,166 +1128,6 @@ static THD_FUNCTION(initialize_and_run_starling, arg) {
   assert(0);
   for (;;) {
   }
-}
-
-/*******************************************************************************
- * Starling Output Callbacks
- ******************************************************************************/
-
-/**
- * Pass along a time-matched solution to the outside world.
- *
- * The solution pointer may optionally be NULL if there was no
- * valid solution for this epoch of processing. The observation
- * pointers are expected to always be valid.
- *
- * NOTE: The pointers are only valid within the enclosing scope.
- *       Any copies of the data must be deep copies.
- */
-void send_solution_time_matched(const StarlingFilterSolution *solution,
-                                const obss_t *obss_base,
-                                const obss_t *obss_rover) {
-  assert(obss_base);
-  assert(obss_rover);
-
-  /* Fill in the output messages. We always use the SPP message first.
-   * Then if there is a successful time-matched result, we will
-   * overwrite the relevant messages. */
-  sbp_messages_t sbp_messages;
-  starling_integration_sbp_messages_init(&sbp_messages, &obss_base->tor);
-
-  pvt_engine_result_t soln_copy = obss_rover->soln;
-  solution_make_sbp(&soln_copy, NULL, &sbp_messages);
-
-  if (solution) {
-    solution_make_baseline_sbp(&solution->result,
-                               obss_rover->pos_ecef,
-                               &solution->dops,
-                               &sbp_messages);
-  }
-
-  /* Only send time-matched output if we are not in low-latency mode
-   * and our current time-matched result occurs after the most recent
-   * SPP output. */
-  if (spp_timeout(&last_spp, &last_dgnss, starling_get_solution_mode())) {
-    /* Notify the user that the vehicle dynamics filter has no effect in
-     * time-matched mode (if applicable). */
-    if (dynamics_filter != default_dynamics_filter) {
-      log_warn(
-          "Non-default Vehicle Dynamics Filter has no effect in Time-Matched "
-          "mode.");
-    }
-    solution_send_pos_messages(
-        obss_base->sender_id, &sbp_messages, obss_rover->n, obss_rover->nm);
-  }
-
-  /* Always keep track of which base station is sending in the
-   * base observations. */
-  chMtxLock(&current_base_sender_id_lock);
-  current_base_sender_id = obss_base->sender_id;
-  chMtxUnlock(&current_base_sender_id_lock);
-}
-
-/**
- * Simply apply whatever the current settings are to the
- * given dynamics filter.
- */
-static void update_dynamics_filter_settings(VehicleDynamicsFilter *filter) {
-  vehicle_dynamics_filter_set_param(filter,
-                                    VEHICLE_DYNAMICS_LOWPASS_TIME_CONSTANT_S,
-                                    dynamics_filter_settings.lowpass_constant);
-  vehicle_dynamics_filter_set_param(
-      filter,
-      VEHICLE_DYNAMICS_MAX_LINEAR_ACCELERATION_MS2,
-      dynamics_filter_settings.max_acceleration);
-}
-
-/**
- * This function behaves in a somewhat unexpected way.
- * Given two (possibly NULL) solutions, this function chooses
- * the "better" of the two solutions and feeds it through the
- * dynamics filter. If they are both null, the output parameter
- * won't be touched.
- */
-static void apply_dynamics_filter_to_solutions(
-    const StarlingFilterSolution *spp_solution,
-    const StarlingFilterSolution *rtk_solution,
-    pvt_engine_result_t *output) {
-  pvt_engine_result_t const *input = NULL;
-  if (rtk_solution) {
-    input = &rtk_solution->result;
-  } else if (spp_solution) {
-    input = &spp_solution->result;
-  }
-  if (input && output) {
-    chMtxLock(&dynamics_filter_lock);
-    update_dynamics_filter_settings(dynamics_filter);
-    VehicleDynamicsFilter *current_filter = dynamics_filter;
-    chMtxUnlock(&dynamics_filter_lock);
-
-    vehicle_dynamics_filter_process(current_filter, input, output);
-  }
-}
-
-/**
- * Pass along a low-latency solution to the outside world.
- *
- * At every processing epoch, possible solutions include both
- * an SPP solution, and an RTK solution. Either one may be invalid,
- * (indicated by NULL pointer), although existence of an RTK
- * solution implies existence of an SPP solution.
- *
- * NOTE: The pointers are only valid within the enclosing scope.
- *       Any copies of the data must be deep copies.
- */
-void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
-                               const StarlingFilterSolution *rtk_solution,
-                               const gps_time_t *solution_epoch_time,
-                               const navigation_measurement_t *nav_meas,
-                               const size_t num_nav_meas) {
-  assert(solution_epoch_time);
-  assert(nav_meas);
-
-  /* Apply the vehicle dynamics filter when enabled.
-   * We need to make sure to pass through the most accurate solution
-   * available -- RTK is preferred over SPP. */
-  pvt_engine_result_t filtered_pvt_result = {0};
-  apply_dynamics_filter_to_solutions(
-      spp_solution, rtk_solution, &filtered_pvt_result);
-
-  /* Check if observations do not have valid time. We may have locally a
-   * reasonable estimate of current GPS time, so we can round that to the
-   * nearest epoch and use instead if necessary.
-   */
-  gps_time_t epoch_time = *solution_epoch_time;
-  if (!gps_time_valid(&epoch_time) && TIME_PROPAGATED <= get_time_quality()) {
-    epoch_time = get_current_time();
-    epoch_time = gps_time_round_to_epoch(&epoch_time, soln_freq_setting);
-  }
-
-  /* Initialize the output messages. If there is an SPP solution, we first
-   * apply that. Then if there is an RTK solution, overwrite the relevant
-   * messages with the RTK baseline result. When there are no valid
-   * solutions, we simply pass on the set of default messages. */
-  sbp_messages_t sbp_messages;
-  starling_integration_sbp_messages_init(&sbp_messages, &epoch_time);
-
-  u8 base_sender_id = STARLING_BASE_SENDER_ID_DEFAULT;
-  if (spp_solution) {
-    solution_make_sbp(&filtered_pvt_result, &spp_solution->dops, &sbp_messages);
-    if (rtk_solution) {
-      solution_make_baseline_sbp(&filtered_pvt_result,
-                                 spp_solution->result.baseline,
-                                 &rtk_solution->dops,
-                                 &sbp_messages);
-
-      chMtxLock(&current_base_sender_id_lock);
-      base_sender_id = current_base_sender_id;
-      chMtxUnlock(&current_base_sender_id_lock);
-    }
-  }
-  starling_integration_solution_send_low_latency_output(
-      base_sender_id, &sbp_messages, num_nav_meas, nav_meas);
 }
 
 /*******************************************************************************
