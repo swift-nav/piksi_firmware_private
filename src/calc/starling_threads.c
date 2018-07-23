@@ -41,8 +41,14 @@
 extern bool starling_integration_simulation_enabled(void);
 extern void starling_integration_simulation_run(const me_msg_obs_t *me_msg);
 
+
 /* Tracks if the API has been properly initialized or not. */
 static bool is_starling_api_initialized = false;
+
+static StarlingInputFunctionTable inputs = {
+  .read_obs_rover = NULL,
+  .read_obs_base  = NULL,
+};
 
 /* Settings which control the filter behavior of the Starling engine. */
 typedef struct StarlingSettings {
@@ -889,6 +895,10 @@ void starling_add_sbas_data(const sbas_raw_data_t *sbas_data,
       platform_mailbox_item_free(MB_ID_SBAS_DATA, sbas_data_msg);
     }
   }
+}
+
+void starling_set_input_functions(const StarlingInputFunctionTable *functions) {
+  inputs = *functions;
 }
 
 /*******************************************************************************

@@ -146,26 +146,49 @@ void starling_run(void);
  * Starling Data API
  ******************************************************************************/
 
-#define STARLING_READ_NONBLOCKING 0
-#define STARLING_READ_BLOCKING    1 
-
-/* TODO(kevin): This should ultimately happen as part of the
- * initialization API. i.e. it should be impossible to initialize the
- * Starling engine *without* providing the appropriate function definitions.
+/*
+ * DATA API
+ * ========
+ * All regularly occurring inputs to the Starling Engine are provided through a
+ * uniform interface. Namely, the user must provide a "read" function for each
+ * supported input type which conforms to the following interface.
+ *
+ * 1. BLOCKING / NONBLOCKING
+ *      -- Read functions must accept an argument indicating whether or not
+ *         blocking behavior is desired. The implementation may determine
+ *         the length of any blocking timeout. By invoking a read function
+ *         in blocking mode, the Starling Engine is merely indicating that
+ *         it has no work to do until it receives something.
+ * 2. COPY BEHAVIOR
+ *      -- Starling Engine requires that data is copied in. Support for
+ *         message passing will come later.
+ * 3. RETURNS
+ *      -- Read functions should return one of several return codes. Zero
+ *         always indicates success.
  */
+
+/* Return codes for read functions. */
+#define STARLING_READ_OK                   0
+#define STARLING_READ_TIMEOUT              1
+#define STARLING_READ_IMPLEMENTATION_ERROR 2
+#define STARLING_READ_UNSUPPORTED          3
+
+/* Table of read functions for regularly occurring data streams. */
 typedef struct StarlingInputFunctionTable {
-  int (*read_obs_rover)  (int flags, obss_t *o);
-  int (*read_obs_base)   (int flags, obss_t *o);
+  int (*read_obs_rover) (int blocking, obss_t *o);
+  int (*read_obs_base)  (int blocking, obss_t *o);
+} StarlingInputFunctionTable;
+
+#if 0
+// TODO(kevin) future work..
   int (*read_ephemeris)  (int flags, ephemeris_t *e);
   int (*read_utc_params) (int flags, utc_params_t *p);
   int (*read_sbas_data)  (int flags, sbas_data_t *s);
   int (*read_imu_data)   (int flags, imu_data_t *i);
+#endif
 
-  int (*read_settings)   (int flags, settings_update_t *s); /* questionable.. */
-} StarlingInputFunctionTable;
-
-void starling_set_input_functions();
-void starling_set_output_functions();
+/* Set the table of read functions. */
+void starling_set_input_functions(const StarlingInputFunctionTable *functions);
 
 /* Add raw sbas data to the starling engine. */
 void starling_add_sbas_data(const sbas_raw_data_t *sbas_data,
