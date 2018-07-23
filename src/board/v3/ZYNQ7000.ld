@@ -22,8 +22,8 @@
  */
 MEMORY
 {
-    vring : org = 0x1f800000, len = 0x00800000
-    ram0  : org = 0x1b000000, len = 0x04800000
+    vring : org = 0x1f000000, len = 0x01000000
+    ram0  : org = 0x1b000000, len = 0x04000000
     ram1  : org = 0x00000000, len = 0
     ram2  : org = 0x00000000, len = 0
     ram3  : org = 0x00000000, len = 0
