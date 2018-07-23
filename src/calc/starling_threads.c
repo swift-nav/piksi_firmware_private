@@ -44,6 +44,12 @@ extern void starling_integration_simulation_run(const me_msg_obs_t *me_msg);
 /* Tracks if the API has been properly initialized or not. */
 static bool is_starling_api_initialized = false;
 
+/* User configurable endpoints for transmitting data out
+ * of the Starling Engine. */
+static StarlingOutputCallbacks output_callbacks = {
+    .handle_solution_low_latency = NULL, .handle_solution_time_matched = NULL,
+};
+
 /* Settings which control the filter behavior of the Starling engine. */
 typedef struct StarlingSettings {
   bool is_glonass_enabled;
@@ -510,7 +516,11 @@ static void time_matched_obs_thread(void *arg) {
         if (PVT_ENGINE_SUCCESS == time_matched_rc) {
           p_solution = &solution;
         }
-        send_solution_time_matched(p_solution, &base_obss_copy, obss);
+
+        if (NULL != output_callbacks.handle_solution_time_matched) {
+          output_callbacks.handle_solution_time_matched(
+              p_solution, &base_obss_copy, obss);
+        }
 
         platform_mailbox_item_free(MB_ID_TIME_MATCHED_OBS, obss);
         break;
@@ -682,7 +692,10 @@ static void starling_thread(void) {
      * we send an empty solution. */
     if (me_msg->size == 0 || !gps_time_valid(&epoch_time)) {
       platform_mailbox_item_free(MB_ID_ME_OBS, me_msg);
-      send_solution_low_latency(NULL, NULL, &epoch_time, nav_meas, 0);
+      if (NULL != output_callbacks.handle_solution_low_latency) {
+        output_callbacks.handle_solution_low_latency(
+            NULL, NULL, &epoch_time, nav_meas, 0);
+      }
       continue;
     }
 
@@ -833,9 +846,10 @@ static void starling_thread(void) {
     }
 
     /* Forward solutions to outside world. */
-    send_solution_low_latency(
-        p_spp_solution, p_rtk_solution, &epoch_time, nav_meas, n_ready);
-
+    if (NULL != output_callbacks.handle_solution_low_latency) {
+      output_callbacks.handle_solution_low_latency(
+          p_spp_solution, p_rtk_solution, &epoch_time, nav_meas, n_ready);
+    }
 #if defined PROFILE_STARLING && PROFILE_STARLING > 0
     u32 nap_snapshot_diff = (u32)(NAP->TIMING_COUNT - nap_snapshot_begin);
     float time_snapshot_diff = RX_DT_NOMINAL * nap_snapshot_diff;
@@ -889,6 +903,10 @@ void starling_add_sbas_data(const sbas_raw_data_t *sbas_data,
       platform_mailbox_item_free(MB_ID_SBAS_DATA, sbas_data_msg);
     }
   }
+}
+
+void starling_set_output_callbacks(const StarlingOutputCallbacks *callbacks) {
+  output_callbacks = *callbacks;
 }
 
 /*******************************************************************************
