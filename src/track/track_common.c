@@ -491,14 +491,12 @@ static void tp_tracker_update_correlators(tracker_t *tracker, u32 cycle_flags) {
    * shall be updated in sync.
    */
   bool decoded_tow;
-  bool decoded_health;
   tracker->TOW_ms_prev = tracker->TOW_ms;
   tracker->TOW_ms = tracker_tow_update(tracker,
                                        tracker->TOW_ms,
                                        int_ms,
                                        &tracker->TOW_residual_ns,
-                                       &decoded_tow,
-                                       &decoded_health);
+                                       &decoded_tow);
 
   if (!tp_tow_is_sane(tracker->TOW_ms)) {
     log_error_mesid(mesid,
@@ -520,18 +518,6 @@ static void tp_tracker_update_correlators(tracker_t *tracker, u32 cycle_flags) {
 
     if (tracker->TOW_ms != TOW_UNKNOWN) {
       tracker->flags |= TRACKER_FLAG_TOW_DECODED;
-    }
-  }
-
-  if (decoded_health) {
-    /* GLO health data is also decoded along with TOW */
-    if (IS_GLO(mesid)) {
-      tracker->flags |= TRACKER_FLAG_GLO_HEALTH_DECODED;
-      tracker->health = tracker_glo_sv_health_get(tracker);
-      log_debug_mesid(mesid,
-                      "[+%" PRIu32 "ms] Decoded Health info %" PRIu8,
-                      tracker->update_count,
-                      tracker->health);
     }
   }
 

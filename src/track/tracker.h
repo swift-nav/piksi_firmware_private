@@ -415,7 +415,6 @@ typedef struct {
 
   bool updated_once; /**< Tracker was updated at least once flag. */
   cp_sync_t cp_sync; /**< Half-cycle ambiguity resolution */
-  health_t health;   /**< GLO SV health info */
 
   tracker_misc_info_t misc_info;
 

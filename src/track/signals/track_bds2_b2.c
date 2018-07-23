@@ -59,6 +59,14 @@ static void tracker_bds2_b2_init(tracker_t *tracker_channel) {
 static void tracker_bds2_b2_update(tracker_t *tracker_channel) {
   u32 cflags = tp_tracker_update(tracker_channel, &bds2_b2_config);
 
+  /* If BDS SV is marked unhealthy from B2, also drop B1 tracker */
+  if (0 != (tracker_channel->flags & TRACKER_FLAG_UNHEALTHY)) {
+    me_gnss_signal_t mesid_drop;
+    mesid_drop = construct_mesid(CODE_BDS2_B1, tracker_channel->mesid.sat);
+    tracker_drop_unhealthy(mesid_drop);
+    return;
+  }
+
   bool bit_aligned =
       ((0 != (cflags & TPF_BSYNC_UPD)) && tracker_bit_aligned(tracker_channel));
 
