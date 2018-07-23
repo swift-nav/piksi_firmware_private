@@ -33,8 +33,7 @@ s32 tracker_tow_update(tracker_t *tracker,
                        s32 current_TOW_ms,
                        u32 int_ms,
                        s32 *TOW_residual_ns,
-                       bool *decoded_tow,
-                       bool *decoded_health);
+                       bool *decoded_tow);
 void tracker_bit_sync_set(tracker_t *tracker, s8 bit_phase_ref);
 void tracker_bit_sync_update(tracker_t *tracker,
                              u32 int_ms,
@@ -49,7 +48,6 @@ void tracker_ambiguity_unknown(tracker_t *tracker);
 bool tracker_ambiguity_resolved(tracker_t *tracker);
 void tracker_ambiguity_set(tracker_t *tracker, s8 polarity);
 u16 tracker_glo_orbit_slot_get(tracker_t *tracker);
-health_t tracker_glo_sv_health_get(tracker_t *tracker);
 void tracker_correlations_send(tracker_t *tracker, const corr_t *cs);
 
 update_count_t update_count_diff(const tracker_t *tracker,

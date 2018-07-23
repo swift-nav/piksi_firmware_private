@@ -328,8 +328,7 @@ static void collect_measurements(u64 rec_tc,
 
       chan_meas_flags_t meas_flags = meas[n_collected].flags;
 
-      if (0 != (flags & TRACKER_FLAG_HEALTHY) &&
-          0 != (flags & TRACKER_FLAG_NAV_SUITABLE) &&
+      if (0 != (flags & TRACKER_FLAG_NAV_SUITABLE) &&
           0 != (flags & TRACKER_FLAG_ELEVATION) &&
           0 != (flags & TRACKER_FLAG_TOW_VALID) &&
           0 != (flags & TRACKER_FLAG_HAS_EPHE) &&
@@ -342,8 +341,7 @@ static void collect_measurements(u64 rec_tc,
       } else {
         if (is_gal(meas[n_collected].sid.code)) {
           log_debug_sid(meas[n_collected].sid,
-                        "HEALTH %s  NAV %s  ELEV %s  TOW %s  EPHE %s  CN0 %s",
-                        (0 != (flags & TRACKER_FLAG_HEALTHY)) ? "Y" : "N",
+                        "NAV %s  ELEV %s  TOW %s  EPHE %s  CN0 %s",
                         (0 != (flags & TRACKER_FLAG_NAV_SUITABLE)) ? "Y" : "N",
                         (0 != (flags & TRACKER_FLAG_ELEVATION)) ? "Y" : "N",
                         (0 != (flags & TRACKER_FLAG_TOW_VALID)) ? "Y" : "N",

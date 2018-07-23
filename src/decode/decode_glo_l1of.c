@@ -72,7 +72,7 @@ static void decoder_glo_l1of_process(const decoder_channel_info_t *channel_info,
 
   /* Process incoming nav bits */
   nav_bit_t nav_bit;
-  me_gnss_signal_t mesid = channel_info->mesid;
+  const me_gnss_signal_t mesid = channel_info->mesid;
   u8 channel = channel_info->tracking_channel;
 
   while (tracker_nav_bit_get(channel, &nav_bit)) {
