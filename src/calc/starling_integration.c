@@ -885,6 +885,50 @@ static void initialize_vehicle_dynamics_filters(void) {
                  setting_notify_vehicle_dynamics_filter_param);
 }
 
+/* Determines how long each read operation will block for. */
+#define READ_OBS_ROVER_TIMEOUT DGNSS_TIMEOUT_MS
+#define READ_OBS_BASE_TIMEOUT  DGNSS_TIMEOUT_MS
+
+/* TODO(kevin) refactor common code. */
+static int read_obs_rover(int blocking, obss_t *o) {
+  uint32_t timeout_ms = blocking ? READ_OBS_ROVER_TIMEOUT : 0; 
+  obss_t *local_obs;
+  errno_t ret = platform_mailbox_fetch(MB_ID_ME_OBS,
+                                       (void **)&local_obs,
+                                       timeout_ms);
+  if (local_obs) {
+    if (STARLING_READ_OK == ret) {
+      *o = *local_obs;
+    } else {
+      /* Erroneous behavior for fetch to return non-NULL pointer and indicate
+       * read failure. */
+      log_error("Rover obs mailbox fetch failed with %d", ret);
+    }
+    platform_mailbox_item_free(MB_ID_ME_OBS, local_obs);
+  }
+  return ret;
+};
+
+/* TODO(kevin) refactor common code. */
+static int read_obs_base(int blocking, obss_t *o) {
+  uint32_t timeout_ms = blocking ? READ_OBS_BASE_TIMEOUT : 0; 
+  obss_t *local_obs;
+  errno_t ret = platform_mailbox_fetch(MB_ID_BASE_OBS, 
+                                       (void **)&local_obs, 
+                                       timeout_ms);
+  if (local_obs) {
+    if (STARLING_READ_OK == ret) {
+      *o = *local_obs;
+    } else {
+      /* Erroneous behavior for fetch to return non-NULL pointer and indicate
+       * read failure. */
+      log_error("Base obs mailbox fetch failed with %d", ret);
+    }
+    platform_mailbox_item_free(MB_ID_BASE_OBS, local_obs);
+  }
+  return ret;
+};
+
 static THD_FUNCTION(initialize_and_run_starling, arg) {
   (void)arg;
   chRegSetThreadName("starling");
@@ -900,6 +944,14 @@ static THD_FUNCTION(initialize_and_run_starling, arg) {
   static sbp_msg_callbacks_node_t reset_filters_node;
   sbp_register_cbk(
       SBP_MSG_RESET_FILTERS, &reset_filters_callback, &reset_filters_node);
+
+
+  /* Connect all inputs. */
+  StarlingInputFunctionTable inputs = {
+    .read_obs_rover = read_obs_rover,
+    .read_obs_base = read_obs_base,
+  };
+  starling_set_input_functions(&inputs);
 
   /* This runs forever. */
   starling_run();
