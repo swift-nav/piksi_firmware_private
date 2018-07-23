@@ -75,8 +75,6 @@ typedef struct {
  * Remote observations may contain multiple useful signals for satellites.
  * This observation type can fit more observations than the obss_t.
  * Eventually signals in uncollapsed_obss_t are collapsed, and copied to obss_t.
- *
- * TODO(kevin) for now...
  */
 typedef struct {
   /** GPS system time of the observation. */
@@ -147,6 +145,27 @@ void starling_run(void);
 /*******************************************************************************
  * Starling Data API
  ******************************************************************************/
+
+#define STARLING_READ_NONBLOCKING 0
+#define STARLING_READ_BLOCKING    1 
+
+/* TODO(kevin): This should ultimately happen as part of the
+ * initialization API. i.e. it should be impossible to initialize the
+ * Starling engine *without* providing the appropriate function definitions.
+ */
+typedef struct StarlingInputFunctionTable {
+  int (*read_obs_rover)  (int flags, obss_t *o);
+  int (*read_obs_base)   (int flags, obss_t *o);
+  int (*read_ephemeris)  (int flags, ephemeris_t *e);
+  int (*read_utc_params) (int flags, utc_params_t *p);
+  int (*read_sbas_data)  (int flags, sbas_data_t *s);
+  int (*read_imu_data)   (int flags, imu_data_t *i);
+
+  int (*read_settings)   (int flags, settings_update_t *s); /* questionable.. */
+} StarlingInputFunctionTable;
+
+void starling_set_input_functions();
+void starling_set_output_functions();
 
 /* Add raw sbas data to the starling engine. */
 void starling_add_sbas_data(const sbas_raw_data_t *sbas_data,
