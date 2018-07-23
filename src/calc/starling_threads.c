@@ -33,6 +33,9 @@
 #include "starling_platform_shim.h"
 #include "starling_threads.h"
 
+/* TODO(kevin) Must get rid of this. */
+#include <ch.h>
+
 #if defined PROFILE_STARLING && PROFILE_STARLING > 0
 #include "board/v3/nap/nap_hw.h"
 #include "timing/timing.h"
@@ -633,7 +636,7 @@ static void starling_thread(void) {
 
     process_any_sbas_messages();
 
-    me_msg_obs_t *me_msg = NULL;
+    me_msg_obs_t me_msg;
     ret = platform_mailbox_fetch(
         MB_ID_ME_OBS, (void **)&me_msg, DGNSS_TIMEOUT_MS);
     if (ret != 0) {

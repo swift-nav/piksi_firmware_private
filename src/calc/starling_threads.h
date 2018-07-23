@@ -41,6 +41,13 @@ typedef enum {
   FILTER_FIXED,
 } dgnss_filter_t;
 
+typedef struct me_msg_obs_t {
+  size_t size;
+  navigation_measurement_t obs[MAX_CHANNELS];
+  ephemeris_t ephem[MAX_CHANNELS];
+  gps_time_t obs_time;
+} me_msg_obs_t;
+
 /**
  * Base observation input type. Starling engine operates
  * on base observations provided in this format.
@@ -176,8 +183,8 @@ void starling_run(void);
 
 /* Table of read functions for regularly occurring data streams. */
 typedef struct StarlingInputFunctionTable {
-  int (*read_obs_rover) (int blocking, obss_t *o);
-  int (*read_obs_base)  (int blocking, obss_t *o);
+  int (*read_obs_rover) (int blocking, me_msg_obs_t *me_msg);
+  int (*read_obs_base)  (int blocking, obss_t *obs);
 } StarlingInputFunctionTable;
 
 #if 0

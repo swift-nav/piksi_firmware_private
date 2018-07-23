@@ -23,7 +23,6 @@
 #include "calc/calc_pvt_me.h"
 #include "calc/starling_integration.h"
 #include "calc/starling_threads.h"
-#include "me_msg/me_msg.h"
 #include "ndb/ndb.h"
 #include "nmea/nmea.h"
 #include "sbp/sbp.h"
@@ -890,27 +889,27 @@ static void initialize_vehicle_dynamics_filters(void) {
 #define READ_OBS_BASE_TIMEOUT  DGNSS_TIMEOUT_MS
 
 /* TODO(kevin) refactor common code. */
-static int read_obs_rover(int blocking, obss_t *o) {
+static int read_obs_rover(int blocking, me_msg_obs_t *me_msg) {
   uint32_t timeout_ms = blocking ? READ_OBS_ROVER_TIMEOUT : 0; 
-  obss_t *local_obs;
+  me_msg_obs_t *local_me_msg;
   errno_t ret = platform_mailbox_fetch(MB_ID_ME_OBS,
-                                       (void **)&local_obs,
+                                       (void **)&local_me_msg,
                                        timeout_ms);
-  if (local_obs) {
+  if (local_me_msg) {
     if (STARLING_READ_OK == ret) {
-      *o = *local_obs;
+      *me_msg = *local_me_msg;
     } else {
       /* Erroneous behavior for fetch to return non-NULL pointer and indicate
        * read failure. */
       log_error("Rover obs mailbox fetch failed with %d", ret);
     }
-    platform_mailbox_item_free(MB_ID_ME_OBS, local_obs);
+    platform_mailbox_item_free(MB_ID_ME_OBS, local_me_msg);
   }
   return ret;
 };
 
 /* TODO(kevin) refactor common code. */
-static int read_obs_base(int blocking, obss_t *o) {
+static int read_obs_base(int blocking, obss_t *obs) {
   uint32_t timeout_ms = blocking ? READ_OBS_BASE_TIMEOUT : 0; 
   obss_t *local_obs;
   errno_t ret = platform_mailbox_fetch(MB_ID_BASE_OBS, 
@@ -918,7 +917,7 @@ static int read_obs_base(int blocking, obss_t *o) {
                                        timeout_ms);
   if (local_obs) {
     if (STARLING_READ_OK == ret) {
-      *o = *local_obs;
+      *obs = *local_obs;
     } else {
       /* Erroneous behavior for fetch to return non-NULL pointer and indicate
        * read failure. */
@@ -944,7 +943,6 @@ static THD_FUNCTION(initialize_and_run_starling, arg) {
   static sbp_msg_callbacks_node_t reset_filters_node;
   sbp_register_cbk(
       SBP_MSG_RESET_FILTERS, &reset_filters_callback, &reset_filters_node);
-
 
   /* Connect all inputs. */
   StarlingInputFunctionTable inputs = {

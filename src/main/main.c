@@ -29,7 +29,6 @@
 #include "init.h"
 #include "io_support.h"
 #include "manage.h"
-#include "me_msg/me_msg.h"
 #include "ndb/ndb.h"
 #include "nmea/nmea.h"
 #include "peripherals/leds.h"
