@@ -45,9 +45,7 @@ extern bool starling_integration_simulation_enabled(void);
 extern void starling_integration_simulation_run(const me_msg_obs_t *me_msg);
 
 static StarlingInputFunctionTable inputs = {
-    .read_obs_rover = NULL,
-    .read_obs_base = NULL,
-    .read_sbas_data = NULL,
+    .read_obs_rover = NULL, .read_obs_base = NULL, .read_sbas_data = NULL,
 };
 
 /* User configurable endpoints for transmitting data out
@@ -625,7 +623,7 @@ static void starling_thread(void) {
 
   static navigation_measurement_t nav_meas[MAX_CHANNELS];
   static ephemeris_t e_meas[MAX_CHANNELS];
-  static gps_time_t obs_time;
+  static gps_time_t obs_time = {0};
 
   platform_mutex_lock(&spp_filter_manager_lock);
   spp_filter_manager = create_filter_manager_spp();

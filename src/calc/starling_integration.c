@@ -1148,16 +1148,16 @@ static THD_FUNCTION(initialize_and_run_starling, arg) {
 
   /* Connect all inputs. */
   StarlingInputFunctionTable inputs = {
-      .read_obs_rover = read_obs_rover,
-      .read_obs_base = read_obs_base,
-      .read_sbas_data = read_sbas_data,
+    .read_obs_rover = read_obs_rover, 
+    .read_obs_base = read_obs_base,
+    .read_sbas_data = read_sbas_data,
   };
   starling_set_input_functions(&inputs);
 
   /* Register output callbacks. */
   StarlingOutputCallbacks output_callbacks = {
-      .handle_solution_low_latency = send_solution_low_latency,
-      .handle_solution_time_matched = send_solution_time_matched,
+    .handle_solution_low_latency = send_solution_low_latency,
+    .handle_solution_time_matched = send_solution_time_matched,
   };
   starling_set_output_callbacks(&output_callbacks);
 
