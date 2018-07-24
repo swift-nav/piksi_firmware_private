@@ -24,7 +24,6 @@
 /* TODO(kevin) Ultimately the platform layer should have no dependency
  * on starling headers. */
 #include "calc/starling_threads.h"
-#include "me_msg/me_msg.h"
 
 #ifndef __STDC_LIB_EXT1__
 typedef int errno_t;
