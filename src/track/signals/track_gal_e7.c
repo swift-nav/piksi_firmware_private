@@ -114,10 +114,6 @@ void gal_e1_to_e7_handover(u32 sample_count,
                            double code_phase,
                            double carrier_freq,
                            float cn0_init) {
-<<<<<<< HEAD
-=======
-  s8 rand_start = 0;
->>>>>>> 135945a... squash
   /* compose E7 MESID: same SV, but code is E7 */
   me_gnss_signal_t mesid_e7 = construct_mesid(CODE_GAL_E7I, sat);
 
@@ -148,10 +144,6 @@ void gal_e1_to_e7_handover(u32 sample_count,
 
     case 1:
       /* sat is already in fifo, no need to inform */
-<<<<<<< HEAD
-=======
-      log_debug_mesid(mesid_e7, "already in fifo");
->>>>>>> 135945a... squash
       break;
 
     case 2:
