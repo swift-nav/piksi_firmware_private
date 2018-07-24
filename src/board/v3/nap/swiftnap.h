@@ -10,7 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-/* SwiftNAP v4.4.0 register map */
+/* SwiftNAP v4.5.0 register map */
 
 #ifndef SWIFTNAP_H
 #define SWIFTNAP_H
@@ -18,7 +18,7 @@
 #include <libswiftnav/common.h>
 
 /* Version */
-#define NAP_VERSION (0x04040000)
+#define NAP_VERSION (0x04050000)
 
 /* Number of tracking channels */
 #define NAP_NUM_TRACKING_CHANNELS (73U)
@@ -27,23 +27,31 @@
 #define NAP_NUM_GPS_L1_CHANNELS (15U)
 #define NAP_NUM_SBAS_L1_CHANNELS (1U)
 #define NAP_NUM_GPS_L2_CHANNELS (9U)
+#define NAP_NUM_GPS_L5_CHANNELS (0U)
 #define NAP_NUM_GLO_G1_CHANNELS (10U)
 #define NAP_NUM_GLO_G2_CHANNELS (10U)
 #define NAP_NUM_BDS_B1_CHANNELS (7U)
 #define NAP_NUM_BDS_B2_CHANNELS (7U)
+#define NAP_NUM_BDS_L5_CHANNELS (0U)
 #define NAP_NUM_GAL_E1_CHANNELS (7U)
 #define NAP_NUM_GAL_E7_CHANNELS (7U)
+#define NAP_NUM_GAL_E5_CHANNELS (0U)
+#define NAP_NUM_AUX_L1_CHANNELS (0U)
 
 /* Index of first specific channel */
 #define NAP_FIRST_GPS_L1_CHANNEL (0U)
 #define NAP_FIRST_SBAS_L1_CHANNEL (15U)
 #define NAP_FIRST_GPS_L2_CHANNEL (16U)
+#define NAP_FIRST_GPS_L5_CHANNEL (25U)
 #define NAP_FIRST_GLO_G1_CHANNEL (25U)
 #define NAP_FIRST_GLO_G2_CHANNEL (35U)
 #define NAP_FIRST_BDS_B1_CHANNEL (45U)
 #define NAP_FIRST_BDS_B2_CHANNEL (52U)
+#define NAP_FIRST_BDS_L5_CHANNEL (59U)
 #define NAP_FIRST_GAL_E1_CHANNEL (59U)
 #define NAP_FIRST_GAL_E7_CHANNEL (66U)
+#define NAP_FIRST_GAL_E5_CHANNEL (73U)
+#define NAP_FIRST_AUX_L1_CHANNEL (73U)
 
 /* Number of readable tracking channel registers */
 #define NAP_NUM_TRACKING_READABLE (7U)
@@ -55,12 +63,16 @@ typedef enum {
   NAP_TRK_CODE_GPS_L1 = 0,
   NAP_TRK_CODE_SBAS_L1 = 1,
   NAP_TRK_CODE_GPS_L2 = 2,
-  NAP_TRK_CODE_GLO_G1 = 3,
-  NAP_TRK_CODE_GLO_G2 = 4,
-  NAP_TRK_CODE_BDS_B1 = 5,
-  NAP_TRK_CODE_BDS_B2 = 6,
-  NAP_TRK_CODE_GAL_E1 = 7,
-  NAP_TRK_CODE_GAL_E7 = 8,
+  NAP_TRK_CODE_GPS_L5 = 3,
+  NAP_TRK_CODE_GLO_G1 = 4,
+  NAP_TRK_CODE_GLO_G2 = 5,
+  NAP_TRK_CODE_BDS_B1 = 6,
+  NAP_TRK_CODE_BDS_B2 = 7,
+  NAP_TRK_CODE_BDS_L5 = 8,
+  NAP_TRK_CODE_GAL_E1 = 9,
+  NAP_TRK_CODE_GAL_E7 = 10,
+  NAP_TRK_CODE_GAL_E5 = 11,
+  NAP_TRK_CODE_AUX_L1 = 12,
 } swiftnap_code_t;
 
 static const swiftnap_code_t swiftnap_code_map[NAP_NUM_TRACKING_CHANNELS] =
