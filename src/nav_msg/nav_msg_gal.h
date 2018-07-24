@@ -72,7 +72,13 @@ extern "C" {
 /** Viterbi decoder reversed polynomial B */
 #define GAL_INAV_V27_POLY_B 0x6D /* 0b01101101 - reversed 0133 */
 
-/** Galileo fit_interval definition */
+/**
+ * Galileo fit_interval definition
+ * "Galileo Open Service: Service Definition Document"
+ * Issue 1 Revision 0, 2016 December
+ * Section 2.4.1
+ * https://www.gsc-europa.eu/system/files/galileo_documents/Galileo-OS-SDD.pdf
+ */
 #define GAL_FIT_INTERVAL_SECONDS (4 * HOUR_SECS)
 
 /**
