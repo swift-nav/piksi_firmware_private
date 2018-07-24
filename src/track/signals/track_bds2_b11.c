@@ -58,9 +58,9 @@ static void tracker_bds2_b11_update(tracker_t *tracker) {
   u32 cflags = tp_tracker_update(tracker, &bds2_l1ca_config);
 
   /* If BDS SV is marked unhealthy from B1, also drop B2 tracker */
-  if (0 != (tracker_channel->flags & TRACKER_FLAG_UNHEALTHY)) {
+  if (0 != (tracker->flags & TRACKER_FLAG_UNHEALTHY)) {
     me_gnss_signal_t mesid_drop;
-    mesid_drop = construct_mesid(CODE_BDS2_B2, tracker_channel->mesid.sat);
+    mesid_drop = construct_mesid(CODE_BDS2_B2, tracker->mesid.sat);
     tracker_drop_unhealthy(mesid_drop);
     return;
   }
