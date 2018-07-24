@@ -19,7 +19,8 @@
 #include "track/track_common.h"
 #include "track/track_interface.h"
 #include "track/track_utils.h"
-#include "track_gps_l2c.h" /* for L1C/A to L2C tracking handover */
+#include "track_gps_l2c.h"      /* for L1C/A to L2C tracking handover */
+#include "track_gps_l5.h"       /* for L1C/A to L5 tracking handover */
 
 /* Non-local headers */
 #include <acq/manage.h>
@@ -446,11 +447,19 @@ static void tracker_gps_l1ca_update(tracker_t *tracker) {
 
   if (inlock && settled && tow_valid && cn0_high) {
     /* Start L2C tracker if not running */
+<<<<<<< HEAD
     do_l1ca_to_l2c_handover(tracker->sample_count,
                             tracker->mesid.sat,
                             tracker->code_phase_prompt,
                             tracker->doppler_hz,
                             tracker->cn0,
                             tracker->TOW_ms);
+
+    /* Start L5 tracker if not running */
+    do_l1ca_to_l5_handover(tracker->sample_count,
+                           tracker->mesid.sat,
+                           tracker->code_phase_prompt,
+                           tracker->doppler_hz,
+                           tracker->cn0);
   }
 }

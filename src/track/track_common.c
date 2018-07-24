@@ -973,12 +973,20 @@ static bool should_update_tow_cache(const tracker_t *tracker) {
     me_gnss_signal_t mesid_L1;
     if (CODE_GPS_L2CM == mesid.code) {
       mesid_L1 = construct_mesid(CODE_GPS_L1CA, mesid.sat);
+    } else if (CODE_GPS_L5I == mesid.code) {
+      mesid_L1 = construct_mesid(CODE_GPS_L1CA, mesid.sat);
+    } else if (CODE_AUX_GPS == mesid.code) {
+      mesid_L1 = construct_mesid(CODE_GPS_L1CA, mesid.sat);
     } else if (CODE_GLO_L2OF == mesid.code) {
       mesid_L1 = construct_mesid(CODE_GLO_L1OF, mesid.sat);
     } else if (CODE_QZS_L2CM == mesid.code) {
       mesid_L1 = construct_mesid(CODE_QZS_L1CA, mesid.sat);
     } else if (CODE_BDS2_B2 == mesid.code) {
       mesid_L1 = construct_mesid(CODE_BDS2_B1, mesid.sat);
+    } else if (CODE_BDS3_B5I == mesid.code) {
+      mesid_L1 = construct_mesid(CODE_BDS2_B1, mesid.sat);
+    } else if (CODE_GAL_E5I == mesid.code) {
+      mesid_L1 = construct_mesid(CODE_GAL_E1B, mesid.sat);
     } else {
       assert(!"Unsupported TOW cache code");
     }

@@ -90,7 +90,7 @@ extern "C" {
 #define GAL_FIT_INTERVAL_SECONDS (4 * HOUR_SECS)
 
 /**
- * Galileo message decoder object.
+ * Galileo I/NAV message decoder object.
  *
  * The object for decoding Galileo symbols
  *
@@ -136,6 +136,23 @@ typedef struct {
 
   u16 bit_cnt; /**< For navbit data integrity checks */
 } nav_msg_gal_inav_t;
+
+
+/**
+ * Galileo F/NAV message decoder object.
+ *
+ * The object for decoding Galileo symbols
+ *
+ * \sa nav_msg_init
+ * \sa nav_msg_update
+ * \sa subframe_ready
+ * \sa process_subframe
+ */
+typedef struct {
+  /**< Polarity of the data */
+  s8 bit_polarity;
+} nav_msg_gal_fnav_t;
+
 
 typedef enum _inav_data_type_e {
   INAV_INCOMPLETE = -1,

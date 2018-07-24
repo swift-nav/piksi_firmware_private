@@ -129,6 +129,7 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
 
   switch ((s8)sid.code) {
     case CODE_GPS_L1CA:
+    case CODE_AUX_GPS:
     case CODE_GPS_L1P: {
       /*
        * Return SV_NAV_STATE_INVALID if either of the following:
@@ -204,6 +205,10 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
       return CODE_NAV_STATE_UNKNOWN;
     }
 
+    case CODE_GPS_L5I:
+      return CODE_NAV_STATE_VALID;
+      break;
+
     case CODE_GLO_L1OF:
     case CODE_GLO_L2OF:
       if (shi.shi_set && (SV_UNHEALTHY == shi.shi)) {
@@ -227,6 +232,7 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
 
     case CODE_GAL_E1B:
     case CODE_GAL_E7I:
+    case CODE_GAL_E5I:
       if (shi_gal.shi_set && (SV_UNHEALTHY == shi_gal.shi)) {
         return CODE_NAV_STATE_INVALID;
       } else if (shi_gal.shi_set && (SV_HEALTHY == shi_gal.shi)) {

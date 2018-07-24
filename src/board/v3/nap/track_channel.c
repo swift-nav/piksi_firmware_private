@@ -29,6 +29,7 @@
 #include "nap_constants.h"
 #include "nap_hw.h"
 #include "signal_db/signal_db.h"
+#include "soft_macq/bds_prns.h"
 #include "soft_macq/gal_prns.h"
 #include "soft_macq/prns.h"
 #include "timing/timing.h"
@@ -101,11 +102,23 @@ static u8 mesid_to_nap_code(const me_gnss_signal_t mesid) {
     case CODE_QZS_L2CM:
       ret = NAP_TRK_CODE_GPS_L2;
       break;
+    case CODE_GPS_L5I:
+    case CODE_QZS_L5I:
+      ret = NAP_TRK_CODE_GPS_L5;
+      break;
     case CODE_GLO_L1OF:
+#if defined CODE_GLO_L1OF_SUPPORT && CODE_GLO_L1OF_SUPPORT > 0
       ret = NAP_TRK_CODE_GLO_G1;
+#else
+      assert(!"Invalid code");
+#endif /* CODE_GLO_L1OF_SUPPORT */
       break;
     case CODE_GLO_L2OF:
+#if defined CODE_GLO_L2OF_SUPPORT && CODE_GLO_L2OF_SUPPORT > 0
       ret = NAP_TRK_CODE_GLO_G2;
+#else
+      assert(!"Invalid code");
+#endif /* CODE_GLO_L2OF_SUPPORT */
       break;
     case CODE_BDS2_B1:
       ret = NAP_TRK_CODE_BDS_B1;
@@ -113,9 +126,8 @@ static u8 mesid_to_nap_code(const me_gnss_signal_t mesid) {
     case CODE_BDS2_B2:
       ret = NAP_TRK_CODE_BDS_B2;
       break;
-    case CODE_GPS_L1P:
-    case CODE_GPS_L2P:
-      assert(!"Unsupported SID");
+    case CODE_BDS3_B5I:
+      ret = NAP_TRK_CODE_BDS_L5;
       break;
     case CODE_GAL_E1B:
 #if defined CODE_GAL_E1_SUPPORT && CODE_GAL_E1_SUPPORT > 0
@@ -126,6 +138,9 @@ static u8 mesid_to_nap_code(const me_gnss_signal_t mesid) {
       break;
     case CODE_GAL_E7I:
       ret = NAP_TRK_CODE_GAL_E7;
+      break;
+    case CODE_GAL_E5I:
+      ret = NAP_TRK_CODE_GAL_E5;
       break;
     default:
       assert(!"Invalid code");
@@ -152,36 +167,14 @@ void nap_track_init(u8 channel,
          (mesid.code == CODE_GPS_L5I) || (mesid.code == CODE_SBAS_L1CA) ||
          (mesid.code == CODE_GLO_L1OF) || (mesid.code == CODE_GLO_L2OF) ||
          (mesid.code == CODE_BDS2_B1) || (mesid.code == CODE_BDS2_B2) ||
-         (mesid.code == CODE_QZS_L1CA) || (mesid.code == CODE_QZS_L2CM) ||
-         (mesid.code == CODE_QZS_L5I) || (mesid.code == CODE_GAL_E1B) ||
-         (mesid.code == CODE_GAL_E7I) || (mesid.code == CODE_GAL_E5I));
+         (mesid.code == CODE_BDS3_B5I) || (mesid.code == CODE_QZS_L1CA) ||
+         (mesid.code == CODE_QZS_L2CM) || (mesid.code == CODE_QZS_L5I) ||
+         (mesid.code == CODE_GAL_E1B) || (mesid.code == CODE_GAL_E7I) ||
+         (mesid.code == CODE_GAL_E5I));
+
 
   swiftnap_tracking_wr_t *t = &NAP->TRK_CH_WR[channel];
   struct nap_ch_state *s = &nap_ch_desc[channel];
-
-  if (mesid.code == CODE_BDS2_B2) {
-    log_debug("C%02" PRIu8 " channel %" PRIu8 " t %" PRIxPTR " s %" PRIxPTR,
-              mesid.sat,
-              channel,
-              (uintptr_t)t,
-              (uintptr_t)s);
-  }
-  if (mesid.code == CODE_GAL_E1B) {
-    log_debug("E%02" PRIu8 " e1bc channel %" PRIu8 " t %" PRIxPTR
-              " s %" PRIxPTR,
-              mesid.sat,
-              channel,
-              (uintptr_t)t,
-              (uintptr_t)s);
-  }
-  if (mesid.code == CODE_GAL_E7I) {
-    log_debug("E%02" PRIu8 " e5bIQ channel %" PRIu8 " t %" PRIxPTR
-              " s %" PRIxPTR,
-              mesid.sat,
-              channel,
-              (uintptr_t)t,
-              (uintptr_t)s);
-  }
 
   if (swiftnap_code_map[channel] != mesid_to_nap_code(mesid)) {
     log_error_mesid(
@@ -257,6 +250,8 @@ void nap_track_init(u8 channel,
       num_codes = GLO_L1CA_SYMBOL_LENGTH_MS / GLO_PRN_PERIOD_MS;
     } else if (CODE_GPS_L2CM == mesid.code) {
       num_codes = GPS_L2C_SYMBOL_LENGTH_MS / GPS_L2CM_PRN_PERIOD_MS;
+    } else if (CODE_GPS_L5I == mesid.code) {
+      /* default num_codes = 1 */;
     } else if (CODE_QZS_L2CM == mesid.code) {
       num_codes = QZS_L2C_SYMBOL_LENGTH_MS / QZS_L2CM_PRN_PERIOD_MS;
     } else if (CODE_BDS2_B2 == mesid.code) {
@@ -267,7 +262,10 @@ void nap_track_init(u8 channel,
       }
     } else if (is_gal(mesid.code)) {
       /* default num_codes = 1 */
+    } else if (CODE_BDS3_B5I == mesid.code) {
+      /* default num_codes = 1 */
     } else {
+      log_error_mesid(mesid, "symbol_synced needed but alignment unknown");
       assert(0);
     }
   }
@@ -330,6 +328,12 @@ void nap_track_init(u8 channel,
       NAP->TRK_SEC_CODE[2] = getbitu(gal_e7q_sec_codes[index], 4, 32);
       NAP->TRK_SEC_CODE[1] = getbitu(gal_e7q_sec_codes[index], 36, 32);
       NAP->TRK_SEC_CODE[0] = getbitu(gal_e7q_sec_codes[index], 68, 32);
+    } else if (mesid.code == CODE_BDS3_B5I) {
+      index = mesid.sat - 1;
+      NAP->TRK_SEC_CODE[3] = getbitu(bds3_b2aq_sec_codes[index], 0, 4);
+      NAP->TRK_SEC_CODE[2] = getbitu(bds3_b2aq_sec_codes[index], 4, 32);
+      NAP->TRK_SEC_CODE[1] = getbitu(bds3_b2aq_sec_codes[index], 36, 32);
+      NAP->TRK_SEC_CODE[0] = getbitu(bds3_b2aq_sec_codes[index], 68, 32);
     }
 #if defined CODE_GAL_E1_SUPPORT && CODE_GAL_E1_SUPPORT > 0
   }
@@ -475,6 +479,20 @@ void nap_track_read_results(u8 channel,
   *carrier_phase = (s->reckoned_carr_phase);
 
 #ifndef PIKSI_RELEASE
+
+  /* Useful for debugging correlators */
+  if ((s->mesid.code == CODE_GAL_E5I) || (s->mesid.code == CODE_GAL_E5Q) ||
+      (s->mesid.code == CODE_GAL_E5X)) {
+    log_debug("EPL %02d   %+3ld %+3ld   %+3ld %+3ld   %+3ld %+3ld",
+              s->mesid.sat,
+              corrs[3].I >> 6,
+              corrs[3].Q >> 6,
+              corrs[1].I >> 6,
+              corrs[1].Q >> 6,
+              corrs[4].I >> 6,
+              corrs[4].Q >> 6);
+  }
+
   if (GET_NAP_TRK_CH_STATUS_CORR_OVERFLOW(trk_ch.STATUS)) {
     log_warn_mesid(s->mesid,
                    "Tracking correlator overflow VE:[%+7" PRIi32 ":%+7" PRIi32

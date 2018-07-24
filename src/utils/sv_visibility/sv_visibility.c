@@ -68,7 +68,8 @@ void sv_visibility_status_get(const sv_vis_config_t *config,
       sv_max_vis_angle_deg = SV_VIS_MAX_ANGLE_FROM_LGF_SBAS_DEG;
       break;
     default:
-      assert(!"Unknown GNSS code");
+      log_error("Unknown GNSS code %d", mesid.code);
+      assert(0);
   }
 
   if (arc_angle * R2D >= sv_max_vis_angle_deg) {

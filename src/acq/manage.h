@@ -92,9 +92,6 @@ u32 get_tracking_channel_meas(u8 i,
                               u64 ref_tc,
                               channel_measurement_t *meas,
                               ephemeris_t *ephe);
-u32 get_tracking_channel_sid_flags(gnss_signal_t sid,
-                                   s32 tow_ms,
-                                   const ephemeris_t *pephe);
 u8 tracking_channels_ready(u32 required_flags);
 
 bool tracking_startup_ready(me_gnss_signal_t mesid);
