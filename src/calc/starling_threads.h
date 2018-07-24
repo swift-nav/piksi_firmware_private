@@ -108,15 +108,6 @@ void reset_rtk_filter(void);
  * Formal Starling API
  ******************************************************************************/
 
-/* Initialize the Starling API.
- *
- * IMPORTANT:
- * This function should be called *once* at the start of the program.
- * Failure to do so before invoking other Starling API functions will
- * result in undefined behavior. Calling this function multiple times
- * also results in undefined behavior. */
-void starling_initialize_api(void);
-
 /* Run the starling engine on the current thread. Blocks indefinitely. */
 void starling_run(void);
 
