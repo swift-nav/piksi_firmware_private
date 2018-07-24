@@ -21,7 +21,7 @@
 #include <libswiftnav/glo_map.h>
 #include <libswiftnav/logging.h>
 #include <libswiftnav/memcpy_s.h>
-#include <libswiftnav/observation.h>
+#include <libswiftnav/pvt_engine/firmware_binding.h>
 
 #include "ndb/ndb.h"
 #include "sbp_utils.h"
@@ -114,7 +114,7 @@ void sbp_make_dgnss_status(msg_dgnss_status_t *dgnss_status,
                            u8 num_sats,
                            double obs_latency,
                            u8 flags) {
-  if (flags > DGNSS_POSITION) {
+  if (flags > POSITION_MODE_DGNSS) {
     dgnss_status->flags = 2;
   } else {
     dgnss_status->flags = 1;
@@ -1163,12 +1163,12 @@ void sbp_alma_reg_cbks(void (*almanac_msg_callback)(u16, u8, u8 *, void *)) {
 
 void sbp_init_gps_time(msg_gps_time_t *gps_time, gps_time_t *t) {
   memset(gps_time, 0, sizeof(msg_gps_time_t));
-  sbp_make_gps_time(gps_time, t, NO_POSITION);
+  sbp_make_gps_time(gps_time, t, POSITION_MODE_NONE);
 }
 
 void sbp_init_utc_time(msg_utc_time_t *utc_time, gps_time_t *t) {
   memset(utc_time, 0, sizeof(msg_utc_time_t));
-  sbp_make_utc_time(utc_time, t, NO_POSITION);
+  sbp_make_utc_time(utc_time, t, POSITION_MODE_NONE);
 }
 
 void sbp_init_pos_llh(msg_pos_llh_t *pos_llh, gps_time_t *t) {
