@@ -73,6 +73,9 @@ static void tracker_gal_e1_update(tracker_t *tracker) {
     return;
   }
 
+  /* TOW manipulation on bit edge */
+  tracker_tow_cache(tracker);
+
   bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
   bool inlock = ((0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) &&
                  (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK)));

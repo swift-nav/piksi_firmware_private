@@ -286,6 +286,12 @@ static void sch_run_common(acq_jobs_state_t *jobs_data, acq_job_t *job) {
 
   job->start_time = timing_getms();
 
+  if ((acq_param->doppler_max_hz - acq_param->doppler_min_hz) < 5000) {
+    log_debug_mesid(job->mesid,
+                    "doppler_min_hz %+7.1f  doppler_max_hz %+7.1f",
+                    acq_param->doppler_min_hz,
+                    acq_param->doppler_max_hz);
+  }
   peak_found = soft_multi_acq_search(job->mesid,
                                      acq_param->doppler_min_hz,
                                      acq_param->doppler_max_hz,
