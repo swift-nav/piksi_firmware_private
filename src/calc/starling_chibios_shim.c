@@ -35,7 +35,6 @@
 #include "calc_pvt_me.h"
 #include "main.h"
 #include "manage.h"
-#include "me_msg/me_msg.h"
 #include "ndb/ndb.h"
 #include "nmea/nmea.h"
 #include "peripherals/leds.h"
