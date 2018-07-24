@@ -17,6 +17,7 @@
 #include "track/track_common.h"
 #include "track/track_interface.h"
 #include "track/track_utils.h"
+#include "track_gal_e5.h"
 #include "track_gal_e7.h"
 
 /* Non-local headers */
@@ -82,6 +83,12 @@ static void tracker_gal_e1_update(tracker_t *tracker) {
     tracker_update_bit_polarity_flags(tracker);
 
     gal_e1_to_e7_handover(tracker->sample_count,
+                          tracker->mesid.sat,
+                          tracker->code_phase_prompt,
+                          tracker->carrier_freq,
+                          tracker->cn0);
+
+    gal_e1_to_e5_handover(tracker->sample_count,
                           tracker->mesid.sat,
                           tracker->code_phase_prompt,
                           tracker->carrier_freq,

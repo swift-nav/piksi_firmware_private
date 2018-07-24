@@ -52,10 +52,10 @@ static const gnss_capb_t gnss_capb_defaults = {
   Configuration compliant with to
   http://www.csno-tarc.cn/system/basicinfo
   retrieved on May 2nd*/
-  .bds_active = (u64)0x07fe0,
+  .bds_active = (u64)0x3ffffffe0,
   .bds_d2nav = (u64)0x1001f,
   .bds_b2 = (u64)0x17fff,
-  .bds_b2a = (u64)0,
+  .bds_b2a = (u64)0x3fffe8000,
 
   .qzss_active = (u32)0x3ff,
 

@@ -18,6 +18,7 @@
 #include "track/track_interface.h"
 #include "track/track_utils.h"
 #include "track_bds2_b2.h"
+#include "track_bds3_b5.h"
 
 /* Non-local headers */
 #include <manage.h>
@@ -49,12 +50,12 @@ static const tracker_interface_t tracker_interface_bds2_b11 = {
     .update = tracker_bds2_b11_update,
 };
 
-static void tracker_bds2_b11_init(tracker_t *tracker_channel) {
-  tp_tracker_init(tracker_channel, &bds2_l1ca_config);
+static void tracker_bds2_b11_init(tracker_t *tracker) {
+  tp_tracker_init(tracker, &bds2_l1ca_config);
 }
 
-static void tracker_bds2_b11_update(tracker_t *tracker_channel) {
-  u32 cflags = tp_tracker_update(tracker_channel, &bds2_l1ca_config);
+static void tracker_bds2_b11_update(tracker_t *tracker) {
+  u32 cflags = tp_tracker_update(tracker, &bds2_l1ca_config);
 
   /* If BDS SV is marked unhealthy from B1, also drop B2 tracker */
   if (0 != (tracker_channel->flags & TRACKER_FLAG_UNHEALTHY)) {
@@ -65,26 +66,32 @@ static void tracker_bds2_b11_update(tracker_t *tracker_channel) {
   }
 
   bool bit_aligned =
-      ((0 != (cflags & TPF_BSYNC_UPD)) && tracker_bit_aligned(tracker_channel));
+      ((0 != (cflags & TPF_BSYNC_UPD)) && tracker_bit_aligned(tracker));
 
   if (!bit_aligned) {
     return;
   }
 
   /* TOW manipulation on bit edge */
-  tracker_tow_cache(tracker_channel);
+  tracker_tow_cache(tracker);
 
-  bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
-  bool inlock = ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) &&
-                 (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)));
+  bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
+  bool inlock = ((0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) &&
+                 (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK)));
 
   if (inlock && confirmed) {
     /* Start B2 tracker if not running */
-    bds_b11_to_b2_handover(tracker_channel->sample_count,
-                           tracker_channel->mesid.sat,
-                           tracker_channel->code_phase_prompt,
-                           tracker_channel->carrier_freq,
-                           tracker_channel->cn0);
+    bds_b11_to_b2_handover(tracker->sample_count,
+                           tracker->mesid.sat,
+                           tracker->code_phase_prompt,
+                           tracker->carrier_freq,
+                           tracker->cn0);
+
+    bds_b1_to_b5_handover(tracker->sample_count,
+                          tracker->mesid.sat,
+                          tracker->code_phase_prompt,
+                          tracker->carrier_freq,
+                          tracker->cn0);
   }
 }
 

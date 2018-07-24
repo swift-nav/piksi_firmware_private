@@ -16,7 +16,7 @@
 
 #include <libswiftnav/constants.h>
 
-#include "bds2_prns.h"
+#include "bds_prns.h"
 #include "gal_prns.h"
 #include "prns.h"
 #include "qzss_prns.h"
@@ -102,7 +102,17 @@ static const u32 sbas_l1ca_prns_last_values[] = {
   [16] = 00360, [17] = 01403, [18] = 00224
 };
 
-
+/* The computed GPS L5i init values for the 2nd LFSR. */
+static const u32 gps_l5i_prns_init_values[] = {
+  [ 0] = 002352, [ 1] = 012603, [ 2] = 001002, [ 3] = 006215,
+  [ 4] = 016567, [ 5] = 005746, [ 6] = 017445, [ 7] = 002275,
+  [ 8] = 015237, [ 9] = 007576, [10] = 005620, [11] = 011747,
+  [12] = 003470, [13] = 016202, [14] = 005526, [15] = 011170,
+  [16] = 017062, [17] = 007417, [18] = 017423, [19] = 013326,
+  [20] = 001004, [21] = 017367, [22] = 007741, [23] = 002643,
+  [24] = 013313, [25] = 006465, [26] = 007552, [27] = 006536,
+  [28] = 010372, [29] = 016641, [30] = 007450, [31] = 011640
+};
 
 /* The computed GPS L5Q init values for the 2nd LFSR. */
 static const u32 gps_l5q_prns_init_values[] = {
@@ -606,6 +616,12 @@ u32 mesid_to_lfsr0_init(const me_gnss_signal_t mesid, const u8 index) {
   assert(mesid_valid(mesid));
 
   switch ((s8)mesid.code) {
+    case CODE_GPS_L1CA:
+    case CODE_AUX_GPS:
+    case CODE_SBAS_L1CA:
+    case CODE_QZS_L1CA:
+      ret = 0x3FF;
+      break;
     case CODE_GPS_L2CM:
       ret = gps_l2cm_prns_init_values[mesid.sat - GPS_FIRST_PRN] & 0x7FFFFFF;
       break;
@@ -620,11 +636,6 @@ u32 mesid_to_lfsr0_init(const me_gnss_signal_t mesid, const u8 index) {
       ret = qzss_l2cl_prns_init_values[mesid.sat - QZS_FIRST_PRN][index] &
             0x7FFFFFF;
       break;
-    case CODE_GPS_L1CA:
-    case CODE_SBAS_L1CA:
-    case CODE_QZS_L1CA:
-      ret = 0x3FF;
-      break;
     case CODE_GLO_L1OF:
     case CODE_GLO_L2OF:
       ret = 0x1FF;
@@ -633,18 +644,16 @@ u32 mesid_to_lfsr0_init(const me_gnss_signal_t mesid, const u8 index) {
     case CODE_BDS2_B2:
       ret = 0x2AA;
       break;
+    case CODE_BDS3_B5I:
+      ret = bds3_b2a_prns_init_values[mesid.sat - BDS_FIRST_PRN] & 0x1FFF;
+      break;
     case CODE_GPS_L5I:
-    case CODE_GPS_L5Q:
-      ret = 0xFFFFFFFF; /* 13 bit, all 1's */
+      ret = gps_l5i_prns_init_values[mesid.sat - GPS_FIRST_PRN] & 0x1FFF;
       break;
     case CODE_GAL_E5I:
-    case CODE_GAL_E5Q:
-    case CODE_GAL_E5X:
       ret = gal_e5i_prns_init_values[mesid.sat - GAL_FIRST_PRN] & 0x3FFF;
       break;
     case CODE_GAL_E7I:
-    case CODE_GAL_E7Q:
-    case CODE_GAL_E7X:
       ret = gal_e7i_prns_init_values[mesid.sat - GAL_FIRST_PRN] & 0x3FFF;
       break;
     default:
@@ -668,6 +677,7 @@ u32 mesid_to_lfsr1_init(const me_gnss_signal_t mesid, const u8 index) {
 
   switch ((s8)mesid.code) {
     case CODE_GPS_L1CA:
+    case CODE_AUX_GPS:
       ret = gps_l1ca_prns_init_values[mesid.sat - GPS_FIRST_PRN] & 0x3FF;
       break;
     case CODE_GPS_L2CM:
@@ -677,8 +687,11 @@ u32 mesid_to_lfsr1_init(const me_gnss_signal_t mesid, const u8 index) {
       ret = gps_l2cl_prns_init_values[mesid.sat - GPS_FIRST_PRN][index] &
             0x7FFFFFF;
       break;
-    case CODE_GPS_L5Q:
+    case CODE_GPS_L5I:
       ret = gps_l5q_prns_init_values[mesid.sat - GPS_FIRST_PRN] & 0x1FFF;
+      break;
+    case CODE_BDS3_B5I:
+      ret = bds3_b2a_prns_init_values[mesid.sat - BDS_FIRST_PRN] & 0x1FFF;
       break;
     case CODE_SBAS_L1CA:
       ret = sbas_l1ca_prns_init_values[mesid.sat - SBAS_FIRST_PRN] & 0x3FF;
@@ -702,13 +715,9 @@ u32 mesid_to_lfsr1_init(const me_gnss_signal_t mesid, const u8 index) {
       ret = bds2_prns_init_values[mesid.sat - BDS_FIRST_PRN] & 0x7FF;
       break;
     case CODE_GAL_E5I:
-    case CODE_GAL_E5Q:
-    case CODE_GAL_E5X:
       ret = gal_e5q_prns_init_values[mesid.sat - GAL_FIRST_PRN] & 0x3FFF;
       break;
     case CODE_GAL_E7I:
-    case CODE_GAL_E7Q:
-    case CODE_GAL_E7X:
       ret = gal_e7q_prns_init_values[mesid.sat - GAL_FIRST_PRN] & 0x3FFF;
       break;
     default:
@@ -729,6 +738,12 @@ u32 mesid_to_lfsr0_last(me_gnss_signal_t mesid) {
   assert(mesid_valid(mesid));
 
   switch ((s8)mesid.code) {
+    case CODE_GPS_L1CA:
+    case CODE_AUX_GPS:
+    case CODE_SBAS_L1CA:
+    case CODE_QZS_L1CA:
+      ret = 0x1FF;
+      break;
     case CODE_GPS_L2CM:
       ret = gps_l2cm_prns_last_values[mesid.sat - GPS_FIRST_PRN] & 0x7FFFFFF;
       break;
@@ -741,11 +756,6 @@ u32 mesid_to_lfsr0_last(me_gnss_signal_t mesid) {
     case CODE_QZS_L2CL:
       ret = qzss_l2cl_prns_last_values[mesid.sat - QZS_FIRST_PRN] & 0x7FFFFFF;
       break;
-    case CODE_GPS_L1CA:
-    case CODE_SBAS_L1CA:
-    case CODE_QZS_L1CA:
-      ret = 0x1FF;
-      break;
     case CODE_GLO_L1OF:
     case CODE_GLO_L2OF:
       ret = 0xFF;
@@ -754,8 +764,12 @@ u32 mesid_to_lfsr0_last(me_gnss_signal_t mesid) {
     case CODE_BDS2_B2:
       ret = 0x6AA;
       break;
+    case CODE_BDS3_B5I:
+      ret = 0x1FFF; /* does not matter really */
+      break;
     case CODE_GPS_L5I:
     case CODE_GPS_L5Q:
+    case CODE_GPS_L5X:
       ret = 0x17FF; /* should be 1 1111 1111 1101 as per IS-GPS-705D
                        but need to work around NAP logic */
       break;
@@ -788,6 +802,7 @@ u32 mesid_to_lfsr1_last(me_gnss_signal_t mesid) {
 
   switch ((s8)mesid.code) {
     case CODE_GPS_L1CA:
+    case CODE_AUX_GPS:
       ret = gps_l1ca_prns_last_values[mesid.sat - GPS_FIRST_PRN] & 0x3FF;
       break;
     case CODE_GPS_L2CM:
@@ -796,7 +811,9 @@ u32 mesid_to_lfsr1_last(me_gnss_signal_t mesid) {
     case CODE_GPS_L2CL:
       ret = gps_l2cl_prns_last_values[mesid.sat - GPS_FIRST_PRN] & 0x7FFFFFF;
       break;
+    case CODE_GPS_L5I:
     case CODE_GPS_L5Q:
+    case CODE_GPS_L5X:
       ret = 0x1126;
       break;
     case CODE_SBAS_L1CA:
@@ -809,6 +826,9 @@ u32 mesid_to_lfsr1_last(me_gnss_signal_t mesid) {
     case CODE_BDS2_B1:
     case CODE_BDS2_B2:
       ret = bds2_prns_last_values[mesid.sat - BDS_FIRST_PRN] & 0x7FF;
+      break;
+    case CODE_BDS3_B5I:
+      ret = 0x1FFF; /* does not matter really */
       break;
     case CODE_QZS_L1CA:
       ret = qzss_l1ca_prns_last_values[mesid.sat - QZS_FIRST_PRN] & 0x3FF;
@@ -830,7 +850,8 @@ u32 mesid_to_lfsr1_last(me_gnss_signal_t mesid) {
       ret = gal_e7q_prns_last_values[mesid.sat - GAL_FIRST_PRN] & 0x3FFF;
       break;
     default:
-      assert(!"Unsupported signal code ID");
+      log_error("Unsupported signal code ID %d", mesid.code);
+      assert(0);
       break;
   }
 
@@ -867,7 +888,8 @@ const u8* ca_code(const me_gnss_signal_t mesid) {
 
   const prn_array_t prn_array = prn_array_table[mesid.code];
   if (prn_array == NULL) {
-    assert(!"Unsupported code type");
+    log_error("Empty code table for value %d", mesid.code);
+    assert(0);
     return NULL;
   }
   return prn_array[mesid_to_code_index(mesid)];

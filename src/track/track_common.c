@@ -448,9 +448,7 @@ static void tp_tracker_update_correlators(tracker_t *tracker, u32 cycle_flags) {
                             &code_phase_prompt,
                             &carrier_phase);
 
-  if ((CODE_GAL_E5I == mesid.code) || (CODE_GAL_E5Q == mesid.code) ||
-      (CODE_GAL_E5X == mesid.code) || (CODE_GAL_E7I == mesid.code) ||
-      (CODE_GAL_E7Q == mesid.code) || (CODE_GAL_E7X == mesid.code)) {
+  if ((CODE_GAL_E5I == mesid.code) || (CODE_GAL_E7I == mesid.code)) {
     /* for Galileo E5a and E5b all tracking happens on the pilot
      * and when sync is achieved on the SC100 (Prompt)
      * the data can be extracted on the Very Late correlator.
@@ -1064,12 +1062,20 @@ static bool should_update_tow_cache(const tracker_t *tracker) {
     me_gnss_signal_t mesid_L1;
     if (CODE_GPS_L2CM == mesid.code) {
       mesid_L1 = construct_mesid(CODE_GPS_L1CA, mesid.sat);
+    } else if (CODE_GPS_L5I == mesid.code) {
+      mesid_L1 = construct_mesid(CODE_GPS_L1CA, mesid.sat);
+    } else if (CODE_AUX_GPS == mesid.code) {
+      mesid_L1 = construct_mesid(CODE_GPS_L1CA, mesid.sat);
     } else if (CODE_GLO_L2OF == mesid.code) {
       mesid_L1 = construct_mesid(CODE_GLO_L1OF, mesid.sat);
     } else if (CODE_QZS_L2CM == mesid.code) {
       mesid_L1 = construct_mesid(CODE_QZS_L1CA, mesid.sat);
     } else if (CODE_BDS2_B2 == mesid.code) {
       mesid_L1 = construct_mesid(CODE_BDS2_B1, mesid.sat);
+    } else if (CODE_BDS3_B5I == mesid.code) {
+      mesid_L1 = construct_mesid(CODE_BDS2_B1, mesid.sat);
+    } else if (CODE_GAL_E5I == mesid.code) {
+      mesid_L1 = construct_mesid(CODE_GAL_E1B, mesid.sat);
     } else {
       assert(!"Unsupported TOW cache code");
     }

@@ -59,7 +59,7 @@ void _screaming_death(const char *pos, const char *msg) {
 
 #define SPEAKING_MSG_N 222 /* Maximum length of error message */
 
-  static char err_msg[SPEAKING_MSG_N] = " ERROR: ";
+  static char err_msg[SPEAKING_MSG_N] = " ";
   strncat(err_msg, pos, SPEAKING_MSG_N - 9);
   strncat(err_msg, " : ", SPEAKING_MSG_N - strlen(err_msg) - 1);
   strncat(err_msg, msg, SPEAKING_MSG_N - strlen(err_msg) - 1);

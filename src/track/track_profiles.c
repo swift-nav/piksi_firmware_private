@@ -98,7 +98,8 @@ typedef struct tp_profile_entry {
     tp_tm_e tm_10ms;           /**< typical GLO Tracking mode */
     tp_tm_e tm_2ms;            /**< typical SBAS Tracking mode */
     tp_tm_e tm_nh20ms;         /**< typical BDS and GPS L5 Tracking mode */
-    tp_tm_e tm_sc4;            /**< E7 tracking mode */
+    tp_tm_e tm_sc4;            /**< Galileo I/NAV tracking mode */
+    tp_tm_e tm_dummy;          /**< generic 1-ms profile */
   } profile;
 
   tp_ld_e ld_phase_params; /**< Phase lock detector parameter set */
@@ -292,7 +293,7 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
 
   [IDX_INIT_0] =
 { {     10,           7,           20,   TP_CTRL_PLL3,
-        TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL},
+        TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL},
         TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
        100,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
@@ -300,7 +301,7 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
 
   [IDX_INIT_1] =
   { { BW_DYN,      BW_DYN,           20,   TP_CTRL_PLL3,
-        TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL },
+        TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL },
         TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
        100,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
@@ -308,7 +309,7 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
 
   [IDX_INIT_2] =
   { { BW_DYN,      BW_DYN,            5,   TP_CTRL_PLL3,
-      TP_TM_1MS_20MS,  TP_TM_1MS_10MS,  TP_TM_1MS_2MS,  TP_TM_1MS_NH20MS,  TP_TM_1MS_SC4 },
+      TP_TM_1MS_20MS,  TP_TM_1MS_10MS,  TP_TM_1MS_2MS,  TP_TM_1MS_NH20MS,  TP_TM_1MS_SC4,  TP_TM_INITIAL },
       TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
       100,             0,            0,
       IDX_NONE, IDX_NONE,     IDX_NONE,
@@ -316,7 +317,7 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
 
   [IDX_2MS] =
   { { BW_DYN,      BW_DYN,            2,   TP_CTRL_PLL3,
-      TP_TM_2MS_20MS,  TP_TM_2MS_10MS,  TP_TM_2MS_2MS,  TP_TM_2MS_NH20MS,  TP_TM_2MS_SC4 },
+      TP_TM_2MS_20MS,  TP_TM_2MS_10MS,  TP_TM_2MS_2MS,  TP_TM_2MS_NH20MS,  TP_TM_2MS_SC4,  TP_TM_INITIAL },
       TP_LD_PARAMS_PHASE_2MS, TP_LD_PARAMS_FREQ_2MS,
         40,          43,          0,
       IDX_2MS,     IDX_5MS,     IDX_NONE,
@@ -324,7 +325,7 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
 
   [IDX_5MS] =
   { { BW_DYN,      BW_DYN,            1,   TP_CTRL_PLL3,
-      TP_TM_5MS_20MS,  TP_TM_5MS_10MS,  TP_TM_2MS_2MS,  TP_TM_5MS_NH20MS,  TP_TM_4MS_SC4 },
+      TP_TM_5MS_20MS,  TP_TM_5MS_10MS,  TP_TM_2MS_2MS,  TP_TM_5MS_NH20MS,  TP_TM_4MS_SC4,  TP_TM_INITIAL },
       TP_LD_PARAMS_PHASE_5MS, TP_LD_PARAMS_FREQ_5MS,
       40,          35,          46,
       IDX_5MS,    IDX_10MS,     IDX_2MS,
@@ -332,7 +333,7 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
 
   [IDX_10MS] =
   { { BW_DYN,      BW_DYN,            1,   TP_CTRL_PLL3,
-      TP_TM_10MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS, TP_TM_10MS_NH20MS,  TP_TM_10MS_SC4 },
+      TP_TM_10MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS, TP_TM_10MS_NH20MS,  TP_TM_10MS_SC4,  TP_TM_INITIAL },
       TP_LD_PARAMS_PHASE_10MS, TP_LD_PARAMS_FREQ_10MS,
       40,          32,          38,
       IDX_10MS,    IDX_20MS,     IDX_5MS,
@@ -340,7 +341,7 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
 
   [IDX_20MS] =
   { { BW_DYN,      BW_DYN,           .5,   TP_CTRL_PLL3,
-      TP_TM_20MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS,  TP_TM_20MS_NH20MS,  TP_TM_20MS_SC4 },
+      TP_TM_20MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS,  TP_TM_20MS_NH20MS,  TP_TM_20MS_SC4,  TP_TM_INITIAL },
       TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
       40,        THRESH_SENS_DBHZ,   35,
       IDX_20MS,   IDX_SENS,     IDX_10MS,
@@ -349,7 +350,7 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
   /* sensitivity profile */
   [IDX_SENS] =
   { {      0,         1.0,           .5,   TP_CTRL_PLL3,
-      TP_TM_20MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS,  TP_TM_20MS_NH20MS,  TP_TM_20MS_SC4 },
+      TP_TM_20MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS,  TP_TM_20MS_NH20MS,  TP_TM_20MS_SC4,  TP_TM_INITIAL },
       TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
       300,             0,          32,
       IDX_SENS,  IDX_NONE,     IDX_20MS,
@@ -404,32 +405,52 @@ static const tp_profile_entry_t *mesid_to_profiles(const me_gnss_signal_t mesid,
 static tp_tm_e get_track_mode(me_gnss_signal_t mesid,
                               const struct tp_profile_entry *entry) {
   tp_tm_e track_mode = TP_TM_INITIAL;
+  const code_t code = mesid.code;
 
-  if (IS_GPS(mesid) || IS_QZSS(mesid)) {
-    if ((CODE_GPS_L5I == mesid.code) || (CODE_GPS_L5Q == mesid.code) ||
-        (CODE_QZS_L5I == mesid.code) || (CODE_QZS_L5Q == mesid.code)) {
-      track_mode = entry->profile.tm_nh20ms;
-    } else {
-      track_mode = entry->profile.tm_20ms;
-    }
-  } else if (IS_GLO(mesid)) {
+  switch ((s8) code) {
+  case CODE_GPS_L1CA:
+  case CODE_AUX_GPS:
+  case CODE_GPS_L2CM:
+  case CODE_QZS_L1CA:
+  case CODE_AUX_QZS:
+  case CODE_QZS_L2CM:
+    track_mode = entry->profile.tm_20ms;
+    break;
+  case CODE_GPS_L5I:
+  case CODE_QZS_L5I:
+    track_mode = entry->profile.tm_nh20ms;
+    break;
+  case CODE_GLO_L1OF:
+  case CODE_GLO_L2OF:
     track_mode = entry->profile.tm_10ms;
-  } else if (IS_SBAS(mesid)) {
+    break;
+  case CODE_SBAS_L1CA:
     track_mode = entry->profile.tm_2ms;
-  } else if (IS_BDS2(mesid)) {
+    break;
+  case CODE_BDS2_B1:
+  case CODE_BDS2_B2:
     if (bds_d2nav(mesid)) {
       track_mode = entry->profile.tm_2ms;
     } else {
       track_mode = entry->profile.tm_nh20ms;
     }
-  } else if (IS_GAL(mesid)) {
-    if ((CODE_GAL_E1B == mesid.code) || (CODE_GAL_E7I == mesid.code)) {
-      track_mode = entry->profile.tm_sc4;
-    }
-  } else {
-    log_error_mesid(mesid, "unknown entry?");
+    break;
+  case CODE_BDS3_B5I:
+    track_mode = entry->profile.tm_20ms;
+    break;
+  case CODE_GAL_E1B:
+  case CODE_GAL_E7I:
+    track_mode = entry->profile.tm_sc4;
+    break;
+  case CODE_GAL_E5I:
+    track_mode = entry->profile.tm_20ms;
+    break;
+  default:
+    log_error_mesid(mesid, "unknown code in get_track_mode()");
     assert(0);
+    break;
   }
+
   return track_mode;
 }
 
@@ -479,7 +500,8 @@ static u8 get_profile_index(code_t code,
                             const tp_profile_entry_t *profiles,
                             size_t num_profiles,
                             float cn0) {
-  if (code_requires_direct_acq(code) || is_gal(code)) {
+  if (code_requires_direct_acq(code) || is_gal(code) ||
+      (CODE_GPS_L5I == code) || (CODE_BDS3_B5I == code) || (CODE_AUX_GPS == code)) {
     /* signals from ACQ always go through init profiles,
      * and also if they are Galileo as right now
      * the NAP secondary code stripping still has problems with FW */

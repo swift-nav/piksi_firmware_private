@@ -18,7 +18,9 @@
 #include "track/track_common.h"
 #include "track/track_interface.h"
 #include "track/track_utils.h"
-#include "track_gps_l2c.h" /* for L1C/A to L2C tracking handover */
+#include "track_gps_l1ca_aux.h" /* for L1C/A to AUX tracking handover */
+#include "track_gps_l2c.h"      /* for L1C/A to L2C tracking handover */
+#include "track_gps_l5.h"       /* for L1C/A to L5 tracking handover */
 
 /* Non-local headers */
 #include <manage.h>
@@ -453,5 +455,19 @@ static void tracker_gps_l1ca_update(tracker_t *tracker_channel) {
                             tracker_channel->carrier_freq,
                             tracker_channel->cn0,
                             tracker_channel->TOW_ms);
+
+    /* Start L5 tracker if not running */
+    do_l1ca_to_l5_handover(tracker_channel->sample_count,
+                           tracker_channel->mesid.sat,
+                           tracker_channel->code_phase_prompt,
+                           tracker_channel->carrier_freq,
+                           tracker_channel->cn0);
+
+    /* Start AUX tracker if not running */
+    do_l1ca_to_aux_handover(tracker_channel->sample_count,
+                            tracker_channel->mesid.sat,
+                            tracker_channel->code_phase_prompt,
+                            tracker_channel->carrier_freq,
+                            tracker_channel->cn0);
   }
 }

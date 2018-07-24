@@ -82,6 +82,7 @@ static void tracker_glo_l1of_update(tracker_t *tracker_channel) {
   /* TOW manipulation on bit edge */
   tracker_tow_cache(tracker_channel);
 
+#if defined CODE_GLO_L2OF_SUPPORT && CODE_GLO_L2OF_SUPPORT > 0
   bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
   bool inlock = ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) &&
                  (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)));
@@ -97,4 +98,5 @@ static void tracker_glo_l1of_update(tracker_t *tracker_channel) {
                                  tracker_channel->carrier_freq,
                                  tracker_channel->cn0);
   }
+#endif /* CODE_GLO_L2OF_SUPPORT */
 }

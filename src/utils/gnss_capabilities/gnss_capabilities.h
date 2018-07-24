@@ -23,6 +23,8 @@ extern "C" {
 #endif /* __cplusplus */
 
 bool gps_l2c_active(const me_gnss_signal_t mesid);
+bool gps_l5_active(const me_gnss_signal_t mesid);
+
 bool glo_active(const me_gnss_signal_t mesid);
 
 bool sbas_active(const me_gnss_signal_t mesid);
@@ -30,6 +32,7 @@ bool sbas_active(const me_gnss_signal_t mesid);
 bool bds_active(const me_gnss_signal_t mesid);
 bool bds_d2nav(const me_gnss_signal_t mesid);
 bool bds_b2(const me_gnss_signal_t mesid);
+bool bds_b2a(const me_gnss_signal_t mesid);
 
 bool qzss_active(const me_gnss_signal_t mesid);
 

@@ -157,6 +157,9 @@ static bool tracking_startup_fifo_write(
     tracking_startup_fifo_t *fifo, const tracking_startup_params_t *element);
 static bool tracking_startup_fifo_read(tracking_startup_fifo_t *fifo,
                                        tracking_startup_params_t *element);
+static u32 get_tracking_channel_sid_flags(const gnss_signal_t sid,
+                                          s32 tow_ms,
+                                          const ephemeris_t *pephe);
 
 void sm_get_glo_visibility_flags(u16 sat, bool *visible, bool *known);
 
@@ -1034,6 +1037,10 @@ u32 get_tracking_channel_meas(u8 i,
     /* TTFF shortcut: accept also unconfirmed ephemeris candidate when there
      * is no confirmed candidate */
     if ((NDB_ERR_NONE != res) && (NDB_ERR_UNCONFIRMED_DATA != res)) {
+      if (CODE_GAL_E1B == sid.code) {
+        log_info_sid(sid, "e %08lx e->toe %lf e->fit_interval %ld",
+            (u32) ephe, ephe->toe.tow, ephe->fit_interval);
+      }
       ephe = NULL;
     }
 
@@ -1100,9 +1107,9 @@ u32 get_tracking_channel_meas(u8 i,
  *
  * \return Flags, computed from ephemeris and other sources.
  */
-u32 get_tracking_channel_sid_flags(const gnss_signal_t sid,
-                                   s32 tow_ms,
-                                   const ephemeris_t *pephe) {
+static u32 get_tracking_channel_sid_flags(const gnss_signal_t sid,
+                                          s32 tow_ms,
+                                          const ephemeris_t *pephe) {
   u32 flags = 0;
 
   /* Satellite elevation is either unknown or above the solution mask. */

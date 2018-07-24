@@ -31,6 +31,19 @@ bool gps_l2c_active(const me_gnss_signal_t mesid) {
   return (0 != (capb & ((u64)1 << (mesid.sat - GPS_FIRST_PRN))));
 }
 
+/** \defgroup gnss_capabilities Constellation capabilities
+ * Functions used in gnss capabilities
+ * \{ */
+
+bool gps_l5_active(const me_gnss_signal_t mesid) {
+  assert(IS_GPS(mesid));
+  const gnss_capb_t *gc = ndb_get_gnss_capb();
+  assert(gc);
+  u64 capb = gc->gps_l5;
+  return (0 != (capb & ((u64)1 << (mesid.sat - GPS_FIRST_PRN))));
+}
+
+
 /** Returns true if Glonass satellite is active.
  * \param mesid   satellite identifier
  */
@@ -84,6 +97,17 @@ bool bds_b2(const me_gnss_signal_t mesid) {
   const gnss_capb_t *gc = ndb_get_gnss_capb();
   assert(gc);
   u64 capb = gc->bds_b2;
+  return (0 != (capb & ((u64)1 << (mesid.sat - BDS_FIRST_PRN))));
+}
+
+/** Returns true if Beidou satellite uses the B2a (10 MHz) frequency
+ * \param mesid   satellite identifier
+ */
+bool bds_b2a(const me_gnss_signal_t mesid) {
+  assert(IS_BDS2(mesid));
+  const gnss_capb_t *gc = ndb_get_gnss_capb();
+  assert(gc);
+  u64 capb = gc->bds_b2a;
   return (0 != (capb & ((u64)1 << (mesid.sat - BDS_FIRST_PRN))));
 }
 
