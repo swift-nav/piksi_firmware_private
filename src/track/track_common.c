@@ -592,9 +592,12 @@ static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
 
     } else {
       /* Update C/N0 estimate */
+      u8 int_ms = tp_get_current_cycle_duration(tracker->tracking_mode,
+                                                tracker->cycle_no);
       cn0 = track_cn0_update(tracker->mesid,
                              cn0_params.est,
                              &tracker->cn0_est,
+                             int_ms,
                              tracker->corrs.corr_cn0.prompt.I,
                              tracker->corrs.corr_cn0.prompt.Q,
                              tracker->corrs.corr_cn0.very_early.I,
@@ -651,7 +654,22 @@ static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
   }
 }
 
-static void update_ld_phase(tracker_t *tracker) {
+static void update_ld_phase(tracker_t *tracker, u32 cycle_flags) {
+  bool pll_in_use = (0 != (tracker->flags & TRACKER_FLAG_PLL_USE));
+  if (!pll_in_use) {
+    const tp_lock_detect_params_t *ldp = &tracker->profile.ld_phase_params;
+    lock_detect_init(&tracker->ld_phase, ldp->k1, ldp->k2, ldp->lp, /*lo=*/0);
+    tracker->flags &= ~TRACKER_FLAG_HAS_PLOCK;
+    return;
+  }
+
+  bool plock_update_needed = (0 != (cycle_flags & TPF_PLD_USE));
+  if (!plock_update_needed) {
+    return;
+  }
+
+  tracker->flags &= ~TRACKER_FLAG_HAS_PLOCK;
+
   bool last_outp = tracker->ld_phase.outp;
 
   lock_detect_update(&tracker->ld_phase,
@@ -669,7 +687,22 @@ static void update_ld_phase(tracker_t *tracker) {
   }
 }
 
-static void update_ld_freq(tracker_t *tracker) {
+static void update_ld_freq(tracker_t *tracker, u32 cycle_flags) {
+  bool fll_in_use = (0 != (tracker->flags & TRACKER_FLAG_FLL_USE));
+  if (!fll_in_use) {
+    const tp_lock_detect_params_t *ldf = &tracker->profile.ld_freq_params;
+    lock_detect_init(&tracker->ld_freq, ldf->k1, ldf->k2, ldf->lp, /*lo=*/0);
+    tracker->flags &= ~TRACKER_FLAG_HAS_FLOCK;
+    return;
+  }
+
+  bool flock_update_needed = (0 != (cycle_flags & TPF_FLL_USE));
+  if (!flock_update_needed) {
+    return;
+  }
+
+  tracker->flags &= ~TRACKER_FLAG_HAS_FLOCK;
+
   /* FLL lock detector is based on frequency error seen by FLL discriminator */
   float unfiltered_freq_error = tracker->unfiltered_freq_error;
 
@@ -693,43 +726,25 @@ static void update_ld_freq(tracker_t *tracker) {
  * \return None
  */
 static void tp_tracker_update_locks(tracker_t *tracker, u32 cycle_flags) {
-  /* Phase lock and frequency lock detectors are updated asynchronously. */
-  if (0 != (cycle_flags & TPF_PLD_USE) || 0 != (cycle_flags & TPF_FLL_USE)) {
-    bool outp_prev = tracker->ld_phase.outp || tracker->ld_freq.outp;
+  bool outp_prev = tracker->ld_phase.outp || tracker->ld_freq.outp;
 
-    if (0 != (cycle_flags & TPF_PLD_USE)) {
-      tracker->flags &= ~TRACKER_FLAG_HAS_PLOCK;
+  update_ld_phase(tracker, cycle_flags);
+  update_ld_freq(tracker, cycle_flags);
 
-      if (0 != (tracker->flags & TRACKER_FLAG_PLL_USE)) {
-        update_ld_phase(tracker);
-      } else {
-        /* Reset internal variables while phase lock detector is not in use. */
-        tp_profile_t *profile = &tracker->profile;
-        const tp_lock_detect_params_t *ldp = &profile->ld_phase_params;
-        lock_detect_init(
-            &tracker->ld_phase, ldp->k1, ldp->k2, ldp->lp, /*lo=*/0);
-      }
-    }
+  bool outp = tracker->ld_phase.outp || tracker->ld_freq.outp;
 
-    if (0 != (cycle_flags & TPF_FLL_USE)) {
-      tracker->flags &= ~TRACKER_FLAG_HAS_FLOCK;
-      update_ld_freq(tracker);
-    }
+  bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
+  if (!outp_prev && outp && confirmed) {
+    u32 unlocked_ms =
+        update_count_diff(tracker, &tracker->ld_pess_change_count);
+    log_debug_mesid(tracker->mesid, "Lock after %" PRIu32 "ms", unlocked_ms);
+  }
 
-    bool outp = tracker->ld_phase.outp || tracker->ld_freq.outp;
-
-    if (!outp_prev && outp) {
-      u32 unlocked_ms =
-          update_count_diff(tracker, &tracker->ld_pess_change_count);
-      log_debug_mesid(tracker->mesid, "Lock after %" PRIu32 "ms", unlocked_ms);
-    }
-
-    if (outp != outp_prev) {
-      tracker->ld_pess_change_count = tracker->update_count;
-    }
-    if (outp) {
-      tracker->carrier_freq_at_lock = tracker->carrier_freq;
-    }
+  if (outp != outp_prev) {
+    tracker->ld_pess_change_count = tracker->update_count;
+  }
+  if (outp) {
+    tracker->carrier_freq_at_lock = tracker->carrier_freq;
   }
   /*
    * Reset carrier phase ambiguity if there's doubt as to our phase lock.
