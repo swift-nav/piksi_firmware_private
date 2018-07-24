@@ -38,6 +38,7 @@
 #define STARLING_THREAD_STACK (6 * 1024 * 1024)
 
 #define STARLING_BASE_SENDER_ID_DEFAULT 0
+#define SBP_VELOCITY_FLAG_COMPUTED_DOPPLER (1 << 1)
 
 /*******************************************************************************
  * Types
@@ -362,6 +363,8 @@ static void solution_make_sbp(const pvt_engine_result_t *soln,
 
     if (soln->velocity_valid) {
       double vel_ned[3];
+      // We currently only form a velocity solution from computed Doppler
+      uint8_t velocity_flag = SBP_VELOCITY_FLAG_COMPUTED_DOPPLER;
       wgsecef2ned(soln->velocity, pos_ecef, vel_ned);
       sbp_make_vel_ned(&sbp_messages->vel_ned,
                        vel_ned,
@@ -369,28 +372,28 @@ static void solution_make_sbp(const pvt_engine_result_t *soln,
                        vel_v_accuracy,
                        &soln->time,
                        soln->num_sats_used,
-                       soln->flags);
+                       velocity_flag);
 
       sbp_make_vel_ned_cov(&sbp_messages->vel_ned_cov,
                            vel_ned,
                            vel_ned_cov,
                            &soln->time,
                            soln->num_sats_used,
-                           soln->flags);
+                           velocity_flag);
 
       sbp_make_vel_ecef(&sbp_messages->vel_ecef,
                         soln->velocity,
                         vel_accuracy,
                         &soln->time,
                         soln->num_sats_used,
-                        soln->flags);
+                        velocity_flag);
 
       sbp_make_vel_ecef_cov(&sbp_messages->vel_ecef_cov,
                             soln->velocity,
                             vel_ecef_cov,
                             &soln->time,
                             soln->num_sats_used,
-                            soln->flags);
+                            velocity_flag);
     }
 
     /* DOP message can be sent even if solution fails to compute */
