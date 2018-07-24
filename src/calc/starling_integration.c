@@ -308,8 +308,8 @@ static void solution_make_sbp(const pvt_engine_result_t *soln,
                               sbp_messages_t *sbp_messages) {
   if (soln && soln->valid) {
     /* Send GPS_TIME message first. */
-    sbp_make_gps_time(&sbp_messages->gps_time, &soln->time, SPP_POSITION);
-    sbp_make_utc_time(&sbp_messages->utc_time, &soln->time, SPP_POSITION);
+    sbp_make_gps_time(&sbp_messages->gps_time, &soln->time, POSITION_MODE_SPP);
+    sbp_make_utc_time(&sbp_messages->utc_time, &soln->time, POSITION_MODE_SPP);
 
     /* In SPP, `baseline` is actually absolute position in ECEF. */
     double pos_ecef[3], pos_llh[3];
@@ -342,28 +342,28 @@ static void solution_make_sbp(const pvt_engine_result_t *soln,
                           v_accuracy,
                           &soln->time,
                           soln->num_sats_used,
-                          soln->flags);
+                          soln->flags.position_mode);
 
     sbp_make_pos_llh_cov(&sbp_messages->pos_llh_cov,
                          pos_llh,
                          pos_ned_cov,
                          &soln->time,
                          soln->num_sats_used,
-                         soln->flags);
+                         soln->flags.position_mode);
 
     sbp_make_pos_ecef_vect(&sbp_messages->pos_ecef,
                            pos_ecef,
                            accuracy,
                            &soln->time,
                            soln->num_sats_used,
-                           soln->flags);
+                           soln->flags.position_mode);
 
     sbp_make_pos_ecef_cov(&sbp_messages->pos_ecef_cov,
                           pos_ecef,
                           pos_ecef_cov,
                           &soln->time,
                           soln->num_sats_used,
-                          soln->flags);
+                          soln->flags.position_mode);
 
     if (soln->velocity_valid) {
       double vel_ned[3];
@@ -374,28 +374,28 @@ static void solution_make_sbp(const pvt_engine_result_t *soln,
                        vel_v_accuracy,
                        &soln->time,
                        soln->num_sats_used,
-                       soln->flags);
+                       soln->flags.velocity_mode);
 
       sbp_make_vel_ned_cov(&sbp_messages->vel_ned_cov,
                            vel_ned,
                            vel_ned_cov,
                            &soln->time,
                            soln->num_sats_used,
-                           soln->flags);
+                           soln->flags.velocity_mode);
 
       sbp_make_vel_ecef(&sbp_messages->vel_ecef,
                         soln->velocity,
                         vel_accuracy,
                         &soln->time,
                         soln->num_sats_used,
-                        soln->flags);
+                        soln->flags.velocity_mode);
 
       sbp_make_vel_ecef_cov(&sbp_messages->vel_ecef_cov,
                             soln->velocity,
                             vel_ecef_cov,
                             &soln->time,
                             soln->num_sats_used,
-                            soln->flags);
+                            soln->flags.velocity_mode);
     }
 
     /* DOP message can be sent even if solution fails to compute */
@@ -403,7 +403,7 @@ static void solution_make_sbp(const pvt_engine_result_t *soln,
       sbp_make_dops(&sbp_messages->sbp_dops,
                     dops,
                     sbp_messages->pos_llh.tow,
-                    soln->flags);
+                    soln->flags.position_mode);
     }
 
     /* Update stats */
@@ -441,7 +441,7 @@ static void solution_make_baseline_sbp(const pvt_engine_result_t *result,
                          result->num_sats_used,
                          result->baseline,
                          accuracy,
-                         result->flags);
+                         result->flags.position_mode);
 
   sbp_make_baseline_ned(&sbp_messages->baseline_ned,
                         &result->time,
@@ -449,7 +449,7 @@ static void solution_make_baseline_sbp(const pvt_engine_result_t *result,
                         b_ned,
                         h_accuracy,
                         v_accuracy,
-                        result->flags);
+                        result->flags.position_mode);
 
   sbp_make_age_corrections(
       &sbp_messages->age_corrections, &result->time, result->propagation_time);
@@ -457,18 +457,18 @@ static void solution_make_baseline_sbp(const pvt_engine_result_t *result,
   sbp_make_dgnss_status(&sbp_messages->dgnss_status,
                         result->num_sats_used,
                         result->propagation_time,
-                        result->flags);
+                        result->flags.position_mode);
 
   dgnss_solution_mode_t dgnss_soln_mode = starling_get_solution_mode();
 
-  if (result->flags == FIXED_POSITION &&
+  if (result->flags.position_mode == POSITION_MODE_FIXED &&
       dgnss_soln_mode == STARLING_SOLN_MODE_TIME_MATCHED) {
     double heading = calc_heading(b_ned);
     sbp_make_heading(&sbp_messages->baseline_heading,
                      &result->time,
                      heading + heading_offset,
                      result->num_sats_used,
-                     result->flags);
+                     result->flags.position_mode);
   }
 
   if (result->has_known_reference_pos ||
@@ -488,28 +488,30 @@ static void solution_make_baseline_sbp(const pvt_engine_result_t *result,
                           v_accuracy,
                           &result->time,
                           result->num_sats_used,
-                          result->flags);
+                          result->flags.position_mode);
     sbp_make_pos_llh_cov(&sbp_messages->pos_llh_cov,
                          pseudo_absolute_llh,
                          pos_ned_cov,
                          &result->time,
                          result->num_sats_used,
-                         result->flags);
+                         result->flags.position_mode);
     sbp_make_pos_ecef_vect(&sbp_messages->pos_ecef,
                            pseudo_absolute_ecef,
                            accuracy,
                            &result->time,
                            result->num_sats_used,
-                           result->flags);
+                           result->flags.position_mode);
     sbp_make_pos_ecef_cov(&sbp_messages->pos_ecef_cov,
                           pseudo_absolute_ecef,
                           pos_ecef_cov,
                           &result->time,
                           result->num_sats_used,
-                          result->flags);
+                          result->flags.position_mode);
   }
-  sbp_make_dops(
-      &sbp_messages->sbp_dops, dops, sbp_messages->pos_llh.tow, result->flags);
+  sbp_make_dops(&sbp_messages->sbp_dops,
+                dops,
+                sbp_messages->pos_llh.tow,
+                result->flags.position_mode);
 
   chMtxLock(&last_sbp_lock);
   last_dgnss.wn = result->time.wn;
@@ -518,8 +520,9 @@ static void solution_make_baseline_sbp(const pvt_engine_result_t *result,
 
   /* Update stats */
   piksi_systime_get(&last_dgnss_stats.systime);
-  last_dgnss_stats.mode =
-      (result->flags == FIXED_POSITION) ? FILTER_FIXED : FILTER_FLOAT;
+  last_dgnss_stats.mode = (result->flags.position_mode == POSITION_MODE_FIXED)
+                              ? FILTER_FIXED
+                              : FILTER_FLOAT;
 }
 
 /*******************************************************************************
@@ -540,14 +543,15 @@ static void starling_integration_solution_simulation(
 
   if (simulation_enabled_for(SIMULATION_MODE_FLOAT) ||
       simulation_enabled_for(SIMULATION_MODE_RTK)) {
-    u8 flags = simulation_enabled_for(SIMULATION_MODE_RTK) ? FIXED_POSITION
-                                                           : FLOAT_POSITION;
+    u8 flags = simulation_enabled_for(SIMULATION_MODE_RTK)
+                   ? POSITION_MODE_FIXED
+                   : POSITION_MODE_FLOAT;
 
     pvt_engine_result_t result = {
         .time = soln->time,
         .num_sats_used = simulation_current_num_sats(),
         .num_sigs_used = 0,
-        .flags = flags,
+        .flags = {flags, 0, 0},
         .has_known_reference_pos = true,
         .propagation_time = 0.0,
     };
