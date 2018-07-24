@@ -38,7 +38,7 @@
 #define STARLING_THREAD_STACK (6 * 1024 * 1024)
 
 #define STARLING_BASE_SENDER_ID_DEFAULT 0
-#define SBP_VELOCITY_FLAG_COMPUTED_DOPPLER 2
+#define SBP_VELOCITY_FLAG_COMPUTED_DOPPLER (1 << 1)
 
 /*******************************************************************************
  * Types
