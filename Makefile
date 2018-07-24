@@ -52,7 +52,7 @@ FW_DEPS=$(LIBSBP_BUILDDIR)/src/libsbp-static.a \
 
 ifeq ($(PIKSI_HW),v3)
   CMAKEFLAGS += -DCMAKE_SYSTEM_PROCESSOR=cortex-a9
-  CMAKEFLAGS += -DMAX_CHANNELS=70
+  CMAKEFLAGS += -DMAX_CHANNELS=69
   FW_DEPS += $(OPENAMP_BUILDDIR)/lib/libopen-amp.a
 endif
 
