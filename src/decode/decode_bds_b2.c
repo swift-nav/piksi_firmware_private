@@ -70,14 +70,8 @@ static void decoder_bds_b2_init(const decoder_channel_info_t *channel_info,
 
 static void decoder_bds_b2_process(const decoder_channel_info_t *channel_info,
                                    decoder_data_t *decoder_data) {
-  bds_d1_decoded_data_t dd_d1nav;
-  bds_d2_decoded_data_t dd_d2nav;
-
   assert(channel_info);
   assert(decoder_data);
-
-  memset(&dd_d1nav, 0, sizeof(bds_d1_decoded_data_t));
-  memset(&dd_d2nav, 0, sizeof(bds_d2_decoded_data_t));
 
   bds_b2_decoder_data_t *data = decoder_data;
   const me_gnss_signal_t mesid = channel_info->mesid;
@@ -92,66 +86,7 @@ static void decoder_bds_b2_process(const decoder_channel_info_t *channel_info,
       bds_nav_msg_init(&data->nav_msg, mesid.sat);
       continue;
     }
-
-    bool bit_val = nav_bit > 0;
-
-    bool tlm_rx = bds_nav_msg_update(&data->nav_msg, bit_val);
-    if (tlm_rx) {
-      s32 TOWms = TOW_INVALID;
-      nav_data_sync_t from_decoder;
-      tracker_data_sync_init(&from_decoder);
-      if (bds_d2nav(mesid)) {
-        TOWms = bds_d2_process_subframe(&data->nav_msg, mesid, &dd_d2nav);
-        if (TOW_INVALID == TOWms) {
-          bds_nav_msg_init(&data->nav_msg, mesid.sat);
-          continue;
-        }
-        from_decoder.TOW_ms = TOWms - 60;
-        from_decoder.sync_flags = SYNC_POL | SYNC_TOW;
-        if (dd_d2nav.ephemeris_upd_flag) {
-          shm_bds_set_shi(dd_d2nav.ephemeris.sid.sat,
-                          dd_d2nav.ephemeris.health_bits);
-          eph_new_status_t r = ephemeris_new(&dd_d2nav.ephemeris);
-          if (EPH_NEW_OK != r) {
-            log_warn_mesid(mesid,
-                           "Error in BDS d2nav ephemeris processing. "
-                           "Eph status: %" PRIu8 " ",
-                           r);
-          }
-          dd_d2nav.ephemeris_upd_flag = false;
-          from_decoder.health =
-              shm_ephe_healthy(&dd_d2nav.ephemeris, mesid.code) ? SV_HEALTHY
-                                                                : SV_UNHEALTHY;
-          from_decoder.sync_flags |= SYNC_EPH;
-        }
-      } else {
-        TOWms = bds_d1_process_subframe(&data->nav_msg, mesid, &dd_d1nav);
-        if (TOW_INVALID == TOWms) {
-          bds_nav_msg_init(&data->nav_msg, mesid.sat);
-          continue;
-        }
-        from_decoder.TOW_ms = TOWms;
-        from_decoder.sync_flags = SYNC_POL | SYNC_TOW;
-        if (dd_d1nav.ephemeris_upd_flag) {
-          shm_bds_set_shi(dd_d1nav.ephemeris.sid.sat,
-                          dd_d1nav.ephemeris.health_bits);
-          eph_new_status_t r = ephemeris_new(&dd_d1nav.ephemeris);
-          if (EPH_NEW_OK != r) {
-            log_warn_mesid(mesid,
-                           "Error in BDS d1nav ephemeris processing. "
-                           "Eph status: %" PRIu8 " ",
-                           r);
-          }
-          dd_d1nav.ephemeris_upd_flag = false;
-          from_decoder.health =
-              shm_ephe_healthy(&dd_d1nav.ephemeris, mesid.code) ? SV_HEALTHY
-                                                                : SV_UNHEALTHY;
-          from_decoder.sync_flags |= SYNC_EPH;
-        }
-      }
-      from_decoder.bit_polarity = data->nav_msg.bit_polarity;
-      tracker_data_sync(channel_info->tracking_channel, &from_decoder);
-    }
+    bds_data_decoding(&data->nav_msg, mesid, nav_bit, channel);
   }
   return;
 }
