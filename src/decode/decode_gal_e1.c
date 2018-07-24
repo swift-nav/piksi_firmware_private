@@ -99,7 +99,7 @@ static void decoder_gal_e1_process(const decoder_channel_info_t *channel_info,
     ephemeris_t *e = &(dd.ephemeris);
     ephemeris_kepler_t *k = &(dd.ephemeris.kepler);
     utc_tm date;
-    /* eph_new_status_t estat; */
+    eph_new_status_t estat;
 
     inav_data_type_t ret = parse_inav_word(data, &dd, &t);
     switch (ret) {
@@ -159,18 +159,13 @@ static void decoder_gal_e1_process(const decoder_channel_info_t *channel_info,
         dd.ephemeris.sid.code = CODE_GAL_E1B;
         dd.ephemeris.valid = 1;
         shm_gal_set_shi(dd.ephemeris.sid.sat, dd.ephemeris.health_bits);
-        /* having the ephemeris on both E1 and E7 is generating
-         * discrepancy errors right now..
-         * need to figure out a way to refactor that check  */
-        /*
         estat = ephemeris_new(&dd.ephemeris);
         if (EPH_NEW_OK != estat) {
-          log_warn_mesid(channel_info->mesid,
+          log_warn_mesid(mesid,
                          "Error in GAL E1 ephemeris processing. "
                          "Eph status: %" PRIu8 " ",
                          estat);
         }
-        */
         from_decoder.health = shm_ephe_healthy(&dd.ephemeris, mesid.code)
                                   ? SV_HEALTHY
                                   : SV_UNHEALTHY;

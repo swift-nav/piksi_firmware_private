@@ -155,7 +155,8 @@ static void decoder_gal_e7_process(const decoder_channel_info_t *channel_info,
                   k->tgd_gal_s[0],
                   k->tgd_gal_s[1]);
         log_debug("    %19.11E%19.11E ", rint(t.tow), 0.0);
-        dd.ephemeris.sid.code = CODE_GAL_E7I;
+        /* Mark ephemeris from E7 as if it was coming from E1. */
+        dd.ephemeris.sid.code = CODE_GAL_E1B;
         dd.ephemeris.valid = 1;
         shm_gal_set_shi(dd.ephemeris.sid.sat, dd.ephemeris.health_bits);
         estat = ephemeris_new(&dd.ephemeris);
