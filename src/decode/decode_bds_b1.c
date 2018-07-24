@@ -14,18 +14,12 @@
 
 #include <libswiftnav/logging.h>
 
-#include "decode.h"
 #include "decode_bds_b1.h"
 #include "decode_common.h"
 #include "gnss_capabilities/gnss_capabilities.h"
 #include "nav_msg/nav_msg_bds.h"
-#include "sbp.h"
-#include "sbp_utils.h"
-#include "shm/shm.h"
 #include "signal_db/signal_db.h"
-#include "timing/timing.h"
 #include "track/track_decode.h"
-#include "track/track_sid_db.h"
 
 /** BDS B1 decoder data */
 typedef struct { nav_msg_bds_t nav_msg; } bds_b1_decoder_data_t;

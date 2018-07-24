@@ -10,20 +10,11 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 #include <assert.h>
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include <libswiftnav/bits.h>
-#include <libswiftnav/constants.h>
-#include <libswiftnav/ionosphere.h>
-#include <libswiftnav/logging.h>
 
-#include "me_constants.h"
-#include "nav_msg/nav_msg.h"
 #include "nav_msg/nav_msg_bds.h"
-#include "shm/shm.h"
 #include "timing/timing.h"
 #include "track/track_decode.h"
 #include "utils/ephemeris/ephemeris.h"
