@@ -16,7 +16,7 @@ static const ephemeris_t ref_eph = {
     {2.01600000000E+05,       /* toe.tow */
      1998},                   /* toe.wn */
     2.00000000000E+00,        /* ura */
-    7200,                     /* fit_interval */
+    BDS_FIT_INTERVAL_SECONDS, /* fit_interval [s] */
     1,                        /* valid */
     0,                        /* health_bits */
     {{{5.60000000000E-09},    /* kepler.tgd_bds_s[0] */
