@@ -14,6 +14,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <ch.h>
+
 #include <libsbp/sbp.h>
 #include <libswiftnav/constants.h>
 #include <libswiftnav/coord_system.h>
@@ -73,15 +75,25 @@ static me_msg_obs_t me_obs_buff[ME_OBS_MSG_N_BUFF];
 static msg_t sbas_data_mailbox_buff[SBAS_DATA_N_BUFF];
 static sbas_raw_data_t sbas_data_buff[SBAS_DATA_N_BUFF];
 
+#define NUM_MUTEXES 16
+static mutex_t mutexes[NUM_MUTEXES];
+
 /*******************************************************************************
  * Platform Shim Calls
  ******************************************************************************/
 
 /* Mutex */
+int platform_mutex_init(mtx_id_t id) {
+  if (id >= NUM_MUTEXES) {
+    return -1;
+  }
+  chMtxObjectInit(&mutexes[id]);
+  return 0;
+}
 
-void platform_mutex_lock(void *mtx) { chMtxLock((mutex_t *)mtx); }
+void platform_mutex_lock(mtx_id_t id) { chMtxLock(&mutexes[id]); }
 
-void platform_mutex_unlock(void *mtx) { chMtxUnlock((mutex_t *)mtx); }
+void platform_mutex_unlock(mtx_id_t id) { chMtxUnlock(&mutexes[id]); }
 
 /* Threading */
 

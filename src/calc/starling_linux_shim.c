@@ -74,19 +74,24 @@
 #define SBAS_DATA_N_BUFF 6
 #define SBAS_DATA_QUEUE_NAME "sbas-data"
 
+#define NUM_MUTEXES 16
+static pthread_mutex_t mutexes[NUM_MUTEXES];
+
 /*******************************************************************************
  * Platform Shim Calls
  ******************************************************************************/
 
 /* Mutex */
-
-void platform_mutex_lock(void *mtx) {
-  pthread_mutex_lock((pthread_mutex_t *)mtx);
+int platform_mutex_init(mtx_id_t id) {
+  if (id >= NUM_MUTEXES) {
+    return -1;
+  }
+  return pthread_mutex_init(&mutexes[id], NULL);
 }
 
-void platform_mutex_unlock(void *mtx) {
-  pthread_mutex_unlock((pthread_mutex_t *)mtx);
-}
+void platform_mutex_lock(mtx_id_t id) { pthread_mutex_lock(&mutexes[id]); }
+
+void platform_mutex_unlock(mtx_id_t id) { pthread_mutex_unlock(&mutexes[id]); }
 
 /* Threading */
 
