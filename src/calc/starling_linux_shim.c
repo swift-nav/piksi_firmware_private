@@ -57,6 +57,8 @@
  * Local Variables
  ******************************************************************************/
 
+#define MAILBOX_BLOCKING_TIMEOUT_MS 5000
+
 #define MSG_PRIO_NORMAL 0
 #define MSG_PRIO_HIGH 1
 
@@ -258,17 +260,20 @@ static int platform_mailbox_post_internal(mailbox_id_t id,
   return 0;
 }
 
-int platform_mailbox_post(mailbox_id_t id, void *msg, uint32_t timeout_ms) {
+int platform_mailbox_post(mailbox_id_t id, void *msg, int blocking) {
+  uint32_t timeout_ms = (MB_BLOCKING == blocking) ? MAILBOX_BLOCKING_TIMEOUT_MS : 0;
   return platform_mailbox_post_internal(id, msg, timeout_ms, MSG_PRIO_NORMAL);
 }
 
 int platform_mailbox_post_ahead(mailbox_id_t id,
                                 void *msg,
-                                uint32_t timeout_ms) {
+                                int blocking) {
+  uint32_t timeout_ms = (MB_BLOCKING == blocking) ? MAILBOX_BLOCKING_TIMEOUT_MS : 0;
   return platform_mailbox_post_internal(id, msg, timeout_ms, MSG_PRIO_HIGH);
 }
 
-int platform_mailbox_fetch(mailbox_id_t id, void **msg, uint32_t timeout_ms) {
+int platform_mailbox_fetch(mailbox_id_t id, void **msg, int blocking) {
+  uint32_t timeout_ms = (MB_BLOCKING == blocking) ? MAILBOX_BLOCKING_TIMEOUT_MS : 0;
   struct timespec ts = {0};
   platform_get_timeout(timeout_ms, &ts);
 

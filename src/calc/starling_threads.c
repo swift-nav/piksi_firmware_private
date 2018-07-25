@@ -31,8 +31,6 @@
 #include "starling_platform_shim.h"
 #include "starling_threads.h"
 
-#include <ch.h>
-
 /* Convenience macro for invoking the debug functions when they are enabled
  * and defined. */
 #if defined STARLING_DEBUG_FUNCTIONS_ENABLED && STARLING_DEBUG_FUNCTIONS_ENABLED
@@ -220,7 +218,7 @@ static void post_observations(u8 n,
     /* Pool is empty, grab a buffer from the mailbox instead, i.e.
      * overwrite the oldest item in the queue. */
     ret = platform_mailbox_fetch(
-        MB_ID_TIME_MATCHED_OBS, (void **)&obs, TIME_IMMEDIATE);
+        MB_ID_TIME_MATCHED_OBS, (void **)&obs, MB_NONBLOCKING);
     if (ret != 0) {
       log_error("Pool full and mailbox empty!");
     }
@@ -247,7 +245,7 @@ static void post_observations(u8 n,
       obs->soln.velocity_valid = 0;
     }
 
-    ret = platform_mailbox_post(MB_ID_TIME_MATCHED_OBS, obs, TIME_IMMEDIATE);
+    ret = platform_mailbox_post(MB_ID_TIME_MATCHED_OBS, obs, MB_NONBLOCKING);
     if (ret != 0) {
       /* We could grab another item from the mailbox, discard it and then
        * post our obs again but if the size of the mailbox and the pool
@@ -495,7 +493,7 @@ static void time_matched_obs_thread(void *arg) {
     /* Look through the mailbox (FIFO queue) of locally generated observations
      * looking for one that matches in time. */
     while (platform_mailbox_fetch(
-               MB_ID_TIME_MATCHED_OBS, (void **)&obss, TIME_IMMEDIATE) == 0) {
+               MB_ID_TIME_MATCHED_OBS, (void **)&obss, MB_NONBLOCKING) == 0) {
       if (dgnss_soln_mode == STARLING_SOLN_MODE_NO_DGNSS) {
         /* Not doing any DGNSS.  Toss the obs away. */
         platform_mailbox_item_free(MB_ID_TIME_MATCHED_OBS, obss);
@@ -551,7 +549,7 @@ static void time_matched_obs_thread(void *arg) {
               base_obs.tor.tow);
           /* Return the buffer to the mailbox so we can try it again later. */
           const errno_t post_ret = platform_mailbox_post_ahead(
-              MB_ID_TIME_MATCHED_OBS, obss, TIME_IMMEDIATE);
+              MB_ID_TIME_MATCHED_OBS, obss, MB_NONBLOCKING);
           if (post_ret != 0) {
             /* Something went wrong with returning it to the buffer, better just
              * free it and carry on. */

@@ -803,7 +803,7 @@ void starling_add_sbas_data(const sbas_raw_data_t *sbas_data,
     assert(sbas_data);
     *sbas_data_msg = *sbas_data;
     errno_t ret =
-        platform_mailbox_post(MB_ID_SBAS_DATA, sbas_data_msg, TIME_IMMEDIATE);
+        platform_mailbox_post(MB_ID_SBAS_DATA, sbas_data_msg, MB_NONBLOCKING);
     if (ret != 0) {
       log_error("platform_mailbox_post(MB_ID_SBAS_DATA) failed!");
       platform_mailbox_item_free(MB_ID_SBAS_DATA, sbas_data_msg);
@@ -1120,10 +1120,9 @@ static void profile_low_latency_thread(enum ProfileDirective directive) {
 
 /* TODO(kevin) refactor common code. */
 static int read_obs_rover(int blocking, me_msg_obs_t *me_msg) {
-  uint32_t timeout_ms = blocking ? READ_OBS_ROVER_TIMEOUT : 0;
   me_msg_obs_t *local_me_msg = NULL;
   errno_t ret =
-      platform_mailbox_fetch(MB_ID_ME_OBS, (void **)&local_me_msg, timeout_ms);
+      platform_mailbox_fetch(MB_ID_ME_OBS, (void **)&local_me_msg, blocking);
   if (local_me_msg) {
     if (STARLING_READ_OK == ret) {
       *me_msg = *local_me_msg;
@@ -1139,10 +1138,9 @@ static int read_obs_rover(int blocking, me_msg_obs_t *me_msg) {
 
 /* TODO(kevin) refactor common code. */
 static int read_obs_base(int blocking, obss_t *obs) {
-  uint32_t timeout_ms = blocking ? READ_OBS_BASE_TIMEOUT : 0;
   obss_t *local_obs = NULL;
   errno_t ret =
-      platform_mailbox_fetch(MB_ID_BASE_OBS, (void **)&local_obs, timeout_ms);
+      platform_mailbox_fetch(MB_ID_BASE_OBS, (void **)&local_obs, blocking);
   if (local_obs) {
     if (STARLING_READ_OK == ret) {
       *obs = *local_obs;
@@ -1158,10 +1156,9 @@ static int read_obs_base(int blocking, obss_t *obs) {
 
 /* TODO(kevin) refactor common code. */
 static int read_sbas_data(int blocking, sbas_raw_data_t *data) {
-  uint32_t timeout_ms = blocking ? TIME_INFINITE : 0;
   sbas_raw_data_t *local_data = NULL;
   errno_t ret =
-      platform_mailbox_fetch(MB_ID_SBAS_DATA, (void **)&local_data, timeout_ms);
+      platform_mailbox_fetch(MB_ID_SBAS_DATA, (void **)&local_data, blocking);
   if (local_data) {
     if (STARLING_READ_OK == ret) {
       *data = *local_data;
