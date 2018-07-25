@@ -31,7 +31,6 @@
 #include "starling_platform_shim.h"
 #include "starling_threads.h"
 
-/* TODO(kevin) Must get rid of this. */
 #include <ch.h>
 
 /* Convenience macro for invoking the debug functions when they are enabled
@@ -604,11 +603,8 @@ static void process_sbas_data(const sbas_raw_data_t *sbas_data) {
 }
 
 /**
- * Try and fetch available SBAS messages from the SBAS mailbox.
- *
- * NOTE: This function should not block, so we use TIME_IMMEDIATE for
- * the fetch operation. If a message is there, we take it, otherwise
- * nevermind.
+ * Try and read any available SBAS messages (assuming the user has 
+ * provided with the appropriate function).
  */
 static void process_any_sbas_messages(void) {
   if (NULL == io_functions.read_sbas_data) {
