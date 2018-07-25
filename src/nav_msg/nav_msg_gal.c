@@ -68,7 +68,7 @@ static void extract_inav_content(u8 content[static GAL_INAV_CONTENT_BYTE],
 static bool eph_complete(nav_msg_gal_inav_t *nav_msg);
 static bool alm_complete(nav_msg_gal_inav_t *nav_msg);
 
-static float sisa_map(u32 sisa);
+static float sisa_map(u8 sisa);
 static void parse_inav_eph(nav_msg_gal_inav_t *nav_msg,
                            gal_inav_decoded_t *dd,
                            const gps_time_t *t_dec);
@@ -599,8 +599,8 @@ static bool alm_complete(nav_msg_gal_inav_t *nav_msg) {
   return false;
 }
 
-static float sisa_map(u32 sisa) {
-  float ura = UNDEFINED_GAL_SISA_VALUE;
+static float sisa_map(u8 sisa) {
+  float ura = INVALID_URA_VALUE;
   sisa &= 0xff;
   if (sisa < 50) {
     ura = sisa * 0.01f;
@@ -610,8 +610,9 @@ static float sisa_map(u32 sisa) {
     ura = 1.0f + (sisa - 75) * 0.04f;
   } else if (sisa < 126) {
     ura = 2.0f + (sisa - 100) * 0.16f;
-  } else if (INVALID_GAL_SISA_INDEX == sisa) {
-    ura = INVALID_URA_VALUE;
+  } else if (INVALID_GAL_SISA_INDEX != sisa) {
+    /* Note: SISA Index 126...254 are considered as Spare. */
+    ura = 6.0f;
   }
   if (ura >= 0.0f) {
     /* Valid URA */
