@@ -36,6 +36,12 @@
  * Constants
  ******************************************************************************/
 
+/** number of milliseconds before SPP resumes in pseudo-absolute mode */
+#define DGNSS_TIMEOUT_MS 5000
+
+/* Size of an spp solution in ECEF. */
+#define SPP_ECEF_SIZE 3
+
 #define STARLING_BASE_SENDER_ID_DEFAULT 0
 
 /*******************************************************************************

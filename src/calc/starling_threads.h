@@ -87,18 +87,12 @@ typedef struct StarlingFilterSolution {
 /** Maximum difference between observation times to consider them matched. */
 #define TIME_MATCH_THRESHOLD 2e-3
 
-/** number of milliseconds before SPP resumes in pseudo-absolute mode */
-#define DGNSS_TIMEOUT_MS 5000
-
 /** Maximum time that an observation will be propagated for to align it with a
  * solution epoch before it is discarded.  */
 #define OBS_PROPAGATION_LIMIT 10e-3
 
 /* Warn on 15 second base station observation latency */
 #define BASE_LATENCY_TIMEOUT 15
-
-/* Size of an spp solution in ECEF. */
-#define SPP_ECEF_SIZE 3
 
 /*******************************************************************************
  * Starling Top-Level API
