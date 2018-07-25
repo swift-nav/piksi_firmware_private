@@ -67,7 +67,7 @@ static const float bds_ura_table[16] = {[0] = 2.0f,
                                         [12] = 1024.0f,
                                         [13] = 2048.0f,
                                         [14] = 4096.0f,
-                                        [15] = 8192.0f};
+                                        [15] = INVALID_URA_VALUE};
 
 static bool subframes123_from_same_frame(const nav_msg_bds_t *n);
 static void dw30_1bit_pushr(u32 *words, u8 numel, bool bitval);

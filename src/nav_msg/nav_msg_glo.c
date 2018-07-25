@@ -99,7 +99,7 @@ static const float f_t[] = {1.0f,
                             128.0f,
                             256.0f,
                             512.0f,
-                            -1.0f};
+                            INVALID_URA_VALUE};
 
 /* Word P1 (Time interval between adjacent values of tb).
    Refer to table 4.3 of GLO ICD */
