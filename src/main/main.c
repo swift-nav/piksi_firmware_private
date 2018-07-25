@@ -67,6 +67,8 @@ int main(void) {
   platform_mailbox_init(MB_ID_SBAS_DATA);
   settings_setup();
 
+  starling_initialize_api();
+
   log_info("Piksi Starting...");
   log_info("pfwp_build_id: " GIT_VERSION "");
   log_info("pfwp_build_date: " __DATE__ " " __TIME__ "");

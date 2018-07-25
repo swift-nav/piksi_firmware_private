@@ -29,10 +29,14 @@
 typedef int errno_t;
 #endif
 
+#define STARLING_MAX_NUM_MUTEXES 16
+typedef unsigned int mtx_id_t;
+
 typedef enum thread_id_e {
   THREAD_ID_TMO = 0,
   THREAD_ID_STARLING = 1
 } thread_id_t;
+
 typedef enum mailbox_id_e {
   MB_ID_TIME_MATCHED_OBS = 0,
   MB_ID_BASE_OBS = 1,
@@ -41,9 +45,13 @@ typedef enum mailbox_id_e {
   MB_ID_COUNT = 4
 } mailbox_id_t;
 
-/* Mutex */
-void platform_mutex_lock(void *mtx);
-void platform_mutex_unlock(void *mtx);
+/* Mutex:
+ * init() should return non-zero if the requested mutex ID cannot
+ * be initialized.
+ * */
+int platform_mutex_init(mtx_id_t id);
+void platform_mutex_lock(mtx_id_t id);
+void platform_mutex_unlock(mtx_id_t id);
 /* Thread */
 typedef void(platform_routine_t)(void *);
 

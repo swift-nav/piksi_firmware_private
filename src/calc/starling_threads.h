@@ -204,6 +204,9 @@ typedef struct StarlingOutputCallbacks {
 /* Should be called at startup before running the starling thread. */
 void starling_set_output_callbacks(const StarlingOutputCallbacks *callbacks);
 
+/* Must be called before using any of the other API functions. */
+void starling_initialize_api(void);
+
 /*******************************************************************************
  * Starling Configuration API
  ******************************************************************************/
