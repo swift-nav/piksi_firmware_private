@@ -19,6 +19,7 @@
 #include <libswiftnav/ionosphere.h>
 
 #include "nav_bit_fifo/nav_bit_fifo.h"
+#include "nav_data_sync/nav_data_sync.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -116,9 +117,9 @@ bool crc_check(nav_msg_bds_t *n);
 void bds_nav_msg_init(nav_msg_bds_t *n, u8 prn);
 void bds_nav_msg_clear_decoded(nav_msg_bds_t *n);
 void bds_data_decoding(nav_msg_bds_t *n,
-                       me_gnss_signal_t mesid,
-                       nav_bit_t nav_bit,
-                       u8 channel);
+                       const me_gnss_signal_t mesid,
+                       nav_data_sync_t *from_decoder,
+                       nav_bit_t nav_bit);
 bool bds_nav_msg_update(nav_msg_bds_t *n, bool bit_val);
 
 s32 bds_d1_process_subframe(nav_msg_bds_t *n,

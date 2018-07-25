@@ -80,6 +80,11 @@ static void data_sync(u8 id, nav_data_sync_t *from_decoder) {
 void tracker_data_sync(u8 id, nav_data_sync_t *from_decoder) {
   assert(from_decoder);
 
+  if (SYNC_NONE == from_decoder->sync_flags) {
+    /* Nothing to sync */
+    return;
+  }
+
   tracker_t *tracker = tracker_get(id);
   if (!IS_GPS(tracker->mesid)) {
     data_sync(id, from_decoder);

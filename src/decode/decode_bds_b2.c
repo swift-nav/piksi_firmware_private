@@ -74,13 +74,19 @@ static void decoder_bds_b2_process(const decoder_channel_info_t *channel_info,
   nav_bit_t nav_bit;
   u8 channel = channel_info->tracking_channel;
 
+  nav_data_sync_t from_decoder;
+  tracker_data_sync_init(&from_decoder);
+
   while (tracker_nav_bit_get(channel, &nav_bit)) {
     /* Don't decode data while in sensitivity mode. */
     if (0 == nav_bit) {
       bds_nav_msg_init(&data->nav_msg, mesid.sat);
       continue;
     }
-    bds_data_decoding(&data->nav_msg, mesid, nav_bit, channel);
+    /* Decode BDS data */
+    bds_data_decoding(&data->nav_msg, mesid, &from_decoder, nav_bit);
+    /* Sync tracker with decoder data */
+    tracker_data_sync(channel, &from_decoder);
   }
   return;
 }
