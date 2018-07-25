@@ -298,7 +298,7 @@ static void update_obss(uncollapsed_obss_t *new_uncollapsed_obss) {
             " filter.",
             old_base_sender_id,
             base_obss.sender_id);
-        reset_rtk_filter();
+        starling_reset_rtk_filter();
       }
       old_base_sender_id = base_obss.sender_id;
 

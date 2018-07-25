@@ -256,7 +256,7 @@ static void post_observations(u8 n,
   }
 }
 
-void reset_rtk_filter(void) {
+void starling_reset_rtk_filter(void) {
   platform_mutex_lock(MTX_TM_FILTER);
   if (time_matched_filter_manager) {
     filter_manager_init(time_matched_filter_manager);

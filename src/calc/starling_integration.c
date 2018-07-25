@@ -773,7 +773,7 @@ static void reset_filters_callback(u16 sender_id,
   switch (msg[0]) {
     case 0:
       log_info("Filter reset requested");
-      reset_rtk_filter();
+      starling_reset_rtk_filter();
       break;
     default:
       break;

@@ -103,8 +103,6 @@ typedef struct StarlingFilterSolution {
 /* Size of an spp solution in ECEF. */
 #define SPP_ECEF_SIZE 3
 
-void reset_rtk_filter(void);
-
 /*******************************************************************************
  * Formal Starling API
  ******************************************************************************/
@@ -188,6 +186,8 @@ struct StarlingIoFunctionTable {
  * Starling Configuration API
  ******************************************************************************/
 
+/* Reset only the RTK filter. */
+void starling_reset_rtk_filter(void);
 /* Enable glonass constellation in the Starling engine. */
 void starling_set_is_glonass_enabled(bool is_glonass_enabled);
 /* Enable galileo constellation in the Starling engine. */
