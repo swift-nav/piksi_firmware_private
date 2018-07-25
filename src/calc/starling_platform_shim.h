@@ -85,4 +85,7 @@ void platform_mailbox_item_free(mailbox_id_t id, const void *ptr);
 
 #define ME_OBS_MSG_N_BUFF 6
 
+/* Make the buffer large enough to handle 15 second latency at 10Hz */
+#define STARLING_OBS_N_BUFF BASE_LATENCY_TIMEOUT * 10
+
 #endif

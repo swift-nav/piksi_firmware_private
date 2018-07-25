@@ -97,14 +97,11 @@ typedef struct StarlingFilterSolution {
 /* Warn on 15 second base station observation latency */
 #define BASE_LATENCY_TIMEOUT 15
 
-/* Make the buffer large enough to handle 15 second latency at 10Hz */
-#define STARLING_OBS_N_BUFF BASE_LATENCY_TIMEOUT * 10
-
 /* Size of an spp solution in ECEF. */
 #define SPP_ECEF_SIZE 3
 
 /*******************************************************************************
- * Formal Starling API
+ * Starling Top-Level API
  ******************************************************************************/
 
 /* All user configurable IO functions used by the Starling Engine. 
