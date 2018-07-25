@@ -22,7 +22,7 @@
 #include <libswiftnav/coord_system.h>
 #include <libswiftnav/gnss_time.h>
 #include <libswiftnav/logging.h>
-#include <libswiftnav/observation.h>
+#include <libswiftnav/pvt_engine/firmware_binding.h>
 
 #include "board/nap/track_channel.h"
 #include "calc_pvt_me.h"
@@ -336,7 +336,7 @@ void nmea_gpgga(const msg_pos_llh_t *sbp_pos_llh,
   double lon_min = (lon - (double)lon_deg) * 60.0;
 
   u8 fix_type = NMEA_GGA_QI_INVALID;
-  if ((sbp_msg_time->flags & POSITION_MODE_MASK) != NO_POSITION) {
+  if ((sbp_msg_time->flags & POSITION_MODE_MASK) != POSITION_MODE_NONE) {
     fix_type = get_nmea_quality_indicator(sbp_pos_llh->flags);
   }
 
@@ -471,7 +471,7 @@ void nmea_gsa_print(u16 *prns,
   assert(sbp_dops);
   assert(sbp_pos_llh);
 
-  bool fix = NO_POSITION != (sbp_pos_llh->flags & POSITION_MODE_MASK);
+  bool fix = POSITION_MODE_NONE != (sbp_pos_llh->flags & POSITION_MODE_MASK);
 
   /* Our fix is always 3D */
   char fix_mode = fix ? '3' : '1';
@@ -807,7 +807,7 @@ void nmea_gprmc(const msg_pos_llh_t *sbp_pos_llh,
   NMEA_SENTENCE_PRINTF("%c,", /* Status */
                        status);
 
-  if ((sbp_pos_llh->flags & POSITION_MODE_MASK) != NO_POSITION) {
+  if ((sbp_pos_llh->flags & POSITION_MODE_MASK) != POSITION_MODE_NONE) {
     NMEA_SENTENCE_PRINTF("%02u%010.7f,%c,%03u%010.7f,%c,", /* Lat/Lon */
                          lat_deg,
                          lat_min,
@@ -819,7 +819,7 @@ void nmea_gprmc(const msg_pos_llh_t *sbp_pos_llh,
     NMEA_SENTENCE_PRINTF(",,,,"); /* Lat/Lon */
   }
 
-  if ((sbp_pos_llh->flags & VELOCITY_MODE_MASK) != NO_VELOCITY) {
+  if ((sbp_pos_llh->flags & VELOCITY_MODE_MASK) != VELOCITY_MODE_NONE) {
     NMEA_SENTENCE_PRINTF("%.2f,", sog_knots); /* Speed */
     if (NMEA_COG_STATIC_LIMIT_KNOTS < sog_knots) {
       NMEA_SENTENCE_PRINTF("%.*f,", NMEA_COG_DECIMALS, cog); /* Course */
@@ -862,7 +862,8 @@ void nmea_gpvtg(const msg_vel_ned_t *sbp_vel_ned,
   NMEA_SENTENCE_START(120);
   NMEA_SENTENCE_PRINTF("$GPVTG,"); /* Command */
 
-  bool is_moving = (sbp_pos_llh->flags & VELOCITY_MODE_MASK) != NO_VELOCITY;
+  bool is_moving =
+      (sbp_pos_llh->flags & VELOCITY_MODE_MASK) != VELOCITY_MODE_NONE;
 
   if (is_moving && NMEA_COG_STATIC_LIMIT_KNOTS < sog_knots) {
     NMEA_SENTENCE_PRINTF("%.*f,T,", NMEA_COG_DECIMALS, cog); /* Course */
@@ -892,7 +893,8 @@ void nmea_gpvtg(const msg_vel_ned_t *sbp_vel_ned,
 void nmea_gphdt(const msg_baseline_heading_t *sbp_baseline_heading) {
   NMEA_SENTENCE_START(40);
   NMEA_SENTENCE_PRINTF("$GPHDT,"); /* Command */
-  if ((POSITION_MODE_MASK & sbp_baseline_heading->flags) == FIXED_POSITION) {
+  if ((POSITION_MODE_MASK & sbp_baseline_heading->flags) ==
+      POSITION_MODE_FIXED) {
     NMEA_SENTENCE_PRINTF(
         "%.1f,T",
         (float)sbp_baseline_heading->heading /
@@ -934,7 +936,7 @@ void nmea_gpgll(const msg_pos_llh_t *sbp_pos_llh,
   NMEA_SENTENCE_START(120);
   NMEA_SENTENCE_PRINTF("$GPGLL,"); /* Command */
 
-  if ((sbp_pos_llh->flags & POSITION_MODE_MASK) != NO_POSITION) {
+  if ((sbp_pos_llh->flags & POSITION_MODE_MASK) != POSITION_MODE_NONE) {
     NMEA_SENTENCE_PRINTF("%02u%010.7f,%c,%03u%010.7f,%c,", /* Lat/Lon */
                          lat_deg,
                          lat_min,
@@ -1114,13 +1116,13 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh,
  */
 char get_nmea_status(u8 flags) {
   switch (flags & POSITION_MODE_MASK) {
-    case NO_POSITION:
+    case POSITION_MODE_NONE:
       return 'V';
-    case SPP_POSITION: /* autonomous mode */
-    case DGNSS_POSITION:
-    case SBAS_POSITION:
-    case FLOAT_POSITION:
-    case FIXED_POSITION:
+    case POSITION_MODE_SPP: /* autonomous mode */
+    case POSITION_MODE_DGNSS:
+    case POSITION_MODE_SBAS:
+    case POSITION_MODE_FLOAT:
+    case POSITION_MODE_FIXED:
       return 'A';
     default:
       assert(!"Unsupported position type indicator");
@@ -1135,14 +1137,14 @@ char get_nmea_status(u8 flags) {
  */
 char get_nmea_mode_indicator(u8 flags) {
   switch (flags & POSITION_MODE_MASK) {
-    case NO_POSITION:
+    case POSITION_MODE_NONE:
       return 'N';
-    case SPP_POSITION: /* autonomous mode */
+    case POSITION_MODE_SPP: /* autonomous mode */
       return 'A';
-    case DGNSS_POSITION: /* differential mode */
-    case SBAS_POSITION:
-    case FLOAT_POSITION:
-    case FIXED_POSITION:
+    case POSITION_MODE_DGNSS: /* differential mode */
+    case POSITION_MODE_SBAS:
+    case POSITION_MODE_FLOAT:
+    case POSITION_MODE_FIXED:
       return 'D';
     default:
       assert(!"Unsupported position type indicator");
@@ -1157,16 +1159,16 @@ char get_nmea_mode_indicator(u8 flags) {
  */
 u8 get_nmea_quality_indicator(u8 flags) {
   switch (flags & POSITION_MODE_MASK) {
-    case NO_POSITION:
+    case POSITION_MODE_NONE:
       return NMEA_GGA_QI_INVALID;
-    case SPP_POSITION:
+    case POSITION_MODE_SPP:
       return NMEA_GGA_QI_GPS;
-    case DGNSS_POSITION:
-    case SBAS_POSITION:
+    case POSITION_MODE_DGNSS:
+    case POSITION_MODE_SBAS:
       return NMEA_GGA_QI_DGPS;
-    case FLOAT_POSITION:
+    case POSITION_MODE_FLOAT:
       return NMEA_GGA_QI_FLOAT;
-    case FIXED_POSITION:
+    case POSITION_MODE_FIXED:
       return NMEA_GGA_QI_RTK;
     default:
       assert(!"Unsupported position type indicator");
