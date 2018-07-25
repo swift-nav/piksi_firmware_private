@@ -99,6 +99,8 @@ enum {
   MTX_IONO_PARAMS,
   kMutexCount,
 };
+_Static_assert(kMutexCount <= STARLING_MAX_NUM_MUTEXES,
+               "Platform layer has insufficient mutex support.");
 
 /* Local settings object and mutex protection. */
 static StarlingSettings global_settings = {
