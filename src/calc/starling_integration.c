@@ -32,6 +32,9 @@
 #include "starling_platform_shim.h"
 #include "utils/timing/timing.h"
 
+#include "board/v3/nap/nap_hw.h"
+#include "timing/timing.h"
+
 /*******************************************************************************
  * Constants
  ******************************************************************************/
@@ -43,6 +46,7 @@
 #define SPP_ECEF_SIZE 3
 
 #define STARLING_BASE_SENDER_ID_DEFAULT 0
+
 
 /*******************************************************************************
  * Types
@@ -1075,6 +1079,41 @@ static void initialize_vehicle_dynamics_filters(void) {
                  setting_notify_vehicle_dynamics_filter_param);
 }
 
+static void profile_low_latency_thread(enum ProfileDirective directive) {
+  static float avg_run_time_s = 0.1f;
+  static float diff_run_time_s = 0.1f;
+  static float avg_diff_run_time_s = 0.0f;
+  static float std_run_time_s = 0.1f;
+  const float smooth_factor = 0.01f;
+  u32 nap_snapshot_begin = 0;
+  switch(directive) {
+    case PROFILE_BEGIN:
+      nap_snapshot_begin = NAP->TIMING_COUNT;
+      break;
+    case PROFILE_END:
+      {
+        u32 nap_snapshot_diff = (u32)(NAP->TIMING_COUNT - nap_snapshot_begin);
+        float time_snapshot_diff = RX_DT_NOMINAL * nap_snapshot_diff;
+        avg_run_time_s = avg_run_time_s * (1 - smooth_factor) +
+                         time_snapshot_diff * smooth_factor;
+        diff_run_time_s = (time_snapshot_diff - avg_run_time_s);
+        avg_diff_run_time_s = avg_diff_run_time_s * (1 - smooth_factor) +
+                              (diff_run_time_s * diff_run_time_s) * smooth_factor;
+        std_run_time_s = sqrtf(avg_diff_run_time_s);
+        if (diff_run_time_s > 3.0f * std_run_time_s) {
+          log_warn("time_snapshot_diff %f average %f std %f",
+                   time_snapshot_diff,
+                   avg_run_time_s,
+                   std_run_time_s);
+        }
+      }
+      break;
+    default:
+      log_warn("Bad profile directive.");
+      break;
+  }
+}
+
 /* Determines how long each read operation will block for. */
 #define READ_OBS_ROVER_TIMEOUT DGNSS_TIMEOUT_MS
 #define READ_OBS_BASE_TIMEOUT DGNSS_TIMEOUT_MS
@@ -1160,8 +1199,12 @@ static THD_FUNCTION(initialize_and_run_starling, arg) {
       .handle_solution_time_matched = send_solution_time_matched,
   };
 
+  StarlingDebugFunctionTable debug_functions = {
+    .profile_low_latency_thread = profile_low_latency_thread,
+  };
+
   /* This runs forever. */
-  starling_run(&io_functions);
+  starling_run(&io_functions, &debug_functions);
 
   /* Never get here. */
   log_error("Starling Engine has unexpectedly terminated.");

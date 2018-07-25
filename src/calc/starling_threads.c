@@ -14,7 +14,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#define PROFILE_STARLING 0
+#ifndef STARLING_DEBUG_FUNCTIONS_ENABLED
+#define STARLING_DEBUG_FUNCTIONS_ENABLED 0
+#endif
 
 #include <libsbp/sbp.h>
 #include <libswiftnav/constants.h>
@@ -36,11 +38,6 @@
 /* TODO(kevin) Must get rid of this. */
 #include <ch.h>
 
-#if defined PROFILE_STARLING && PROFILE_STARLING > 0
-#include "board/v3/nap/nap_hw.h"
-#include "timing/timing.h"
-#endif
-
 extern bool starling_integration_simulation_enabled(void);
 extern void starling_integration_simulation_run(const me_msg_obs_t *me_msg);
 
@@ -51,6 +48,11 @@ static StarlingIoFunctionTable io_functions = {
   .read_sbas_data = NULL,
   .handle_solution_low_latency = NULL,
   .handle_solution_time_matched = NULL,
+};
+
+/* User configurable debug instrumentation functions. */
+static StarlingDebugFunctionTable debug_functions = {
+  .profile_low_latency_thread = NULL,
 };
 
 /* Settings which control the filter behavior of the Starling engine. */
@@ -659,13 +661,10 @@ static void starling_thread(void) {
       continue;
     }
 
-#if defined PROFILE_STARLING && PROFILE_STARLING > 0
-    static float avg_run_time_s = 0.1f;
-    static float diff_run_time_s = 0.1f;
-    static float avg_diff_run_time_s = 0.0f;
-    static float std_run_time_s = 0.1f;
-    const float smooth_factor = 0.01f;
-    u32 nap_snapshot_begin = NAP->TIMING_COUNT;
+#if STARLING_DEBUG_FUNCTIONS_ENABLED
+    if (debug_functions.profile_low_latency_thread) {
+      profile_low_latency_thread(PROFILE_START);
+    }
 #endif
 
     /* When simulation is enabled, intercept the incoming
@@ -844,28 +843,21 @@ static void starling_thread(void) {
       io_functions.handle_solution_low_latency(
           p_spp_solution, p_rtk_solution, &epoch_time, nav_meas, n_ready);
     }
-#if defined PROFILE_STARLING && PROFILE_STARLING > 0
-    u32 nap_snapshot_diff = (u32)(NAP->TIMING_COUNT - nap_snapshot_begin);
-    float time_snapshot_diff = RX_DT_NOMINAL * nap_snapshot_diff;
-    avg_run_time_s = avg_run_time_s * (1 - smooth_factor) +
-                     time_snapshot_diff * smooth_factor;
-    diff_run_time_s = (time_snapshot_diff - avg_run_time_s);
-    avg_diff_run_time_s = avg_diff_run_time_s * (1 - smooth_factor) +
-                          (diff_run_time_s * diff_run_time_s) * smooth_factor;
-    std_run_time_s = sqrtf(avg_diff_run_time_s);
-    if (diff_run_time_s > 3.0f * std_run_time_s) {
-      log_warn("time_snapshot_diff %f average %f std %f",
-               time_snapshot_diff,
-               avg_run_time_s,
-               std_run_time_s);
+
+#if STARLING_DEBUG_FUNCTIONS_ENABLED
+    if (debug_functions.profile_low_latency_thread) {
+      debug_functions.profile_low_latency_thread(PROFILE_STOP); 
     }
 #endif
   }
 }
 
 /* Run the starling engine on the current thread. Blocks indefinitely. */
-void starling_run(const StarlingIoFunctionTable *functions) { 
-  io_functions = *functions;
+void starling_run(const StarlingIoFunctionTable *io_f,
+                  const StarlingDebugFunctionTable *debug_f) { 
+  assert(io_f);
+  io_functions = *io_f;
+  if (debug_f) { debug_functions = *debug_f; }
   starling_thread(); 
 }
 

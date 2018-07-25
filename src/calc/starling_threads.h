@@ -99,11 +99,16 @@ typedef struct StarlingFilterSolution {
  * be replaced with NULL. */ 
 typedef struct StarlingIoFunctionTable StarlingIoFunctionTable;
 
+/* User may optionally supply debug functions which will may be used to
+ * instrument certain modes of operation. */ 
+typedef struct StarlingDebugFunctionTable StarlingDebugFunctionTable;
+
 /* Must be called before using any of the other API functions. */
 void starling_initialize_api(void);
 
 /* Run the starling engine on the current thread. Blocks indefinitely. */
-void starling_run(const StarlingIoFunctionTable *io_functions);
+void starling_run(const StarlingIoFunctionTable *io_functions,
+                  const StarlingDebugFunctionTable *debug_functions);
 
 /* Return codes for read functions. */
 #define STARLING_READ_OK 0
@@ -167,6 +172,16 @@ struct StarlingIoFunctionTable {
   void (*handle_solution_time_matched)(const StarlingFilterSolution *solution,
                                        const obss_t *obss_base,
                                        const obss_t *obss_rover);
+};
+
+enum ProfileDirective {
+  PROFILE_BEGIN,
+  PROFILE_END,
+};
+
+struct StarlingDebugFunctionTable {
+  /* Will be called at the beginning and end of a low-latency thread iteration. */
+  void (*profile_low_latency_thread)(enum ProfileDirective directive); 
 };
 
 /*******************************************************************************
