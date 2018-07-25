@@ -648,7 +648,7 @@ static void starling_thread(void) {
         "No rover obs source provided. Running Starling Engine is impossible.");
   }
 
-  while (TRUE) {
+  while (true) {
     platform_watchdog_notify_starling_main_thread();
 
     process_any_sbas_messages();
