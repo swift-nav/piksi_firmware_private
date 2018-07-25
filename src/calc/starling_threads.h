@@ -41,6 +41,13 @@ typedef enum {
   FILTER_FIXED,
 } dgnss_filter_t;
 
+typedef struct me_msg_obs_t {
+  size_t size;
+  navigation_measurement_t obs[MAX_CHANNELS];
+  ephemeris_t ephem[MAX_CHANNELS];
+  gps_time_t obs_time;
+} me_msg_obs_t;
+
 /**
  * Base observation input type. Starling engine operates
  * on base observations provided in this format.
@@ -68,37 +75,6 @@ typedef struct {
   /** Set of observations. */
   navigation_measurement_t nm[MAX_CHANNELS];
 } obss_t;
-
-#define MAX_REMOTE_OBS 150
-/**
- * Uncollapsed observation input type.
- * Remote observations may contain multiple useful signals for satellites.
- * This observation type can fit more observations than the obss_t.
- * Eventually signals in uncollapsed_obss_t are collapsed, and copied to obss_t.
- *
- * TODO(kevin) for now...
- */
-typedef struct {
-  /** GPS system time of the observation. */
-  gps_time_t tor;
-  /** Approximate base station position.
-   * This may be the position as reported by the base station itself or the
-   * position obtained from doing a single point solution using the base
-   * station observations. */
-  double pos_ecef[3];
-  /** Is the `pos_ecef` field valid? */
-  u8 has_pos;
-  /** The known, surveyed base position. */
-  double known_pos_ecef[3];
-  /** Observation Solution */
-  pvt_engine_result_t soln;
-
-  /** Number of observations in the set. */
-  u8 n;
-  u8 sender_id;
-  /** Set of observations. */
-  navigation_measurement_t nm[MAX_REMOTE_OBS];
-} uncollapsed_obss_t;
 
 /**
  * Filter result data type returned by various API functions.
@@ -132,15 +108,6 @@ void reset_rtk_filter(void);
  * Formal Starling API
  ******************************************************************************/
 
-/* Initialize the Starling API.
- *
- * IMPORTANT:
- * This function should be called *once* at the start of the program.
- * Failure to do so before invoking other Starling API functions will
- * result in undefined behavior. Calling this function multiple times
- * also results in undefined behavior. */
-void starling_initialize_api(void);
-
 /* Run the starling engine on the current thread. Blocks indefinitely. */
 void starling_run(void);
 
@@ -148,9 +115,51 @@ void starling_run(void);
  * Starling Data API
  ******************************************************************************/
 
-/* Add raw sbas data to the starling engine. */
-void starling_add_sbas_data(const sbas_raw_data_t *sbas_data,
-                            const size_t n_sbas_data);
+/*
+ * DATA API
+ * ========
+ * All regularly occurring inputs to the Starling Engine are provided through a
+ * uniform interface. Namely, the user must provide a "read" function for each
+ * supported input type which conforms to the following interface.
+ *
+ * 1. BLOCKING / NONBLOCKING
+ *      -- Read functions must accept an argument indicating whether or not
+ *         blocking behavior is desired. The implementation may determine
+ *         the length of any blocking timeout. By invoking a read function
+ *         in blocking mode, the Starling Engine is merely indicating that
+ *         it has no work to do until it receives something.
+ * 2. COPY BEHAVIOR
+ *      -- Starling Engine requires that data is copied in. Support for
+ *         message passing will come later.
+ * 3. RETURNS
+ *      -- Read functions may return implementation specific return codes.
+ *         Zero must always indicate success.
+ */
+
+/* Return codes for read functions. */
+#define STARLING_READ_OK 0
+
+/* Blocking indicator values. */
+#define STARLING_READ_NONBLOCKING 0
+#define STARLING_READ_BLOCKING 1
+
+/* Table of read functions for regularly occurring data streams. */
+typedef struct StarlingInputFunctionTable {
+  int (*read_obs_rover)(int blocking, me_msg_obs_t *me_msg);
+  int (*read_obs_base)(int blocking, obss_t *obs);
+  int (*read_sbas_data)(int blocking, sbas_raw_data_t *data);
+} StarlingInputFunctionTable;
+
+#if 0
+// TODO(kevin) future work..
+  int (*read_ephemeris)  (int flags, ephemeris_t *e);
+  int (*read_utc_params) (int flags, utc_params_t *p);
+  int (*read_imu_data)   (int flags, imu_data_t *i);
+#endif
+
+/* Set the table of read functions. Should only be called on startup.
+ * TODO(kevin) make this a parameter to initialize or run. */
+void starling_set_input_functions(const StarlingInputFunctionTable *functions);
 
 /**
  * The Starling Engine output is made available over user provided callback

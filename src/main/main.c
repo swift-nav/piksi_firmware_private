@@ -29,7 +29,6 @@
 #include "init.h"
 #include "io_support.h"
 #include "manage.h"
-#include "me_msg/me_msg.h"
 #include "ndb/ndb.h"
 #include "nmea/nmea.h"
 #include "peripherals/leds.h"
@@ -65,10 +64,8 @@ int main(void) {
   io_support_init();
   sbp_setup();
   platform_mailbox_init(MB_ID_ME_OBS);
+  platform_mailbox_init(MB_ID_SBAS_DATA);
   settings_setup();
-
-  /* Must initialize the Starling API prior to any use. */
-  starling_initialize_api();
 
   log_info("Piksi Starting...");
   log_info("pfwp_build_id: " GIT_VERSION "");

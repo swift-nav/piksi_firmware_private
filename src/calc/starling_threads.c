@@ -33,6 +33,9 @@
 #include "starling_platform_shim.h"
 #include "starling_threads.h"
 
+/* TODO(kevin) Must get rid of this. */
+#include <ch.h>
+
 #if defined PROFILE_STARLING && PROFILE_STARLING > 0
 #include "board/v3/nap/nap_hw.h"
 #include "timing/timing.h"
@@ -41,8 +44,9 @@
 extern bool starling_integration_simulation_enabled(void);
 extern void starling_integration_simulation_run(const me_msg_obs_t *me_msg);
 
-/* Tracks if the API has been properly initialized or not. */
-static bool is_starling_api_initialized = false;
+static StarlingInputFunctionTable inputs = {
+    .read_obs_rover = NULL, .read_obs_base = NULL, .read_sbas_data = NULL,
+};
 
 /* User configurable endpoints for transmitting data out
  * of the Starling Engine. */
@@ -445,30 +449,24 @@ static void time_matched_obs_thread(void *arg) {
   (void)arg;
   platform_thread_set_name("time matched obs");
 
-  obss_t *base_obs;
-  static obss_t base_obss_copy;
+  if (NULL == inputs.read_obs_base) {
+    log_error(
+        "No base obs source provided. Running base obs thread is impossible.");
+    return;
+  }
 
   while (1) {
-    base_obs = NULL;
-    const errno_t fetch_ret = platform_mailbox_fetch(
-        MB_ID_BASE_OBS, (void **)&base_obs, DGNSS_TIMEOUT_MS);
-
-    if (fetch_ret != 0) {
-      if (NULL != base_obs) {
-        log_error("Base obs mailbox fetch failed with %d", fetch_ret);
-        platform_mailbox_item_free(MB_ID_BASE_OBS, base_obs);
-      }
+    obss_t base_obs;
+    int ret = inputs.read_obs_base(STARLING_READ_BLOCKING, &base_obs);
+    if (STARLING_READ_OK != ret) {
       continue;
     }
 
     if (gps_time_valid(&last_time_matched_rover_obs_post) &&
-        gpsdifftime(&last_time_matched_rover_obs_post, &base_obs->tor) >
+        gpsdifftime(&last_time_matched_rover_obs_post, &base_obs.tor) >
             BASE_LATENCY_TIMEOUT) {
       log_info("Communication Latency exceeds 15 seconds");
     }
-
-    base_obss_copy = *base_obs;
-    platform_mailbox_item_free(MB_ID_BASE_OBS, base_obs);
 
     /* Check if the el mask has changed and update */
     platform_mutex_lock(&time_matched_filter_manager_lock);
@@ -495,9 +493,9 @@ static void time_matched_obs_thread(void *arg) {
         continue;
       }
 
-      double dt = gpsdifftime(&obss->tor, &base_obss_copy.tor);
+      double dt = gpsdifftime(&obss->tor, &base_obs.tor);
 
-      if (fabs(dt) < TIME_MATCH_THRESHOLD && base_obss_copy.has_pos == 1) {
+      if (fabs(dt) < TIME_MATCH_THRESHOLD && base_obs.has_pos == 1) {
         /* Local variables to capture the filter result. */
         PVT_ENGINE_INTERFACE_RC time_matched_rc = PVT_ENGINE_FAILURE;
         StarlingFilterSolution solution = {0};
@@ -507,7 +505,7 @@ static void time_matched_obs_thread(void *arg) {
         if (update_time_matched(&last_update_time, &obss->tor, obss->n) ||
             dgnss_soln_mode == STARLING_SOLN_MODE_TIME_MATCHED) {
           time_matched_rc = process_matched_obs(
-              obss, &base_obss_copy, &solution.dops, &solution.result);
+              obss, &base_obs, &solution.dops, &solution.result);
           last_update_time = obss->tor;
         }
 
@@ -519,7 +517,7 @@ static void time_matched_obs_thread(void *arg) {
 
         if (NULL != output_callbacks.handle_solution_time_matched) {
           output_callbacks.handle_solution_time_matched(
-              p_solution, &base_obss_copy, obss);
+              p_solution, &base_obs, obss);
         }
 
         platform_mailbox_item_free(MB_ID_TIME_MATCHED_OBS, obss);
@@ -540,8 +538,8 @@ static void time_matched_obs_thread(void *arg) {
               dt,
               obss->tor.wn,
               obss->tor.tow,
-              base_obss_copy.tor.wn,
-              base_obss_copy.tor.tow);
+              base_obs.tor.wn,
+              base_obs.tor.tow);
           /* Return the buffer to the mailbox so we can try it again later. */
           const errno_t post_ret = platform_mailbox_post_ahead(
               MB_ID_TIME_MATCHED_OBS, obss, TIME_IMMEDIATE);
@@ -603,40 +601,29 @@ static void process_sbas_data(const sbas_raw_data_t *sbas_data) {
  * nevermind.
  */
 static void process_any_sbas_messages(void) {
-  errno_t ret = 0;
-  while (0 == ret) {
-    sbas_raw_data_t *sbas_data = NULL;
-    ret = platform_mailbox_fetch(
-        MB_ID_SBAS_DATA, (void **)&sbas_data, TIME_IMMEDIATE);
-    if (0 == ret) {
-      /* We have successfully received SBAS data, forward on to the
-       * filter managers. */
-      process_sbas_data(sbas_data);
-    } else if (NULL != sbas_data) {
-      /* If the fetch operation failed after assigning to the message pointer,
-       * something has gone unexpectedly wrong. */
-      log_error("STARLING: sbas mailbox fetch failed with %d", ret);
-    }
-    /* Under any circumstances, if the message pointer was assigned to, it
-     * must be released back to the pool. */
-    if (NULL != sbas_data) {
-      platform_mailbox_item_free(MB_ID_SBAS_DATA, sbas_data);
-    }
+  if (NULL == inputs.read_sbas_data) {
+    return;
+  }
+
+  sbas_raw_data_t data;
+  while (STARLING_READ_OK ==
+         inputs.read_sbas_data(STARLING_READ_NONBLOCKING, &data)) {
+    process_sbas_data(&data);
   }
 }
 
 static void starling_thread(void) {
-  errno_t ret;
-
   /* Initialize all filters, settings, and SBP callbacks. */
   init_filters_and_settings();
 
-  /* Spawn the time_matched thread. */
-  platform_thread_create(THREAD_ID_TMO, time_matched_obs_thread);
+  /* Spawn the time_matched thread only if base obs are available. */
+  if (NULL != inputs.read_obs_base) {
+    platform_thread_create(THREAD_ID_TMO, time_matched_obs_thread);
+  }
 
   static navigation_measurement_t nav_meas[MAX_CHANNELS];
   static ephemeris_t e_meas[MAX_CHANNELS];
-  static gps_time_t obs_time;
+  static gps_time_t obs_time = {0};
 
   platform_mutex_lock(&spp_filter_manager_lock);
   spp_filter_manager = create_filter_manager_spp();
@@ -644,19 +631,19 @@ static void starling_thread(void) {
   filter_manager_init(spp_filter_manager);
   platform_mutex_unlock(&spp_filter_manager_lock);
 
+  if (NULL == inputs.read_obs_rover) {
+    log_error(
+        "No rover obs source provided. Running Starling Engine is impossible.");
+  }
+
   while (TRUE) {
     platform_watchdog_notify_starling_main_thread();
 
     process_any_sbas_messages();
 
-    me_msg_obs_t *me_msg = NULL;
-    ret = platform_mailbox_fetch(
-        MB_ID_ME_OBS, (void **)&me_msg, DGNSS_TIMEOUT_MS);
-    if (ret != 0) {
-      if (NULL != me_msg) {
-        log_error("STARLING: mailbox fetch failed with %d", ret);
-        platform_mailbox_item_free(MB_ID_ME_OBS, me_msg);
-      }
+    me_msg_obs_t me_msg;
+    int ret = inputs.read_obs_rover(STARLING_READ_BLOCKING, &me_msg);
+    if (STARLING_READ_OK != ret) {
       continue;
     }
 
@@ -681,17 +668,15 @@ static void starling_thread(void) {
      * TODO(kevin) move all this onto a separate thread
      * somewhere else. */
     if (starling_integration_simulation_enabled()) {
-      starling_integration_simulation_run(me_msg);
-      platform_mailbox_item_free(MB_ID_ME_OBS, me_msg);
+      starling_integration_simulation_run(&me_msg);
       continue;
     }
 
-    gps_time_t epoch_time = me_msg->obs_time;
+    gps_time_t epoch_time = me_msg.obs_time;
 
     /* If there are no messages, or the observation time is invalid,
      * we send an empty solution. */
-    if (me_msg->size == 0 || !gps_time_valid(&epoch_time)) {
-      platform_mailbox_item_free(MB_ID_ME_OBS, me_msg);
+    if (me_msg.size == 0 || !gps_time_valid(&epoch_time)) {
       if (NULL != output_callbacks.handle_solution_low_latency) {
         output_callbacks.handle_solution_low_latency(
             NULL, NULL, &epoch_time, nav_meas, 0);
@@ -699,21 +684,20 @@ static void starling_thread(void) {
       continue;
     }
 
-    if (gpsdifftime(&me_msg->obs_time, &obs_time) <= 0.0) {
-      /* When we change the solution rate down, we sometimes can round the
-       * time to an epoch earlier than the previous one processed, in that
-       * case we want to ignore any epochs with an earlier timestamp */
-      platform_mailbox_item_free(MB_ID_ME_OBS, me_msg);
+    /* When we change the solution rate down, we sometimes can round the
+     * time to an epoch earlier than the previous one processed, in that
+     * case we want to ignore any epochs with an earlier timestamp */
+    if (gpsdifftime(&me_msg.obs_time, &obs_time) <= 0.0) {
       continue;
     }
 
-    u8 n_ready = me_msg->size;
+    u8 n_ready = me_msg.size;
     memset(nav_meas, 0, sizeof(nav_meas));
 
     if (n_ready) {
       MEMCPY_S(nav_meas,
                sizeof(nav_meas),
-               me_msg->obs,
+               me_msg.obs,
                n_ready * sizeof(navigation_measurement_t));
     }
 
@@ -721,12 +705,10 @@ static void starling_thread(void) {
 
     if (n_ready) {
       MEMCPY_S(
-          e_meas, sizeof(e_meas), me_msg->ephem, n_ready * sizeof(ephemeris_t));
+          e_meas, sizeof(e_meas), me_msg.ephem, n_ready * sizeof(ephemeris_t));
     }
 
-    obs_time = me_msg->obs_time;
-
-    platform_mailbox_item_free(MB_ID_ME_OBS, me_msg);
+    obs_time = me_msg.obs_time;
 
     ionosphere_t i_params;
     /* get iono parameters if available, otherwise use default ones */
@@ -872,37 +854,8 @@ static void starling_thread(void) {
 /* Run the starling engine on the current thread. Blocks indefinitely. */
 void starling_run(void) { starling_thread(); }
 
-/* Set up all persistent data-structures used by the API. All
- * API calls should be valid after a call to this function. */
-void starling_initialize_api(void) {
-  /* It is invalid to call more than once. */
-  assert(!is_starling_api_initialized);
-
-  platform_mailbox_init(MB_ID_SBAS_DATA);
-
-  is_starling_api_initialized = true;
-}
-
-/* Add SBAS data to the Starling engine. */
-void starling_add_sbas_data(const sbas_raw_data_t *sbas_data,
-                            const size_t n_sbas_data) {
-  assert(is_starling_api_initialized);
-  for (size_t i = 0; i < n_sbas_data; ++i) {
-    sbas_raw_data_t *sbas_data_msg =
-        platform_mailbox_item_alloc(MB_ID_SBAS_DATA);
-    if (NULL == sbas_data_msg) {
-      log_error("platform_mailbox_item_alloc(MB_ID_SBAS_DATA) failed!");
-      continue;
-    }
-    assert(sbas_data);
-    *sbas_data_msg = *sbas_data;
-    errno_t ret =
-        platform_mailbox_post(MB_ID_SBAS_DATA, sbas_data_msg, TIME_IMMEDIATE);
-    if (ret != 0) {
-      log_error("platform_mailbox_post(MB_ID_SBAS_DATA) failed!");
-      platform_mailbox_item_free(MB_ID_SBAS_DATA, sbas_data_msg);
-    }
-  }
+void starling_set_input_functions(const StarlingInputFunctionTable *functions) {
+  inputs = *functions;
 }
 
 void starling_set_output_callbacks(const StarlingOutputCallbacks *callbacks) {

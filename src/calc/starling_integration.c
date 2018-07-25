@@ -23,7 +23,6 @@
 #include "calc/calc_pvt_me.h"
 #include "calc/starling_integration.h"
 #include "calc/starling_threads.h"
-#include "me_msg/me_msg.h"
 #include "ndb/ndb.h"
 #include "nmea/nmea.h"
 #include "sbp/sbp.h"
@@ -785,6 +784,27 @@ static void reset_filters_callback(u16 sender_id,
   }
 }
 
+/* Add SBAS data to the Starling engine. */
+void starling_add_sbas_data(const sbas_raw_data_t *sbas_data,
+                            const size_t n_sbas_data) {
+  for (size_t i = 0; i < n_sbas_data; ++i) {
+    sbas_raw_data_t *sbas_data_msg =
+        platform_mailbox_item_alloc(MB_ID_SBAS_DATA);
+    if (NULL == sbas_data_msg) {
+      log_error("platform_mailbox_item_alloc(MB_ID_SBAS_DATA) failed!");
+      continue;
+    }
+    assert(sbas_data);
+    *sbas_data_msg = *sbas_data;
+    errno_t ret =
+        platform_mailbox_post(MB_ID_SBAS_DATA, sbas_data_msg, TIME_IMMEDIATE);
+    if (ret != 0) {
+      log_error("platform_mailbox_post(MB_ID_SBAS_DATA) failed!");
+      platform_mailbox_item_free(MB_ID_SBAS_DATA, sbas_data_msg);
+    }
+  }
+}
+
 /**
  * Simply apply whatever the current settings are to the
  * given dynamics filter.
@@ -1053,6 +1073,67 @@ static void initialize_vehicle_dynamics_filters(void) {
                  setting_notify_vehicle_dynamics_filter_param);
 }
 
+/* Determines how long each read operation will block for. */
+#define READ_OBS_ROVER_TIMEOUT DGNSS_TIMEOUT_MS
+#define READ_OBS_BASE_TIMEOUT DGNSS_TIMEOUT_MS
+
+/* TODO(kevin) refactor common code. */
+static int read_obs_rover(int blocking, me_msg_obs_t *me_msg) {
+  uint32_t timeout_ms = blocking ? READ_OBS_ROVER_TIMEOUT : 0;
+  me_msg_obs_t *local_me_msg = NULL;
+  errno_t ret =
+      platform_mailbox_fetch(MB_ID_ME_OBS, (void **)&local_me_msg, timeout_ms);
+  if (local_me_msg) {
+    if (STARLING_READ_OK == ret) {
+      *me_msg = *local_me_msg;
+    } else {
+      /* Erroneous behavior for fetch to return non-NULL pointer and indicate
+       * read failure. */
+      log_error("Rover obs mailbox fetch failed with %d", ret);
+    }
+    platform_mailbox_item_free(MB_ID_ME_OBS, local_me_msg);
+  }
+  return ret;
+};
+
+/* TODO(kevin) refactor common code. */
+static int read_obs_base(int blocking, obss_t *obs) {
+  uint32_t timeout_ms = blocking ? READ_OBS_BASE_TIMEOUT : 0;
+  obss_t *local_obs = NULL;
+  errno_t ret =
+      platform_mailbox_fetch(MB_ID_BASE_OBS, (void **)&local_obs, timeout_ms);
+  if (local_obs) {
+    if (STARLING_READ_OK == ret) {
+      *obs = *local_obs;
+    } else {
+      /* Erroneous behavior for fetch to return non-NULL pointer and indicate
+       * read failure. */
+      log_error("Base obs mailbox fetch failed with %d", ret);
+    }
+    platform_mailbox_item_free(MB_ID_BASE_OBS, local_obs);
+  }
+  return ret;
+};
+
+/* TODO(kevin) refactor common code. */
+static int read_sbas_data(int blocking, sbas_raw_data_t *data) {
+  uint32_t timeout_ms = blocking ? TIME_INFINITE : 0;
+  sbas_raw_data_t *local_data = NULL;
+  errno_t ret =
+      platform_mailbox_fetch(MB_ID_SBAS_DATA, (void **)&local_data, timeout_ms);
+  if (local_data) {
+    if (STARLING_READ_OK == ret) {
+      *data = *local_data;
+    } else {
+      /* Erroneous behavior for fetch to return non-NULL pointer and indicate
+       * read failure. */
+      log_error("STARLING: sbas mailbox fetch failed with %d", ret);
+    }
+    platform_mailbox_item_free(MB_ID_SBAS_DATA, local_data);
+  }
+  return ret;
+}
+
 static THD_FUNCTION(initialize_and_run_starling, arg) {
   (void)arg;
   chRegSetThreadName("starling");
@@ -1068,6 +1149,14 @@ static THD_FUNCTION(initialize_and_run_starling, arg) {
   static sbp_msg_callbacks_node_t reset_filters_node;
   sbp_register_cbk(
       SBP_MSG_RESET_FILTERS, &reset_filters_callback, &reset_filters_node);
+
+  /* Connect all inputs. */
+  StarlingInputFunctionTable inputs = {
+      .read_obs_rover = read_obs_rover,
+      .read_obs_base = read_obs_base,
+      .read_sbas_data = read_sbas_data,
+  };
+  starling_set_input_functions(&inputs);
 
   /* Register output callbacks. */
   StarlingOutputCallbacks output_callbacks = {
