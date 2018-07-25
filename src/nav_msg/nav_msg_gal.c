@@ -614,8 +614,7 @@ static float sisa_map(u8 sisa) {
     /* Note: SISA Index 126...254 are considered as Spare. */
     ura = 6.0f;
   }
-  if (ura >= 0.0f) {
-    /* Valid URA */
+  if (URA_VALID(ura)) {
     ura = rintf(ura / 0.01f) * 0.01f;
   }
   return ura;
