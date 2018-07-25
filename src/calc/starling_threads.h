@@ -115,7 +115,7 @@ void reset_rtk_filter(void);
 typedef struct StarlingIoFunctionTable StarlingIoFunctionTable;
 
 /* Must be called before using any of the other API functions. */
-void starling_initialize(void);
+void starling_initialize_api(void);
 
 /* Run the starling engine on the current thread. Blocks indefinitely. */
 void starling_run(const StarlingIoFunctionTable *io_functions);

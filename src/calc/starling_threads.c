@@ -44,14 +44,13 @@
 extern bool starling_integration_simulation_enabled(void);
 extern void starling_integration_simulation_run(const me_msg_obs_t *me_msg);
 
-static StarlingInputFunctionTable inputs = {
-    .read_obs_rover = NULL, .read_obs_base = NULL, .read_sbas_data = NULL,
-};
-
-/* User configurable endpoints for transmitting data out
- * of the Starling Engine. */
-static StarlingOutputCallbacks output_callbacks = {
-    .handle_solution_low_latency = NULL, .handle_solution_time_matched = NULL,
+/* User configurable IO functions. */
+static StarlingIoFunctionTable io_functions = {
+  .read_obs_rover = NULL,
+  .read_obs_base = NULL,
+  .read_sbas_data = NULL,
+  .handle_solution_low_latency = NULL,
+  .handle_solution_time_matched = NULL,
 };
 
 /* Settings which control the filter behavior of the Starling engine. */
@@ -453,7 +452,7 @@ static void time_matched_obs_thread(void *arg) {
   (void)arg;
   platform_thread_set_name("time matched obs");
 
-  if (NULL == inputs.read_obs_base) {
+  if (NULL == io_functions.read_obs_base) {
     log_error(
         "No base obs source provided. Running base obs thread is impossible.");
     return;
@@ -461,7 +460,7 @@ static void time_matched_obs_thread(void *arg) {
 
   while (1) {
     obss_t base_obs;
-    int ret = inputs.read_obs_base(STARLING_READ_BLOCKING, &base_obs);
+    int ret = io_functions.read_obs_base(STARLING_READ_BLOCKING, &base_obs);
     if (STARLING_READ_OK != ret) {
       continue;
     }
@@ -519,8 +518,8 @@ static void time_matched_obs_thread(void *arg) {
           p_solution = &solution;
         }
 
-        if (NULL != output_callbacks.handle_solution_time_matched) {
-          output_callbacks.handle_solution_time_matched(
+        if (NULL != io_functions.handle_solution_time_matched) {
+          io_functions.handle_solution_time_matched(
               p_solution, &base_obs, obss);
         }
 
@@ -605,13 +604,13 @@ static void process_sbas_data(const sbas_raw_data_t *sbas_data) {
  * nevermind.
  */
 static void process_any_sbas_messages(void) {
-  if (NULL == inputs.read_sbas_data) {
+  if (NULL == io_functions.read_sbas_data) {
     return;
   }
 
   sbas_raw_data_t data;
   while (STARLING_READ_OK ==
-         inputs.read_sbas_data(STARLING_READ_NONBLOCKING, &data)) {
+         io_functions.read_sbas_data(STARLING_READ_NONBLOCKING, &data)) {
     process_sbas_data(&data);
   }
 }
@@ -630,7 +629,7 @@ static void starling_thread(void) {
   init_filters_and_settings();
 
   /* Spawn the time_matched thread only if base obs are available. */
-  if (NULL != inputs.read_obs_base) {
+  if (NULL != io_functions.read_obs_base) {
     platform_thread_create(THREAD_ID_TMO, time_matched_obs_thread);
   }
 
@@ -644,7 +643,7 @@ static void starling_thread(void) {
   filter_manager_init(spp_filter_manager);
   platform_mutex_unlock(MTX_SPP_FILTER);
 
-  if (NULL == inputs.read_obs_rover) {
+  if (NULL == io_functions.read_obs_rover) {
     log_error(
         "No rover obs source provided. Running Starling Engine is impossible.");
   }
@@ -655,7 +654,7 @@ static void starling_thread(void) {
     process_any_sbas_messages();
 
     me_msg_obs_t me_msg;
-    int ret = inputs.read_obs_rover(STARLING_READ_BLOCKING, &me_msg);
+    int ret = io_functions.read_obs_rover(STARLING_READ_BLOCKING, &me_msg);
     if (STARLING_READ_OK != ret) {
       continue;
     }
@@ -690,8 +689,8 @@ static void starling_thread(void) {
     /* If there are no messages, or the observation time is invalid,
      * we send an empty solution. */
     if (me_msg.size == 0 || !gps_time_valid(&epoch_time)) {
-      if (NULL != output_callbacks.handle_solution_low_latency) {
-        output_callbacks.handle_solution_low_latency(
+      if (NULL != io_functions.handle_solution_low_latency) {
+        io_functions.handle_solution_low_latency(
             NULL, NULL, &epoch_time, nav_meas, 0);
       }
       continue;
@@ -841,8 +840,8 @@ static void starling_thread(void) {
     }
 
     /* Forward solutions to outside world. */
-    if (NULL != output_callbacks.handle_solution_low_latency) {
-      output_callbacks.handle_solution_low_latency(
+    if (NULL != io_functions.handle_solution_low_latency) {
+      io_functions.handle_solution_low_latency(
           p_spp_solution, p_rtk_solution, &epoch_time, nav_meas, n_ready);
     }
 #if defined PROFILE_STARLING && PROFILE_STARLING > 0
@@ -865,20 +864,15 @@ static void starling_thread(void) {
 }
 
 /* Run the starling engine on the current thread. Blocks indefinitely. */
-void starling_run(void) { starling_thread(); }
+void starling_run(const StarlingIoFunctionTable *functions) { 
+  io_functions = *functions;
+  starling_thread(); 
+}
 
 /* Set up all persistent data-structures used by the API. All
  * API calls should be valid after a call to this function. */
 void starling_initialize_api(void) {
   init_mutexes();
-}
-
-void starling_set_input_functions(const StarlingInputFunctionTable *functions) {
-  inputs = *functions;
-}
-
-void starling_set_output_callbacks(const StarlingOutputCallbacks *callbacks) {
-  output_callbacks = *callbacks;
 }
 
 /*******************************************************************************
