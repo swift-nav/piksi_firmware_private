@@ -14,10 +14,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#ifndef STARLING_DEBUG_FUNCTIONS_ENABLED
-#define STARLING_DEBUG_FUNCTIONS_ENABLED 0
-#endif
-
 #include <libsbp/sbp.h>
 #include <libswiftnav/constants.h>
 #include <libswiftnav/coord_system.h>
@@ -37,6 +33,15 @@
 
 /* TODO(kevin) Must get rid of this. */
 #include <ch.h>
+
+/* Convenience macro for invoking the debug functions when they are enabled
+ * and defined. */
+#if defined STARLING_DEBUG_FUNCTIONS_ENABLED && STARLING_DEBUG_FUNCTIONS_ENABLED
+  #define RUN_DEBUG_FUNCTION(fn, ...) \
+    if (debug_functions.fn) { debug_functions.fn(__VA_ARGS__); }
+#else
+  #define RUN_DEBUG_FUNCTION(fn, ...) 
+#endif
 
 extern bool starling_integration_simulation_enabled(void);
 extern void starling_integration_simulation_run(const me_msg_obs_t *me_msg);
@@ -661,11 +666,7 @@ static void starling_thread(void) {
       continue;
     }
 
-#if STARLING_DEBUG_FUNCTIONS_ENABLED
-    if (debug_functions.profile_low_latency_thread) {
-      profile_low_latency_thread(PROFILE_START);
-    }
-#endif
+    RUN_DEBUG_FUNCTION(profile_low_latency_thread, PROFILE_BEGIN);
 
     /* When simulation is enabled, intercept the incoming
      * observations. No further processing will be performed
@@ -844,11 +845,7 @@ static void starling_thread(void) {
           p_spp_solution, p_rtk_solution, &epoch_time, nav_meas, n_ready);
     }
 
-#if STARLING_DEBUG_FUNCTIONS_ENABLED
-    if (debug_functions.profile_low_latency_thread) {
-      debug_functions.profile_low_latency_thread(PROFILE_STOP); 
-    }
-#endif
+    RUN_DEBUG_FUNCTION(profile_low_latency_thread, PROFILE_END);
   }
 }
 
