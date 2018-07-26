@@ -117,6 +117,15 @@ void starling_run(const StarlingIoFunctionTable *io_functions,
 #define STARLING_READ_NONBLOCKING 0
 #define STARLING_READ_BLOCKING 1
 
+typedef struct imu_data_t {
+  /* Sample time. */
+  gps_time_t t;
+  /* 3-axis acceleration in m/s^2. */
+  double acc_xyz[3];
+  /* 3-axis angular velocity in rad/s. */
+  double gyr_xyz[3];
+} imu_data_t;
+
 struct StarlingIoFunctionTable {
   /**
    * Input functions are straightforward and all behave the same.
@@ -133,12 +142,11 @@ struct StarlingIoFunctionTable {
   int (*read_obs_rover)(int blocking, me_msg_obs_t *me_msg);
   int (*read_obs_base)(int blocking, obss_t *obs);
   int (*read_sbas_data)(int blocking, sbas_raw_data_t *data);
+  int (*read_ephemeris)(int blocking, ephemeris_t *eph);
+  int (*read_imu)(int blocking, imu_data_t *data);
 
 #if 0
-// TODO(kevin) future work..
-  int (*read_ephemeris)  (int flags, ephemeris_t *e);
   int (*read_utc_params) (int flags, utc_params_t *p);
-  int (*read_imu_data)   (int flags, imu_data_t *i);
 #endif
 
   /**
