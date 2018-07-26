@@ -50,6 +50,8 @@ static StarlingIoFunctionTable io_functions = {
     .read_obs_rover = NULL,
     .read_obs_base = NULL,
     .read_sbas_data = NULL,
+    .read_ephemeris = NULL,
+    .read_imu = NULL,
     .handle_solution_low_latency = NULL,
     .handle_solution_time_matched = NULL,
 };

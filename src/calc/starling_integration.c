@@ -1193,6 +1193,8 @@ static THD_FUNCTION(initialize_and_run_starling, arg) {
       .read_obs_rover = read_obs_rover,
       .read_obs_base = read_obs_base,
       .read_sbas_data = read_sbas_data,
+      .read_ephemeris = NULL,
+      .read_imu = NULL,
       .handle_solution_low_latency = send_solution_low_latency,
       .handle_solution_time_matched = send_solution_time_matched,
   };
