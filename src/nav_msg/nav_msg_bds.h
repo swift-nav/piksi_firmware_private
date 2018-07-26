@@ -116,7 +116,7 @@ typedef struct _bds_d2_decoded_data {
 bool crc_check(nav_msg_bds_t *n);
 void bds_nav_msg_init(nav_msg_bds_t *n, u8 prn);
 void bds_nav_msg_clear_decoded(nav_msg_bds_t *n);
-void bds_data_decoding(nav_msg_bds_t *n,
+bool bds_data_decoding(nav_msg_bds_t *n,
                        const me_gnss_signal_t mesid,
                        nav_data_sync_t *from_decoder,
                        nav_bit_t nav_bit);

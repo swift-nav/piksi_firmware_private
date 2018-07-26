@@ -116,7 +116,7 @@ void bds_nav_msg_clear_decoded(nav_msg_bds_t *n) {
   memset(n->page_words, 0, sizeof(n->page_words));
 }
 
-/** Process BDS d2 navigation data
+/** Process BDS D2 navigation data
  *
  * Extracts available TOW, polarity and SV health for tracker synchronization.
  * Also saves new BDS ephemeris.
@@ -124,8 +124,10 @@ void bds_nav_msg_clear_decoded(nav_msg_bds_t *n) {
  * \param n            Nav message decode state struct
  * \param mesid        Signal ID
  * \param from_decoder Struct for tracker synchronization
+ *
+ * \return true if successful
  */
-static void bds_d2_processing(nav_msg_bds_t *n,
+static bool bds_d2_processing(nav_msg_bds_t *n,
                               me_gnss_signal_t mesid,
                               nav_data_sync_t *from_decoder) {
   bds_d2_decoded_data_t dd_d2nav;
@@ -134,9 +136,7 @@ static void bds_d2_processing(nav_msg_bds_t *n,
   s32 TOWms = TOW_INVALID;
   TOWms = bds_d2_process_subframe(n, mesid, &dd_d2nav);
   if (TOW_INVALID == TOWms) {
-    bds_nav_msg_init(n, mesid.sat);
-    from_decoder->sync_flags = SYNC_NONE;
-    return;
+    return false;
   }
 
   from_decoder->TOW_ms = TOWms - 60;
@@ -144,7 +144,7 @@ static void bds_d2_processing(nav_msg_bds_t *n,
   from_decoder->sync_flags = SYNC_POL | SYNC_TOW;
 
   if (!dd_d2nav.ephemeris_upd_flag) {
-    return;
+    return true;
   }
 
   shm_bds_set_shi(dd_d2nav.ephemeris.sid.sat, dd_d2nav.ephemeris.health_bits);
@@ -159,9 +159,10 @@ static void bds_d2_processing(nav_msg_bds_t *n,
                              ? SV_HEALTHY
                              : SV_UNHEALTHY;
   from_decoder->sync_flags |= SYNC_EPH;
+  return true;
 }
 
-/** Process BDS d1 navigation data
+/** Process BDS D1 navigation data
  *
  * Extracts available TOW, polarity and SV health for tracker synchronization.
  * Also saves new BDS ephemeris.
@@ -169,8 +170,10 @@ static void bds_d2_processing(nav_msg_bds_t *n,
  * \param n            Nav message decode state struct
  * \param mesid        Signal ID
  * \param from_decoder Struct for tracker synchronization
+ *
+ * \return true if successful
  */
-static void bds_d1_processing(nav_msg_bds_t *n,
+static bool bds_d1_processing(nav_msg_bds_t *n,
                               me_gnss_signal_t mesid,
                               nav_data_sync_t *from_decoder) {
   bds_d1_decoded_data_t dd_d1nav;
@@ -179,9 +182,7 @@ static void bds_d1_processing(nav_msg_bds_t *n,
   s32 TOWms = TOW_INVALID;
   TOWms = bds_d1_process_subframe(n, mesid, &dd_d1nav);
   if (TOW_INVALID == TOWms) {
-    bds_nav_msg_init(n, mesid.sat);
-    from_decoder->sync_flags = SYNC_NONE;
-    return;
+    return false;
   }
 
   from_decoder->TOW_ms = TOWms;
@@ -189,7 +190,7 @@ static void bds_d1_processing(nav_msg_bds_t *n,
   from_decoder->sync_flags = SYNC_POL | SYNC_TOW;
 
   if (!dd_d1nav.ephemeris_upd_flag) {
-    return;
+    return true;
   }
 
   shm_bds_set_shi(dd_d1nav.ephemeris.sid.sat, dd_d1nav.ephemeris.health_bits);
@@ -204,35 +205,45 @@ static void bds_d1_processing(nav_msg_bds_t *n,
                              ? SV_HEALTHY
                              : SV_UNHEALTHY;
   from_decoder->sync_flags |= SYNC_EPH;
+  return true;
 }
 
 /** BDS navigation message decoding update.
  * Called once per nav bit interval.
  *
- * Extracts BDS d1 & d2 data for tracker sync.
+ * Extracts BDS D1 & D2 data for tracker sync.
  * Nothing is synced unless a full subframe is available for processing.
  *
  * \param n            Nav message decode state struct
  * \param mesid        Signal ID
  * \param from_decoder Struct for tracker synchronization
  * \param nav_bit      Struct containing nav_bit data
+ *
+ * \return true if successful
  */
-void bds_data_decoding(nav_msg_bds_t *n,
+bool bds_data_decoding(nav_msg_bds_t *n,
                        const me_gnss_signal_t mesid,
                        nav_data_sync_t *from_decoder,
                        nav_bit_t nav_bit) {
+  bool decode_ok = false;
+  /* Don't decode data while in sensitivity mode. */
+  if (0 == nav_bit) {
+    return decode_ok;
+  }
+
   bool bit_val = nav_bit > 0;
   bool tlm_rx = bds_nav_msg_update(n, bit_val);
   if (!tlm_rx) {
     from_decoder->sync_flags = SYNC_NONE;
-    return;
+    return true;
   }
 
   if (bds_d2nav(mesid)) {
-    bds_d2_processing(n, mesid, from_decoder);
+    decode_ok = bds_d2_processing(n, mesid, from_decoder);
   } else {
-    bds_d1_processing(n, mesid, from_decoder);
+    decode_ok = bds_d1_processing(n, mesid, from_decoder);
   }
+  return decode_ok;
 }
 
 /** Navigation message decoding update.
