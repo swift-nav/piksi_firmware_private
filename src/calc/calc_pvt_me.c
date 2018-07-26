@@ -163,30 +163,30 @@ static void me_send_emptyobs(void) {
 }
 
 /* remove the effect of local clock offset and drift from measurements */
-static void remove_clock_offset(navigation_measurement_t *nm,
-                                double clock_offset,
-                                double clock_drift,
-                                u64 current_tc) {
-  assert(0 != (nm->flags & NAV_MEAS_FLAG_MEAS_DOPPLER_VALID));
-
-  /* Adjust Doppler with smoothed oscillator drift. */
-  nm->raw_measured_doppler += clock_drift * GPS_C / sid_to_lambda(nm->sid);
-  nm->raw_computed_doppler = nm->raw_measured_doppler;
-
-  /* Range correction caused by clock offset */
-  double corr_cycles = clock_offset * nm->raw_measured_doppler;
-  nm->raw_pseudorange -= corr_cycles * sid_to_lambda(nm->sid);
-  nm->raw_carrier_phase -= corr_cycles;
-
-  /* Compensate for NAP counter drift since cpo computation */
-  double cpo_drift = subsecond_cpo_correction(current_tc);
-  nm->raw_carrier_phase += cpo_drift * sid_to_carr_freq(nm->sid);
-
-  /* Also apply the time correction to the time of transmission so the
-   * satellite positions can be calculated for the correct time. */
-  nm->tot.tow += clock_offset;
-  normalize_gps_time(&(nm->tot));
-}
+// static void remove_clock_offset(navigation_measurement_t *nm,
+//                                 double clock_offset,
+//                                 double clock_drift,
+//                                 u64 current_tc) {
+//   assert(0 != (nm->flags & NAV_MEAS_FLAG_MEAS_DOPPLER_VALID));
+//
+//   /* Adjust Doppler with smoothed oscillator drift. */
+//   nm->raw_measured_doppler += clock_drift * GPS_C / sid_to_lambda(nm->sid);
+//   nm->raw_computed_doppler = nm->raw_measured_doppler;
+//
+//   /* Range correction caused by clock offset */
+//   double corr_cycles = clock_offset * nm->raw_measured_doppler;
+//   nm->raw_pseudorange -= corr_cycles * sid_to_lambda(nm->sid);
+//   nm->raw_carrier_phase -= corr_cycles;
+//
+//   /* Compensate for NAP counter drift since cpo computation */
+//   double cpo_drift = subsecond_cpo_correction(current_tc);
+//   nm->raw_carrier_phase += cpo_drift * sid_to_carr_freq(nm->sid);
+//
+//   /* Also apply the time correction to the time of transmission so the
+//    * satellite positions can be calculated for the correct time. */
+//   nm->tot.tow += clock_offset;
+//   normalize_gps_time(&(nm->tot));
+// }
 
 /** Roughly propagate and send the observations when PVT solution failed or is
  * not available. Flag all with RAIM exclusion so they do not get used
@@ -203,12 +203,12 @@ static void me_send_failed_obs(u8 _num_obs,
   }
 
   /* offset assumed steered to zero */
-  double clock_offset = 0;
+  // double clock_offset = 0;
 
-  u64 ref_tc = gpstime2napcount(_t);
+  // u64 ref_tc = gpstime2napcount(_t);
 
   /* get the estimated clock drift value */
-  double clock_drift = get_clock_drift();
+  // double clock_drift = get_clock_drift();
 
   for (u8 i = 0; i < _num_obs; i++) {
     /* mark the measurement unusable to be on the safe side */
@@ -217,7 +217,7 @@ static void me_send_failed_obs(u8 _num_obs,
     _meas[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION;
 
     /* propagate the measurements with the smoothed drift value */
-    remove_clock_offset(&_meas[i], clock_offset, clock_drift, ref_tc);
+    // remove_clock_offset(&_meas[i], clock_offset, clock_drift, ref_tc);
   }
 
   me_post_observations(_num_obs, _meas, _ephem, _t);
@@ -677,7 +677,7 @@ static void me_calc_pvt_thread(void *arg) {
         navigation_measurement_t *nm = &nav_meas[i];
 
         /* remove clock offset from the measurement */
-        remove_clock_offset(nm, output_offset, smoothed_drift, current_tc);
+        // remove_clock_offset(nm, output_offset, smoothed_drift, current_tc);
 
         /* Recompute satellite position, velocity and clock errors */
         /* NOTE: calc_sat_state changes `tot` */
