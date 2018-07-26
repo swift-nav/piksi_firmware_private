@@ -77,8 +77,9 @@ static void decoder_bds_b1_process(const decoder_channel_info_t *channel_info,
   tracker_data_sync_init(&from_decoder);
 
   while (tracker_nav_bit_get(channel, &nav_bit)) {
-    bool decode_ok = bds_data_decoding(&data->nav_msg, &from_decoder, nav_bit);
-    if (!decode_ok) {
+    bds_decode_status_t status =
+        bds_data_decoding(&data->nav_msg, &from_decoder, nav_bit);
+    if (BDS_DECODE_RESET == status) {
       bds_nav_msg_init(&data->nav_msg, channel_info->mesid);
       continue;
     }

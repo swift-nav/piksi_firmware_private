@@ -115,14 +115,15 @@ void bds_nav_msg_clear_decoded(nav_msg_bds_t *n) {
  *
  * \return true if successful
  */
-static bool bds_d2_processing(nav_msg_bds_t *n, nav_data_sync_t *from_decoder) {
+static bds_decode_status_t bds_d2_processing(nav_msg_bds_t *n,
+                                             nav_data_sync_t *from_decoder) {
   bds_d2_decoded_data_t dd_d2nav;
   memset(&dd_d2nav, 0, sizeof(bds_d2_decoded_data_t));
 
   s32 TOWms = TOW_INVALID;
   TOWms = bds_d2_process_subframe(n, &dd_d2nav);
   if (TOW_INVALID == TOWms) {
-    return false;
+    return BDS_DECODE_RESET;
   }
 
   from_decoder->TOW_ms = TOWms - 60;
@@ -130,7 +131,7 @@ static bool bds_d2_processing(nav_msg_bds_t *n, nav_data_sync_t *from_decoder) {
   from_decoder->sync_flags = SYNC_POL | SYNC_TOW;
 
   if (!dd_d2nav.ephemeris_upd_flag) {
-    return true;
+    return BDS_DECODE_TOW_UPDATE;
   }
 
   shm_bds_set_shi(dd_d2nav.ephemeris.sid.sat, dd_d2nav.ephemeris.health_bits);
@@ -145,7 +146,7 @@ static bool bds_d2_processing(nav_msg_bds_t *n, nav_data_sync_t *from_decoder) {
                              ? SV_HEALTHY
                              : SV_UNHEALTHY;
   from_decoder->sync_flags |= SYNC_EPH;
-  return true;
+  return BDS_DECODE_EPH_UPDATE;
 }
 
 /** Process BDS D1 navigation data
@@ -158,14 +159,15 @@ static bool bds_d2_processing(nav_msg_bds_t *n, nav_data_sync_t *from_decoder) {
  *
  * \return true if successful
  */
-static bool bds_d1_processing(nav_msg_bds_t *n, nav_data_sync_t *from_decoder) {
+static bds_decode_status_t bds_d1_processing(nav_msg_bds_t *n,
+                                             nav_data_sync_t *from_decoder) {
   bds_d1_decoded_data_t dd_d1nav;
   memset(&dd_d1nav, 0, sizeof(bds_d1_decoded_data_t));
 
   s32 TOWms = TOW_INVALID;
   TOWms = bds_d1_process_subframe(n, &dd_d1nav);
   if (TOW_INVALID == TOWms) {
-    return false;
+    return BDS_DECODE_RESET;
   }
 
   from_decoder->TOW_ms = TOWms;
@@ -173,7 +175,7 @@ static bool bds_d1_processing(nav_msg_bds_t *n, nav_data_sync_t *from_decoder) {
   from_decoder->sync_flags = SYNC_POL | SYNC_TOW;
 
   if (!dd_d1nav.ephemeris_upd_flag) {
-    return true;
+    return BDS_DECODE_TOW_UPDATE;
   }
 
   shm_bds_set_shi(dd_d1nav.ephemeris.sid.sat, dd_d1nav.ephemeris.health_bits);
@@ -188,7 +190,7 @@ static bool bds_d1_processing(nav_msg_bds_t *n, nav_data_sync_t *from_decoder) {
                              ? SV_HEALTHY
                              : SV_UNHEALTHY;
   from_decoder->sync_flags |= SYNC_EPH;
-  return true;
+  return BDS_DECODE_EPH_UPDATE;
 }
 
 /** BDS navigation message decoding update.
@@ -203,28 +205,28 @@ static bool bds_d1_processing(nav_msg_bds_t *n, nav_data_sync_t *from_decoder) {
  *
  * \return true if successful
  */
-bool bds_data_decoding(nav_msg_bds_t *n,
-                       nav_data_sync_t *from_decoder,
-                       nav_bit_t nav_bit) {
-  bool decode_ok = false;
+bds_decode_status_t bds_data_decoding(nav_msg_bds_t *n,
+                                      nav_data_sync_t *from_decoder,
+                                      nav_bit_t nav_bit) {
   /* Don't decode data while in sensitivity mode. */
   if (0 == nav_bit) {
-    return decode_ok;
+    return BDS_DECODE_RESET;
   }
 
   bool bit_val = nav_bit > 0;
   bool tlm_rx = bds_nav_msg_update(n, bit_val);
   if (!tlm_rx) {
     from_decoder->sync_flags = SYNC_NONE;
-    return true;
+    return BDS_DECODE_WAIT;
   }
 
+  bds_decode_status_t status;
   if (bds_d2nav(n->mesid)) {
-    decode_ok = bds_d2_processing(n, from_decoder);
+    status = bds_d2_processing(n, from_decoder);
   } else {
-    decode_ok = bds_d1_processing(n, from_decoder);
+    status = bds_d1_processing(n, from_decoder);
   }
-  return decode_ok;
+  return status;
 }
 
 /** Navigation message decoding update.

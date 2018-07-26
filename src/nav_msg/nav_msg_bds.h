@@ -113,12 +113,20 @@ typedef struct _bds_d2_decoded_data {
   bool invalid_control_or_data;
 } bds_d2_decoded_data_t;
 
+/** BDS data decoding status */
+typedef enum {
+  BDS_DECODE_WAIT,       /**< Decoding in progress */
+  BDS_DECODE_RESET,      /**< Decoding error or sensitivity mode */
+  BDS_DECODE_TOW_UPDATE, /**< TOW decoded */
+  BDS_DECODE_EPH_UPDATE, /**< Ephemeris decoded */
+} bds_decode_status_t;
+
 bool crc_check(nav_msg_bds_t *n);
 void bds_nav_msg_init(nav_msg_bds_t *n, const me_gnss_signal_t mesid);
 void bds_nav_msg_clear_decoded(nav_msg_bds_t *n);
-bool bds_data_decoding(nav_msg_bds_t *n,
-                       nav_data_sync_t *from_decoder,
-                       nav_bit_t nav_bit);
+bds_decode_status_t bds_data_decoding(nav_msg_bds_t *n,
+                                      nav_data_sync_t *from_decoder,
+                                      nav_bit_t nav_bit);
 bool bds_nav_msg_update(nav_msg_bds_t *n, bool bit_val);
 
 s32 bds_d1_process_subframe(nav_msg_bds_t *n, bds_d1_decoded_data_t *data);
