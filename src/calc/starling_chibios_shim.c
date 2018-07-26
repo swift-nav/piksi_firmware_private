@@ -76,7 +76,7 @@ static me_msg_obs_t me_obs_buff[ME_OBS_MSG_N_BUFF];
 static msg_t sbas_data_mailbox_buff[SBAS_DATA_N_BUFF];
 static sbas_raw_data_t sbas_data_buff[SBAS_DATA_N_BUFF];
 
-#define NUM_MUTEXES 16
+#define NUM_MUTEXES STARLING_MAX_NUM_MUTEXES
 static mutex_t mutexes[NUM_MUTEXES];
 
 /*******************************************************************************

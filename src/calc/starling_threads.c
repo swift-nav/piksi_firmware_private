@@ -102,6 +102,8 @@ enum {
   MTX_IONO_PARAMS,
   kMutexCount,
 };
+_Static_assert(kMutexCount <= STARLING_MAX_NUM_MUTEXES,
+               "Platform layer has insufficient mutex support.");
 
 /* Local settings object and mutex protection. */
 static StarlingSettings global_settings = {
@@ -854,9 +856,7 @@ void starling_run(const StarlingIoFunctionTable *io_f,
 
 /* Set up all persistent data-structures used by the API. All
  * API calls should be valid after a call to this function. */
-void starling_initialize_api(void) {
-  init_mutexes();
-}
+void starling_initialize_api(void) { init_mutexes(); }
 
 /*******************************************************************************
  * Settings Update Functions

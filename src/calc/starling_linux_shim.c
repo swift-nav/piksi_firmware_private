@@ -75,7 +75,7 @@
 #define SBAS_DATA_N_BUFF 6
 #define SBAS_DATA_QUEUE_NAME "sbas-data"
 
-#define NUM_MUTEXES 16
+#define NUM_MUTEXES STARLING_MAX_NUM_MUTEXES
 static pthread_mutex_t mutexes[NUM_MUTEXES];
 
 /*******************************************************************************

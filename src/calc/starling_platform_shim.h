@@ -29,6 +29,7 @@
 typedef int errno_t;
 #endif
 
+#define STARLING_MAX_NUM_MUTEXES 16
 typedef unsigned int mtx_id_t;
 
 typedef enum thread_id_e {
