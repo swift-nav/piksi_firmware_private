@@ -34,10 +34,12 @@
 /* Convenience macro for invoking the debug functions when they are enabled
  * and defined. */
 #if defined STARLING_DEBUG_FUNCTIONS_ENABLED && STARLING_DEBUG_FUNCTIONS_ENABLED
-  #define RUN_DEBUG_FUNCTION(fn, ...) \
-    if (debug_functions.fn) { debug_functions.fn(__VA_ARGS__); }
+#define RUN_DEBUG_FUNCTION(fn, ...)  \
+  if (debug_functions.fn) {          \
+    debug_functions.fn(__VA_ARGS__); \
+  }
 #else
-  #define RUN_DEBUG_FUNCTION(fn, ...) 
+#define RUN_DEBUG_FUNCTION(fn, ...)
 #endif
 
 extern bool starling_integration_simulation_enabled(void);
@@ -45,16 +47,16 @@ extern void starling_integration_simulation_run(const me_msg_obs_t *me_msg);
 
 /* User configurable IO functions. */
 static StarlingIoFunctionTable io_functions = {
-  .read_obs_rover = NULL,
-  .read_obs_base = NULL,
-  .read_sbas_data = NULL,
-  .handle_solution_low_latency = NULL,
-  .handle_solution_time_matched = NULL,
+    .read_obs_rover = NULL,
+    .read_obs_base = NULL,
+    .read_sbas_data = NULL,
+    .handle_solution_low_latency = NULL,
+    .handle_solution_time_matched = NULL,
 };
 
 /* User configurable debug instrumentation functions. */
 static StarlingDebugFunctionTable debug_functions = {
-  .profile_low_latency_thread = NULL,
+    .profile_low_latency_thread = NULL,
 };
 
 /* Settings which control the filter behavior of the Starling engine. */
@@ -603,7 +605,7 @@ static void process_sbas_data(const sbas_raw_data_t *sbas_data) {
 }
 
 /**
- * Try and read any available SBAS messages (assuming the user has 
+ * Try and read any available SBAS messages (assuming the user has
  * provided with the appropriate function).
  */
 static void process_any_sbas_messages(void) {
@@ -847,11 +849,13 @@ static void starling_thread(void) {
 
 /* Run the starling engine on the current thread. Blocks indefinitely. */
 void starling_run(const StarlingIoFunctionTable *io_f,
-                  const StarlingDebugFunctionTable *debug_f) { 
+                  const StarlingDebugFunctionTable *debug_f) {
   assert(io_f);
   io_functions = *io_f;
-  if (debug_f) { debug_functions = *debug_f; }
-  starling_thread(); 
+  if (debug_f) {
+    debug_functions = *debug_f;
+  }
+  starling_thread();
 }
 
 /* Set up all persistent data-structures used by the API. All

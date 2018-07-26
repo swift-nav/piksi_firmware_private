@@ -94,13 +94,13 @@ typedef struct StarlingFilterSolution {
  * Starling Top-Level API
  ******************************************************************************/
 
-/* All user configurable IO functions used by the Starling Engine. 
+/* All user configurable IO functions used by the Starling Engine.
  * Any functions which are either irrelevant, or not required may
- * be replaced with NULL. */ 
+ * be replaced with NULL. */
 typedef struct StarlingIoFunctionTable StarlingIoFunctionTable;
 
 /* User may optionally supply debug functions which will may be used to
- * instrument certain modes of operation. */ 
+ * instrument certain modes of operation. */
 typedef struct StarlingDebugFunctionTable StarlingDebugFunctionTable;
 
 /* Must be called before using any of the other API functions. */
@@ -120,7 +120,7 @@ void starling_run(const StarlingIoFunctionTable *io_functions,
 struct StarlingIoFunctionTable {
   /**
    * Input functions are straightforward and all behave the same.
-   * 
+   *
    * They must be able to operate in either blocking or non-blocking
    * mode. When blocking, it is left to the implementation to determine
    * an appropriate timeout duration. By invoking a "read" function in
@@ -180,8 +180,9 @@ enum ProfileDirective {
 };
 
 struct StarlingDebugFunctionTable {
-  /* Will be called at the beginning and end of a low-latency thread iteration. */
-  void (*profile_low_latency_thread)(enum ProfileDirective directive); 
+  /* Will be called at the beginning and end of a low-latency thread iteration.
+   */
+  void (*profile_low_latency_thread)(enum ProfileDirective directive);
 };
 
 /*******************************************************************************

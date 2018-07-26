@@ -204,7 +204,8 @@ void platform_mailbox_init(mailbox_id_t id) {
 }
 
 errno_t platform_mailbox_post(mailbox_id_t id, void *msg, int blocking) {
-  uint32_t timeout_ms = (MB_BLOCKING == blocking) ? MAILBOX_BLOCKING_TIMEOUT_MS : 0;
+  uint32_t timeout_ms = 
+      (MB_BLOCKING == blocking) ? MAILBOX_BLOCKING_TIMEOUT_MS : 0;
   if (MSG_OK !=
       chMBPost(&mailbox_info[id].mailbox, (msg_t)msg, MS2ST(timeout_ms))) {
     /* Full or mailbox reset while waiting */
@@ -217,7 +218,8 @@ errno_t platform_mailbox_post(mailbox_id_t id, void *msg, int blocking) {
 errno_t platform_mailbox_post_ahead(mailbox_id_t id,
                                     void *msg,
                                     int blocking) {
-  uint32_t timeout_ms = (MB_BLOCKING == blocking) ? MAILBOX_BLOCKING_TIMEOUT_MS : 0;
+  uint32_t timeout_ms = 
+      (MB_BLOCKING == blocking) ? MAILBOX_BLOCKING_TIMEOUT_MS : 0;
   if (MSG_OK !=
       chMBPostAhead(&mailbox_info[id].mailbox, (msg_t)msg, MS2ST(timeout_ms))) {
     /* Full or mailbox reset while waiting */
@@ -230,7 +232,8 @@ errno_t platform_mailbox_post_ahead(mailbox_id_t id,
 errno_t platform_mailbox_fetch(mailbox_id_t id,
                                void **msg,
                                int blocking) {
-  uint32_t timeout_ms = (MB_BLOCKING == blocking) ? MAILBOX_BLOCKING_TIMEOUT_MS : 0;
+  uint32_t timeout_ms = 
+      (MB_BLOCKING == blocking) ? MAILBOX_BLOCKING_TIMEOUT_MS : 0;
   if (MSG_OK !=
       chMBFetch(&mailbox_info[id].mailbox, (msg_t *)msg, MS2ST(timeout_ms))) {
     /* Empty or mailbox reset while waiting */
