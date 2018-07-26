@@ -59,7 +59,7 @@ static void decoder_bds_b1_init(const decoder_channel_info_t *channel_info,
   bds_b1_decoder_data_t *data = decoder_data;
 
   memset(data, 0, sizeof(*data));
-  bds_nav_msg_init(&data->nav_msg, channel_info->mesid.sat);
+  bds_nav_msg_init(&data->nav_msg, channel_info->mesid);
 }
 
 static void decoder_bds_b1_process(const decoder_channel_info_t *channel_info,
@@ -68,7 +68,6 @@ static void decoder_bds_b1_process(const decoder_channel_info_t *channel_info,
   assert(decoder_data);
 
   bds_b1_decoder_data_t *data = decoder_data;
-  const me_gnss_signal_t mesid = channel_info->mesid;
 
   /* Process incoming nav bits */
   nav_bit_t nav_bit;
@@ -78,10 +77,9 @@ static void decoder_bds_b1_process(const decoder_channel_info_t *channel_info,
   tracker_data_sync_init(&from_decoder);
 
   while (tracker_nav_bit_get(channel, &nav_bit)) {
-    bool decode_ok =
-        bds_data_decoding(&data->nav_msg, mesid, &from_decoder, nav_bit);
+    bool decode_ok = bds_data_decoding(&data->nav_msg, &from_decoder, nav_bit);
     if (!decode_ok) {
-      bds_nav_msg_init(&data->nav_msg, mesid.sat);
+      bds_nav_msg_init(&data->nav_msg, channel_info->mesid);
       continue;
     }
     /* Sync tracker with decoder data */

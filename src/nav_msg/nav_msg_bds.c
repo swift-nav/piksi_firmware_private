@@ -70,41 +70,30 @@ static void pack_buffer(nav_msg_bds_t *n);
 static void deint(u32 *hi, u32 *lo, const u32 dw);
 static bool bch1511(u32 *pdw);
 
-static void process_d1_fraid1(nav_msg_bds_t *n,
-                              const me_gnss_signal_t mesid,
-                              bds_d1_decoded_data_t *data);
+static void process_d1_fraid1(nav_msg_bds_t *n, bds_d1_decoded_data_t *data);
 
-static void process_d1_fraid2(nav_msg_bds_t *n,
-                              const me_gnss_signal_t mesid,
-                              bds_d1_decoded_data_t *data);
+static void process_d1_fraid2(nav_msg_bds_t *n, bds_d1_decoded_data_t *data);
 
-static void process_d1_fraid3(nav_msg_bds_t *n,
-                              const me_gnss_signal_t mesid,
-                              bds_d1_decoded_data_t *data);
+static void process_d1_fraid3(nav_msg_bds_t *n, bds_d1_decoded_data_t *data);
 
 static void process_d1_common_alm(nav_msg_bds_t *n,
-                                  const me_gnss_signal_t mesid,
                                   bds_d1_decoded_data_t *data);
 
-static void process_d1_fraid4(nav_msg_bds_t *n,
-                              const me_gnss_signal_t mesid,
-                              bds_d1_decoded_data_t *data);
+static void process_d1_fraid4(nav_msg_bds_t *n, bds_d1_decoded_data_t *data);
 
-static void process_d1_fraid5(nav_msg_bds_t *n,
-                              const me_gnss_signal_t mesid,
-                              bds_d1_decoded_data_t *data);
+static void process_d1_fraid5(nav_msg_bds_t *n, bds_d1_decoded_data_t *data);
 
 /**
  * Initializes BDS message decoder.
  *
- * \param[in] n   BDS message decoder object
- * \param[in] prn Beidou PRN id
+ * \param[in] n     BDS message decoder object
+ * \param[in] mesid Signal ID
  */
-void bds_nav_msg_init(nav_msg_bds_t *n, u8 prn) {
+void bds_nav_msg_init(nav_msg_bds_t *n, const me_gnss_signal_t mesid) {
   /* Initialize the necessary parts of the nav message state structure. */
   memset(n, 0, sizeof(*n));
   n->bit_polarity = BIT_POLARITY_UNKNOWN;
-  n->prn = prn;
+  n->mesid = mesid;
 }
 
 /**
@@ -122,19 +111,16 @@ void bds_nav_msg_clear_decoded(nav_msg_bds_t *n) {
  * Also saves new BDS ephemeris.
  *
  * \param n            Nav message decode state struct
- * \param mesid        Signal ID
  * \param from_decoder Struct for tracker synchronization
  *
  * \return true if successful
  */
-static bool bds_d2_processing(nav_msg_bds_t *n,
-                              me_gnss_signal_t mesid,
-                              nav_data_sync_t *from_decoder) {
+static bool bds_d2_processing(nav_msg_bds_t *n, nav_data_sync_t *from_decoder) {
   bds_d2_decoded_data_t dd_d2nav;
   memset(&dd_d2nav, 0, sizeof(bds_d2_decoded_data_t));
 
   s32 TOWms = TOW_INVALID;
-  TOWms = bds_d2_process_subframe(n, mesid, &dd_d2nav);
+  TOWms = bds_d2_process_subframe(n, &dd_d2nav);
   if (TOW_INVALID == TOWms) {
     return false;
   }
@@ -150,12 +136,12 @@ static bool bds_d2_processing(nav_msg_bds_t *n,
   shm_bds_set_shi(dd_d2nav.ephemeris.sid.sat, dd_d2nav.ephemeris.health_bits);
   eph_new_status_t r = ephemeris_new(&dd_d2nav.ephemeris);
   if (EPH_NEW_OK != r) {
-    log_warn_mesid(mesid,
+    log_warn_mesid(n->mesid,
                    "Error in BDS d2nav ephemeris processing. "
                    "Eph status: %" PRIu8 " ",
                    r);
   }
-  from_decoder->health = shm_ephe_healthy(&dd_d2nav.ephemeris, mesid.code)
+  from_decoder->health = shm_ephe_healthy(&dd_d2nav.ephemeris, n->mesid.code)
                              ? SV_HEALTHY
                              : SV_UNHEALTHY;
   from_decoder->sync_flags |= SYNC_EPH;
@@ -168,19 +154,16 @@ static bool bds_d2_processing(nav_msg_bds_t *n,
  * Also saves new BDS ephemeris.
  *
  * \param n            Nav message decode state struct
- * \param mesid        Signal ID
  * \param from_decoder Struct for tracker synchronization
  *
  * \return true if successful
  */
-static bool bds_d1_processing(nav_msg_bds_t *n,
-                              me_gnss_signal_t mesid,
-                              nav_data_sync_t *from_decoder) {
+static bool bds_d1_processing(nav_msg_bds_t *n, nav_data_sync_t *from_decoder) {
   bds_d1_decoded_data_t dd_d1nav;
   memset(&dd_d1nav, 0, sizeof(bds_d1_decoded_data_t));
 
   s32 TOWms = TOW_INVALID;
-  TOWms = bds_d1_process_subframe(n, mesid, &dd_d1nav);
+  TOWms = bds_d1_process_subframe(n, &dd_d1nav);
   if (TOW_INVALID == TOWms) {
     return false;
   }
@@ -196,12 +179,12 @@ static bool bds_d1_processing(nav_msg_bds_t *n,
   shm_bds_set_shi(dd_d1nav.ephemeris.sid.sat, dd_d1nav.ephemeris.health_bits);
   eph_new_status_t r = ephemeris_new(&dd_d1nav.ephemeris);
   if (EPH_NEW_OK != r) {
-    log_warn_mesid(mesid,
+    log_warn_mesid(n->mesid,
                    "Error in BDS d1nav ephemeris processing. "
                    "Eph status: %" PRIu8 " ",
                    r);
   }
-  from_decoder->health = shm_ephe_healthy(&dd_d1nav.ephemeris, mesid.code)
+  from_decoder->health = shm_ephe_healthy(&dd_d1nav.ephemeris, n->mesid.code)
                              ? SV_HEALTHY
                              : SV_UNHEALTHY;
   from_decoder->sync_flags |= SYNC_EPH;
@@ -215,14 +198,12 @@ static bool bds_d1_processing(nav_msg_bds_t *n,
  * Nothing is synced unless a full subframe is available for processing.
  *
  * \param n            Nav message decode state struct
- * \param mesid        Signal ID
  * \param from_decoder Struct for tracker synchronization
  * \param nav_bit      Struct containing nav_bit data
  *
  * \return true if successful
  */
 bool bds_data_decoding(nav_msg_bds_t *n,
-                       const me_gnss_signal_t mesid,
                        nav_data_sync_t *from_decoder,
                        nav_bit_t nav_bit) {
   bool decode_ok = false;
@@ -238,10 +219,10 @@ bool bds_data_decoding(nav_msg_bds_t *n,
     return true;
   }
 
-  if (bds_d2nav(mesid)) {
-    decode_ok = bds_d2_processing(n, mesid, from_decoder);
+  if (bds_d2nav(n->mesid)) {
+    decode_ok = bds_d2_processing(n, from_decoder);
   } else {
-    decode_ok = bds_d1_processing(n, mesid, from_decoder);
+    decode_ok = bds_d1_processing(n, from_decoder);
   }
   return decode_ok;
 }
@@ -275,7 +256,7 @@ bool bds_nav_msg_update(nav_msg_bds_t *n, bool bit_val) {
     /* check if it repeats (including polarity) on second TLM */
     if (pream_candidate_prev != pream_candidate_last) {
       log_debug("C%02d prev %" PRIx32 " last %" PRIx32,
-                n->prn,
+                n->mesid.sat,
                 pream_candidate_prev,
                 pream_candidate_last);
       return false;
@@ -303,8 +284,8 @@ bool bds_nav_msg_update(nav_msg_bds_t *n, bool bit_val) {
         /* reset subframe sync and polarity */
         n->subfr_sync = false;
         n->bit_polarity = BIT_POLARITY_UNKNOWN;
-        log_debug("C%02" PRIu8 " lost sync prev %" PRIx32 " last %" PRIx32,
-                  n->prn,
+        log_debug("C%02" PRIu16 " lost sync prev %" PRIx32 " last %" PRIx32,
+                  n->mesid.sat,
                   pream_candidate_prev,
                   pream_candidate_last);
         return false;
@@ -325,14 +306,11 @@ bool bds_nav_msg_update(nav_msg_bds_t *n, bool bit_val) {
 /** D1 parsing
  *
  * \param n     Nav message decode state struct
- * \param mesid Signal ID
  * \param data  Target for data decoding
  *
  * \return TOW in milliseconds
  */
-s32 bds_d1_process_subframe(nav_msg_bds_t *n,
-                            const me_gnss_signal_t mesid,
-                            bds_d1_decoded_data_t *data) {
+s32 bds_d1_process_subframe(nav_msg_bds_t *n, bds_d1_decoded_data_t *data) {
   u8 subfr = 1;
   for (u8 s = 2; s <= BDS_SUBFRAME_MAX; s++) {
     if ((n->subfr_times[subfr - 1]) < (n->subfr_times[s - 1])) {
@@ -358,17 +336,17 @@ s32 bds_d1_process_subframe(nav_msg_bds_t *n,
   }
 
   if (0x3fffffffULL == ((n->goodwords_mask >> 20) & 0x3fffffffULL)) {
-    process_d1_fraid1(n, mesid, data);
-    process_d1_fraid2(n, mesid, data);
-    process_d1_fraid3(n, mesid, data);
+    process_d1_fraid1(n, data);
+    process_d1_fraid2(n, data);
+    process_d1_fraid3(n, data);
   }
 
   if (0x3ffULL == ((n->goodwords_mask >> 10) & 0x3ffULL)) {
-    process_d1_fraid4(n, mesid, data);
+    process_d1_fraid4(n, data);
   }
 
   if (0x3ffULL == ((n->goodwords_mask) & 0x3ffULL)) {
-    process_d1_fraid5(n, mesid, data);
+    process_d1_fraid5(n, data);
   }
 
   /* debug information */
@@ -380,7 +358,7 @@ s32 bds_d1_process_subframe(nav_msg_bds_t *n,
     make_utc_tm(&(k->toc), &date);
     log_debug("C%02" PRIu16 " %4" PRIu16 " %2" PRIu8 " %2" PRIu8 " %2" PRIu8
               " %2" PRIu8 " %2" PRIu8 "%19.11E%19.11E%19.11E  ",
-              mesid.sat,
+              n->mesid.sat,
               date.year,
               date.month,
               date.month_day,
@@ -424,7 +402,7 @@ s32 bds_d1_process_subframe(nav_msg_bds_t *n,
     add_secs(&k->toc, BDS_SECOND_TO_GPS_SECOND);
     add_secs(&iono->toa, BDS_SECOND_TO_GPS_SECOND);
     /* Mark ephemeris from B2 as if it was coming from B1. */
-    if (CODE_BDS2_B2 == mesid.code) {
+    if (CODE_BDS2_B2 == n->mesid.code) {
       e->sid.code = CODE_BDS2_B1;
     }
     e->fit_interval = BDS_FIT_INTERVAL_SECONDS;
@@ -437,15 +415,11 @@ s32 bds_d1_process_subframe(nav_msg_bds_t *n,
 /** D2 parsing
  *
  * \param n     Nav message decode state struct
- * \param mesid Signal ID
  * \param data  Target for data decoding
  *
  * \return TOW in milliseconds
  */
-s32 bds_d2_process_subframe(nav_msg_bds_t *n,
-                            const me_gnss_signal_t mesid,
-                            bds_d2_decoded_data_t *data) {
-  (void)mesid;
+s32 bds_d2_process_subframe(nav_msg_bds_t *n, bds_d2_decoded_data_t *data) {
   (void)data;
 
   s32 TOW_s = (((n->page_words[0]) >> 4) & 0xffU) << 12;
@@ -563,7 +537,7 @@ bool crc_check(nav_msg_bds_t *n) {
   }
   /* check if all words passed the CRC check */
   if (good_words != BDS_WORD_SUBFR_MASK) {
-    log_debug("C%02" PRIu8 " good_words %08" PRIx32, n->prn, good_words);
+    log_debug("C%02" PRIu16 " good_words %08" PRIx32, n->mesid.sat, good_words);
     return false;
   }
   return true;
@@ -582,7 +556,7 @@ static void pack_buffer(nav_msg_bds_t *n) {
   tmp = flip ? (tmp ^ BDS_WORD_BITMASK) : tmp;
   u8 subfr = (tmp >> 12) & 0x7;
   if ((subfr < 1) || (subfr > 5)) {
-    log_warn("C%02" PRIu8 " subframe %" PRIu8 "error", n->prn, subfr);
+    log_warn("C%02" PRIu16 " subframe %" PRIu8 "error", n->mesid.sat, subfr);
     return;
   }
   for (u8 k = 0; k < BDS_WORD_SUBFR; k++) {
@@ -599,9 +573,7 @@ static void pack_buffer(nav_msg_bds_t *n) {
   //~ dump_navmsg(n, subfr);
 }
 
-static void process_d1_fraid1(nav_msg_bds_t *n,
-                              const me_gnss_signal_t mesid,
-                              bds_d1_decoded_data_t *data) {
+static void process_d1_fraid1(nav_msg_bds_t *n, bds_d1_decoded_data_t *data) {
   ephemeris_t *e = &(data->ephemeris);
   ephemeris_kepler_t *k = &(data->ephemeris.kepler);
   ionosphere_t *i = &(data->iono);
@@ -639,7 +611,7 @@ static void process_d1_fraid1(nav_msg_bds_t *n,
   data->aodc = aodc;
   data->aode = aode;
   /* Ephemeris params */
-  e->sid = mesid2sid(mesid, GLO_ORBIT_SLOT_UNKNOWN);
+  e->sid = mesid2sid(n->mesid, GLO_ORBIT_SLOT_UNKNOWN);
   e->health_bits = sath1;
   e->ura = bds_ura_table[urai];
   e->toe.wn = BDS_WEEK_TO_GPS_WEEK + weekno;
@@ -667,10 +639,7 @@ static void process_d1_fraid1(nav_msg_bds_t *n,
   i->b3 = (double)(beta[3] * C_2P16);
 }
 
-static void process_d1_fraid2(nav_msg_bds_t *n,
-                              const me_gnss_signal_t mesid,
-                              bds_d1_decoded_data_t *data) {
-  ephemeris_t *e = &(data->ephemeris);
+static void process_d1_fraid2(nav_msg_bds_t *n, bds_d1_decoded_data_t *data) {
   ephemeris_kepler_t *k = &(data->ephemeris.kepler);
 
   u32 deltan = (((n->page_words[11]) >> 8) & 0x3ff) << 6;
@@ -694,8 +663,6 @@ static void process_d1_fraid2(nav_msg_bds_t *n,
   data->split_toe &= ~(0x3 << 15);
   data->split_toe |= (toe_msb << 15);
   data->split_toe_mask |= (0x3 << 15);
-  /* Ephemeris params */
-  e->sid = mesid2sid(mesid, GLO_ORBIT_SLOT_UNKNOWN);
   /* Keplerian params */
   k->dn = BITS_SIGN_EXTEND_32(16, deltan) * C_1_2P43 * GPS_PI;
   k->cuc = BITS_SIGN_EXTEND_32(18, cuc) * C_1_2P31;
@@ -707,9 +674,7 @@ static void process_d1_fraid2(nav_msg_bds_t *n,
   k->sqrta = sqrta * C_1_2P19;
 }
 
-static void process_d1_fraid3(nav_msg_bds_t *n,
-                              const me_gnss_signal_t mesid,
-                              bds_d1_decoded_data_t *data) {
+static void process_d1_fraid3(nav_msg_bds_t *n, bds_d1_decoded_data_t *data) {
   ephemeris_t *e = &(data->ephemeris);
   ephemeris_kepler_t *k = &(data->ephemeris.kepler);
   double new_toe;
@@ -736,7 +701,6 @@ static void process_d1_fraid3(nav_msg_bds_t *n,
   data->split_toe |= toe_lsb;
   data->split_toe_mask |= (0x7ff);
   /* Ephemeris params */
-  e->sid = mesid2sid(mesid, GLO_ORBIT_SLOT_UNKNOWN);
   if (data->split_toe_mask) {
     new_toe = data->split_toe * C_2P3;
     if (e->toe.tow != new_toe) {
@@ -758,32 +722,26 @@ static void process_d1_fraid3(nav_msg_bds_t *n,
 }
 
 static void process_d1_common_alm(nav_msg_bds_t *n,
-                                  const me_gnss_signal_t mesid,
                                   bds_d1_decoded_data_t *data) {
   (void)n;
-  (void)mesid;
   (void)data;
 }
 
-static void process_d1_fraid4(nav_msg_bds_t *n,
-                              const me_gnss_signal_t mesid,
-                              bds_d1_decoded_data_t *data) {
+static void process_d1_fraid4(nav_msg_bds_t *n, bds_d1_decoded_data_t *data) {
   u32 pnum = (((n->page_words[31]) >> 10) & 0x7f);
 
   if ((pnum == 0) || (pnum > 24)) return;
 
-  process_d1_common_alm(n, mesid, data);
+  process_d1_common_alm(n, data);
 }
 
-static void process_d1_fraid5(nav_msg_bds_t *n,
-                              const me_gnss_signal_t mesid,
-                              bds_d1_decoded_data_t *data) {
+static void process_d1_fraid5(nav_msg_bds_t *n, bds_d1_decoded_data_t *data) {
   u32 pnum = (((n->page_words[41]) >> 10) & 0x7f);
 
   if ((pnum == 0) || (pnum > 24)) return;
 
   if (pnum <= 6) {
-    process_d1_common_alm(n, mesid, data);
+    process_d1_common_alm(n, data);
   }
 
   if (pnum == 7) {

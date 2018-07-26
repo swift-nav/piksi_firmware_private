@@ -64,7 +64,7 @@ extern "C" {
  * \sa process_subframe
  */
 typedef struct {
-  u8 prn;
+  me_gnss_signal_t mesid;
   /**< Decoder buffer (330 bits) */
   u32 subframe_bits[BDS_NAV_MSG_SUBFRAME_WORDS_LEN];
   /**< Received bit counter */
@@ -114,21 +114,16 @@ typedef struct _bds_d2_decoded_data {
 } bds_d2_decoded_data_t;
 
 bool crc_check(nav_msg_bds_t *n);
-void bds_nav_msg_init(nav_msg_bds_t *n, u8 prn);
+void bds_nav_msg_init(nav_msg_bds_t *n, const me_gnss_signal_t mesid);
 void bds_nav_msg_clear_decoded(nav_msg_bds_t *n);
 bool bds_data_decoding(nav_msg_bds_t *n,
-                       const me_gnss_signal_t mesid,
                        nav_data_sync_t *from_decoder,
                        nav_bit_t nav_bit);
 bool bds_nav_msg_update(nav_msg_bds_t *n, bool bit_val);
 
-s32 bds_d1_process_subframe(nav_msg_bds_t *n,
-                            const me_gnss_signal_t mesid,
-                            bds_d1_decoded_data_t *data);
+s32 bds_d1_process_subframe(nav_msg_bds_t *n, bds_d1_decoded_data_t *data);
 
-s32 bds_d2_process_subframe(nav_msg_bds_t *n,
-                            const me_gnss_signal_t mesid,
-                            bds_d2_decoded_data_t *data);
+s32 bds_d2_process_subframe(nav_msg_bds_t *n, bds_d2_decoded_data_t *data);
 
 #ifdef __cplusplus
 } /* extern "C" */
