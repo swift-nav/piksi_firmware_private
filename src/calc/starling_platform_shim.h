@@ -21,10 +21,6 @@
 #include <libswiftnav/sbas_raw_data.h>
 #include <libswiftnav/signal.h>
 
-/* TODO(kevin) Ultimately the platform layer should have no dependency
- * on starling headers. */
-#include "calc/starling_threads.h"
-
 #ifndef __STDC_LIB_EXT1__
 typedef int errno_t;
 #endif
@@ -44,6 +40,9 @@ typedef enum mailbox_id_e {
   MB_ID_SBAS_DATA = 3,
   MB_ID_COUNT = 4
 } mailbox_id_t;
+
+#define MB_NONBLOCKING 0
+#define MB_BLOCKING 1
 
 /* Mutex:
  * init() should return non-zero if the requested mutex ID cannot
@@ -65,13 +64,9 @@ void platform_watchdog_notify_starling_main_thread(void);
 
 /* internal communication between threads */
 void platform_mailbox_init(mailbox_id_t id);
-errno_t platform_mailbox_post(mailbox_id_t id, void *msg, uint32_t timeout_ms);
-errno_t platform_mailbox_post_ahead(mailbox_id_t id,
-                                    void *msg,
-                                    uint32_t timeout_ms);
-errno_t platform_mailbox_fetch(mailbox_id_t id,
-                               void **msg,
-                               uint32_t timeout_ms);
+errno_t platform_mailbox_post(mailbox_id_t id, void *msg, int blocking);
+errno_t platform_mailbox_post_ahead(mailbox_id_t id, void *msg, int blocking);
+errno_t platform_mailbox_fetch(mailbox_id_t id, void **msg, int blocking);
 void *platform_mailbox_item_alloc(mailbox_id_t id);
 void platform_mailbox_item_free(mailbox_id_t id, const void *ptr);
 
@@ -85,5 +80,8 @@ void platform_mailbox_item_free(mailbox_id_t id, const void *ptr);
 #define STARLING_THREAD_STACK (6 * 1024 * 1024)
 
 #define ME_OBS_MSG_N_BUFF 6
+
+/* Make the buffer large enough to handle 15 second latency at 10Hz */
+#define STARLING_OBS_N_BUFF BASE_LATENCY_TIMEOUT * 10
 
 #endif

@@ -87,54 +87,28 @@ typedef struct StarlingFilterSolution {
 /** Maximum difference between observation times to consider them matched. */
 #define TIME_MATCH_THRESHOLD 2e-3
 
-/** number of milliseconds before SPP resumes in pseudo-absolute mode */
-#define DGNSS_TIMEOUT_MS 5000
-
-/** Maximum time that an observation will be propagated for to align it with a
- * solution epoch before it is discarded.  */
-#define OBS_PROPAGATION_LIMIT 10e-3
-
 /* Warn on 15 second base station observation latency */
 #define BASE_LATENCY_TIMEOUT 15
 
-/* Make the buffer large enough to handle 15 second latency at 10Hz */
-#define STARLING_OBS_N_BUFF BASE_LATENCY_TIMEOUT * 10
-
-/* Size of an spp solution in ECEF. */
-#define SPP_ECEF_SIZE 3
-
-void reset_rtk_filter(void);
 /*******************************************************************************
- * Formal Starling API
+ * Starling Top-Level API
  ******************************************************************************/
+
+/* All user configurable IO functions used by the Starling Engine.
+ * Any functions which are either irrelevant, or not required may
+ * be replaced with NULL. */
+typedef struct StarlingIoFunctionTable StarlingIoFunctionTable;
+
+/* User may optionally supply debug functions which will may be used to
+ * instrument certain modes of operation. */
+typedef struct StarlingDebugFunctionTable StarlingDebugFunctionTable;
+
+/* Must be called before using any of the other API functions. */
+void starling_initialize_api(void);
 
 /* Run the starling engine on the current thread. Blocks indefinitely. */
-void starling_run(void);
-
-/*******************************************************************************
- * Starling Data API
- ******************************************************************************/
-
-/*
- * DATA API
- * ========
- * All regularly occurring inputs to the Starling Engine are provided through a
- * uniform interface. Namely, the user must provide a "read" function for each
- * supported input type which conforms to the following interface.
- *
- * 1. BLOCKING / NONBLOCKING
- *      -- Read functions must accept an argument indicating whether or not
- *         blocking behavior is desired. The implementation may determine
- *         the length of any blocking timeout. By invoking a read function
- *         in blocking mode, the Starling Engine is merely indicating that
- *         it has no work to do until it receives something.
- * 2. COPY BEHAVIOR
- *      -- Starling Engine requires that data is copied in. Support for
- *         message passing will come later.
- * 3. RETURNS
- *      -- Read functions may return implementation specific return codes.
- *         Zero must always indicate success.
- */
+void starling_run(const StarlingIoFunctionTable *io_functions,
+                  const StarlingDebugFunctionTable *debug_functions);
 
 /* Return codes for read functions. */
 #define STARLING_READ_OK 0
@@ -143,12 +117,22 @@ void starling_run(void);
 #define STARLING_READ_NONBLOCKING 0
 #define STARLING_READ_BLOCKING 1
 
-/* Table of read functions for regularly occurring data streams. */
-typedef struct StarlingInputFunctionTable {
+struct StarlingIoFunctionTable {
+  /**
+   * Input functions are straightforward and all behave the same.
+   *
+   * They must be able to operate in either blocking or non-blocking
+   * mode. When blocking, it is left to the implementation to determine
+   * an appropriate timeout duration. By invoking a "read" function in
+   * blocking mode, the Starling Engine is indicating that it has no
+   * work to do until the function returns.
+   *
+   * All "read" functions must return 0 on success, and may return
+   * implementation-specific values on error.
+   */
   int (*read_obs_rover)(int blocking, me_msg_obs_t *me_msg);
   int (*read_obs_base)(int blocking, obss_t *obs);
   int (*read_sbas_data)(int blocking, sbas_raw_data_t *data);
-} StarlingInputFunctionTable;
 
 #if 0
 // TODO(kevin) future work..
@@ -157,17 +141,6 @@ typedef struct StarlingInputFunctionTable {
   int (*read_imu_data)   (int flags, imu_data_t *i);
 #endif
 
-/* Set the table of read functions. Should only be called on startup.
- * TODO(kevin) make this a parameter to initialize or run. */
-void starling_set_input_functions(const StarlingInputFunctionTable *functions);
-
-/**
- * The Starling Engine output is made available over user provided callback
- * functions. These functions are guaranteed to always be called from the
- * Starling main thread.
- */
-
-typedef struct StarlingOutputCallbacks {
   /**
    * User handling of a low-latency solution.
    *
@@ -199,18 +172,25 @@ typedef struct StarlingOutputCallbacks {
   void (*handle_solution_time_matched)(const StarlingFilterSolution *solution,
                                        const obss_t *obss_base,
                                        const obss_t *obss_rover);
-} StarlingOutputCallbacks;
+};
 
-/* Should be called at startup before running the starling thread. */
-void starling_set_output_callbacks(const StarlingOutputCallbacks *callbacks);
+enum ProfileDirective {
+  PROFILE_BEGIN,
+  PROFILE_END,
+};
 
-/* Must be called before using any of the other API functions. */
-void starling_initialize_api(void);
+struct StarlingDebugFunctionTable {
+  /* Will be called at the beginning and end of a low-latency thread iteration.
+   */
+  void (*profile_low_latency_thread)(enum ProfileDirective directive);
+};
 
 /*******************************************************************************
  * Starling Configuration API
  ******************************************************************************/
 
+/* Reset only the RTK filter. */
+void starling_reset_rtk_filter(void);
 /* Enable glonass constellation in the Starling engine. */
 void starling_set_is_glonass_enabled(bool is_glonass_enabled);
 /* Enable galileo constellation in the Starling engine. */

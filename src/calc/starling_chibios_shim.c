@@ -53,6 +53,16 @@
 #include "timing/timing.h"
 
 /*******************************************************************************
+ * Constants
+ ******************************************************************************/
+
+#define MAILBOX_BLOCKING_TIMEOUT_MS 5000
+
+#define SBAS_DATA_N_BUFF 6
+
+#define NUM_MUTEXES STARLING_MAX_NUM_MUTEXES
+
+/*******************************************************************************
  * Local Variables
  ******************************************************************************/
 
@@ -70,11 +80,9 @@ static msg_t me_obs_mailbox_buff[ME_OBS_MSG_N_BUFF];
 static me_msg_obs_t me_obs_buff[ME_OBS_MSG_N_BUFF];
 
 /* SBAS Data API data-structures. */
-#define SBAS_DATA_N_BUFF 6
 static msg_t sbas_data_mailbox_buff[SBAS_DATA_N_BUFF];
 static sbas_raw_data_t sbas_data_buff[SBAS_DATA_N_BUFF];
 
-#define NUM_MUTEXES STARLING_MAX_NUM_MUTEXES
 static mutex_t mutexes[NUM_MUTEXES];
 
 /*******************************************************************************
@@ -201,7 +209,9 @@ void platform_mailbox_init(mailbox_id_t id) {
                   mailbox_info[id].mailbox_len);
 }
 
-errno_t platform_mailbox_post(mailbox_id_t id, void *msg, uint32_t timeout_ms) {
+errno_t platform_mailbox_post(mailbox_id_t id, void *msg, int blocking) {
+  uint32_t timeout_ms =
+      (MB_BLOCKING == blocking) ? MAILBOX_BLOCKING_TIMEOUT_MS : 0;
   if (MSG_OK !=
       chMBPost(&mailbox_info[id].mailbox, (msg_t)msg, MS2ST(timeout_ms))) {
     /* Full or mailbox reset while waiting */
@@ -211,9 +221,9 @@ errno_t platform_mailbox_post(mailbox_id_t id, void *msg, uint32_t timeout_ms) {
   return 0;
 }
 
-errno_t platform_mailbox_post_ahead(mailbox_id_t id,
-                                    void *msg,
-                                    uint32_t timeout_ms) {
+errno_t platform_mailbox_post_ahead(mailbox_id_t id, void *msg, int blocking) {
+  uint32_t timeout_ms =
+      (MB_BLOCKING == blocking) ? MAILBOX_BLOCKING_TIMEOUT_MS : 0;
   if (MSG_OK !=
       chMBPostAhead(&mailbox_info[id].mailbox, (msg_t)msg, MS2ST(timeout_ms))) {
     /* Full or mailbox reset while waiting */
@@ -223,9 +233,9 @@ errno_t platform_mailbox_post_ahead(mailbox_id_t id,
   return 0;
 }
 
-errno_t platform_mailbox_fetch(mailbox_id_t id,
-                               void **msg,
-                               uint32_t timeout_ms) {
+errno_t platform_mailbox_fetch(mailbox_id_t id, void **msg, int blocking) {
+  uint32_t timeout_ms =
+      (MB_BLOCKING == blocking) ? MAILBOX_BLOCKING_TIMEOUT_MS : 0;
   if (MSG_OK !=
       chMBFetch(&mailbox_info[id].mailbox, (msg_t *)msg, MS2ST(timeout_ms))) {
     /* Empty or mailbox reset while waiting */

@@ -298,7 +298,7 @@ static void update_obss(uncollapsed_obss_t *new_uncollapsed_obss) {
             " filter.",
             old_base_sender_id,
             base_obss.sender_id);
-        reset_rtk_filter();
+        starling_reset_rtk_filter();
       }
       old_base_sender_id = base_obss.sender_id;
 
@@ -316,7 +316,7 @@ static void update_obss(uncollapsed_obss_t *new_uncollapsed_obss) {
       *new_base_obs = base_obss;
 
       const errno_t post_ret =
-          platform_mailbox_post(MB_ID_BASE_OBS, new_base_obs, TIME_IMMEDIATE);
+          platform_mailbox_post(MB_ID_BASE_OBS, new_base_obs, MB_NONBLOCKING);
       if (post_ret != 0) {
         log_error("Base obs mailbox should have space!");
         platform_mailbox_item_free(MB_ID_BASE_OBS, new_base_obs);
