@@ -89,11 +89,11 @@ static void process_d1_fraid5(nav_msg_bds_t *n, bds_d1_decoded_data_t *data);
  * \param[in] n     BDS message decoder object
  * \param[in] mesid Signal ID
  */
-void bds_nav_msg_init(nav_msg_bds_t *n, const me_gnss_signal_t mesid) {
+void bds_nav_msg_init(nav_msg_bds_t *n, const me_gnss_signal_t *mesid) {
   /* Initialize the necessary parts of the nav message state structure. */
   memset(n, 0, sizeof(*n));
   n->bit_polarity = BIT_POLARITY_UNKNOWN;
-  n->mesid = mesid;
+  n->mesid = *mesid;
 }
 
 /**
@@ -118,8 +118,7 @@ static bds_decode_status_t bds_d2_processing(nav_msg_bds_t *n) {
   bds_d2_decoded_data_t dd_d2nav;
   memset(&dd_d2nav, 0, sizeof(bds_d2_decoded_data_t));
 
-  s32 TOWms = TOW_INVALID;
-  TOWms = bds_d2_process_subframe(n, &dd_d2nav);
+  s32 TOWms = bds_d2_process_subframe(n, &dd_d2nav);
   if (TOW_INVALID == TOWms) {
     return BDS_DECODE_RESET;
   }
@@ -156,8 +155,7 @@ static bds_decode_status_t bds_d1_processing(nav_msg_bds_t *n) {
   bds_d1_decoded_data_t dd_d1nav;
   memset(&dd_d1nav, 0, sizeof(bds_d1_decoded_data_t));
 
-  s32 TOWms = TOW_INVALID;
-  TOWms = bds_d1_process_subframe(n, &dd_d1nav);
+  s32 TOWms = bds_d1_process_subframe(n, &dd_d1nav);
   if (TOW_INVALID == TOWms) {
     return BDS_DECODE_RESET;
   }
@@ -273,10 +271,10 @@ bool bds_nav_msg_update(nav_msg_bds_t *n, bool bit_val) {
     }
     /* check if it repeats (including polarity) on second TLM */
     if (pream_candidate_prev != pream_candidate_last) {
-      log_debug("C%02d prev %" PRIx32 " last %" PRIx32,
-                n->mesid.sat,
-                pream_candidate_prev,
-                pream_candidate_last);
+      log_debug_mesid(n->mesid,
+                      "prev %" PRIx32 " last %" PRIx32,
+                      pream_candidate_prev,
+                      pream_candidate_last);
       return false;
     }
     /* check that there are no bit errors */
@@ -302,10 +300,10 @@ bool bds_nav_msg_update(nav_msg_bds_t *n, bool bit_val) {
         /* reset subframe sync and polarity */
         n->subfr_sync = false;
         n->bit_polarity = BIT_POLARITY_UNKNOWN;
-        log_debug("C%02" PRIu16 " lost sync prev %" PRIx32 " last %" PRIx32,
-                  n->mesid.sat,
-                  pream_candidate_prev,
-                  pream_candidate_last);
+        log_debug_mesid(n->mesid,
+                        "lost sync prev %" PRIx32 " last %" PRIx32,
+                        pream_candidate_prev,
+                        pream_candidate_last);
         return false;
       }
       /* check that there are no bit errors */
@@ -374,18 +372,18 @@ s32 bds_d1_process_subframe(nav_msg_bds_t *n, bds_d1_decoded_data_t *data) {
     ephemeris_kepler_t *k = &(data->ephemeris.kepler);
     ionosphere_t *iono = &(data->iono);
     make_utc_tm(&(k->toc), &date);
-    log_debug("C%02" PRIu16 " %4" PRIu16 " %2" PRIu8 " %2" PRIu8 " %2" PRIu8
-              " %2" PRIu8 " %2" PRIu8 "%19.11E%19.11E%19.11E  ",
-              n->mesid.sat,
-              date.year,
-              date.month,
-              date.month_day,
-              date.hour,
-              date.minute,
-              date.second_int,
-              k->af0,
-              k->af1,
-              k->af2);
+    log_debug_mesid(n->mesid,
+                    "%4" PRIu16 " %2" PRIu8 " %2" PRIu8 " %2" PRIu8 " %2" PRIu8
+                    " %2" PRIu8 "%19.11E%19.11E%19.11E  ",
+                    date.year,
+                    date.month,
+                    date.month_day,
+                    date.hour,
+                    date.minute,
+                    date.second_int,
+                    k->af0,
+                    k->af1,
+                    k->af2);
     log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
               (double)k->iode,
               k->crs,
@@ -555,7 +553,7 @@ bool crc_check(nav_msg_bds_t *n) {
   }
   /* check if all words passed the CRC check */
   if (good_words != BDS_WORD_SUBFR_MASK) {
-    log_debug("C%02" PRIu16 " good_words %08" PRIx32, n->mesid.sat, good_words);
+    log_debug_mesid(n->mesid, "good_words %08" PRIx32, good_words);
     return false;
   }
   return true;
@@ -574,7 +572,7 @@ static void pack_buffer(nav_msg_bds_t *n) {
   tmp = flip ? (tmp ^ BDS_WORD_BITMASK) : tmp;
   u8 subfr = (tmp >> 12) & 0x7;
   if ((subfr < 1) || (subfr > 5)) {
-    log_warn("C%02" PRIu16 " subframe %" PRIu8 "error", n->mesid.sat, subfr);
+    log_warn_mesid(n->mesid, "subframe %" PRIu8 "error", subfr);
     return;
   }
   for (u8 k = 0; k < BDS_WORD_SUBFR; k++) {

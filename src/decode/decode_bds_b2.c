@@ -59,7 +59,7 @@ static void decoder_bds_b2_init(const decoder_channel_info_t *channel_info,
   bds_b2_decoder_data_t *data = decoder_data;
 
   memset(data, 0, sizeof(*data));
-  bds_nav_msg_init(&data->nav_msg, channel_info->mesid);
+  bds_nav_msg_init(&data->nav_msg, &channel_info->mesid);
 }
 
 static void decoder_bds_b2_process(const decoder_channel_info_t *channel_info,
@@ -78,7 +78,7 @@ static void decoder_bds_b2_process(const decoder_channel_info_t *channel_info,
   while (tracker_nav_bit_get(channel, &nav_bit)) {
     bds_decode_status_t status = bds_data_decoding(&data->nav_msg, nav_bit);
     if (BDS_DECODE_RESET == status) {
-      bds_nav_msg_init(&data->nav_msg, channel_info->mesid);
+      bds_nav_msg_init(&data->nav_msg, &channel_info->mesid);
       continue;
     }
     /* Sync tracker with decoder data */
