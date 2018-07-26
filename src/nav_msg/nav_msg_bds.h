@@ -75,6 +75,10 @@ typedef struct {
   bool subfr_sync;
   /**< Polarity of the data */
   s8 bit_polarity;
+  /**< Decoded TOW [ms] */
+  s32 TOW_ms;
+  /**< SV health status */
+  health_t health;
   /**< Decoded subframe data */
   u32 page_words[BDS_WORD_SUBFR * BDS_SUBFRAME_MAX];
   /**< Decoded subframe rx time */
@@ -124,9 +128,10 @@ typedef enum {
 bool crc_check(nav_msg_bds_t *n);
 void bds_nav_msg_init(nav_msg_bds_t *n, const me_gnss_signal_t mesid);
 void bds_nav_msg_clear_decoded(nav_msg_bds_t *n);
-bds_decode_status_t bds_data_decoding(nav_msg_bds_t *n,
-                                      nav_data_sync_t *from_decoder,
-                                      nav_bit_t nav_bit);
+bds_decode_status_t bds_data_decoding(nav_msg_bds_t *n, nav_bit_t nav_bit);
+void get_bds_data_sync(const nav_msg_bds_t *n,
+                       nav_data_sync_t *from_decoder,
+                       bds_decode_status_t status);
 bool bds_nav_msg_update(nav_msg_bds_t *n, bool bit_val);
 
 s32 bds_d1_process_subframe(nav_msg_bds_t *n, bds_d1_decoded_data_t *data);
