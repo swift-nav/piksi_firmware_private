@@ -53,10 +53,18 @@
 #include "timing/timing.h"
 
 /*******************************************************************************
- * Local Variables
+ * Constants
  ******************************************************************************/
 
 #define MAILBOX_BLOCKING_TIMEOUT_MS 5000
+
+#define SBAS_DATA_N_BUFF 6
+
+#define NUM_MUTEXES STARLING_MAX_NUM_MUTEXES
+
+/*******************************************************************************
+ * Local Variables
+ ******************************************************************************/
 
 /* Time-matched observations data-structures. */
 static msg_t time_matched_obs_mailbox_buff[STARLING_OBS_N_BUFF];
@@ -72,11 +80,9 @@ static msg_t me_obs_mailbox_buff[ME_OBS_MSG_N_BUFF];
 static me_msg_obs_t me_obs_buff[ME_OBS_MSG_N_BUFF];
 
 /* SBAS Data API data-structures. */
-#define SBAS_DATA_N_BUFF 6
 static msg_t sbas_data_mailbox_buff[SBAS_DATA_N_BUFF];
 static sbas_raw_data_t sbas_data_buff[SBAS_DATA_N_BUFF];
 
-#define NUM_MUTEXES STARLING_MAX_NUM_MUTEXES
 static mutex_t mutexes[NUM_MUTEXES];
 
 /*******************************************************************************

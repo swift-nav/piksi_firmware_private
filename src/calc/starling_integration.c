@@ -39,7 +39,7 @@
  * Constants
  ******************************************************************************/
 
-/** number of milliseconds before SPP resumes in pseudo-absolute mode */
+/** Number of milliseconds before SPP resumes in pseudo-absolute mode */
 #define DGNSS_TIMEOUT_MS 5000
 
 /* Size of an spp solution in ECEF. */
