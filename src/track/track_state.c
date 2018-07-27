@@ -205,8 +205,6 @@ void tracker_get_state(u8 id,
   freq_info->code_phase_chips = tracker->code_phase_prompt;
   /* Code phase rate in chips/s */
   freq_info->code_phase_rate = tracker->code_phase_rate;
-  /* Acceleration [g] */
-  freq_info->acceleration = tracker->acceleration;
 
   *misc_info = tracker->misc_info;
   if (tracker->reset_cpo) {

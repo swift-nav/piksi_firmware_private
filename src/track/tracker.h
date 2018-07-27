@@ -256,7 +256,6 @@ typedef struct {
   double carrier_freq;     /**< Carrier frequency in Hz. */
   double
       carrier_freq_at_lock; /**< Carrier frequency in Hz at last lock time. */
-  float acceleration;       /**< Acceleration [g] */
 } tracker_freq_info_t;
 
 /**
@@ -409,7 +408,6 @@ typedef struct {
   float cn0;                   /**< Current estimate of C/N0. */
   u32 flags;                   /**< Tracker flags TRACKER_FLAG_... */
   ch_drop_reason_t ch_drop_reason; /* Drop reason if TRACKER_FLAG_DROP is set */
-  float acceleration;              /**< Acceleration [g] */
   float xcorr_freq;                /**< Doppler for cross-correlation [Hz] */
   u64 init_timestamp_ms;           /**< Tracking channel init timestamp [ms] */
   u64 update_timestamp_ms;         /**< Tracking channel last update

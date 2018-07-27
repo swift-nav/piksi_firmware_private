@@ -22,13 +22,4 @@
 /** C/No shift for Basic C/No estimation */
 #define PLATFORM_CN0_EST_SHIFT (-4.f)
 
-/* Memory segments for V3 in the order of preference:
- * - empty -- Default data segment
- * - _CCM  -- CCM segment
- * - _BCKP -- Data backup segment
- */
-
-/** Memory segment for non-constant data */
-#define PLATFORM_CN0_DATA
-
 #endif /* SWIFTNAV_PLATFORM_CN0_H */
