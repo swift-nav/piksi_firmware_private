@@ -32,29 +32,30 @@
 #include "starling_threads.h"
 
 /**************************************************************************
-* Obs Fifo
-* --------
-* This is a little mini-module used for internal buffering of observations.
-* It is a simple-as-can-be circular buffer, with user supplied memory.
-*
-* TODO(kevin) would be great to have this implementation in a separate
-* file and possibly merge with the other fifo implementations which are
-* floating around.
-*************************************************************************/
+ * Obs Fifo
+ * --------
+ * This is a little mini-module used for internal buffering of observations.
+ * It is a simple-as-can-be circular buffer, with user supplied memory.
+ *
+ * TODO(kevin) would be great to have this implementation in a separate
+ * file and possibly merge with the other fifo implementations which are
+ * floating around.
+ *************************************************************************/
 typedef struct obs_fifo_t {
- /* Contains the number of elements available to be read. */
- size_t count;
- /* Always points to the next element to write to. */
- obss_t *write_ptr;
- /* Always points to next element to read from. Only valid for non-zero count. */
- obss_t *read_ptr;
- /* Storage. */
- size_t buflen ;
- obss_t *buffer;
+  /* Contains the number of elements available to be read. */
+  size_t count;
+  /* Always points to the next element to write to. */
+  obss_t *write_ptr;
+  /* Always points to next element to read from. Only valid for non-zero count.
+   */
+  obss_t *read_ptr;
+  /* Storage. */
+  size_t buflen;
+  obss_t *buffer;
 } obs_fifo_t;
 
 static obss_t *wrap_increment_obs_ptr(obss_t *ptr, obss_t *base, size_t radix) {
-  assert (base <= ptr && ptr < base + radix);
+  assert(base <= ptr && ptr < base + radix);
   ptr++;
   if (ptr >= base + radix) {
     ptr = base;
@@ -74,24 +75,22 @@ static void obs_fifo_init(obs_fifo_t *fifo, size_t buflen, obss_t *buffer) {
 static void obs_fifo_advance_write_ptr(obs_fifo_t *fifo) {
   if (fifo->count < fifo->buflen) {
     fifo->count++;
-  }  
-  fifo->write_ptr = wrap_increment_obs_ptr(fifo->write_ptr, 
-                                           fifo->buffer, 
-                                           fifo->buflen);
+  }
+  fifo->write_ptr =
+      wrap_increment_obs_ptr(fifo->write_ptr, fifo->buffer, fifo->buflen);
 }
 
 /* Call this to indicate an element has been read and is no longer needed. */
 static void obs_fifo_advance_read_ptr(obs_fifo_t *fifo) {
   assert(fifo->count > 0);
   fifo->count--;
-  fifo->read_ptr = wrap_increment_obs_ptr(fifo->read_ptr, 
-                                          fifo->buffer, 
-                                          fifo->buflen);
+  fifo->read_ptr =
+      wrap_increment_obs_ptr(fifo->read_ptr, fifo->buffer, fifo->buflen);
 }
 
 /**************************************************************************
-* Macros, Constants, Variables 
-*************************************************************************/
+ * Macros, Constants, Variables
+ *************************************************************************/
 
 /* Convenience macro for invoking the debug functions when they are enabled
  * and defined. */
@@ -204,8 +203,8 @@ static gps_time_t last_time_matched_rover_obs_post;
 
 static sbas_system_t current_sbas_system = SBAS_NONE;
 
-#define NUM_ROVER_OBS_TO_BUFFER 30 
-#define NUM_BASE_OBS_TO_BUFFER  3 
+#define NUM_ROVER_OBS_TO_BUFFER 30
+#define NUM_BASE_OBS_TO_BUFFER 3
 
 static obs_fifo_t obs_fifo_rover;
 static obs_fifo_t obs_fifo_base;
@@ -213,7 +212,7 @@ static obss_t obs_buffer_rover[NUM_ROVER_OBS_TO_BUFFER];
 static obss_t obs_buffer_base[NUM_BASE_OBS_TO_BUFFER];
 
 /**************************************************************************
- * Starling Threads Implementation 
+ * Starling Threads Implementation
  *************************************************************************/
 
 /**
@@ -536,12 +535,12 @@ bool update_time_matched(gps_time_t *last_update_time,
   return true;
 }
 
-/* Coming into this function, it is assumed that some history of both 
+/* Coming into this function, it is assumed that some history of both
  * rover and base observations is contained in the corresponding pair
  * FIFOs. The task here is to search through the history of observations
- * (in chronological order) looking for "temporal pairs". 
+ * (in chronological order) looking for "temporal pairs".
  *
- * As an optimization, we discard (by advancing the FIFO read pointer) 
+ * As an optimization, we discard (by advancing the FIFO read pointer)
  * any observations which we know can never be paired. */
 static void process_time_matched_data(void) {
   while (obs_fifo_rover.count > 0 && obs_fifo_base.count > 0) {
@@ -577,9 +576,8 @@ static void time_matched_obs_thread(void *arg) {
   while (1) {
     paired_obss_t *paired_obs = NULL;
 
-    errno_t error = platform_mailbox_fetch(MB_ID_PAIRED_OBS, 
-                                           (void **)&paired_obs, 
-                                           MB_BLOCKING);
+    errno_t error = platform_mailbox_fetch(
+        MB_ID_PAIRED_OBS, (void **)&paired_obs, MB_BLOCKING);
     if (error) {
       continue;
     }
@@ -626,7 +624,7 @@ static void time_matched_obs_thread(void *arg) {
               p_solution, &paired_obs->base_obs, &paired_obs->rover_obs);
         }
 
-      platform_mailbox_item_free(MB_ID_PAIRED_OBS, paired_obs);
+        platform_mailbox_item_free(MB_ID_PAIRED_OBS, paired_obs);
     }
   }
 
@@ -727,13 +725,15 @@ static void starling_thread(void) {
     }
 
     /* Try and read a base observation directly into our base obs FIFO. */
-    if (io_functions.read_obs_base && STARLING_READ_OK ==
-        io_functions.read_obs_base(STARLING_READ_NONBLOCKING, obs_fifo_base.write_ptr)) {
-      /* We only acknowledge this as a successful base observation if it actually
-       * has a position attached. 
+    if (io_functions.read_obs_base &&
+        STARLING_READ_OK ==
+            io_functions.read_obs_base(STARLING_READ_NONBLOCKING,
+                                       obs_fifo_base.write_ptr)) {
+      /* We only acknowledge this as a successful base observation if it
+       * actually has a position attached.
        *
-       * TODO(kevin) I don't fully understand why this is necessary, warrants further
-       * investigation. */
+       * TODO(kevin) I don't fully understand why this is necessary, warrants
+       * further investigation. */
       if (obs_fifo_base.write_ptr->has_pos) {
         obs_fifo_advance_write_ptr(&obs_fifo_base);
       }
@@ -869,11 +869,11 @@ static void starling_thread(void) {
         (starling_get_solution_mode() != STARLING_SOLN_MODE_NO_DGNSS);
 
     if (should_do_time_matched_rtk) {
-      /* Push the latest rover obs into the internal FIFO. */ 
-      convert_nm_to_obss(me_msg.size, 
-                         me_msg.obs, 
-                         &obs_time, 
-                         &spp_solution.result, 
+      /* Push the latest rover obs into the internal FIFO. */
+      convert_nm_to_obss(me_msg.size,
+                         me_msg.obs,
+                         &obs_time,
+                         &spp_solution.result,
                          obs_fifo_rover.write_ptr);
       obs_fifo_advance_write_ptr(&obs_fifo_rover);
 
