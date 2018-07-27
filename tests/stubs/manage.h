@@ -17,6 +17,7 @@
 #include <libswiftnav/signal.h>
 
 #include "ch.h"
+#include "ephemeris/ephemeris.h"
 #include "ndb/ndb_common.h"
 #include "position/position.h"
 #include "search_manager_api.h"
