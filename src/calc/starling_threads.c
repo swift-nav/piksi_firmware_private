@@ -54,39 +54,39 @@ typedef struct obs_fifo_t {
 } obs_fifo_t;
 
 static obss_t *wrap_increment_obs_ptr(obss_t *ptr, obss_t *base, size_t radix) {
- assert (base <= ptr && ptr < base + radix);
- ptr++;
- if (ptr >= base + radix) {
-   ptr = base;
- }
- return ptr;
+  assert (base <= ptr && ptr < base + radix);
+  ptr++;
+  if (ptr >= base + radix) {
+    ptr = base;
+  }
+  return ptr;
 }
 
 static void obs_fifo_init(obs_fifo_t *fifo, size_t buflen, obss_t *buffer) {
- fifo->count = 0;
- fifo->read_ptr = buffer;
- fifo->write_ptr = buffer;
- fifo->buflen = buflen;
- fifo->buffer = buffer;
+  fifo->count = 0;
+  fifo->read_ptr = buffer;
+  fifo->write_ptr = buffer;
+  fifo->buflen = buflen;
+  fifo->buffer = buffer;
 }
 
 /* Call this to indicate that a new element has been written. */
 static void obs_fifo_advance_write_ptr(obs_fifo_t *fifo) {
- if (fifo->count < fifo->buflen) {
-   fifo->count++;
- }  
- fifo->write_ptr = wrap_increment_obs_ptr(fifo->write_ptr, 
-                                          fifo->buffer, 
-                                          fifo->buflen);
+  if (fifo->count < fifo->buflen) {
+    fifo->count++;
+  }  
+  fifo->write_ptr = wrap_increment_obs_ptr(fifo->write_ptr, 
+                                           fifo->buffer, 
+                                           fifo->buflen);
 }
 
 /* Call this to indicate an element has been read and is no longer needed. */
 static void obs_fifo_advance_read_ptr(obs_fifo_t *fifo) {
- assert(fifo->count > 0);
- fifo->count--;
- fifo->read_ptr = wrap_increment_obs_ptr(fifo->read_ptr, 
-                                         fifo->buffer, 
-                                         fifo->buflen);
+  assert(fifo->count > 0);
+  fifo->count--;
+  fifo->read_ptr = wrap_increment_obs_ptr(fifo->read_ptr, 
+                                          fifo->buffer, 
+                                          fifo->buflen);
 }
 
 /**************************************************************************
@@ -204,8 +204,8 @@ static gps_time_t last_time_matched_rover_obs_post;
 
 static sbas_system_t current_sbas_system = SBAS_NONE;
 
-#define NUM_ROVER_OBS_TO_BUFFER 150
-#define NUM_BASE_OBS_TO_BUFFER  3
+#define NUM_ROVER_OBS_TO_BUFFER 30 
+#define NUM_BASE_OBS_TO_BUFFER  3 
 
 static obs_fifo_t obs_fifo_rover;
 static obs_fifo_t obs_fifo_base;
@@ -281,23 +281,6 @@ static void update_filter_manager_rtk_reference_position(
   if (refpos.is_valid) {
     filter_manager_set_known_ref_pos(fmrtk, refpos.xyz);
   }
-}
-
-static int read_obs_paired(int blocking, paired_obss_t *obs) {
-  paired_obss_t *local_obs = NULL;
-  errno_t ret =
-      platform_mailbox_fetch(MB_ID_PAIRED_OBS, (void **)&local_obs, blocking);
-  if (local_obs) {
-    if (STARLING_READ_OK == ret) {
-      *obs = *local_obs;
-    } else {
-      /* Erroneous behavior for fetch to return non-NULL pointer and indicate
-       * read failure. */
-      log_error("Paired obs mailbox fetch failed with %d", ret);
-    }
-    platform_mailbox_item_free(MB_ID_PAIRED_OBS, local_obs);
-  }
-  return ret;
 }
 
 static void convert_nm_to_obss(u8 n,
@@ -568,9 +551,9 @@ static void process_time_matched_data(void) {
     if (fabs(dt) < TIME_MATCH_THRESHOLD) {
       /* Rover and base are matching. Process, and then advance both FIFOs. */
       paired_obss_t paired_obs = {.rover_obs = *rover, .base_obs = *base};
-      post_observations(&paired_obs);
       obs_fifo_advance_read_ptr(&obs_fifo_rover);
       obs_fifo_advance_read_ptr(&obs_fifo_base);
+      post_observations(&paired_obs);
     } else if (dt < 0.0) {
       /* Rover is older than base. Advance to next rover obs. */
       obs_fifo_advance_read_ptr(&obs_fifo_rover);
@@ -593,8 +576,11 @@ static void time_matched_obs_thread(void *arg) {
 
   while (1) {
     paired_obss_t *paired_obs = NULL;
-    int ret = read_obs_paired(STARLING_READ_BLOCKING, paired_obs);
-    if (STARLING_READ_OK != ret) {
+
+    errno_t error = platform_mailbox_fetch(MB_ID_PAIRED_OBS, 
+                                           (void **)&paired_obs, 
+                                           MB_BLOCKING);
+    if (error) {
       continue;
     }
 
@@ -640,7 +626,7 @@ static void time_matched_obs_thread(void *arg) {
               p_solution, &paired_obs->base_obs, &paired_obs->rover_obs);
         }
 
-        platform_mailbox_item_free(MB_ID_PAIRED_OBS, paired_obs);
+      platform_mailbox_item_free(MB_ID_PAIRED_OBS, paired_obs);
     }
   }
 
