@@ -209,6 +209,24 @@ static void update_filter_manager_rtk_reference_position(
   }
 }
 
+/* TODO(kevin) refactor common code. */
+static int read_obs_paired(int blocking, paired_obss_t *obs) {
+  paired_obss_t *local_obs = NULL;
+  errno_t ret =
+      platform_mailbox_fetch(MB_ID_PAIRED_OBS, (void **)&local_obs, blocking);
+  if (local_obs) {
+    if (STARLING_READ_OK == ret) {
+      *obs = *local_obs;
+    } else {
+      /* Erroneous behavior for fetch to return non-NULL pointer and indicate
+       * read failure. */
+      log_error("Paired obs mailbox fetch failed with %d", ret);
+    }
+    platform_mailbox_item_free(MB_ID_PAIRED_OBS, local_obs);
+  }
+  return ret;
+}
+
 static void convert_nm_to_obss(u8 n,
                                const navigation_measurement_t m[],
                                const gps_time_t *t,
@@ -545,7 +563,7 @@ static void time_matched_obs_thread(void *arg) {
 
   while (1) {
     paired_obss_t *paired_obs = NULL;
-    int ret = io_functions.read_obs_paired(STARLING_READ_BLOCKING, paired_obs);
+    int ret = read_obs_paired(STARLING_READ_BLOCKING, paired_obs);
     if (STARLING_READ_OK != ret) {
       continue;
     }
