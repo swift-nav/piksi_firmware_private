@@ -70,10 +70,6 @@
 static msg_t paired_obs_mailbox_buff[PAIRED_OBS_N_BUFF];
 static paired_obss_t paired_obs_buff[PAIRED_OBS_N_BUFF] _CCM;
 
-/* Time-matched observations data-structures. */
-static msg_t rover_obs_mailbox_buff[ROVER_OBS_N_BUFF];
-static obss_t rover_obs_buff[ROVER_OBS_N_BUFF] _CCM;
-
 /** Keep a mailbox of received base obs so we can process all of them in
  * order even if we have a bursty base station connection. */
 static msg_t base_obs_mailbox_buff[BASE_OBS_N_BUFF];
@@ -184,12 +180,6 @@ static mailbox_info_t mailbox_info[MB_ID_COUNT] = {
                           paired_obs_buff,
                           PAIRED_OBS_N_BUFF,
                           sizeof(paired_obss_t)},
-    [MB_ID_ROVER_OBS] = {{0},
-                         {0},
-                         rover_obs_mailbox_buff,
-                         rover_obs_buff,
-                         ROVER_OBS_N_BUFF,
-                         sizeof(obss_t)},
     [MB_ID_BASE_OBS] = {{0},
                         {0},
                         base_obs_mailbox_buff,

@@ -203,8 +203,10 @@ static gps_time_t last_time_matched_rover_obs_post;
 
 static sbas_system_t current_sbas_system = SBAS_NONE;
 
-#define NUM_ROVER_OBS_TO_BUFFER 30
-#define NUM_BASE_OBS_TO_BUFFER 3
+/* Buffer size based on acceptable base latency with data @ 10Hz */
+#define NUM_ROVER_OBS_TO_BUFFER (BASE_LATENCY_TIMEOUT * 10)
+/* Hold on to a couple of base observations history to be on the safe side. */
+#define NUM_BASE_OBS_TO_BUFFER (3)
 
 static obs_fifo_t obs_fifo_rover;
 static obs_fifo_t obs_fifo_base;
@@ -632,7 +634,6 @@ static void init_filters_and_settings(void) {
   last_time_matched_rover_obs_post = GPS_TIME_UNKNOWN;
 
   platform_mailbox_init(MB_ID_PAIRED_OBS);
-  platform_mailbox_init(MB_ID_ROVER_OBS);
 
   platform_mutex_lock(MTX_TM_FILTER);
   time_matched_filter_manager = create_filter_manager_rtk();
