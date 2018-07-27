@@ -524,7 +524,7 @@ void process_time_matched_data(u8 n,
       double dt = gpsdifftime(&rover_obs->tor, &base_obs->tor);
 
       if (fabs(dt) < TIME_MATCH_THRESHOLD) {
-        if(base_obs->has_pos == 1) {
+        if (base_obs->has_pos == 1) {
           paired_obs.base_obs = *base_obs;
           paired_obs.rover_obs = *rover_obs;
           /* Post the observation */
@@ -539,7 +539,7 @@ void process_time_matched_data(u8 n,
         platform_mailbox_item_free(MB_ID_ROVER_OBS, rover_obs);
         /* Put the base obs back at the head of the mailbox */
         platform_mailbox_post_ahead(
-          MB_ID_BASE_OBS, (void *)base_obs, MB_NONBLOCKING);
+            MB_ID_BASE_OBS, (void *)base_obs, MB_NONBLOCKING);
         break;
       } else {
         /* Time of base obs before rover obs, free base obs and get the next
