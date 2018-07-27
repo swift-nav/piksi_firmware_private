@@ -209,7 +209,6 @@ static void update_filter_manager_rtk_reference_position(
   }
 }
 
-/* TODO(kevin) refactor common code. */
 static int read_obs_paired(int blocking, paired_obss_t *obs) {
   paired_obss_t *local_obs = NULL;
   errno_t ret =
@@ -484,10 +483,18 @@ void process_time_matched_data(u8 n,
                                const navigation_measurement_t m[],
                                const gps_time_t *epoch_time,
                                const pvt_engine_result_t *soln) {
-  /* TODO - Post the current epoch to the mailbox */
   obss_t current_obss;
   convert_nm_to_obss(n, m, epoch_time, soln, &current_obss);
-  platform_mailbox_post(MB_ID_ROVER_OBS, (void *)&current_obss, MB_NONBLOCKING);
+
+  /* We should always be able to buffer the most recent rover
+   * observation. */
+  errno_t error = platform_mailbox_post(
+      MB_ID_ROVER_OBS, (void *)&current_obss, MB_NONBLOCKING);
+  if (error) {
+    log_error(
+        "STARLING: Unable to buffer rover obs for "
+        "time-matched processing.");
+  }
 
   /* The old order was to process all available base obs, here I'm switching
    * the order and going to cycle through the available rover obs looking for
