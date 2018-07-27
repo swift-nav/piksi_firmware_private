@@ -311,7 +311,7 @@ static void convert_nm_to_obss(u8 n,
   }
 }
 
-static void post_observations(paired_obss_t *obss) {
+static void post_time_matched_observations(obss_t *rover, obss_t *base) {
   /* TODO: use a buffer from the pool from the start instead of
    * allocating nav_meas_tdcp as well. Downside, if we don't end up
    * pushing the message into the mailbox then we just wasted an
@@ -331,7 +331,8 @@ static void post_observations(paired_obss_t *obss) {
   }
 
   if (NULL != paired_obs) {
-    *paired_obs = *obss;
+    paired_obs->rover_obs = *rover;
+    paired_obs->base_obs = *base;
     ret = platform_mailbox_post(MB_ID_PAIRED_OBS, paired_obs, MB_NONBLOCKING);
     if (ret != 0) {
       /* We could grab another item from the mailbox, discard it and then
@@ -551,10 +552,9 @@ static void process_time_matched_data(void) {
     double dt = gpsdifftime(&rover->tor, &base->tor);
     if (fabs(dt) < TIME_MATCH_THRESHOLD) {
       /* Rover and base are matching. Process, and then advance both FIFOs. */
-      paired_obss_t paired_obs = {.rover_obs = *rover, .base_obs = *base};
+      post_time_matched_observations(rover, base);
       obs_fifo_advance_read_ptr(&obs_fifo_rover);
       obs_fifo_advance_read_ptr(&obs_fifo_base);
-      post_observations(&paired_obs);
     } else if (dt < 0.0) {
       /* Rover is older than base. Advance to next rover obs. */
       obs_fifo_advance_read_ptr(&obs_fifo_rover);
