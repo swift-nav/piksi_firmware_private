@@ -209,11 +209,11 @@ static void update_filter_manager_rtk_reference_position(
   }
 }
 
-static void convert_nm_to_obss(obss_t *obss,
-                               u8 n,
+static void convert_nm_to_obss(u8 n,
                                const navigation_measurement_t m[],
                                const gps_time_t *t,
-                               const pvt_engine_result_t *soln) {
+                               const pvt_engine_result_t *soln,
+                               obss_t *obss) {
   obss->tor = *t;
   obss->n = n;
   for (u8 i = 0, cnt = 0; i < n; ++i) {
@@ -251,6 +251,7 @@ static void post_observations(paired_obss_t *obss) {
         MB_ID_PAIRED_OBS, (void **)&paired_obs, MB_NONBLOCKING);
     if (ret != 0) {
       log_error("Pool full and mailbox empty!");
+      platform_mailbox_item_free(MB_ID_PAIRED_OBS, paired_obs);
     }
   }
 
@@ -466,7 +467,7 @@ void process_time_matched_data(u8 n,
                                const gps_time_t *epoch_time,
                                const pvt_engine_result_t *soln) {
   if (starling_get_solution_mode() == STARLING_SOLN_MODE_NO_DGNSS) {
-    /* Not doing any DGNSS.  Toss the obs away. */
+    /* Not doing any DGNSS.  No need to do any time matching */
     return;
   }
 
@@ -489,7 +490,7 @@ void process_time_matched_data(u8 n,
           MB_ID_BASE_OBS, (void **)&base_obs, MB_NONBLOCKING);
       if (fetch_ret != 0) {
         /* Put the rover obs back at the head of the mailbox, no base obs
-         * availble */
+         * available */
         platform_mailbox_post_ahead(
             MB_ID_ROVER_OBS, (void *)rover_obs, MB_NONBLOCKING);
         return;
@@ -504,19 +505,23 @@ void process_time_matched_data(u8 n,
 
       double dt = gpsdifftime(&rover_obs->tor, &base_obs->tor);
 
-      if (fabs(dt) < TIME_MATCH_THRESHOLD && base_obs->has_pos == 1) {
-        paired_obs.base_obs = *base_obs;
-        paired_obs.rover_obs = *rover_obs;
+      if (fabs(dt) < TIME_MATCH_THRESHOLD) {
+        if(base_obs->has_pos == 1) {
+          paired_obs.base_obs = *base_obs;
+          paired_obs.rover_obs = *rover_obs;
+          /* Post the observation */
+          post_observations(&paired_obs);
+        }
         platform_mailbox_item_free(MB_ID_BASE_OBS, base_obs);
-        platform_mailbox_item_free(MB_ID_BASE_OBS, rover_obs);
-        /* Post the observation */
-        post_observations(&paired_obs);
-
-        return;
+        platform_mailbox_item_free(MB_ID_ROVER_OBS, rover_obs);
+        break;
       } else if (dt < 0) {
         /* Time of rover obs before base obs, as the queues are FIFO ordering
          * can be assumed we can free the rover obs and get the next one */
         platform_mailbox_item_free(MB_ID_ROVER_OBS, rover_obs);
+        /* Put the base obs back at the head of the mailbox */
+        platform_mailbox_post_ahead(
+          MB_ID_BASE_OBS, (void *)base_obs, MB_NONBLOCKING);
         break;
       } else {
         /* Time of base obs before rover obs, free base obs and get the next
