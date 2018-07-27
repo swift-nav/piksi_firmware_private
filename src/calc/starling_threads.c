@@ -484,11 +484,6 @@ void process_time_matched_data(u8 n,
                                const navigation_measurement_t m[],
                                const gps_time_t *epoch_time,
                                const pvt_engine_result_t *soln) {
-  if (starling_get_solution_mode() == STARLING_SOLN_MODE_NO_DGNSS) {
-    /* Not doing any DGNSS.  No need to do any time matching */
-    return;
-  }
-
   /* TODO - Post the current epoch to the mailbox */
   obss_t current_obss;
   convert_nm_to_obss(n, m, epoch_time, soln, &current_obss);
@@ -830,8 +825,12 @@ static void starling_thread(void) {
     }
     platform_mutex_unlock(MTX_SPP_FILTER);
 
-    /* We only post to time-matched thread on SPP success. */
-    if (PVT_ENGINE_SUCCESS == spp_rc) {
+    /* We only consider posting to time-matched thread on SPP success. */
+    bool should_do_time_matched_rtk =
+        (PVT_ENGINE_SUCCESS == spp_rc) &&
+        (starling_get_solution_mode() != STARLING_SOLN_MODE_NO_DGNSS);
+
+    if (should_do_time_matched_rtk) {
       process_time_matched_data(
           me_msg.size, me_msg.obs, &obs_time, &spp_solution.result);
     }
