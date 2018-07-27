@@ -82,8 +82,8 @@ typedef struct {
  * that have been time matched
  */
 typedef struct {
-    obss_t rover_obs;
-    obss_t base_obs;
+  obss_t rover_obs;
+  obss_t base_obs;
 } paired_obss_t;
 
 /**

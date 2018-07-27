@@ -473,24 +473,25 @@ void process_time_matched_data(u8 n,
   /* TODO - Post the current epoch to the mailbox */
   obss_t current_obss;
   convert_nm_to_obss(&current_obss, n, m, epoch_time, soln);
-  platform_mailbox_post(MB_ID_ROVER_OBS,(void *)&current_obss, MB_NONBLOCKING);
+  platform_mailbox_post(MB_ID_ROVER_OBS, (void *)&current_obss, MB_NONBLOCKING);
 
   /* The old order was to process all available base obs, here I'm switching
    * the order and going to cycle through the available rover obs looking for
-  * a matching base observation */
+   * a matching base observation */
   obss_t *base_obs = NULL;
   obss_t *rover_obs = NULL;
   static paired_obss_t paired_obs;
-  while (platform_mailbox_fetch(MB_ID_ROVER_OBS, (void **)&rover_obs, MB_NONBLOCKING) ==
-         0) {
+  while (platform_mailbox_fetch(
+             MB_ID_ROVER_OBS, (void **)&rover_obs, MB_NONBLOCKING) == 0) {
     errno_t fetch_ret = 0;
     while (fetch_ret == 0) {
-      fetch_ret =
-          platform_mailbox_fetch(MB_ID_BASE_OBS, (void **)&base_obs, MB_NONBLOCKING);
+      fetch_ret = platform_mailbox_fetch(
+          MB_ID_BASE_OBS, (void **)&base_obs, MB_NONBLOCKING);
       if (fetch_ret != 0) {
         /* Put the rover obs back at the head of the mailbox, no base obs
          * availble */
-        platform_mailbox_post_ahead(MB_ID_ROVER_OBS, (void *)rover_obs, MB_NONBLOCKING);
+        platform_mailbox_post_ahead(
+            MB_ID_ROVER_OBS, (void *)rover_obs, MB_NONBLOCKING);
         return;
       }
 
@@ -564,10 +565,14 @@ static void time_matched_obs_thread(void *arg) {
 
         /* Perform the time-matched filter update. */
         static gps_time_t last_update_time = {.wn = 0, .tow = 0.0};
-        if (update_time_matched(&last_update_time, &paired_obs->rover_obs.tor, paired_obs->rover_obs.n) ||
+        if (update_time_matched(&last_update_time,
+                                &paired_obs->rover_obs.tor,
+                                paired_obs->rover_obs.n) ||
             dgnss_soln_mode == STARLING_SOLN_MODE_TIME_MATCHED) {
-          time_matched_rc = process_matched_obs(
-              &paired_obs->rover_obs, &paired_obs->base_obs, &solution.dops, &solution.result);
+          time_matched_rc = process_matched_obs(&paired_obs->rover_obs,
+                                                &paired_obs->base_obs,
+                                                &solution.dops,
+                                                &solution.result);
           last_update_time = paired_obs->rover_obs.tor;
         }
 
@@ -822,7 +827,8 @@ static void starling_thread(void) {
 
     /* We only post to time-matched thread on SPP success. */
     if (PVT_ENGINE_SUCCESS == spp_rc) {
-      process_time_matched_data(n_ready, nav_meas, &obs_time, &spp_solution.result);
+      process_time_matched_data(
+          n_ready, nav_meas, &obs_time, &spp_solution.result);
     }
 
     /* Figure out if we want to run the RTK filter. */
