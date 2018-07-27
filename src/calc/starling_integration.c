@@ -1156,6 +1156,24 @@ static int read_obs_base(int blocking, obss_t *obs) {
 };
 
 /* TODO(kevin) refactor common code. */
+static int read_obs_paired(int blocking, paired_obss_t *obs) {
+  paired_obss_t *local_obs = NULL;
+  errno_t ret =
+      platform_mailbox_fetch(MB_ID_PAIRED_OBS, (void **)&local_obs, blocking);
+  if (local_obs) {
+    if (STARLING_READ_OK == ret) {
+      *obs = *local_obs;
+    } else {
+      /* Erroneous behavior for fetch to return non-NULL pointer and indicate
+       * read failure. */
+      log_error("Paired obs mailbox fetch failed with %d", ret);
+    }
+    platform_mailbox_item_free(MB_ID_PAIRED_OBS, local_obs);
+  }
+  return ret;
+};
+
+/* TODO(kevin) refactor common code. */
 static int read_sbas_data(int blocking, sbas_raw_data_t *data) {
   sbas_raw_data_t *local_data = NULL;
   errno_t ret =
@@ -1192,6 +1210,7 @@ static THD_FUNCTION(initialize_and_run_starling, arg) {
   StarlingIoFunctionTable io_functions = {
       .read_obs_rover = read_obs_rover,
       .read_obs_base = read_obs_base,
+      .read_obs_paired = read_obs_paired,
       .read_sbas_data = read_sbas_data,
       .read_ephemeris = NULL,
       .read_imu = NULL,

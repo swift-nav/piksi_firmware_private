@@ -77,6 +77,16 @@ typedef struct {
 } obss_t;
 
 /**
+ * Paired observation type.
+ * A struct to hold a pair of base and rover observations
+ * that have been time matched
+ */
+typedef struct {
+    obss_t rover_obs;
+    obss_t base_obs;
+} paired_obss_t;
+
+/**
  * Filter result data type returned by various API functions.
  */
 typedef struct StarlingFilterSolution {
@@ -141,6 +151,7 @@ struct StarlingIoFunctionTable {
    */
   int (*read_obs_rover)(int blocking, me_msg_obs_t *me_msg);
   int (*read_obs_base)(int blocking, obss_t *obs);
+  int (*read_obs_paired)(int blocking, paired_obss_t *obs);
   int (*read_sbas_data)(int blocking, sbas_raw_data_t *data);
   int (*read_ephemeris)(int blocking, ephemeris_t *eph);
   int (*read_imu)(int blocking, imu_data_t *data);
