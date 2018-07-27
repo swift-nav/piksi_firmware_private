@@ -35,10 +35,10 @@ typedef enum thread_id_e {
 
 typedef enum mailbox_id_e {
   MB_ID_PAIRED_OBS = 0,
-  MB_ID_BASE_OBS = 2,
-  MB_ID_ME_OBS = 3,
-  MB_ID_SBAS_DATA = 4,
-  MB_ID_COUNT = 5
+  MB_ID_BASE_OBS,
+  MB_ID_ME_OBS,
+  MB_ID_SBAS_DATA,
+  MB_ID_COUNT,
 } mailbox_id_t;
 
 #define MB_NONBLOCKING 0
