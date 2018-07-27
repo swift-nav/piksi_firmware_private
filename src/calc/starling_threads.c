@@ -479,23 +479,33 @@ bool update_time_matched(gps_time_t *last_update_time,
   return true;
 }
 
-void process_time_matched_data(u8 n,
-                               const navigation_measurement_t m[],
-                               const gps_time_t *epoch_time,
-                               const pvt_engine_result_t *soln) {
+static void update_internal_rover_obs_buffer(u8 n,
+                                             const navigation_measurement_t m[],
+                                             const gps_time_t *epoch_time,
+                                             const pvt_engine_result_t *soln) {
   obss_t current_obss;
   convert_nm_to_obss(n, m, epoch_time, soln, &current_obss);
 
-  /* We should always be able to buffer the most recent rover
-   * observation. */
-  errno_t error = platform_mailbox_post(
-      MB_ID_ROVER_OBS, (void *)&current_obss, MB_NONBLOCKING);
-  if (error) {
-    log_error(
-        "STARLING: Unable to buffer rover obs for "
-        "time-matched processing.");
+  /* Try to buffer the incoming rover obs. If we cannot post, it
+   * means the mailbox is full, and we need to drop the oldest entry. */
+  while (0 != platform_mailbox_post(MB_ID_ROVER_OBS, 
+                                   (void *)&current_obss,
+                                   MB_NONBLOCKING)) {
+    obss_t *throwaway = NULL;
+    errno_t error = platform_mailbox_fetch(MB_ID_ROVER_OBS, 
+                                           (void **)&throwaway, 
+                                           MB_NONBLOCKING);    
+    if (error) {
+      log_error("STARLING: Can't post to internal rover mailbox, "
+                "even though it is empty.");
+    }
+    if (throwaway) {
+      platform_mailbox_item_free(MB_ID_ROVER_OBS, throwaway);
+    }
   }
+}
 
+static void process_time_matched_data(void) {
   /* The old order was to process all available base obs, here I'm switching
    * the order and going to cycle through the available rover obs looking for
    * a matching base observation */
@@ -514,13 +524,6 @@ void process_time_matched_data(u8 n,
         platform_mailbox_post_ahead(
             MB_ID_ROVER_OBS, (void *)rover_obs, MB_NONBLOCKING);
         return;
-      }
-
-      /* Communication latency is a slight misnomer here as what we're really
-       * testing is that we see the base obs within 15s of it being sent */
-      if (gps_time_valid(epoch_time) &&
-          gpsdifftime(epoch_time, &base_obs->tor) > BASE_LATENCY_TIMEOUT) {
-        log_info("Communication Latency exceeds 15 seconds");
       }
 
       double dt = gpsdifftime(&rover_obs->tor, &base_obs->tor);
@@ -838,8 +841,13 @@ static void starling_thread(void) {
         (starling_get_solution_mode() != STARLING_SOLN_MODE_NO_DGNSS);
 
     if (should_do_time_matched_rtk) {
-      process_time_matched_data(
-          me_msg.size, me_msg.obs, &obs_time, &spp_solution.result);
+      /* Push the incoming rover obs information into the internal buffer. */
+      update_internal_rover_obs_buffer(me_msg.size, 
+                                       me_msg.obs, 
+                                       &obs_time, 
+                                       &spp_solution.result);
+      /* Look for matching pairs and process them. */
+      process_time_matched_data();
     }
 
     /* Figure out if we want to run the RTK filter. */

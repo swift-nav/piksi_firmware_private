@@ -182,6 +182,15 @@ static void update_obss(uncollapsed_obss_t *new_uncollapsed_obss) {
     return;
   }
 
+  /* Warn on receiving observations which are very old. This may be indicative
+   * of a connectivity problem. Obviously, if we don't have a good local time
+   * estimate, then we can't perform this check. */
+  gps_time_t now = get_current_time();
+  if (get_time_quality() > TIME_UNKNOWN &&
+      gpsdifftime(&now, &new_uncollapsed_obss->tor) > BASE_LATENCY_TIMEOUT) {
+    log_info("Communication latency exceeds 15 seconds");
+  }
+
   /* Ensure observations sorted by PRN. */
   qsort(new_uncollapsed_obss->nm,
         new_uncollapsed_obss->n,
