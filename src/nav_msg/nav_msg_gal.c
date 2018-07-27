@@ -23,6 +23,7 @@
 #include <libswiftnav/ionosphere.h>
 #include <libswiftnav/logging.h>
 
+#include "ephemeris/ephemeris.h"
 #include "main/main.h"
 #include "nav_msg/nav_msg.h"
 #include "nav_msg/nav_msg_gal.h"
@@ -89,13 +90,13 @@ static gps_time_t parse_inav_w0tow(const u8 content[GAL_INAV_CONTENT_BYTE]);
  * \param[in] n   GAL message decoder object
  * \param[in] prn Galileo PRN id
  */
-void gal_inav_msg_init(nav_msg_gal_inav_t *n, u8 prn) {
+void gal_inav_msg_init(nav_msg_gal_inav_t *n, const me_gnss_signal_t *mesid) {
   const s8 coeffs[2] = {GAL_INAV_V27_POLY_A, GAL_INAV_V27_POLY_B};
   v27_poly_init(&poly, coeffs);
 
   /* Initialize the necessary parts of the nav message state structure. */
   memset(n, 0, sizeof(*n));
-  n->prn = prn;
+  n->mesid = *mesid;
 
   n->iod_nav[0] = GAL_INAV_IOD_INVALID;
   n->iod_nav[1] = GAL_INAV_IOD_INVALID;
@@ -208,10 +209,10 @@ bool gal_inav_msg_update(nav_msg_gal_inav_t *n, s8 bit_val) {
 
   bool crc_ok = (crc_calc == crc_extract);
   if (!crc_ok) {
-    log_info("E%02d crc_calc %08" PRIx32 " crc_extract %08" PRIx32,
-             n->prn,
-             crc_calc,
-             crc_extract);
+    log_info_mesid(n->mesid,
+                   "crc_calc %08" PRIx32 " crc_extract %08" PRIx32,
+                   crc_calc,
+                   crc_extract);
     return false;
   }
 
@@ -220,7 +221,7 @@ bool gal_inav_msg_update(nav_msg_gal_inav_t *n, s8 bit_val) {
   /* if different from the flipped, we are in phase */
   n->bit_polarity = differ1 ? BIT_POLARITY_NORMAL : BIT_POLARITY_INVERTED;
   if (differ0) {
-    log_warn("E%02d inverted preamble", n->prn);
+    log_warn_mesid(n->mesid, "inverted preamble");
   }
 
   /* don't try anything for another 500 symbols */
@@ -238,7 +239,7 @@ bool gal_inav_msg_update(nav_msg_gal_inav_t *n, s8 bit_val) {
     sprintf(bytestr, "%02x", candidate_odd_bits[i]);
     strcat(str, bytestr);
   }
-  log_info("E%02d %s", n->prn, str);
+  log_info_mesid(n->mesid, "%s", str);
    */
 
   bool alert =
@@ -246,7 +247,7 @@ bool gal_inav_msg_update(nav_msg_gal_inav_t *n, s8 bit_val) {
   if (alert) {
     /* do not process an alert page further */
     DO_EACH_MS(10 * SECS_MS,
-               log_info("E%02" PRIu8 " received an alert page", n->prn););
+               log_info_mesid(n->mesid, "received an alert page"););
     return false;
   }
 
@@ -352,11 +353,154 @@ inav_data_type_t parse_inav_word(nav_msg_gal_inav_t *nav_msg,
   }
 
   if (63 == word_type) {
-    log_debug("Dummy msg received from GAL SV: %" PRIu8 "", nav_msg->prn);
+    log_debug_mesid(nav_msg->mesid, "Dummy msg received from GAL SV");
     return INAV_DUMMY;
   }
 
   return INAV_INCOMPLETE;
+}
+
+static void gal_eph_update(nav_msg_gal_inav_t *n,
+                           gal_inav_decoded_t *data,
+                           gps_time_t *t) {
+  ephemeris_t *e = &(data->ephemeris);
+  ephemeris_kepler_t *k = &(data->ephemeris.kepler);
+  utc_tm date;
+  make_utc_tm(&(k->toc), &date);
+  log_debug_mesid(n->mesid,
+                  "%4" PRIu16 " %2" PRIu8 " %2" PRIu8 " %2" PRIu8 " %2" PRIu8
+                  " %2" PRIu8 "%19.11E%19.11E%19.11E  ",
+                  date.year,
+                  date.month,
+                  date.month_day,
+                  date.hour,
+                  date.minute,
+                  date.second_int,
+                  k->af0,
+                  k->af1,
+                  k->af2);
+  log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
+            (double)k->iode,
+            k->crs,
+            k->dn,
+            k->m0);
+  log_debug(
+      "    %19.11E%19.11E%19.11E%19.11E  ", k->cuc, k->ecc, k->cus, k->sqrta);
+  log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
+            (double)e->toe.tow,
+            k->cic,
+            k->omega0,
+            k->cis);
+  log_debug(
+      "    %19.11E%19.11E%19.11E%19.11E  ", k->inc, k->crc, k->w, k->omegadot);
+  log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
+            k->inc_dot,
+            1.0,
+            (double)e->toe.wn,
+            0.0);
+  log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
+            e->ura,
+            (double)e->health_bits,
+            k->tgd_gal_s[0],
+            k->tgd_gal_s[1]);
+  log_debug("    %19.11E%19.11E ", rint(t->tow), 0.0);
+  /* Always mark GAL ephemeris as if it was coming from E1. */
+  data->ephemeris.sid.code = CODE_GAL_E1B;
+  data->ephemeris.valid = 1;
+  shm_gal_set_shi(data->ephemeris.sid.sat, data->ephemeris.health_bits);
+  eph_new_status_t estat = ephemeris_new(&data->ephemeris);
+  if (EPH_NEW_OK != estat) {
+    log_warn_mesid(n->mesid,
+                   "Error in GAL INAV ephemeris processing. "
+                   "Eph status: %" PRIu8 " ",
+                   (u8)estat);
+  }
+  n->health = shm_ephe_healthy(&data->ephemeris, n->mesid.code) ? SV_HEALTHY
+                                                                : SV_UNHEALTHY;
+}
+
+/** GAL navigation message decoding update.
+ * Called once per nav bit interval.
+ *
+ * Extracts GAL E1 & E7 INAV data for tracker sync.
+ *
+ * \param n       Nav message decode state struct
+ * \param nav_bit Struct containing nav_bit data
+ *
+ * \return gal_decode_status_t
+ */
+gal_decode_status_t gal_data_decoding(nav_msg_gal_inav_t *n,
+                                      nav_bit_t nav_bit) {
+  /* Don't decode data while in sensitivity mode. */
+  if (0 == nav_bit) {
+    return GAL_DECODE_RESET;
+  }
+
+  bool upd = gal_inav_msg_update(n, nav_bit);
+  if (!upd) {
+    return GAL_DECODE_WAIT;
+  }
+
+  gal_inav_decoded_t dd;
+  gps_time_t t = GPS_TIME_UNKNOWN;
+  s32 TOWms = TOW_UNKNOWN;
+  gal_decode_status_t status = GAL_DECODE_WAIT;
+  inav_data_type_t ret = parse_inav_word(n, &dd, &t);
+  switch (ret) {
+    case INAV_TOW:
+    case INAV_UTC:
+      log_debug_mesid(n->mesid, "WN %d TOW %.3f", t.wn, t.tow);
+      TOWms = (s32)rint(t.tow * 1000);
+      n->TOW_ms = TOWms + 2000;
+      status = GAL_DECODE_TOW_UPDATE;
+      break;
+    case INAV_EPH:
+      gal_eph_update(n, &dd, &t);
+      status = GAL_DECODE_EPH_UPDATE;
+      break;
+    case INAV_DUMMY:
+      n->health = SV_UNHEALTHY;
+      status = GAL_DECODE_DUMMY_UPDATE;
+      break;
+    case INAV_ALM:
+    case INAV_INCOMPLETE:
+    default:
+      break;
+  }
+  return status;
+}
+
+/** Fill in GAL sync data to tracker.
+ *
+ * Sets sync flags based on decoder status.
+ *
+ * \param n            Nav message decode state struct
+ * \param from_decoder Struct for tracker synchronization
+ * \param status       Decoder status
+ */
+void get_gal_data_sync(const nav_msg_gal_inav_t *n,
+                       nav_data_sync_t *from_decoder,
+                       gal_decode_status_t status) {
+  memset(from_decoder, 0, sizeof(*from_decoder));
+  from_decoder->TOW_ms = n->TOW_ms;
+  from_decoder->bit_polarity = n->bit_polarity;
+  from_decoder->health = n->health;
+  from_decoder->sync_flags = 0;
+
+  switch (status) {
+    case GAL_DECODE_TOW_UPDATE:
+      from_decoder->sync_flags = SYNC_POL | SYNC_TOW;
+      break;
+    case GAL_DECODE_EPH_UPDATE:
+    case GAL_DECODE_DUMMY_UPDATE:
+      from_decoder->sync_flags = SYNC_POL | SYNC_EPH;
+      break;
+    case GAL_DECODE_WAIT:
+    case GAL_DECODE_RESET:
+    default:
+      break;
+  }
+  return;
 }
 
 static void parse_inav_bgd(const u8 content[GAL_INAV_CONTENT_BYTE],
