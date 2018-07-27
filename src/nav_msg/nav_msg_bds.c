@@ -134,7 +134,7 @@ static bds_decode_status_t bds_d2_processing(nav_msg_bds_t *n) {
     log_warn_mesid(n->mesid,
                    "Error in BDS d2nav ephemeris processing. "
                    "Eph status: %" PRIu8 " ",
-                   r);
+                   (u8)r);
   }
   n->health = shm_ephe_healthy(&dd_d2nav.ephemeris, n->mesid.code)
                   ? SV_HEALTHY
@@ -171,7 +171,7 @@ static bds_decode_status_t bds_d1_processing(nav_msg_bds_t *n) {
     log_warn_mesid(n->mesid,
                    "Error in BDS d1nav ephemeris processing. "
                    "Eph status: %" PRIu8 " ",
-                   r);
+                   (u8)r);
   }
   n->health = shm_ephe_healthy(&dd_d1nav.ephemeris, n->mesid.code)
                   ? SV_HEALTHY
