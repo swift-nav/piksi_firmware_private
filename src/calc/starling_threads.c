@@ -473,7 +473,7 @@ void process_time_matched_data(u8 n,
 
   /* TODO - Post the current epoch to the mailbox */
   obss_t current_obss;
-  convert_nm_to_obss(&current_obss, n, m, epoch_time, soln);
+  convert_nm_to_obss(n, m, epoch_time, soln, &current_obss);
   platform_mailbox_post(MB_ID_ROVER_OBS, (void *)&current_obss, MB_NONBLOCKING);
 
   /* The old order was to process all available base obs, here I'm switching
