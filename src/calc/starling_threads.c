@@ -682,8 +682,6 @@ static void starling_thread(void) {
     platform_thread_create(THREAD_ID_TMO, time_matched_obs_thread);
   }
 
-  static navigation_measurement_t nav_meas[MAX_CHANNELS];
-  static ephemeris_t e_meas[MAX_CHANNELS];
   static gps_time_t obs_time = {0};
 
   platform_mutex_lock(MTX_SPP_FILTER);
@@ -730,10 +728,10 @@ static void starling_thread(void) {
 
     /* If there are no messages, or the observation time is invalid,
      * we send an empty solution. */
-    if (me_msg.size == 0 || !gps_time_valid(&epoch_time)) {
+    if (me_msg.size == 0 || !gps_time_valid(&me_msg.obs_time)) {
       if (NULL != io_functions.handle_solution_low_latency) {
         io_functions.handle_solution_low_latency(
-            NULL, NULL, &epoch_time, nav_meas, 0);
+            NULL, NULL, &me_msg.obs_time, me_msg.obs, 0);
       }
       continue;
     }
@@ -743,23 +741,6 @@ static void starling_thread(void) {
      * case we want to ignore any epochs with an earlier timestamp */
     if (gpsdifftime(&me_msg.obs_time, &obs_time) <= 0.0) {
       continue;
-    }
-
-    u8 n_ready = me_msg.size;
-    memset(nav_meas, 0, sizeof(nav_meas));
-
-    if (n_ready) {
-      MEMCPY_S(nav_meas,
-               sizeof(nav_meas),
-               me_msg.obs,
-               n_ready * sizeof(navigation_measurement_t));
-    }
-
-    memset(e_meas, 0, sizeof(e_meas));
-
-    if (n_ready) {
-      MEMCPY_S(
-          e_meas, sizeof(e_meas), me_msg.ephem, n_ready * sizeof(ephemeris_t));
     }
 
     obs_time = me_msg.obs_time;
@@ -773,24 +754,25 @@ static void starling_thread(void) {
     has_time_matched_iono_params = true;
     time_matched_iono_params = i_params;
     platform_mutex_unlock(MTX_IONO_PARAMS);
+
     platform_mutex_lock(MTX_SPP_FILTER);
     filter_manager_update_iono_parameters(spp_filter_manager, &i_params, false);
     platform_mutex_unlock(MTX_SPP_FILTER);
 
-    /* This will duplicate pointers to satellites with mutliple frequencies,
+    /* This will duplicate pointers to satellites with multiple frequencies,
      * but this scenario is expected and handled */
     const ephemeris_t *stored_ephs[MAX_CHANNELS];
     memset(stored_ephs, 0, sizeof(stored_ephs));
-    for (u8 i = 0; i < n_ready; i++) {
-      navigation_measurement_t *nm = &nav_meas[i];
+    for (u8 i = 0; i < me_msg.size; i++) {
+      navigation_measurement_t *nm = &me_msg.obs[i];
       ephemeris_t *e = NULL;
 
       /* Find the original index of this measurement in order to point to
        * the correct ephemeris. (Do not load it again from NDB because it may
        * have changed meanwhile.) */
-      for (u8 j = 0; j < n_ready; j++) {
-        if (sid_is_equal(nm->sid, e_meas[j].sid)) {
-          e = &e_meas[j];
+      for (u8 j = 0; j < me_msg.size; j++) {
+        if (sid_is_equal(nm->sid, me_msg.ephem[j].sid)) {
+          e = &me_msg.ephem[j];
           break;
         }
       }
@@ -824,8 +806,8 @@ static void starling_thread(void) {
     platform_mutex_lock(MTX_SPP_FILTER);
     spp_rc = call_pvt_engine_filter(spp_filter_manager,
                                     &obs_time,
-                                    n_ready,
-                                    nav_meas,
+                                    me_msg.size,
+                                    me_msg.obs,
                                     stored_ephs,
                                     &spp_solution.result,
                                     &spp_solution.dops);
@@ -840,8 +822,8 @@ static void starling_thread(void) {
 
       spp_rc = call_pvt_engine_filter(spp_filter_manager,
                                       &obs_time,
-                                      n_ready,
-                                      nav_meas,
+                                      me_msg.size,
+                                      me_msg.obs,
                                       stored_ephs,
                                       &spp_solution.result,
                                       &spp_solution.dops);
@@ -851,7 +833,7 @@ static void starling_thread(void) {
     /* We only post to time-matched thread on SPP success. */
     if (PVT_ENGINE_SUCCESS == spp_rc) {
       process_time_matched_data(
-          n_ready, nav_meas, &obs_time, &spp_solution.result);
+          me_msg.size, me_msg.obs, &obs_time, &spp_solution.result);
     }
 
     /* Figure out if we want to run the RTK filter. */
@@ -864,8 +846,8 @@ static void starling_thread(void) {
       platform_mutex_lock(MTX_LL_FILTER);
       rtk_rc = call_pvt_engine_filter(low_latency_filter_manager,
                                       &obs_time,
-                                      n_ready,
-                                      nav_meas,
+                                      me_msg.size,
+                                      me_msg.obs,
                                       stored_ephs,
                                       &rtk_solution.result,
                                       &rtk_solution.dops);
@@ -885,7 +867,7 @@ static void starling_thread(void) {
     /* Forward solutions to outside world. */
     if (NULL != io_functions.handle_solution_low_latency) {
       io_functions.handle_solution_low_latency(
-          p_spp_solution, p_rtk_solution, &epoch_time, nav_meas, n_ready);
+          p_spp_solution, p_rtk_solution, &epoch_time, me_msg.obs, me_msg.size);
     }
 
     RUN_DEBUG_FUNCTION(profile_low_latency_thread, PROFILE_END);
