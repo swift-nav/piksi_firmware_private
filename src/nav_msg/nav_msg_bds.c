@@ -14,10 +14,10 @@
 
 #include <libswiftnav/bits.h>
 
+#include "ephemeris/ephemeris.h"
 #include "nav_msg/nav_msg_bds.h"
 #include "timing/timing.h"
 #include "track/track_decode.h"
-#include "utils/ephemeris/ephemeris.h"
 
 /* `11 1000 1001 0` 11 bit modified Barker code from BDS ICD v2.1 English p.23
  */
@@ -217,7 +217,6 @@ bds_decode_status_t bds_data_decoding(nav_msg_bds_t *n, nav_bit_t nav_bit) {
  * \param n            Nav message decode state struct
  * \param from_decoder Struct for tracker synchronization
  * \param status       Decoder status
- *
  */
 void get_bds_data_sync(const nav_msg_bds_t *n,
                        nav_data_sync_t *from_decoder,
@@ -417,10 +416,8 @@ s32 bds_d1_process_subframe(nav_msg_bds_t *n, bds_d1_decoded_data_t *data) {
     add_secs(&e->toe, BDS_SECOND_TO_GPS_SECOND);
     add_secs(&k->toc, BDS_SECOND_TO_GPS_SECOND);
     add_secs(&iono->toa, BDS_SECOND_TO_GPS_SECOND);
-    /* Mark ephemeris from B2 as if it was coming from B1. */
-    if (CODE_BDS2_B2 == n->mesid.code) {
-      e->sid.code = CODE_BDS2_B1;
-    }
+    /* Always mark BDS ephemeris as if it was coming from B1. */
+    e->sid.code = CODE_BDS2_B1;
     e->fit_interval = BDS_FIT_INTERVAL_SECONDS;
     e->valid = 1;
   }

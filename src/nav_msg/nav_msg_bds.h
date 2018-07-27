@@ -18,7 +18,6 @@
 #include <libswiftnav/ephemeris.h>
 #include <libswiftnav/ionosphere.h>
 
-#include "nav_bit_fifo/nav_bit_fifo.h"
 #include "nav_data_sync/nav_data_sync.h"
 
 #ifdef __cplusplus
