@@ -364,6 +364,22 @@ static void bds_eph_debug(const nav_msg_bds_t *n,
   log_debug("    %19.11E%19.11E ", rint(TOW_s), (double)k->iodc);
 }
 
+static void bds_eph_update(nav_msg_bds_t *n, bds_d1_decoded_data_t *data) {
+  ephemeris_t *e = &(data->ephemeris);
+  ephemeris_kepler_t *k = &(data->ephemeris.kepler);
+  ionosphere_t *iono = &(data->iono);
+
+  n->goodwords_mask = 0;
+  data->ephemeris_upd_flag = true;
+  add_secs(&e->toe, BDS_SECOND_TO_GPS_SECOND);
+  add_secs(&k->toc, BDS_SECOND_TO_GPS_SECOND);
+  add_secs(&iono->toa, BDS_SECOND_TO_GPS_SECOND);
+  /* Always mark BDS ephemeris as if it was coming from B1. */
+  e->sid.code = CODE_BDS2_B1;
+  e->fit_interval = BDS_FIT_INTERVAL_SECONDS;
+  e->valid = 1;
+}
+
 /** D1 parsing
  *
  * \param n     Nav message decode state struct
@@ -396,12 +412,6 @@ s32 bds_d1_process_subframe(nav_msg_bds_t *n, bds_d1_decoded_data_t *data) {
     return TOW_ms;
   }
 
-  if (0x3fffffffULL == ((n->goodwords_mask >> 20) & 0x3fffffffULL)) {
-    process_d1_fraid1(n, data);
-    process_d1_fraid2(n, data);
-    process_d1_fraid3(n, data);
-  }
-
   if (0x3ffULL == ((n->goodwords_mask >> 10) & 0x3ffULL)) {
     process_d1_fraid4(n, data);
   }
@@ -410,21 +420,13 @@ s32 bds_d1_process_subframe(nav_msg_bds_t *n, bds_d1_decoded_data_t *data) {
     process_d1_fraid5(n, data);
   }
 
-  /* debug information */
   if (0x3fffffffULL == ((n->goodwords_mask >> 20) & 0x3fffffffULL)) {
-    ephemeris_t *e = &(data->ephemeris);
-    ephemeris_kepler_t *k = &(data->ephemeris.kepler);
-    ionosphere_t *iono = &(data->iono);
+    process_d1_fraid1(n, data);
+    process_d1_fraid2(n, data);
+    process_d1_fraid3(n, data);
+    /* debug information */
     bds_eph_debug(n, data, TOW_s);
-    n->goodwords_mask = 0;
-    data->ephemeris_upd_flag = true;
-    add_secs(&e->toe, BDS_SECOND_TO_GPS_SECOND);
-    add_secs(&k->toc, BDS_SECOND_TO_GPS_SECOND);
-    add_secs(&iono->toa, BDS_SECOND_TO_GPS_SECOND);
-    /* Always mark BDS ephemeris as if it was coming from B1. */
-    e->sid.code = CODE_BDS2_B1;
-    e->fit_interval = BDS_FIT_INTERVAL_SECONDS;
-    e->valid = 1;
+    bds_eph_update(n, data);
   }
 
   return TOW_ms;
