@@ -318,6 +318,52 @@ bool bds_nav_msg_update(nav_msg_bds_t *n, bool bit_val) {
   return false;
 }
 
+static void bds_eph_debug(const nav_msg_bds_t *n,
+                          const bds_d1_decoded_data_t *data,
+                          s32 TOW_s) {
+  utc_tm date;
+  const ephemeris_t *e = &(data->ephemeris);
+  const ephemeris_kepler_t *k = &(data->ephemeris.kepler);
+  make_utc_tm(&(k->toc), &date);
+  log_debug_mesid(n->mesid,
+                  "%4" PRIu16 " %2" PRIu8 " %2" PRIu8 " %2" PRIu8 " %2" PRIu8
+                  " %2" PRIu8 "%19.11E%19.11E%19.11E  ",
+                  date.year,
+                  date.month,
+                  date.month_day,
+                  date.hour,
+                  date.minute,
+                  date.second_int,
+                  k->af0,
+                  k->af1,
+                  k->af2);
+  log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
+            (double)k->iode,
+            k->crs,
+            k->dn,
+            k->m0);
+  log_debug(
+      "    %19.11E%19.11E%19.11E%19.11E  ", k->cuc, k->ecc, k->cus, k->sqrta);
+  log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
+            (double)e->toe.tow,
+            k->cic,
+            k->omega0,
+            k->cis);
+  log_debug(
+      "    %19.11E%19.11E%19.11E%19.11E  ", k->inc, k->crc, k->w, k->omegadot);
+  log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
+            k->inc_dot,
+            0.0,
+            (double)e->toe.wn - BDS_WEEK_TO_GPS_WEEK,
+            0.0);
+  log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
+            e->ura,
+            (double)e->health_bits,
+            k->tgd_bds_s[0],
+            k->tgd_bds_s[1]);
+  log_debug("    %19.11E%19.11E ", rint(TOW_s), (double)k->iodc);
+}
+
 /** D1 parsing
  *
  * \param n     Nav message decode state struct
@@ -366,51 +412,10 @@ s32 bds_d1_process_subframe(nav_msg_bds_t *n, bds_d1_decoded_data_t *data) {
 
   /* debug information */
   if (0x3fffffffULL == ((n->goodwords_mask >> 20) & 0x3fffffffULL)) {
-    utc_tm date;
     ephemeris_t *e = &(data->ephemeris);
     ephemeris_kepler_t *k = &(data->ephemeris.kepler);
     ionosphere_t *iono = &(data->iono);
-    make_utc_tm(&(k->toc), &date);
-    log_debug_mesid(n->mesid,
-                    "%4" PRIu16 " %2" PRIu8 " %2" PRIu8 " %2" PRIu8 " %2" PRIu8
-                    " %2" PRIu8 "%19.11E%19.11E%19.11E  ",
-                    date.year,
-                    date.month,
-                    date.month_day,
-                    date.hour,
-                    date.minute,
-                    date.second_int,
-                    k->af0,
-                    k->af1,
-                    k->af2);
-    log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
-              (double)k->iode,
-              k->crs,
-              k->dn,
-              k->m0);
-    log_debug(
-        "    %19.11E%19.11E%19.11E%19.11E  ", k->cuc, k->ecc, k->cus, k->sqrta);
-    log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
-              (double)e->toe.tow,
-              k->cic,
-              k->omega0,
-              k->cis);
-    log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
-              k->inc,
-              k->crc,
-              k->w,
-              k->omegadot);
-    log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
-              k->inc_dot,
-              0.0,
-              (double)e->toe.wn - BDS_WEEK_TO_GPS_WEEK,
-              0.0);
-    log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
-              e->ura,
-              (double)e->health_bits,
-              k->tgd_bds_s[0],
-              k->tgd_bds_s[1]);
-    log_debug("    %19.11E%19.11E ", rint(TOW_s), (double)k->iodc);
+    bds_eph_debug(n, data, TOW_s);
     n->goodwords_mask = 0;
     data->ephemeris_upd_flag = true;
     add_secs(&e->toe, BDS_SECOND_TO_GPS_SECOND);
