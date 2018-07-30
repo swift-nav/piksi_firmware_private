@@ -228,7 +228,7 @@ TEST(nav_msg_bds_tests, ephemeris_decoding) {
 
   bds_d1_decoded_data_t dd_d1nav;
   memset(&dd_d1nav, 0, sizeof(bds_d1_decoded_data_t));
-  bds_d1_process_subframe(&nav_msg, &dd_d1nav);
+  bds_d1_processing(&nav_msg, &dd_d1nav);
 
   ephemeris_t tmp_eph;
   memcpy(&tmp_eph, &ref_eph, sizeof(ref_eph));

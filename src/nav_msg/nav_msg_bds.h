@@ -132,10 +132,10 @@ void get_bds_data_sync(const nav_msg_bds_t *n,
                        nav_data_sync_t *from_decoder,
                        bds_decode_status_t status);
 bool bds_nav_msg_update(nav_msg_bds_t *n, bool bit_val);
-
-s32 bds_d1_process_subframe(nav_msg_bds_t *n, bds_d1_decoded_data_t *data);
-
-s32 bds_d2_process_subframe(nav_msg_bds_t *n, bds_d2_decoded_data_t *data);
+bds_decode_status_t bds_d2_processing(nav_msg_bds_t *n,
+                                      bds_d2_decoded_data_t *data);
+bds_decode_status_t bds_d1_processing(nav_msg_bds_t *n,
+                                      bds_d1_decoded_data_t *data);
 
 #ifdef __cplusplus
 } /* extern "C" */
