@@ -18,18 +18,18 @@
 #include <libswiftnav/linear_algebra.h>
 #include <libswiftnav/memcpy_s.h>
 #include <libswiftnav/pvt_engine/vehicle_dynamics_filter.h>
+#include <starling/starling.h>
+#include <starling/starling_platform.h>
 
 #include "calc/calc_pvt_common.h"
 #include "calc/calc_pvt_me.h"
 #include "calc/starling_integration.h"
-#include "calc/starling_threads.h"
 #include "ndb/ndb.h"
 #include "nmea/nmea.h"
 #include "sbp/sbp.h"
 #include "sbp/sbp_utils.h"
 #include "settings/settings.h"
 #include "simulator/simulator.h"
-#include "starling_platform_shim.h"
 #include "utils/timing/timing.h"
 
 #include "board/v3/nap/nap_hw.h"

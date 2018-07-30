@@ -25,6 +25,8 @@
 #include <libswiftnav/observation.h>
 #include <libswiftnav/sid_set.h>
 #include <libswiftnav/signal.h>
+#include <starling/starling.h>
+#include <starling/starling_platform.h>
 
 #include "calc_base_obs.h"
 #include "calc_nav_meas.h"
@@ -41,8 +43,6 @@
 #include "shm/shm.h"
 #include "signal_db/signal_db.h"
 #include "simulator.h"
-#include "starling_platform_shim.h"
-#include "starling_threads.h"
 #include "timing/timing.h"
 
 bool disable_raim = false;

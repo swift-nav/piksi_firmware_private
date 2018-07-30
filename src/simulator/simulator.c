@@ -31,7 +31,6 @@
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "simulator.h"
-#include "starling_threads.h"
 
 #include "simulator_data.h"
 

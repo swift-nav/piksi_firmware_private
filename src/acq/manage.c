@@ -24,9 +24,9 @@
 #include <libswiftnav/logging.h>
 #include <libswiftnav/memcpy_s.h>
 #include <libswiftnav/signal.h>
+#include <starling/starling.h>
 
 #include "board/nap/track_channel.h"
-#include "calc/starling_threads.h"
 #include "decode.h"
 #include "dum/dum.h"
 #include "ephemeris/ephemeris.h"
