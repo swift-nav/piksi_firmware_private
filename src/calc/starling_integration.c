@@ -1135,7 +1135,7 @@ static int read_obs_rover(int blocking, me_msg_obs_t *me_msg) {
     platform_mailbox_item_free(MB_ID_ME_OBS, local_me_msg);
   }
   return ret;
-};
+}
 
 /* TODO(kevin) refactor common code. */
 static int read_obs_base(int blocking, obss_t *obs) {
@@ -1153,7 +1153,7 @@ static int read_obs_base(int blocking, obss_t *obs) {
     platform_mailbox_item_free(MB_ID_BASE_OBS, local_obs);
   }
   return ret;
-};
+}
 
 /* TODO(kevin) refactor common code. */
 static int read_sbas_data(int blocking, sbas_raw_data_t *data) {

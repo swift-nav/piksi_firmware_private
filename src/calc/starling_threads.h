@@ -77,6 +77,16 @@ typedef struct {
 } obss_t;
 
 /**
+ * Paired observation type.
+ * A struct to hold a pair of base and rover observations
+ * that have been time matched
+ */
+typedef struct {
+  obss_t rover_obs;
+  obss_t base_obs;
+} paired_obss_t;
+
+/**
  * Filter result data type returned by various API functions.
  */
 typedef struct StarlingFilterSolution {

@@ -34,11 +34,11 @@ typedef enum thread_id_e {
 } thread_id_t;
 
 typedef enum mailbox_id_e {
-  MB_ID_TIME_MATCHED_OBS = 0,
-  MB_ID_BASE_OBS = 1,
-  MB_ID_ME_OBS = 2,
-  MB_ID_SBAS_DATA = 3,
-  MB_ID_COUNT = 4
+  MB_ID_PAIRED_OBS = 0,
+  MB_ID_BASE_OBS,
+  MB_ID_ME_OBS,
+  MB_ID_SBAS_DATA,
+  MB_ID_COUNT,
 } mailbox_id_t;
 
 #define MB_NONBLOCKING 0
@@ -82,6 +82,6 @@ void platform_mailbox_item_free(mailbox_id_t id, const void *ptr);
 #define ME_OBS_MSG_N_BUFF 6
 
 /* Make the buffer large enough to handle 15 second latency at 10Hz */
-#define STARLING_OBS_N_BUFF BASE_LATENCY_TIMEOUT * 10
+#define PAIRED_OBS_N_BUFF 10
 
 #endif
