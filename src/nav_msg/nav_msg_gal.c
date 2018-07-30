@@ -256,17 +256,84 @@ bool gal_inav_msg_update(nav_msg_gal_inav_t *n, s8 bit_val) {
   return true;
 }
 
+static void gal_eph_debug(const nav_msg_gal_inav_t *n,
+                          const gal_inav_decoded_t *data,
+                          gps_time_t *t) {
+  const ephemeris_t *e = &(data->ephemeris);
+  const ephemeris_kepler_t *k = &(data->ephemeris.kepler);
+  utc_tm date;
+  make_utc_tm(&(k->toc), &date);
+  log_debug_mesid(n->mesid,
+                  "%4" PRIu16 " %2" PRIu8 " %2" PRIu8 " %2" PRIu8 " %2" PRIu8
+                  " %2" PRIu8 "%19.11E%19.11E%19.11E  ",
+                  date.year,
+                  date.month,
+                  date.month_day,
+                  date.hour,
+                  date.minute,
+                  date.second_int,
+                  k->af0,
+                  k->af1,
+                  k->af2);
+  log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
+            (double)k->iode,
+            k->crs,
+            k->dn,
+            k->m0);
+  log_debug(
+      "    %19.11E%19.11E%19.11E%19.11E  ", k->cuc, k->ecc, k->cus, k->sqrta);
+  log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
+            (double)e->toe.tow,
+            k->cic,
+            k->omega0,
+            k->cis);
+  log_debug(
+      "    %19.11E%19.11E%19.11E%19.11E  ", k->inc, k->crc, k->w, k->omegadot);
+  log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
+            k->inc_dot,
+            1.0,
+            (double)e->toe.wn,
+            0.0);
+  log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
+            e->ura,
+            (double)e->health_bits,
+            k->tgd_gal_s[0],
+            k->tgd_gal_s[1]);
+  log_debug("    %19.11E%19.11E ", rint(t->tow), 0.0);
+}
+
+static void gal_eph_update(nav_msg_gal_inav_t *n,
+                           gal_inav_decoded_t *data,
+                           gps_time_t *t) {
+  gal_eph_debug(n, data, t);
+  ephemeris_t *e = &(data->ephemeris);
+  /* Always mark GAL ephemeris as if it was coming from E1. */
+  e->sid.code = CODE_GAL_E1B;
+  e->valid = 1;
+  shm_gal_set_shi(e->sid.sat, e->health_bits);
+  eph_new_status_t estat = ephemeris_new(e);
+  if (EPH_NEW_OK != estat) {
+    log_warn_mesid(n->mesid,
+                   "Error in GAL INAV ephemeris processing. "
+                   "Eph status: %" PRIu8 " ",
+                   (u8)estat);
+  }
+  n->health = shm_ephe_healthy(e, n->mesid.code) ? SV_HEALTHY : SV_UNHEALTHY;
+}
+
 inav_data_type_t parse_inav_word(nav_msg_gal_inav_t *nav_msg,
-                                 gal_inav_decoded_t *dd,
-                                 gps_time_t *t_dec) {
+                                 gal_inav_decoded_t *dd) {
   assert(nav_msg);
   u8 *content = nav_msg->raw_content;
+  gps_time_t t_dec = GPS_TIME_UNKNOWN;
 
   u8 word_type = getbitu(content, 0, 6);
   if (0 == word_type) {
     u32 tflag = getbitu(content, 6, 2);
     if (tflag != 0b10) return INAV_INCOMPLETE;
-    (*t_dec) = parse_inav_w0tow(content);
+    t_dec = parse_inav_w0tow(content);
+    log_debug_mesid(nav_msg->mesid, "WN %d TOW %.3f", t_dec.wn, t_dec.tow);
+    nav_msg->TOW_ms = (s32)rint(t_dec.tow * 1000) + 2000;
     return INAV_TOW;
   }
 
@@ -301,14 +368,17 @@ inav_data_type_t parse_inav_word(nav_msg_gal_inav_t *nav_msg,
     }
     parse_inav_bgd(content, dd);
     parse_inav_health6(content, dd);
-    (*t_dec) = parse_inav_w5tow(content);
-    parse_inav_eph(nav_msg, dd, t_dec);
+    t_dec = parse_inav_w5tow(content);
+    parse_inav_eph(nav_msg, dd, &t_dec);
+    gal_eph_update(nav_msg, dd, &t_dec);
     return INAV_EPH;
   }
 
   if (6 == word_type) {
-    t_dec->wn = WN_UNKNOWN;
-    t_dec->tow = (double)parse_inav_utc(content, dd);
+    t_dec.wn = WN_UNKNOWN;
+    t_dec.tow = (double)parse_inav_utc(content, dd);
+    log_debug_mesid(nav_msg->mesid, "WN %d TOW %.3f", t_dec.wn, t_dec.tow);
+    nav_msg->TOW_ms = (s32)rint(t_dec.tow * 1000) + 2000;
     return INAV_UTC;
   }
 
@@ -354,69 +424,11 @@ inav_data_type_t parse_inav_word(nav_msg_gal_inav_t *nav_msg,
 
   if (63 == word_type) {
     log_debug_mesid(nav_msg->mesid, "Dummy msg received from GAL SV");
+    nav_msg->health = SV_UNHEALTHY;
     return INAV_DUMMY;
   }
 
   return INAV_INCOMPLETE;
-}
-
-static void gal_eph_update(nav_msg_gal_inav_t *n,
-                           gal_inav_decoded_t *data,
-                           gps_time_t *t) {
-  ephemeris_t *e = &(data->ephemeris);
-  ephemeris_kepler_t *k = &(data->ephemeris.kepler);
-  utc_tm date;
-  make_utc_tm(&(k->toc), &date);
-  log_debug_mesid(n->mesid,
-                  "%4" PRIu16 " %2" PRIu8 " %2" PRIu8 " %2" PRIu8 " %2" PRIu8
-                  " %2" PRIu8 "%19.11E%19.11E%19.11E  ",
-                  date.year,
-                  date.month,
-                  date.month_day,
-                  date.hour,
-                  date.minute,
-                  date.second_int,
-                  k->af0,
-                  k->af1,
-                  k->af2);
-  log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
-            (double)k->iode,
-            k->crs,
-            k->dn,
-            k->m0);
-  log_debug(
-      "    %19.11E%19.11E%19.11E%19.11E  ", k->cuc, k->ecc, k->cus, k->sqrta);
-  log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
-            (double)e->toe.tow,
-            k->cic,
-            k->omega0,
-            k->cis);
-  log_debug(
-      "    %19.11E%19.11E%19.11E%19.11E  ", k->inc, k->crc, k->w, k->omegadot);
-  log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
-            k->inc_dot,
-            1.0,
-            (double)e->toe.wn,
-            0.0);
-  log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
-            e->ura,
-            (double)e->health_bits,
-            k->tgd_gal_s[0],
-            k->tgd_gal_s[1]);
-  log_debug("    %19.11E%19.11E ", rint(t->tow), 0.0);
-  /* Always mark GAL ephemeris as if it was coming from E1. */
-  data->ephemeris.sid.code = CODE_GAL_E1B;
-  data->ephemeris.valid = 1;
-  shm_gal_set_shi(data->ephemeris.sid.sat, data->ephemeris.health_bits);
-  eph_new_status_t estat = ephemeris_new(&data->ephemeris);
-  if (EPH_NEW_OK != estat) {
-    log_warn_mesid(n->mesid,
-                   "Error in GAL INAV ephemeris processing. "
-                   "Eph status: %" PRIu8 " ",
-                   (u8)estat);
-  }
-  n->health = shm_ephe_healthy(&data->ephemeris, n->mesid.code) ? SV_HEALTHY
-                                                                : SV_UNHEALTHY;
 }
 
 /** GAL navigation message decoding update.
@@ -442,24 +454,18 @@ gal_decode_status_t gal_data_decoding(nav_msg_gal_inav_t *n,
   }
 
   gal_inav_decoded_t dd;
-  gps_time_t t = GPS_TIME_UNKNOWN;
-  s32 TOWms = TOW_UNKNOWN;
+
   gal_decode_status_t status = GAL_DECODE_WAIT;
-  inav_data_type_t ret = parse_inav_word(n, &dd, &t);
+  inav_data_type_t ret = parse_inav_word(n, &dd);
   switch (ret) {
     case INAV_TOW:
     case INAV_UTC:
-      log_debug_mesid(n->mesid, "WN %d TOW %.3f", t.wn, t.tow);
-      TOWms = (s32)rint(t.tow * 1000);
-      n->TOW_ms = TOWms + 2000;
       status = GAL_DECODE_TOW_UPDATE;
       break;
     case INAV_EPH:
-      gal_eph_update(n, &dd, &t);
       status = GAL_DECODE_EPH_UPDATE;
       break;
     case INAV_DUMMY:
-      n->health = SV_UNHEALTHY;
       status = GAL_DECODE_DUMMY_UPDATE;
       break;
     case INAV_ALM:
