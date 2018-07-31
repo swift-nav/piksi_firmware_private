@@ -276,6 +276,8 @@ bds_decode_status_t bds_data_decoding(nav_msg_bds_t *n, nav_bit_t nav_bit) {
 
   /* Don't decode data while in sensitivity mode. */
   if (0 == nav_bit) {
+    me_gnss_signal_t tmp_mesid = n->mesid;
+    bds_nav_msg_init(n, &tmp_mesid);
     return BDS_DECODE_RESET;
   }
 
