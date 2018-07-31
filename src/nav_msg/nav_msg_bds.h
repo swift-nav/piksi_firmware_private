@@ -84,6 +84,8 @@ typedef struct {
   u64 subfr_times[BDS_SUBFRAME_MAX];
   /**< Successfully decoded words in page */
   u64 goodwords_mask;
+
+  u16 navbitcnt; /**< For navbit data integrity checks */
 } nav_msg_bds_t;
 
 typedef struct _bds_d1_decoded_data {

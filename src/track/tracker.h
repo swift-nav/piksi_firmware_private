@@ -422,6 +422,8 @@ typedef struct {
 
   tp_profile_t profile; /**< Profile controller state. */
 
+  u16 navbitcnt; /**< navbit counter */
+
   tp_tl_state_t tl_state;      /**< Tracking loop filter state. */
   tp_corr_state_t corrs;       /**< Correlations */
   track_cn0_state_t cn0_est;   /**< C/N0 estimator state. */

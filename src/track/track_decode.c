@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2017 Swift Navigation Inc.
+ * Copyright (C) 2011-2018 Swift Navigation Inc.
  * Contact: Swift Navigation <dev@swiftnav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -17,23 +17,14 @@
 
 /** Read the next pending nav bit for a tracker channel.
  *
- * \note This function should should be called from the same thread as
- * tracking_channel_time_sync().
- *
  * \param id       ID of the tracker channel to read from.
  * \param nav_bit  Struct containing nav_bit data.
  *
  * \return true if valid nav_bit is available, false otherwise.
  */
-bool tracker_nav_bit_get(u8 id, nav_bit_t *nav_bit) {
+bool tracker_nav_bit_received(u8 id, nav_bit_t *nav_bit) {
   tracker_t *tracker = tracker_get(id);
-
-  nav_bit_t element;
-  if (nav_bit_fifo_read(&tracker->nav_bit_fifo, &element)) {
-    *nav_bit = element;
-    return true;
-  }
-  return false;
+  return nav_bit_fifo_read(&tracker->nav_bit_fifo, nav_bit);
 }
 
 /** Initializes the data structure used to sync data between decoder and tracker
@@ -50,9 +41,9 @@ void tracker_data_sync_init(nav_data_sync_t *nav_data_sync) {
  *  back to a tracker channel.
  *
  * \note This function should be called from the same thread as
- * tracker_nav_bit_get().
+ * tracker_nav_bit_received().
  * \note It is assumed that the specified data is synchronized with the most
- * recent nav bit read from the FIFO using tracker_nav_bit_get().
+ * recent nav bit read from the FIFO using tracker_nav_bit_received().
  *
  * \param id           ID of the tracker channel to synchronize.
  * \param from_decoder struct to sync tracker with.
@@ -70,9 +61,9 @@ static void data_sync(u8 id, nav_data_sync_t *from_decoder) {
 /** Propagate decoded information back to a tracker channel.
  *
  * \note This function should be called from the same thread as
- * tracker_nav_bit_get().
+ * tracker_nav_bit_received().
  * \note It is assumed that the specified data is synchronized with the most
- * recent nav bit read from the FIFO using tracker_nav_bit_get().
+ * recent nav bit read from the FIFO using tracker_nav_bit_received().
  *
  * \param id           ID of the tracker channel to synchronize.
  * \param from_decoder struct to sync tracker with.

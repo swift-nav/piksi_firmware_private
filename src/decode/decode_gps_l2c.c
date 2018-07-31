@@ -32,6 +32,7 @@
 typedef struct {
   cnav_msg_t cnav_msg;
   cnav_msg_decoder_t cnav_msg_decoder;
+  u16 navbitcnt; /**< For navbit data integrity checks */
 } gps_l2c_decoder_data_t;
 
 static decoder_t gps_l2c_decoders[NUM_GPS_L2C_DECODERS];
@@ -81,19 +82,21 @@ static void decoder_gps_l2c_process(const decoder_channel_info_t *channel_info,
 
   /* Process incoming nav bits */
   nav_bit_t nav_bit;
-  while (tracker_nav_bit_get(channel_info->tracking_channel, &nav_bit)) {
-    /* Don't decode data while in sensitivity mode. */
-    if (0 == nav_bit) {
+  while (tracker_nav_bit_received(channel_info->tracking_channel, &nav_bit)) {
+    if ((0 == nav_bit.data) || (nav_bit.cnt != data->navbitcnt)) {
       data->cnav_msg.bit_polarity = BIT_POLARITY_UNKNOWN;
       cnav_msg_decoder_init(&data->cnav_msg_decoder);
+      data->navbitcnt = nav_bit.cnt + 1;
       continue;
     }
+    data->navbitcnt = nav_bit.cnt + 1;
+
     /* Update TOW */
     u32 delay;
     s32 tow_ms;
 
     /* Symbol value probability, where 0x00 - 100% of 0, 0xFF - 100% of 1. */
-    u8 symbol_probability = nav_bit + C_2P7;
+    u8 symbol_probability = nav_bit.data + C_2P7;
 
     bool decoded = cnav_msg_decoder_add_symbol(
         &data->cnav_msg_decoder, symbol_probability, &data->cnav_msg, &delay);

@@ -22,7 +22,10 @@
 #include "track/track_decode.h"
 
 /** BDS B1 decoder data */
-typedef struct { nav_msg_bds_t nav_msg; } bds_b1_decoder_data_t;
+typedef struct {
+  nav_msg_bds_t nav_msg;
+  u16 navbitcnt; /**< For navbit data integrity checks */
+} bds_b1_decoder_data_t;
 
 static decoder_t bds_b1_decoders[NUM_BDS2_B11_DECODERS];
 

@@ -122,10 +122,13 @@ typedef struct {
 
   /**< Polarity of the data */
   s8 bit_polarity;
+
   /**< Decoded TOW [ms] */
   s32 TOW_ms;
   /**< SV health status */
   health_t health;
+
+  u16 bit_cnt; /**< For navbit data integrity checks */
 } nav_msg_gal_inav_t;
 
 typedef enum _inav_data_type_e {

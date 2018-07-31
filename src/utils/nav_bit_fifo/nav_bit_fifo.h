@@ -25,7 +25,10 @@
 #define MAX_NAV_BIT_FIFO_SIZE \
   (MAX_NAV_BIT_LATENCY_MS / MAX_NAV_BIT_SYMBOL_RATE_KHZ)
 
-typedef s8 nav_bit_t;
+typedef struct {
+  s8 data;
+  u16 cnt;
+} nav_bit_t;
 
 typedef struct {
   u8 read_index;
