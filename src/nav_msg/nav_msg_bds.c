@@ -70,11 +70,14 @@ static void pack_buffer(nav_msg_bds_t *n);
 static void deint(u32 *hi, u32 *lo, const u32 dw);
 static bool bch1511(u32 *pdw);
 
-static void process_d1_fraid1(nav_msg_bds_t *n, bds_d1_decoded_data_t *data);
+static void process_d1_fraid1(const nav_msg_bds_t *n,
+                              bds_d1_decoded_data_t *data);
 
-static void process_d1_fraid2(nav_msg_bds_t *n, bds_d1_decoded_data_t *data);
+static void process_d1_fraid2(const nav_msg_bds_t *n,
+                              bds_d1_decoded_data_t *data);
 
-static void process_d1_fraid3(nav_msg_bds_t *n, bds_d1_decoded_data_t *data);
+static void process_d1_fraid3(const nav_msg_bds_t *n,
+                              bds_d1_decoded_data_t *data);
 
 static void process_d1_common_alm(nav_msg_bds_t *n,
                                   bds_d1_decoded_data_t *data);
@@ -306,7 +309,6 @@ void get_bds_data_sync(const nav_msg_bds_t *n,
   from_decoder->TOW_ms = n->TOW_ms;
   from_decoder->bit_polarity = n->bit_polarity;
   from_decoder->health = n->health;
-  from_decoder->sync_flags = SYNC_NONE;
 
   switch (status) {
     case BDS_DECODE_TOW_UPDATE:
@@ -318,6 +320,7 @@ void get_bds_data_sync(const nav_msg_bds_t *n,
     case BDS_DECODE_WAIT:
     case BDS_DECODE_RESET:
     default:
+      from_decoder->sync_flags = SYNC_NONE;
       break;
   }
   return;
@@ -407,7 +410,7 @@ static void dump_navmsg(const nav_msg_bds_t *n, const u8 subfr) {
   u32 tow = (((subfr_words[0] >> 4) << 12) |
              ((subfr_words[1] >> 18) & 0xfffU)) &
             0xfffffU;
-  sprintf(bitstream, " 3 %02d %6" PRIu32 "  ", n->prn, tow);
+  sprintf(bitstream, " 3 %02d %6" PRIu32 "  ", n->mesid.sat, tow);
   for (u8 k = 0; k < BDS_WORD_SUBFR; k++) {
     sprintf(tempstr, "%08" PRIx32 " ", subfr_words[k]);
     strcat(bitstream, tempstr);
@@ -541,7 +544,8 @@ static void pack_buffer(nav_msg_bds_t *n) {
   //~ dump_navmsg(n, subfr);
 }
 
-static void process_d1_fraid1(nav_msg_bds_t *n, bds_d1_decoded_data_t *data) {
+static void process_d1_fraid1(const nav_msg_bds_t *n,
+                              bds_d1_decoded_data_t *data) {
   ephemeris_t *e = &(data->ephemeris);
   ephemeris_kepler_t *k = &(data->ephemeris.kepler);
   ionosphere_t *i = &(data->iono);
@@ -607,7 +611,8 @@ static void process_d1_fraid1(nav_msg_bds_t *n, bds_d1_decoded_data_t *data) {
   i->b3 = (double)(beta[3] * C_2P16);
 }
 
-static void process_d1_fraid2(nav_msg_bds_t *n, bds_d1_decoded_data_t *data) {
+static void process_d1_fraid2(const nav_msg_bds_t *n,
+                              bds_d1_decoded_data_t *data) {
   ephemeris_kepler_t *k = &(data->ephemeris.kepler);
 
   u32 deltan = (((n->page_words[11]) >> 8) & 0x3ff) << 6;
@@ -642,7 +647,8 @@ static void process_d1_fraid2(nav_msg_bds_t *n, bds_d1_decoded_data_t *data) {
   k->sqrta = sqrta * C_1_2P19;
 }
 
-static void process_d1_fraid3(nav_msg_bds_t *n, bds_d1_decoded_data_t *data) {
+static void process_d1_fraid3(const nav_msg_bds_t *n,
+                              bds_d1_decoded_data_t *data) {
   ephemeris_t *e = &(data->ephemeris);
   ephemeris_kepler_t *k = &(data->ephemeris.kepler);
   double new_toe;
