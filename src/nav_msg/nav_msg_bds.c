@@ -277,13 +277,13 @@ bds_decode_status_t bds_data_decoding(nav_msg_bds_t *n, nav_bit_t nav_bit) {
   memset(&dd_d2nav, 0, sizeof(bds_d2_decoded_data_t));
 
   /* Don't decode data while in sensitivity mode. */
-  if ((0 == nav_bit) || (nav_bit.cnt != n->navbitcnt)) {
+  if ((0 == nav_bit) || (nav_bit.cnt != n->bit_cnt)) {
     me_gnss_signal_t tmp_mesid = n->mesid;
     bds_nav_msg_init(n, &tmp_mesid);
-    n->navbitcnt = nav_bit.cnt + 1;
+    n->bit_cnt = nav_bit.cnt + 1;
     return BDS_DECODE_RESET;
   }
-  n->navbitcnt++;
+  n->bit_cnt++;
 
   bool bit_val = nav_bit > 0;
   bool tlm_rx = bds_nav_msg_update(n, bit_val);

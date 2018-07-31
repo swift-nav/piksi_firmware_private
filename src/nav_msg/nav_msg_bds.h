@@ -85,7 +85,7 @@ typedef struct {
   /**< Successfully decoded words in page */
   u64 goodwords_mask;
 
-  u16 navbitcnt; /**< For navbit data integrity checks */
+  u16 bit_cnt; /**< For navbit data integrity checks */
 } nav_msg_bds_t;
 
 typedef struct _bds_d1_decoded_data {

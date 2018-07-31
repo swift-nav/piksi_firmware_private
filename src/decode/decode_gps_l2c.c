@@ -32,7 +32,7 @@
 typedef struct {
   cnav_msg_t cnav_msg;
   cnav_msg_decoder_t cnav_msg_decoder;
-  u16 navbitcnt; /**< For navbit data integrity checks */
+  u16 bit_cnt; /**< For navbit data integrity checks */
 } gps_l2c_decoder_data_t;
 
 static decoder_t gps_l2c_decoders[NUM_GPS_L2C_DECODERS];
@@ -83,13 +83,13 @@ static void decoder_gps_l2c_process(const decoder_channel_info_t *channel_info,
   /* Process incoming nav bits */
   nav_bit_t nav_bit;
   while (tracker_nav_bit_received(channel_info->tracking_channel, &nav_bit)) {
-    if ((0 == nav_bit.data) || (nav_bit.cnt != data->navbitcnt)) {
+    if ((0 == nav_bit.data) || (nav_bit.cnt != data->bit_cnt)) {
       data->cnav_msg.bit_polarity = BIT_POLARITY_UNKNOWN;
       cnav_msg_decoder_init(&data->cnav_msg_decoder);
-      data->navbitcnt = nav_bit.cnt + 1;
+      data->bit_cnt = nav_bit.cnt + 1;
       continue;
     }
-    data->navbitcnt = nav_bit.cnt + 1;
+    data->bit_cnt++;
 
     /* Update TOW */
     u32 delay;

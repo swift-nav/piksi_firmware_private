@@ -35,17 +35,17 @@ void nav_msg_init_glo_with_cb(nav_msg_glo_t *n, me_gnss_signal_t mesid) {
 glo_decode_status_t glo_data_decoding(nav_msg_glo_t *n,
                                       me_gnss_signal_t mesid,
                                       nav_bit_t nav_bit) {
-  if ((0 == nav_bit.data) || (nav_bit.cnt != n->navbitcnt)) {
+  if ((0 == nav_bit.data) || (nav_bit.cnt != n->bit_cnt)) {
     glo_decode_status_t status = GLO_DECODE_SENSITIVITY;
     if (BIT_POLARITY_UNKNOWN != n->bit_polarity) {
       /* If polarity was previously known, report polarity loss. */
       status = GLO_DECODE_POLARITY_LOSS;
     }
     nav_msg_init_glo_with_cb(n, mesid);
-    n->navbitcnt = nav_bit.cnt + 1;
+    n->bit_cnt = nav_bit.cnt + 1;
     return status;
   }
-  n->navbitcnt++;
+  n->bit_cnt++;
 
   /* Update GLO data decoder */
   bool bit_val = nav_bit.data > 0;

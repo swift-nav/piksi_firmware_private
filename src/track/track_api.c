@@ -271,9 +271,9 @@ void tracker_bit_sync_update(tracker_t *tracker,
   /* write to FIFO */
   nav_bit_t element = {
       .data = sensitivity_mode ? 0 : soft_bit,
-      .cnt = tracker->navbitcnt,
+      .cnt = tracker->bit_cnt,
   };
-  tracker->navbitcnt++;
+  tracker->bit_cnt++;
   if (nav_bit_fifo_write(&tracker->nav_bit_fifo, &element)) {
     /* warn if the FIFO has become full */
     if (nav_bit_fifo_full(&tracker->nav_bit_fifo)) {

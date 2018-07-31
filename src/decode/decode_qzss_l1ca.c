@@ -31,7 +31,7 @@
 /** QZSS L1 C/A decoder data */
 typedef struct {
   nav_msg_t nav_msg;
-  u16 navbitcnt; /**< For navbit data integrity checks */
+  u16 bit_cnt; /**< For navbit data integrity checks */
 } qzss_l1ca_decoder_data_t;
 
 static decoder_t qzss_l1ca_decoders[NUM_QZSS_L1CA_DECODERS];
@@ -82,12 +82,12 @@ static void decoder_qzss_l1ca_process(
   /* Process incoming nav bits */
   nav_bit_t nav_bit;
   while (tracker_nav_bit_received(channel_info->tracking_channel, &nav_bit)) {
-    if ((0 == nav_bit.data) || (nav_bit.cnt != data->navbitcnt)) {
+    if ((0 == nav_bit.data) || (nav_bit.cnt != data->bit_cnt)) {
       nav_msg_init(&data->nav_msg);
-      data->navbitcnt = nav_bit.cnt + 1;
+      data->bit_cnt = nav_bit.cnt + 1;
       continue;
     }
-    data->navbitcnt++;
+    data->bit_cnt++;
 
     /* Update TOW */
     bool bit_val = nav_bit.data > 0;
