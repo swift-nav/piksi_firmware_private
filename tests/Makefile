@@ -90,8 +90,8 @@ lsnp :
 	mkdir -p $(LIBSWIFTNAV_BUILDDIR); cd $(LIBSWIFTNAV_BUILDDIR); \
 	cmake -DMAX_CHANNELS=45 \
 	      -DPIKSI_MULTI_UNIT_TEST=ON \
-	      -DCMAKE_C_COMPILER=gcc-5 \
-	      -DCMAKE_CXX_COMPILER=g++-5 \
+	      -DCMAKE_C_COMPILER=$(C_COMPILER) \
+	      -DCMAKE_CXX_COMPILER=$(CXX_COMPILER) \
 	      -DENABLE_AUTOFORMAT=OFF \
 	      ../
 	$(MAKE) -C $(LIBSWIFTNAV_BUILDDIR) --no-print-directory
