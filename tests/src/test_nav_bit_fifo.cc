@@ -8,7 +8,7 @@
 #include "nav_bit_fifo/nav_bit_fifo.h"
 
 TEST(nav_bit_fifo_tests, delay) {
-  nav_bit_t bit[] = {0, 1, 2};
+  const nav_bit_t bit[] = {{0, 0}, {1, 0}, {2, 0}};
   size_t bwi = 0;
   size_t bri = 0;
   nav_bit_fifo_t fifo;
@@ -32,7 +32,8 @@ TEST(nav_bit_fifo_tests, delay) {
         std::cerr << " write failed at " << b << " out of " << 257 << std::endl;
       }
       if (nav_bit_fifo_read(&fifo, &el)) {
-        EXPECT_EQ(el, bit[bri]) << " for delay_symbols " << delay_symbols;
+        EXPECT_EQ(el.data, bit[bri].data)
+            << " for delay_symbols " << delay_symbols;
         bri = (bri + 1) % ARRAY_SIZE(bit);
       } else {
         std::cerr << " read failed at " << b << " out of " << 257 << std::endl;
@@ -41,7 +42,8 @@ TEST(nav_bit_fifo_tests, delay) {
 
     for (size_t j = 0; j < delay_symbols; j++) {
       if (nav_bit_fifo_read(&fifo, &el)) {
-        EXPECT_EQ(el, bit[bri]) << " for delay_symbols " << delay_symbols;
+        EXPECT_EQ(el.data, bit[bri].data)
+            << " for delay_symbols " << delay_symbols;
         bri = (bri + 1) % ARRAY_SIZE(bit);
       } else {
         std::cerr << " read failed at " << j << " out of " << delay_symbols
