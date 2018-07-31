@@ -70,7 +70,7 @@ static bool eph_complete(nav_msg_gal_inav_t *nav_msg);
 static bool alm_complete(nav_msg_gal_inav_t *nav_msg);
 
 static float sisa_map(u8 sisa);
-static void parse_inav_eph(nav_msg_gal_inav_t *nav_msg,
+static void parse_inav_eph(const nav_msg_gal_inav_t *nav_msg,
                            gal_inav_decoded_t *dd,
                            const gps_time_t *t_dec);
 static void parse_inav_alm3(nav_msg_gal_inav_t *nav_msg,
@@ -258,7 +258,7 @@ bool gal_inav_msg_update(nav_msg_gal_inav_t *n, s8 bit_val) {
 
 static void gal_eph_debug(const nav_msg_gal_inav_t *n,
                           const gal_inav_decoded_t *data,
-                          gps_time_t *t) {
+                          const gps_time_t *t) {
   const ephemeris_t *e = &(data->ephemeris);
   const ephemeris_kepler_t *k = &(data->ephemeris.kepler);
   utc_tm date;
@@ -304,7 +304,7 @@ static void gal_eph_debug(const nav_msg_gal_inav_t *n,
 
 static void gal_eph_update(nav_msg_gal_inav_t *n,
                            gal_inav_decoded_t *data,
-                           gps_time_t *t) {
+                           const gps_time_t *t) {
   gal_eph_debug(n, data, t);
   ephemeris_t *e = &(data->ephemeris);
   /* Always mark GAL ephemeris as if it was coming from E1. */
@@ -445,6 +445,8 @@ gal_decode_status_t gal_data_decoding(nav_msg_gal_inav_t *n,
                                       nav_bit_t nav_bit) {
   /* Don't decode data while in sensitivity mode. */
   if (0 == nav_bit) {
+    me_gnss_signal_t tmp_mesid = n->mesid;
+    gal_inav_msg_init(n, &tmp_mesid);
     return GAL_DECODE_RESET;
   }
 
@@ -454,7 +456,6 @@ gal_decode_status_t gal_data_decoding(nav_msg_gal_inav_t *n,
   }
 
   gal_inav_decoded_t dd;
-
   gal_decode_status_t status = GAL_DECODE_WAIT;
   inav_data_type_t ret = parse_inav_word(n, &dd);
   switch (ret) {
@@ -491,7 +492,6 @@ void get_gal_data_sync(const nav_msg_gal_inav_t *n,
   from_decoder->TOW_ms = n->TOW_ms;
   from_decoder->bit_polarity = n->bit_polarity;
   from_decoder->health = n->health;
-  from_decoder->sync_flags = 0;
 
   switch (status) {
     case GAL_DECODE_TOW_UPDATE:
@@ -504,6 +504,7 @@ void get_gal_data_sync(const nav_msg_gal_inav_t *n,
     case GAL_DECODE_WAIT:
     case GAL_DECODE_RESET:
     default:
+      from_decoder->sync_flags = 0;
       break;
   }
   return;
@@ -567,7 +568,7 @@ static u32 parse_inav_utc(const u8 content[GAL_INAV_CONTENT_BYTE],
   return tow;
 }
 
-static void parse_inav_eph(nav_msg_gal_inav_t *nav_msg,
+static void parse_inav_eph(const nav_msg_gal_inav_t *nav_msg,
                            gal_inav_decoded_t *dd,
                            const gps_time_t *t_dec) {
   ephemeris_t *eph = &(dd->ephemeris);

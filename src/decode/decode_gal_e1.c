@@ -83,11 +83,6 @@ static void decoder_gal_e1_process(const decoder_channel_info_t *channel_info,
 
   while (tracker_nav_bit_get(channel, &nav_bit)) {
     gal_decode_status_t status = gal_data_decoding(data, nav_bit);
-    if (GAL_DECODE_RESET == status) {
-      gal_inav_msg_init(data, &channel_info->mesid);
-      continue;
-    }
-
     /* Sync tracker with decoder data */
     get_gal_data_sync(data, &from_decoder, status);
     tracker_data_sync(channel, &from_decoder);
