@@ -952,6 +952,8 @@ void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
              9 * sizeof(double),
              &spp_solution->result.velocity_covariance,
              9 * sizeof(double));
+  } else {
+    filtered_pvt_result.velocity_valid = false;
   }
 
   /* Check if observations do not have valid time. We may have locally a
