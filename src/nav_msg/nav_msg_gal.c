@@ -361,6 +361,7 @@ inav_data_type_t parse_inav_word(nav_msg_gal_inav_t *nav_msg,
     parse_inav_bgd(content, dd);
     parse_inav_health6(content, dd);
     t_dec = parse_inav_w5tow(content);
+    nav_msg->TOW_ms = (s32)rint(t_dec.tow * 1000) + 2000;
     parse_inav_eph(nav_msg, dd, &t_dec);
     gal_eph_update(nav_msg, dd, &t_dec);
     return INAV_EPH;
@@ -490,6 +491,8 @@ void get_gal_data_sync(const nav_msg_gal_inav_t *n,
       from_decoder->sync_flags = SYNC_POL | SYNC_TOW;
       break;
     case GAL_DECODE_EPH_UPDATE:
+      from_decoder->sync_flags = SYNC_ALL;
+      break;
     case GAL_DECODE_DUMMY_UPDATE:
       from_decoder->sync_flags = SYNC_POL | SYNC_EPH;
       break;
