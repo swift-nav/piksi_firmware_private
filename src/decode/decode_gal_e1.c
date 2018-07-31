@@ -14,18 +14,11 @@
 
 #include <libswiftnav/logging.h>
 
-#include "decode.h"
 #include "decode_common.h"
 #include "decode_gal_e1.h"
-#include "gnss_capabilities/gnss_capabilities.h"
 #include "nav_msg/nav_msg_gal.h"
-#include "sbp.h"
-#include "sbp_utils.h"
-#include "shm/shm.h"
 #include "signal_db/signal_db.h"
-#include "timing/timing.h"
 #include "track/track_decode.h"
-#include "track/track_sid_db.h"
 
 /** Galileo decoder data */
 static decoder_t gal_e1_decoders[NUM_GAL_E1_DECODERS];

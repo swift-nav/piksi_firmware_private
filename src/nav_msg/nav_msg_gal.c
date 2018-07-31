@@ -11,23 +11,15 @@
  */
 #include <assert.h>
 #include <limits.h>
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include <libfec/fec.h>
 #include <libswiftnav/bits.h>
-#include <libswiftnav/constants.h>
 #include <libswiftnav/edc.h>
-#include <libswiftnav/ionosphere.h>
-#include <libswiftnav/logging.h>
 
 #include "ephemeris/ephemeris.h"
-#include "main/main.h"
 #include "nav_msg/nav_msg.h"
 #include "nav_msg/nav_msg_gal.h"
-#include "timing/timing.h"
 
 #define GAL_INAV_PREAMBLE_MASK 0x03ff
 #define GAL_INAV_PREAMBLE 0x0160
