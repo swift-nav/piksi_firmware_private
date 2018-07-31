@@ -939,6 +939,23 @@ void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
   apply_dynamics_filter_to_solutions(
       spp_solution, rtk_solution, &filtered_pvt_result);
 
+  /* (July 2018) We always output SPP velocity, so whatever
+   * the filtered result is, we want to make sure we overwrite
+   * the velocity with the SPP velocity. */
+  if (spp_solution) {
+    filtered_pvt_result.velocity_valid = spp_solution->result.velocity_valid;
+    MEMCPY_S(&filtered_pvt_result.velocity,
+             3 * sizeof(double),
+             &spp_solution->result.velocity,
+             3 * sizeof(double));
+    MEMCPY_S(&filtered_pvt_result.velocity_covariance,
+             9 * sizeof(double),
+             &spp_solution->result.velocity_covariance,
+             9 * sizeof(double));
+  } else {
+    filtered_pvt_result.velocity_valid = false;
+  }
+
   /* Check if observations do not have valid time. We may have locally a
    * reasonable estimate of current GPS time, so we can round that to the
    * nearest epoch and use instead if necessary.
