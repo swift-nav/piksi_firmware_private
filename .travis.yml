@@ -25,7 +25,7 @@ matrix:
               key_url: 'http://apt.llvm.org/llvm-snapshot.gpg.key'
             - ubuntu-toolchain-r-test
           packages:
-            - g++-5
+            - g++-6
       env:
         - C_COMPILER=gcc-6 CXX_COMPILER=g++-6
     - os: linux
