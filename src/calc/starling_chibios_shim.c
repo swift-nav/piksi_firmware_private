@@ -59,6 +59,8 @@
 
 #define SBAS_DATA_N_BUFF 6
 
+#define EPHEMERIS_N_BUFF MAX_CHANNELS
+
 #define NUM_MUTEXES STARLING_MAX_NUM_MUTEXES
 
 /*******************************************************************************
@@ -81,6 +83,10 @@ static me_msg_obs_t me_obs_buff[ME_OBS_MSG_N_BUFF];
 /* SBAS Data API data-structures. */
 static msg_t sbas_data_mailbox_buff[SBAS_DATA_N_BUFF];
 static sbas_raw_data_t sbas_data_buff[SBAS_DATA_N_BUFF];
+
+/* Ephemeris Data API data-structures. */
+static msg_t ephemeris_mailbox_buff[EPHEMERIS_N_BUFF];
+static ephemeris_t ephemeris_buff[EPHEMERIS_N_BUFF];
 
 static mutex_t mutexes[NUM_MUTEXES];
 
@@ -196,7 +202,15 @@ static mailbox_info_t mailbox_info[MB_ID_COUNT] =
                           sbas_data_mailbox_buff,
                           sbas_data_buff,
                           SBAS_DATA_N_BUFF,
-                          sizeof(sbas_raw_data_t)}};
+                          sizeof(sbas_raw_data_t)},
+     [MB_ID_EPHEMERIS] = {{0},
+                          {0},
+                          ephemeris_mailbox_buff,
+                          ephemeris_buff,
+                          EPHEMERIS_N_BUFF,
+                          sizeof(ephemeris_t)}};
+
+
 
 void platform_mailbox_init(mailbox_id_t id) {
   chMBObjectInit(&mailbox_info[id].mailbox,

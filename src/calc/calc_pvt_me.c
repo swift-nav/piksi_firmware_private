@@ -88,6 +88,8 @@ static void me_post_observations(u8 n,
                                  const navigation_measurement_t _meas[],
                                  const ephemeris_t _ephem[],
                                  const gps_time_t *_t) {
+  (void)_ephem;
+
   /* TODO: use a buffer from the pool from the start instead of
    * allocating nav_meas as well. Downside, if we don't end up
    * pushing the message into the mailbox then we just wasted an
@@ -105,10 +107,6 @@ static void me_post_observations(u8 n,
              sizeof(me_msg_obs->obs),
              _meas,
              n * sizeof(navigation_measurement_t));
-    MEMCPY_S(me_msg_obs->ephem,
-             sizeof(me_msg_obs->ephem),
-             _ephem,
-             n * sizeof(ephemeris_t));
   }
   if (_t != NULL) {
     me_msg_obs->obs_time = *_t;

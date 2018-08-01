@@ -74,6 +74,8 @@
 #define SBAS_DATA_N_BUFF 6
 #define SBAS_DATA_QUEUE_NAME "sbas-data"
 
+#define EPH_QUEUE_NAME "ephemeris"
+
 #define NUM_MUTEXES STARLING_MAX_NUM_MUTEXES
 
 /*******************************************************************************
@@ -218,7 +220,8 @@ static mailbox_info_t mailbox_info[MB_ID_COUNT] =
                        ME_OBS_MSG_N_BUFF,
                        sizeof(me_msg_obs_t *)},
      [MB_ID_SBAS_DATA] = {
-         0, SBAS_DATA_QUEUE_NAME, SBAS_DATA_N_BUFF, sizeof(sbas_raw_data_t *)}};
+         0, SBAS_DATA_QUEUE_NAME, SBAS_DATA_N_BUFF, sizeof(sbas_raw_data_t *)},
+     [MB_ID_EPHEMERIS] = {0, EPH_QUEUE_NAME, MAX_CHANNELS, sizeof(ephemeris_t*)}};
 
 void platform_mailbox_init(mailbox_id_t id) {
   struct mq_attr attr;
