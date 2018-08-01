@@ -1190,6 +1190,20 @@ static int read_sbas_data(int blocking, sbas_raw_data_t *data) {
   return ret;
 }
 
+static int read_ephemeris(int blocking, ephemeris_t *eph) {
+  ephemeris_t *local_eph = NULL;
+  errno_t ret = platform_mailbox_fetch(MB_ID_EPHEMERIS, (void **)&local_eph, blocking);
+  if (local_eph) {
+    if (STARLING_READ_OK == ret) {
+      *eph = *local_eph;
+    } else {
+      log_error("STARLING: ephemeris mailbxo fetch failed with %d", ret);
+    }
+    platform_mailbox_item_free(MB_ID_EPHEMERIS, local_eph);
+  }
+  return ret;
+}
+
 static THD_FUNCTION(initialize_and_run_starling, arg) {
   (void)arg;
   chRegSetThreadName("starling");
@@ -1210,7 +1224,7 @@ static THD_FUNCTION(initialize_and_run_starling, arg) {
       .read_obs_rover = read_obs_rover,
       .read_obs_base = read_obs_base,
       .read_sbas_data = read_sbas_data,
-      .read_ephemeris = NULL,
+      .read_ephemeris = read_ephemeris,
       .read_imu = NULL,
       .handle_solution_low_latency = send_solution_low_latency,
       .handle_solution_time_matched = send_solution_time_matched,
