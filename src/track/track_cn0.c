@@ -63,6 +63,7 @@
 /** Predefined integration periods for C/N0 estimators */
 static const u8 cn0_periods_ms[] = {INTEG_PERIOD_1_MS,
                                     INTEG_PERIOD_2_MS,
+                                    INTEG_PERIOD_4_MS,
                                     INTEG_PERIOD_5_MS,
                                     INTEG_PERIOD_10_MS,
                                     INTEG_PERIOD_20_MS};
