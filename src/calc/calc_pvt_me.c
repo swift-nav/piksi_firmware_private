@@ -84,11 +84,32 @@ static soln_stats_t last_stats = {.signals_tracked = 0, .signals_useable = 0};
 
 /* STATIC FUNCTIONS */
 
+static void me_post_ephemerides(u8 n, const ephemeris_t ephemerides[]) {
+  for (u8 i = 0; i < n; ++i) {
+    ephemeris_t *p_eph = platform_mailbox_item_alloc(MB_ID_EPHEMERIS);
+    if (NULL == p_eph) {
+      log_error("ME: All ephemeris objects in use, unable to allocate.");
+      break;
+    } else {
+      *p_eph = ephemerides[i];  
+      errno_t error = platform_mailbox_post(MB_ID_EPHEMERIS, p_eph, MB_NONBLOCKING);
+      if (error) {
+        log_error("ME: Mailbox should have space for ephemeris.");
+        platform_mailbox_item_free(MB_ID_EPHEMERIS, p_eph);
+        break;
+      }
+    }
+  }
+}
+
 static void me_post_observations(u8 n,
                                  const navigation_measurement_t _meas[],
                                  const ephemeris_t _ephem[],
                                  const gps_time_t *_t) {
-  (void)_ephem;
+  /* Post all ephemerides prior to posting any measurements. This way
+   * when Starling engine wakes on receiving measurements, the ephemerides
+   * are guaranteed to already be there. */
+  me_post_ephemerides(n, _ephem);
 
   /* TODO: use a buffer from the pool from the start instead of
    * allocating nav_meas as well. Downside, if we don't end up
