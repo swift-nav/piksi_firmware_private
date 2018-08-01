@@ -48,6 +48,7 @@ MAKEFLAGS += LIBSWIFTNAV_BUILDDIR=$(LIBSWIFTNAV_BUILDDIR)
 MAKEFLAGS += OPENAMP_BUILDDIR=$(OPENAMP_BUILDDIR)
 
 FW_DEPS=$(LIBSBP_BUILDDIR)/src/libsbp-static.a \
+	$(LIBSWIFTNAV_BUILDDIR)/src/libstarling.a \
         $(LIBSWIFTNAV_BUILDDIR)/src/libswiftnav.a
 
 ifeq ($(PIKSI_HW),v3)
@@ -79,7 +80,16 @@ $(LIBSWIFTNAV_BUILDDIR)/src/libswiftnav.a: .FORCE
 	cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
 	      -DCMAKE_TOOLCHAIN_FILE=../cmake/Toolchain-gcc-arm-embedded.cmake \
 	      $(CMAKEFLAGS) ../
-	$(MAKE) -C $(LIBSWIFTNAV_BUILDDIR) $(MAKEFLAGS)
+	$(MAKE) swiftnav -C $(LIBSWIFTNAV_BUILDDIR) $(MAKEFLAGS)
+
+$(LIBSWIFTNAV_BUILDDIR)/src/libstarling.a: .FORCE
+	@printf "BUILD   libstarling for target $(PIKSI_TARGET)\n"; \
+	mkdir -p $(LIBSWIFTNAV_BUILDDIR); cd $(LIBSWIFTNAV_BUILDDIR); \
+	cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+	      -DCMAKE_TOOLCHAIN_FILE=../cmake/Toolchain-gcc-arm-embedded.cmake \
+	      $(CMAKEFLAGS) ../
+	$(MAKE) starling -C $(LIBSWIFTNAV_BUILDDIR) $(MAKEFLAGS)
+
 
 $(OPENAMP_BUILDDIR)/lib/libopen-amp.a:
 	@printf "BUILD   open-amp for target $(PIKSI_TARGET)\n"; \

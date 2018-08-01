@@ -24,9 +24,10 @@
 #include <libswiftnav/sid_set.h>
 #include <libswiftnav/single_epoch_solver.h>
 #include <libswiftnav/troposphere.h>
+#include <starling/starling.h>
+#include <starling/starling_platform.h>
 
 #include "board/nap/track_channel.h"
-#include "calc/starling_threads.h"
 #include "calc_base_obs.h"
 #include "calc_nav_meas.h"
 #include "calc_pvt_common.h"
@@ -43,8 +44,6 @@
 #include "settings/settings.h"
 #include "shm/shm.h"
 #include "simulator.h"
-#include "starling_platform_shim.h"
-#include "starling_threads.h"
 #include "system_monitor/system_monitor.h"
 #include "timing/timing.h"
 #include "track/track_sid_db.h"

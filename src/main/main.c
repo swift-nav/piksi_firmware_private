@@ -15,6 +15,7 @@
 
 #include <libsbp/system.h>
 #include <libswiftnav/logging.h>
+#include <starling/starling_platform.h>
 
 #include <hal.h>
 #include "calc_pvt_me.h"
@@ -41,7 +42,6 @@
 #include "simulator.h"
 #include "specan/specan_main.h"
 #include "starling_integration.h"
-#include "starling_platform_shim.h"
 #include "system_monitor/system_monitor.h"
 #include "timing/timing.h"
 #include "track/track_state.h"

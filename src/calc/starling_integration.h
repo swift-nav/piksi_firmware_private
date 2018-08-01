@@ -19,9 +19,9 @@
  * variables). Ultimately, this should be the only header including the
  * starling_threads.h.
  */
+#include <starling/starling.h>
 #include <stdbool.h>
 
-#include "calc/starling_threads.h"
 #include "hal/piksi_systime.h"
 
 extern bool enable_glonass;
