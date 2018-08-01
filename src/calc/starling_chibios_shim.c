@@ -59,7 +59,7 @@
 
 #define SBAS_DATA_N_BUFF 6
 
-#define EPHEMERIS_N_BUFF MAX_CHANNELS
+#define EPHEMERIS_N_BUFF 10 
 
 #define NUM_MUTEXES STARLING_MAX_NUM_MUTEXES
 
@@ -86,7 +86,7 @@ static sbas_raw_data_t sbas_data_buff[SBAS_DATA_N_BUFF];
 
 /* Ephemeris Data API data-structures. */
 static msg_t ephemeris_mailbox_buff[EPHEMERIS_N_BUFF];
-static ephemeris_t ephemeris_buff[EPHEMERIS_N_BUFF];
+static ephemeris_array_t ephemeris_buff[EPHEMERIS_N_BUFF];
 
 static mutex_t mutexes[NUM_MUTEXES];
 
@@ -208,7 +208,7 @@ static mailbox_info_t mailbox_info[MB_ID_COUNT] =
                           ephemeris_mailbox_buff,
                           ephemeris_buff,
                           EPHEMERIS_N_BUFF,
-                          sizeof(ephemeris_t)}};
+                          sizeof(ephemeris_array_t)}};
 
 
 
