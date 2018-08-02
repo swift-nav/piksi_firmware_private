@@ -1192,13 +1192,14 @@ static int read_sbas_data(int blocking, sbas_raw_data_t *data) {
 
 static int read_ephemeris_array(int blocking, ephemeris_array_t *eph_arr) {
   ephemeris_array_t *local_eph_arr = NULL;
-  errno_t ret = platform_mailbox_fetch(MB_ID_EPHEMERIS, (void **)&local_eph_arr, blocking);
+  errno_t ret = platform_mailbox_fetch(
+      MB_ID_EPHEMERIS, (void **)&local_eph_arr, blocking);
   if (local_eph_arr) {
     if (STARLING_READ_OK == ret) {
       eph_arr->n = local_eph_arr->n;
-      if (local_eph_arr->n > 0)  {
-        MEMCPY_S(eph_arr->ephemerides, 
-                 sizeof(eph_arr->ephemerides), 
+      if (local_eph_arr->n > 0) {
+        MEMCPY_S(eph_arr->ephemerides,
+                 sizeof(eph_arr->ephemerides),
                  local_eph_arr->ephemerides,
                  local_eph_arr->n * sizeof(ephemeris_t));
       }

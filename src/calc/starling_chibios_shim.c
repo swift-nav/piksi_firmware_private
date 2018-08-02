@@ -59,7 +59,7 @@
 
 #define SBAS_DATA_N_BUFF 6
 
-#define EPHEMERIS_N_BUFF 10 
+#define EPHEMERIS_N_BUFF 10
 
 #define NUM_MUTEXES STARLING_MAX_NUM_MUTEXES
 
@@ -209,8 +209,6 @@ static mailbox_info_t mailbox_info[MB_ID_COUNT] =
                           ephemeris_buff,
                           EPHEMERIS_N_BUFF,
                           sizeof(ephemeris_array_t)}};
-
-
 
 void platform_mailbox_init(mailbox_id_t id) {
   chMBObjectInit(&mailbox_info[id].mailbox,
