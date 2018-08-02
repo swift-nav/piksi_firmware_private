@@ -65,6 +65,7 @@ int main(void) {
   sbp_setup();
   platform_mailbox_init(MB_ID_ME_OBS);
   platform_mailbox_init(MB_ID_SBAS_DATA);
+  platform_mailbox_init(MB_ID_EPHEMERIS);
   settings_setup();
 
   starling_initialize_api();
