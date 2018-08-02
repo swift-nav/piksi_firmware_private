@@ -1191,19 +1191,21 @@ static int read_sbas_data(int blocking, sbas_raw_data_t *data) {
 }
 
 static int read_ephemeris_array(int blocking, ephemeris_array_t *eph_arr) {
-  ephemeris_array_t *local_ephs = NULL;
-  errno_t ret = platform_mailbox_fetch(MB_ID_EPHEMERIS, (void **)&local_ephs, blocking);
-  if (local_ephs) {
+  ephemeris_array_t *local_eph_arr = NULL;
+  errno_t ret = platform_mailbox_fetch(MB_ID_EPHEMERIS, (void **)&local_eph_arr, blocking);
+  if (local_eph_arr) {
     if (STARLING_READ_OK == ret) {
-      eph_arr->n = local_ephs->n;
-      MEMCPY_S(eph_arr->ephemerides, 
-               sizeof(eph_arr->ephemerides), 
-               local_ephs->ephemerides,
-               local_ephs->n * sizeof(local_ephs->ephemerides[0]));
+      eph_arr->n = local_eph_arr->n;
+      if (local_eph_arr->n > 0)  {
+        MEMCPY_S(eph_arr->ephemerides, 
+                 sizeof(eph_arr->ephemerides), 
+                 local_eph_arr->ephemerides,
+                 local_eph_arr->n * sizeof(ephemeris_t));
+      }
     } else {
-      log_error("STARLING: ephemeris mailbxo fetch failed with %d", ret);
+      log_error("STARLING: ephemeris mailbox fetch failed with %d", ret);
     }
-    platform_mailbox_item_free(MB_ID_EPHEMERIS, local_ephs);
+    platform_mailbox_item_free(MB_ID_EPHEMERIS, local_eph_arr);
   }
   return ret;
 }
