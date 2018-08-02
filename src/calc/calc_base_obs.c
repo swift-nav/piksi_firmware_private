@@ -64,8 +64,6 @@ typedef struct {
   double pos_ecef[3];
   /** Is the `pos_ecef` field valid? */
   u8 has_pos;
-  /** The known, surveyed base position. */
-  double known_pos_ecef[3];
   /** Observation Solution */
   pvt_engine_result_t soln;
 
@@ -227,10 +225,6 @@ static void update_obss(uncollapsed_obss_t *new_uncollapsed_obss) {
            sizeof(new_obss->pos_ecef),
            new_uncollapsed_obss->pos_ecef,
            sizeof(new_uncollapsed_obss->pos_ecef));
-  MEMCPY_S(new_obss->known_pos_ecef,
-           sizeof(new_obss->known_pos_ecef),
-           new_uncollapsed_obss->known_pos_ecef,
-           sizeof(new_uncollapsed_obss->known_pos_ecef));
   MEMCPY_S(new_obss->nm,
            sizeof(new_obss->nm),
            new_uncollapsed_obss->nm,
