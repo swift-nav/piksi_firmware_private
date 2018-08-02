@@ -10,20 +10,14 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 #include <assert.h>
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include <libswiftnav/bits.h>
-#include <libswiftnav/constants.h>
-#include <libswiftnav/ionosphere.h>
-#include <libswiftnav/logging.h>
 
-#include "me_constants.h"
-#include "nav_msg/nav_msg.h"
+#include "ephemeris/ephemeris.h"
 #include "nav_msg/nav_msg_bds.h"
 #include "timing/timing.h"
+#include "track/track_decode.h"
 
 /* `11 1000 1001 0` 11 bit modified Barker code from BDS ICD v2.1 English p.23
  */
@@ -76,41 +70,33 @@ static void pack_buffer(nav_msg_bds_t *n);
 static void deint(u32 *hi, u32 *lo, const u32 dw);
 static bool bch1511(u32 *pdw);
 
-static void process_d1_fraid1(nav_msg_bds_t *n,
-                              const me_gnss_signal_t mesid,
+static void process_d1_fraid1(const nav_msg_bds_t *n,
                               bds_d1_decoded_data_t *data);
 
-static void process_d1_fraid2(nav_msg_bds_t *n,
-                              const me_gnss_signal_t mesid,
+static void process_d1_fraid2(const nav_msg_bds_t *n,
                               bds_d1_decoded_data_t *data);
 
-static void process_d1_fraid3(nav_msg_bds_t *n,
-                              const me_gnss_signal_t mesid,
+static void process_d1_fraid3(const nav_msg_bds_t *n,
                               bds_d1_decoded_data_t *data);
 
 static void process_d1_common_alm(nav_msg_bds_t *n,
-                                  const me_gnss_signal_t mesid,
                                   bds_d1_decoded_data_t *data);
 
-static void process_d1_fraid4(nav_msg_bds_t *n,
-                              const me_gnss_signal_t mesid,
-                              bds_d1_decoded_data_t *data);
+static void process_d1_fraid4(nav_msg_bds_t *n, bds_d1_decoded_data_t *data);
 
-static void process_d1_fraid5(nav_msg_bds_t *n,
-                              const me_gnss_signal_t mesid,
-                              bds_d1_decoded_data_t *data);
+static void process_d1_fraid5(nav_msg_bds_t *n, bds_d1_decoded_data_t *data);
 
 /**
  * Initializes BDS message decoder.
  *
- * \param[in] n   BDS message decoder object
- * \param[in] prn Beidou PRN id
+ * \param[in] n     BDS message decoder object
+ * \param[in] mesid Signal ID
  */
-void bds_nav_msg_init(nav_msg_bds_t *n, u8 prn) {
+void bds_nav_msg_init(nav_msg_bds_t *n, const me_gnss_signal_t *mesid) {
   /* Initialize the necessary parts of the nav message state structure. */
   memset(n, 0, sizeof(*n));
   n->bit_polarity = BIT_POLARITY_UNKNOWN;
-  n->prn = prn;
+  n->mesid = *mesid;
 }
 
 /**
@@ -120,6 +106,226 @@ void bds_nav_msg_init(nav_msg_bds_t *n, u8 prn) {
  */
 void bds_nav_msg_clear_decoded(nav_msg_bds_t *n) {
   memset(n->page_words, 0, sizeof(n->page_words));
+}
+
+static void bds_eph_debug(const nav_msg_bds_t *n,
+                          const bds_d1_decoded_data_t *data,
+                          s32 TOW_s) {
+  utc_tm date;
+  const ephemeris_t *e = &(data->ephemeris);
+  const ephemeris_kepler_t *k = &(data->ephemeris.kepler);
+  make_utc_tm(&(k->toc), &date);
+  log_debug_mesid(n->mesid,
+                  "%4" PRIu16 " %2" PRIu8 " %2" PRIu8 " %2" PRIu8 " %2" PRIu8
+                  " %2" PRIu8 "%19.11E%19.11E%19.11E  ",
+                  date.year,
+                  date.month,
+                  date.month_day,
+                  date.hour,
+                  date.minute,
+                  date.second_int,
+                  k->af0,
+                  k->af1,
+                  k->af2);
+  log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
+            (double)k->iode,
+            k->crs,
+            k->dn,
+            k->m0);
+  log_debug(
+      "    %19.11E%19.11E%19.11E%19.11E  ", k->cuc, k->ecc, k->cus, k->sqrta);
+  log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
+            (double)e->toe.tow,
+            k->cic,
+            k->omega0,
+            k->cis);
+  log_debug(
+      "    %19.11E%19.11E%19.11E%19.11E  ", k->inc, k->crc, k->w, k->omegadot);
+  log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
+            k->inc_dot,
+            0.0,
+            (double)e->toe.wn - BDS_WEEK_TO_GPS_WEEK,
+            0.0);
+  log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
+            e->ura,
+            (double)e->health_bits,
+            k->tgd_bds_s[0],
+            k->tgd_bds_s[1]);
+  log_debug("    %19.11E%19.11E ", rint(TOW_s), (double)k->iodc);
+}
+
+static void bds_eph_update(nav_msg_bds_t *n, bds_d1_decoded_data_t *data) {
+  ephemeris_t *e = &(data->ephemeris);
+  ephemeris_kepler_t *k = &(data->ephemeris.kepler);
+  ionosphere_t *iono = &(data->iono);
+
+  n->goodwords_mask = 0;
+  add_secs(&e->toe, BDS_SECOND_TO_GPS_SECOND);
+  add_secs(&k->toc, BDS_SECOND_TO_GPS_SECOND);
+  add_secs(&iono->toa, BDS_SECOND_TO_GPS_SECOND);
+  /* Always mark BDS ephemeris as if it was coming from B1. */
+  e->sid.code = CODE_BDS2_B1;
+  e->fit_interval = BDS_FIT_INTERVAL_SECONDS;
+  e->valid = 1;
+  shm_bds_set_shi(e->sid.sat, e->health_bits);
+  eph_new_status_t r = ephemeris_new(e);
+  if (EPH_NEW_OK != r) {
+    log_warn_mesid(n->mesid,
+                   "Error in BDS d1nav ephemeris processing. "
+                   "Eph status: %" PRIu8 " ",
+                   (u8)r);
+  }
+  n->health = shm_ephe_healthy(e, n->mesid.code) ? SV_HEALTHY : SV_UNHEALTHY;
+}
+
+/** Process BDS D2 navigation data
+ *
+ * Extracts available TOW, polarity and SV health.
+ *
+ * \param n Nav message decode state struct
+ * \param data BDS D2 data structure
+ *
+ * \return bds_decode_status_t
+ */
+bds_decode_status_t bds_d2_processing(nav_msg_bds_t *n,
+                                      bds_d2_decoded_data_t *data) {
+  /* TODO BDS: Save BDS D2 ephemeris */
+  (void)data;
+  s32 TOW_s = (((n->page_words[0]) >> 4) & 0xffU) << 12;
+  TOW_s |= (((n->page_words[1]) >> 18) & 0x3FFU);
+  if (TOW_s > WEEK_SECS) {
+    return BDS_DECODE_RESET;
+  }
+  /* TODO BDS: Check BDS D2 TOW validity */
+  n->TOW_ms = TOW_s * 1000 - 60;
+  return BDS_DECODE_TOW_UPDATE;
+}
+
+/** Process BDS D1 navigation data
+ *
+ * Extracts available TOW, polarity and SV health.
+ * Also saves new BDS ephemeris.
+ *
+ * \param n Nav message decode state struct
+ * \param data BDS D1 data structure
+ *
+ * \return bds_decode_status_t
+ */
+bds_decode_status_t bds_d1_processing(nav_msg_bds_t *n,
+                                      bds_d1_decoded_data_t *data) {
+  u8 subfr = 1;
+  for (u8 s = 2; s <= BDS_SUBFRAME_MAX; s++) {
+    if ((n->subfr_times[subfr - 1]) < (n->subfr_times[s - 1])) {
+      subfr = s;
+    }
+  }
+  u32 *subfr_words = &(n->page_words[(subfr - 1) * BDS_WORD_SUBFR]);
+  s32 TOW_s = (((subfr_words[0]) >> 4) & 0xff) << 12;
+  TOW_s |= ((subfr_words[1]) >> 18) & 0xfff;
+  if (TOW_s > WEEK_SECS) {
+    return BDS_DECODE_RESET;
+  }
+
+  TOW_s += BDS_SECOND_TO_GPS_SECOND;
+  if (TOW_s >= WEEK_SECS) {
+    TOW_s -= WEEK_SECS;
+  }
+  /* Current time is 330 bits from TOW. */
+  n->TOW_ms = TOW_s * SECS_MS + BDS2_B11_D1NAV_SYMBOL_LENGTH_MS * 330;
+
+  if (0x3ffULL == ((n->goodwords_mask >> 10) & 0x3ffULL)) {
+    process_d1_fraid4(n, data);
+  }
+
+  if (0x3ffULL == ((n->goodwords_mask) & 0x3ffULL)) {
+    process_d1_fraid5(n, data);
+  }
+
+  if (!subframes123_from_same_frame(n)) {
+    return BDS_DECODE_TOW_UPDATE;
+  }
+
+  if (0x3fffffffULL == ((n->goodwords_mask >> 20) & 0x3fffffffULL)) {
+    process_d1_fraid1(n, data);
+    process_d1_fraid2(n, data);
+    process_d1_fraid3(n, data);
+    /* debug information */
+    bds_eph_debug(n, data, TOW_s);
+    bds_eph_update(n, data);
+    return BDS_DECODE_EPH_UPDATE;
+  }
+
+  return BDS_DECODE_TOW_UPDATE;
+}
+
+/** BDS navigation message decoding update.
+ * Called once per nav bit interval.
+ *
+ * Extracts BDS D1 & D2 data for tracker sync.
+ *
+ * \param n       Nav message decode state struct
+ * \param nav_bit Struct containing nav_bit data
+ *
+ * \return bds_decode_status_t Decoder status
+ */
+bds_decode_status_t bds_data_decoding(nav_msg_bds_t *n, nav_bit_t nav_bit) {
+  bds_d1_decoded_data_t dd_d1nav;
+  bds_d2_decoded_data_t dd_d2nav;
+  memset(&dd_d1nav, 0, sizeof(bds_d1_decoded_data_t));
+  memset(&dd_d2nav, 0, sizeof(bds_d2_decoded_data_t));
+
+  /* Don't decode data while in sensitivity mode. */
+  if (0 == nav_bit) {
+    me_gnss_signal_t tmp_mesid = n->mesid;
+    bds_nav_msg_init(n, &tmp_mesid);
+    return BDS_DECODE_RESET;
+  }
+
+  bool bit_val = nav_bit > 0;
+  bool tlm_rx = bds_nav_msg_update(n, bit_val);
+  if (!tlm_rx) {
+    return BDS_DECODE_WAIT;
+  }
+
+  bds_decode_status_t status;
+  if (bds_d2nav(n->mesid)) {
+    status = bds_d2_processing(n, &dd_d2nav);
+  } else {
+    status = bds_d1_processing(n, &dd_d1nav);
+  }
+  return status;
+}
+
+/** Fill in BDS sync data to tracker.
+ *
+ * Sets sync flags based on decoder status.
+ *
+ * \param n            Nav message decode state struct
+ * \param from_decoder Struct for tracker synchronization
+ * \param status       Decoder status
+ */
+void get_bds_data_sync(const nav_msg_bds_t *n,
+                       nav_data_sync_t *from_decoder,
+                       bds_decode_status_t status) {
+  memset(from_decoder, 0, sizeof(*from_decoder));
+  from_decoder->TOW_ms = n->TOW_ms;
+  from_decoder->bit_polarity = n->bit_polarity;
+  from_decoder->health = n->health;
+
+  switch (status) {
+    case BDS_DECODE_TOW_UPDATE:
+      from_decoder->sync_flags = SYNC_POL | SYNC_TOW;
+      break;
+    case BDS_DECODE_EPH_UPDATE:
+      from_decoder->sync_flags = SYNC_POL | SYNC_TOW | SYNC_EPH;
+      break;
+    case BDS_DECODE_WAIT:
+    case BDS_DECODE_RESET:
+    default:
+      from_decoder->sync_flags = SYNC_NONE;
+      break;
+  }
+  return;
 }
 
 /** Navigation message decoding update.
@@ -150,10 +356,10 @@ bool bds_nav_msg_update(nav_msg_bds_t *n, bool bit_val) {
     }
     /* check if it repeats (including polarity) on second TLM */
     if (pream_candidate_prev != pream_candidate_last) {
-      log_debug("C%02d prev %" PRIx32 " last %" PRIx32,
-                n->prn,
-                pream_candidate_prev,
-                pream_candidate_last);
+      log_debug_mesid(n->mesid,
+                      "prev %" PRIx32 " last %" PRIx32,
+                      pream_candidate_prev,
+                      pream_candidate_last);
       return false;
     }
     /* check that there are no bit errors */
@@ -179,10 +385,10 @@ bool bds_nav_msg_update(nav_msg_bds_t *n, bool bit_val) {
         /* reset subframe sync and polarity */
         n->subfr_sync = false;
         n->bit_polarity = BIT_POLARITY_UNKNOWN;
-        log_debug("C%02" PRIu8 " lost sync prev %" PRIx32 " last %" PRIx32,
-                  n->prn,
-                  pream_candidate_prev,
-                  pream_candidate_last);
+        log_debug_mesid(n->mesid,
+                        "lost sync prev %" PRIx32 " last %" PRIx32,
+                        pream_candidate_prev,
+                        pream_candidate_last);
         return false;
       }
       /* check that there are no bit errors */
@@ -198,141 +404,6 @@ bool bds_nav_msg_update(nav_msg_bds_t *n, bool bit_val) {
   return false;
 }
 
-/** D1 parsing
- *
- * \param n     Nav message decode state struct
- * \param mesid Signal ID
- * \param data  Target for data decoding
- *
- * \return TOW in milliseconds
- */
-s32 bds_d1_process_subframe(nav_msg_bds_t *n,
-                            const me_gnss_signal_t mesid,
-                            bds_d1_decoded_data_t *data) {
-  u8 subfr = 1;
-  for (u8 s = 2; s <= BDS_SUBFRAME_MAX; s++) {
-    if ((n->subfr_times[subfr - 1]) < (n->subfr_times[s - 1])) {
-      subfr = s;
-    }
-  }
-  u32 *subfr_words = &(n->page_words[(subfr - 1) * BDS_WORD_SUBFR]);
-  s32 TOW_s = (((subfr_words[0]) >> 4) & 0xff) << 12;
-  TOW_s |= ((subfr_words[1]) >> 18) & 0xfff;
-  if (TOW_s > WEEK_SECS) {
-    return TOW_INVALID;
-  }
-
-  TOW_s += BDS_SECOND_TO_GPS_SECOND;
-  if (TOW_s >= WEEK_SECS) {
-    TOW_s -= WEEK_SECS;
-  }
-  /* Current time is 330 bits from TOW. */
-  s32 TOW_ms = TOW_s * SECS_MS + BDS2_B11_D1NAV_SYMBOL_LENGTH_MS * 330;
-
-  if (!subframes123_from_same_frame(n)) {
-    return TOW_ms;
-  }
-
-  if (0x3fffffffULL == ((n->goodwords_mask >> 20) & 0x3fffffffULL)) {
-    process_d1_fraid1(n, mesid, data);
-    process_d1_fraid2(n, mesid, data);
-    process_d1_fraid3(n, mesid, data);
-  }
-
-  if (0x3ffULL == ((n->goodwords_mask >> 10) & 0x3ffULL)) {
-    process_d1_fraid4(n, mesid, data);
-  }
-
-  if (0x3ffULL == ((n->goodwords_mask) & 0x3ffULL)) {
-    process_d1_fraid5(n, mesid, data);
-  }
-
-  /* debug information */
-  if (0x3fffffffULL == ((n->goodwords_mask >> 20) & 0x3fffffffULL)) {
-    utc_tm date;
-    ephemeris_t *e = &(data->ephemeris);
-    ephemeris_kepler_t *k = &(data->ephemeris.kepler);
-    ionosphere_t *iono = &(data->iono);
-    make_utc_tm(&(k->toc), &date);
-    log_debug("C%02" PRIu16 " %4" PRIu16 " %2" PRIu8 " %2" PRIu8 " %2" PRIu8
-              " %2" PRIu8 " %2" PRIu8 "%19.11E%19.11E%19.11E  ",
-              mesid.sat,
-              date.year,
-              date.month,
-              date.month_day,
-              date.hour,
-              date.minute,
-              date.second_int,
-              k->af0,
-              k->af1,
-              k->af2);
-    log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
-              (double)k->iode,
-              k->crs,
-              k->dn,
-              k->m0);
-    log_debug(
-        "    %19.11E%19.11E%19.11E%19.11E  ", k->cuc, k->ecc, k->cus, k->sqrta);
-    log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
-              (double)e->toe.tow,
-              k->cic,
-              k->omega0,
-              k->cis);
-    log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
-              k->inc,
-              k->crc,
-              k->w,
-              k->omegadot);
-    log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
-              k->inc_dot,
-              0.0,
-              (double)e->toe.wn - BDS_WEEK_TO_GPS_WEEK,
-              0.0);
-    log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
-              e->ura,
-              (double)e->health_bits,
-              k->tgd_bds_s[0],
-              k->tgd_bds_s[1]);
-    log_debug("    %19.11E%19.11E ", rint(TOW_s), (double)k->iodc);
-    n->goodwords_mask = 0;
-    data->ephemeris_upd_flag = true;
-    add_secs(&e->toe, BDS_SECOND_TO_GPS_SECOND);
-    add_secs(&k->toc, BDS_SECOND_TO_GPS_SECOND);
-    add_secs(&iono->toa, BDS_SECOND_TO_GPS_SECOND);
-    /* Mark ephemeris from B2 as if it was coming from B1. */
-    if (CODE_BDS2_B2 == mesid.code) {
-      e->sid.code = CODE_BDS2_B1;
-    }
-    e->fit_interval = BDS_FIT_INTERVAL_SECONDS;
-    e->valid = 1;
-  }
-
-  return TOW_ms;
-}
-
-/** D2 parsing
- *
- * \param n     Nav message decode state struct
- * \param mesid Signal ID
- * \param data  Target for data decoding
- *
- * \return TOW in milliseconds
- */
-s32 bds_d2_process_subframe(nav_msg_bds_t *n,
-                            const me_gnss_signal_t mesid,
-                            bds_d2_decoded_data_t *data) {
-  (void)mesid;
-  (void)data;
-
-  s32 TOW_s = (((n->page_words[0]) >> 4) & 0xffU) << 12;
-  TOW_s |= (((n->page_words[1]) >> 18) & 0x3FFU);
-  if (TOW_s > WEEK_SECS) {
-    return TOW_INVALID;
-  }
-
-  return TOW_s * 1000;
-}
-
 /*
 static void dump_navmsg(const nav_msg_bds_t *n, const u8 subfr) {
   char bitstream[256];
@@ -341,7 +412,7 @@ static void dump_navmsg(const nav_msg_bds_t *n, const u8 subfr) {
   u32 tow = (((subfr_words[0] >> 4) << 12) |
              ((subfr_words[1] >> 18) & 0xfffU)) &
             0xfffffU;
-  sprintf(bitstream, " 3 %02d %6" PRIu32 "  ", n->prn, tow);
+  sprintf(bitstream, " 3 %02d %6" PRIu32 "  ", n->mesid.sat, tow);
   for (u8 k = 0; k < BDS_WORD_SUBFR; k++) {
     sprintf(tempstr, "%08" PRIx32 " ", subfr_words[k]);
     strcat(bitstream, tempstr);
@@ -439,7 +510,7 @@ bool crc_check(nav_msg_bds_t *n) {
   }
   /* check if all words passed the CRC check */
   if (good_words != BDS_WORD_SUBFR_MASK) {
-    log_debug("C%02" PRIu8 " good_words %08" PRIx32, n->prn, good_words);
+    log_debug_mesid(n->mesid, "good_words %08" PRIx32, good_words);
     return false;
   }
   return true;
@@ -458,7 +529,7 @@ static void pack_buffer(nav_msg_bds_t *n) {
   tmp = flip ? (tmp ^ BDS_WORD_BITMASK) : tmp;
   u8 subfr = (tmp >> 12) & 0x7;
   if ((subfr < 1) || (subfr > 5)) {
-    log_warn("C%02" PRIu8 " subframe %" PRIu8 "error", n->prn, subfr);
+    log_warn_mesid(n->mesid, "subframe %" PRIu8 "error", subfr);
     return;
   }
   for (u8 k = 0; k < BDS_WORD_SUBFR; k++) {
@@ -475,8 +546,7 @@ static void pack_buffer(nav_msg_bds_t *n) {
   //~ dump_navmsg(n, subfr);
 }
 
-static void process_d1_fraid1(nav_msg_bds_t *n,
-                              const me_gnss_signal_t mesid,
+static void process_d1_fraid1(const nav_msg_bds_t *n,
                               bds_d1_decoded_data_t *data) {
   ephemeris_t *e = &(data->ephemeris);
   ephemeris_kepler_t *k = &(data->ephemeris.kepler);
@@ -515,7 +585,7 @@ static void process_d1_fraid1(nav_msg_bds_t *n,
   data->aodc = aodc;
   data->aode = aode;
   /* Ephemeris params */
-  e->sid = mesid2sid(mesid, GLO_ORBIT_SLOT_UNKNOWN);
+  e->sid = mesid2sid(n->mesid, GLO_ORBIT_SLOT_UNKNOWN);
   e->health_bits = sath1;
   e->ura = bds_ura_table[urai];
   e->toe.wn = BDS_WEEK_TO_GPS_WEEK + weekno;
@@ -543,10 +613,8 @@ static void process_d1_fraid1(nav_msg_bds_t *n,
   i->b3 = (double)(beta[3] * C_2P16);
 }
 
-static void process_d1_fraid2(nav_msg_bds_t *n,
-                              const me_gnss_signal_t mesid,
+static void process_d1_fraid2(const nav_msg_bds_t *n,
                               bds_d1_decoded_data_t *data) {
-  ephemeris_t *e = &(data->ephemeris);
   ephemeris_kepler_t *k = &(data->ephemeris.kepler);
 
   u32 deltan = (((n->page_words[11]) >> 8) & 0x3ff) << 6;
@@ -570,8 +638,6 @@ static void process_d1_fraid2(nav_msg_bds_t *n,
   data->split_toe &= ~(0x3 << 15);
   data->split_toe |= (toe_msb << 15);
   data->split_toe_mask |= (0x3 << 15);
-  /* Ephemeris params */
-  e->sid = mesid2sid(mesid, GLO_ORBIT_SLOT_UNKNOWN);
   /* Keplerian params */
   k->dn = BITS_SIGN_EXTEND_32(16, deltan) * C_1_2P43 * GPS_PI;
   k->cuc = BITS_SIGN_EXTEND_32(18, cuc) * C_1_2P31;
@@ -583,8 +649,7 @@ static void process_d1_fraid2(nav_msg_bds_t *n,
   k->sqrta = sqrta * C_1_2P19;
 }
 
-static void process_d1_fraid3(nav_msg_bds_t *n,
-                              const me_gnss_signal_t mesid,
+static void process_d1_fraid3(const nav_msg_bds_t *n,
                               bds_d1_decoded_data_t *data) {
   ephemeris_t *e = &(data->ephemeris);
   ephemeris_kepler_t *k = &(data->ephemeris.kepler);
@@ -612,7 +677,6 @@ static void process_d1_fraid3(nav_msg_bds_t *n,
   data->split_toe |= toe_lsb;
   data->split_toe_mask |= (0x7ff);
   /* Ephemeris params */
-  e->sid = mesid2sid(mesid, GLO_ORBIT_SLOT_UNKNOWN);
   if (data->split_toe_mask) {
     new_toe = data->split_toe * C_2P3;
     if (e->toe.tow != new_toe) {
@@ -634,32 +698,26 @@ static void process_d1_fraid3(nav_msg_bds_t *n,
 }
 
 static void process_d1_common_alm(nav_msg_bds_t *n,
-                                  const me_gnss_signal_t mesid,
                                   bds_d1_decoded_data_t *data) {
   (void)n;
-  (void)mesid;
   (void)data;
 }
 
-static void process_d1_fraid4(nav_msg_bds_t *n,
-                              const me_gnss_signal_t mesid,
-                              bds_d1_decoded_data_t *data) {
+static void process_d1_fraid4(nav_msg_bds_t *n, bds_d1_decoded_data_t *data) {
   u32 pnum = (((n->page_words[31]) >> 10) & 0x7f);
 
   if ((pnum == 0) || (pnum > 24)) return;
 
-  process_d1_common_alm(n, mesid, data);
+  process_d1_common_alm(n, data);
 }
 
-static void process_d1_fraid5(nav_msg_bds_t *n,
-                              const me_gnss_signal_t mesid,
-                              bds_d1_decoded_data_t *data) {
+static void process_d1_fraid5(nav_msg_bds_t *n, bds_d1_decoded_data_t *data) {
   u32 pnum = (((n->page_words[41]) >> 10) & 0x7f);
 
   if ((pnum == 0) || (pnum > 24)) return;
 
   if (pnum <= 6) {
-    process_d1_common_alm(n, mesid, data);
+    process_d1_common_alm(n, data);
   }
 
   if (pnum == 7) {

@@ -10,6 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "ephemeris/ephemeris.h"
 #include "manage.h"
 #include "sbp/sbp.h"
 
@@ -279,4 +280,10 @@ bool track_sid_db_elevation_degrees_get(const gnss_signal_t sid,
   (void)sid;
   (void)result;
   return false;
+}
+
+/*** EPHEMERIS UNIT TESTS STUBS ***/
+eph_new_status_t ephemeris_new(const ephemeris_t *e) {
+  (void)e;
+  return EPH_NEW_OK;
 }

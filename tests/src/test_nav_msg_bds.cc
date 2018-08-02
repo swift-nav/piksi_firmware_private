@@ -120,7 +120,7 @@ TEST(nav_msg_bds_tests, bch_decoder_real_data) {
   /* Initialize bit buffer with correct BDS subframe. */
   me_gnss_signal_t mesid = {12, CODE_BDS2_B1};
   nav_msg_bds_t nav_msg1;
-  bds_nav_msg_init(&nav_msg1, mesid.sat);
+  bds_nav_msg_init(&nav_msg1, &mesid);
 
   nav_msg1.subframe_bits[0] = 0x076FEA35;
   nav_msg1.subframe_bits[1] = 0x3B8B7723;
@@ -144,7 +144,7 @@ TEST(nav_msg_bds_tests, bch_decoder_real_data) {
   /* Initialize bit buffer with correct BDS subframe.
    * This time with opposite polarity. */
   nav_msg_bds_t nav_msg2;
-  bds_nav_msg_init(&nav_msg2, mesid.sat);
+  bds_nav_msg_init(&nav_msg2, &mesid);
 
   nav_msg2.subframe_bits[0] = 0x289515CA;
   nav_msg2.subframe_bits[1] = 0x0460888D;
@@ -194,7 +194,7 @@ TEST(nav_msg_bds_tests, bch_decoder_random_data) {
   u16 rand_msg = 0;
   for (u8 i = 0; i < rounds; i++) {
     /* In first word only lo is encoded, and no interleaving. */
-    bds_nav_msg_init(&nav_msg, mesid.sat);
+    bds_nav_msg_init(&nav_msg, &mesid);
     u32 hi = ((rand_msg++) << 4) & 0x7FF0;
     u32 lo = ((rand_msg++) << 4) & 0x7FF0;
     lo = bch_encoder(lo);
@@ -217,7 +217,7 @@ TEST(nav_msg_bds_tests, bch_decoder_random_data) {
 TEST(nav_msg_bds_tests, ephemeris_decoding) {
   me_gnss_signal_t mesid = {10, CODE_BDS2_B1};
   nav_msg_bds_t nav_msg;
-  bds_nav_msg_init(&nav_msg, mesid.sat);
+  bds_nav_msg_init(&nav_msg, &mesid);
 
   /* Copy reference subframes 1-3 for processing. */
   memcpy(&nav_msg.page_words[0], &ref_subfr1, sizeof(ref_subfr1));
@@ -228,7 +228,7 @@ TEST(nav_msg_bds_tests, ephemeris_decoding) {
 
   bds_d1_decoded_data_t dd_d1nav;
   memset(&dd_d1nav, 0, sizeof(bds_d1_decoded_data_t));
-  bds_d1_process_subframe(&nav_msg, mesid, &dd_d1nav);
+  bds_d1_processing(&nav_msg, &dd_d1nav);
 
   ephemeris_t tmp_eph;
   memcpy(&tmp_eph, &ref_eph, sizeof(ref_eph));

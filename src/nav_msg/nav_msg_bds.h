@@ -18,6 +18,8 @@
 #include <libswiftnav/ephemeris.h>
 #include <libswiftnav/ionosphere.h>
 
+#include "nav_data_sync/nav_data_sync.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
@@ -61,7 +63,7 @@ extern "C" {
  * \sa process_subframe
  */
 typedef struct {
-  u8 prn;
+  me_gnss_signal_t mesid;
   /**< Decoder buffer (330 bits) */
   u32 subframe_bits[BDS_NAV_MSG_SUBFRAME_WORDS_LEN];
   /**< Received bit counter */
@@ -72,6 +74,10 @@ typedef struct {
   bool subfr_sync;
   /**< Polarity of the data */
   s8 bit_polarity;
+  /**< Decoded TOW [ms] */
+  s32 TOW_ms;
+  /**< SV health status */
+  health_t health;
   /**< Decoded subframe data */
   u32 page_words[BDS_WORD_SUBFR * BDS_SUBFRAME_MAX];
   /**< Decoded subframe rx time */
@@ -110,18 +116,26 @@ typedef struct _bds_d2_decoded_data {
   bool invalid_control_or_data;
 } bds_d2_decoded_data_t;
 
+/** BDS data decoding status */
+typedef enum {
+  BDS_DECODE_WAIT,       /**< Decoding in progress */
+  BDS_DECODE_RESET,      /**< Decoding error or sensitivity mode */
+  BDS_DECODE_TOW_UPDATE, /**< TOW decoded */
+  BDS_DECODE_EPH_UPDATE, /**< Ephemeris decoded */
+} bds_decode_status_t;
+
 bool crc_check(nav_msg_bds_t *n);
-void bds_nav_msg_init(nav_msg_bds_t *n, u8 prn);
+void bds_nav_msg_init(nav_msg_bds_t *n, const me_gnss_signal_t *mesid);
 void bds_nav_msg_clear_decoded(nav_msg_bds_t *n);
+bds_decode_status_t bds_data_decoding(nav_msg_bds_t *n, nav_bit_t nav_bit);
+void get_bds_data_sync(const nav_msg_bds_t *n,
+                       nav_data_sync_t *from_decoder,
+                       bds_decode_status_t status);
 bool bds_nav_msg_update(nav_msg_bds_t *n, bool bit_val);
-
-s32 bds_d1_process_subframe(nav_msg_bds_t *n,
-                            const me_gnss_signal_t mesid,
-                            bds_d1_decoded_data_t *data);
-
-s32 bds_d2_process_subframe(nav_msg_bds_t *n,
-                            const me_gnss_signal_t mesid,
-                            bds_d2_decoded_data_t *data);
+bds_decode_status_t bds_d2_processing(nav_msg_bds_t *n,
+                                      bds_d2_decoded_data_t *data);
+bds_decode_status_t bds_d1_processing(nav_msg_bds_t *n,
+                                      bds_d1_decoded_data_t *data);
 
 #ifdef __cplusplus
 } /* extern "C" */

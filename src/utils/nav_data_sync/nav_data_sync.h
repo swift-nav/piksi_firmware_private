@@ -18,6 +18,7 @@
 #include "shm/shm.h"
 
 typedef enum {
+  SYNC_NONE = 0,                               /**< Nothing to sync */
   SYNC_POL = (1 << 0),                         /**< Sync data polarity */
   SYNC_TOW = (1 << 1),                         /**< Sync TOW */
   SYNC_EPH = (1 << 2),                         /**< Sync ephemeris parameters */
