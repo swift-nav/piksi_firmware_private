@@ -499,7 +499,7 @@ void get_gal_data_sync(const nav_msg_gal_inav_t *n,
     case GAL_DECODE_WAIT:
     case GAL_DECODE_RESET:
     default:
-      from_decoder->sync_flags = 0;
+      from_decoder->sync_flags = SYNC_NONE;
       break;
   }
   return;
