@@ -24,8 +24,7 @@
  *
  * \return None
  */
-static void update_params(aided_tl_state_fll2_pll3_t *s,
-                          const tl_config_t *config) {
+static void update_params(tl_pll3_state_t *s, const tl_config_t *config) {
   s->T_FLL = 1.f / config->fll_loop_freq;
   s->T_DLL = 1.f / config->dll_loop_freq;
   s->fll_bw_hz = config->fll_bw;
@@ -76,9 +75,9 @@ static void update_params(aided_tl_state_fll2_pll3_t *s,
  *
  * \return None
  */
-void aided_tl_fll2_pll3_init(aided_tl_state_fll2_pll3_t *s,
-                             const tl_rates_t *rates,
-                             const tl_config_t *config) {
+void tl_pll3_init(tl_pll3_state_t *s,
+                  const tl_rates_t *rates,
+                  const tl_config_t *config) {
   memset(s, 0, sizeof(*s));
   float code_freq = rates->code_freq;
   if (config->carr_to_code != 0) {
@@ -104,8 +103,7 @@ void aided_tl_fll2_pll3_init(aided_tl_state_fll2_pll3_t *s,
  *
  * \return None
  */
-void aided_tl_fll2_pll3_retune(aided_tl_state_fll2_pll3_t *s,
-                               const tl_config_t *config) {
+void tl_pll3_retune(tl_pll3_state_t *s, const tl_config_t *config) {
   update_params(s, config);
 }
 
@@ -116,8 +114,8 @@ void aided_tl_fll2_pll3_retune(aided_tl_state_fll2_pll3_t *s,
  *
  * \return None
  */
-void aided_tl_fll2_pll3_update_fll(aided_tl_state_fll2_pll3_t *s) {
-  /* This functionality should happen within aided_tl_fll2_pll3_update_dll */
+void tl_pll3_update_fll(tl_pll3_state_t *s) {
+  /* This functionality should happen within tl_pll3_update_dll */
   (void)s;
 }
 
@@ -130,9 +128,9 @@ void aided_tl_fll2_pll3_update_fll(aided_tl_state_fll2_pll3_t *s) {
  *
  * \return None
  */
-void aided_tl_fll2_pll3_update_dll(aided_tl_state_fll2_pll3_t *s,
-                                   const correlation_t cs[3],
-                                   bool costas) {
+void tl_pll3_update_dll(tl_pll3_state_t *s,
+                        const correlation_t cs[3],
+                        bool costas) {
   /* Perform FLL loop update now within this function. */
   float freq_error = 0;
   if ((s->fll_bw_hz > 0) && (0 != s->discr_cnt)) {
@@ -181,7 +179,7 @@ void aided_tl_fll2_pll3_update_dll(aided_tl_state_fll2_pll3_t *s,
  *
  * \return None
  */
-void aided_tl_fll2_pll3_adjust(aided_tl_state_fll2_pll3_t *s, float err) {
+void tl_pll3_adjust(tl_pll3_state_t *s, float err) {
   s->carr_freq += err;
   s->carr_vel += err;
   s->code_freq += err * s->carr_to_code;
@@ -194,7 +192,7 @@ void aided_tl_fll2_pll3_adjust(aided_tl_state_fll2_pll3_t *s, float err) {
  *
  * \return Error between DLL and PLL/FLL in chip rate.
  */
-float aided_tl_fll2_pll3_get_dll_error(const aided_tl_state_fll2_pll3_t *s) {
+float tl_pll3_get_dll_error(const tl_pll3_state_t *s) {
   return s->code_freq - s->carr_to_code * s->carr_freq;
 }
 
@@ -209,11 +207,8 @@ float aided_tl_fll2_pll3_get_dll_error(const aided_tl_state_fll2_pll3_t *s) {
  *
  * \return None
  */
-void aided_tl_fll2_pll3_discr_update(aided_tl_state_fll2_pll3_t *s,
-                                     float I,
-                                     float Q,
-                                     bool update_fll_discr,
-                                     bool halfq) {
+void tl_pll3_discr_update(
+    tl_pll3_state_t *s, float I, float Q, bool update_fll_discr, bool halfq) {
   if (s->fll_bw_hz <= 0) {
     /* FLL disabled, skip function all together */
     return;
@@ -244,8 +239,7 @@ void aided_tl_fll2_pll3_discr_update(aided_tl_state_fll2_pll3_t *s,
  *
  * \return None
  */
-void aided_tl_fll2_pll3_get_rates(const aided_tl_state_fll2_pll3_t *s,
-                                  tl_rates_t *rates) {
+void tl_pll3_get_rates(const tl_pll3_state_t *s, tl_rates_t *rates) {
   memset(rates, 0, sizeof(*rates));
 
   rates->carr_freq = s->carr_freq;
