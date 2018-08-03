@@ -170,16 +170,6 @@ static inline bool shm_suitable_wrapper(navigation_measurement_t meas) {
  *       set for the TDCP Doppler.
  */
 static void update_obss(uncollapsed_obss_t *new_uncollapsed_obss) {
-  static gps_time_t tor_old = GPS_TIME_UNKNOWN;
-
-  /* We don't want to allow observations that have the same or earlier time
-   * stamp than the last received */
-  if (gps_time_valid(&tor_old) &&
-      gpsdifftime(&new_uncollapsed_obss->tor, &tor_old) <= 0) {
-    log_info("Observation received with equal or earlier time stamp, ignoring");
-    return;
-  }
-
   /* Warn on receiving observations which are very old. This may be indicative
    * of a connectivity problem. Obviously, if we don't have a good local time
    * estimate, then we can't perform this check. */
@@ -349,113 +339,28 @@ static bool is_first_message_in_obs_sequence(u8 count) {
   return count == 0;
 }
 
-/** SBP callback for observation messages.
- * SBP observation sets are potentially split across multiple SBP messages to
- * keep the payload within the size limit.
- *
- * The header contains a count of how many total messages there are in this set
- * of observations (all referring to the same observation time) and a count of
- * which message this is in the sequence.
- *
- * This function attempts to collect a full set of observations into a single
- * `obss_t` (`base_obss_rx`). Once a full set is received then update_obss()
- * is called.
- */
-static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
-  (void)context;
+/* We can determine if this was the final obs message in the sequence
+ * by comparing the "count" and "total" fields. */
+static bool is_final_message_in_obs_sequence(u8 count, u8 total) {
+  return count == total - 1;
+}
 
-  /* Keep track of where in the sequence of messages we were last time around
-   * so we can verify we haven't dropped a message. */
-  static s16 prev_count = 0;
-  static gps_time_t prev_tor = GPS_TIME_UNKNOWN;
+/* Take raw observations and fill in the Starling API observation type. */
+static void make_starling_obs_array(
+    obs_array_t *obs_array,
+    u8 sender_id,
+    size_t raw_obs_count,
+    gps_time_t *raw_obs_tor,
+    packed_obs_content_t raw_obs_array[MAX_REMOTE_OBS]) {
 
-  /* Storage for collecting the incoming observations. */
-  static size_t               obs_count = 0;
-  static gps_time_t           obs_tor = GPS_TIME_UNKNOWN;
-  static packed_obs_content_t obs_array[MAX_REMOTE_OBS];
-  (void)obs_tor;
-  (void)obs_array;
+  // 1. Filter out any unwanted raw observations.
+  // 2. Assert that we now have < MAX_CHANNELS observations.
+  // 3. Populate the starling observation array.
+  obs_array->sender = sender_id;
+  obs_array->t = *raw_obs_tor;
+  obs_array->n = raw_obs_count;
 
-  static uncollapsed_obss_t base_obss_rx = {.has_pos = 0};
-
-  /* An SBP sender ID of zero means that the messages are relayed observations
-   * from the console, not from the base station. We don't want to use them and
-   * we don't want to create an infinite loop by forwarding them again so just
-   * ignore them. */
-  if (MSG_FORWARD_SENDER_ID == sender_id) {
-    return;
-  }
-
-  /* Relay observations using sender_id = 0. */
-  sbp_send_msg_(SBP_MSG_OBS, len, msg, MSG_FORWARD_SENDER_ID);
-
-  /* GPS time of observation. */
-  gps_time_t tor = GPS_TIME_UNKNOWN;
-  /* Total number of messages in the observation set / sequence. */
-  u8 total;
-  /* The current message number in the sequence. */
-  u8 count;
-
-  /* Decode the message header to get the time and how far through the sequence
-   * we are. */
-  unpack_obs_header((observation_header_t *)msg, &tor, &total, &count);
-
-  /* Check to see if the observation is aligned with our internal observations,
-   * i.e. is it going to time match one of our local obs. */
-  /* if tor is invalid this obs message was sent before a time was solved, so we
-   * should ignore */
-  if (!gps_time_valid(&tor)) {
-    return;
-  }
-
-  /* Check that the base station's messages align well enough to our local
-   * processing epochs. */
-  if (!is_time_aligned_to_local_epoch(&tor)) {
-    if (is_first_message_in_obs_sequence(count)) {
-      log_warn("Unaligned observation from base ignored, tow = %.3f,"
-               " Base station observation rate and solution"
-               " frequency may be mismatched.", tor.tow);
-    }
-    return;
-  }
-
-  /* Verify sequence integrity */
-  if (count == 0) {
-    prev_tor = tor;
-    prev_count = 0;
-  } else if ((fabs(gpsdifftime(&tor, &prev_tor)) > FLOAT_EQUALITY_EPS) ||
-             (prev_tor.wn != tor.wn) || ((prev_count + 1) != count)) {
-    log_info("Dropped one base observation packet, skipping this base epoch.");
-    prev_count = -1;
-    return;
-  } else {
-    prev_count = count;
-  }
-
-  /* If this is the first packet in the sequence then reset the base_obss_rx
-   * state. */
-  if (count == 0) {
-    obs_count = 0;
-    obs_tor = tor;
-    
-    base_obss_rx.n = 0;
-    base_obss_rx.tor = tor;
-  }
-
-  /* Calculate the number of observations in this message by looking at the SBP
-   * `len` field. */
-  u8 obs_in_msg =
-      (len - sizeof(observation_header_t)) / sizeof(packed_obs_content_t);
-
-  /* Pull out the contents of the message. */
-  packed_obs_content_t *msg_obs =
-      (packed_obs_content_t *)(msg + sizeof(observation_header_t));
-
-  /* Copy into local array. */
-  for (size_t i = 0; i < obs_in_msg && obs_count < MAX_REMOTE_OBS; ++i) {
-    obs_array[obs_count++] = msg_obs[i];
-  }
-
+#if 0
   for (u8 i = 0; i < obs_in_msg && base_obss_rx.n < MAX_REMOTE_OBS; i++) {
     navigation_measurement_t *nm = &base_obss_rx.nm[base_obss_rx.n];
 
@@ -519,16 +424,140 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
 
     base_obss_rx.n++;
   }
+  update_obss(&base_obss_rx);
+#endif
 
-  /* Print msg if we encounter a remote which sends large amount of obs. */
-  if (MAX_REMOTE_OBS == base_obss_rx.n) {
+}
+
+/** SBP callback for observation messages.
+ * SBP observation sets are potentially split across multiple SBP messages to
+ * keep the payload within the size limit.
+ *
+ * The header contains a count of how many total messages there are in this set
+ * of observations (all referring to the same observation time) and a count of
+ * which message this is in the sequence.
+ *
+ * This function attempts to collect a full set of observations into a single
+ * `obss_t` (`base_obss_rx`). Once a full set is received then update_obss()
+ * is called.
+ */
+static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
+  (void)context;
+
+  /* Keep track of where in the sequence of messages we were last time around
+   * so we can verify we haven't dropped a message. */
+  static s16 prev_count = 0;
+  static gps_time_t prev_tor = GPS_TIME_UNKNOWN;
+
+  /* Storage for collecting the incoming observations. */
+  static size_t               raw_obs_count = 0;
+  static gps_time_t           raw_obs_tor = GPS_TIME_UNKNOWN;
+  static packed_obs_content_t raw_obs_array[MAX_REMOTE_OBS];
+
+  /* An SBP sender ID of zero means that the messages are relayed observations
+   * from the console, not from the base station. We don't want to use them and
+   * we don't want to create an infinite loop by forwarding them again so just
+   * ignore them. */
+  if (MSG_FORWARD_SENDER_ID == sender_id) {
+    return;
+  }
+
+  /* Relay observations using sender_id = 0. */
+  sbp_send_msg_(SBP_MSG_OBS, len, msg, MSG_FORWARD_SENDER_ID);
+
+  /* GPS time of observation. */
+  gps_time_t tor = GPS_TIME_UNKNOWN;
+  /* Total number of messages in the observation set / sequence. */
+  u8 total;
+  /* The current message number in the sequence. */
+  u8 count;
+
+  /* Decode the message header to get the time and how far through the sequence
+   * we are. */
+  unpack_obs_header((observation_header_t *)msg, &tor, &total, &count);
+
+  /* Check to see if the observation is aligned with our internal observations,
+   * i.e. is it going to time match one of our local obs. */
+  /* if tor is invalid this obs message was sent before a time was solved, so we
+   * should ignore */
+  if (!gps_time_valid(&tor)) {
+    return;
+  }
+
+  /* Check that messages are in chronological order. We only perform this check
+   * when receiving a new sequence of observations. */
+  static gps_time_t tor_old = GPS_TIME_UNKNOWN;
+  if (is_first_message_in_obs_sequence(count)) {
+    if (gps_time_valid(&tor_old) && gpsdifftime(&tor, &tor_old) <= 0) {
+      log_info("Observation received with equal or earlier time stamp, ignoring");
+      return;
+    }
+  }
+  tor_old = tor;
+
+  /* Check that the base station's messages align well enough to our local
+   * processing epochs. */
+  if (!is_time_aligned_to_local_epoch(&tor)) {
+    if (is_first_message_in_obs_sequence(count)) {
+      log_warn("Unaligned observation from base ignored, tow = %.3f,"
+               " Base station observation rate and solution"
+               " frequency may be mismatched.", tor.tow);
+    }
+    return;
+  }
+
+  /* Verify sequence integrity */
+  if (count == 0) {
+    prev_tor = tor;
+    prev_count = 0;
+  } else if ((fabs(gpsdifftime(&tor, &prev_tor)) > FLOAT_EQUALITY_EPS) ||
+             (prev_tor.wn != tor.wn) || ((prev_count + 1) != count)) {
+    log_info("Dropped one base observation packet, skipping this base epoch.");
+    prev_count = -1;
+    return;
+  } else {
+    prev_count = count;
+  }
+
+  /* If this is the first packet in the sequence then reset the base_obss_rx
+   * state. */
+  if (count == 0) {
+    raw_obs_count = 0;
+    raw_obs_tor = tor;
+  }
+
+  /* Calculate the number of observations in this message by looking at the SBP
+   * `len` field. */
+  u8 obs_in_msg =
+      (len - sizeof(observation_header_t)) / sizeof(packed_obs_content_t);
+
+  /* Pull out the contents of the message. */
+  packed_obs_content_t *msg_raw_obs =
+      (packed_obs_content_t *)(msg + sizeof(observation_header_t));
+
+  /* Copy into local array. */
+  for (size_t i = 0; i < obs_in_msg && raw_obs_count < MAX_REMOTE_OBS; ++i) {
+    raw_obs_array[raw_obs_count++] = msg_raw_obs[i];
+  }
+
+/* Print msg if we encounter a remote which sends large amount of obs. */
+  if (MAX_REMOTE_OBS == raw_obs_count) {
     log_info("Remote obs reached MAX_REMOTE_OBS amount");
   }
 
   /* If we can, and all the obs have been received, update to using the new
    * obss. */
-  if (count == total - 1) {
-    update_obss(&base_obss_rx);
+  if (is_final_message_in_obs_sequence(count, total)) {
+    obs_array_t obs_array;
+    make_starling_obs_array(&obs_array, 
+                            sender_id, 
+                            raw_obs_count, 
+                            &raw_obs_tor,
+                            raw_obs_array);
+
+    // TODO(kevin) Do something with the obs array.
+    //convert_starling_obs_array_to_obss_t(&starling_obs_array);
+
     /* Calculate packet latency. */
     if (get_time_quality() >= TIME_COARSE) {
       gps_time_t now = get_current_time();
