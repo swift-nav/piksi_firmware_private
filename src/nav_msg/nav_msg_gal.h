@@ -18,6 +18,8 @@
 #include <libswiftnav/ephemeris.h>
 #include <libswiftnav/ionosphere.h>
 
+#include "nav_data_sync/nav_data_sync.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
@@ -95,7 +97,7 @@ typedef struct {
   v27_t decoder;
   v27_decision_t decisions[GAL_INAV_V27_HISTORY_LENGTH];
 
-  u8 prn;
+  me_gnss_signal_t mesid;
   /**< Decoder buffer has 500 symbols for two half pages */
   u8 decoder_buffer[GAL_INAV_DECODE_BUFF_SIZE];
   /**< Each page is composed of 2x120 bit halves */
@@ -120,6 +122,10 @@ typedef struct {
 
   /**< Polarity of the data */
   s8 bit_polarity;
+  /**< Decoded TOW [ms] */
+  s32 TOW_ms;
+  /**< SV health status */
+  health_t health;
 } nav_msg_gal_inav_t;
 
 typedef enum _inav_data_type_e {
@@ -147,13 +153,24 @@ typedef struct _gal_inav_decoded_t {
   almanac_t alm[3];
 } gal_inav_decoded_t;
 
-void gal_inav_msg_init(nav_msg_gal_inav_t *n, u8 prn);
+/** GAL data decoding status */
+typedef enum {
+  GAL_DECODE_WAIT,         /**< Decoding in progress */
+  GAL_DECODE_RESET,        /**< Decoding error or sensitivity mode */
+  GAL_DECODE_TOW_UPDATE,   /**< TOW decoded */
+  GAL_DECODE_EPH_UPDATE,   /**< Ephemeris decoded */
+  GAL_DECODE_DUMMY_UPDATE, /**< Dummy message decoded */
+} gal_decode_status_t;
+
+void gal_inav_msg_init(nav_msg_gal_inav_t *n, const me_gnss_signal_t *mesid);
 void gal_inav_msg_clear_decoded(nav_msg_gal_inav_t *n);
 bool gal_inav_msg_update(nav_msg_gal_inav_t *n, s8 bit_val);
 
 inav_data_type_t parse_inav_word(nav_msg_gal_inav_t *nav_msg,
-                                 gal_inav_decoded_t *dd,
-                                 gps_time_t *t);
+                                 gal_inav_decoded_t *dd);
+gal_decode_status_t gal_data_decoding(nav_msg_gal_inav_t *n, nav_bit_t nav_bit);
+nav_data_sync_t construct_gal_data_sync(const nav_msg_gal_inav_t *n,
+                                        gal_decode_status_t status);
 
 #ifdef __cplusplus
 } /* extern "C" */
