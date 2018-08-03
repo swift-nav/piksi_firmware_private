@@ -288,8 +288,6 @@ static void convert_starling_obs_array_to_uncollapsed_obss(
  *       set for the TDCP Doppler.
  */
 static void update_obss(obs_array_t *obs_array) {
-  log_info("Updating %d obs.", obs_array->n);
-
   /* Ensure raw observations are sorted by PRN. */
   qsort(obs_array->observations,
         obs_array->n,
