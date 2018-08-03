@@ -47,7 +47,6 @@
 
 bool disable_raim = false;
 
-#define MAX_REMOTE_OBS 150
 /**
  * Uncollapsed observation input type.
  * Remote observations may contain multiple useful signals for satellites.
@@ -71,7 +70,7 @@ typedef struct {
   u8 n;
   u8 sender_id;
   /** Set of observations. */
-  navigation_measurement_t nm[MAX_REMOTE_OBS];
+  navigation_measurement_t nm[STARLING_MAX_OBS_COUNT];
 } uncollapsed_obss_t;
 
 /** \defgroup base_obs Base station observation handling
@@ -354,7 +353,7 @@ static void make_starling_obs_array(
     u8 sender_id,
     size_t raw_obs_count,
     gps_time_t *raw_obs_tor,
-    packed_obs_content_t raw_obs_array[MAX_REMOTE_OBS]) {
+    packed_obs_content_t raw_obs_array[STARLING_MAX_OBS_COUNT]) {
 
   // 1. Filter out any unwanted raw observations.
   // 2. Assert that we now have < MAX_CHANNELS observations.
@@ -371,7 +370,7 @@ static void make_starling_obs_array(
   obs_array->n = raw_obs_count;
 
 #if 0
-  for (u8 i = 0; i < obs_in_msg && base_obss_rx.n < MAX_REMOTE_OBS; i++) {
+  for (u8 i = 0; i < obs_in_msg && base_obss_rx.n < STARLING_MAX_OBS_COUNT; i++) {
     navigation_measurement_t *nm = &base_obss_rx.nm[base_obss_rx.n];
 
     /* Unpack the observation into a navigation_measurement_t. */
@@ -462,7 +461,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
   /* Storage for collecting the incoming observations. */
   static size_t               raw_obs_count = 0;
   static gps_time_t           raw_obs_tor = GPS_TIME_UNKNOWN;
-  static packed_obs_content_t raw_obs_array[MAX_REMOTE_OBS];
+  static packed_obs_content_t raw_obs_array[STARLING_MAX_OBS_COUNT];
 
   /* An SBP sender ID of zero means that the messages are relayed observations
    * from the console, not from the base station. We don't want to use them and
@@ -546,13 +545,13 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
       (packed_obs_content_t *)(msg + sizeof(observation_header_t));
 
   /* Copy into local array. */
-  for (size_t i = 0; i < obs_in_msg && raw_obs_count < MAX_REMOTE_OBS; ++i) {
+  for (size_t i = 0; i < obs_in_msg && raw_obs_count < STARLING_MAX_OBS_COUNT; ++i) {
     raw_obs_array[raw_obs_count++] = msg_raw_obs[i];
   }
 
 /* Print msg if we encounter a remote which sends large amount of obs. */
-  if (MAX_REMOTE_OBS == raw_obs_count) {
-    log_info("Remote obs reached MAX_REMOTE_OBS amount");
+  if (STARLING_MAX_OBS_COUNT == raw_obs_count) {
+    log_info("Remote obs reached maximum: %d", STARLING_MAX_OBS_COUNT);
   }
 
   /* If we can, and all the obs have been received, update to using the new
