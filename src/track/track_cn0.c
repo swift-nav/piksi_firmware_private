@@ -96,25 +96,6 @@ static track_cn0_config_t cn0_config = {
 
 static float q_avg = 8.f; /* initial value for noise level */
 
-/**
- * Helper to recompute estimator parameters
- */
-static void recompute_settings(void) {
-  for (u32 i = 0; i < INTEG_PERIODS_NUM; i++) {
-    float loop_freq = 1e3f / cn0_periods_ms[i];
-
-    cn0_est_compute_params(&cn0_config.params[i].est_params,
-                           cn0_config.nbw,
-                           cn0_config.alpha,
-                           loop_freq,
-                           cn0_config.scale,
-                           cn0_config.cn0_shift);
-    cn0_config.params[i].est_params.t_int = cn0_periods_ms[i];
-    cn0_filter_compute_params(
-        &cn0_config.params[i].filter_params, cn0_config.cutoff, loop_freq);
-  }
-}
-
 /** Pre-compute C/N0 estimator and filter parameters. The parameters are
  * computed using equivalent of cn0_est_compute_params() function for
  * integration periods and cut-off frequency defined in this file.
@@ -133,7 +114,6 @@ void track_cn0_params_init(void) {
         &cn0_config.params[i].filter_params, cn0_config.cutoff, loop_freq);
   }
   cn0_config.update_count = 1;
-  recompute_settings();
 }
 
 /**
