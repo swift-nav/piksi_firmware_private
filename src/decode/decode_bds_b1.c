@@ -73,12 +73,11 @@ static void decoder_bds_b1_process(const decoder_channel_info_t *channel_info,
   nav_bit_t nav_bit;
   u8 channel = channel_info->tracking_channel;
 
-  nav_data_sync_t from_decoder;
-
   while (tracker_nav_bit_get(channel, &nav_bit)) {
     bds_decode_status_t status = bds_data_decoding(&data->nav_msg, nav_bit);
     /* Sync tracker with decoder data */
-    get_bds_data_sync(&data->nav_msg, &from_decoder, status);
+    nav_data_sync_t from_decoder =
+        construct_bds_data_sync(&data->nav_msg, status);
     tracker_data_sync(channel, &from_decoder);
   }
   return;

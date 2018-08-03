@@ -128,9 +128,8 @@ bool crc_check(nav_msg_bds_t *n);
 void bds_nav_msg_init(nav_msg_bds_t *n, const me_gnss_signal_t *mesid);
 void bds_nav_msg_clear_decoded(nav_msg_bds_t *n);
 bds_decode_status_t bds_data_decoding(nav_msg_bds_t *n, nav_bit_t nav_bit);
-void get_bds_data_sync(const nav_msg_bds_t *n,
-                       nav_data_sync_t *from_decoder,
-                       bds_decode_status_t status);
+nav_data_sync_t construct_bds_data_sync(const nav_msg_bds_t *n,
+                                        bds_decode_status_t status);
 bool bds_nav_msg_update(nav_msg_bds_t *n, bool bit_val);
 bds_decode_status_t bds_d2_processing(nav_msg_bds_t *n,
                                       bds_d2_decoded_data_t *data);

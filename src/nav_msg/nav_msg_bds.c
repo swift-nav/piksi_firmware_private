@@ -154,12 +154,11 @@ static void bds_eph_debug(const nav_msg_bds_t *n,
   log_debug("    %19.11E%19.11E ", rint(TOW_s), (double)k->iodc);
 }
 
-static void bds_eph_update(nav_msg_bds_t *n, bds_d1_decoded_data_t *data) {
+static void bds_eph_store(const nav_msg_bds_t *n, bds_d1_decoded_data_t *data) {
   ephemeris_t *e = &(data->ephemeris);
   ephemeris_kepler_t *k = &(data->ephemeris.kepler);
   ionosphere_t *iono = &(data->iono);
 
-  n->goodwords_mask = 0;
   add_secs(&e->toe, BDS_SECOND_TO_GPS_SECOND);
   add_secs(&k->toc, BDS_SECOND_TO_GPS_SECOND);
   add_secs(&iono->toa, BDS_SECOND_TO_GPS_SECOND);
@@ -175,7 +174,6 @@ static void bds_eph_update(nav_msg_bds_t *n, bds_d1_decoded_data_t *data) {
                    "Eph status: %" PRIu8 " ",
                    (u8)r);
   }
-  n->health = shm_ephe_healthy(e, n->mesid.code) ? SV_HEALTHY : SV_UNHEALTHY;
 }
 
 /** Process BDS D2 navigation data
@@ -251,7 +249,11 @@ bds_decode_status_t bds_d1_processing(nav_msg_bds_t *n,
     process_d1_fraid3(n, data);
     /* debug information */
     bds_eph_debug(n, data, TOW_s);
-    bds_eph_update(n, data);
+    bds_eph_store(n, data);
+    n->goodwords_mask = 0;
+    n->health = shm_ephe_healthy(&data->ephemeris, n->mesid.code)
+                    ? SV_HEALTHY
+                    : SV_UNHEALTHY;
     return BDS_DECODE_EPH_UPDATE;
   }
 
@@ -301,31 +303,32 @@ bds_decode_status_t bds_data_decoding(nav_msg_bds_t *n, nav_bit_t nav_bit) {
  * Sets sync flags based on decoder status.
  *
  * \param n            Nav message decode state struct
- * \param from_decoder Struct for tracker synchronization
  * \param status       Decoder status
+ *
+ * \return nav_data_sync_t Struct for tracker synchronization
  */
-void get_bds_data_sync(const nav_msg_bds_t *n,
-                       nav_data_sync_t *from_decoder,
-                       bds_decode_status_t status) {
-  memset(from_decoder, 0, sizeof(*from_decoder));
-  from_decoder->TOW_ms = n->TOW_ms;
-  from_decoder->bit_polarity = n->bit_polarity;
-  from_decoder->health = n->health;
+nav_data_sync_t construct_bds_data_sync(const nav_msg_bds_t *n,
+                                        bds_decode_status_t status) {
+  nav_data_sync_t from_decoder;
+  memset(&from_decoder, 0, sizeof(from_decoder));
+  from_decoder.TOW_ms = n->TOW_ms;
+  from_decoder.bit_polarity = n->bit_polarity;
+  from_decoder.health = n->health;
 
   switch (status) {
     case BDS_DECODE_TOW_UPDATE:
-      from_decoder->sync_flags = SYNC_POL | SYNC_TOW;
+      from_decoder.sync_flags = SYNC_POL | SYNC_TOW;
       break;
     case BDS_DECODE_EPH_UPDATE:
-      from_decoder->sync_flags = SYNC_POL | SYNC_TOW | SYNC_EPH;
+      from_decoder.sync_flags = SYNC_POL | SYNC_TOW | SYNC_EPH;
       break;
     case BDS_DECODE_WAIT:
     case BDS_DECODE_RESET:
     default:
-      from_decoder->sync_flags = SYNC_NONE;
+      from_decoder.sync_flags = SYNC_NONE;
       break;
   }
-  return;
+  return from_decoder;
 }
 
 /** Navigation message decoding update.
