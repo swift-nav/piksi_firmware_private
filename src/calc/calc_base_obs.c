@@ -158,6 +158,118 @@ static inline bool shm_suitable_wrapper(navigation_measurement_t meas) {
   return shm_navigation_suitable(meas.sid);
 }
 
+/* Helper function used for sorting starling observations based on their
+ * SID field. */
+static int compare_starling_obs_by_sid(const void *a, const void *b) {
+  gnss_signal_t sid_a = sid_from_sbp(((packed_obs_content_t *)a)->sid); 
+  gnss_signal_t sid_b = sid_from_sbp(((packed_obs_content_t *)b)->sid); 
+  return sid_compare(sid_a, sid_b);
+}
+
+/* Check that a given time is aligned (within some tolerance) to the
+ * local solution epoch. */
+static bool is_time_aligned_to_local_epoch(const gps_time_t *t) {
+  gps_time_t epoch = 
+    gps_time_round_to_epoch(t, soln_freq_setting / obs_output_divisor);
+  double dt = gpsdifftime(&epoch, t);
+  return (fabs(dt) <= TIME_MATCH_THRESHOLD);
+}
+
+/* We can determine if an obs message is the first in sequence
+ * by examining its "count" field. */
+static bool is_first_message_in_obs_sequence(u8 count) {
+  return count == 0;
+}
+
+/* We can determine if this was the final obs message in the sequence
+ * by comparing the "count" and "total" fields. */
+static bool is_final_message_in_obs_sequence(u8 count, u8 total) {
+  return count == total - 1;
+}
+
+/* Convert a raw SBP obs type into the type used by the Starling API. */
+static void convert_raw_obs_to_starling_obs(packed_obs_content_t *raw_obs,
+                                            starling_obs_t *starling_obs) {
+  /* As of (August, 2018), these types are the same. */
+  *starling_obs = *raw_obs;
+}
+
+/* Converter for moving into the intermediary uncollapsed observation type. 
+ * This performs some preliminary filtering of the observations in addition to
+ * populating the navigation measurement fields. */
+static void convert_starling_obs_array_to_uncollapsed_obss(
+    obs_array_t *obs_array,
+    uncollapsed_obss_t *obss) {
+  assert(obs_array);
+  assert(obss);
+  assert(obs_array->n <= STARLING_MAX_OBS_COUNT);
+
+  for (size_t i = 0; i < obs_array->n; ++i) {
+    navigation_measurement_t *nm = &obss->nm[obss->n];
+
+    /* Unpack the observation into a navigation_measurement_t. */
+    unpack_obs_content(&obs_array->observations[i],
+                       &nm->raw_pseudorange,
+                       &nm->raw_carrier_phase,
+                       &nm->raw_measured_doppler,
+                       &nm->cn0,
+                       &nm->lock_time,
+                       &nm->flags,
+                       &nm->sid);
+
+    /* Set the time */
+    nm->tot = obs_array->t;
+    nm->tot.tow -= nm->raw_pseudorange / GPS_C;
+    normalize_gps_time(&nm->tot);
+
+    /* Filter out any observation without a valid pseudorange observation. */
+    if (!pseudorange_valid(*nm)) {
+      continue;
+    }
+
+    /* Filter out any observation not marked healthy by the SHM. */
+    if (shm_navigation_unusable(nm->sid)) {
+      continue;
+    }
+
+    /* Calculate satellite parameters using the ephemeris. */
+    ephemeris_t ephe;
+    ndb_op_code_t res = ndb_ephemeris_read(nm->sid, &ephe);
+    s8 cscc_ret, css_ret;
+    const ephemeris_t *ephe_p = &ephe;
+
+    /* TTFF shortcut: accept also unconfirmed ephemeris candidate when there
+     * is no confirmed candidate */
+    bool eph_valid = (NDB_ERR_NONE == res || NDB_ERR_UNCONFIRMED_DATA == res) &&
+                     ephemeris_valid(&ephe, &nm->tot);
+
+    if (eph_valid) {
+      /* Apply corrections to the pseudorange, carrier phase and Doppler. */
+      cscc_ret = calc_sat_clock_corrections(1, &nm, &ephe_p);
+
+      /* After correcting the time of transmission for the satellite clock
+         error,
+         recalculate the satellite position. */
+      css_ret = calc_sat_state(&ephe,
+                               &nm->tot,
+                               nm->sat_pos,
+                               nm->sat_vel,
+                               nm->sat_acc,
+                               &nm->sat_clock_err,
+                               &nm->sat_clock_err_rate,
+                               &nm->IODC,
+                               &nm->IODE);
+    }
+
+    if (!eph_valid || (cscc_ret != 0) || (css_ret != 0)) {
+      continue;
+    }
+
+    /* Only update the output index if we actually passed all the tests. */
+    obss->n++;
+  }
+}
+
 /** Update the #base_obss state given a new set of obss.
  * First sorts by PRN and computes the TDCP Doppler for the observation set. If
  * #base_pos_known is false then a single point position solution is also
@@ -168,7 +280,18 @@ static inline bool shm_suitable_wrapper(navigation_measurement_t meas) {
  * \note This function is stateful as it must store the previous observation
  *       set for the TDCP Doppler.
  */
-static void update_obss(uncollapsed_obss_t *new_uncollapsed_obss) {
+static void update_obss(obs_array_t *obs_array) {
+  /* Ensure raw observations are sorted by PRN. */
+  qsort(obs_array->observations,
+        obs_array->n,
+        sizeof(*obs_array->observations),
+        compare_starling_obs_by_sid);
+
+  /* First we need to convert the obs array into this type. */
+  uncollapsed_obss_t uncollapsed_obss;
+  uncollapsed_obss_t *new_uncollapsed_obss = &uncollapsed_obss;
+  convert_starling_obs_array_to_uncollapsed_obss(obs_array, new_uncollapsed_obss);
+
   /* Warn on receiving observations which are very old. This may be indicative
    * of a connectivity problem. Obviously, if we don't have a good local time
    * estimate, then we can't perform this check. */
@@ -318,126 +441,6 @@ static void update_obss(uncollapsed_obss_t *new_uncollapsed_obss) {
   }
 }
 
-/* Helper function used for sorting raw SBP observations based on their
- * SID field. */
-static int compare_raw_obs_by_sid(const void *a, const void *b) {
-  gnss_signal_t sid_a = sid_from_sbp(((packed_obs_content_t *)a)->sid); 
-  gnss_signal_t sid_b = sid_from_sbp(((packed_obs_content_t *)b)->sid); 
-  return sid_compare(sid_a, sid_b);
-}
-
-/* Check that a given time is aligned (within some tolerance) to the
- * local solution epoch. */
-static bool is_time_aligned_to_local_epoch(const gps_time_t *t) {
-  gps_time_t epoch = 
-    gps_time_round_to_epoch(t, soln_freq_setting / obs_output_divisor);
-  double dt = gpsdifftime(&epoch, t);
-  return (fabs(dt) <= TIME_MATCH_THRESHOLD);
-}
-
-/* We can determine if an obs message is the first in sequence
- * by examining its "count" field. */
-static bool is_first_message_in_obs_sequence(u8 count) {
-  return count == 0;
-}
-
-/* We can determine if this was the final obs message in the sequence
- * by comparing the "count" and "total" fields. */
-static bool is_final_message_in_obs_sequence(u8 count, u8 total) {
-  return count == total - 1;
-}
-
-/* Take raw observations and fill in the Starling API observation type. */
-static void make_starling_obs_array(
-    obs_array_t *obs_array,
-    u8 sender_id,
-    size_t raw_obs_count,
-    gps_time_t *raw_obs_tor,
-    packed_obs_content_t raw_obs_array[STARLING_MAX_OBS_COUNT]) {
-
-  // 1. Filter out any unwanted raw observations.
-  // 2. Assert that we now have < MAX_CHANNELS observations.
-  // 3. Populate the starling observation array.
-
-  /* Ensure raw observations are sorted by PRN. */
-  qsort(raw_obs_array,
-        raw_obs_count,
-        sizeof(*raw_obs_array),
-        compare_raw_obs_by_sid);
-
-  obs_array->sender = sender_id;
-  obs_array->t = *raw_obs_tor;
-  obs_array->n = raw_obs_count;
-
-#if 0
-  for (u8 i = 0; i < obs_in_msg && base_obss_rx.n < STARLING_MAX_OBS_COUNT; i++) {
-    navigation_measurement_t *nm = &base_obss_rx.nm[base_obss_rx.n];
-
-    /* Unpack the observation into a navigation_measurement_t. */
-    unpack_obs_content(&msg_obs[i],
-                       &nm->raw_pseudorange,
-                       &nm->raw_carrier_phase,
-                       &nm->raw_measured_doppler,
-                       &nm->cn0,
-                       &nm->lock_time,
-                       &nm->flags,
-                       &nm->sid);
-
-    /* Set the time */
-    nm->tot = tor;
-    nm->tot.tow -= nm->raw_pseudorange / GPS_C;
-    normalize_gps_time(&nm->tot);
-
-    /* Filter out any observation without a valid pseudorange observation. */
-    if (!pseudorange_valid(*nm)) {
-      continue;
-    }
-
-    /* Filter out any observation not marked healthy by the SHM. */
-    if (shm_navigation_unusable(nm->sid)) {
-      continue;
-    }
-
-    /* Calculate satellite parameters using the ephemeris. */
-    ephemeris_t ephe;
-    ndb_op_code_t res = ndb_ephemeris_read(nm->sid, &ephe);
-    s8 cscc_ret, css_ret;
-    const ephemeris_t *ephe_p = &ephe;
-
-    /* TTFF shortcut: accept also unconfirmed ephemeris candidate when there
-     * is no confirmed candidate */
-    bool eph_valid = (NDB_ERR_NONE == res || NDB_ERR_UNCONFIRMED_DATA == res) &&
-                     ephemeris_valid(&ephe, &nm->tot);
-
-    if (eph_valid) {
-      /* Apply corrections to the pseudorange, carrier phase and Doppler. */
-      cscc_ret = calc_sat_clock_corrections(1, &nm, &ephe_p);
-
-      /* After correcting the time of transmission for the satellite clock
-         error,
-         recalculate the satellite position. */
-      css_ret = calc_sat_state(&ephe,
-                               &nm->tot,
-                               nm->sat_pos,
-                               nm->sat_vel,
-                               nm->sat_acc,
-                               &nm->sat_clock_err,
-                               &nm->sat_clock_err_rate,
-                               &nm->IODC,
-                               &nm->IODE);
-    }
-
-    if (!eph_valid || (cscc_ret != 0) || (css_ret != 0)) {
-      continue;
-    }
-
-    base_obss_rx.n++;
-  }
-  update_obss(&base_obss_rx);
-#endif
-
-}
-
 /** SBP callback for observation messages.
  * SBP observation sets are potentially split across multiple SBP messages to
  * keep the payload within the size limit.
@@ -459,9 +462,11 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
   static gps_time_t prev_tor = GPS_TIME_UNKNOWN;
 
   /* Storage for collecting the incoming observations. */
-  static size_t               raw_obs_count = 0;
-  static gps_time_t           raw_obs_tor = GPS_TIME_UNKNOWN;
-  static packed_obs_content_t raw_obs_array[STARLING_MAX_OBS_COUNT];
+  static obs_array_t obs_array;   
+
+  obs_array.sender = sender_id;
+  obs_array.t = GPS_TIME_UNKNOWN;
+  obs_array.n = 0;
 
   /* An SBP sender ID of zero means that the messages are relayed observations
    * from the console, not from the base station. We don't want to use them and
@@ -531,8 +536,8 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
   /* If this is the first packet in the sequence then reset the base_obss_rx
    * state. */
   if (count == 0) {
-    raw_obs_count = 0;
-    raw_obs_tor = tor;
+    obs_array.n = 0;
+    obs_array.t = tor;
   }
 
   /* Calculate the number of observations in this message by looking at the SBP
@@ -545,28 +550,22 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
       (packed_obs_content_t *)(msg + sizeof(observation_header_t));
 
   /* Copy into local array. */
-  for (size_t i = 0; i < obs_in_msg && raw_obs_count < STARLING_MAX_OBS_COUNT; ++i) {
-    raw_obs_array[raw_obs_count++] = msg_raw_obs[i];
+  for (size_t i = 0; i < obs_in_msg && obs_array.n < STARLING_MAX_OBS_COUNT; ++i) {
+    convert_raw_obs_to_starling_obs(msg_raw_obs + i, 
+                                    obs_array.observations + obs_array.n++);
   }
 
-/* Print msg if we encounter a remote which sends large amount of obs. */
-  if (STARLING_MAX_OBS_COUNT == raw_obs_count) {
+  /* Print msg if we encounter a remote which sends large amount of obs. */
+  if (STARLING_MAX_OBS_COUNT == obs_array.n) {
     log_info("Remote obs reached maximum: %d", STARLING_MAX_OBS_COUNT);
   }
 
   /* If we can, and all the obs have been received, update to using the new
    * obss. */
   if (is_final_message_in_obs_sequence(count, total)) {
-    obs_array_t obs_array;
-    make_starling_obs_array(&obs_array, 
-                            sender_id, 
-                            raw_obs_count, 
-                            &raw_obs_tor,
-                            raw_obs_array);
-
     // TODO(kevin) Do something with the obs array.
-    //convert_starling_obs_array_to_obss_t(&starling_obs_array);
-
+    update_obss(&obs_array);
+    
     /* Calculate packet latency. */
     if (get_time_quality() >= TIME_COARSE) {
       gps_time_t now = get_current_time();
