@@ -161,8 +161,8 @@ static inline bool shm_suitable_wrapper(navigation_measurement_t meas) {
 /* Helper function used for sorting starling observations based on their
  * SID field. */
 static int compare_starling_obs_by_sid(const void *a, const void *b) {
-  gnss_signal_t sid_a = sid_from_sbp(((packed_obs_content_t *)a)->sid); 
-  gnss_signal_t sid_b = sid_from_sbp(((packed_obs_content_t *)b)->sid); 
+  gnss_signal_t sid_a = sid_from_sbp(((starling_obs_t*)a)->sid); 
+  gnss_signal_t sid_b = sid_from_sbp(((starling_obs_t*)b)->sid); 
   return sid_compare(sid_a, sid_b);
 }
 
@@ -204,6 +204,13 @@ static void convert_starling_obs_array_to_uncollapsed_obss(
   assert(obss);
   assert(obs_array->n <= STARLING_MAX_OBS_COUNT);
 
+  obss->sender_id = obs_array->sender;
+  obss->tor = obs_array->t;
+  obss->has_pos = 0;
+  obss->soln.valid = 0;
+
+  /* Selectively populate the navigation measurement array. */
+  obss->n = 0;
   for (size_t i = 0; i < obs_array->n; ++i) {
     navigation_measurement_t *nm = &obss->nm[obss->n];
 
@@ -281,10 +288,12 @@ static void convert_starling_obs_array_to_uncollapsed_obss(
  *       set for the TDCP Doppler.
  */
 static void update_obss(obs_array_t *obs_array) {
+  log_info("Updating %d obs.", obs_array->n);
+
   /* Ensure raw observations are sorted by PRN. */
   qsort(obs_array->observations,
         obs_array->n,
-        sizeof(*obs_array->observations),
+        sizeof(obs_array->observations[0]),
         compare_starling_obs_by_sid);
 
   /* First we need to convert the obs array into this type. */
@@ -465,8 +474,6 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
   static obs_array_t obs_array;   
 
   obs_array.sender = sender_id;
-  obs_array.t = GPS_TIME_UNKNOWN;
-  obs_array.n = 0;
 
   /* An SBP sender ID of zero means that the messages are relayed observations
    * from the console, not from the base station. We don't want to use them and
@@ -521,7 +528,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
   }
 
   /* Verify sequence integrity */
-  if (count == 0) {
+  if (is_first_message_in_obs_sequence(count)) {
     prev_tor = tor;
     prev_count = 0;
   } else if ((fabs(gpsdifftime(&tor, &prev_tor)) > FLOAT_EQUALITY_EPS) ||
@@ -535,7 +542,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
 
   /* If this is the first packet in the sequence then reset the base_obss_rx
    * state. */
-  if (count == 0) {
+  if (is_first_message_in_obs_sequence(count)) {
     obs_array.n = 0;
     obs_array.t = tor;
   }
