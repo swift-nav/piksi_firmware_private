@@ -23,15 +23,6 @@
 #include "track/track_decode.h"
 #include "track/track_sid_db.h"
 
-static gps_time_t glo2gps_with_utc_params_cb(me_gnss_signal_t mesid,
-                                             const glo_time_t *glo_t) {
-  return glo2gps_with_utc_params(mesid, glo_t);
-}
-
-void nav_msg_init_glo_with_cb(nav_msg_glo_t *n, me_gnss_signal_t mesid) {
-  nav_msg_init_glo(n, mesid, glo2gps_with_utc_params_cb);
-}
-
 glo_decode_status_t glo_data_decoding(nav_msg_glo_t *n,
                                       me_gnss_signal_t mesid,
                                       nav_bit_t nav_bit) {
@@ -41,7 +32,7 @@ glo_decode_status_t glo_data_decoding(nav_msg_glo_t *n,
       /* If polarity was previously known, report polarity loss. */
       status = GLO_DECODE_POLARITY_LOSS;
     }
-    nav_msg_init_glo_with_cb(n, mesid);
+    nav_msg_init_glo(n, mesid);
     n->bit_cnt = nav_bit.cnt + 1;
     return status;
   }
@@ -69,7 +60,7 @@ glo_decode_status_t glo_data_decoding(nav_msg_glo_t *n,
   string_decode_status_t str_status = process_string_glo(n, time_tag_ms);
   switch (str_status) {
     case GLO_STRING_DECODE_ERROR:
-      nav_msg_init_glo_with_cb(n, mesid);
+      nav_msg_init_glo(n, mesid);
       return GLO_DECODE_WAIT;
       break;
     case GLO_STRING_DECODE_STRING:

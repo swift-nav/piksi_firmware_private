@@ -93,19 +93,13 @@ void e_out(void) {
   EXPECT_LT(std::abs(n.eph.glo.gamma - GAMMA), LOW_TOL);
 }
 
-static gps_time_t glo2gps_with_utc_params_stub(me_gnss_signal_t mesid,
-                                               const glo_time_t *glo_t) {
-  (void)mesid;
-  return glo2gps(glo_t, /* utc_params = */ NULL);
-}
-
 TEST(nav_msg_glo_tests, extract_glo_word) {
   u32 ret = 0;
   me_gnss_signal_t mesid;
   mesid.sat = 1;
   mesid.code = CODE_GLO_L1OF;
   memset(&n, 0, sizeof(n));
-  nav_msg_init_glo(&n, mesid, glo2gps_with_utc_params_stub);
+  nav_msg_init_glo(&n, mesid);
   n.string_bits[0] = 5;
   n.string_bits[1] = 5;
   n.string_bits[2] = 5;
@@ -145,7 +139,7 @@ TEST(nav_msg_glo_tests, process_string_glo) {
   mesid.sat = 1;
   mesid.code = CODE_GLO_L1OF;
   memset(&n, 0, sizeof(n));
-  nav_msg_init_glo(&n, mesid, glo2gps_with_utc_params_stub);
+  nav_msg_init_glo(&n, mesid);
   for (u8 i = 1; i < sizeof(strings_in) / sizeof(strings_in[1]); i++) {
     memcpy(n.string_bits, strings_in[i], sizeof(n.string_bits));
     time_tag_ms += GLO_STR_LEN_S * SECS_MS;
@@ -163,7 +157,7 @@ void msg_update_test(bool inverted) {
   /* the unit test encodes strings_in to generate either normal or
    * inverted glo bitstream , calls nav_msg_update_glo to receive and finally
    * decodes received string */
-  nav_msg_init_glo(&n, mesid, glo2gps_with_utc_params_stub);
+  nav_msg_init_glo(&n, mesid);
   /* get string one by one */
   for (u8 i = 0; i < sizeof(strings_in) / sizeof(strings_in[0]); i++) {
     u8 manchester = 0;
@@ -171,7 +165,7 @@ void msg_update_test(bool inverted) {
     nav_msg_glo_t a;
     nav_msg_status_t ret;
     u8 j;
-    nav_msg_init_glo(&a, mesid, glo2gps_with_utc_params_stub);
+    nav_msg_init_glo(&a, mesid);
     u8 relcode_state = 0;
     /* write test string to temporary buffer */
     memcpy(a.string_bits, strings_in[i], sizeof(a.string_bits));
@@ -267,7 +261,7 @@ TEST(nav_msg_glo_tests, get_tow_glo) {
   mesid.sat = 1;
   mesid.code = CODE_GLO_L1OF;
   memset(&n, 0, sizeof(n));
-  nav_msg_init_glo(&n, mesid, glo2gps_with_utc_params_stub);
+  nav_msg_init_glo(&n, mesid);
   gps_time_t t = glo2gps(&n.toe, /* utc_params = */ NULL);
   EXPECT_EQ(t.tow, TOW_UNKNOWN);
   for (u8 i = 1; i < sizeof(strings_in) / sizeof(strings_in[1]); i++) {

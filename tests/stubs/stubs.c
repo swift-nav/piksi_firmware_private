@@ -287,3 +287,10 @@ eph_new_status_t ephemeris_new(const ephemeris_t *e) {
   (void)e;
   return EPH_NEW_OK;
 }
+
+/* GLO data decoder test stub */
+gps_time_t glo2gps_with_utc_params(me_gnss_signal_t mesid,
+                                   const glo_time_t *glo_t) {
+  (void)mesid;
+  return glo2gps(glo_t, /* utc_params = */ NULL);
+}

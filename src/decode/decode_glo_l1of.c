@@ -63,7 +63,7 @@ static void decoder_glo_l1of_init(const decoder_channel_info_t *channel_info,
   glo_l1of_decoder_data_t *data = decoder_data;
 
   memset(data, 0, sizeof(*data));
-  nav_msg_init_glo_with_cb(&data->nav_msg, channel_info->mesid);
+  nav_msg_init_glo(&data->nav_msg, channel_info->mesid);
 }
 
 static void decoder_glo_l1of_process(const decoder_channel_info_t *channel_info,

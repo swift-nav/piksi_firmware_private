@@ -34,7 +34,6 @@ typedef enum {
 extern "C" {
 #endif
 
-void nav_msg_init_glo_with_cb(nav_msg_glo_t *n, me_gnss_signal_t mesid);
 glo_decode_status_t glo_data_decoding(nav_msg_glo_t *n,
                                       me_gnss_signal_t mesid,
                                       nav_bit_t nav_bit);
