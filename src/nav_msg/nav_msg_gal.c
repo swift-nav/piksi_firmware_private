@@ -437,17 +437,17 @@ inav_data_type_t parse_inav_word(nav_msg_gal_inav_t *nav_msg,
  * \return gal_decode_status_t
  */
 gal_decode_status_t gal_data_decoding(nav_msg_gal_inav_t *n,
-                                      nav_bit_t nav_bit) {
+                                      const nav_bit_t *nav_bit) {
   /* Don't decode data while in sensitivity mode. */
-  if ((0 == nav_bit.data) || (nav_bit.cnt != n->bit_cnt)) {
+  if ((0 == nav_bit->data) || (nav_bit->cnt != n->bit_cnt)) {
     me_gnss_signal_t tmp_mesid = n->mesid;
     gal_inav_msg_init(n, &tmp_mesid);
-    n->bit_cnt = nav_bit.cnt + 1;
+    n->bit_cnt = nav_bit->cnt + 1;
     return GAL_DECODE_RESET;
   }
   n->bit_cnt++;
 
-  bool upd = gal_inav_msg_update(n, nav_bit);
+  bool upd = gal_inav_msg_update(n, nav_bit->data);
   if (!upd) {
     return GAL_DECODE_WAIT;
   }

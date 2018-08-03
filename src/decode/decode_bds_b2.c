@@ -22,9 +22,7 @@
 #include "track/track_decode.h"
 
 /** BDS B2 decoder data */
-typedef struct {
-  nav_msg_bds_t nav_msg;
-} bds_b2_decoder_data_t;
+typedef struct { nav_msg_bds_t nav_msg; } bds_b2_decoder_data_t;
 
 static decoder_t bds_b2_decoders[NUM_BDS2_B2_DECODERS];
 
@@ -75,7 +73,7 @@ static void decoder_bds_b2_process(const decoder_channel_info_t *channel_info,
   nav_bit_t nav_bit;
   u8 channel = channel_info->tracking_channel;
 
-  while (tracker_nav_bit_get(channel, &nav_bit)) {
+  while (tracker_nav_bit_received(channel, &nav_bit)) {
     bds_decode_status_t status = bds_data_decoding(&data->nav_msg, nav_bit);
     /* Sync tracker with decoder data */
     nav_data_sync_t from_decoder =
