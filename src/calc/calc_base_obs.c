@@ -334,6 +334,21 @@ static void update_obss(uncollapsed_obss_t *new_uncollapsed_obss) {
   }
 }
 
+/* Check that a given time is aligned (within some tolerance) to the
+ * local solution epoch. */
+static bool is_time_aligned_to_local_epoch(const gps_time_t *t) {
+  gps_time_t epoch = 
+    gps_time_round_to_epoch(t, soln_freq_setting / obs_output_divisor);
+  double dt = gpsdifftime(&epoch, t);
+  return (fabs(dt) <= TIME_MATCH_THRESHOLD);
+}
+
+/* We can determine if an obs message is the first in sequence
+ * by examining its "count" field. */
+static bool is_first_message_in_obs_sequence(u8 count) {
+  return count == 0;
+}
+
 /** SBP callback for observation messages.
  * SBP observation sets are potentially split across multiple SBP messages to
  * keep the payload within the size limit.
@@ -352,12 +367,15 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
   /* Keep track of where in the sequence of messages we were last time around
    * so we can verify we haven't dropped a message. */
   static s16 prev_count = 0;
-
   static gps_time_t prev_tor = GPS_TIME_UNKNOWN;
 
-  /* As we receive observation messages we assemble them into a working
-   * `obss_t` (`uncollapsed_obss_rx`) so as not to disturb the global
-   * `base_obss` state that may be in use. */
+  /* Storage for collecting the incoming observations. */
+  static size_t               obs_count = 0;
+  static gps_time_t           obs_tor = GPS_TIME_UNKNOWN;
+  static packed_obs_content_t obs_array[MAX_REMOTE_OBS];
+  (void)obs_tor;
+  (void)obs_array;
+
   static uncollapsed_obss_t base_obss_rx = {.has_pos = 0};
 
   /* An SBP sender ID of zero means that the messages are relayed observations
@@ -367,9 +385,6 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
   if (MSG_FORWARD_SENDER_ID == sender_id) {
     return;
   }
-
-  /* We set the sender_id */
-  base_obss_rx.sender_id = sender_id;
 
   /* Relay observations using sender_id = 0. */
   sbp_send_msg_(SBP_MSG_OBS, len, msg, MSG_FORWARD_SENDER_ID);
@@ -384,6 +399,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
   /* Decode the message header to get the time and how far through the sequence
    * we are. */
   unpack_obs_header((observation_header_t *)msg, &tor, &total, &count);
+
   /* Check to see if the observation is aligned with our internal observations,
    * i.e. is it going to time match one of our local obs. */
   /* if tor is invalid this obs message was sent before a time was solved, so we
@@ -392,17 +408,13 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
     return;
   }
 
-  gps_time_t epoch =
-      gps_time_round_to_epoch(&tor, soln_freq_setting / obs_output_divisor);
-  double dt = gpsdifftime(&epoch, &tor);
-  if (fabs(dt) > TIME_MATCH_THRESHOLD) {
-    if (count == 0) {
-      log_warn(
-          "Unaligned observation from base ignored, tow = %.3f, dt = %.3f."
-          " Base station observation rate and solution frequency   may be "
-          "mismatched.",
-          tor.tow,
-          dt);
+  /* Check that the base station's messages align well enough to our local
+   * processing epochs. */
+  if (!is_time_aligned_to_local_epoch(&tor)) {
+    if (is_first_message_in_obs_sequence(count)) {
+      log_warn("Unaligned observation from base ignored, tow = %.3f,"
+               " Base station observation rate and solution"
+               " frequency may be mismatched.", tor.tow);
     }
     return;
   }
@@ -423,6 +435,9 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
   /* If this is the first packet in the sequence then reset the base_obss_rx
    * state. */
   if (count == 0) {
+    obs_count = 0;
+    obs_tor = tor;
+    
     base_obss_rx.n = 0;
     base_obss_rx.tor = tor;
   }
@@ -433,14 +448,19 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
       (len - sizeof(observation_header_t)) / sizeof(packed_obs_content_t);
 
   /* Pull out the contents of the message. */
-  packed_obs_content_t *obs =
+  packed_obs_content_t *msg_obs =
       (packed_obs_content_t *)(msg + sizeof(observation_header_t));
+
+  /* Copy into local array. */
+  for (size_t i = 0; i < obs_in_msg && obs_count < MAX_REMOTE_OBS; ++i) {
+    obs_array[obs_count++] = msg_obs[i];
+  }
 
   for (u8 i = 0; i < obs_in_msg && base_obss_rx.n < MAX_REMOTE_OBS; i++) {
     navigation_measurement_t *nm = &base_obss_rx.nm[base_obss_rx.n];
 
     /* Unpack the observation into a navigation_measurement_t. */
-    unpack_obs_content(&obs[i],
+    unpack_obs_content(&msg_obs[i],
                        &nm->raw_pseudorange,
                        &nm->raw_carrier_phase,
                        &nm->raw_measured_doppler,
