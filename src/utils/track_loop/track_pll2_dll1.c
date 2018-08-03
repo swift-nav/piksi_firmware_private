@@ -145,14 +145,3 @@ void tl_pll2_get_rates(const tl_pll2_state_t *s, tl_rates_t *rates) {
   rates->code_freq = s->code_freq_hz;
   rates->acceleration = 0;
 }
-
-void tl_pll2_update_fll(tl_pll2_state_t *s) { (void)s; }
-
-void tl_pll2_discr_update(
-    tl_pll2_state_t *s, float I, float Q, bool update_fll_discr, bool halfq) {
-  (void)s;
-  (void)I;
-  (void)Q;
-  (void)update_fll_discr;
-  (void)halfq;
-}

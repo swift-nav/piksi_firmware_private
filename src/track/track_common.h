@@ -99,9 +99,7 @@ void tp_tl_get_config(const tp_loop_params_t *l, tl_config_t *config);
 void tp_tl_update(tp_tl_state_t *s, const tp_epl_corr_t *cs, bool costas);
 float tp_tl_get_fll_error(const tp_tl_state_t *s);
 float tp_tl_get_dll_error(const tp_tl_state_t *s);
-void tp_tl_fll_update_first(tp_tl_state_t *s, corr_t cs, bool halfq);
-void tp_tl_fll_update_second(tp_tl_state_t *s, corr_t cs, bool halfq);
-void tp_tl_fll_update(tp_tl_state_t *s);
+void tp_tl_fll_discr_update(tp_tl_state_t *s, corr_t cs, bool halfq);
 
 /* Generic tracker functions */
 void tp_tracker_init(tracker_t *tracker, const tp_tracker_config_t *config);

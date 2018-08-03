@@ -113,11 +113,6 @@ TEST(tracking_loop_test, test_aided) {
   EXPECT_LT(fabsf(stl_f2p3.code_c2 - 15.4797105789f), LOW_TOL);
   EXPECT_LT(fabsf(stl_f2p3.carr_to_code - 1.f / carr_to_code), LOW_TOL);
 
-  tl_pll3_update_fll(&stl_f2p3);
-  EXPECT_LT(fabsf(stl_f2p3.discr_sum_hz), LOW_TOL);
-  EXPECT_LT(fabsf(stl_f2p3.carr_acc - acceleration), LOW_TOL);
-  EXPECT_LT(fabsf(stl_f2p3.carr_vel - carr_freq), LOW_TOL);
-
   tl_pll3_update_dll(&stl_f2p3, cs, true);
   EXPECT_LT(fabsf(stl_f2p3.carr_freq - carr_freq), LOW_TOL);
   EXPECT_LT(fabsf(stl_f2p3.carr_vel - carr_freq), LOW_TOL);

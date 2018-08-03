@@ -249,83 +249,21 @@ float tp_tl_get_dll_error(const tp_tl_state_t *s) {
 }
 
 /**
- * First FLL discriminator update.
- *
- * Ignore updating discriminator (due to possible data bit change).
- * Update I_prev & Q_prev only.
- *
- * \param[in,out] s  Tracker state.
- * \param[in]     cs EPL correlator outputs.
- *
- * \return None
- *
- * \sa tp_tl_fll_update_second
- * \sa tp_tl_fll_update
- */
-void tp_tl_fll_update_first(tp_tl_state_t *s, corr_t cs, bool halfq) {
-  switch (s->ctrl) {
-    case TP_CTRL_PLL2:
-      tl_pll2_discr_update(&s->pll2, cs.I, cs.Q, false, halfq);
-      break;
-
-    case TP_CTRL_PLL3:
-      tl_pll3_discr_update(&s->pll3, cs.I, cs.Q, false, halfq);
-      break;
-
-    default:
-      assert(false);
-  }
-}
-
-/**
- * Second FLL discriminator update.
+ * FLL discriminator update.
  *
  * Update discriminator, I_prev & Q_prev.
  *
  * \param[in,out] s  Tracker state.
  * \param[in]     cs EPL correlator outputs.
- *
- * \return None
- *
- * \sa tp_tl_fll_update_first
- * \sa tp_tl_fll_update
+ * \param[in]     halfq Half quadrant discriminator (no bitsync)
  */
-void tp_tl_fll_update_second(tp_tl_state_t *s, corr_t cs, bool halfq) {
+void tp_tl_fll_discr_update(tp_tl_state_t *s, corr_t cs, bool halfq) {
   switch (s->ctrl) {
     case TP_CTRL_PLL2:
-      tl_pll2_discr_update(&s->pll2, cs.I, cs.Q, true, halfq);
       break;
 
     case TP_CTRL_PLL3:
       tl_pll3_discr_update(&s->pll3, cs.I, cs.Q, true, halfq);
-      break;
-
-    default:
-      assert(false);
-  }
-}
-
-/**
- * Perform FLL adjustment in tracking loop filter.
- *
- * The method performs FLL adjustment according to accumulated discriminator
- * values.
- *
- * \param[in,out] s Tracker state.
- *
- * \return None
- *
- * \sa tp_tl_fll_update_first
- * \sa tp_tl_fll_update_second
- */
-void tp_tl_fll_update(tp_tl_state_t *s) {
-  switch (s->ctrl) {
-    case TP_CTRL_PLL2:
-      tl_pll2_update_fll(&s->pll2);
-      break;
-
-    case TP_CTRL_PLL3:
-      tl_pll3_update_fll(&s->pll3);
       break;
 
     default:

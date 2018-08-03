@@ -108,18 +108,6 @@ void tl_pll3_retune(tl_pll3_state_t *s, const tl_config_t *config) {
 }
 
 /**
- * Updates fll/pll loop filter state
- *
- * \param[in,out] s FLL/PLL filter configuration object
- *
- * \return None
- */
-void tl_pll3_update_fll(tl_pll3_state_t *s) {
-  /* This functionality should happen within tl_pll3_update_dll */
-  (void)s;
-}
-
-/**
  * Updates pll/dll loop filter state
  *
  * \param[in,out] s      FLL/PLL filter configuration object
