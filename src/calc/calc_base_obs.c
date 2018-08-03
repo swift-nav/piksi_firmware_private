@@ -179,11 +179,6 @@ static void update_obss(uncollapsed_obss_t *new_uncollapsed_obss) {
     log_info("Communication latency exceeds 15 seconds");
   }
 
-  /* Ensure observations sorted by PRN. */
-  qsort(new_uncollapsed_obss->nm,
-        new_uncollapsed_obss->n,
-        sizeof(navigation_measurement_t),
-        nav_meas_cmp);
   /** Precheck any base station observations and filter if needed. This is not a
    *  permanent solution for actually correcting GPS L2 base station
    *  observations that have mixed tracking modes in a signal epoch. For more
@@ -324,6 +319,14 @@ static void update_obss(uncollapsed_obss_t *new_uncollapsed_obss) {
   }
 }
 
+/* Helper function used for sorting raw SBP observations based on their
+ * SID field. */
+static int compare_raw_obs_by_sid(const void *a, const void *b) {
+  gnss_signal_t sid_a = sid_from_sbp(((packed_obs_content_t *)a)->sid); 
+  gnss_signal_t sid_b = sid_from_sbp(((packed_obs_content_t *)b)->sid); 
+  return sid_compare(sid_a, sid_b);
+}
+
 /* Check that a given time is aligned (within some tolerance) to the
  * local solution epoch. */
 static bool is_time_aligned_to_local_epoch(const gps_time_t *t) {
@@ -356,6 +359,13 @@ static void make_starling_obs_array(
   // 1. Filter out any unwanted raw observations.
   // 2. Assert that we now have < MAX_CHANNELS observations.
   // 3. Populate the starling observation array.
+
+  /* Ensure raw observations are sorted by PRN. */
+  qsort(raw_obs_array,
+        raw_obs_count,
+        sizeof(*raw_obs_array),
+        compare_raw_obs_by_sid);
+
   obs_array->sender = sender_id;
   obs_array->t = *raw_obs_tor;
   obs_array->n = raw_obs_count;
