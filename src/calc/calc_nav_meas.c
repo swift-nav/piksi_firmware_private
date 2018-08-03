@@ -28,28 +28,28 @@
 #define TDCP_MAX_DELTA_HZ 85
 
 /* Convert a single channel measurement into a single navigation measurement. */
-static void convert_channel_measurement_to_navigation_measurement(
+static s8 convert_channel_measurement_to_navigation_measurement(
     const gps_time_t            *rec_time,
     const channel_measurement_t *meas,
     navigation_measurement_t    *nav_meas) {
 
-  nav_meas[i]->sid = meas[i]->sid;
+  nav_meas->sid = meas->sid;
 
-  u32 code_length = code_to_chip_count(meas[i]->sid.code);
+  u32 code_length = code_to_chip_count(meas->sid.code);
   u32 chips_in_millisecond =
-    code_length / code_to_prn_period_ms(meas[i]->sid.code);
-  double chip_rate = code_to_chip_rate(meas[i]->sid.code);
-  double lambda = sid_to_lambda(nav_meas[i]->sid);
+    code_length / code_to_prn_period_ms(meas->sid.code);
+  double chip_rate = code_to_chip_rate(meas->sid.code);
+  double lambda = sid_to_lambda(nav_meas->sid);
 
   /* Compute the time of transmit of the signal on the satellite from the
    * tracking loop parameters. This will be used to compute the pseudorange.
    */
-  nav_meas[i]->tot.wn = WN_UNKNOWN;
-  nav_meas[i]->tot.tow = 1e-3 * meas[i]->time_of_week_ms;
-  double chips = meas[i]->code_phase_chips;
+  nav_meas->tot.wn = WN_UNKNOWN;
+  nav_meas->tot.tow = 1e-3 * meas->time_of_week_ms;
+  double chips = meas->code_phase_chips;
   if (chips > code_length) {
     /* Sanity check of the code phase measurement */
-    log_warn_sid(nav_meas[i]->sid, "Measured code phase exceeds code length");
+    log_warn_sid(nav_meas->sid, "Measured code phase exceeds code length");
     /* TODO: flag only this measurement's PR, CP and Doppler inaccurate
      * instead of terminating and effectively discarding all measurements */
     return -1;
@@ -63,37 +63,37 @@ static void convert_channel_measurement_to_navigation_measurement(
     /* Note the loop will run at most once for L1CA or 20 rounds for L2CM. */
     chips -= chips_in_millisecond;
   }
-  nav_meas[i]->tot.tow += chips / chip_rate;
+  nav_meas->tot.tow += chips / chip_rate;
 
-  nav_meas[i]->tot.tow += meas[i]->tow_residual_ns * 1e-9;
+  nav_meas->tot.tow += meas->tow_residual_ns * 1e-9;
 
-  normalize_gps_time(&nav_meas[i]->tot);
+  normalize_gps_time(&nav_meas->tot);
 
   /* Match the week number to the time of reception. */
-  gps_time_match_weeks(&nav_meas[i]->tot, rec_time);
+  gps_time_match_weeks(&nav_meas->tot, rec_time);
 
   /* Compute the carrier phase measurement. */
-  nav_meas[i]->raw_carrier_phase = meas[i]->carrier_phase;
+  nav_meas->raw_carrier_phase = meas->carrier_phase;
 
   /* For raw Doppler we use the instantaneous carrier frequency from the
    * tracking loop. */
-  nav_meas[i]->raw_measured_doppler = meas[i]->carrier_freq;
+  nav_meas->raw_measured_doppler = meas->carrier_freq;
 
   /* Get the approximate elevation from track DB */
-  if (!track_sid_db_elevation_degrees_get(nav_meas[i]->sid,
-        &nav_meas[i]->elevation)) {
+  if (!track_sid_db_elevation_degrees_get(nav_meas->sid,
+        &nav_meas->elevation)) {
     /* Use 0 degrees as unknown elevation to assign it the smallest weight */
-    log_debug_sid(nav_meas[i]->sid, "Elevation unknown, using 0");
-    nav_meas[i]->elevation = 0;
+    log_debug_sid(nav_meas->sid, "Elevation unknown, using 0");
+    nav_meas->elevation = 0;
   }
 
   /* Copy over remaining values. */
-  nav_meas[i]->cn0 = meas[i]->cn0;
-  nav_meas[i]->lock_time = meas[i]->lock_time;
-  nav_meas[i]->time_in_track = meas[i]->time_in_track;
+  nav_meas->cn0 = meas->cn0;
+  nav_meas->lock_time = meas->lock_time;
+  nav_meas->time_in_track = meas->time_in_track;
 
   /* Measurement time offset from rec_time, usually -5ms .. -0ms */
-  double dt = meas[i]->rec_time_delta;
+  double dt = meas->rec_time_delta;
 
   /* Form the time of reception of this signal */
   gps_time_t meas_tor = *rec_time;
@@ -102,43 +102,43 @@ static void convert_channel_measurement_to_navigation_measurement(
 
   /* The raw pseudorange is just the time of flight multiplied by the speed of
    * light. */
-  nav_meas[i]->raw_pseudorange =
-    GPS_C * (gpsdifftime(&meas_tor, &nav_meas[i]->tot));
+  nav_meas->raw_pseudorange =
+    GPS_C * (gpsdifftime(&meas_tor, &nav_meas->tot));
 
   /* Finally, propagate measurement back to reference time */
-  nav_meas[i]->tot.tow -= dt;
-  normalize_gps_time(&nav_meas[i]->tot);
+  nav_meas->tot.tow -= dt;
+  normalize_gps_time(&nav_meas->tot);
 
   /* Propagate pseudorange with raw doppler times wavelength */
-  nav_meas[i]->raw_pseudorange +=
-    dt * nav_meas[i]->raw_measured_doppler * lambda;
+  nav_meas->raw_pseudorange +=
+    dt * nav_meas->raw_measured_doppler * lambda;
   /* Propagate carrier phase with carrier frequency */
-  nav_meas[i]->raw_carrier_phase += dt * nav_meas[i]->raw_measured_doppler;
+  nav_meas->raw_carrier_phase += dt * nav_meas->raw_measured_doppler;
 
   /* Compute flags.
    *
    * \note currently algorithm uses 1 to 1 flag mapping, however it can use
    *       channel measurement flags to compute errors and weight factors.
    */
-  nav_meas[i]->flags = 0;
-  if (0 != (meas[i]->flags & CHAN_MEAS_FLAG_CODE_VALID)) {
-    nav_meas[i]->flags |= NAV_MEAS_FLAG_CODE_VALID;
+  nav_meas->flags = 0;
+  if (0 != (meas->flags & CHAN_MEAS_FLAG_CODE_VALID)) {
+    nav_meas->flags |= NAV_MEAS_FLAG_CODE_VALID;
   }
-  if (0 != (meas[i]->flags & CHAN_MEAS_FLAG_PHASE_VALID)) {
-    nav_meas[i]->flags |= NAV_MEAS_FLAG_PHASE_VALID;
+  if (0 != (meas->flags & CHAN_MEAS_FLAG_PHASE_VALID)) {
+    nav_meas->flags |= NAV_MEAS_FLAG_PHASE_VALID;
   }
-  if (0 != (meas[i]->flags & CHAN_MEAS_FLAG_MEAS_DOPPLER_VALID)) {
-    nav_meas[i]->flags |= NAV_MEAS_FLAG_MEAS_DOPPLER_VALID;
+  if (0 != (meas->flags & CHAN_MEAS_FLAG_MEAS_DOPPLER_VALID)) {
+    nav_meas->flags |= NAV_MEAS_FLAG_MEAS_DOPPLER_VALID;
   }
-  if (0 != (meas[i]->flags & CHAN_MEAS_FLAG_HALF_CYCLE_KNOWN)) {
-    nav_meas[i]->flags |= NAV_MEAS_FLAG_HALF_CYCLE_KNOWN;
+  if (0 != (meas->flags & CHAN_MEAS_FLAG_HALF_CYCLE_KNOWN)) {
+    nav_meas->flags |= NAV_MEAS_FLAG_HALF_CYCLE_KNOWN;
   }
-  nav_meas[i]->flags |= NAV_MEAS_FLAG_CN0_VALID;
+  nav_meas->flags |= NAV_MEAS_FLAG_CN0_VALID;
 
   /* Initialize IODE/IODC */
-  nav_meas[i]->IODE = INVALID_IODE;
-  nav_meas[i]->IODC = INVALID_IODC;
-
+  nav_meas->IODE = INVALID_IODE;
+  nav_meas->IODC = INVALID_IODC;
+  return 0;
 }
 
 /** Calculate observations from tracking channel measurements.
@@ -164,9 +164,13 @@ s8 calc_navigation_measurement(u8 n_channels,
   }
 
   for (u8 i = 0; i < n_channels; i++) {
-    convert_channel_measurement_to_navigation_measurement(rec_time,
-                                                          meas + i,
-                                                          nav_meas + i);
+    s8 error =
+      convert_channel_measurement_to_navigation_measurement(rec_time,
+                                                            meas[i],
+                                                            nav_meas[i]);
+    if (error) {
+      return error;
+    }
   }
   return 0;
 }
