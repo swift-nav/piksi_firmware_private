@@ -294,9 +294,9 @@ static void gal_eph_debug(const nav_msg_gal_inav_t *n,
   log_debug("    %19.11E%19.11E ", rint(t->tow), 0.0);
 }
 
-static void gal_eph_update(nav_msg_gal_inav_t *n,
-                           gal_inav_decoded_t *data,
-                           const gps_time_t *t) {
+static void gal_eph_store(const nav_msg_gal_inav_t *n,
+                          gal_inav_decoded_t *data,
+                          const gps_time_t *t) {
   gal_eph_debug(n, data, t);
   ephemeris_t *e = &(data->ephemeris);
   /* Always mark GAL ephemeris as if it was coming from E1. */
@@ -310,7 +310,6 @@ static void gal_eph_update(nav_msg_gal_inav_t *n,
                    "Eph status: %" PRIu8 " ",
                    (u8)estat);
   }
-  n->health = shm_ephe_healthy(e, n->mesid.code) ? SV_HEALTHY : SV_UNHEALTHY;
 }
 
 inav_data_type_t parse_inav_word(nav_msg_gal_inav_t *nav_msg,
@@ -361,9 +360,12 @@ inav_data_type_t parse_inav_word(nav_msg_gal_inav_t *nav_msg,
     parse_inav_bgd(content, dd);
     parse_inav_health6(content, dd);
     t_dec = parse_inav_w5tow(content);
-    nav_msg->TOW_ms = (s32)rint(t_dec.tow * 1000) + 2000;
     parse_inav_eph(nav_msg, dd, &t_dec);
-    gal_eph_update(nav_msg, dd, &t_dec);
+    gal_eph_store(nav_msg, dd, &t_dec);
+    nav_msg->TOW_ms = (s32)rint(t_dec.tow * 1000) + 2000;
+    nav_msg->health = shm_ephe_healthy(&dd->ephemeris, nav_msg->mesid.code)
+                          ? SV_HEALTHY
+                          : SV_UNHEALTHY;
     return INAV_EPH;
   }
 
@@ -475,34 +477,35 @@ gal_decode_status_t gal_data_decoding(nav_msg_gal_inav_t *n,
  * Sets sync flags based on decoder status.
  *
  * \param n            Nav message decode state struct
- * \param from_decoder Struct for tracker synchronization
  * \param status       Decoder status
+ *
+ * \return nav_data_sync_t Struct for tracker synchronization
  */
-void get_gal_data_sync(const nav_msg_gal_inav_t *n,
-                       nav_data_sync_t *from_decoder,
-                       gal_decode_status_t status) {
-  memset(from_decoder, 0, sizeof(*from_decoder));
-  from_decoder->TOW_ms = n->TOW_ms;
-  from_decoder->bit_polarity = n->bit_polarity;
-  from_decoder->health = n->health;
+nav_data_sync_t construct_gal_data_sync(const nav_msg_gal_inav_t *n,
+                                        gal_decode_status_t status) {
+  nav_data_sync_t from_decoder;
+  memset(&from_decoder, 0, sizeof(from_decoder));
+  from_decoder.TOW_ms = n->TOW_ms;
+  from_decoder.bit_polarity = n->bit_polarity;
+  from_decoder.health = n->health;
 
   switch (status) {
     case GAL_DECODE_TOW_UPDATE:
-      from_decoder->sync_flags = SYNC_POL | SYNC_TOW;
+      from_decoder.sync_flags = SYNC_POL | SYNC_TOW;
       break;
     case GAL_DECODE_EPH_UPDATE:
-      from_decoder->sync_flags = SYNC_ALL;
+      from_decoder.sync_flags = SYNC_ALL;
       break;
     case GAL_DECODE_DUMMY_UPDATE:
-      from_decoder->sync_flags = SYNC_POL | SYNC_EPH;
+      from_decoder.sync_flags = SYNC_POL | SYNC_EPH;
       break;
     case GAL_DECODE_WAIT:
     case GAL_DECODE_RESET:
     default:
-      from_decoder->sync_flags = SYNC_NONE;
+      from_decoder.sync_flags = SYNC_NONE;
       break;
   }
-  return;
+  return from_decoder;
 }
 
 static void parse_inav_bgd(const u8 content[GAL_INAV_CONTENT_BYTE],

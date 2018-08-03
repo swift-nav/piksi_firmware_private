@@ -169,9 +169,8 @@ bool gal_inav_msg_update(nav_msg_gal_inav_t *n, s8 bit_val);
 inav_data_type_t parse_inav_word(nav_msg_gal_inav_t *nav_msg,
                                  gal_inav_decoded_t *dd);
 gal_decode_status_t gal_data_decoding(nav_msg_gal_inav_t *n, nav_bit_t nav_bit);
-void get_gal_data_sync(const nav_msg_gal_inav_t *n,
-                       nav_data_sync_t *from_decoder,
-                       gal_decode_status_t status);
+nav_data_sync_t construct_gal_data_sync(const nav_msg_gal_inav_t *n,
+                                        gal_decode_status_t status);
 
 #ifdef __cplusplus
 } /* extern "C" */
