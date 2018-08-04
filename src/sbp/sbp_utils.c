@@ -433,23 +433,17 @@ nav_meas_flags_t nm_flags_from_sbp(u8 from) {
 }
 
 void unpack_obs_content(const packed_obs_content_t *msg,
-                        double *P,
-                        double *L,
-                        double *D,
-                        double *cn0,
-                        double *lock_time,
-                        nav_meas_flags_t *flags,
-                        gnss_signal_t *sid) {
-  *P = ((double)msg->P) / MSG_OBS_P_MULTIPLIER;
-  *L = (((double)msg->L.i) + (((double)msg->L.f) / MSG_OBS_LF_MULTIPLIER));
-  *D = (((double)msg->D.i) + (((double)msg->D.f) / MSG_OBS_DF_MULTIPLIER));
-  *cn0 = ((double)msg->cn0) / MSG_OBS_CN0_MULTIPLIER;
-  *lock_time = decode_lock_time(msg->lock);
-  *flags = nm_flags_from_sbp(msg->flags);
+                        starling_obs_t *obs) {
+  obs->P = ((double)msg->P) / MSG_OBS_P_MULTIPLIER;
+  obs->L = (((double)msg->L.i) + (((double)msg->L.f) / MSG_OBS_LF_MULTIPLIER));
+  obs->D = (((double)msg->D.i) + (((double)msg->D.f) / MSG_OBS_DF_MULTIPLIER));
+  obs->cn0 = ((double)msg->cn0) / MSG_OBS_CN0_MULTIPLIER;
+  obs->lock_time = decode_lock_time(msg->lock);
+  obs->flags = nm_flags_from_sbp(msg->flags);
   if (msg->cn0 != 0) {
-    *flags |= NAV_MEAS_FLAG_CN0_VALID;
+    obs->flags |= NAV_MEAS_FLAG_CN0_VALID;
   }
-  *sid = sid_from_sbp(msg->sid);
+  obs->sid = sid_from_sbp(msg->sid);
 }
 
 /** Pack GPS observables into a `msg_obs_content_t` struct.

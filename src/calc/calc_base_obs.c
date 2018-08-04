@@ -161,9 +161,7 @@ static inline bool shm_suitable_wrapper(navigation_measurement_t meas) {
 /* Helper function used for sorting starling observations based on their
  * SID field. */
 static int compare_starling_obs_by_sid(const void *a, const void *b) {
-  gnss_signal_t sid_a = sid_from_sbp(((starling_obs_t*)a)->sid); 
-  gnss_signal_t sid_b = sid_from_sbp(((starling_obs_t*)b)->sid); 
-  return sid_compare(sid_a, sid_b);
+  return sid_compare(((starling_obs_t *)a)->sid, ((starling_obs_t *)b)->sid);
 }
 
 /* Check that a given time is aligned (within some tolerance) to the
@@ -187,11 +185,19 @@ static bool is_final_message_in_obs_sequence(u8 count, u8 total) {
   return count == total - 1;
 }
 
-/* Convert a raw SBP obs type into the type used by the Starling API. */
-static void convert_raw_obs_to_starling_obs(packed_obs_content_t *raw_obs,
-                                            starling_obs_t *starling_obs) {
-  /* As of (August, 2018), these types are the same. */
-  *starling_obs = *raw_obs;
+/* Copy all fields from a Starling-style obs type into the
+ * corresponding navigation measurement fields. As of 
+ * (August 2018), all fields have identical units. */
+static void copy_starling_obs_into_navigation_measurement(
+    starling_obs_t *starling_obs,
+    navigation_measurement_t *nm) {
+  nm->sid                  = starling_obs->sid;
+  nm->raw_pseudorange      = starling_obs->P;
+  nm->raw_carrier_phase    = starling_obs->L;
+  nm->raw_measured_doppler = starling_obs->D;
+  nm->cn0                  = starling_obs->cn0;
+  nm->lock_time            = starling_obs->lock_time;
+  nm->flags                = starling_obs->flags;
 }
 
 /* Converter for moving into the intermediary uncollapsed observation type. 
@@ -213,16 +219,7 @@ static void convert_starling_obs_array_to_uncollapsed_obss(
   obss->n = 0;
   for (size_t i = 0; i < obs_array->n; ++i) {
     navigation_measurement_t *nm = &obss->nm[obss->n];
-
-    /* Unpack the observation into a navigation_measurement_t. */
-    unpack_obs_content(&obs_array->observations[i],
-                       &nm->raw_pseudorange,
-                       &nm->raw_carrier_phase,
-                       &nm->raw_measured_doppler,
-                       &nm->cn0,
-                       &nm->lock_time,
-                       &nm->flags,
-                       &nm->sid);
+    copy_starling_obs_into_navigation_measurement(&obs_array->observations[i], nm);
 
     /* Set the time */
     nm->tot = obs_array->t;
@@ -556,8 +553,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
 
   /* Copy into local array. */
   for (size_t i = 0; i < obs_in_msg && obs_array.n < STARLING_MAX_OBS_COUNT; ++i) {
-    convert_raw_obs_to_starling_obs(msg_raw_obs + i, 
-                                    obs_array.observations + obs_array.n++);
+    unpack_obs_content(&msg_raw_obs[i], &obs_array.observations[obs_array.n++]);
   }
 
   /* Print msg if we encounter a remote which sends large amount of obs. */
