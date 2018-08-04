@@ -90,7 +90,6 @@ static s8 convert_channel_measurement_to_navigation_measurement(
   /* Copy over remaining values. */
   nav_meas->cn0 = meas->cn0;
   nav_meas->lock_time = meas->lock_time;
-  nav_meas->time_in_track = meas->time_in_track;
 
   /* Measurement time offset from rec_time, usually -5ms .. -0ms */
   double dt = meas->rec_time_delta;
