@@ -68,7 +68,7 @@ TEST(tracking_loop_test, test_aided) {
   config.carr_zeta = carr_zeta;
   config.carr_k = carr_k;
   config.fll_bw = fll_bw;
-  correlation_t cs[3] = {{2.3, 3.4}, {0.0, 0.0}, {7.8, 9.9}};
+  correlation_t cs[3] = {{7.8, 9.9}, {0.0, 0.0}, {2.3, 3.4}};
 
   tl_pll3_state_t stl_f2p3;
   rates.code_freq = code_freq;

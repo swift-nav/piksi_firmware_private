@@ -173,11 +173,10 @@ void tp_tl_get_config(const tp_loop_params_t *l, tl_config_t *config) {
  * \return None
  */
 void tp_tl_update(tp_tl_state_t *s, const tp_epl_corr_t *cs, bool costas) {
-  /* TODO: Make this more elegant. */
   correlation_t cs2[3];
   for (u32 i = 0; i < 3; i++) {
-    cs2[i].I = cs->five[2 - i].I;
-    cs2[i].Q = cs->five[2 - i].Q;
+    cs2[i].I = cs->five[i].I;
+    cs2[i].Q = cs->five[i].Q;
   }
 
   switch (s->ctrl) {
