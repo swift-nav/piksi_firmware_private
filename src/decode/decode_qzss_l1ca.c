@@ -29,7 +29,10 @@
 #include <string.h>
 
 /** QZSS L1 C/A decoder data */
-typedef struct { nav_msg_t nav_msg; } qzss_l1ca_decoder_data_t;
+typedef struct {
+  nav_msg_t nav_msg;
+  u16 bit_cnt; /**< For navbit data integrity checks */
+} qzss_l1ca_decoder_data_t;
 
 static decoder_t qzss_l1ca_decoders[NUM_QZSS_L1CA_DECODERS];
 static qzss_l1ca_decoder_data_t
@@ -78,14 +81,16 @@ static void decoder_qzss_l1ca_process(
 
   /* Process incoming nav bits */
   nav_bit_t nav_bit;
-  while (tracker_nav_bit_get(channel_info->tracking_channel, &nav_bit)) {
-    /* Don't decode data while in sensitivity mode. */
-    if (0 == nav_bit) {
+  while (tracker_nav_bit_received(channel_info->tracking_channel, &nav_bit)) {
+    if ((0 == nav_bit.data) || (nav_bit.cnt != data->bit_cnt)) {
       nav_msg_init(&data->nav_msg);
+      data->bit_cnt = nav_bit.cnt + 1;
       continue;
     }
+    data->bit_cnt++;
+
     /* Update TOW */
-    bool bit_val = nav_bit > 0;
+    bool bit_val = nav_bit.data > 0;
     nav_data_sync_t from_decoder;
     tracker_data_sync_init(&from_decoder);
     from_decoder.TOW_ms = nav_msg_update(&data->nav_msg, bit_val);

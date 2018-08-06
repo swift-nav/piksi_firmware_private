@@ -187,7 +187,7 @@ bool decoder_channel_init(u8 tracking_channel, const me_gnss_signal_t mesid) {
 
   /* Empty the nav bit FIFO */
   nav_bit_t nav_bit;
-  while (tracker_nav_bit_get(d->info.tracking_channel, &nav_bit)) {
+  while (tracker_nav_bit_received(d->info.tracking_channel, &nav_bit)) {
     ;
   }
 

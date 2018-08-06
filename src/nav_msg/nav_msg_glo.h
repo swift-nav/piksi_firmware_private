@@ -106,6 +106,8 @@ typedef struct {
   me_gnss_signal_t mesid;    /**< decoding channel ME sid */
   /** GLO time to GPS time conversion callback */
   glo2gps_with_utc_params_t glo2gps_with_utc_params;
+
+  u16 bit_cnt; /**< For navbit data integrity checks */
 } nav_msg_glo_t;
 
 void nav_msg_init_glo(nav_msg_glo_t *n,

@@ -34,6 +34,7 @@
 typedef struct {
   sbas_msg_t sbas_msg;
   sbas_msg_decoder_t sbas_msg_decoder;
+  u16 bit_cnt; /**< For navbit data integrity checks */
 } sbas_l1_decoder_data_t;
 
 static decoder_t sbas_l1_decoders[NUM_SBAS_L1_DECODERS];
@@ -86,20 +87,22 @@ static void decoder_sbas_l1_process(const decoder_channel_info_t *channel_info,
   /* Process incoming nav bits */
   u8 channel = channel_info->tracking_channel;
   nav_bit_t nav_bit;
-  while (tracker_nav_bit_get(channel, &nav_bit)) {
-    /* Don't decode data while in sensitivity mode. */
-    if (0 == nav_bit) {
+  while (tracker_nav_bit_received(channel, &nav_bit)) {
+    if ((0 == nav_bit.data) || (nav_bit.cnt != data->bit_cnt)) {
       data->sbas_msg.bit_polarity = BIT_POLARITY_UNKNOWN;
       sbas_msg_decoder_init(&data->sbas_msg_decoder);
+      data->bit_cnt = nav_bit.cnt + 1;
       continue;
     }
+    data->bit_cnt++;
+
     /* Update TOW */
     data->sbas_msg.tow_ms = TOW_INVALID;
     data->sbas_msg.wn = TOW_INVALID;
     data->sbas_msg.health = SV_HEALTHY;
 
     /* Symbol value probability, where 0x00 - 100% of 0, 0xFF - 100% of 1. */
-    u8 symbol_probability = nav_bit + C_2P7;
+    u8 symbol_probability = nav_bit.data + C_2P7;
 
     bool decoded = sbas_msg_decoder_add_symbol(
         &data->sbas_msg_decoder, symbol_probability, &data->sbas_msg);

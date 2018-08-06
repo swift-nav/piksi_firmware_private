@@ -75,7 +75,7 @@ static void decoder_glo_l1of_process(const decoder_channel_info_t *channel_info,
   const me_gnss_signal_t mesid = channel_info->mesid;
   u8 channel = channel_info->tracking_channel;
 
-  while (tracker_nav_bit_get(channel, &nav_bit)) {
+  while (tracker_nav_bit_received(channel, &nav_bit)) {
     /* Decode GLO ephemeris. */
     glo_decode_status_t status =
         glo_data_decoding(&data->nav_msg, mesid, nav_bit);
