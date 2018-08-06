@@ -483,7 +483,6 @@ static void tp_tracker_update_correlators(tracker_t *tracker, u32 cycle_flags) {
 
   tracker->sample_count = sample_count;
   tracker->code_phase_prompt = code_phase_prompt;
-  tracker->carrier_phase_prev = tracker->carrier_phase;
   tracker->carrier_phase = carrier_phase;
 
   /* ToW update:

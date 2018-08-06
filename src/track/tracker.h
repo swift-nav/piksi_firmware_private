@@ -350,9 +350,6 @@ typedef struct {
   me_gnss_signal_t mesid; /**< Current ME signal being decoded. */
   u16 glo_orbit_slot;     /**< GLO orbital slot. */
 
-  /** Time at which the channel was disabled. */
-  piksi_systime_t disable_time;
-
   /** FIFO for navigation message bits. */
   nav_bit_fifo_t nav_bit_fifo;
   /** Used to sync time decoded from navigation message
@@ -395,7 +392,6 @@ typedef struct {
   double code_phase_prompt;  /**< Prompt code phase in chips. */
   double code_phase_rate;    /**< Code phase rate in chips/s. */
   double carrier_phase;      /**< Carrier phase in cycles. */
-  double carrier_phase_prev; /**< Previous carrier phase in cycles. */
   double carrier_freq;       /**< Carrier frequency Hz. */
   double carrier_freq_prev;  /**< Carrier frequency Hz. */
   bool carrier_freq_prev_valid;             /**< carrier_freq_prev is valid. */
