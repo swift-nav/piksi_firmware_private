@@ -605,7 +605,6 @@ static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
       u8 int_ms = tp_get_current_cycle_duration(tracker->tracking_mode,
                                                 tracker->cycle_no);
       cn0 = track_cn0_update(tracker->mesid,
-                             cn0_params.est,
                              &tracker->cn0_est,
                              int_ms,
                              tracker->corrs.corr_cn0.prompt.I,

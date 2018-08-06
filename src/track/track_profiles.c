@@ -906,8 +906,6 @@ void tp_profile_init(tracker_t *tracker, const tp_report_t *data) {
 
   profile->cur = get_profile_vars(mesid, data->cn0);
 
-  profile->cn0_est = TRACK_CN0_EST_BASIC;
-
   profile->profile_update = 0;
 
   profile->cn0_offset = compute_cn0_offset(mesid, profile);
@@ -945,8 +943,6 @@ void tp_profile_get_cn0_params(const tp_profile_t *profile,
    * example, 20ms integration has threshold by 13 dB lower, than for 1ms
    * integration. */
   cn0_params->track_cn0_drop_thres_dbhz -= profile->cn0_offset;
-
-  cn0_params->est = (track_cn0_est_e)profile->cn0_est;
 
   float threshold_dbhz = TP_HARD_CN0_DROP_THRESHOLD_DBHZ;
 

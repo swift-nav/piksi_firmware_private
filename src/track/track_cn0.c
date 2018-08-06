@@ -121,23 +121,14 @@ void track_cn0_params_init(void) {
  *
  * \param[out] e     Estimator state.
  * \param[in]  p     Estimator parameters.
- * \param[in]  t     Estimator type.
  * \param[in]  cn0_0 Initial C/N0 value.
  *
  * \return None
  */
 static void init_estimator(track_cn0_state_t *e,
                            const cn0_est_params_t *p,
-                           track_cn0_est_e t,
                            float cn0_0) {
-  switch (t) {
-    case TRACK_CN0_EST_BASIC:
-      cn0_est_basic_init(&e->basic, p, cn0_0, q_avg * sqrtf(p->t_int));
-      break;
-
-    default:
-      assert(false);
-  }
+  cn0_est_basic_init(&e->basic, p, cn0_0, q_avg * sqrtf(p->t_int));
 }
 
 /**
@@ -155,24 +146,14 @@ static void init_estimator(track_cn0_state_t *e,
  */
 static float update_estimator(track_cn0_state_t *e,
                               const cn0_est_params_t *p,
-                              track_cn0_est_e t,
                               float I,
                               float Q,
                               float ve_I,
                               float ve_Q) {
-  float cn0 = 0;
-  float cn0_basic = cn0_est_basic_update(&e->basic, p, I, Q, ve_I, ve_Q);
+  float cn0 = cn0_est_basic_update(&e->basic, p, I, Q, ve_I, ve_Q);
 
-  switch (t) {
-    case TRACK_CN0_EST_BASIC:
-      q_avg = q_avg * (1 - p->alpha) +
-              p->alpha * e->basic.noise_Q_abs / sqrtf(p->t_int);
-      cn0 = cn0_basic;
-      break;
-
-    default:
-      assert(false);
-  }
+  q_avg = q_avg * (1 - p->alpha) +
+          p->alpha * e->basic.noise_Q_abs / sqrtf(p->t_int);
 
   return cn0;
 }
@@ -238,22 +219,20 @@ void track_cn0_init(const me_gnss_signal_t mesid,
                     u8 flags) {
   track_cn0_params_t p;
 
-  e->type = TRACK_CN0_EST_BASIC;
   e->cn0_0 = (u8)cn0_0;
   e->flags = flags;
   e->cn0_ms = cn0_ms;
 
   const track_cn0_params_t *pp = track_cn0_get_params(cn0_ms, &p);
 
-  init_estimator(e, &pp->est_params, TRACK_CN0_EST_BASIC, cn0_0);
+  init_estimator(e, &pp->est_params, cn0_0);
 
   cn0_filter_init(&e->filter, &pp->filter_params, cn0_0);
 
   e->ver = cn0_config.update_count;
 
   log_debug_mesid(mesid,
-                  "Initializing estimator %s (%f dB/Hz @ %u ms)",
-                  track_cn0_str(e->type),
+                  "Initializing estimator (%f dB/Hz @ %u ms)",
                   e->filter.yn,
                   (unsigned)e->cn0_ms);
 }
@@ -262,7 +241,6 @@ void track_cn0_init(const me_gnss_signal_t mesid,
  * Updates C/N0 estimator.
  *
  * \param[in]     mesid  ME signal identifier for logging.
- * \param[in]     t      Type of estimator value to use/return.
  * \param[in,out] e      Estimator state.
  * \param[in]     int_ms Integration time [ms]
  * \param[in]     I      In-phase component.
@@ -273,7 +251,6 @@ void track_cn0_init(const me_gnss_signal_t mesid,
  * \return Filtered estimator value.
  */
 float track_cn0_update(const me_gnss_signal_t mesid,
-                       track_cn0_est_e t,
                        track_cn0_state_t *e,
                        u8 int_ms,
                        float I,
@@ -290,17 +267,7 @@ float track_cn0_update(const me_gnss_signal_t mesid,
     e->cn0_0 = cn0_0;
   }
 
-  if (e->type != t) {
-    log_debug_mesid(mesid,
-                    "Changing estimator from %s to %s at (%f dB/Hz @ %u ms)",
-                    track_cn0_str(e->type),
-                    track_cn0_str(t),
-                    e->filter.yn,
-                    (unsigned)e->cn0_ms);
-    e->type = t;
-  }
-
-  e->cn0_raw_dbhz = update_estimator(e, &pp->est_params, t, I, Q, ve_I, ve_Q);
+  e->cn0_raw_dbhz = update_estimator(e, &pp->est_params, I, Q, ve_I, ve_Q);
   cn0 = cn0_filter_update(&e->filter, &pp->filter_params, e->cn0_raw_dbhz);
 
   if (e->cn0_raw_dbhz < THRESH_SENS_DBHZ) {
