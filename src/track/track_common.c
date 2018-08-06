@@ -119,11 +119,17 @@ void tp_profile_apply_config(tracker_t *tracker, bool init) {
 
   if (!init) {
     prev_cn0_ms = tp_get_cn0_ms(tracker->tracking_mode);
-    prev_use_alias_detection = tracker->use_alias_detection;
+    prev_use_alias_detection =
+        tracker->flags & TRACKER_FLAG_USE_ALIAS_DETECTION;
   }
 
   tracker->tracking_mode = profile->loop_params.mode;
-  tracker->use_alias_detection = profile->use_alias_detection;
+
+  if (profile->use_alias_detection) {
+    tracker->flags |= TRACKER_FLAG_USE_ALIAS_DETECTION;
+  } else {
+    tracker->flags &= ~TRACKER_FLAG_USE_ALIAS_DETECTION;
+  }
 
   tracker->has_next_params = false;
 
@@ -200,7 +206,8 @@ void tp_profile_apply_config(tracker_t *tracker, bool init) {
         mesid, "CN0 update: CD=%f EST=%f CN0_0=%f", tracker->cn0, cn0_0, cn0_t);
   }
 
-  if (tracker->use_alias_detection) {
+  bool use_alias_detection = tracker->flags & TRACKER_FLAG_USE_ALIAS_DETECTION;
+  if (use_alias_detection) {
     float alias_detect_ms = tp_get_alias_ms(tracker->tracking_mode);
 
     if (prev_use_alias_detection) {
@@ -902,7 +909,8 @@ static void tp_tracker_flag_outliers(tracker_t *tracker) {
  * \return None
  */
 static void tp_tracker_update_alias(tracker_t *tracker, u32 cycle_flags) {
-  if (!tracker->use_alias_detection) {
+  bool use_alias_detection = tracker->flags & TRACKER_FLAG_USE_ALIAS_DETECTION;
+  if (!use_alias_detection) {
     return;
   }
 
