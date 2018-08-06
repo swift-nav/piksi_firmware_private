@@ -41,9 +41,9 @@ typedef struct {
  * Tracking loop configuration parameters
  */
 typedef struct {
-  float dll_loop_freq;  /**< DLL loop frequency [Hz] */
-  float fll_loop_freq;  /**< FLL loop frequency [Hz] */
-  float fll_discr_freq; /**< FLL discriminator frequency [Hz] */
+  float dll_loop_period_s;  /**< DLL loop period [s] */
+  float fll_loop_period_s;  /**< FLL loop period [s] */
+  float fll_discr_period_s; /**< FLL discriminator period [s] */
   float code_bw;        /**< DLL bandwidth [Hz] */
   float code_zeta;      /**< DLL damping factor (unitless) */
   float code_k;         /**< DLL loop gain (unitless) */

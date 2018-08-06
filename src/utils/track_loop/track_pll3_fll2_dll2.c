@@ -25,8 +25,8 @@
  * \return None
  */
 static void update_params(tl_pll3_state_t *s, const tl_config_t *config) {
-  s->T_FLL = 1.f / config->fll_loop_freq;
-  s->T_DLL = 1.f / config->dll_loop_freq;
+  s->T_FLL = config->fll_loop_period_s;
+  s->T_DLL = config->dll_loop_period_s;
   s->fll_bw_hz = config->fll_bw;
 
   /** PLL & FLL constants
@@ -38,7 +38,7 @@ static void update_params(tl_pll3_state_t *s, const tl_config_t *config) {
     s->freq_c1 = freq_a2 * freq_omega_0 / config->carr_k;
     s->freq_c2 = freq_omega_0 * freq_omega_0 / config->carr_k;
 
-    s->discr_period_s = 1.0f / (config->fll_discr_freq);
+    s->discr_period_s = config->fll_discr_period_s;
   } else {
     s->freq_c1 = 0;
     s->freq_c2 = 0;
