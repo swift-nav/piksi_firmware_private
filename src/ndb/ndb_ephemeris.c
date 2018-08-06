@@ -141,6 +141,22 @@ static void ndb_ephe_release_candidate(s16 cand_index) {
   ephe_candidates[cand_index].used = false;
 }
 
+bool ephemeris_equal_except_fit_interval(const ephemeris_t *a,
+                                         const ephemeris_t *b) {
+  assert(a);
+  assert(b);
+
+  ephemeris_t cpy;
+  MEMCPY_S(&cpy, sizeof(cpy), a, sizeof(*a));
+
+  if (IS_GLO(a->sid)) {
+    /* GLO fit interval might change during ephemeris validity time.
+       So exclude it from the comparison. */
+    cpy.fit_interval = b->fit_interval;
+  }
+  return ephemeris_equal(&cpy, b);
+}
+
 /**
  * Check if the new ephemeris seems to be correct
  *
@@ -158,23 +174,13 @@ static bool ndb_can_confirm_ephemeris(const ephemeris_t *new,
                                       const almanac_t *existing_a,
                                       const ephemeris_t *candidate) {
   if (NULL != candidate) {
-    ephemeris_t tmp_eph;
-    MEMCPY_S(&tmp_eph, sizeof(tmp_eph), candidate, sizeof(tmp_eph));
-    if (IS_GLO(new->sid)) {
-      tmp_eph.fit_interval = new->fit_interval;
-    }
-    if (ephemeris_equal(new, &tmp_eph)) {
+    if (ephemeris_equal_except_fit_interval(candidate, new)) {
       /* Exact match */
       log_debug_sid(new->sid, "[EPH] candidate match");
       return true;
     }
   } else if (NULL != existing_e) {
-    ephemeris_t tmp_eph;
-    MEMCPY_S(&tmp_eph, sizeof(tmp_eph), existing_e, sizeof(tmp_eph));
-    if (IS_GLO(new->sid)) {
-      tmp_eph.fit_interval = new->fit_interval;
-    }
-    if (ephemeris_equal(new, &tmp_eph)) {
+    if (ephemeris_equal_except_fit_interval(existing_e, new)) {
       /* Exact match with stored */
       log_debug_sid(new->sid, "[EPH] NDB match");
       return true;
@@ -326,41 +332,27 @@ static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new) {
     ephep = ce;
   }
 
-  ephemeris_t tmp_ephep;
-  bool ep_eq = false;
   if (ephep) {
-    ep_eq = ephemeris_equal(ephep, new);
-    MEMCPY_S(&tmp_ephep, sizeof(tmp_ephep), ephep, sizeof(tmp_ephep));
-  }
-
-  if (IS_GLO(new->sid)) {
-    /* Fake fit_interval for GLO since it might be changed during ephemeris
-     * validity time which causes warning below because it's not same as stored
-     */
-    tmp_ephep.fit_interval = new->fit_interval;
-    if (ephep) {
-      ep_eq = ephemeris_equal(&tmp_ephep, new);
+    bool ep_eq = ephemeris_equal_except_fit_interval(ephep, new);
+    if (!ep_eq && (ephep->toe.wn == new->toe.wn) &&
+        (ephep->toe.tow == new->toe.tow)) {
+      log_warn_sid(new->sid,
+                   "Ephemeris discrepancy detected: "
+                   "%" PRIi16 " %" PRIi16 " %lf %lf %p %p",
+                   ephep->toe.wn,
+                   new->toe.wn,
+                   ephep->toe.tow,
+                   new->toe.tow,
+                   ce,
+                   pe);
     }
-  }
-
-  if (ephep && !ep_eq && (ephep->toe.wn == new->toe.wn) &&
-      (ephep->toe.tow == new->toe.tow)) {
-    log_warn_sid(new->sid,
-                 "Ephemeris discrepancy detected: "
-                 "%" PRIi16 " %" PRIi16 " %lf %lf %p %p",
-                 ephep->toe.wn,
-                 new->toe.wn,
-                 ephep->toe.tow,
-                 new->toe.tow,
-                 ce,
-                 pe);
   }
 
   if (TIME_UNKNOWN == get_time_quality()) {
     ndb_ephe_release_candidate(cand_idx);
     ndb_ephe_try_adding_candidate(new);
     r = NDB_CAND_GPS_TIME_MISSING;
-  } else if (NULL != pe && ephemeris_equal(pe, new) &&
+  } else if (NULL != pe && ephemeris_equal_except_fit_interval(pe, new) &&
              0 == (ndb_ephemeris_md[idx].vflags & NDB_VFLAG_DATA_FROM_NV)) {
     /* If new ephemeris is identical to the one in NDB,
      * and the NDB data is not initially loaded from NV,
