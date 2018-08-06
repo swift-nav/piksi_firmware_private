@@ -40,11 +40,16 @@ matrix:
       osx_image: xcode8
       env: C_COMPILER=gcc-6 CXX_COMPILER=g++-6
 
+git:
+  # Get submodules explicitly before the build, so that we can use LFS smudging
+  submodules: false
+
 before_install:
   - ./scripts/ci/check_for_s3_cred.sh || travis_terminate 1
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install gcc@6 --enable-cxx; fi
   - pip install --user --upgrade awscli
+  - GIT_LFS_SKIP_SMUDGE=1 git submodule update --init --recursive
   - git fetch --tags --unshallow
 
 install:
