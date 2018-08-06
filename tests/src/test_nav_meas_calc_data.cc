@@ -211,7 +211,6 @@ static navigation_measurement_t nm1 = {
     0,               /* IODC */
     15,              /* cn0 */
     16,              /* lock_time */
-    0.0,             /* time_in_track */
     0.0,             /* elevation */
     {0.0,            /* tot.tow */
      0},             /* tot.wn */
@@ -244,7 +243,6 @@ static navigation_measurement_t nm1_2 = {
     0,               /* IODC */
     115,             /* cn0 */
     116,             /* lock_time */
-    0.0,             /* time_in_track */
     0.0,             /* elevation */
     {0.0,            /* tot.tow */
      0},             /* tot.wn */
@@ -277,7 +275,6 @@ static navigation_measurement_t nm2 = {
     0,               /* IODC */
     25,              /* cn0 */
     26,              /* lock_time */
-    0.0,             /* time_in_track */
     0.0,             /* elevation */
     {0.0,            /* tot.tow */
      0},             /* tot.wn */
@@ -310,7 +307,6 @@ static navigation_measurement_t nm2_2 = {
     0,               /* IODC */
     225,             /* cn0 */
     226,             /* lock_time */
-    0.0,             /* time_in_track */
     0.0,             /* elevation */
     {0.0,            /* tot.tow */
      0},             /* tot.wn */
@@ -343,7 +339,6 @@ static navigation_measurement_t nm3 = {
     0,               /* IODC */
     35,              /* cn0 */
     36,              /* lock_time */
-    0.0,             /* time_in_track */
     0.0,             /* elevation */
     {0.0,            /* tot.tow */
      0},             /* tot.wn */
@@ -539,7 +534,6 @@ TEST(iono_tropo_usage_test, iono_tropo_test) {
       0,               /* IODC */
       35,              /* cn0 */
       36,              /* lock_time */
-      0.0,             /* time_in_track */
       0.0,             /* elevation */
       {479820,         /* tot.tow */
        1875},          /* tot.wn */
