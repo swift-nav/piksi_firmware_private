@@ -221,10 +221,9 @@ nav_meas_flags_t nm_flags_from_sbp(u8 from);
 
 /**
  * Convert an SBP observation into the format accepted
- * by the Starling engine. 
+ * by the Starling engine.
  */
-void unpack_obs_content(const packed_obs_content_t *msg,
-                        starling_obs_t *obs);
+void unpack_obs_content(const packed_obs_content_t *msg, starling_obs_t *obs);
 
 s8 pack_obs_content(double P,
                     double L,

@@ -167,17 +167,15 @@ static int compare_starling_obs_by_sid(const void *a, const void *b) {
 /* Check that a given time is aligned (within some tolerance) to the
  * local solution epoch. */
 static bool is_time_aligned_to_local_epoch(const gps_time_t *t) {
-  gps_time_t epoch = 
-    gps_time_round_to_epoch(t, soln_freq_setting / obs_output_divisor);
+  gps_time_t epoch =
+      gps_time_round_to_epoch(t, soln_freq_setting / obs_output_divisor);
   double dt = gpsdifftime(&epoch, t);
   return (fabs(dt) <= TIME_MATCH_THRESHOLD);
 }
 
 /* We can determine if an obs message is the first in sequence
  * by examining its "count" field. */
-static bool is_first_message_in_obs_sequence(u8 count) {
-  return count == 0;
-}
+static bool is_first_message_in_obs_sequence(u8 count) { return count == 0; }
 
 /* We can determine if this was the final obs message in the sequence
  * by comparing the "count" and "total" fields. */
@@ -185,12 +183,11 @@ static bool is_final_message_in_obs_sequence(u8 count, u8 total) {
   return count == total - 1;
 }
 
-/* Converter for moving into the intermediary uncollapsed observation type. 
+/* Converter for moving into the intermediary uncollapsed observation type.
  * This performs some preliminary filtering of the observations in addition to
  * populating the navigation measurement fields. */
 static void convert_starling_obs_array_to_uncollapsed_obss(
-    obs_array_t *obs_array,
-    uncollapsed_obss_t *obss) {
+    obs_array_t *obs_array, uncollapsed_obss_t *obss) {
   assert(obs_array);
   assert(obss);
   assert(obs_array->n <= STARLING_MAX_OBS_COUNT);
@@ -204,8 +201,8 @@ static void convert_starling_obs_array_to_uncollapsed_obss(
   obss->n = 0;
   for (size_t i = 0; i < obs_array->n; ++i) {
     navigation_measurement_t *nm = &obss->nm[obss->n];
-    convert_starling_obs_to_navigation_measurement(&obs_array->observations[i], nm);
-
+    convert_starling_obs_to_navigation_measurement(&obs_array->observations[i],
+                                                   nm);
 
     /* Filter out any observation without a valid pseudorange observation. */
     if (!pseudorange_valid(*nm)) {
@@ -275,7 +272,8 @@ static void update_obss(obs_array_t *obs_array) {
   /* First we need to convert the obs array into this type. */
   uncollapsed_obss_t uncollapsed_obss;
   uncollapsed_obss_t *new_uncollapsed_obss = &uncollapsed_obss;
-  convert_starling_obs_array_to_uncollapsed_obss(obs_array, new_uncollapsed_obss);
+  convert_starling_obs_array_to_uncollapsed_obss(obs_array,
+                                                 new_uncollapsed_obss);
 
   /* Warn on receiving observations which are very old. This may be indicative
    * of a connectivity problem. Obviously, if we don't have a good local time
@@ -447,7 +445,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
   static gps_time_t prev_tor = GPS_TIME_UNKNOWN;
 
   /* Storage for collecting the incoming observations. */
-  static obs_array_t obs_array;   
+  static obs_array_t obs_array;
 
   obs_array.sender = sender_id;
 
@@ -486,7 +484,8 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
   static gps_time_t tor_old = GPS_TIME_UNKNOWN;
   if (is_first_message_in_obs_sequence(count)) {
     if (gps_time_valid(&tor_old) && gpsdifftime(&tor, &tor_old) <= 0) {
-      log_info("Observation received with equal or earlier time stamp, ignoring");
+      log_info(
+          "Observation received with equal or earlier time stamp, ignoring");
       return;
     }
   }
@@ -496,9 +495,11 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
    * processing epochs. */
   if (!is_time_aligned_to_local_epoch(&tor)) {
     if (is_first_message_in_obs_sequence(count)) {
-      log_warn("Unaligned observation from base ignored, tow = %.3f,"
-               " Base station observation rate and solution"
-               " frequency may be mismatched.", tor.tow);
+      log_warn(
+          "Unaligned observation from base ignored, tow = %.3f,"
+          " Base station observation rate and solution"
+          " frequency may be mismatched.",
+          tor.tow);
     }
     return;
   }
@@ -533,7 +534,8 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
       (packed_obs_content_t *)(msg + sizeof(observation_header_t));
 
   /* Copy into local array. */
-  for (size_t i = 0; i < obs_in_msg && obs_array.n < STARLING_MAX_OBS_COUNT; ++i) {
+  for (size_t i = 0; i < obs_in_msg && obs_array.n < STARLING_MAX_OBS_COUNT;
+       ++i) {
     starling_obs_t *current_obs = &obs_array.observations[obs_array.n++];
     unpack_obs_content(&msg_raw_obs[i], current_obs);
     /* We must also compute the TOT using the TOR from the header. */
@@ -552,7 +554,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
   if (is_final_message_in_obs_sequence(count, total)) {
     // TODO(kevin) Do something with the obs array.
     update_obss(&obs_array);
-    
+
     /* Calculate packet latency. */
     if (get_time_quality() >= TIME_COARSE) {
       gps_time_t now = get_current_time();

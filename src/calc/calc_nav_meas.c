@@ -28,26 +28,25 @@
 #define TDCP_MAX_DELTA_HZ 85
 
 /* Copy all fields from a Starling-style obs type into the
- * corresponding navigation measurement fields. As of 
+ * corresponding navigation measurement fields. As of
  * (August 2018), all fields have identical units. */
 void convert_starling_obs_to_navigation_measurement(
-    starling_obs_t *starling_obs,
-    navigation_measurement_t *nm) {
+    starling_obs_t *starling_obs, navigation_measurement_t *nm) {
   /* Most fields are a direct conversion. */
-  nm->sid                  = starling_obs->sid;
-  nm->tot                  = starling_obs->tot;
-  nm->raw_pseudorange      = starling_obs->P;
-  nm->raw_carrier_phase    = starling_obs->L;
+  nm->sid = starling_obs->sid;
+  nm->tot = starling_obs->tot;
+  nm->raw_pseudorange = starling_obs->P;
+  nm->raw_carrier_phase = starling_obs->L;
   nm->raw_measured_doppler = starling_obs->D;
-  nm->cn0                  = starling_obs->cn0;
-  nm->lock_time            = starling_obs->lock_time;
-  nm->flags                = starling_obs->flags;
+  nm->cn0 = starling_obs->cn0;
+  nm->lock_time = starling_obs->lock_time;
+  nm->flags = starling_obs->flags;
 
-  /* Some other fields we also provide an initial value to be overwritten later. */
+  /* Some other fields we also provide an initial value to be overwritten later.
+   */
   nm->IODE = INVALID_IODE;
   nm->IODC = INVALID_IODC;
-  if (!track_sid_db_elevation_degrees_get(nm->sid,
-        &nm->elevation)) {
+  if (!track_sid_db_elevation_degrees_get(nm->sid, &nm->elevation)) {
     /* Use 0 degrees as unknown elevation to assign it the smallest weight */
     log_debug_sid(nm->sid, "Elevation unknown, using 0");
     nm->elevation = 0;
@@ -56,15 +55,14 @@ void convert_starling_obs_to_navigation_measurement(
 
 /* Convert a single channel measurement into a single navigation measurement. */
 static s8 convert_channel_measurement_to_starling_obs(
-    const gps_time_t            *rec_time,
+    const gps_time_t *rec_time,
     const channel_measurement_t *meas,
     starling_obs_t *obs) {
-
   obs->sid = meas->sid;
 
   u32 code_length = code_to_chip_count(meas->sid.code);
   u32 chips_in_millisecond =
-    code_length / code_to_prn_period_ms(meas->sid.code);
+      code_length / code_to_prn_period_ms(meas->sid.code);
   double chip_rate = code_to_chip_rate(meas->sid.code);
   double lambda = sid_to_lambda(meas->sid);
 
@@ -178,9 +176,9 @@ s8 calc_navigation_measurement(u8 n_channels,
 
   assert(n_channels <= STARLING_MAX_OBS_COUNT);
   obs_array_t obs_array = {
-    .sender = 0,     /* Sender ID=0 indicates local/loopback observations. */
-    .t = *rec_time,
-    .n = n_channels,
+      .sender = 0, /* Sender ID=0 indicates local/loopback observations. */
+      .t = *rec_time,
+      .n = n_channels,
   };
 
   for (u8 i = 0; i < n_channels; ++i) {
@@ -191,10 +189,11 @@ s8 calc_navigation_measurement(u8 n_channels,
     }
   }
 
-  /* Now we can go and convert all Starling observations into the nav_meas array. */
+  /* Now we can go and convert all Starling observations into the nav_meas
+   * array. */
   for (size_t i = 0; i < obs_array.n; ++i) {
     starling_obs_t *obs = &obs_array.observations[i];
-    convert_starling_obs_to_navigation_measurement(obs, nav_meas[i]);  
+    convert_starling_obs_to_navigation_measurement(obs, nav_meas[i]);
   }
 
   return 0;
