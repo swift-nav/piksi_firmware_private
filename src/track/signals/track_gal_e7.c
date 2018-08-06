@@ -151,7 +151,7 @@ void gal_e1_to_e7_handover(u32 sample_count,
       break;
 
     default:
-      assert(!"Unknown code returned");
+      ASSERT(!"Unknown code returned");
       break;
   }
 }

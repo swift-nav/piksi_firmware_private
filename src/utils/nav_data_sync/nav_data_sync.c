@@ -11,6 +11,7 @@
  */
 
 #include "nav_data_sync/nav_data_sync.h"
+#include <libswiftnav/compiler.h>
 
 /** Initialize a nav_data_sync_t struct.
  *
@@ -29,8 +30,8 @@ void nav_data_sync_init(nav_data_sync_t *sync) { sync->valid = false; }
  */
 bool nav_data_sync_set(nav_data_sync_t *to_tracker,
                        const nav_data_sync_t *from_decoder) {
-  assert(to_tracker);
-  assert(from_decoder);
+  ASSERT(to_tracker);
+  ASSERT(from_decoder);
   bool result = false;
 
   if (!to_tracker->valid) {
@@ -55,8 +56,8 @@ bool nav_data_sync_set(nav_data_sync_t *to_tracker,
  */
 bool nav_data_sync_get(nav_data_sync_t *to_tracker,
                        nav_data_sync_t *from_decoder) {
-  assert(to_tracker);
-  assert(from_decoder);
+  ASSERT(to_tracker);
+  ASSERT(from_decoder);
   bool result = false;
 
   if (from_decoder->valid) {

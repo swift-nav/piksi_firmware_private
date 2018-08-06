@@ -109,7 +109,7 @@ static bool handle_pv(device_state_t dev_state) {
       return TRUE;
       break;
     default:
-      assert(!"Unknown mode");
+      ASSERT(!"Unknown mode");
       break;
   }
 }

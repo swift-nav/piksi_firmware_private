@@ -15,6 +15,7 @@
 #include <openamp/open_amp.h>
 #pragma GCC diagnostic pop
 
+#include <libswiftnav/common.h>
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
@@ -147,7 +148,7 @@ void env_wmb(void) { asm volatile("dsb" : : : "memory"); }
 
 int env_create_mutex(void **lock, int count) {
   (void)count;
-  assert(count == 1);
+  ASSERT(count == 1);
 
   for (int i = 0; i < MUTEX_POOL_COUNT; i++) {
     if (mutex_pool_bitfield & (1 << i)) {
@@ -168,7 +169,7 @@ void env_delete_mutex(void *lock) {
     }
   }
 
-  assert(!"invalid mutex");
+  ASSERT(!"invalid mutex");
 }
 
 void env_lock_mutex(void *lock) { chMtxLock(lock); }
@@ -178,30 +179,30 @@ void env_unlock_mutex(void *lock) { chMtxUnlock(lock); }
 int env_create_sync_lock(void **lock, int state) {
   (void)lock;
   (void)state;
-  assert(!"unsupported");
+  ASSERT(!"unsupported");
   return 0;
 }
 
 void env_delete_sync_lock(void *lock) {
   (void)lock;
-  assert(!"unsupported");
+  ASSERT(!"unsupported");
 }
 
 void env_acquire_sync_lock(void *lock) {
   (void)lock;
-  assert(!"unsupported");
+  ASSERT(!"unsupported");
 }
 
 void env_release_sync_lock(void *lock) {
   (void)lock;
-  assert(!"unsupported");
+  ASSERT(!"unsupported");
 }
 
 void env_sleep_msec(int num_msec) { chThdSleepMilliseconds(num_msec); }
 
-void env_disable_interrupts(void) { assert(!"unsupported"); }
+void env_disable_interrupts(void) { ASSERT(!"unsupported"); }
 
-void env_restore_interrupts(void) { assert(!"unsupported"); }
+void env_restore_interrupts(void) { ASSERT(!"unsupported"); }
 
 void env_register_isr_shared(int vector,
                              void *data,
@@ -213,7 +214,7 @@ void env_register_isr_shared(int vector,
   (void)isr;
   (void)name;
   (void)shared;
-  assert(!"unsupported");
+  ASSERT(!"unsupported");
 }
 
 void env_register_isr(int vector,
@@ -222,7 +223,7 @@ void env_register_isr(int vector,
   (void)vector;
   (void)data;
   (void)isr;
-  assert(!"unsupported");
+  ASSERT(!"unsupported");
 }
 
 void env_update_isr(int vector,
@@ -235,7 +236,7 @@ void env_update_isr(int vector,
   (void)isr;
   (void)name;
   (void)shared;
-  assert(!"unsupported");
+  ASSERT(!"unsupported");
 }
 
 void env_enable_interrupt(unsigned int vector,
@@ -244,12 +245,12 @@ void env_enable_interrupt(unsigned int vector,
   (void)vector;
   (void)priority;
   (void)polarity;
-  assert(!"unsupported");
+  ASSERT(!"unsupported");
 }
 
 void env_disable_interrupt(unsigned int vector) {
   (void)vector;
-  assert(!"unsupported");
+  ASSERT(!"unsupported");
 }
 
 void env_map_memory(unsigned int pa,
@@ -271,12 +272,12 @@ void env_disable_cache(void) {}
 void env_flush_invalidate_all_caches(void) {}
 
 unsigned long long env_get_timestamp(void) {
-  assert(!"unsupported");
+  ASSERT(!"unsupported");
   return 0;
 }
 
 int platform_get_processor_info(struct hil_proc *proc, int cpu_id) {
-  assert((unsigned int)cpu_id == HIL_RSVD_CPU_ID);
+  ASSERT((unsigned int)cpu_id == HIL_RSVD_CPU_ID);
 
   extern const struct hil_proc hil_proc;
   env_memcpy(proc, &hil_proc, sizeof(*proc));
@@ -325,13 +326,13 @@ static void _notify(int cpu_id, struct proc_intr *intr_info) {
 static int _boot_cpu(int cpu_id, unsigned int load_addr) {
   (void)cpu_id;
   (void)load_addr;
-  assert(!"unsupported");
+  ASSERT(!"unsupported");
   return 1;
 }
 
 static void _shutdown_cpu(int cpu_id) {
   (void)cpu_id;
-  assert(!"unsupported");
+  ASSERT(!"unsupported");
 }
 
 static void rproc_virtio_irq_handler(void *context) {

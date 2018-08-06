@@ -137,13 +137,13 @@ static void platform_thread_info_init(const thread_id_t id,
       break;
 
     default:
-      assert(!"Unknown thread ID");
+      ASSERT(!"Unknown thread ID");
       break;
   }
 }
 
 void platform_thread_create(const thread_id_t id, platform_routine_t *fn) {
-  assert(fn);
+  ASSERT(fn);
   platform_thread_info_t info;
   platform_thread_info_init(id, &info);
   chThdCreateStatic(info.wsp, info.size, info.prio, fn, NULL);

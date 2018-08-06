@@ -80,37 +80,37 @@
 #define PIKSI_ST2S_LIMIT PIKSI_ST2_LIMIT(1)
 
 static inline u64 st2us(u64 st) {
-  assert(st <= PIKSI_ST2US_LIMIT);
+  ASSERT(st <= PIKSI_ST2US_LIMIT);
 
   return PIKSI_ST2US(st);
 }
 
 static inline u64 st2ms(u64 st) {
-  assert(st <= PIKSI_ST2MS_LIMIT);
+  ASSERT(st <= PIKSI_ST2MS_LIMIT);
 
   return PIKSI_ST2MS(st);
 }
 
 static inline u64 st2s(u64 st) {
-  assert(st <= PIKSI_ST2S_LIMIT);
+  ASSERT(st <= PIKSI_ST2S_LIMIT);
 
   return PIKSI_ST2S(st);
 }
 
 static inline u64 us2st(u64 us) {
-  assert(us <= PIKSI_US2ST_LIMIT);
+  ASSERT(us <= PIKSI_US2ST_LIMIT);
 
   return PIKSI_US2ST(us);
 }
 
 static inline u64 ms2st(u64 ms) {
-  assert(ms <= PIKSI_MS2ST_LIMIT);
+  ASSERT(ms <= PIKSI_MS2ST_LIMIT);
 
   return PIKSI_MS2ST(ms);
 }
 
 static inline u64 s2st(u64 s) {
-  assert(s <= PIKSI_S2ST_LIMIT);
+  ASSERT(s <= PIKSI_S2ST_LIMIT);
 
   return PIKSI_S2ST(s);
 }
@@ -128,7 +128,7 @@ static void piksi_systime_get_internal(piksi_systime_t *t) {
   static piksi_systime_t prev = {PIKSI_SYSTIME_SYSTIME_INIT,
                                  PIKSI_SYSTIME_RO_CNT_INIT};
 
-  assert(t);
+  ASSERT(t);
 
   systime_t current = chVTGetSystemTimeX();
 
@@ -221,7 +221,7 @@ static s64 piksi_systime_sub_internal(const piksi_systime_t *a,
   s64 res = a_tot - b_tot;
 
   /* check that the answer fits into the return type */
-  assert(b_tot + res == a_tot);
+  ASSERT(b_tot + res == a_tot);
 
   return res;
 }
@@ -357,14 +357,14 @@ static u64 piksi_systime_elapsed_since_x(const piksi_systime_t *t) {
  *
  */
 void piksi_systime_inc_internal(piksi_systime_t *t, u64 inc) {
-  assert(t);
+  ASSERT(t);
 
   if (0 == inc) {
     return;
   }
 
   /* TODO: modify function to support larger increments */
-  assert(inc <= TIME_INFINITE);
+  ASSERT(inc <= TIME_INFINITE);
 
   systime_t space = TIME_INFINITE - t->systime;
 
@@ -418,17 +418,17 @@ void piksi_systime_inc_s(piksi_systime_t *t, u64 inc) {
  * \param[in] inc           System tick value to be decreased.
  */
 void piksi_systime_dec_internal(piksi_systime_t *t, u64 dec) {
-  assert(t);
+  ASSERT(t);
 
   if (0 == dec) {
     return;
   }
 
   /* TODO: modify function to support larger decrements */
-  assert(dec <= TIME_INFINITE);
+  ASSERT(dec <= TIME_INFINITE);
 
   if (dec > t->systime) {
-    assert(0 < t->rollover_cnt);
+    ASSERT(0 < t->rollover_cnt);
     t->rollover_cnt--;
     dec -= (t->systime + 1);
     t->systime = TIME_INFINITE;
@@ -497,7 +497,7 @@ void piksi_systime_add_us(piksi_systime_t *t, s64 delta) {
  * \return -1 if a > b; 0 if a == b; 1 if a < b
  */
 s8 piksi_systime_cmp(const piksi_systime_t *a, const piksi_systime_t *b) {
-  assert(NULL != a && NULL != b);
+  ASSERT(NULL != a && NULL != b);
 
   if (a->rollover_cnt > b->rollover_cnt) {
     return -1;
@@ -530,7 +530,7 @@ void piksi_systime_sleep_s_internal(systime_t len) { chThdSleepS(len); }
 void piksi_systime_sleep_us_s(u32 len_us) {
   u64 len_st = us2st(len_us);
 
-  assert(len_st <= TIME_INFINITE);
+  ASSERT(len_st <= TIME_INFINITE);
 
   piksi_systime_sleep_s_internal(len_st);
 }
@@ -546,7 +546,7 @@ void piksi_systime_sleep_internal(systime_t len) { chThdSleep(len); }
 void piksi_systime_sleep_ms(u32 len_ms) {
   u64 len_st = ms2st(len_ms);
 
-  assert(len_st <= TIME_INFINITE);
+  ASSERT(len_st <= TIME_INFINITE);
 
   piksi_systime_sleep_internal(len_st);
 }

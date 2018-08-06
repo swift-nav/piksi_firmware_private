@@ -212,7 +212,7 @@ void tl_pll3_discr_update(
     float mean_period_s = ((s->prev_period_s) + (s->discr_period_s)) / 2.0f;
     s->discr_sum_hz += (angle_circ / mean_period_s);
     s->discr_cnt++;
-    assert(0 != s->discr_cnt);
+    ASSERT(0 != s->discr_cnt);
   }
   s->prev_I = I;
   s->prev_Q = Q;

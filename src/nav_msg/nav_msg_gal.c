@@ -120,7 +120,7 @@ void gal_inav_msg_clear_decoded(nav_msg_gal_inav_t *n) { (void)n; }
  * \return true if a two I/NAV pages completed with this bit
  */
 bool gal_inav_msg_update(nav_msg_gal_inav_t *n, s8 bit_val) {
-  assert(n);
+  ASSERT(n);
 
   /* this implementation uses a SOFT-decision decoder,
    * but right now the dumb 32->8 bit conversion
@@ -314,7 +314,7 @@ static void gal_eph_store(const nav_msg_gal_inav_t *n,
 
 inav_data_type_t parse_inav_word(nav_msg_gal_inav_t *nav_msg,
                                  gal_inav_decoded_t *dd) {
-  assert(nav_msg);
+  ASSERT(nav_msg);
   u8 *content = nav_msg->raw_content;
   gps_time_t t_dec = GPS_TIME_UNKNOWN;
 
@@ -777,7 +777,7 @@ static void inav_buffer_1bit_pushr(u32 buff[static GAL_INAV_DECODE_BUFF_SIZE],
                                    const bool bitval) {
   u8 k;
 
-  assert(buff);
+  ASSERT(buff);
 
   /* buff[0] contains the first preamble candidate */
   buff[0] = ((buff[0] << 1) | ((buff[1] >> 29) & 0x1)) & GAL_INAV_PREAMBLE_MASK;

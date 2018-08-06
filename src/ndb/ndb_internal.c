@@ -63,7 +63,7 @@ static ndb_op_code_t ndb_wq_process(void);
  * \sa ndb_wq_get
  */
 void ndb_wq_put(ndb_element_metadata_t *md) {
-  assert(0 != (md->vflags & (NDB_VFLAG_IE_DIRTY | NDB_VFLAG_MD_DIRTY)));
+  ASSERT(0 != (md->vflags & (NDB_VFLAG_IE_DIRTY | NDB_VFLAG_MD_DIRTY)));
 
   /* Check if the element is already in the queue. */
   if (0 == (md->vflags & NDB_VFLAG_ENQUEUED)) {
@@ -178,7 +178,7 @@ static void ndb_log_file_open(ndb_op_code_t oc,
     case NDB_ERR_AGED_DATA:
     case NDB_ERR_GPS_TIME_MISSING:
     default:
-      assert(!"ndb_log_file_open()");
+      ASSERT(!"ndb_log_file_open()");
       break;
   }
 }
@@ -381,8 +381,8 @@ static ndb_op_code_t ndb_wq_process(void) {
   ndb_file_t *file = md->file;
   ndb_ie_index_t index = md->index;
 
-  assert((md->vflags & (NDB_VFLAG_IE_DIRTY | NDB_VFLAG_MD_DIRTY)) != 0);
-  assert((md->vflags & NDB_VFLAG_ENQUEUED) == 0);
+  ASSERT((md->vflags & (NDB_VFLAG_IE_DIRTY | NDB_VFLAG_MD_DIRTY)) != 0);
+  ASSERT((md->vflags & NDB_VFLAG_ENQUEUED) == 0);
 
   MEMCPY_S(buf, sizeof(buf), md->data, block_size);
   write_buf = 0 != (md->vflags & NDB_VFLAG_IE_DIRTY);
@@ -677,7 +677,7 @@ static ndb_op_code_t ndb_retrieve_int(ndb_file_t *file,
                                       ndb_data_source_t *ds) {
   ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
 
-  assert(idx < file->block_count);
+  ASSERT(idx < file->block_count);
 
   const ndb_element_metadata_t *md = &file->block_md[idx];
 
@@ -772,7 +772,7 @@ ndb_op_code_t ndb_retrieve(const ndb_element_metadata_t *md,
                            ndb_data_source_t *ds) {
   ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
 
-  assert(md);
+  ASSERT(md);
 
   if ((NULL != md->file) && (out_size == md->file->block_size)) {
     ndb_lock();

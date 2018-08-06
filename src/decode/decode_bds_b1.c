@@ -64,8 +64,8 @@ static void decoder_bds_b1_init(const decoder_channel_info_t *channel_info,
 
 static void decoder_bds_b1_process(const decoder_channel_info_t *channel_info,
                                    decoder_data_t *decoder_data) {
-  assert(channel_info);
-  assert(decoder_data);
+  ASSERT(channel_info);
+  ASSERT(decoder_data);
 
   bds_b1_decoder_data_t *data = decoder_data;
 

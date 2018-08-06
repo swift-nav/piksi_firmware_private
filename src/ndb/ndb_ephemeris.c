@@ -307,7 +307,7 @@ static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new) {
     return NDB_ERR_BAD_PARAM;
   }
 
-  assert(idx < ARRAY_SIZE(ndb_ephemeris_md));
+  ASSERT(idx < ARRAY_SIZE(ndb_ephemeris_md));
   if (NDB_ERR_NONE ==
       ndb_retrieve(
           &ndb_ephemeris_md[idx], &existing_e, sizeof(existing_e), NULL)) {
@@ -418,7 +418,7 @@ ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e) {
     return NDB_ERR_BAD_PARAM;
   }
 
-  assert(idx < ARRAY_SIZE(ndb_ephemeris_md));
+  ASSERT(idx < ARRAY_SIZE(ndb_ephemeris_md));
   ndb_op_code_t res = ndb_retrieve(&ndb_ephemeris_md[idx], e, sizeof(*e), NULL);
 
   double ndb_eph_age;
@@ -435,7 +435,7 @@ ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e) {
   } else if (IS_GAL(sid)) {
     ndb_eph_age = NDB_NV_GAL_EPHEMERIS_AGE_SECS;
   } else {
-    assert(!"Constellation is not supported");
+    ASSERT(!"Constellation is not supported");
   }
 
   if (NDB_ERR_NONE == res) {
@@ -491,7 +491,7 @@ static ndb_op_code_t ndb_ephemeris_store_do(const ephemeris_t *e,
       case NDB_CAND_GPS_TIME_MISSING:
         return NDB_ERR_GPS_TIME_MISSING;
       default:
-        assert(!"Invalid status");
+        ASSERT(!"Invalid status");
     }
   } else if (NDB_DS_SBP == src) {
     u8 valid, health_bits;
@@ -517,7 +517,7 @@ static ndb_op_code_t ndb_ephemeris_store_do(const ephemeris_t *e,
     }
     return NDB_ERR_NONE;
   }
-  assert(!"ndb_ephemeris_store()");
+  ASSERT(!"ndb_ephemeris_store()");
   return NDB_ERR_ALGORITHM_ERROR;
 }
 
@@ -616,11 +616,11 @@ ndb_op_code_t ndb_ephemeris_info(gnss_signal_t sid,
                                  float *ura) {
   ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
 
-  assert(valid != NULL);
-  assert(health_bits != NULL);
-  assert(toe != NULL);
-  assert(fit_interval != NULL);
-  assert(ura != NULL);
+  ASSERT(valid != NULL);
+  ASSERT(health_bits != NULL);
+  ASSERT(toe != NULL);
+  ASSERT(fit_interval != NULL);
+  ASSERT(ura != NULL);
   u16 idx = sid_to_sv_index(sid);
   ndb_lock();
   if (0 != (ndb_ephemeris_md[idx].nv_data.state & NDB_IE_VALID)) {

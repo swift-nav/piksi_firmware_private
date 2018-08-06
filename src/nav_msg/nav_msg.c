@@ -101,7 +101,7 @@ void nav_msg_clear_decoded(nav_msg_t *n) {
  * \return Extracted bits
  */
 u32 extract_word(const nav_msg_t *n, u16 bit_index, u8 n_bits, u8 invert) {
-  assert(n_bits > 0 && n_bits <= 32);
+  ASSERT(n_bits > 0 && n_bits <= 32);
 
   /* Extract a word of n_bits length (n_bits <= 32) at position bit_index into
    * the subframe. Takes account of the offset stored in n, and the circular
@@ -916,7 +916,7 @@ static s8 decode_subframe45(u8 age,
       almanac_health_t health;
       if (almanac_decode_health(words, &health)) {
         data->almanac_health_upd_flags = health.health_bits_valid;
-        assert(sizeof(data->almanac_health) == sizeof(health.health_bits));
+        ASSERT(sizeof(data->almanac_health) == sizeof(health.health_bits));
         memcpy(data->almanac_health,
                health.health_bits,
                sizeof(data->almanac_health));
@@ -954,7 +954,7 @@ static s8 decode_subframe45(u8 age,
 s8 process_subframe(nav_msg_t *n,
                     const me_gnss_signal_t mesid,
                     gps_l1ca_decoded_data_t *data) {
-  assert(data != NULL);
+  ASSERT(data != NULL);
   memset(data, 0, sizeof(*data));
 
   /* Check parity and parse out the ephemeris from the most recently received
@@ -1053,7 +1053,7 @@ s8 process_subframe(nav_msg_t *n,
           /* Unexpected subframe number. Possible error: invalid subframe ids
            * are
            * handled above. */
-          assert(!"Unexpected subframe number");
+          ASSERT(!"Unexpected subframe number");
           break;
       }
       break;
@@ -1066,7 +1066,7 @@ s8 process_subframe(nav_msg_t *n,
       res = 1;
       break;
     default:
-      assert(!"Invalid subframe status flag");
+      ASSERT(!"Invalid subframe status flag");
   }
 
   /* Update subframe counter */

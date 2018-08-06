@@ -10,6 +10,8 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include <libswiftnav/compiler.h>
+
 #include "track_state.h"
 #include "acq/manage.h"
 #include "board/nap/track_channel.h"
@@ -87,7 +89,7 @@ void track_setup(void) {
  * \return Associated tracker channel.
  */
 tracker_t *tracker_get(u8 id) {
-  assert(id < NUM_TRACKER_CHANNELS);
+  ASSERT(id < NUM_TRACKER_CHANNELS);
   return &trackers[id];
 }
 
@@ -124,10 +126,10 @@ void tracker_get_state(u8 id,
                        tracker_time_info_t *time_info,
                        tracker_freq_info_t *freq_info,
                        tracker_misc_info_t *misc_info) {
-  assert(info);
-  assert(time_info);
-  assert(freq_info);
-  assert(misc_info);
+  ASSERT(info);
+  ASSERT(time_info);
+  ASSERT(freq_info);
+  ASSERT(misc_info);
 
   tracker_t *tracker = tracker_get(id);
 
@@ -287,11 +289,11 @@ bool tracker_init(const u8 id,
        on signal type and CN0. */
     tp_tm_e tracking_mode = tracker->profile.loop_params.mode;
     u8 first_int_ms = tp_get_current_cycle_duration(tracking_mode, 0);
-    assert((1 == first_int_ms) || (2 == first_int_ms));
+    ASSERT((1 == first_int_ms) || (2 == first_int_ms));
     if (tp_get_cycle_count(tracking_mode) > 1) {
       /* nap_track_init() expects first 2 integration times be equal */
       u8 second_int_ms = tp_get_current_cycle_duration(tracking_mode, 1);
-      assert(second_int_ms == first_int_ms);
+      ASSERT(second_int_ms == first_int_ms);
     }
     chips_to_correlate = code_to_chip_rate(mesid.code) * 1e-3 * first_int_ms;
 
@@ -321,7 +323,7 @@ bool tracker_init(const u8 id,
  */
 void tracker_disable(const u8 id) {
   tracker_t *tracker = tracker_get(id);
-  assert(tracker->busy);
+  ASSERT(tracker->busy);
 
   /* disable NAP */
   nap_track_disable(tracker->nap_channel);

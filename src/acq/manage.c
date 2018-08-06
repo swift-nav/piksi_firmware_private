@@ -17,6 +17,7 @@
 
 #include <libsbp/piksi.h>
 #include <libswiftnav/almanac.h>
+#include <libswiftnav/compiler.h>
 #include <libswiftnav/constants.h>
 #include <libswiftnav/coord_system.h>
 #include <libswiftnav/glo_map.h>
@@ -78,8 +79,6 @@ static bool track_mask[ARRAY_SIZE(acq_status)];
 
 #define DOPP_UNCERT_ALMANAC 4000
 #define DOPP_UNCERT_EPHEM 500
-
-#define COMPILER_BARRIER() asm volatile("" : : : "memory")
 
 #define TRACKING_STARTUP_FIFO_SIZE 16 /* Must be a power of 2 */
 
@@ -185,7 +184,7 @@ static void mask_sat_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
     /* TODO GLO: Handle GLO signals properly. */
     me_gnss_signal_t mesid;
     if (IS_GLO(sid)) {
-      assert(glo_map_valid(sid));
+      ASSERT(glo_map_valid(sid));
       u16 fcn = glo_map_get_fcn(sid);
       mesid = construct_mesid(sid.code, fcn);
     } else {
@@ -460,7 +459,7 @@ static void manage_acq(void) {
     return;
   }
 
-  assert((CODE_GPS_L1CA == acq->mesid.code) ||
+  ASSERT((CODE_GPS_L1CA == acq->mesid.code) ||
          (CODE_GLO_L1OF == acq->mesid.code) ||
          (CODE_SBAS_L1CA == acq->mesid.code) ||
          (CODE_BDS2_B1 == acq->mesid.code) ||
@@ -661,7 +660,7 @@ static const char *get_ch_drop_reason_str(ch_drop_reason_t reason) {
       str = "Measurement flagged by RAIM, dropping";
       break;
     default:
-      assert(!"Unknown channel drop reason");
+      ASSERT(!"Unknown channel drop reason");
   }
   return str;
 }
@@ -765,14 +764,14 @@ void restore_acq(const tracker_t *tracker) {
       acq = &acq_status[mesid_to_global_index(mesid)];
       acq->state = ACQ_PRN_UNHEALTHY;
       u16 index = tracker->glo_orbit_slot - 1;
-      assert(index < ARRAY_SIZE(glo_acq_timer));
+      ASSERT(index < ARRAY_SIZE(glo_acq_timer));
       glo_acq_timer[index].status = acq;
       piksi_systime_get(&glo_acq_timer[index].tick); /* channel drop time */
     }
   } else if (IS_SBAS(mesid)) {
     acq->state = ACQ_PRN_UNHEALTHY;
     u16 index = tracker->mesid.sat - SBAS_FIRST_PRN;
-    assert(index < ARRAY_SIZE(sbas_acq_timer));
+    ASSERT(index < ARRAY_SIZE(sbas_acq_timer));
     sbas_acq_timer[index].status = acq;
     piksi_systime_get(&sbas_acq_timer[index].tick); /* channel drop time */
   } else if (IS_BDS2(mesid)) {
@@ -780,7 +779,7 @@ void restore_acq(const tracker_t *tracker) {
     acq = &acq_status[mesid_to_global_index(mesid)];
     acq->state = ACQ_PRN_UNHEALTHY;
     u16 index = tracker->mesid.sat - BDS_FIRST_PRN;
-    assert(index < ARRAY_SIZE(bds2_acq_timer));
+    ASSERT(index < ARRAY_SIZE(bds2_acq_timer));
     bds2_acq_timer[index].status = acq;
     piksi_systime_get(&bds2_acq_timer[index].tick); /* channel drop time */
   } else if (IS_GAL(mesid)) {
@@ -788,7 +787,7 @@ void restore_acq(const tracker_t *tracker) {
     acq = &acq_status[mesid_to_global_index(mesid)];
     acq->state = ACQ_PRN_UNHEALTHY;
     u16 index = tracker->mesid.sat - GAL_FIRST_PRN;
-    assert(index < ARRAY_SIZE(gal_acq_timer));
+    ASSERT(index < ARRAY_SIZE(gal_acq_timer));
     gal_acq_timer[index].status = acq;
     piksi_systime_get(&gal_acq_timer[index].tick); /* channel drop time */
   }

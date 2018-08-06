@@ -143,7 +143,7 @@ gnss_signal_t sid_from_global_index(u16 global_index) {
     }
   }
   log_error("global_index %d is outside range", global_index);
-  assert(!"Invalid global index");
+  ASSERT(!"Invalid global index");
   return construct_sid(CODE_INVALID, 0);
 }
 
@@ -166,7 +166,7 @@ me_gnss_signal_t mesid_from_global_index(u16 me_global_index) {
     }
   }
 
-  assert(!"Invalid global index");
+  ASSERT(!"Invalid global index");
   return construct_mesid(CODE_INVALID, 0);
 }
 
@@ -194,7 +194,7 @@ gnss_signal_t sid_from_constellation_index(constellation_t constellation,
     }
   }
 
-  assert(!"Invalid constellation index");
+  ASSERT(!"Invalid constellation index");
   return construct_sid(CODE_INVALID, 0);
 }
 
@@ -208,7 +208,7 @@ gnss_signal_t sid_from_constellation_index(constellation_t constellation,
  * \return Global ME signal index in [0, PLATFORM_ACQ_TRACK_COUNT).
  */
 u16 mesid_to_global_index(const me_gnss_signal_t mesid) {
-  assert(code_supported(mesid.code));
+  ASSERT(code_supported(mesid.code));
   return code_table[mesid.code].me_global_start_index +
          mesid_to_code_index(mesid);
 }
@@ -224,7 +224,7 @@ u16 mesid_to_global_index(const me_gnss_signal_t mesid) {
  *         [0, PLATFORM_SIGNAL_COUNT_\<constellation\>).
  */
 u16 sid_to_constellation_index(gnss_signal_t sid) {
-  assert(code_supported(sid.code));
+  ASSERT(code_supported(sid.code));
   return code_table[sid.code].constellation_start_index +
          sid_to_code_index(sid);
 }
@@ -269,7 +269,7 @@ bool code_supported(code_t code) {
  * \return Minimum Doppler value [Hz]
  */
 float code_to_tcxo_doppler_min(code_t code) {
-  assert(code_valid(code));
+  ASSERT(code_valid(code));
 
   float doppler;
 
@@ -285,7 +285,7 @@ float code_to_tcxo_doppler_min(code_t code) {
  * \return Maximum Doppler value [Hz]
  */
 float code_to_tcxo_doppler_max(code_t code) {
-  assert(code_valid(code));
+  ASSERT(code_valid(code));
 
   float doppler;
 
@@ -302,8 +302,8 @@ float code_to_tcxo_doppler_max(code_t code) {
  * \return gnss_signal_t corresponding to sv_index with first valid code.
  */
 gnss_signal_t sv_index_to_sid(u16 sv_index) {
-  assert(sv_index < NUM_SATS);
-  assert(constellation_table[0].start_index == 0);
+  ASSERT(sv_index < NUM_SATS);
+  ASSERT(constellation_table[0].start_index == 0);
 
   gnss_signal_t sid = {0, CODE_INVALID};
 
@@ -312,7 +312,7 @@ gnss_signal_t sv_index_to_sid(u16 sv_index) {
   while (constellation_table[cons].start_index > sv_index) {
     cons--;
   }
-  assert(constellation_valid(cons));
+  ASSERT(constellation_valid(cons));
 
   /* find the first valid and supported code for this constellation */
   for (code_t code = 0; code < CODE_COUNT; code++) {
@@ -320,7 +320,7 @@ gnss_signal_t sv_index_to_sid(u16 sv_index) {
       sid = construct_sid(code,
                           sv_index - constellation_table[cons].start_index +
                               constellation_table[cons].sat_start);
-      assert(sid_valid(sid));
+      ASSERT(sid_valid(sid));
       return sid;
     }
   }
@@ -337,11 +337,11 @@ gnss_signal_t sv_index_to_sid(u16 sv_index) {
  * \return SV index in [0, NUM_SATS).
  */
 u16 sid_to_sv_index(gnss_signal_t sid) {
-  assert(sid_valid(sid));
+  ASSERT(sid_valid(sid));
   constellation_t cons = sid_to_constellation(sid);
   u16 sv_index = constellation_table[cons].start_index + sid.sat -
                  constellation_table[cons].sat_start;
-  assert(sv_index < NUM_SATS);
+  ASSERT(sv_index < NUM_SATS);
   return sv_index;
 }
 
@@ -350,7 +350,7 @@ u16 sid_to_sv_index(gnss_signal_t sid) {
  * \return The frequency channel [Hz]
  */
 double mesid_to_carr_fcn_hz(const me_gnss_signal_t mesid) {
-  assert(mesid_valid(mesid));
+  ASSERT(mesid_valid(mesid));
 
   double carr_fcn_hz = 0;
   if (CODE_GLO_L1OF == mesid.code) {

@@ -88,7 +88,7 @@ void track_sid_db_clear_glo_tow(void) {
  * \param[out] tow_entry ToW entry for the given signal.
  */
 void track_sid_db_load_tow(const gnss_signal_t sid, tp_tow_entry_t *tow_entry) {
-  assert(tow_entry);
+  ASSERT(tow_entry);
 
   u16 sv_index = sid_to_sv_index(sid);
   chMtxLock(&sid_db_cache.mutex);
@@ -104,7 +104,7 @@ void track_sid_db_load_tow(const gnss_signal_t sid, tp_tow_entry_t *tow_entry) {
  */
 void track_sid_db_update_tow(const gnss_signal_t sid,
                              const tp_tow_entry_t *tow_entry) {
-  assert(tow_entry);
+  ASSERT(tow_entry);
 
   u16 sv_index = sid_to_sv_index(sid);
   chMtxLock(&sid_db_cache.mutex);
@@ -145,7 +145,7 @@ static bool track_sid_db_load_azel(const gnss_signal_t sid,
  */
 static void track_sid_db_update_azel(const gnss_signal_t sid,
                                      const tp_azel_entry_t *azel_entry) {
-  assert(NULL != azel_entry);
+  ASSERT(NULL != azel_entry);
   u16 sv_index = sid_to_sv_index(sid);
   chMtxLock(&sid_db_cache.mutex);
   sid_db_cache.entries[sv_index].azel = *azel_entry;

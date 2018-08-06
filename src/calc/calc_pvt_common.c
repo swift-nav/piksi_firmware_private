@@ -71,9 +71,9 @@ void send_observations(u8 n,
 void extract_covariance(double full_covariance[9],
                         double vel_covariance[9],
                         const gnss_solution *soln) {
-  assert(soln != NULL);
-  assert(full_covariance != NULL);
-  assert(vel_covariance != NULL);
+  ASSERT(soln != NULL);
+  ASSERT(full_covariance != NULL);
+  ASSERT(vel_covariance != NULL);
 
   /* soln->cov_err has the covariance in upper triangle covariance form, so
    * copy from
@@ -104,7 +104,7 @@ void extract_covariance(double full_covariance[9],
 }
 
 bool gate_covariance(gnss_solution *soln) {
-  assert(soln != NULL);
+  ASSERT(soln != NULL);
   double full_covariance[9];
   double vel_covariance[9];
   extract_covariance(full_covariance, vel_covariance, soln);

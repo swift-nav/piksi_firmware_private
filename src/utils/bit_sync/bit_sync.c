@@ -64,7 +64,7 @@ static void histogram_update(bit_sync_t *b,
  * \param mesid  ME signal identifier
  */
 void bit_sync_init(bit_sync_t *b, const me_gnss_signal_t mesid) {
-  assert(mesid_valid(mesid));
+  ASSERT(mesid_valid(mesid));
   memset(b, 0, sizeof(bit_sync_t));
   b->bit_phase_ref = BITSYNC_UNSYNCED;
   b->mesid = mesid;
@@ -148,7 +148,7 @@ void bit_sync_init(bit_sync_t *b, const me_gnss_signal_t mesid) {
       break;
 
     default:
-      assert(!"Unsupported code type");
+      ASSERT(!"Unsupported code type");
       break;
   }
 
@@ -181,7 +181,7 @@ bool bit_sync_update(bit_sync_t *b,
                      s32 corr_prompt_imag,
                      u32 ms,
                      s32 *bit_integrate) {
-  assert(ms <= b->bit_length && "Integration length exceeds symbol length");
+  ASSERT(ms <= b->bit_length && "Integration length exceeds symbol length");
 
   b->bit_phase += ms;
   b->bit_phase %= b->bit_length;

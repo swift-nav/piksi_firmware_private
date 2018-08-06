@@ -389,7 +389,7 @@ static const tp_profile_entry_t *mesid_to_profiles(const me_gnss_signal_t mesid,
     case CONSTELLATION_INVALID:
     case CONSTELLATION_COUNT:
     default:
-      assert(!"Invalid constellation");
+      ASSERT(!"Invalid constellation");
       break;
   }
 
@@ -428,7 +428,7 @@ static tp_tm_e get_track_mode(me_gnss_signal_t mesid,
     }
   } else {
     log_error_mesid(mesid, "unknown entry?");
-    assert(0);
+    ASSERT(0);
   }
   return track_mode;
 }
@@ -502,7 +502,7 @@ static struct profile_vars get_profile_vars(const me_gnss_signal_t mesid,
                                             float cn0) {
   size_t num_profiles = 0;
   const tp_profile_entry_t *profiles = mesid_to_profiles(mesid, &num_profiles);
-  assert(profiles);
+  ASSERT(profiles);
 
   u8 index = get_profile_index(mesid.code, profiles, num_profiles, cn0);
 
@@ -564,7 +564,7 @@ void tp_profile_update_config(tracker_t *tracker) {
     profile->ld_phase_params = ld_params_gal[cur_profile->ld_phase_params];
     profile->ld_freq_params = ld_params_gal[cur_profile->ld_freq_params];
   } else {
-    assert(!"Unsupported constellation");
+    ASSERT(!"Unsupported constellation");
   }
 
   /* fill out the tracking loop parameters */
@@ -612,7 +612,7 @@ static const char *get_ctrl_str(tp_ctrl_e v) {
       str = "PLL3";
       break;
     default:
-      assert(!"Unknown loop controller type");
+      ASSERT(!"Unknown loop controller type");
   }
   return str;
 }
@@ -734,8 +734,8 @@ static bool fll_bw_changed(tracker_t *tracker, profile_indices_t index) {
 static bool profile_switch_requested(tracker_t *tracker,
                                      profile_indices_t index,
                                      const char *reason) {
-  assert(index != IDX_NONE);
-  assert((size_t)index < ARRAY_SIZE(gnss_track_profiles));
+  ASSERT(index != IDX_NONE);
+  ASSERT((size_t)index < ARRAY_SIZE(gnss_track_profiles));
 
   tp_profile_t *state = &tracker->profile;
   const tp_profile_entry_t *next = &state->profiles[index];
@@ -851,7 +851,7 @@ bool tp_profile_has_new_profile(tracker_t *tracker) {
   }
 
   if (0 != (flags & TP_USE_NEXT)) {
-    assert(cur_profile->next != IDX_NONE);
+    ASSERT(cur_profile->next != IDX_NONE);
     return profile_switch_requested(tracker, cur_profile->next, "next");
   } else {
     return profile_switch_requested(tracker, state->cur.index + 1, "next");
@@ -894,7 +894,7 @@ static float compute_cn0_offset(const me_gnss_signal_t mesid,
  * \param[in]  data    Initial parameters.
  */
 void tp_profile_init(tracker_t *tracker, const tp_report_t *data) {
-  assert(tracker);
+  ASSERT(tracker);
 
   tp_profile_t *profile = &tracker->profile;
   me_gnss_signal_t mesid = tracker->mesid;
@@ -919,7 +919,7 @@ void tp_profile_init(tracker_t *tracker, const tp_report_t *data) {
 
 void tp_profile_switch(tracker_t *tracker) {
   tp_profile_t *profile = &tracker->profile;
-  assert(profile->profile_update);
+  ASSERT(profile->profile_update);
 
   /* Do transition of current profile */
   profile->profile_update = 0;
@@ -936,8 +936,8 @@ void tp_profile_switch(tracker_t *tracker) {
  */
 void tp_profile_get_cn0_params(const tp_profile_t *profile,
                                tp_cn0_params_t *cn0_params) {
-  assert(cn0_params);
-  assert(profile);
+  ASSERT(cn0_params);
+  ASSERT(profile);
 
   *cn0_params = cn0_params_default;
 
@@ -971,8 +971,8 @@ void tp_profile_get_cn0_params(const tp_profile_t *profile,
  * \param[in]     data        Tracking loop report.
  */
 void tp_profile_report_data(tp_profile_t *profile, const tp_report_t *data) {
-  assert(profile);
-  assert(data);
+  ASSERT(profile);
+  ASSERT(data);
 
   /* Profile lock time count down */
   if (profile->lock_time_ms > data->time_ms) {

@@ -207,7 +207,7 @@ static void remove_clock_offset(navigation_measurement_t *nm,
                                 double clock_offset,
                                 double clock_drift,
                                 u64 current_tc) {
-  assert(0 != (nm->flags & NAV_MEAS_FLAG_MEAS_DOPPLER_VALID));
+  ASSERT(0 != (nm->flags & NAV_MEAS_FLAG_MEAS_DOPPLER_VALID));
 
   /* Adjust Doppler with smoothed oscillator drift. */
   nm->raw_measured_doppler += clock_drift * GPS_C / sid_to_lambda(nm->sid);

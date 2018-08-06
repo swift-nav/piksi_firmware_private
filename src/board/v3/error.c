@@ -84,7 +84,7 @@ void _screaming_death(const char *pos, const char *msg) {
 
 /* OS syscall implementations related to error conditions */
 
-/** Custom assert() failure function. Calls screaming_death(). */
+/** Custom ASSERT() failure function. Calls screaming_death(). */
 void __assert_func(const char *_file,
                    int _line,
                    const char *_func,

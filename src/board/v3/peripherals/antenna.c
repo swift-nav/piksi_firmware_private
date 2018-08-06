@@ -57,7 +57,7 @@ static void antenna_configure(antenna_mode_t mode, bool bias) {
       }
     } break;
 
-    default: { assert(!"Invalid antenna mode"); } break;
+    default: { ASSERT(!"Invalid antenna mode"); } break;
   }
 }
 
@@ -121,7 +121,7 @@ bool antenna_present(void) {
     }
 
     default: {
-      assert(!"Invalid antenna mode setting");
+      ASSERT(!"Invalid antenna mode setting");
       return false;
     }
   }
@@ -140,7 +140,7 @@ bool antenna_shorted(void) {
     }
 
     default: {
-      assert(!"Invalid antenna mode setting");
+      ASSERT(!"Invalid antenna mode setting");
       return false;
     }
   }

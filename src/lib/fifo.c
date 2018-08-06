@@ -14,12 +14,11 @@
 #include <string.h>
 
 #include <libswiftnav/common.h>
+#include <libswiftnav/compiler.h>
 #include <libswiftnav/logging.h>
 #include <libswiftnav/memcpy_s.h>
 
 #include "fifo.h"
-
-#define COMPILER_BARRIER() asm volatile("" : : : "memory")
 
 #define INDEX_MASK(p_fifo) ((p_fifo)->buffer_size - 1)
 #define LENGTH(p_fifo) \
@@ -111,14 +110,14 @@ static bool rec_size_get(fifo_t *fifo,
   }
 
   copy_out(fifo, (u8 *)rec_size, sizeof(rec_size_t));
-  assert(fifo_length >= sizeof(rec_size_t) + *rec_size);
+  ASSERT(fifo_length >= sizeof(rec_size_t) + *rec_size);
   return true;
 }
 
 static bool rec_size_set(fifo_t *fifo,
                          fifo_size_t fifo_space,
                          rec_size_t rec_size) {
-  assert(rec_size > 0);
+  ASSERT(rec_size > 0);
 
   /* Do not proceed if the full record will not fit */
   if (fifo_space < sizeof(rec_size_t) + rec_size) {
@@ -144,8 +143,8 @@ void fifo_init(fifo_t *fifo,
                u8 *buffer,
                fifo_size_t buffer_size) {
   /* Require buffer_size to be a power of two */
-  assert((buffer_size & (buffer_size - 1)) == 0);
-  assert((mode == FIFO_MODE_STANDARD) || (mode == FIFO_MODE_RECORD));
+  ASSERT((buffer_size & (buffer_size - 1)) == 0);
+  ASSERT((mode == FIFO_MODE_STANDARD) || (mode == FIFO_MODE_RECORD));
 
   fifo->mode = mode;
   fifo->read_index = 0;
@@ -240,7 +239,7 @@ fifo_size_t fifo_peek(fifo_t *fifo, u8 *buffer, fifo_size_t length) {
       return read_length;
     } break;
 
-    default: { assert(!"Invalid FIFO mode"); } break;
+    default: { ASSERT(!"Invalid FIFO mode"); } break;
   }
 
   return 0;
@@ -281,7 +280,7 @@ fifo_size_t fifo_remove(fifo_t *fifo, fifo_size_t length) {
       return rec_size;
     } break;
 
-    default: { assert(!"Invalid FIFO mode"); } break;
+    default: { ASSERT(!"Invalid FIFO mode"); } break;
   }
 
   return 0;
@@ -343,7 +342,7 @@ fifo_size_t fifo_poke(fifo_t *fifo, const u8 *buffer, fifo_size_t length) {
       return rec_size;
     } break;
 
-    default: { assert(!"Invalid FIFO mode"); } break;
+    default: { ASSERT(!"Invalid FIFO mode"); } break;
   }
 
   return 0;
@@ -381,7 +380,7 @@ fifo_size_t fifo_add(fifo_t *fifo, fifo_size_t length) {
       return rec_size;
     } break;
 
-    default: { assert(!"Invalid FIFO mode"); } break;
+    default: { ASSERT(!"Invalid FIFO mode"); } break;
   }
 
   return 0;

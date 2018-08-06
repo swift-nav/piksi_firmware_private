@@ -159,11 +159,11 @@ void nav_msg_init_glo(nav_msg_glo_t *n, me_gnss_signal_t mesid) {
  * \return word extracted from navigation string
  */
 u32 extract_word_glo(const nav_msg_glo_t *n, u16 bit_index, u8 n_bits) {
-  assert(bit_index);
-  assert(bit_index <= GLO_STR_LEN);
+  ASSERT(bit_index);
+  ASSERT(bit_index <= GLO_STR_LEN);
 
-  assert(n_bits);
-  assert(n_bits <= 32);
+  ASSERT(n_bits);
+  ASSERT(n_bits <= 32);
 
   /* Extract a word of n_bits length (n_bits <= 32) at position bit_index into
    * the GLO string.*/
@@ -371,7 +371,7 @@ nav_msg_status_t nav_msg_update_glo(nav_msg_glo_t *n, bool symbol) {
       ret = get_data_bits_glo(n, symbol);
       break;
     default:
-      assert(0 && "Unexpected GLO nav msg update state");
+      ASSERT(0 && "Unexpected GLO nav msg update state");
       break;
   }
   return ret;
@@ -419,8 +419,8 @@ static double decode_acceleration_component(const nav_msg_glo_t *n) {
 }
 
 static u32 compute_ephe_fit_interval(const nav_msg_glo_t *n, u32 p1) {
-  assert(n);
-  assert(p1 < ARRAY_SIZE(p1_lookup_min));
+  ASSERT(n);
+  ASSERT(p1 < ARRAY_SIZE(p1_lookup_min));
 
   u32 fit_interval_s = MINUTE_SECS * p1_lookup_min[p1];
   if (fit_interval_s != 0) {

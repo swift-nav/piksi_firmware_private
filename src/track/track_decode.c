@@ -49,7 +49,7 @@ void tracker_data_sync_init(nav_data_sync_t *nav_data_sync) {
  * \param from_decoder struct to sync tracker with.
  */
 static void data_sync(u8 id, nav_data_sync_t *from_decoder) {
-  assert(from_decoder);
+  ASSERT(from_decoder);
 
   tracker_t *tracker = tracker_get(id);
   from_decoder->read_index = tracker->nav_bit_fifo.read_index;
@@ -69,7 +69,7 @@ static void data_sync(u8 id, nav_data_sync_t *from_decoder) {
  * \param from_decoder struct to sync tracker with.
  */
 void tracker_data_sync(u8 id, nav_data_sync_t *from_decoder) {
-  assert(from_decoder);
+  ASSERT(from_decoder);
 
   if (SYNC_NONE == from_decoder->sync_flags) {
     /* Nothing to sync */

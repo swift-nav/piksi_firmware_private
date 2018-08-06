@@ -326,12 +326,12 @@ void nmea_gpgga(const msg_pos_llh_t *sbp_pos_llh,
   double lon = fabs(round(sbp_pos_llh->lon * 1e8) / 1e8);
 
   char lat_dir = sbp_pos_llh->lat < 0.0 ? 'S' : 'N';
-  assert(lat <= UINT16_MAX);
+  ASSERT(lat <= UINT16_MAX);
   u16 lat_deg = (u16)lat; /* truncation towards zero */
   double lat_min = (lat - (double)lat_deg) * 60.0;
 
   char lon_dir = sbp_pos_llh->lon < 0.0 ? 'W' : 'E';
-  assert(lon <= UINT16_MAX);
+  ASSERT(lon <= UINT16_MAX);
   u16 lon_deg = (u16)lon; /* truncation towards zero */
   double lon_min = (lon - (double)lon_deg) * 60.0;
 
@@ -467,9 +467,9 @@ void nmea_gsa_print(u16 *prns,
                     const msg_pos_llh_t *sbp_pos_llh,
                     const msg_dops_t *sbp_dops,
                     const char *talker) {
-  assert(prns);
-  assert(sbp_dops);
-  assert(sbp_pos_llh);
+  ASSERT(prns);
+  ASSERT(sbp_dops);
+  ASSERT(sbp_pos_llh);
 
   bool fix = POSITION_MODE_NONE != (sbp_pos_llh->flags & POSITION_MODE_MASK);
 
@@ -526,9 +526,9 @@ static void nmea_gsa(const msg_pos_llh_t *sbp_pos,
                      const msg_dops_t *sbp_dops,
                      const u8 n_meas,
                      const navigation_measurement_t nav_meas[]) {
-  assert(sbp_pos);
-  assert(sbp_dops);
-  assert(nav_meas);
+  ASSERT(sbp_pos);
+  ASSERT(sbp_dops);
+  ASSERT(nav_meas);
 
   u16 prns[TALKER_ID_COUNT][GSA_MAX_SV] = {0};
   u8 num_prns[TALKER_ID_COUNT] = {0};
@@ -780,12 +780,12 @@ void nmea_gprmc(const msg_pos_llh_t *sbp_pos_llh,
   double lon = fabs(round(sbp_pos_llh->lon * 1e8) / 1e8);
 
   char lat_dir = sbp_pos_llh->lat < 0.0 ? 'S' : 'N';
-  assert(lat <= UINT16_MAX);
+  ASSERT(lat <= UINT16_MAX);
   u16 lat_deg = (u16)lat; /* truncation towards zero */
   double lat_min = (lat - (double)lat_deg) * 60.0;
 
   char lon_dir = sbp_pos_llh->lon < 0.0 ? 'W' : 'E';
-  assert(lon <= UINT16_MAX);
+  ASSERT(lon <= UINT16_MAX);
   u16 lon_deg = (u16)lon; /* truncation towards zero */
   double lon_min = (lon - (double)lon_deg) * 60.0;
 
@@ -920,12 +920,12 @@ void nmea_gpgll(const msg_pos_llh_t *sbp_pos_llh,
   double lon = fabs(round(sbp_pos_llh->lon * 1e8) / 1e8);
 
   char lat_dir = sbp_pos_llh->lat < 0.0 ? 'S' : 'N';
-  assert(lat <= UINT16_MAX);
+  ASSERT(lat <= UINT16_MAX);
   u16 lat_deg = (u16)lat; /* truncation towards zero */
   double lat_min = (lat - (double)lat_deg) * 60.0;
 
   char lon_dir = sbp_pos_llh->lon < 0.0 ? 'W' : 'E';
-  assert(lon <= UINT16_MAX);
+  ASSERT(lon <= UINT16_MAX);
   u16 lon_deg = (u16)lon; /* truncation towards zero */
   double lon_min = (lon - (double)lon_deg) * 60.0;
 
@@ -1058,7 +1058,7 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh,
       /* if the fractional part of the resulting new time stamp is not zero
        * then we computed wrong... */
       second_frac = roundf(utc_time.second_frac * NMEA_UTC_S_FRAC_DIVISOR);
-      assert(second_frac == 0);
+      ASSERT(second_frac == 0);
     }
   }
 
@@ -1124,7 +1124,7 @@ char get_nmea_status(u8 flags) {
     case POSITION_MODE_FIXED:
       return 'A';
     default:
-      assert(!"Unsupported position type indicator");
+      ASSERT(!"Unsupported position type indicator");
       return 'V';
   }
 }
@@ -1146,7 +1146,7 @@ char get_nmea_mode_indicator(u8 flags) {
     case POSITION_MODE_FIXED:
       return 'D';
     default:
-      assert(!"Unsupported position type indicator");
+      ASSERT(!"Unsupported position type indicator");
       return 'N';
   }
 }
@@ -1170,7 +1170,7 @@ u8 get_nmea_quality_indicator(u8 flags) {
     case POSITION_MODE_FIXED:
       return NMEA_GGA_QI_RTK;
     default:
-      assert(!"Unsupported position type indicator");
+      ASSERT(!"Unsupported position type indicator");
       return NMEA_GGA_QI_INVALID;
   }
 }

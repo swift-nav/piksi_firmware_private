@@ -446,8 +446,8 @@ static bool subframes123_from_same_frame(const nav_msg_bds_t *n) {
 static void dw30_1bit_pushr(u32 *words, u8 numel, bool bitval) {
   u8 k;
 
-  assert(words);
-  assert(numel);
+  ASSERT(words);
+  ASSERT(numel);
 
   for (k = 0; k < (numel - 1U); k++) {
     words[k] <<= 1;

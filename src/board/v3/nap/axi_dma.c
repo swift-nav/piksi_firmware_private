@@ -11,13 +11,12 @@
  */
 
 #include "axi_dma.h"
+#include <libswiftnav/compiler.h>
 
 #include "axi_dma_regs.h"
 #include "gic.h"
 #include "hal.h"
 #include "zynq7000.h"
-
-#define COMPILER_BARRIER() asm volatile("" : : : "memory")
 
 static void axi_dma_irq_handler(void *context);
 

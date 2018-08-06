@@ -95,7 +95,7 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
   acqResults_t sLocalResult = {0};
 
   /** sanity checking input parameters */
-  assert(NULL != p_acqres);
+  ASSERT(NULL != p_acqres);
 
   memset(p_acqres, 0, sizeof(acq_result_t));
 
@@ -116,7 +116,7 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
       log_error("grabber failed, buff_size %" PRIu32 " tmp_timetag %" PRIu64,
                 buff_size,
                 tmp_timetag);
-      assert(0);
+      ASSERT(0);
       return false;
     }
 
@@ -298,8 +298,8 @@ static bool SoftMacqMdbzp(const me_gnss_signal_t mesid,
   const u8 *local_code = ca_code(mesid);
 
   /** sanity checks */
-  assert(NULL != pacq_res);
-  assert(mesid_valid(mesid));
+  ASSERT(NULL != pacq_res);
+  ASSERT(mesid_valid(mesid));
 
   fau_conf.iSampMs = FAU_SPMS;
 

@@ -56,8 +56,8 @@ u8 nav_bit_fifo_length_for_rd_index(const nav_bit_fifo_t *fifo, const u8 rd) {
  * \param fifo        nav_bit_fifo_t struct to use.
  */
 void nav_bit_fifo_init(nav_bit_fifo_t *fifo, const code_t code) {
-  assert(NULL != fifo);
-  assert(code_valid(code));
+  ASSERT(NULL != fifo);
+  ASSERT(code_valid(code));
 
   fifo->read_index = 0;
   fifo->write_index = 0;

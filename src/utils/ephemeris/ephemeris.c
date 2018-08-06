@@ -47,7 +47,7 @@ bool xcorr_calc_alm_positions(gnss_signal_t sid,
                               u32 time_s,
                               u32 interval_s,
                               xcorr_positions_t *pos) {
-  assert(IS_GPS(sid));
+  ASSERT(IS_GPS(sid));
 
   almanac_t a;
   ndb_op_code_t oc = ndb_almanac_read(sid, &a);
@@ -221,7 +221,7 @@ static void delete_ghost_ephe(const gnss_signal_t sid) {
  *         returns false.
  */
 static bool xcorr_check_eph_to_eph(const ephemeris_t *e) {
-  assert(e != NULL);
+  ASSERT(e != NULL);
 
   ephemeris_t test_e;
   u16 first_prn, num_sats;
@@ -285,7 +285,7 @@ static bool xcorr_check_eph_to_eph(const ephemeris_t *e) {
       tracker_t *tc_new = NULL;
       tc_new = tracker_channel_get_by_mesid(
           construct_mesid(e->sid.code, e->sid.sat));
-      assert(tc_new != NULL);
+      ASSERT(tc_new != NULL);
       /* now check which SV has stronger signal, consider that
        * stronger signal belongs to real SV */
       if (tc_test->cn0 < tc_new->cn0) {
@@ -385,7 +385,7 @@ eph_new_status_t ephemeris_new(const ephemeris_t *e) {
                   e->valid,
                   e->health_bits);
   }
-  assert(sid_supported(e->sid));
+  ASSERT(sid_supported(e->sid));
 
   if (!e->valid) {
     log_warn_sid(e->sid, "invalid ephemeris");
@@ -445,7 +445,7 @@ eph_new_status_t ephemeris_new(const ephemeris_t *e) {
         return EPH_NEW_ERR;
         break;
       default:
-        assert(!"Invalid match result");
+        ASSERT(!"Invalid match result");
     }
   }
 

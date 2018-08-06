@@ -65,7 +65,7 @@ static void Rank0N(sc16_t *_A, sc16_t *_B, u32 _nblocks);
  *  \brief Init the memory for a FFT
  */
 void InitIntFFTr2(void *_pFFT, u32 _N) {
-  assert((_N > 0) && (_N <= INTFFT_MAXSIZE) && !(_N & (_N - 1)));
+  ASSERT((_N > 0) && (_N <= INTFFT_MAXSIZE) && !(_N & (_N - 1)));
 
   intFFTr2_t *pIntFFT = (intFFTr2_t *)_pFFT;
 

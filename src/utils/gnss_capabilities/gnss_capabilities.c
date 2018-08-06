@@ -24,9 +24,9 @@
  * \{ */
 
 bool gps_l2c_active(const me_gnss_signal_t mesid) {
-  assert(IS_GPS(mesid));
+  ASSERT(IS_GPS(mesid));
   const gnss_capb_t *gc = ndb_get_gnss_capb();
-  assert(gc);
+  ASSERT(gc);
   u64 capb = gc->gps_l2c;
   return (0 != (capb & ((u64)1 << (mesid.sat - GPS_FIRST_PRN))));
 }
@@ -35,9 +35,9 @@ bool gps_l2c_active(const me_gnss_signal_t mesid) {
  * \param mesid   satellite identifier
  */
 bool glo_active(const me_gnss_signal_t mesid) {
-  assert(IS_GLO(mesid));
+  ASSERT(IS_GLO(mesid));
   const gnss_capb_t *gc = ndb_get_gnss_capb();
-  assert(gc);
+  ASSERT(gc);
   u32 capb = gc->gps_active;
   return (0 != (capb & ((u32)1 << (mesid.sat - GLO_FIRST_PRN))));
 }
@@ -46,9 +46,9 @@ bool glo_active(const me_gnss_signal_t mesid) {
  * \param mesid   satellite identifier
  */
 bool sbas_active(const me_gnss_signal_t mesid) {
-  assert(IS_SBAS(mesid));
+  ASSERT(IS_SBAS(mesid));
   const gnss_capb_t *gc = ndb_get_gnss_capb();
-  assert(gc);
+  ASSERT(gc);
   u32 capb = gc->sbas_active;
   return (0 != (capb & ((u32)1 << (mesid.sat - SBAS_FIRST_PRN))));
 }
@@ -57,9 +57,9 @@ bool sbas_active(const me_gnss_signal_t mesid) {
  * \param mesid   satellite identifier
  */
 bool bds_active(const me_gnss_signal_t mesid) {
-  assert(IS_BDS2(mesid));
+  ASSERT(IS_BDS2(mesid));
   const gnss_capb_t *gc = ndb_get_gnss_capb();
-  assert(gc);
+  ASSERT(gc);
   u64 capb = gc->bds_active;
   return (0 != (capb & ((u64)1 << (mesid.sat - BDS_FIRST_PRN))));
 }
@@ -69,9 +69,9 @@ bool bds_active(const me_gnss_signal_t mesid) {
  * \param mesid   satellite identifier
  */
 bool bds_d2nav(const me_gnss_signal_t mesid) {
-  assert(IS_BDS2(mesid));
+  ASSERT(IS_BDS2(mesid));
   const gnss_capb_t *gc = ndb_get_gnss_capb();
-  assert(gc);
+  ASSERT(gc);
   u64 capb = gc->bds_d2nav;
   return (0 != (capb & ((u64)1 << (mesid.sat - BDS_FIRST_PRN))));
 }
@@ -80,9 +80,9 @@ bool bds_d2nav(const me_gnss_signal_t mesid) {
  * \param mesid   satellite identifier
  */
 bool bds_b2(const me_gnss_signal_t mesid) {
-  assert(IS_BDS2(mesid));
+  ASSERT(IS_BDS2(mesid));
   const gnss_capb_t *gc = ndb_get_gnss_capb();
-  assert(gc);
+  ASSERT(gc);
   u64 capb = gc->bds_b2;
   return (0 != (capb & ((u64)1 << (mesid.sat - BDS_FIRST_PRN))));
 }
@@ -91,9 +91,9 @@ bool bds_b2(const me_gnss_signal_t mesid) {
  * \param mesid   satellite identifier
  */
 bool qzss_active(const me_gnss_signal_t mesid) {
-  assert(IS_QZSS(mesid));
+  ASSERT(IS_QZSS(mesid));
   const gnss_capb_t *gc = ndb_get_gnss_capb();
-  assert(gc);
+  ASSERT(gc);
   u32 capb = gc->qzss_active;
   return (0 != (capb & ((u32)1 << (mesid.sat - QZS_FIRST_PRN))));
 }
@@ -102,9 +102,9 @@ bool qzss_active(const me_gnss_signal_t mesid) {
  * \param mesid   satellite identifier
  */
 bool gal_active(const me_gnss_signal_t mesid) {
-  assert(IS_GAL(mesid));
+  ASSERT(IS_GAL(mesid));
   const gnss_capb_t *gc = ndb_get_gnss_capb();
-  assert(gc);
+  ASSERT(gc);
   u64 capb = gc->gal_active;
   return (0 != (capb & ((u64)1 << (mesid.sat - GAL_FIRST_PRN))));
 }
@@ -123,8 +123,8 @@ bool gal_active(const me_gnss_signal_t mesid) {
  *
  */
 void decode_l2c_capability(const u32 *subframe4_words, u32 *l2c_cpbl) {
-  assert(subframe4_words != NULL);
-  assert(l2c_cpbl != NULL);
+  ASSERT(subframe4_words != NULL);
+  ASSERT(l2c_cpbl != NULL);
 
   *l2c_cpbl = 0;
 

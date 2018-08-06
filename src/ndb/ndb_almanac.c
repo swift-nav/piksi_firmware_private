@@ -113,7 +113,7 @@ static ndb_file_t ndb_alma_wn_file = {
 };
 
 static u16 map_sid_to_index(gnss_signal_t sid) {
-  assert(sid_valid(sid));
+  ASSERT(sid_valid(sid));
   u16 idx = sid_to_code_index(sid);
   static const u8 constellation_to_alm_offset[CONSTELLATION_COUNT] = {
       0,                            /* CONSTELLATION_GPS offset */
@@ -128,9 +128,9 @@ static u16 map_sid_to_index(gnss_signal_t sid) {
   };
   /* Current architecture uses one almanac per satellite. */
   constellation_t constellation = sid_to_constellation(sid);
-  assert((u32)constellation < ARRAY_SIZE(constellation_to_alm_offset));
+  ASSERT((u32)constellation < ARRAY_SIZE(constellation_to_alm_offset));
   idx += constellation_to_alm_offset[constellation];
-  assert(idx < NDB_ALMA_IE_COUNT);
+  ASSERT(idx < NDB_ALMA_IE_COUNT);
 
   return idx;
 }
@@ -148,7 +148,7 @@ static u16 map_sid_to_index(gnss_signal_t sid) {
  * \internal
  */
 static s16 ndb_alma_candidate_find(gnss_signal_t sid, s16 prev_idx) {
-  assert(prev_idx >= -1);
+  ASSERT(prev_idx >= -1);
 
   for (u16 i = (u16)(prev_idx + 1); i < ARRAY_SIZE(alma_candidates); i++) {
     if (alma_candidates[i].used &&
@@ -207,7 +207,7 @@ static void ndb_alma_candidate_add(const almanac_t *alma) {
     /* Replacing non-empty entry with the same TOA value */
   }
 
-  assert(idx < ARRAY_SIZE(alma_candidates));
+  ASSERT(idx < ARRAY_SIZE(alma_candidates));
 
   alma_candidates[idx].alma = *alma;
   alma_candidates[idx].received_at = now;
@@ -222,7 +222,7 @@ static void ndb_alma_candidate_add(const almanac_t *alma) {
  * \internal
  */
 static void ndb_alma_candidate_release(s16 cand_index) {
-  assert(cand_index >= 0 && (u16)cand_index < ARRAY_SIZE(alma_candidates));
+  ASSERT(cand_index >= 0 && (u16)cand_index < ARRAY_SIZE(alma_candidates));
   memset(&alma_candidates[cand_index], 0, sizeof(alma_candidates[cand_index]));
 }
 
@@ -563,7 +563,7 @@ static ndb_cand_status_t ndb_alma_wn_candidate_update(u32 toa, u16 wn) {
         idx = oldest_idx2;
       }
     }
-    assert(idx < ARRAY_SIZE(alma_wn_candidates));
+    ASSERT(idx < ARRAY_SIZE(alma_wn_candidates));
 
     alma_wn_candidates[idx].received_at = ndb_get_timestamp();
     alma_wn_candidates[idx].used = true;
@@ -632,7 +632,7 @@ static void ndb_alma_wn_update_wn_file(u32 toa, u16 wn, ndb_data_source_t ds) {
     }
   }
 
-  assert(idx < ndb_alma_wn_file.block_count);
+  ASSERT(idx < ndb_alma_wn_file.block_count);
 
   /* Update persistent WN entry */
   wn_data[idx].gps_toa = toa;
@@ -740,7 +740,7 @@ void ndb_almanac_init(void) {
 ndb_op_code_t ndb_almanac_read(gnss_signal_t sid, almanac_t *a) {
   u16 idx = map_sid_to_index(sid);
 
-  assert(idx < ARRAY_SIZE(ndb_almanac_md));
+  ASSERT(idx < ARRAY_SIZE(ndb_almanac_md));
   ndb_op_code_t ret = ndb_retrieve(&ndb_almanac_md[idx], a, sizeof(*a), NULL);
 
   if (NDB_ERR_NONE == ret) {
@@ -802,7 +802,7 @@ ndb_op_code_t ndb_almanac_store(const gnss_signal_t *src_sid,
         res = NDB_ERR_GPS_TIME_MISSING;
         break;
       default:
-        assert(!"Invalid status");
+        ASSERT(!"Invalid status");
     }
   } else {
     res = NDB_ERR_BAD_PARAM;
@@ -909,7 +909,7 @@ ndb_op_code_t ndb_almanac_wn_store(
       res = NDB_ERR_GPS_TIME_MISSING;
       break;
     default:
-      assert(!"Unexpected almanac's TOA/WN candidate status");
+      ASSERT(!"Unexpected almanac's TOA/WN candidate status");
   }
 
   sbp_send_ndb_event(NDB_EVENT_STORE,

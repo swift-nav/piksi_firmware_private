@@ -55,7 +55,7 @@ static u16 xadc_cmd(u8 op, u8 addr, u16 data) {
   u32 timeout = 10000;
   while (!(XADC_IF->STAT & XADC_IF_STAT_CFIFOE_Msk)) {
     if (--timeout == 0) {
-      assert(!"XADC command timeout");
+      ASSERT(!"XADC command timeout");
       break;
     }
   }

@@ -268,7 +268,7 @@ void simulation_step_tracking_and_observations(double elapsed) {
                                   simulation_sats_acc[i],
                                   &clock_err,
                                   &clock_rate_err);
-    assert(r == 0);
+    ASSERT(r == 0);
   }
 
   /* Calculate the first sim_settings.num_sats amount of visible sats */
@@ -278,7 +278,7 @@ void simulation_step_tracking_and_observations(double elapsed) {
     s8 r = calc_sat_az_el_almanac(
         &simulation_almanacs[i], &t, sim_state.pos, &az, &el);
 
-    assert(r == 0);
+    ASSERT(r == 0);
     if (el > 0 && num_sats_selected < sim_settings.num_sats &&
         num_sats_selected < MAX_CHANNELS) {
       /* Generate a code measurement which is just the pseudorange: */

@@ -66,7 +66,7 @@ void tg_fill_task(acq_job_t *job) {
       break;
     case ACQ_NUM_JOB_TYPES:
     default:
-      assert(!"Invalid jobtype");
+      ASSERT(!"Invalid jobtype");
       acq_param->doppler_min_hz = default_doppler_min;
       acq_param->doppler_max_hz = default_doppler_max;
       break;

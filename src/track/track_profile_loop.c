@@ -49,7 +49,7 @@ void tp_tl_init(tp_tl_state_t *s,
       break;
 
     default:
-      assert(false);
+      ASSERT(false);
   }
 }
 
@@ -77,7 +77,7 @@ void tp_tl_retune(tp_tl_state_t *s, tp_ctrl_e ctrl, const tl_config_t *config) {
         break;
 
       default:
-        assert(false);
+        ASSERT(false);
     }
   } else {
     /*
@@ -113,7 +113,7 @@ void tp_tl_adjust(tp_tl_state_t *s, float err) {
       break;
 
     default:
-      assert(false);
+      ASSERT(false);
   }
 }
 
@@ -136,7 +136,7 @@ void tp_tl_get_rates(const tp_tl_state_t *s, tl_rates_t *rates) {
       break;
 
     default:
-      assert(false);
+      ASSERT(false);
   }
 }
 
@@ -189,7 +189,7 @@ void tp_tl_update(tp_tl_state_t *s, const tp_epl_corr_t *cs, bool costas) {
       break;
 
     default:
-      assert(false);
+      ASSERT(false);
   }
 }
 
@@ -215,7 +215,7 @@ float tp_tl_get_fll_error(const tp_tl_state_t *s) {
       break;
 
     default:
-      assert(false);
+      ASSERT(false);
   }
 
   return freq_error;
@@ -241,7 +241,7 @@ float tp_tl_get_dll_error(const tp_tl_state_t *s) {
       break;
 
     default:
-      assert(false);
+      ASSERT(false);
   }
 
   return dll_error;
@@ -266,6 +266,6 @@ void tp_tl_fll_discr_update(tp_tl_state_t *s, corr_t cs, bool halfq) {
       break;
 
     default:
-      assert(false);
+      ASSERT(false);
   }
 }

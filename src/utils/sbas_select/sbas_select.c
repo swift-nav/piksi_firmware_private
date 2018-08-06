@@ -107,7 +107,7 @@ static const char *get_sbas_name(sbas_system_t sbas_type) {
     default:
       break;
   }
-  assert(!"Incorrect SBAS type");
+  ASSERT(!"Incorrect SBAS type");
   return "NONE";
 }
 
@@ -126,7 +126,7 @@ static u8 get_sbas_area_index(sbas_system_t sbas) {
       return i;
     }
   }
-  assert(!"Incorrect SBAS map or SBAS type");
+  ASSERT(!"Incorrect SBAS map or SBAS type");
   return 0;
 }
 
@@ -190,14 +190,14 @@ sbas_system_t sbas_select_provider(const last_good_fix_t *lgf) {
   /* SBAS system currently in use */
   static sbas_system_t used_sbas = SBAS_NONE;
 
-  assert(lgf != NULL);
+  ASSERT(lgf != NULL);
 
   if (POSITION_UNKNOWN == lgf->position_quality) {
     return update_used_sbas(SBAS_NONE, &used_sbas);
   }
 
   double lgf_lat_deg = lgf->position_solution.pos_llh[0] * R2D;
-  assert(-90 <= lgf_lat_deg && lgf_lat_deg <= 90);
+  ASSERT(-90 <= lgf_lat_deg && lgf_lat_deg <= 90);
 
   /* Design note: code doesn't apply special handling for south pole due
    * none of the systems extending there at the moment. Once support is needed
@@ -221,7 +221,7 @@ sbas_system_t sbas_select_provider(const last_good_fix_t *lgf) {
   }
 
   double lgf_lon_deg = lgf->position_solution.pos_llh[1] * R2D;
-  assert(-180 <= lgf_lon_deg && lgf_lon_deg <= 180);
+  ASSERT(-180 <= lgf_lon_deg && lgf_lon_deg <= 180);
 
   /* Test current selection against user position using hysteresis */
   if (SBAS_NONE != used_sbas) {

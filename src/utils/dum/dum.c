@@ -86,7 +86,7 @@ static s8 calc_sat_doppler_wndw(const ephemeris_t *e,
   double doppler = 0;
 
   if ((NULL == e) || (NULL == t) || (NULL == lgf)) {
-    assert(!"Bad input");
+    ASSERT(!"Bad input");
   }
 
   if (0 > calc_sat_doppler(e, t, lgf->pos_ecef, vel, &doppler)) {
@@ -213,9 +213,9 @@ void dum_get_doppler_wndw(const gnss_signal_t *sid,
                           float speed,
                           float *doppler_min,
                           float *doppler_max) {
-  assert(sid != NULL);
-  assert(sid_valid(*sid));
-  assert((CODE_GPS_L1CA == sid->code) || (CODE_GLO_L1OF == sid->code) ||
+  ASSERT(sid != NULL);
+  ASSERT(sid_valid(*sid));
+  ASSERT((CODE_GPS_L1CA == sid->code) || (CODE_GLO_L1OF == sid->code) ||
          (CODE_SBAS_L1CA == sid->code) || (CODE_BDS2_B1 == sid->code) ||
          (CODE_GAL_E1B == sid->code));
 
@@ -259,7 +259,7 @@ void dum_get_doppler_wndw(const gnss_signal_t *sid,
 
       case DUM_METHOD_NUM:
       default:
-        assert(!"Unexpected method ID!");
+        ASSERT(!"Unexpected method ID!");
         break;
     }
 

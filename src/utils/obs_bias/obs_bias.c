@@ -115,7 +115,7 @@ void apply_isc_table(u8 n_channels, navigation_measurement_t *nav_meas[]) {
 
       case CODE_INVALID:
       case CODE_COUNT:
-        assert(!"Invalid code.");
+        ASSERT(!"Invalid code.");
         break;
 
       default:

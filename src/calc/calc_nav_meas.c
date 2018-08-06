@@ -193,7 +193,7 @@ static bool get_isc_corr(const code_t code,
 
     case CODE_INVALID:
     case CODE_COUNT:
-      assert(!"Invalid code.");
+      ASSERT(!"Invalid code.");
       break;
 
     default:
@@ -314,6 +314,6 @@ u8 tdcp_doppler(u8 n_new,
     }
   }
   /* Number of measurements should not change */
-  assert(n == n_new);
+  ASSERT(n == n_new);
   return n;
 }

@@ -27,6 +27,7 @@
 
 #include <libswiftnav/bits.h>
 #include <libswiftnav/common.h>
+#include <libswiftnav/compiler.h>
 #include <libswiftnav/constants.h>
 #include <libswiftnav/signal.h>
 
@@ -115,20 +116,20 @@ static u8 mesid_to_nap_code(const me_gnss_signal_t mesid) {
       break;
     case CODE_GPS_L1P:
     case CODE_GPS_L2P:
-      assert(!"Unsupported SID");
+      ASSERT(!"Unsupported SID");
       break;
     case CODE_GAL_E1B:
 #if defined CODE_GAL_E1_SUPPORT && CODE_GAL_E1_SUPPORT > 0
       ret = NAP_TRK_CODE_GAL_E1;
 #else
-      assert(!"Invalid code");
+      ASSERT(!"Invalid code");
 #endif /* CODE_GAL_E1_SUPPORT*/
       break;
     case CODE_GAL_E7I:
       ret = NAP_TRK_CODE_GAL_E7;
       break;
     default:
-      assert(!"Invalid code");
+      ASSERT(!"Invalid code");
       break;
   }
   return ret;
@@ -148,7 +149,7 @@ void nap_track_init(u8 channel,
                     float doppler_freq_hz,
                     double code_phase,
                     u32 chips_to_correlate) {
-  assert((mesid.code == CODE_GPS_L1CA) || (mesid.code == CODE_GPS_L2CM) ||
+  ASSERT((mesid.code == CODE_GPS_L1CA) || (mesid.code == CODE_GPS_L2CM) ||
          (mesid.code == CODE_GPS_L2CL) || (mesid.code == CODE_GPS_L5X) ||
          (mesid.code == CODE_GLO_L1OF) || (mesid.code == CODE_GLO_L2OF) ||
          (mesid.code == CODE_SBAS_L1CA) || (mesid.code == CODE_BDS2_B1) ||
@@ -281,7 +282,7 @@ void nap_track_init(u8 channel,
     } else if (is_gal(mesid.code)) {
       /* default num_codes = 1 */;
     } else {
-      assert(0);
+      ASSERT(0);
     }
   }
 
@@ -297,7 +298,7 @@ void nap_track_init(u8 channel,
 
   u32 samples_diff = tc_min_propag - tc_codestart;
   u32 tmp = (u32)floor((double)samples_diff / code_samples);
-  assert(num_codes);
+  ASSERT(num_codes);
   num_codes *= (1 + (tmp / num_codes));
 
   u64 tc_next_rollover =

@@ -103,8 +103,8 @@ void sbp_make_utc_time(msg_utc_time_t *t_out,
   t_out->hours = utc_time.hour;
   t_out->minutes = utc_time.minute;
   t_out->seconds = utc_time.second_int;
-  assert(utc_time.second_frac >= 0.0);
-  assert(utc_time.second_frac < 1.0);
+  ASSERT(utc_time.second_frac >= 0.0);
+  ASSERT(utc_time.second_frac < 1.0);
   /* round the nanosecond part down to stop it rounding up to the next second */
   t_out->ns = floor(utc_time.second_frac * 1e9);
   t_out->flags = flags;
@@ -901,7 +901,7 @@ void unpack_ephemeris(const msg_ephemeris_t *msg, ephemeris_t *e) {
   constellation_t c =
       code_to_constellation(((msg_ephemeris_gps_t *)msg)->common.sid.code);
 
-  assert(NULL != ephe_type_table[c].unpack);
+  ASSERT(NULL != ephe_type_table[c].unpack);
 
   ephe_type_table[c].unpack(msg, e);
 }
@@ -909,7 +909,7 @@ void unpack_ephemeris(const msg_ephemeris_t *msg, ephemeris_t *e) {
 msg_info_t pack_ephemeris(const ephemeris_t *e, msg_ephemeris_t *msg) {
   constellation_t c = sid_to_constellation(e->sid);
 
-  assert(NULL != ephe_type_table[c].pack);
+  ASSERT(NULL != ephe_type_table[c].pack);
 
   ephe_type_table[c].pack(e, msg);
 
@@ -917,7 +917,7 @@ msg_info_t pack_ephemeris(const ephemeris_t *e, msg_ephemeris_t *msg) {
 }
 
 void sbp_ephe_reg_cbks(void (*ephemeris_msg_callback)(u16, u8, u8 *, void *)) {
-  assert(ARRAY_SIZE(ephe_type_table) == CONSTELLATION_COUNT);
+  ASSERT(ARRAY_SIZE(ephe_type_table) == CONSTELLATION_COUNT);
 
   for (u8 i = 0; i < ARRAY_SIZE(ephe_type_table); i++) {
     /* check if type is valid */
@@ -960,7 +960,7 @@ void sbp_send_iono(const ionosphere_t *iono) {
  * @param[in] gc pointer to gnss capabilities
  */
 void sbp_send_gnss_capb(const gnss_capb_t *gc) {
-  assert(gc);
+  ASSERT(gc);
   msg_gnss_capb_t msg = {.t_nmct =
                              {/* TODO: set this as 0 for now, beccause
                                * functionality decodes tnmct is not available */
@@ -1128,7 +1128,7 @@ void unpack_almanac(const msg_almanac_t *msg, almanac_t *a) {
   constellation_t c =
       code_to_constellation(((msg_almanac_gps_t *)msg)->common.sid.code);
 
-  assert(NULL != alma_type_table[c].unpack);
+  ASSERT(NULL != alma_type_table[c].unpack);
 
   alma_type_table[c].unpack(msg, a);
 }
@@ -1136,7 +1136,7 @@ void unpack_almanac(const msg_almanac_t *msg, almanac_t *a) {
 msg_info_t pack_almanac(const almanac_t *a, msg_almanac_t *msg) {
   constellation_t c = sid_to_constellation(a->sid);
 
-  assert(NULL != alma_type_table[c].pack);
+  ASSERT(NULL != alma_type_table[c].pack);
 
   alma_type_table[c].pack(a, msg);
 
@@ -1144,7 +1144,7 @@ msg_info_t pack_almanac(const almanac_t *a, msg_almanac_t *msg) {
 }
 
 void sbp_alma_reg_cbks(void (*almanac_msg_callback)(u16, u8, u8 *, void *)) {
-  assert(ARRAY_SIZE(alma_type_table) == CONSTELLATION_COUNT);
+  ASSERT(ARRAY_SIZE(alma_type_table) == CONSTELLATION_COUNT);
 
   for (u8 i = 0; i < ARRAY_SIZE(alma_type_table); i++) {
     /* check if type is valid */

@@ -803,7 +803,7 @@ void starling_add_sbas_data(const sbas_raw_data_t *sbas_data,
       log_error("platform_mailbox_item_alloc(MB_ID_SBAS_DATA) failed!");
       continue;
     }
-    assert(sbas_data);
+    ASSERT(sbas_data);
     *sbas_data_msg = *sbas_data;
     errno_t ret =
         platform_mailbox_post(MB_ID_SBAS_DATA, sbas_data_msg, MB_NONBLOCKING);
@@ -872,8 +872,8 @@ static void apply_dynamics_filter_to_solutions(
 void send_solution_time_matched(const StarlingFilterSolution *solution,
                                 const obss_t *obss_base,
                                 const obss_t *obss_rover) {
-  assert(obss_base);
-  assert(obss_rover);
+  ASSERT(obss_base);
+  ASSERT(obss_rover);
 
   /* Fill in the output messages. We always use the SPP message first.
    * Then if there is a successful time-matched result, we will
@@ -929,8 +929,8 @@ void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
                                const gps_time_t *solution_epoch_time,
                                const navigation_measurement_t *nav_meas,
                                const size_t num_nav_meas) {
-  assert(solution_epoch_time);
-  assert(nav_meas);
+  ASSERT(solution_epoch_time);
+  ASSERT(nav_meas);
 
   /* Apply the vehicle dynamics filter when enabled.
    * We need to make sure to pass through the most accurate solution
@@ -1246,7 +1246,7 @@ static THD_FUNCTION(initialize_and_run_starling, arg) {
 
   /* Never get here. */
   log_error("Starling Engine has unexpectedly terminated.");
-  assert(0);
+  ASSERT(0);
   for (;;) {
   }
 }

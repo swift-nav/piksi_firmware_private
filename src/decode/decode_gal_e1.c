@@ -63,8 +63,8 @@ static void decoder_gal_e1_init(const decoder_channel_info_t *channel_info,
 
 static void decoder_gal_e1_process(const decoder_channel_info_t *channel_info,
                                    decoder_data_t *decoder_data) {
-  assert(channel_info);
-  assert(decoder_data);
+  ASSERT(channel_info);
+  ASSERT(decoder_data);
 
   nav_msg_gal_inav_t *data = decoder_data;
 

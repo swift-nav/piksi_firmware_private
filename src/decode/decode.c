@@ -240,7 +240,7 @@ static void decode_thread(void *arg) {
           break;
 
         default:
-          assert(!"Invalid state");
+          ASSERT(!"Invalid state");
           break;
       }
     }
@@ -280,7 +280,7 @@ static decoder_channel_t *decoder_channel_get(u8 tracking_channel) {
    * Just need to make sure that only a single decoder channel can be allocated
    * to a given tracking channel.
    */
-  assert(tracking_channel < NUM_DECODER_CHANNELS);
+  ASSERT(tracking_channel < NUM_DECODER_CHANNELS);
   return &decoder_channels[tracking_channel];
 }
 
@@ -357,8 +357,8 @@ static void interface_function(decoder_channel_t *d,
 static void event(decoder_channel_t *d, event_t event) {
   switch (event) {
     case EVENT_ENABLE: {
-      assert(d->state == DECODER_CHANNEL_STATE_DISABLED);
-      assert(d->decoder->active == false);
+      ASSERT(d->state == DECODER_CHANNEL_STATE_DISABLED);
+      ASSERT(d->decoder->active == false);
       d->decoder->active = true;
       /* Sequence point for enable is setting channel state = STATE_ENABLED */
       asm volatile("" : : : "memory"); /* Prevent compiler reordering */
@@ -366,13 +366,13 @@ static void event(decoder_channel_t *d, event_t event) {
     } break;
 
     case EVENT_DISABLE_REQUEST: {
-      assert(d->state == DECODER_CHANNEL_STATE_ENABLED);
+      ASSERT(d->state == DECODER_CHANNEL_STATE_ENABLED);
       d->state = DECODER_CHANNEL_STATE_DISABLE_REQUESTED;
     } break;
 
     case EVENT_DISABLE: {
-      assert(d->state == DECODER_CHANNEL_STATE_DISABLE_REQUESTED);
-      assert(d->decoder->active == true);
+      ASSERT(d->state == DECODER_CHANNEL_STATE_DISABLE_REQUESTED);
+      ASSERT(d->decoder->active == true);
       /* Sequence point for disable is setting channel state = STATE_DISABLED
        * and/or decoder active = false (order of these two is irrelevant here)
        */
@@ -382,7 +382,7 @@ static void event(decoder_channel_t *d, event_t event) {
     } break;
 
     default:
-      assert(!"Invalid state");
+      ASSERT(!"Invalid state");
       break;
   }
 }

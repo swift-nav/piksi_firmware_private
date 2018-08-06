@@ -48,7 +48,7 @@ static cnav_msg_idx_t cnav_msg_type_to_idx(cnav_msg_type_t t) {
     case CNAV_MSG_TYPE_33:
       return CNAV_MSG_TYPE_IDX_33;
     default:
-      assert(!"Unsupported CNAV message type");
+      ASSERT(!"Unsupported CNAV message type");
   }
 }
 
@@ -61,7 +61,7 @@ static bool cnav_msg_type_id_valid(u8 msg_id) {
     case CNAV_MSG_TYPE_33:
       return true;
     default:
-      assert(!"Unsupported CNAV message type");
+      ASSERT(!"Unsupported CNAV message type");
   }
 
   return false;

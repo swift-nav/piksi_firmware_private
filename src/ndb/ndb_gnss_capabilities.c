@@ -118,7 +118,7 @@ static ndb_op_code_t ndb_store_gnss_capb(const gnss_signal_t *sid,
                                          const gnss_capb_t *gc,
                                          ndb_data_source_t src,
                                          u16 sender_id) {
-  assert(gc);
+  ASSERT(gc);
   ndb_op_code_t res = ndb_update(gc, src, &ndb_gnss_capb_md);
 
   if (NDB_ERR_NONE == res) {

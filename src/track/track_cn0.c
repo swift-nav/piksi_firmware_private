@@ -156,7 +156,7 @@ static void init_estimator(track_cn0_state_t *e,
       break;
 
     default:
-      assert(false);
+      ASSERT(false);
   }
 }
 
@@ -191,7 +191,7 @@ static float update_estimator(track_cn0_state_t *e,
       break;
 
     default:
-      assert(false);
+      ASSERT(false);
   }
 
   return cn0;
@@ -370,7 +370,7 @@ float track_cn0_get_offset(u8 cn0_ms) {
       break;
 
     default:
-      assert(!"Unexpected integration time");
+      ASSERT(!"Unexpected integration time");
       cn0_offset = 10.f * log10f(cn0_ms);
       break;
   }

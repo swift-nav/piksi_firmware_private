@@ -31,6 +31,6 @@ void tracker_interface_register(const tracker_interface_t *element) {
  * \return Associated tracker interface. May be the default interface.
  */
 const tracker_interface_t *tracker_interface_lookup(const code_t code) {
-  assert(tracker_interface[code]);
+  ASSERT(tracker_interface[code]);
   return tracker_interface[code];
 }

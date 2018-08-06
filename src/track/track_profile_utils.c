@@ -876,11 +876,11 @@ static const state_table_t *select_table(tp_tm_e tracking_mode) {
       return &mode_20ms_sc4;
 
     default:
-      assert(!"Invalid mode");
+      ASSERT(!"Invalid mode");
       break;
   }
 
-  assert(false);
+  ASSERT(false);
   return NULL;
 }
 
@@ -932,7 +932,7 @@ u32 tp_get_cycle_flags(tracker_t *tracker_channel, u8 cycle_no) {
   const state_table_t *tbl = select_table(tracker_channel->tracking_mode);
   const state_entry_t *ent = select_entry(tbl, cycle_no);
 
-  assert(NULL != ent);
+  ASSERT(NULL != ent);
 
   return ent->flags;
 }
@@ -947,7 +947,7 @@ u32 tp_get_cycle_flags(tracker_t *tracker_channel, u8 cycle_no) {
 u8 tp_get_cycle_count(tp_tm_e tracking_mode) {
   const state_table_t *tbl = select_table(tracking_mode);
 
-  assert(NULL != tbl);
+  ASSERT(NULL != tbl);
 
   return tbl->ent_cnt;
 }
@@ -964,7 +964,7 @@ u8 tp_get_current_cycle_duration(tp_tm_e tracking_mode, u8 cycle_no) {
   const state_table_t *tbl = select_table(tracking_mode);
   const state_entry_t *ent = select_entry(tbl, cycle_no);
 
-  assert(NULL != ent);
+  ASSERT(NULL != ent);
 
   return ent->state_ms;
 }
@@ -982,7 +982,7 @@ u8 tp_get_current_cycle_duration(tp_tm_e tracking_mode, u8 cycle_no) {
 u32 tp_get_rollover_cycle_duration(tp_tm_e tracking_mode, u8 cycle_no) {
   const state_table_t *tbl = select_table(tracking_mode);
 
-  assert(tbl != NULL);
+  ASSERT(tbl != NULL);
 
   u8 cycle_cnt = tbl->ent_cnt;
   cycle_no += 2;
@@ -990,7 +990,7 @@ u32 tp_get_rollover_cycle_duration(tp_tm_e tracking_mode, u8 cycle_no) {
 
   const state_entry_t *ent = select_entry(tbl, cycle_no);
 
-  assert(ent != NULL);
+  ASSERT(ent != NULL);
 
   return ent->state_ms;
 }
@@ -1005,7 +1005,7 @@ u32 tp_get_rollover_cycle_duration(tp_tm_e tracking_mode, u8 cycle_no) {
 u8 tp_get_cn0_ms(tp_tm_e tracking_mode) {
   const state_table_t *tbl = select_table(tracking_mode);
 
-  assert(NULL != tbl);
+  ASSERT(NULL != tbl);
 
   return tbl->cn0_ms;
 }
@@ -1020,7 +1020,7 @@ u8 tp_get_cn0_ms(tp_tm_e tracking_mode) {
 u8 tp_get_ld_ms(tp_tm_e tracking_mode) {
   const state_table_t *tbl = select_table(tracking_mode);
 
-  assert(NULL != tbl);
+  ASSERT(NULL != tbl);
 
   return tbl->lockdet_ms;
 }
@@ -1035,7 +1035,7 @@ u8 tp_get_ld_ms(tp_tm_e tracking_mode) {
 float tp_get_alias_ms(tp_tm_e tracking_mode) {
   const state_table_t *tbl = select_table(tracking_mode);
 
-  assert(NULL != tbl);
+  ASSERT(NULL != tbl);
 
   return tbl->alias_ms;
 }
@@ -1050,7 +1050,7 @@ float tp_get_alias_ms(tp_tm_e tracking_mode) {
 float tp_get_flld_ms(tp_tm_e tracking_mode) {
   const state_table_t *tbl = select_table(tracking_mode);
 
-  assert(NULL != tbl);
+  ASSERT(NULL != tbl);
 
   return tbl->flld_ms;
 }
@@ -1065,7 +1065,7 @@ float tp_get_flld_ms(tp_tm_e tracking_mode) {
 u8 tp_get_flll_ms(tp_tm_e tracking_mode) {
   const state_table_t *tbl = select_table(tracking_mode);
 
-  assert(NULL != tbl);
+  ASSERT(NULL != tbl);
 
   return tbl->flll_ms;
 }
@@ -1080,7 +1080,7 @@ u8 tp_get_flll_ms(tp_tm_e tracking_mode) {
 u8 tp_get_bit_ms(tp_tm_e tracking_mode) {
   const state_table_t *tbl = select_table(tracking_mode);
 
-  assert(NULL != tbl);
+  ASSERT(NULL != tbl);
 
   return tbl->bit_ms;
 }
@@ -1095,7 +1095,7 @@ u8 tp_get_bit_ms(tp_tm_e tracking_mode) {
 u8 tp_get_pll_ms(tp_tm_e tracking_mode) {
   const state_table_t *tbl = select_table(tracking_mode);
 
-  assert(NULL != tbl);
+  ASSERT(NULL != tbl);
 
   return tbl->int_ms;
 }
@@ -1189,7 +1189,7 @@ const char *tp_get_mode_str(tp_tm_e v) {
       break;
 
     default:
-      assert(false);
+      ASSERT(false);
   }
   return str;
 }

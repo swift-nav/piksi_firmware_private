@@ -78,7 +78,7 @@ u16 sm_constellation_to_start_index(constellation_t gnss) {
       return NUM_SATS_GPS + NUM_SATS_GLO + NUM_SATS_SBAS + NUM_SATS_BDS +
              NUM_SATS_QZS;
     default:
-      assert(!"Incorrect constellation");
+      ASSERT(!"Incorrect constellation");
   }
 }
 
@@ -167,7 +167,7 @@ void sm_init(acq_jobs_state_t *data) {
  * \return none
  */
 static void sm_deep_search_run(acq_jobs_state_t *jobs_data) {
-  assert(jobs_data != NULL);
+  ASSERT(jobs_data != NULL);
 
   constellation_t con = jobs_data->constellation;
 
@@ -217,9 +217,9 @@ static void sm_deep_search_run(acq_jobs_state_t *jobs_data) {
       }
     }
 
-    assert(mesid_valid(*mesid));
-    assert(sid_valid(sid));
-    assert(deep_job->job_type < ACQ_NUM_JOB_TYPES);
+    ASSERT(mesid_valid(*mesid));
+    ASSERT(sid_valid(sid));
+    ASSERT(deep_job->job_type < ACQ_NUM_JOB_TYPES);
 
     if (mesid_is_tracked(*mesid)) {
       continue;
@@ -262,7 +262,7 @@ static void sm_deep_search_run(acq_jobs_state_t *jobs_data) {
 static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
                                    u64 now_ms,
                                    u64 lgf_age_ms) {
-  assert(jobs_data != NULL);
+  ASSERT(jobs_data != NULL);
 
   constellation_t con = jobs_data->constellation;
 
@@ -314,9 +314,9 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
       }
     }
 
-    assert(mesid_valid(*mesid));
-    assert(sid_valid(sid));
-    assert(fallback_job->job_type < ACQ_NUM_JOB_TYPES);
+    ASSERT(mesid_valid(*mesid));
+    ASSERT(sid_valid(sid));
+    ASSERT(fallback_job->job_type < ACQ_NUM_JOB_TYPES);
 
     if (mesid_is_tracked(*mesid)) {
       continue;
@@ -375,23 +375,23 @@ bool check_priority_mask(reacq_prio_level_t prio_level,
   u32 priority_mask = 0;
   switch (prio_level) {
     case REACQ_NORMAL_PRIO:
-      assert((u8)jobs_data->constellation < ARRAY_SIZE(reacq_normal_prio));
+      ASSERT((u8)jobs_data->constellation < ARRAY_SIZE(reacq_normal_prio));
       priority_mask = reacq_normal_prio[jobs_data->constellation];
       break;
 
     case REACQ_GPS_HIGH_PRIO:
-      assert((u8)jobs_data->constellation < ARRAY_SIZE(reacq_gps_high_prio));
+      ASSERT((u8)jobs_data->constellation < ARRAY_SIZE(reacq_gps_high_prio));
       priority_mask = reacq_gps_high_prio[jobs_data->constellation];
       break;
 
     case REACQ_SBAS_HIGH_PRIO:
-      assert((u8)jobs_data->constellation < ARRAY_SIZE(reacq_sbas_high_prio));
+      ASSERT((u8)jobs_data->constellation < ARRAY_SIZE(reacq_sbas_high_prio));
       priority_mask = reacq_sbas_high_prio[jobs_data->constellation];
       break;
 
     case REACQ_PRIO_COUNT:
     default:
-      assert(!"Unsupported re-acq priority mask");
+      ASSERT(!"Unsupported re-acq priority mask");
   }
 
   priority_mask >>= jobs_data->priority_counter;
@@ -434,7 +434,7 @@ bool is_constellation_enabled(constellation_t con) {
     case CONSTELLATION_INVALID:
     case CONSTELLATION_COUNT:
     default:
-      assert(!"Unsupported reacq constellation!");
+      ASSERT(!"Unsupported reacq constellation!");
       break;
   }
   return false;

@@ -1082,7 +1082,7 @@ static bool should_update_tow_cache(const tracker_t *tracker) {
     } else if (CODE_BDS2_B2 == mesid.code) {
       mesid_L1 = construct_mesid(CODE_BDS2_B1, mesid.sat);
     } else {
-      assert(!"Unsupported TOW cache code");
+      ASSERT(!"Unsupported TOW cache code");
     }
     tracker_t *trk_ch = tracker_channel_get_by_mesid(mesid_L1);
     responsible_for_update =

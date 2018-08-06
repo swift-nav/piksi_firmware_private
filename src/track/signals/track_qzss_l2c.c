@@ -133,7 +133,7 @@ void qzss_l1ca_to_l2c_handover(u32 sample_count,
       break;
 
     default:
-      assert(!"Unknown code returned");
+      ASSERT(!"Unknown code returned");
       break;
   }
 }

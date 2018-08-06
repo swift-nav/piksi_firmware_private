@@ -129,7 +129,7 @@ void do_glo_l1of_to_l2of_handover(u32 sample_count,
       break;
 
     default:
-      assert(!"Unknown code returned");
+      ASSERT(!"Unknown code returned");
       break;
   }
 }

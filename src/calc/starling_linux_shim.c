@@ -122,7 +122,7 @@ static void platform_thread_info_init(const thread_id_t id,
                                       platform_thread_info_t *info) {
   int max_prio = sched_get_priority_max(sch_policy);
 
-  assert(0 < max_prio);
+  ASSERT(0 < max_prio);
 
   switch (id) {
     case THREAD_ID_TMO:
@@ -142,15 +142,15 @@ static void platform_thread_info_init(const thread_id_t id,
       break;
 
     default:
-      assert(!"Unknown thread ID");
+      ASSERT(!"Unknown thread ID");
       break;
   }
 
-  assert(0 < info->prio);
+  ASSERT(0 < info->prio);
 }
 
 void platform_thread_create(const thread_id_t id, platform_routine_t *fn) {
-  assert(fn);
+  ASSERT(fn);
   pthread_attr_t attr;
   platform_thread_info_t info;
   struct sched_param sch_params;
@@ -160,25 +160,25 @@ void platform_thread_create(const thread_id_t id, platform_routine_t *fn) {
   sch_params.sched_priority = info.prio;
 
   if (0 != pthread_attr_init(&attr)) {
-    assert(!"pthread_attr_init()");
+    ASSERT(!"pthread_attr_init()");
   }
 
   if (0 < info.size) {
     if (0 != pthread_attr_setstacksize(&attr, info.size)) {
-      assert(!"pthread_attr_setstacksize");
+      ASSERT(!"pthread_attr_setstacksize");
     }
   }
 
   if (0 != pthread_create(&info.thread_id, &attr, &start_routine_wrapper, fn)) {
-    assert(!"pthread_create()");
+    ASSERT(!"pthread_create()");
   }
 
   if (0 != pthread_setschedparam(info.thread_id, sch_policy, &sch_params)) {
-    assert(!"pthread_setschedparam()");
+    ASSERT(!"pthread_setschedparam()");
   }
 
   if (0 != pthread_attr_destroy(&attr)) {
-    assert(!"pthread_attr_destroy()");
+    ASSERT(!"pthread_attr_destroy()");
   }
 }
 
@@ -245,7 +245,7 @@ void platform_mailbox_init(mailbox_id_t id) {
 static void platform_get_timeout(const uint32_t timeout_ms,
                                  struct timespec *ts) {
   if (0 != clock_gettime(CLOCK_REALTIME, ts)) {
-    assert(!"clock_gettime");
+    ASSERT(!"clock_gettime");
   }
   ts->tv_nsec += timeout_ms * 1e6;
 }

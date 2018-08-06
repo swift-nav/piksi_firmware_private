@@ -29,7 +29,7 @@
 void sv_visibility_status_get(const sv_vis_config_t *config,
                               bool *visible,
                               bool *known) {
-  assert(visible != 0 && known != 0);
+  ASSERT(visible != 0 && known != 0);
 
   if (config == NULL || config->e == NULL) {
     *visible = false;
@@ -71,7 +71,7 @@ void sv_visibility_status_get(const sv_vis_config_t *config,
       sv_max_vis_angle_deg = SV_VIS_MAX_ANGLE_FROM_LGF_SBAS_DEG;
       break;
     default:
-      assert(!"Unknown GNSS code");
+      ASSERT(!"Unknown GNSS code");
   }
 
   if (arc_angle * R2D >= sv_max_vis_angle_deg) {

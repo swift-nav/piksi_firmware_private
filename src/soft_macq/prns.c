@@ -603,7 +603,7 @@ static const u32 gps_l2cl_prns_last_values[] = {
 u32 mesid_to_lfsr0_init(const me_gnss_signal_t mesid, const u8 index) {
   u32 ret = ~0;
 
-  assert(mesid_valid(mesid));
+  ASSERT(mesid_valid(mesid));
 
   switch ((s8)mesid.code) {
     case CODE_GPS_L2CM:
@@ -648,7 +648,7 @@ u32 mesid_to_lfsr0_init(const me_gnss_signal_t mesid, const u8 index) {
       ret = gal_e7i_prns_init_values[mesid.sat - GAL_FIRST_PRN] & 0x3FFF;
       break;
     default:
-      assert(!"Unsupported signal code ID");
+      ASSERT(!"Unsupported signal code ID");
       break;
   }
 
@@ -664,7 +664,7 @@ u32 mesid_to_lfsr0_init(const me_gnss_signal_t mesid, const u8 index) {
 u32 mesid_to_lfsr1_init(const me_gnss_signal_t mesid, const u8 index) {
   u32 ret = ~0;
 
-  assert(mesid_valid(mesid));
+  ASSERT(mesid_valid(mesid));
 
   switch ((s8)mesid.code) {
     case CODE_GPS_L1CA:
@@ -712,7 +712,7 @@ u32 mesid_to_lfsr1_init(const me_gnss_signal_t mesid, const u8 index) {
       ret = gal_e7q_prns_init_values[mesid.sat - GAL_FIRST_PRN] & 0x3FFF;
       break;
     default:
-      assert(!"Unsupported signal code ID");
+      ASSERT(!"Unsupported signal code ID");
       break;
   }
 
@@ -726,7 +726,7 @@ u32 mesid_to_lfsr1_init(const me_gnss_signal_t mesid, const u8 index) {
 u32 mesid_to_lfsr0_last(me_gnss_signal_t mesid) {
   u32 ret = ~0;
 
-  assert(mesid_valid(mesid));
+  ASSERT(mesid_valid(mesid));
 
   switch ((s8)mesid.code) {
     case CODE_GPS_L2CM:
@@ -770,7 +770,7 @@ u32 mesid_to_lfsr0_last(me_gnss_signal_t mesid) {
       ret = gal_e7i_prns_last_values[mesid.sat - GAL_FIRST_PRN] & 0x3FFF;
       break;
     default:
-      assert(!"Unsupported signal code ID");
+      ASSERT(!"Unsupported signal code ID");
       break;
   }
 
@@ -784,7 +784,7 @@ u32 mesid_to_lfsr0_last(me_gnss_signal_t mesid) {
 u32 mesid_to_lfsr1_last(me_gnss_signal_t mesid) {
   u32 ret = ~0;
 
-  assert(mesid_valid(mesid));
+  ASSERT(mesid_valid(mesid));
 
   switch ((s8)mesid.code) {
     case CODE_GPS_L1CA:
@@ -830,7 +830,7 @@ u32 mesid_to_lfsr1_last(me_gnss_signal_t mesid) {
       ret = gal_e7q_prns_last_values[mesid.sat - GAL_FIRST_PRN] & 0x3FFF;
       break;
     default:
-      assert(!"Unsupported signal code ID");
+      ASSERT(!"Unsupported signal code ID");
       break;
   }
 
@@ -847,7 +847,7 @@ u32 mesid_to_lfsr1_last(me_gnss_signal_t mesid) {
  *         the PRN number <code>prn</code>, packed one bit per chip.
  */
 const u8* ca_code(const me_gnss_signal_t mesid) {
-  assert(mesid_valid(mesid));
+  ASSERT(mesid_valid(mesid));
 
   if (IS_GLO(mesid)) {
     return glo_ca_codes;
@@ -867,7 +867,7 @@ const u8* ca_code(const me_gnss_signal_t mesid) {
 
   const prn_array_t prn_array = prn_array_table[mesid.code];
   if (prn_array == NULL) {
-    assert(!"Unsupported code type");
+    ASSERT(!"Unsupported code type");
     return NULL;
   }
   return prn_array[mesid_to_code_index(mesid)];

@@ -62,7 +62,7 @@ u8 *GrabberGetBufferPt(u32 *length) {
  */
 static void axi_dma_tx_callback(bool success) {
   (void)success;
-  assert(success);
+  ASSERT(success);
 }
 
 /** Callback for AXI DMA RX.
@@ -94,9 +94,9 @@ static void samples_start(u32 len_words) {
  * \param len_bytes       Length of transfer (bytes).
  */
 static void dma_start(const u8 *in, u8 *out, u32 len_bytes) {
-  assert(!((u32)in & (GRABBER_BUFFER_ALIGN - 1)));
-  assert(!((u32)out & (GRABBER_BUFFER_ALIGN - 1)));
-  assert(!((u32)len_bytes & (GRABBER_LENGTH_ALIGN - 1)));
+  ASSERT(!((u32)in & (GRABBER_BUFFER_ALIGN - 1)));
+  ASSERT(!((u32)out & (GRABBER_BUFFER_ALIGN - 1)));
+  ASSERT(!((u32)len_bytes & (GRABBER_LENGTH_ALIGN - 1)));
 
   if (in != NULL) {
     /* Ensure that input accesses have completed */

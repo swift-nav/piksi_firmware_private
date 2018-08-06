@@ -73,7 +73,7 @@ glo_decode_status_t glo_data_decoding(nav_msg_glo_t *n,
       return GLO_DECODE_EPH_UPDATE;
       break;
     default:
-      assert("GLO string decode error");
+      ASSERT("GLO string decode error");
   }
   return GLO_DECODE_SENSITIVITY;
 }

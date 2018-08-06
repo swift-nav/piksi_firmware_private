@@ -95,7 +95,7 @@ void rpmsg_setup(void) {
                                         rpmsg_channel_destroyed,
                                         rpmsg_default_rx,
                                         &remote_proc);
-  assert(status == 0);
+  ASSERT(status == 0);
 
   chThdCreateStatic(wa_rpmsg_thread,
                     sizeof(wa_rpmsg_thread),

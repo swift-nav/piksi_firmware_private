@@ -13,6 +13,7 @@
 #include <assert.h>
 #include <ch.h>
 
+#include <libswiftnav/compiler.h>
 #include <libswiftnav/constants.h>
 #include <libswiftnav/logging.h>
 
@@ -33,7 +34,7 @@
 static u16 tracking_lock_counters[PLATFORM_ACQ_TRACK_COUNT];
 
 static s32 normalize_tow(s32 tow) {
-  assert(tow >= 0);
+  ASSERT(tow >= 0);
   return tow % GPS_WEEK_LENGTH_ms;
 }
 
@@ -164,9 +165,9 @@ s32 tracker_tow_update(tracker_t *tracker,
                        u32 int_ms,
                        s32 *TOW_residual_ns,
                        bool *decoded_tow) {
-  assert(tracker);
-  assert(TOW_residual_ns);
-  assert(decoded_tow);
+  ASSERT(tracker);
+  ASSERT(TOW_residual_ns);
+  ASSERT(decoded_tow);
 
   /* Latch TOW from nav message if pending */
 

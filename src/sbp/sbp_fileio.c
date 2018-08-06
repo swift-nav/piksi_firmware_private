@@ -56,7 +56,7 @@ static void sbp_fileio_callback(u16 sender_id,
                                 u8 len,
                                 u8 msg_raw[],
                                 void *context) {
-  assert(NULL != context);
+  ASSERT(NULL != context);
   struct sbp_fileio_closure *closure = context;
   msg_fileio_write_resp_t *msg = (msg_fileio_write_resp_t *)msg_raw;
   (void)sender_id;

@@ -60,7 +60,7 @@ static void cns_2_str(code_nav_state_t state, char** state_str) {
       *state_str = CODE_NAV_STATE_VALID_STR;
       break;
     default:
-      assert(!"Unsupported value in code_nav_state_t");
+      ASSERT(!"Unsupported value in code_nav_state_t");
       break;
   }
 }
@@ -77,7 +77,7 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
     return CODE_NAV_STATE_UNKNOWN;
   }
 
-  assert(sid_valid(sid));
+  ASSERT(sid_valid(sid));
 
   /* Check GPS band specific SHIs.
    * shi_ephemeris, LNAV SV HEALTH (6 bits, subframe 1, word 3)
@@ -237,7 +237,7 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
 
     case CODE_INVALID:
     case CODE_COUNT:
-      assert(!"Invalid code");
+      ASSERT(!"Invalid code");
       break;
 
     default:
@@ -306,7 +306,7 @@ void shm_log_sat_state(const char* shi_name, u16 sat) {
  * \param new_value value to set shi_ephemeris to
  */
 void shm_gps_set_shi_ephemeris(u16 sat, u8 new_value) {
-  assert(sat >= GPS_FIRST_PRN && sat < GPS_FIRST_PRN + NUM_SATS_GPS);
+  ASSERT(sat >= GPS_FIRST_PRN && sat < GPS_FIRST_PRN + NUM_SATS_GPS);
   chMtxLock(&shm_data_access);
   gps_shis[sat - GPS_FIRST_PRN].shi_ephemeris = new_value;
   gps_shis[sat - GPS_FIRST_PRN].shi_ephemeris_set = true;
@@ -321,7 +321,7 @@ void shm_gps_set_shi_ephemeris(u16 sat, u8 new_value) {
  * \param new_value value to set shi_page25 to
  */
 void shm_gps_set_shi_page25(u16 sat, u8 new_value) {
-  assert(sat >= GPS_FIRST_PRN && sat < GPS_FIRST_PRN + NUM_SATS_GPS);
+  ASSERT(sat >= GPS_FIRST_PRN && sat < GPS_FIRST_PRN + NUM_SATS_GPS);
   if (0 == new_value) {
     return;
   }
@@ -342,7 +342,7 @@ void shm_gps_set_shi_page25(u16 sat, u8 new_value) {
  * \param new_value value to set shi_lnav_how_alert to
  */
 void shm_gps_set_shi_lnav_how_alert(u16 sat, bool new_value) {
-  assert(sat >= GPS_FIRST_PRN && sat < GPS_FIRST_PRN + NUM_SATS_GPS);
+  ASSERT(sat >= GPS_FIRST_PRN && sat < GPS_FIRST_PRN + NUM_SATS_GPS);
   chMtxLock(&shm_data_access);
   gps_shis[sat - GPS_FIRST_PRN].shi_lnav_how_alert = new_value;
   gps_shis[sat - GPS_FIRST_PRN].shi_lnav_how_alert_set = true;
@@ -357,7 +357,7 @@ void shm_gps_set_shi_lnav_how_alert(u16 sat, bool new_value) {
  * \param new_value value to set shi_cnav_alert to
  */
 void shm_gps_set_shi_cnav_alert(u16 sat, bool new_value) {
-  assert(sat >= GPS_FIRST_PRN && sat < GPS_FIRST_PRN + NUM_SATS_GPS);
+  ASSERT(sat >= GPS_FIRST_PRN && sat < GPS_FIRST_PRN + NUM_SATS_GPS);
   chMtxLock(&shm_data_access);
   gps_shis[sat - GPS_FIRST_PRN].shi_cnav_alert = new_value;
   gps_shis[sat - GPS_FIRST_PRN].shi_cnav_alert_set = true;
@@ -372,7 +372,7 @@ void shm_gps_set_shi_cnav_alert(u16 sat, bool new_value) {
  * \param new_value value to set SHI to
  */
 void shm_glo_set_shi(u16 sat, u8 new_value) {
-  assert(sat >= GLO_FIRST_PRN && sat < GLO_FIRST_PRN + NUM_SATS_GLO);
+  ASSERT(sat >= GLO_FIRST_PRN && sat < GLO_FIRST_PRN + NUM_SATS_GLO);
   chMtxLock(&shm_data_access);
   glo_shis[sat - GLO_FIRST_PRN].shi = new_value;
   glo_shis[sat - GLO_FIRST_PRN].shi_set = true;
@@ -386,7 +386,7 @@ void shm_glo_set_shi(u16 sat, u8 new_value) {
  * \param new_value value to set SHI to
  */
 void shm_bds_set_shi(u16 sat, u8 new_value) {
-  assert(sat >= BDS_FIRST_PRN && sat < BDS_FIRST_PRN + NUM_SATS_BDS);
+  ASSERT(sat >= BDS_FIRST_PRN && sat < BDS_FIRST_PRN + NUM_SATS_BDS);
   chMtxLock(&shm_data_access);
   bds_shis[sat - BDS_FIRST_PRN].shi = new_value;
   bds_shis[sat - BDS_FIRST_PRN].shi_set = true;
@@ -400,7 +400,7 @@ void shm_bds_set_shi(u16 sat, u8 new_value) {
  * \param new_value value to set SHI to
  */
 void shm_gal_set_shi(u16 sat, u8 new_value) {
-  assert(sat >= GAL_FIRST_PRN && sat < GAL_FIRST_PRN + NUM_SATS_GAL);
+  ASSERT(sat >= GAL_FIRST_PRN && sat < GAL_FIRST_PRN + NUM_SATS_GAL);
   chMtxLock(&shm_data_access);
   gal_shis[sat - GAL_FIRST_PRN].shi = new_value;
   gal_shis[sat - GAL_FIRST_PRN].shi_set = true;
@@ -443,7 +443,7 @@ bool shm_alma_page25_health_aged(u32 timetag_s) {
  *               is CODE_NAV_STATE_VALID, false otherwise
  */
 bool shm_signal_healthy(gnss_signal_t sid) {
-  assert(sid_valid(sid));
+  ASSERT(sid_valid(sid));
   return shm_get_sat_state(sid) == CODE_NAV_STATE_VALID;
 }
 
@@ -455,7 +455,7 @@ bool shm_signal_healthy(gnss_signal_t sid) {
  *               is CODE_NAV_STATE_INVALID, false otherwise
  */
 bool shm_signal_unhealthy(gnss_signal_t sid) {
-  assert(sid_valid(sid));
+  ASSERT(sid_valid(sid));
   return shm_get_sat_state(sid) == CODE_NAV_STATE_INVALID;
 }
 

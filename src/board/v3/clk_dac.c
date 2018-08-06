@@ -10,6 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include <libswiftnav/common.h>
 #include "clk_dac.h"
 #include <assert.h>
 #include <hal.h>
@@ -18,8 +19,8 @@ static const SPIConfig spi_config = CLK_DAC_SPI_CONFIG;
 
 /* Controls for 8 bit DAC DAC081S101 or 12 bit DAC121S101*/
 void set_clk_dac(uint16_t val, uint8_t mode) {
-  assert(mode <= 3);
-  assert(val < 4096);
+  ASSERT(mode <= 3);
+  ASSERT(val < 4096);
   uint8_t out[2];
   out[0] = (mode << 4) | (val >> 8);
   out[1] = val & 0xFF;

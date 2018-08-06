@@ -106,7 +106,7 @@ double tracker_get_lock_time(const tracker_time_info_t *time_info,
   u64 cpo_age_ms = 0;
   if (0 != misc_info->carrier_phase_offset.value) {
     u64 now_ms = timing_getms();
-    assert(now_ms >= misc_info->carrier_phase_offset.timestamp_ms);
+    ASSERT(now_ms >= misc_info->carrier_phase_offset.timestamp_ms);
     cpo_age_ms = now_ms - misc_info->carrier_phase_offset.timestamp_ms;
   }
 
@@ -222,7 +222,7 @@ tracker_t *tracker_channel_get_by_mesid(const me_gnss_signal_t mesid) {
  * \return None
  */
 void tracker_drop_unhealthy(const me_gnss_signal_t mesid) {
-  assert(IS_GLO(mesid) || IS_BDS2(mesid) || IS_GAL(mesid));
+  ASSERT(IS_GLO(mesid) || IS_BDS2(mesid) || IS_GAL(mesid));
   tracker_t *tracker = tracker_channel_get_by_mesid(mesid);
   if (tracker == NULL) {
     return;

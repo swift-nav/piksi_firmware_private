@@ -143,7 +143,7 @@ void bds_b11_to_b2_handover(u32 sample_count,
       break;
 
     default:
-      assert(!"Unknown code returned");
+      ASSERT(!"Unknown code returned");
       break;
   }
 }

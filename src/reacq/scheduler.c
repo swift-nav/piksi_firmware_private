@@ -69,7 +69,7 @@ void sch_initialize_cost(acq_job_t *init_job,
         min_found = true;
       }
       avg = avg + job->cost;
-      assert(avg >= job->cost);
+      ASSERT(avg >= job->cost);
       num_jobs++;
     }
   }
@@ -100,7 +100,7 @@ void sch_initialize_cost(acq_job_t *init_job,
       }
       break;
     default:
-      assert(!"Invalid cost hint");
+      ASSERT(!"Invalid cost hint");
       init_job->cost = max_cost + init_job->cost_delta;
       break;
   }
@@ -175,7 +175,7 @@ acq_job_t *sch_select_job(acq_jobs_state_t *jobs_data) {
     acq_job_t *job = &jobs_data->jobs[type][idx];
     for (u8 i = 0; i < num_sats; i++, job++) {
       acq_task_t *task = &job->task_data;
-      assert(job->job_type < ACQ_NUM_JOB_TYPES);
+      ASSERT(job->job_type < ACQ_NUM_JOB_TYPES);
       if (ACQ_STATE_WAIT == job->state && !job->needs_to_run) {
         job->state = ACQ_STATE_IDLE;
       }
@@ -198,7 +198,7 @@ acq_job_t *sch_select_job(acq_jobs_state_t *jobs_data) {
     acq_job_t *job = &jobs_data->jobs[type][idx];
     for (u8 i = 0; i < num_sats; i++, job++) {
       acq_task_t *task = &job->task_data;
-      assert(job->job_type < ACQ_NUM_JOB_TYPES);
+      ASSERT(job->job_type < ACQ_NUM_JOB_TYPES);
       /* Triggers only on ACQ_COST_MAX_PLUS cost hint */
       if (ACQ_STATE_IDLE == job->state && job->needs_to_run &&
           ACQ_COST_MAX_PLUS == job->cost_hint) {
@@ -269,20 +269,20 @@ static void sch_run_common(acq_jobs_state_t *jobs_data, acq_job_t *job) {
   if (0 == task->task_index) {
     tg_fill_task(job);
   } else {
-    assert(!"Expecting only task index 0 in Phase 1");
+    ASSERT(!"Expecting only task index 0 in Phase 1");
     task->task_index = 0;
   }
   /* Sanity check */
   if (task->task_index > task->number_of_tasks ||
       task->task_index > ACQ_MAX_NUM_TASKS) {
-    assert(!"Too many tasks");
+    ASSERT(!"Too many tasks");
     task->task_index = 0;
   }
 
   acq_param = &task->task_array[task->task_index];
   job->state = ACQ_STATE_RUN;
 
-  assert(mesid_valid(job->mesid));
+  ASSERT(mesid_valid(job->mesid));
 
   job->start_time = timing_getms();
 
