@@ -192,6 +192,7 @@ static void copy_starling_obs_into_navigation_measurement(
     starling_obs_t *starling_obs,
     navigation_measurement_t *nm) {
   nm->sid                  = starling_obs->sid;
+  nm->tot                  = starling_obs->tot;
   nm->raw_pseudorange      = starling_obs->P;
   nm->raw_carrier_phase    = starling_obs->L;
   nm->raw_measured_doppler = starling_obs->D;
@@ -221,10 +222,6 @@ static void convert_starling_obs_array_to_uncollapsed_obss(
     navigation_measurement_t *nm = &obss->nm[obss->n];
     copy_starling_obs_into_navigation_measurement(&obs_array->observations[i], nm);
 
-    /* Set the time */
-    nm->tot = obs_array->t;
-    nm->tot.tow -= nm->raw_pseudorange / GPS_C;
-    normalize_gps_time(&nm->tot);
 
     /* Filter out any observation without a valid pseudorange observation. */
     if (!pseudorange_valid(*nm)) {
@@ -553,7 +550,12 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
 
   /* Copy into local array. */
   for (size_t i = 0; i < obs_in_msg && obs_array.n < STARLING_MAX_OBS_COUNT; ++i) {
-    unpack_obs_content(&msg_raw_obs[i], &obs_array.observations[obs_array.n++]);
+    starling_obs_t *current_obs = &obs_array.observations[obs_array.n++];
+    unpack_obs_content(&msg_raw_obs[i], current_obs);
+    /* We must also compute the TOT using the TOR from the header. */
+    current_obs->tot = obs_array.t;
+    current_obs->tot.tow -= current_obs->P / GPS_C;
+    normalize_gps_time(&current_obs->tot);
   }
 
   /* Print msg if we encounter a remote which sends large amount of obs. */

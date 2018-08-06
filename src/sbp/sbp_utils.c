@@ -444,6 +444,9 @@ void unpack_obs_content(const packed_obs_content_t *msg,
     obs->flags |= NAV_MEAS_FLAG_CN0_VALID;
   }
   obs->sid = sid_from_sbp(msg->sid);
+
+  /* Leave the TOT to be filled in by someone with knowledge of local time. */
+  obs->tot = GPS_TIME_UNKNOWN;
 }
 
 /** Pack GPS observables into a `msg_obs_content_t` struct.
