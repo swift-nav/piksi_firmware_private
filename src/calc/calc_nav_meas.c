@@ -22,7 +22,6 @@
 #include <libswiftnav/ionosphere.h>
 #include <libswiftnav/linear_algebra.h>
 #include <libswiftnav/troposphere.h>
-#include <starling/starling.h>
 
 /* Warning threshold for the difference between TDCP and measured Doppler.
  * (85Hz threshold allows for max 1 ms error in the timestamp difference.) */
@@ -45,13 +44,13 @@ void convert_starling_obs_to_navigation_measurement(
   nm->flags                = starling_obs->flags;
 
   /* Some other fields we also provide an initial value to be overwritten later. */
-  nav_meas->IODE = INVALID_IODE;
-  nav_meas->IODC = INVALID_IODC;
-  if (!track_sid_db_elevation_degrees_get(nav_meas->sid,
-        &nav_meas->elevation)) {
+  nm->IODE = INVALID_IODE;
+  nm->IODC = INVALID_IODC;
+  if (!track_sid_db_elevation_degrees_get(nm->sid,
+        &nm->elevation)) {
     /* Use 0 degrees as unknown elevation to assign it the smallest weight */
-    log_debug_sid(nav_meas->sid, "Elevation unknown, using 0");
-    nav_meas->elevation = 0;
+    log_debug_sid(nm->sid, "Elevation unknown, using 0");
+    nm->elevation = 0;
   }
 }
 
@@ -191,6 +190,13 @@ s8 calc_navigation_measurement(u8 n_channels,
       return error;
     }
   }
+
+  /* Now we can go and convert all Starling observations into the nav_meas array. */
+  for (size_t i = 0; i < obs_array.n; ++i) {
+    starling_obs_t *obs = &obs_array.observations[i];
+    convert_starling_obs_to_navigation_measurement(obs, nav_meas[i]);  
+  }
+
   return 0;
 }
 

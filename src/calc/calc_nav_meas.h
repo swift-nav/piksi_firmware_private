@@ -19,6 +19,7 @@
 #include <libswiftnav/ephemeris.h>
 #include <libswiftnav/ionosphere.h>
 #include <libswiftnav/nav_meas.h>
+#include <starling/starling.h>
 
 #ifdef __cplusplus
 extern "C" {
