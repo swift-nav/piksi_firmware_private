@@ -28,6 +28,33 @@
  * (85Hz threshold allows for max 1 ms error in the timestamp difference.) */
 #define TDCP_MAX_DELTA_HZ 85
 
+/* Copy all fields from a Starling-style obs type into the
+ * corresponding navigation measurement fields. As of 
+ * (August 2018), all fields have identical units. */
+void convert_starling_obs_to_navigation_measurement(
+    starling_obs_t *starling_obs,
+    navigation_measurement_t *nm) {
+  /* Most fields are a direct conversion. */
+  nm->sid                  = starling_obs->sid;
+  nm->tot                  = starling_obs->tot;
+  nm->raw_pseudorange      = starling_obs->P;
+  nm->raw_carrier_phase    = starling_obs->L;
+  nm->raw_measured_doppler = starling_obs->D;
+  nm->cn0                  = starling_obs->cn0;
+  nm->lock_time            = starling_obs->lock_time;
+  nm->flags                = starling_obs->flags;
+
+  /* Some other fields we also provide an initial value to be overwritten later. */
+  nav_meas->IODE = INVALID_IODE;
+  nav_meas->IODC = INVALID_IODC;
+  if (!track_sid_db_elevation_degrees_get(nav_meas->sid,
+        &nav_meas->elevation)) {
+    /* Use 0 degrees as unknown elevation to assign it the smallest weight */
+    log_debug_sid(nav_meas->sid, "Elevation unknown, using 0");
+    nav_meas->elevation = 0;
+  }
+}
+
 /* Convert a single channel measurement into a single navigation measurement. */
 static s8 convert_channel_measurement_to_starling_obs(
     const gps_time_t            *rec_time,

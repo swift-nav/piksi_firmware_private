@@ -24,6 +24,10 @@
 extern "C" {
 #endif /* __cplusplus */
 
+void convert_starling_obs_to_navigation_measurement(
+    starling_obs_t *starling_obs,
+    navigation_measurement_t *nm);
+
 s8 calc_navigation_measurement(u8 n_channels,
                                const channel_measurement_t *meas[],
                                navigation_measurement_t *nav_meas[],

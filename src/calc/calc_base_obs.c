@@ -185,33 +185,6 @@ static bool is_final_message_in_obs_sequence(u8 count, u8 total) {
   return count == total - 1;
 }
 
-/* Copy all fields from a Starling-style obs type into the
- * corresponding navigation measurement fields. As of 
- * (August 2018), all fields have identical units. */
-static void copy_starling_obs_into_navigation_measurement(
-    starling_obs_t *starling_obs,
-    navigation_measurement_t *nm) {
-  /* Most fields are a direct conversion. */
-  nm->sid                  = starling_obs->sid;
-  nm->tot                  = starling_obs->tot;
-  nm->raw_pseudorange      = starling_obs->P;
-  nm->raw_carrier_phase    = starling_obs->L;
-  nm->raw_measured_doppler = starling_obs->D;
-  nm->cn0                  = starling_obs->cn0;
-  nm->lock_time            = starling_obs->lock_time;
-  nm->flags                = starling_obs->flags;
-
-  /* Some other fields we also provide an initial value to be overwritten later. */
-  nav_meas->IODE = INVALID_IODE;
-  nav_meas->IODC = INVALID_IODC;
-  if (!track_sid_db_elevation_degrees_get(nav_meas->sid,
-        &nav_meas->elevation)) {
-    /* Use 0 degrees as unknown elevation to assign it the smallest weight */
-    log_debug_sid(nav_meas->sid, "Elevation unknown, using 0");
-    nav_meas->elevation = 0;
-  }
-}
-
 /* Converter for moving into the intermediary uncollapsed observation type. 
  * This performs some preliminary filtering of the observations in addition to
  * populating the navigation measurement fields. */
@@ -231,7 +204,7 @@ static void convert_starling_obs_array_to_uncollapsed_obss(
   obss->n = 0;
   for (size_t i = 0; i < obs_array->n; ++i) {
     navigation_measurement_t *nm = &obss->nm[obss->n];
-    copy_starling_obs_into_navigation_measurement(&obs_array->observations[i], nm);
+    convert_starling_obs_to_navigation_measurement(&obs_array->observations[i], nm);
 
 
     /* Filter out any observation without a valid pseudorange observation. */
