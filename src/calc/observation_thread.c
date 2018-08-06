@@ -9,6 +9,8 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
+#include "observation_thread.h"
+
 #include <assert.h>
 #include <float.h>
 #include <stdio.h>
@@ -22,32 +24,24 @@
 #include <libswiftnav/observation.h>
 #include <libswiftnav/pvt_engine/firmware_binding.h>
 #include <libswiftnav/sid_set.h>
-#include <libswiftnav/single_epoch_solver.h>
 #include <libswiftnav/troposphere.h>
+
 #include <starling/starling.h>
 #include <starling/starling_platform.h>
 
 #include "board/nap/track_channel.h"
-#include "calc_base_obs.h"
-#include "calc_nav_meas.h"
 #include "calc_pvt_common.h"
-#include "main.h"
-#include "manage.h"
+#include "calc_starling_obs_array.h"
+#include "main/main.h"
 #include "ndb/ndb.h"
-#include "nmea/nmea.h"
-#include "obs_bias/obs_bias.h"
-#include "observation_thread.h"
-#include "peripherals/leds.h"
-#include "position/position.h"
-#include "sbp.h"
-#include "sbp_utils.h"
-#include "settings/settings.h"
-#include "shm/shm.h"
-#include "simulator.h"
-#include "system_monitor/system_monitor.h"
-#include "timing/timing.h"
-#include "track/track_sid_db.h"
-#include "track/track_utils.h"
+#include "sbp/sbp.h"
+#include "sbp/sbp_utils.h"
+#include "utils/nmea/nmea.h"
+#include "utils/obs_bias/obs_bias.h"
+#include "utils/position/position.h"
+#include "utils/settings/settings.h"
+#include "utils/shm/shm.h"
+#include "utils/system_monitor/system_monitor.h"
 
 /** Mandatory flags filter for measurements */
 #define MANAGE_TRACK_FLAGS_FILTER                               \
@@ -74,6 +68,8 @@ double soln_freq_setting = 10.0;
 u32 obs_output_divisor = 10;
 
 s16 msg_obs_max_size = SBP_FRAMING_MAX_PAYLOAD_SIZE;
+
+static soln_stats_t last_stats = {.signals_tracked = 0, .signals_useable = 0};
 
 /* STATIC FUNCTIONS */
 static void me_post_ephemerides(u8 n, const ephemeris_t ephemerides[]) {
@@ -327,7 +323,7 @@ static void collect_measurements(u64 rec_tc,
       if (0 != (flags & TRACKER_FLAG_ELEVATION) &&
           0 != (flags & TRACKER_FLAG_TOW_VALID) &&
           0 != (flags & TRACKER_FLAG_HAS_EPHE) &&
-          0 != (flags & TRACKER_FLAG_CN0_SHORT) &&
+          0 != (flags & TRACKER_FLAG_CN0_USABLE) &&
           0 != (meas_flags & CHAN_MEAS_FLAG_CODE_VALID) &&
           0 != (meas_flags & CHAN_MEAS_FLAG_MEAS_DOPPLER_VALID)) {
         /* Tracking channel is suitable for solution calculation */
@@ -341,7 +337,7 @@ static void collect_measurements(u64 rec_tc,
                         (0 != (flags & TRACKER_FLAG_ELEVATION)) ? "Y" : "N",
                         (0 != (flags & TRACKER_FLAG_TOW_VALID)) ? "Y" : "N",
                         (0 != (flags & TRACKER_FLAG_HAS_EPHE)) ? "Y" : "N",
-                        (0 != (flags & TRACKER_FLAG_CN0_SHORT)) ? "Y" : "N");
+                        (0 != (flags & TRACKER_FLAG_CN0_USABLE)) ? "Y" : "N");
         }
       }
     }
@@ -358,6 +354,96 @@ static void collect_measurements(u64 rec_tc,
 }
 
 static THD_WORKING_AREA(wa_me_obs_thread, ME_OBS_THREAD_STACK);
+
+u8 collect_nav_meas(u64 current_tc,
+                    gps_time_t *current_time,
+                    const last_good_fix_t *lgf,
+                    navigation_measurement_t nav_meas[],
+                    ephemeris_t e_meas[]) {
+  u8 n_ready = 0;
+  u8 n_inview = 0;
+  u8 n_total = 0;
+  channel_measurement_t meas[MAX_CHANNELS];
+  channel_measurement_t in_view[MAX_CHANNELS];
+
+  /* Collect measurements propagated to the current NAP tick */
+  collect_measurements(
+      current_tc, meas, in_view, e_meas, &n_ready, &n_inview, &n_total);
+
+  /* Update stats */
+  last_stats.signals_tracked = n_total;
+  last_stats.signals_useable = n_ready;
+
+  nmea_send_gsv(n_inview, in_view);
+
+  log_debug("Selected %" PRIu8 " measurement(s) out of %" PRIu8
+            " in view "
+            " (total=%" PRIu8 ")",
+            n_ready,
+            n_inview,
+            n_total);
+
+  if (n_ready == 0) {
+    return n_ready;
+  }
+
+  cnav_msg_t cnav_30[MAX_CHANNELS];
+  const cnav_msg_type_30_t *p_cnav_30[MAX_CHANNELS];
+
+  for (u8 i = 0; i < n_ready; i++) {
+    p_cnav_30[i] = cnav_msg_get(meas[i].sid, CNAV_MSG_TYPE_30, &cnav_30[i])
+                       ? &cnav_30[i].data.type_30
+                       : NULL;
+  }
+  const channel_measurement_t *p_meas[n_ready];
+  navigation_measurement_t *p_nav_meas[n_ready];
+  const ephemeris_t *p_e_meas[n_ready];
+
+  /* Create arrays of pointers for use in calc_navigation_measurement */
+  for (u8 i = 0; i < n_ready; i++) {
+    p_meas[i] = &meas[i];
+    p_nav_meas[i] = &nav_meas[i];
+    p_e_meas[i] = &e_meas[i];
+  }
+
+  /* GPS time is invalid on the first fix, form a coarse estimate from the
+   * first pseudorange measurement */
+  if (!gps_time_valid(current_time)) {
+    current_time->tow =
+        (double)meas[0].time_of_week_ms / SECS_MS + GPS_NOMINAL_RANGE / GPS_C;
+    normalize_gps_time(current_time);
+    gps_time_match_weeks(current_time, &e_meas[0].toe);
+  }
+
+  /* Create navigation measurements from the channel measurements */
+  s8 nm_ret =
+      calc_navigation_measurement(n_ready, p_meas, p_nav_meas, &*current_time);
+  if (nm_ret != 0) {
+    log_error("calc_navigation_measurement() returned an error");
+    return 0;
+  }
+
+  s8 sc_ret = calc_sat_clock_corrections(n_ready, p_nav_meas, p_e_meas);
+  if (sc_ret != 0) {
+    log_error("calc_sat_clock_correction() returned an error");
+    return 0;
+  }
+
+  apply_gps_cnav_isc(n_ready, p_nav_meas, p_cnav_30, p_e_meas);
+  apply_isc_table(n_ready, p_nav_meas);
+
+  /* check if we have a solution, if yes calc iono and tropo correction */
+  if (lgf->position_quality >= POSITION_GUESS) {
+    ionosphere_t i_params;
+    /* get iono parameters if available, otherwise use default ones */
+    if (ndb_iono_corr_read(&i_params) != NDB_ERR_NONE) {
+      i_params = DEFAULT_IONO_PARAMS;
+    }
+    correct_tropo(lgf->position_solution.pos_ecef, n_ready, nav_meas);
+    correct_iono(lgf->position_solution.pos_ecef, &i_params, n_ready, nav_meas);
+  }
+  return n_ready;
+}
 
 static void me_obs_thread(void *arg) {
   (void)arg;
@@ -435,100 +521,18 @@ static void me_obs_thread(void *arg) {
 
     /* Collect measurements from trackers, load ephemerides and compute flags.
      * Reference the measurements to the current time. */
-    u8 n_ready = 0;
-    u8 n_inview = 0;
-    u8 n_total = 0;
-    channel_measurement_t meas[MAX_CHANNELS];
-    channel_measurement_t in_view[MAX_CHANNELS];
+    static navigation_measurement_t nav_meas[MAX_CHANNELS];
     static ephemeris_t e_meas[MAX_CHANNELS];
 
-    /* Collect measurements propagated to the current NAP tick */
-    collect_measurements(
-        current_tc, meas, in_view, e_meas, &n_ready, &n_inview, &n_total);
-
-    nmea_send_gsv(n_inview, in_view);
-
-    log_debug("Selected %" PRIu8 " measurement(s) out of %" PRIu8
-              " in view "
-              " (total=%" PRIu8 ")",
-              n_ready,
-              n_inview,
-              n_total);
+    u8 n_ready =
+        collect_nav_meas(current_tc, &current_time, &lgf, nav_meas, e_meas);
 
     if (n_ready == 0) {
       me_send_emptyobs();
       continue;
     }
 
-    cnav_msg_t cnav_30[MAX_CHANNELS];
-    const cnav_msg_type_30_t *p_cnav_30[MAX_CHANNELS];
-    for (u8 i = 0; i < n_ready; i++) {
-      p_cnav_30[i] = cnav_msg_get(meas[i].sid, CNAV_MSG_TYPE_30, &cnav_30[i])
-                         ? &cnav_30[i].data.type_30
-                         : NULL;
-    }
-
-    static navigation_measurement_t nav_meas[MAX_CHANNELS];
-    const channel_measurement_t *p_meas[n_ready];
-    navigation_measurement_t *p_nav_meas[n_ready];
-    const ephemeris_t *p_e_meas[n_ready];
-
-    /* Create arrays of pointers for use in calc_navigation_measurement */
-    for (u8 i = 0; i < n_ready; i++) {
-      p_meas[i] = &meas[i];
-      p_nav_meas[i] = &nav_meas[i];
-      p_e_meas[i] = &e_meas[i];
-    }
-
-    /* GPS time is invalid on the first fix, form a coarse estimate from the
-     * first pseudorange measurement */
-    if (!gps_time_valid(&current_time)) {
-      current_time.tow =
-          (double)meas[0].time_of_week_ms / SECS_MS + GPS_NOMINAL_RANGE / GPS_C;
-      normalize_gps_time(&current_time);
-      gps_time_match_weeks(&current_time, &e_meas[0].toe);
-    }
-
-    /* Create navigation measurements from the channel measurements */
-    s8 nm_ret =
-        calc_navigation_measurement(n_ready, p_meas, p_nav_meas, &current_time);
-
-    if (nm_ret != 0) {
-      log_error("calc_navigation_measurement() returned an error");
-      me_send_emptyobs();
-      continue;
-    }
-
-    s8 sc_ret = calc_sat_clock_corrections(n_ready, p_nav_meas, p_e_meas);
-
-    if (sc_ret != 0) {
-      log_error("calc_sat_clock_correction() returned an error");
-      me_send_emptyobs();
-      continue;
-    }
-
-    apply_gps_cnav_isc(n_ready, p_nav_meas, p_cnav_30, p_e_meas);
-    apply_isc_table(n_ready, p_nav_meas);
-
-    gnss_sid_set_t codes;
-    sid_set_init(&codes);
-    for (u8 i = 0; i < n_ready; i++) {
-      sid_set_add(&codes, nav_meas[i].sid);
-    }
-
-    /* check if we have a solution, if yes calc iono and tropo correction */
-    if (lgf.position_quality >= POSITION_GUESS) {
-      ionosphere_t i_params;
-      /* get iono parameters if available, otherwise use default ones */
-      if (ndb_iono_corr_read(&i_params) != NDB_ERR_NONE) {
-        i_params = DEFAULT_IONO_PARAMS;
-      }
-      correct_tropo(lgf.position_solution.pos_ecef, n_ready, nav_meas);
-      correct_iono(
-          lgf.position_solution.pos_ecef, &i_params, n_ready, nav_meas);
-    }
-
-    if (sid_set_get_sat_count(&codes) < 4) {
+    if (nav_meas_get_sat_count(n_ready, nav_meas) < 4) {
       /* Not enough sats to compute PVT, send them as unusable */
       me_send_failed_obs(n_ready, nav_meas, e_meas, &current_time);
       continue;
@@ -538,7 +542,12 @@ static void me_obs_thread(void *arg) {
     gps_time_t smoothed_time = napcount2gpstime(current_tc);
     double smoothed_drift = get_clock_drift();
 
-    assert(gps_time_valid(&output_time));
+    if (!gps_time_valid(&output_time)) {
+      /* GPS time not solved yet */
+      log_warn("GPS time not solved yet, can't make measurements");
+      me_send_failed_obs(n_ready, nav_meas, e_meas, &current_time);
+      continue;
+    }
 
     /* offset of smoothed solution time from the desired output time */
     double output_offset = gpsdifftime(&output_time, &smoothed_time);
@@ -637,6 +646,8 @@ static bool soln_freq_setting_notify(struct setting *s, const char *val) {
   return true;
 }
 
+soln_stats_t solution_last_stats_get(void) { return last_stats; }
+
 void me_obs_setup() {
   SETTING_NOTIFY("solution",
                  "soln_freq",
@@ -652,4 +663,14 @@ void me_obs_setup() {
                     ME_OBS_THREAD_PRIORITY,
                     me_obs_thread,
                     NULL);
+}
+
+u8 nav_meas_get_sat_count(u8 n_ready,
+                          const navigation_measurement_t nav_meas[]) {
+  gnss_sid_set_t codes;
+  sid_set_init(&codes);
+  for (u8 i = 0; i < n_ready; i++) {
+    sid_set_add(&codes, nav_meas[i].sid);
+  }
+  return sid_set_get_sat_count(&codes);
 }

@@ -13,21 +13,7 @@
 #ifndef ME_CALC_PVT_H
 #define ME_CALC_PVT_H
 
-#include <libsbp/navigation.h>
-#include <libsbp/observation.h>
-#include <libsbp/system.h>
 #include <libswiftnav/common.h>
-#include <libswiftnav/gnss_time.h>
-#include <libswiftnav/nav_meas.h>
-#include <libswiftnav/observation.h>
-#include <libswiftnav/single_epoch_solver.h>
-
-#include <ch.h>
-
-typedef struct {
-  u8 signals_tracked;
-  u8 signals_useable;
-} soln_stats_t;
 
 /* Maximum receiver clock error before it is adjusted back to GPS time.
  * The value of 1.01 ms keeps the receiver close enough to GPS time to
@@ -40,8 +26,10 @@ typedef struct {
  * drop the channel and the corresponding ephemeris */
 #define RAIM_DROP_CHANNEL_THRESHOLD_M 1000
 
-soln_stats_t solution_last_stats_get(void);
+/** Maximum time that an observation will be propagated for to align it with a
+ * solution epoch before it is discarded.  */
+#define OBS_PROPAGATION_LIMIT 10e-3
 
 void me_calc_pvt_setup(void);
 
-#endif
+#endif /* ME_CALC_PVT_H */

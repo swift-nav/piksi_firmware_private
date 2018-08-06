@@ -10,19 +10,19 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ifndef ME_OBS_H
-#define ME_OBS_H
+#ifndef ME_OBSERVATION_THREAD_H
+#define ME_OBSERVATION_THREAD_H
 
-#include <libsbp/navigation.h>
-#include <libsbp/observation.h>
-#include <libsbp/system.h>
 #include <libswiftnav/common.h>
+#include <libswiftnav/ephemeris.h>
 #include <libswiftnav/gnss_time.h>
 #include <libswiftnav/nav_meas.h>
-#include <libswiftnav/observation.h>
-#include <libswiftnav/single_epoch_solver.h>
+#include "utils/position/position.h"
 
-#include <ch.h>
+typedef struct {
+  u8 signals_tracked;
+  u8 signals_useable;
+} soln_stats_t;
 
 /** Maximum time that an observation will be propagated for to align it with a
  * solution epoch before it is discarded.  */
@@ -44,4 +44,15 @@ extern double soln_freq_setting;
 
 void me_obs_setup(void);
 
-#endif
+u8 collect_nav_meas(u64 current_tc,
+                    gps_time_t *current_time,
+                    const last_good_fix_t *lgf,
+                    navigation_measurement_t nav_meas[],
+                    ephemeris_t e_meas[]);
+
+u8 nav_meas_get_sat_count(u8 n_ready,
+                           const navigation_measurement_t nav_meas[]);
+
+soln_stats_t solution_last_stats_get(void);
+
+#endif /* ME_OBSERVATION_THREAD_H */
