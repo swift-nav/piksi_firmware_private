@@ -71,10 +71,31 @@ typedef struct {
   navigation_measurement_t nm[STARLING_MAX_OBS_COUNT];
 } uncollapsed_obss_t;
 
+/* Count the number of satellites in a given constellation for a
+ * composite observation. */
+static size_t get_sat_count_for_constellation(const obss_t *obss, 
+                                              const constellation_t constellation) {
+  gnss_sid_set_t codes;
+  sid_set_init(&codes);
+  for (u8 i = 0; i < obss->n; i++) {
+    if (sid_to_constellation(obss->nm[i].sid) == constellation) {
+      sid_set_add(&codes, obss->nm[i].sid);
+    }
+  }
+  return sid_set_get_sat_count(&codes);
+}
+
 /* Helper function used for sorting starling observations based on their
  * SID field. */
 static int compare_starling_obs_by_sid(const void *a, const void *b) {
   return sid_compare(((starling_obs_t *)a)->sid, ((starling_obs_t *)b)->sid);
+}
+
+/* Helper function used to determine if the a composite observation has ample
+ * signals for calculating a PVT solution. */
+static bool has_enough_sats_for_pvt_solve(const obss_t *obss) {
+  size_t n = get_sat_count_for_constellation(obss, CONSTELLATION_GPS);
+  return (n >= MIN_SATS_FOR_PVT);
 }
 
 /* Converter for moving into the intermediary uncollapsed observation type.
@@ -146,6 +167,43 @@ static void convert_starling_obs_array_to_uncollapsed_obss(
   }
 }
 
+/* Perform filtering on the uncollapsed measurement array to get it down
+ * to an acceptable size. Then copy everything into the standard "collapsed"
+ * obss type. 
+ *
+ * NOTE: This function assumes that the navigation measurements in the
+ * incoming uncollapsed obs have already been sorted. */
+static void collapse_obss(uncollapsed_obss_t *uncollapsed_obss,
+    obss_t *obss) {
+  /** Precheck any base station observations and filter if needed. This is not a
+   *  permanent solution for actually correcting GPS L2 base station
+   *  observations that have mixed tracking modes in a signal epoch. For more
+   *  details, see:
+   *  https://github.com/swift-nav/estimation_team_planning/issues/215.
+   */
+  filter_base_meas(&uncollapsed_obss->n, uncollapsed_obss->nm);
+
+  /* After collapsing the measurements to Piksi supported signals,
+   * only less or equal than MAX_CHANNELS measurements should remain. */
+  if (uncollapsed_obss->n > MAX_CHANNELS) {
+    log_warn("Obs collapsing failure");
+  }
+
+  obss->tor = uncollapsed_obss->tor;
+  obss->has_pos = uncollapsed_obss->has_pos;
+  obss->soln = uncollapsed_obss->soln;
+  obss->n = uncollapsed_obss->n;
+  obss->sender_id = uncollapsed_obss->sender_id;
+  MEMCPY_S(obss->pos_ecef,
+           sizeof(obss->pos_ecef),
+           uncollapsed_obss->pos_ecef,
+           sizeof(uncollapsed_obss->pos_ecef));
+  MEMCPY_S(obss->nm,
+           sizeof(obss->nm),
+           uncollapsed_obss->nm,
+           MAX_CHANNELS * sizeof(navigation_measurement_t));
+}
+
 /** Update the #base_obss state given a new set of obss.
  * First sorts by PRN and computes the TDCP Doppler for the observation set. If
  * #base_pos_known is false then a single point position solution is also
@@ -163,6 +221,15 @@ void update_obss(obs_array_t *obs_array) {
 
   static u8 old_base_sender_id = 0;
 
+  /* Warn on receiving observations which are very old. This may be indicative
+   * of a connectivity problem. Obviously, if we don't have a good local time
+   * estimate, then we can't perform this check. */
+  gps_time_t now = get_current_time();
+  if (get_time_quality() > TIME_UNKNOWN &&
+      gpsdifftime(&now, &obs_array->t) > BASE_LATENCY_TIMEOUT) {
+    log_info("Communication latency exceeds 15 seconds");
+  }
+
   /* Ensure raw observations are sorted by PRN. */
   qsort(obs_array->observations,
         obs_array->n,
@@ -171,68 +238,21 @@ void update_obss(obs_array_t *obs_array) {
 
   /* First we need to convert the obs array into this type. */
   uncollapsed_obss_t uncollapsed_obss;
-  uncollapsed_obss_t *new_uncollapsed_obss = &uncollapsed_obss;
   convert_starling_obs_array_to_uncollapsed_obss(obs_array,
-                                                 new_uncollapsed_obss);
-
-  /* Warn on receiving observations which are very old. This may be indicative
-   * of a connectivity problem. Obviously, if we don't have a good local time
-   * estimate, then we can't perform this check. */
-  gps_time_t now = get_current_time();
-  if (get_time_quality() > TIME_UNKNOWN &&
-      gpsdifftime(&now, &new_uncollapsed_obss->tor) > BASE_LATENCY_TIMEOUT) {
-    log_info("Communication latency exceeds 15 seconds");
-  }
-
-  /** Precheck any base station observations and filter if needed. This is not a
-   *  permanent solution for actually correcting GPS L2 base station
-   *  observations that have mixed tracking modes in a signal epoch. For more
-   *  details, see:
-   *  https://github.com/swift-nav/estimation_team_planning/issues/215.
-   */
-  filter_base_meas(&new_uncollapsed_obss->n, new_uncollapsed_obss->nm);
-
-  if (new_uncollapsed_obss->n == 0) {
+                                                 &uncollapsed_obss);
+  
+ /* Copy contents of new_uncollapsed_obss into new_obss. */
+  obss_t obss;
+  collapse_obss(&uncollapsed_obss, &obss);
+  if (obss.n == 0) {
     log_info("All base obs filtered");
     return;
   }
 
-  /* After collapsing the measurements to Piksi supported signals,
-   * only less or equal than MAX_CHANNELS measurements should remain. */
-  if (new_uncollapsed_obss->n > MAX_CHANNELS) {
-    log_warn("Obs collapsing failure");
-  }
-
-  /* Copy contents of new_uncollapsed_obss into new_obss. */
-  obss_t obss;
-  obss_t *new_obss = &obss;
-  new_obss->tor = new_uncollapsed_obss->tor;
-  new_obss->has_pos = new_uncollapsed_obss->has_pos;
-  new_obss->soln = new_uncollapsed_obss->soln;
-  new_obss->n = new_uncollapsed_obss->n;
-  new_obss->sender_id = new_uncollapsed_obss->sender_id;
-  MEMCPY_S(new_obss->pos_ecef,
-           sizeof(new_obss->pos_ecef),
-           new_uncollapsed_obss->pos_ecef,
-           sizeof(new_uncollapsed_obss->pos_ecef));
-  MEMCPY_S(new_obss->nm,
-           sizeof(new_obss->nm),
-           new_uncollapsed_obss->nm,
-           MAX_CHANNELS * sizeof(navigation_measurement_t));
-
-  /* Count distinct satellites */
-  gnss_sid_set_t codes;
-  sid_set_init(&codes);
-  for (u8 i = 0; i < new_obss->n; i++) {
-    if (sid_to_constellation(new_obss->nm[i].sid) == CONSTELLATION_GPS) {
-      sid_set_add(&codes, new_obss->nm[i].sid);
-    }
-  }
-
-  /* Require at least 5 distinct satellites */
-  if (sid_set_get_sat_count(&codes) >= MIN_SATS_FOR_PVT) {
+  /* Proceed to do an SPP solve if we have ample information. */
+  if (has_enough_sats_for_pvt_solve(&obss)) {
     bool base_changed = (old_base_sender_id != 0) &&
-                        (old_base_sender_id != new_obss->sender_id);
+                        (old_base_sender_id != obss.sender_id);
     /* check if we have fix, if yes, calculate iono and tropo correction */
     if (!base_changed && has_base_position) {
       log_debug("Base: IONO/TROPO correction");
@@ -243,8 +263,8 @@ void update_obss(obs_array_t *obs_array) {
       }
       /* Use the previous ECEF position to get the iono/tropo for the new
        * measurements */
-      correct_tropo(base_position_ecef, new_obss->n, new_obss->nm);
-      correct_iono(base_position_ecef, &i_params, new_obss->n, new_obss->nm);
+      correct_tropo(base_position_ecef, obss.n, obss.nm);
+      correct_iono(base_position_ecef, &i_params, obss.n, obss.nm);
     }
 
     gnss_solution soln;
@@ -254,9 +274,9 @@ void update_obss(obs_array_t *obs_array) {
     /* disable_raim controlled by external setting (see solution.c). */
     /* Skip velocity solving for the base incase we have bad doppler values
      * due to a cycle slip. */
-    s32 ret = calc_PVT(new_obss->n,
-                       new_obss->nm,
-                       &new_obss->tor,
+    s32 ret = calc_PVT(obss.n,
+                       obss.nm,
+                       &obss.tor,
                        disable_raim,
                        true,
                        GPS_ONLY,
@@ -270,8 +290,8 @@ void update_obss(obs_array_t *obs_array) {
       has_base_position = true;
       MEMCPY_S(base_position_ecef, 
                sizeof(base_position_ecef), 
-               new_obss->pos_ecef,
-               sizeof(new_obss->pos_ecef));
+               obss.pos_ecef,
+               sizeof(obss.pos_ecef));
 
       /* Check if the base sender ID has changed and reset the RTK filter if
        * it has.
@@ -281,23 +301,22 @@ void update_obss(obs_array_t *obs_array) {
             "Base station sender ID changed from %u to %u. Resetting RTK"
             " filter.",
             old_base_sender_id,
-            new_obss->sender_id);
+            obss.sender_id);
         has_base_position = false;
         starling_reset_rtk_filter();
       }
-      old_base_sender_id = new_obss->sender_id;
-
+      old_base_sender_id = obss.sender_id;
 
       obss_t *new_base_obs = platform_mailbox_item_alloc(MB_ID_BASE_OBS);
       if (new_base_obs == NULL) {
         log_warn(
             "Base obs pool full, discarding base obs at: wn: %d, tow: %.2f",
-            new_obss->tor.wn,
-            new_obss->tor.tow);
+            obss.tor.wn,
+            obss.tor.tow);
         return;
       }
 
-      *new_base_obs = *new_obss;
+      *new_base_obs = obss;
 
       const errno_t post_ret =
           platform_mailbox_post(MB_ID_BASE_OBS, new_base_obs, MB_NONBLOCKING);
