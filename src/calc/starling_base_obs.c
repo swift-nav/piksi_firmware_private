@@ -204,49 +204,19 @@ static void collapse_obss(uncollapsed_obss_t *uncollapsed_obss,
            MAX_CHANNELS * sizeof(navigation_measurement_t));
 }
 
-#if 0 // TODO(kevin) Prepared for later.
+/* This function does everything needed to get from a Starling 
+ * obs array type to the internal Obss representation. If an error
+ * occurs at any point during the conversion process, return non-zero.
+ *
+ * Zero return indicates successful conversion.
+ */
 static int convert_starling_obs_array_to_obss(obs_array_t *obs_array,
                                               obss_t *obss) {
 
-}
-#endif
-
-
-/** Update the #base_obss state given a new set of obss.
- * First sorts by PRN and computes the TDCP Doppler for the observation set. If
- * #base_pos_known is false then a single point position solution is also
- * calculated. Next the `has_pos`, `pos_ecef` and `sat_dists` fields are filled
- * in. Finally the #base_obs_received semaphore is flagged to indicate that new
- * observations are available.
- *
- * \note This function is stateful as it must store the previous observation
- *       set for the TDCP Doppler.
- */
-void update_obss(obs_array_t *obs_array) {
   /* We keep this around to track the previous observation. */
   static bool has_base_position = false; 
   static double base_position_ecef[3];
-
   static u8 old_base_sender_id = 0;
-
-  /* Warn on receiving observations which are very old. This may be indicative
-   * of a connectivity problem. Obviously, if we don't have a good local time
-   * estimate, then we can't perform this check. */
-  gps_time_t now = get_current_time();
-  if (get_time_quality() > TIME_UNKNOWN &&
-      gpsdifftime(&now, &obs_array->t) > BASE_LATENCY_TIMEOUT) {
-    log_info("Communication latency exceeds 15 seconds");
-  }
-
-  /* Before doing anything, try to get new observation to post to. */
-  obss_t *obss = platform_mailbox_item_alloc(MB_ID_BASE_OBS);
-  if (obss == NULL) {
-    log_warn(
-        "Base obs pool full, discarding base obs at: wn: %d, tow: %.2f",
-        obs_array->t.wn,
-        obs_array->t.tow);
-    return;
-  }
 
   /* Ensure raw observations are sorted by PRN. */
   qsort(obs_array->observations,
@@ -263,7 +233,7 @@ void update_obss(obs_array_t *obs_array) {
   collapse_obss(&uncollapsed_obss, obss);
   if (obss->n == 0) {
     log_info("All base obs filtered");
-    return;
+    return 1;
   }
 
   /* Proceed to do an SPP solve if we have ample information. */
@@ -329,12 +299,49 @@ void update_obss(obs_array_t *obs_array) {
       /* There was an error calculating the position solution. */
       log_warn("Error calculating base station position: (%s).",
                pvt_err_msg[-ret - 1]);
-      return;
+      return 1;
     }
   } else {
-    return;
+    log_warn("Base observation dropped due to insufficient satellites.");
+    return 1;
+  }
+  return 0;
+}
+
+/** Update the #base_obss state given a new set of obss.
+ * First sorts by PRN and computes the TDCP Doppler for the observation set. If
+ * #base_pos_known is false then a single point position solution is also
+ * calculated. Next the `has_pos`, `pos_ecef` and `sat_dists` fields are filled
+ * in. Finally the #base_obs_received semaphore is flagged to indicate that new
+ * observations are available.
+ *
+ * \note This function is stateful as it must store the previous observation
+ *       set for the TDCP Doppler.
+ */
+void update_obss(obs_array_t *obs_array) {
+  /* Warn on receiving observations which are very old. This may be indicative
+   * of a connectivity problem. Obviously, if we don't have a good local time
+   * estimate, then we can't perform this check. */
+  gps_time_t now = get_current_time();
+  if (get_time_quality() > TIME_UNKNOWN &&
+      gpsdifftime(&now, &obs_array->t) > BASE_LATENCY_TIMEOUT) {
+    log_info("Communication latency exceeds 15 seconds");
   }
 
+  /* Before doing anything, try to get new observation to post to. */
+  obss_t *obss = platform_mailbox_item_alloc(MB_ID_BASE_OBS);
+  if (obss == NULL) {
+    log_warn(
+        "Base obs pool full, discarding base obs at: wn: %d, tow: %.2f",
+        obs_array->t.wn,
+        obs_array->t.tow);
+    return;
+  }
+  
+  int error = convert_starling_obs_array_to_obss(obs_array, obss);
+  if (error) {
+    return;
+  }
   /* Assuming we haven't returned early, post the observation. */
   const errno_t post_ret =
       platform_mailbox_post(MB_ID_BASE_OBS, obss, MB_NONBLOCKING);
