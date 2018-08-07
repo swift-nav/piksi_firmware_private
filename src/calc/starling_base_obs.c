@@ -204,6 +204,14 @@ static void collapse_obss(uncollapsed_obss_t *uncollapsed_obss,
            MAX_CHANNELS * sizeof(navigation_measurement_t));
 }
 
+#if 0 // TODO(kevin) Prepared for later.
+static int convert_starling_obs_array_to_obss(obs_array_t *obs_array,
+                                              obss_t *obss) {
+
+}
+#endif
+
+
 /** Update the #base_obss state given a new set of obss.
  * First sorts by PRN and computes the TDCP Doppler for the observation set. If
  * #base_pos_known is false then a single point position solution is also
@@ -230,6 +238,16 @@ void update_obss(obs_array_t *obs_array) {
     log_info("Communication latency exceeds 15 seconds");
   }
 
+  /* Before doing anything, try to get new observation to post to. */
+  obss_t *obss = platform_mailbox_item_alloc(MB_ID_BASE_OBS);
+  if (obss == NULL) {
+    log_warn(
+        "Base obs pool full, discarding base obs at: wn: %d, tow: %.2f",
+        obs_array->t.wn,
+        obs_array->t.tow);
+    return;
+  }
+
   /* Ensure raw observations are sorted by PRN. */
   qsort(obs_array->observations,
         obs_array->n,
@@ -242,17 +260,16 @@ void update_obss(obs_array_t *obs_array) {
                                                  &uncollapsed_obss);
   
  /* Copy contents of new_uncollapsed_obss into new_obss. */
-  obss_t obss;
-  collapse_obss(&uncollapsed_obss, &obss);
-  if (obss.n == 0) {
+  collapse_obss(&uncollapsed_obss, obss);
+  if (obss->n == 0) {
     log_info("All base obs filtered");
     return;
   }
 
   /* Proceed to do an SPP solve if we have ample information. */
-  if (has_enough_sats_for_pvt_solve(&obss)) {
+  if (has_enough_sats_for_pvt_solve(obss)) {
     bool base_changed = (old_base_sender_id != 0) &&
-                        (old_base_sender_id != obss.sender_id);
+                        (old_base_sender_id != obss->sender_id);
     /* check if we have fix, if yes, calculate iono and tropo correction */
     if (!base_changed && has_base_position) {
       log_debug("Base: IONO/TROPO correction");
@@ -263,8 +280,8 @@ void update_obss(obs_array_t *obs_array) {
       }
       /* Use the previous ECEF position to get the iono/tropo for the new
        * measurements */
-      correct_tropo(base_position_ecef, obss.n, obss.nm);
-      correct_iono(base_position_ecef, &i_params, obss.n, obss.nm);
+      correct_tropo(base_position_ecef, obss->n, obss->nm);
+      correct_iono(base_position_ecef, &i_params, obss->n, obss->nm);
     }
 
     gnss_solution soln;
@@ -274,9 +291,9 @@ void update_obss(obs_array_t *obs_array) {
     /* disable_raim controlled by external setting (see solution.c). */
     /* Skip velocity solving for the base incase we have bad doppler values
      * due to a cycle slip. */
-    s32 ret = calc_PVT(obss.n,
-                       obss.nm,
-                       &obss.tor,
+    s32 ret = calc_PVT(obss->n,
+                       obss->nm,
+                       &obss->tor,
                        disable_raim,
                        true,
                        GPS_ONLY,
@@ -290,8 +307,8 @@ void update_obss(obs_array_t *obs_array) {
       has_base_position = true;
       MEMCPY_S(base_position_ecef, 
                sizeof(base_position_ecef), 
-               obss.pos_ecef,
-               sizeof(obss.pos_ecef));
+               obss->pos_ecef,
+               sizeof(obss->pos_ecef));
 
       /* Check if the base sender ID has changed and reset the RTK filter if
        * it has.
@@ -301,35 +318,28 @@ void update_obss(obs_array_t *obs_array) {
             "Base station sender ID changed from %u to %u. Resetting RTK"
             " filter.",
             old_base_sender_id,
-            obss.sender_id);
+            obss->sender_id);
         has_base_position = false;
         starling_reset_rtk_filter();
       }
-      old_base_sender_id = obss.sender_id;
-
-      obss_t *new_base_obs = platform_mailbox_item_alloc(MB_ID_BASE_OBS);
-      if (new_base_obs == NULL) {
-        log_warn(
-            "Base obs pool full, discarding base obs at: wn: %d, tow: %.2f",
-            obss.tor.wn,
-            obss.tor.tow);
-        return;
-      }
-
-      *new_base_obs = obss;
-
-      const errno_t post_ret =
-          platform_mailbox_post(MB_ID_BASE_OBS, new_base_obs, MB_NONBLOCKING);
-      if (post_ret != 0) {
-        log_error("Base obs mailbox should have space!");
-        platform_mailbox_item_free(MB_ID_BASE_OBS, new_base_obs);
-      }
+      old_base_sender_id = obss->sender_id;
     } else {
       has_base_position = false;
       /* TODO(dsk) check for repair failure */
       /* There was an error calculating the position solution. */
       log_warn("Error calculating base station position: (%s).",
                pvt_err_msg[-ret - 1]);
+      return;
     }
+  } else {
+    return;
+  }
+
+  /* Assuming we haven't returned early, post the observation. */
+  const errno_t post_ret =
+      platform_mailbox_post(MB_ID_BASE_OBS, obss, MB_NONBLOCKING);
+  if (post_ret != 0) {
+    log_error("Base obs mailbox should have space!");
+    platform_mailbox_item_free(MB_ID_BASE_OBS, obss);
   }
 }
