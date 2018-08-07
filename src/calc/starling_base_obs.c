@@ -340,12 +340,14 @@ void update_obss(obs_array_t *obs_array) {
   
   int error = convert_starling_obs_array_to_obss(obs_array, obss);
   if (error) {
+    platform_mailbox_item_free(MB_ID_BASE_OBS, obss);
     return;
   }
-  /* Assuming we haven't returned early, post the observation. */
-  const errno_t post_ret =
-      platform_mailbox_post(MB_ID_BASE_OBS, obss, MB_NONBLOCKING);
-  if (post_ret != 0) {
+
+  /* If we successfully get here without returning early, then go ahead and 
+   * post into the Starling engine. */
+  error = platform_mailbox_post(MB_ID_BASE_OBS, obss, MB_NONBLOCKING);
+  if (error) {
     log_error("Base obs mailbox should have space!");
     platform_mailbox_item_free(MB_ID_BASE_OBS, obss);
   }
