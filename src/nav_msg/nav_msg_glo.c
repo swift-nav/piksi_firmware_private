@@ -19,6 +19,8 @@
 #include <libswiftnav/gnss_time.h>
 #include <libswiftnav/logging.h>
 
+#include "timing/timing.h"
+
 #include "nav_msg/nav_msg_glo.h"
 
 #define BIT_POLARITY_NORMAL 0
@@ -137,11 +139,8 @@ static u8 relcode_decode(relcode_t *relcode, u8 bit) {
 /** Initialize the necessary parts of the nav message state structure.
  * \param n Pointer to GLO nav message structure to be initialized
  * \param mesid Decoding channel ME sid
- * \param glo2gps_with_utc_params GLO->GPS time conversion callback
  */
-void nav_msg_init_glo(nav_msg_glo_t *n,
-                      me_gnss_signal_t mesid,
-                      glo2gps_with_utc_params_t glo2gps_with_utc_params) {
+void nav_msg_init_glo(nav_msg_glo_t *n, me_gnss_signal_t mesid) {
   memset(n, 0, sizeof(nav_msg_glo_t));
   n->state = SYNC_TM;
   n->bit_polarity = BIT_POLARITY_UNKNOWN;
@@ -149,7 +148,6 @@ void nav_msg_init_glo(nav_msg_glo_t *n,
   n->eph.glo.fcn = mesid.sat;
   n->gps_time = GPS_TIME_UNKNOWN;
   n->mesid = mesid;
-  n->glo2gps_with_utc_params = glo2gps_with_utc_params;
 }
 
 /** Extract a word of n_bits length (n_bits <= 32) at position bit_index into
@@ -318,7 +316,7 @@ nav_msg_status_t get_data_bits_glo(nav_msg_glo_t *n, bool symbol) {
    * Two consecutive symbols should not be equal. */
   if (3 == n->manchester || 0 == n->manchester) {
     log_debug_mesid(n->mesid, "GLO-NAV-ERR: symbol error");
-    nav_msg_init_glo(n, n->mesid, n->glo2gps_with_utc_params);
+    nav_msg_init_glo(n, n->mesid);
     return ret;
   }
 
@@ -701,8 +699,7 @@ static void restart_decoding(nav_msg_glo_t *n) {
   n->eph.sid.code = CODE_GLO_L1OF;
 
   /* convert GLO TOE to GPS TOE */
-  assert(n->glo2gps_with_utc_params);
-  n->eph.toe = n->glo2gps_with_utc_params(n->mesid, &n->toe);
+  n->eph.toe = glo2gps_with_utc_params(n->mesid, &n->toe);
 
   n->eph.valid = 1;
 }
@@ -969,7 +966,7 @@ string_decode_status_t process_string_glo(nav_msg_glo_t *n, u32 time_tag_ms) {
      * an invalid time stamp if conversion parameters are not yet available.
      */
 
-    n->gps_time = n->glo2gps_with_utc_params(n->mesid, &n->tk);
+    n->gps_time = glo2gps_with_utc_params(n->mesid, &n->tk);
     n->gps_time.tow += (GLO_STR_LEN_S - GLO_STR_TIME_MARK_LEN_S) + tow_age_s;
     normalize_gps_time(&n->gps_time);
     tow_ready = gps_time_valid(&n->gps_time);

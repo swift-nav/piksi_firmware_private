@@ -104,15 +104,11 @@ typedef struct {
                               *   until glo_orbit_slot_id is decoded.
                               */
   me_gnss_signal_t mesid;    /**< decoding channel ME sid */
-  /** GLO time to GPS time conversion callback */
-  glo2gps_with_utc_params_t glo2gps_with_utc_params;
 
   u16 bit_cnt; /**< For navbit data integrity checks */
 } nav_msg_glo_t;
 
-void nav_msg_init_glo(nav_msg_glo_t *n,
-                      me_gnss_signal_t mesid,
-                      glo2gps_with_utc_params_t glo2gps_with_utc_params);
+void nav_msg_init_glo(nav_msg_glo_t *n, me_gnss_signal_t mesid);
 u32 extract_word_glo(const nav_msg_glo_t *n, u16 bit_index, u8 n_bits);
 void seek_timemark_glo(nav_msg_glo_t *n, bool symbol);
 nav_msg_status_t get_data_bits_glo(nav_msg_glo_t *n, bool symbol);
