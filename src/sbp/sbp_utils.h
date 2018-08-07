@@ -27,6 +27,7 @@
 #include <libswiftnav/sbas_raw_data.h>
 #include <libswiftnav/signal.h>
 #include <libswiftnav/single_epoch_solver.h>
+#include <starling/starling.h>
 
 #include "nav_msg/cnav_msg.h"
 #include "obs_bias/obs_bias.h"
@@ -218,14 +219,11 @@ void pack_obs_header(const gps_time_t *t,
 u8 nm_flags_to_sbp(nav_meas_flags_t from);
 nav_meas_flags_t nm_flags_from_sbp(u8 from);
 
-void unpack_obs_content(const packed_obs_content_t *msg,
-                        double *P,
-                        double *L,
-                        double *D,
-                        double *cn0,
-                        double *lock_time,
-                        nav_meas_flags_t *flags,
-                        gnss_signal_t *sid);
+/**
+ * Convert an SBP observation into the format accepted
+ * by the Starling engine.
+ */
+void unpack_obs_content(const packed_obs_content_t *msg, starling_obs_t *obs);
 
 s8 pack_obs_content(double P,
                     double L,
