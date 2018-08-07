@@ -29,9 +29,9 @@
 
 #include "board/nap/track_channel.h"
 #include "calc_base_obs.h"
-#include "calc_nav_meas.h"
 #include "calc_pvt_common.h"
 #include "calc_pvt_me.h"
+#include "calc_starling_obs_array.h"
 #include "main.h"
 #include "manage.h"
 #include "ndb/ndb.h"

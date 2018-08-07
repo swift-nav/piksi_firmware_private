@@ -13,7 +13,7 @@
 #include <assert.h>
 #include <string.h>
 
-#include "calc_nav_meas.h"
+#include "calc_starling_obs_array.h"
 #include "me_constants.h"
 #include "track/track_sid_db.h"
 
@@ -54,7 +54,7 @@ void convert_starling_obs_to_navigation_measurement(
 }
 
 /* Convert a single channel measurement into a single navigation measurement. */
-static s8 convert_channel_measurement_to_starling_obs(
+s8 convert_channel_measurement_to_starling_obs(
     const gps_time_t *rec_time,
     const channel_measurement_t *meas,
     starling_obs_t *obs) {

@@ -15,7 +15,7 @@
 #include <libswiftnav/nav_meas.h>
 
 #include "board/nap/track_channel.h"
-#include "calc_nav_meas.h"
+#include "calc/calc_starling_obs_array.h"
 #include "timing/timing.h"
 #include "track_api.h"
 #include "track_flags.h"
@@ -75,21 +75,21 @@ void tracker_measurement_get(u64 ref_tc,
 bool tracker_calc_pseudorange(u64 ref_tc,
                               const channel_measurement_t *meas,
                               double *raw_pseudorange) {
-  navigation_measurement_t nav_meas, *p_nav_meas = &nav_meas;
+  starling_obs_t obs;
   gps_time_t rec_time = napcount2gpstime(ref_tc);
   if (!gps_time_valid(&rec_time)) {
     log_warn("Invalid gps time in tracker_calc_pseudorange");
     return false;
   }
 
-  s8 nm_ret = calc_navigation_measurement(1, &meas, &p_nav_meas, &rec_time);
+  s8 nm_ret = convert_channel_measurement_to_starling_obs(&rec_time, meas, &obs);
   if (nm_ret != 0) {
     log_warn_sid(meas->sid,
                  "calc_navigation_measurement() returned an error: %" PRId8,
                  nm_ret);
     return false;
   }
-  *raw_pseudorange = nav_meas.raw_pseudorange;
+  *raw_pseudorange = obs.P;
   return true;
 }
 
