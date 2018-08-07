@@ -45,11 +45,6 @@
 #include "simulator.h"
 #include "timing/timing.h"
 
-/** Most recent observations from the base station. */
-static obss_t base_obss;
-
-static u8 old_base_sender_id = 0;
-
 /**
  * Uncollapsed observation input type.
  * Remote observations may contain multiple useful signals for satellites.
@@ -162,6 +157,12 @@ static void convert_starling_obs_array_to_uncollapsed_obss(
  *       set for the TDCP Doppler.
  */
 void update_obss(obs_array_t *obs_array) {
+  /* We keep this around to track the previous observation. */
+  static bool has_base_position = false; 
+  static double base_position_ecef[3];
+
+  static u8 old_base_sender_id = 0;
+
   /* Ensure raw observations are sorted by PRN. */
   qsort(obs_array->observations,
         obs_array->n,
@@ -233,7 +234,7 @@ void update_obss(obs_array_t *obs_array) {
     bool base_changed = (old_base_sender_id != 0) &&
                         (old_base_sender_id != new_obss->sender_id);
     /* check if we have fix, if yes, calculate iono and tropo correction */
-    if (!base_changed && base_obss.has_pos) {
+    if (!base_changed && has_base_position) {
       log_debug("Base: IONO/TROPO correction");
       ionosphere_t i_params;
       /* get iono parameters if available, otherwise use default ones */
@@ -242,8 +243,8 @@ void update_obss(obs_array_t *obs_array) {
       }
       /* Use the previous ECEF position to get the iono/tropo for the new
        * measurements */
-      correct_tropo(base_obss.pos_ecef, new_obss->n, new_obss->nm);
-      correct_iono(base_obss.pos_ecef, &i_params, new_obss->n, new_obss->nm);
+      correct_tropo(base_position_ecef, new_obss->n, new_obss->nm);
+      correct_iono(base_position_ecef, &i_params, new_obss->n, new_obss->nm);
     }
 
     gnss_solution soln;
@@ -264,22 +265,13 @@ void update_obss(obs_array_t *obs_array) {
                        NULL);
 
     if (ret >= 0 && soln.valid) {
-      /* Copy over the time. */
-      base_obss.tor = new_obss->tor;
-
-      base_obss.n = new_obss->n;
-      MEMCPY_S(base_obss.nm,
-               sizeof(base_obss.nm),
-               new_obss->nm,
-               new_obss->n * sizeof(navigation_measurement_t));
-
-      MEMCPY_S(base_obss.pos_ecef,
-               sizeof(base_obss.pos_ecef),
-               soln.pos_ecef,
-               sizeof(soln.pos_ecef));
-
-      /* Copy over sender ID. */
-      base_obss.sender_id = new_obss->sender_id;
+      /* If we get a succesful solve, store the base position estimate for future
+       * use. */
+      has_base_position = true;
+      MEMCPY_S(base_position_ecef, 
+               sizeof(base_position_ecef), 
+               new_obss->pos_ecef,
+               sizeof(new_obss->pos_ecef));
 
       /* Check if the base sender ID has changed and reset the RTK filter if
        * it has.
@@ -289,23 +281,23 @@ void update_obss(obs_array_t *obs_array) {
             "Base station sender ID changed from %u to %u. Resetting RTK"
             " filter.",
             old_base_sender_id,
-            base_obss.sender_id);
+            new_obss->sender_id);
+        has_base_position = false;
         starling_reset_rtk_filter();
       }
-      old_base_sender_id = base_obss.sender_id;
+      old_base_sender_id = new_obss->sender_id;
 
-      base_obss.has_pos = 1;
 
       obss_t *new_base_obs = platform_mailbox_item_alloc(MB_ID_BASE_OBS);
       if (new_base_obs == NULL) {
         log_warn(
             "Base obs pool full, discarding base obs at: wn: %d, tow: %.2f",
-            base_obss.tor.wn,
-            base_obss.tor.tow);
+            new_obss->tor.wn,
+            new_obss->tor.tow);
         return;
       }
 
-      *new_base_obs = base_obss;
+      *new_base_obs = *new_obss;
 
       const errno_t post_ret =
           platform_mailbox_post(MB_ID_BASE_OBS, new_base_obs, MB_NONBLOCKING);
@@ -314,7 +306,7 @@ void update_obss(obs_array_t *obs_array) {
         platform_mailbox_item_free(MB_ID_BASE_OBS, new_base_obs);
       }
     } else {
-      base_obss.has_pos = 0;
+      has_base_position = false;
       /* TODO(dsk) check for repair failure */
       /* There was an error calculating the position solution. */
       log_warn("Error calculating base station position: (%s).",
