@@ -426,7 +426,6 @@ typedef struct {
   tp_tm_e tracking_mode;       /**< Tracking mode */
   u16 cycle_no : 5;            /**< Cycle index inside current
                                 *   integration mode. */
-  u16 use_alias_detection : 1; /**< Flag for alias detection control */
   u16 has_next_params : 1;     /**< Flag if stage transition is in
                                 *   progress */
 
