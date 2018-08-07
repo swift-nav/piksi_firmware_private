@@ -92,13 +92,13 @@
  * \param bw        The loop noise bandwidth, \f$B_L\f$.
  * \param zeta      The damping ratio, \f$\zeta\f$.
  * \param k         The loop gain, \f$k\f$.
- * \param loop_freq The loop update frequency, \f$1/T\f$.
+ * \param loop_period_s The loop update period [s], \f$T\f$.
  * \param b0        First filter coefficient, \f$b_0\f$.
  * \param b1        Second filter coefficient, \f$b_1\f$.
  */
 void calc_loop_gains(
-    float bw, float zeta, float k, float loop_freq, float *b0, float *b1) {
-  float T = 1 / loop_freq;
+    float bw, float zeta, float k, float loop_period_s, float *b0, float *b1) {
+  float T = loop_period_s;
   /* Find the natural frequency. */
   float omega_n = 8.f * bw * zeta / (4.f * zeta * zeta + 1.f);
 

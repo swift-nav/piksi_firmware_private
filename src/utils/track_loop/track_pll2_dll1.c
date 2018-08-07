@@ -26,7 +26,7 @@
  * \param[in]     config Tracking loop configuration parameters
  */
 static void update_params(tl_pll2_state_t *s, const tl_config_t *config) {
-  s->T_DLL = 1.f / config->dll_loop_freq;
+  s->T_DLL = config->dll_loop_period_s;
 
   /* PLL constants */
   float omega_0 = config->carr_bw / 0.53f;
