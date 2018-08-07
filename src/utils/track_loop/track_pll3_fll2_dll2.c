@@ -149,7 +149,7 @@ void tl_pll3_update_dll(tl_pll3_state_t *s,
   s->carr_acc += carr_acc_change;
 
   /* Code loop */
-  float code_error = -dll_discriminator(cs);
+  float code_error = dll_discriminator(cs);
   s->code_freq =
       s->code_c1 * code_error +
       0.5f * (2.0f * s->code_vel + s->code_c2 * s->T_DLL * code_error);

@@ -102,7 +102,7 @@ void tl_pll2_update_dll(tl_pll2_state_t *s,
   s->carr_vel += carr_vel_change_hz_per_s;
 
   /* Code loop */
-  float code_error = -dll_discriminator(cs);
+  float code_error = dll_discriminator(cs);
   s->code_freq_hz = s->code_c1 * code_error;
 
   /* Carrier aiding */
