@@ -81,8 +81,6 @@ u8 tp_get_bit_ms(tp_tm_e tracking_mode);
 u8 tp_get_pll_ms(tp_tm_e tracking_mode);
 u8 tp_get_dll_ms(tp_tm_e tracking_mode);
 const char *tp_get_mode_str(tp_tm_e v);
-bool tp_is_pll_ctrl(tp_ctrl_e ctrl);
-bool tp_is_fll_ctrl(tp_ctrl_e ctrl);
 
 void tp_update_correlators(u32 cycle_flags,
                            const tp_epl_corr_t *restrict cs_now,
@@ -101,11 +99,7 @@ void tp_tl_get_config(const tp_loop_params_t *l, tl_config_t *config);
 void tp_tl_update(tp_tl_state_t *s, const tp_epl_corr_t *cs, bool costas);
 float tp_tl_get_fll_error(const tp_tl_state_t *s);
 float tp_tl_get_dll_error(const tp_tl_state_t *s);
-bool tp_tl_is_pll(const tp_tl_state_t *s);
-bool tp_tl_is_fll(const tp_tl_state_t *s);
-void tp_tl_fll_update_first(tp_tl_state_t *s, corr_t cs, bool halfq);
-void tp_tl_fll_update_second(tp_tl_state_t *s, corr_t cs, bool halfq);
-void tp_tl_fll_update(tp_tl_state_t *s);
+void tp_tl_fll_discr_update(tp_tl_state_t *s, corr_t cs, bool halfq);
 
 /* Generic tracker functions */
 void tp_tracker_init(tracker_t *tracker, const tp_tracker_config_t *config);

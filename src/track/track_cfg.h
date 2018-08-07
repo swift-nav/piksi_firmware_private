@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2017 Swift Navigation Inc.
+ * Copyright (C) 2011-2018 Swift Navigation Inc.
  * Contact: Swift Navigation <dev@swiftnav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -9,107 +9,6 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
-
-/*
- * Main tracking: PLL loop selection
- */
-
-/* FLL-assisted PLL. FLL is first order and PLL is second order */
-#define tl_pll2_state_t aided_tl_state_fll1_pll2_t
-#define tl_pll2_init aided_tl_fll1_pll2_init
-#define tl_pll2_retune aided_tl_fll1_pll2_retune
-#define tl_pll2_update_fll aided_tl_fll1_pll2_update_fll
-#define tl_pll2_update_dll aided_tl_fll1_pll2_update_dll
-#define tl_pll2_adjust aided_tl_fll1_pll2_adjust
-#define tl_pll2_get_dll_error aided_tl_fll1_pll2_get_dll_error
-#define tl_pll2_discr_update aided_tl_fll1_pll2_discr_update
-#define tl_pll2_get_rates aided_tl_fll1_pll2_get_rates
-
-/*
- * 3rd order PLL loop selection.
- * The third order PLL loop selection is mutually exclusive from the three
- * available implementations:
- *
- * TRACK_PLL_MODE3_BL
- * PLL-assisted DLL. FLL and DLL are second order, PLL is third order
- * Note: Bilinear transform integrator implementation
- *
- * TRACK_PLL_MODE3_BC
- * PLL-assisted DLL. FLL and DLL are second order, PLL is third order
- * Note: Boxcar integrator implementation
- *
- * TRACK_PLL_MODE3_FLL
- * FLL-assisted PLL. FLL is second order and PLL is third order
- * Note: Bilinear transform integrator implementation
- *
- */
-#define TRACK_PLL_MODE3_BL 1
-#define TRACK_PLL_MODE3_BC 2
-#define TRACK_PLL_MODE3_FLL 3
-
-#ifndef TRACK_PLL_MODE3
-#define TRACK_PLL_MODE3 TRACK_PLL_MODE3_FLL
-#endif
-
-#if TRACK_PLL_MODE3 == TRACK_PLL_MODE3_BL
-#define tl_pll3_state_t aided_tl_state3_t
-#define tl_pll3_init aided_tl_init3
-#define tl_pll3_retune aided_tl_retune3
-#define tl_pll3_update_fll aided_tl_update_fll3
-#define tl_pll3_update_dll aided_tl_update_dll3
-#define tl_pll3_adjust aided_tl_adjust3
-#define tl_pll3_get_dll_error aided_tl_get_dll_error3
-#define tl_pll3_discr_update aided_tl_discr_update3
-#define tl_pll3_get_rates aided_tl_get_rates3
-#elif TRACK_PLL_MODE3 == TRACK_PLL_MODE3_BC
-#define tl_pll3_state_t aided_tl_state3b_t
-#define tl_pll3_init aided_tl_init3b
-#define tl_pll3_retune aided_tl_retune3b
-#define tl_pll3_update_fll aided_tl_update_fll3b
-#define tl_pll3_update_dll aided_tl_update_dll3b
-#define tl_pll3_adjust aided_tl_adjust3b
-#define tl_pll3_get_dll_error aided_tl_get_dll_error3b
-#define tl_pll3_discr_update aided_tl_discr_update3b
-#define tl_pll3_get_rates aided_tl_get_rates3b
-#elif TRACK_PLL_MODE3 == TRACK_PLL_MODE3_FLL
-#define tl_pll3_state_t aided_tl_state_fll2_pll3_t
-#define tl_pll3_init aided_tl_fll2_pll3_init
-#define tl_pll3_retune aided_tl_fll2_pll3_retune
-#define tl_pll3_update_fll aided_tl_fll2_pll3_update_fll
-#define tl_pll3_update_dll aided_tl_fll2_pll3_update_dll
-#define tl_pll3_adjust aided_tl_fll2_pll3_adjust
-#define tl_pll3_get_dll_error aided_tl_fll2_pll3_get_dll_error
-#define tl_pll3_discr_update aided_tl_fll2_pll3_discr_update
-#define tl_pll3_get_rates aided_tl_fll2_pll3_get_rates
-#else
-#error Unsupported 3rd order PLL Mode
-#endif
-
-/*
- * Main tracking: FLL loop selection
- */
-
-/* FLL-assisted DLL. FLL is first order and DLL is second order */
-#define tl_fll1_state_t aided_tl_state_fll1_t
-#define tl_fll1_init aided_tl_fll1_init
-#define tl_fll1_retune aided_tl_fll1_retune
-#define tl_fll1_update_fll aided_tl_fll1_update_fll
-#define tl_fll1_update_dll aided_tl_fll1_update_dll
-#define tl_fll1_adjust aided_tl_fll1_adjust
-#define tl_fll1_get_dll_error aided_tl_fll1_get_dll_error
-#define tl_fll1_discr_update aided_tl_fll1_discr_update
-#define tl_fll1_get_rates aided_tl_fll1_get_rates
-
-/* FLL-assisted DLL. FLL and DLL are both second order */
-#define tl_fll2_state_t aided_tl_state_fll2_t
-#define tl_fll2_init aided_tl_fll2_init
-#define tl_fll2_retune aided_tl_fll2_retune
-#define tl_fll2_update_fll aided_tl_fll2_update_fll
-#define tl_fll2_update_dll aided_tl_fll2_update_dll
-#define tl_fll2_adjust aided_tl_fll2_adjust
-#define tl_fll2_get_dll_error aided_tl_fll2_get_dll_error
-#define tl_fll2_discr_update aided_tl_fll2_discr_update
-#define tl_fll2_get_rates aided_tl_fll2_get_rates
 
 /* Bit synchronization and data decoding */
 #define TPF_BIT_PILOT ((u32)1 << 1) /* data comes in the fifth correlator */

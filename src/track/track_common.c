@@ -771,7 +771,7 @@ void tp_tracker_update_fll(tracker_t *tracker, u32 cycle_flags) {
   bool halfq = (0 != (cycle_flags & TPF_FLL_HALFQ));
 
   if (0 != (cycle_flags & TPF_FLL_USE)) {
-    tp_tl_fll_update_second(&tracker->tl_state, tracker->corrs.corr_fll, halfq);
+    tp_tl_fll_discr_update(&tracker->tl_state, tracker->corrs.corr_fll, halfq);
     tracker->unfiltered_freq_error = tp_tl_get_fll_error(&tracker->tl_state);
   }
 }

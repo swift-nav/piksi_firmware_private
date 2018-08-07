@@ -611,12 +611,6 @@ static const char *get_ctrl_str(tp_ctrl_e v) {
     case TP_CTRL_PLL3:
       str = "PLL3";
       break;
-    case TP_CTRL_FLL1:
-      str = "FLL1";
-      break;
-    case TP_CTRL_FLL2:
-      str = "FLL2";
-      break;
     default:
       assert(!"Unknown loop controller type");
   }
