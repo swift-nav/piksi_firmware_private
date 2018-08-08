@@ -46,7 +46,7 @@
 
 bool disable_raim = false;
 
-extern void update_obss(obs_array_t *obs_array); 
+extern void update_obss(obs_array_t *obs_array);
 
 /** \defgroup base_obs Base station observation handling
  * \{ */

@@ -73,8 +73,8 @@ typedef struct {
 
 /* Count the number of satellites in a given constellation for a
  * composite observation. */
-static size_t get_sat_count_for_constellation(const obss_t *obss, 
-                                              const constellation_t constellation) {
+static size_t get_sat_count_for_constellation(
+    const obss_t *obss, const constellation_t constellation) {
   gnss_sid_set_t codes;
   sid_set_init(&codes);
   for (u8 i = 0; i < obss->n; i++) {
@@ -169,12 +169,11 @@ static void convert_starling_obs_array_to_uncollapsed_obss(
 
 /* Perform filtering on the uncollapsed measurement array to get it down
  * to an acceptable size. Then copy everything into the standard "collapsed"
- * obss type. 
+ * obss type.
  *
  * NOTE: This function assumes that the navigation measurements in the
  * incoming uncollapsed obs have already been sorted. */
-static void collapse_obss(uncollapsed_obss_t *uncollapsed_obss,
-    obss_t *obss) {
+static void collapse_obss(uncollapsed_obss_t *uncollapsed_obss, obss_t *obss) {
   /** Precheck any base station observations and filter if needed. This is not a
    *  permanent solution for actually correcting GPS L2 base station
    *  observations that have mixed tracking modes in a signal epoch. For more
@@ -204,17 +203,15 @@ static void collapse_obss(uncollapsed_obss_t *uncollapsed_obss,
            MAX_CHANNELS * sizeof(navigation_measurement_t));
 }
 
-/* This function does everything needed to get from a Starling 
+/* This function does everything needed to get from a Starling
  * obs array type to the internal Obss representation. If an error
  * occurs at any point during the conversion process, return non-zero.
  *
  * Zero return indicates successful conversion.
  */
-int convert_starling_obs_array_to_obss(obs_array_t *obs_array,
-                                       obss_t *obss) {
-
+int convert_starling_obs_array_to_obss(obs_array_t *obs_array, obss_t *obss) {
   /* We keep this around to track the previous observation. */
-  static bool has_base_position = false; 
+  static bool has_base_position = false;
   static double base_position_ecef[3];
   static u8 old_base_sender_id = 0;
 
@@ -226,10 +223,9 @@ int convert_starling_obs_array_to_obss(obs_array_t *obs_array,
 
   /* First we need to convert the obs array into this type. */
   uncollapsed_obss_t uncollapsed_obss;
-  convert_starling_obs_array_to_uncollapsed_obss(obs_array,
-                                                 &uncollapsed_obss);
-  
- /* Copy contents of new_uncollapsed_obss into new_obss. */
+  convert_starling_obs_array_to_uncollapsed_obss(obs_array, &uncollapsed_obss);
+
+  /* Copy contents of new_uncollapsed_obss into new_obss. */
   collapse_obss(&uncollapsed_obss, obss);
   if (obss->n == 0) {
     log_info("All base obs filtered");
@@ -238,8 +234,8 @@ int convert_starling_obs_array_to_obss(obs_array_t *obs_array,
 
   /* Proceed to do an SPP solve if we have ample information. */
   if (has_enough_sats_for_pvt_solve(obss)) {
-    bool base_changed = (old_base_sender_id != 0) &&
-                        (old_base_sender_id != obss->sender_id);
+    bool base_changed =
+        (old_base_sender_id != 0) && (old_base_sender_id != obss->sender_id);
     /* check if we have fix, if yes, calculate iono and tropo correction */
     if (!base_changed && has_base_position) {
       log_debug("Base: IONO/TROPO correction");
@@ -272,11 +268,11 @@ int convert_starling_obs_array_to_obss(obs_array_t *obs_array,
                        NULL);
 
     if (ret >= 0 && soln.valid) {
-      /* If we get a succesful solve, store the base position estimate for future
-       * use. */
+      /* If we get a succesful solve, store the base position estimate for
+       * future use. */
       has_base_position = true;
-      MEMCPY_S(base_position_ecef, 
-               sizeof(base_position_ecef), 
+      MEMCPY_S(base_position_ecef,
+               sizeof(base_position_ecef),
                soln.pos_ecef,
                sizeof(soln.pos_ecef));
 
@@ -337,18 +333,18 @@ void update_obss(obs_array_t *obs_array) {
   /* Before doing anything, try to get new observation to post to. */
   obs_array_t *new_obs_array = platform_mailbox_item_alloc(MB_ID_BASE_OBS);
   if (new_obs_array == NULL) {
-    log_warn(
-        "Base obs pool full, discarding base obs at: wn: %d, tow: %.2f",
-        obs_array->t.wn,
-        obs_array->t.tow);
+    log_warn("Base obs pool full, discarding base obs at: wn: %d, tow: %.2f",
+             obs_array->t.wn,
+             obs_array->t.tow);
     return;
   }
-  
+
   // TODO(Kevin) remove this copy.
   *new_obs_array = *obs_array;
-  /* If we successfully get here without returning early, then go ahead and 
+  /* If we successfully get here without returning early, then go ahead and
    * post into the Starling engine. */
-  errno_t post_error = platform_mailbox_post(MB_ID_BASE_OBS, new_obs_array, MB_NONBLOCKING);
+  errno_t post_error =
+      platform_mailbox_post(MB_ID_BASE_OBS, new_obs_array, MB_NONBLOCKING);
   if (post_error) {
     log_error("Base obs mailbox should have space!");
     platform_mailbox_item_free(MB_ID_BASE_OBS, new_obs_array);

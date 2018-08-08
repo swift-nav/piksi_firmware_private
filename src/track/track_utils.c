@@ -82,7 +82,8 @@ bool tracker_calc_pseudorange(u64 ref_tc,
     return false;
   }
 
-  s8 nm_ret = convert_channel_measurement_to_starling_obs(&rec_time, meas, &obs);
+  s8 nm_ret =
+      convert_channel_measurement_to_starling_obs(&rec_time, meas, &obs);
   if (nm_ret != 0) {
     log_warn_sid(meas->sid,
                  "calc_navigation_measurement() returned an error: %" PRId8,
