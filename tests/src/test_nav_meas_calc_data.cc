@@ -23,7 +23,7 @@
 #include <libswiftnav/nav_meas.h>
 #include <libswiftnav/observation.h>
 
-#include "calc_nav_meas.h"
+#include "calc_starling_obs_array.h"
 
 #include "gtest/gtest.h"
 
@@ -99,10 +99,9 @@ static const channel_measurement_t l2cm_meas_in = {
     0};
 
 TEST(test_nav_meas_calc_data, first_test) {
-  const channel_measurement_t *input_meas[1];
   navigation_measurement_t out_l1ca, out_l2cm;
-  navigation_measurement_t *output_meas_l1ca[1] = {&out_l1ca};
-  navigation_measurement_t *output_meas_l2c[1] = {&out_l2cm};
+  navigation_measurement_t *p_out_l1ca = &out_l1ca;
+  navigation_measurement_t *p_out_l2cm = &out_l2cm;
   const ephemeris_t *e[1] = {&e_in}; /* Use one ephemeris
                                       for both calculations */
 
@@ -111,9 +110,11 @@ TEST(test_nav_meas_calc_data, first_test) {
       1899                     /* .wn */
   };
 
-  input_meas[0] = &l1ca_meas_in;
-  calc_navigation_measurement(1, input_meas, output_meas_l1ca, &rec_time);
-  calc_sat_clock_corrections(1, output_meas_l1ca, e);
+  starling_obs_t starling_obs;
+  convert_channel_measurement_to_starling_obs(
+      &rec_time, &l1ca_meas_in, &starling_obs);
+  convert_starling_obs_to_navigation_measurement(&starling_obs, &out_l1ca);
+  calc_sat_clock_corrections(1, &p_out_l1ca, e);
   log_debug(" ***** L1CA: *****\n");
   log_debug("raw_pseudorange = %30.20f\n", out_l1ca.raw_pseudorange);
   log_debug("pseudorange = %30.20f\n", out_l1ca.pseudorange);
@@ -136,9 +137,10 @@ TEST(test_nav_meas_calc_data, first_test) {
             (unsigned int)out_l1ca.sid.code);
   log_debug("TOR = %30.20f\n", out_l1ca.tot.tow + out_l1ca.pseudorange / GPS_C);
 
-  input_meas[0] = &l2cm_meas_in;
-  calc_navigation_measurement(1, input_meas, output_meas_l2c, &rec_time);
-  calc_sat_clock_corrections(1, output_meas_l2c, e);
+  convert_channel_measurement_to_starling_obs(
+      &rec_time, &l2cm_meas_in, &starling_obs);
+  convert_starling_obs_to_navigation_measurement(&starling_obs, &out_l2cm);
+  calc_sat_clock_corrections(1, &p_out_l2cm, e);
   log_debug(" \n***** L2CM: *****\n");
   log_debug("raw_pseudorange = %30.20f\n", out_l2cm.raw_pseudorange);
   log_debug("pseudorange = %30.20f\n", out_l2cm.pseudorange);
