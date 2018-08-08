@@ -24,6 +24,7 @@
 #include "calc/calc_pvt_common.h"
 #include "calc/calc_pvt_me.h"
 #include "calc/starling_integration.h"
+#include "calc/starling_base_obs.h"
 #include "ndb/ndb.h"
 #include "nmea/nmea.h"
 #include "sbp/sbp.h"
@@ -1156,18 +1157,18 @@ static int read_obs_rover(int blocking, me_msg_obs_t *me_msg) {
 
 /* TODO(kevin) refactor common code. */
 static int read_obs_base(int blocking, obss_t *obs) {
-  obss_t *local_obs = NULL;
+  obs_array_t *new_obs_array = NULL;
   errno_t ret =
-      platform_mailbox_fetch(MB_ID_BASE_OBS, (void **)&local_obs, blocking);
-  if (local_obs) {
+      platform_mailbox_fetch(MB_ID_BASE_OBS, (void **)&new_obs_array, blocking);
+  if (new_obs_array) {
     if (STARLING_READ_OK == ret) {
-      *obs = *local_obs;
+      ret = convert_starling_obs_array_to_obss(new_obs_array, obs);
     } else {
       /* Erroneous behavior for fetch to return non-NULL pointer and indicate
        * read failure. */
       log_error("Base obs mailbox fetch failed with %d", ret);
     }
-    platform_mailbox_item_free(MB_ID_BASE_OBS, local_obs);
+    platform_mailbox_item_free(MB_ID_BASE_OBS, new_obs_array);
   }
   return ret;
 }

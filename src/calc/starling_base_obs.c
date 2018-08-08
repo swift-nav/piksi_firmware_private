@@ -210,8 +210,8 @@ static void collapse_obss(uncollapsed_obss_t *uncollapsed_obss,
  *
  * Zero return indicates successful conversion.
  */
-static int convert_starling_obs_array_to_obss(obs_array_t *obs_array,
-                                              obss_t *obss) {
+int convert_starling_obs_array_to_obss(obs_array_t *obs_array,
+                                       obss_t *obss) {
 
   /* We keep this around to track the previous observation. */
   static bool has_base_position = false; 
@@ -335,8 +335,8 @@ void update_obss(obs_array_t *obs_array) {
   }
 
   /* Before doing anything, try to get new observation to post to. */
-  obss_t *obss = platform_mailbox_item_alloc(MB_ID_BASE_OBS);
-  if (obss == NULL) {
+  obs_array_t *new_obs_array = platform_mailbox_item_alloc(MB_ID_BASE_OBS);
+  if (new_obs_array == NULL) {
     log_warn(
         "Base obs pool full, discarding base obs at: wn: %d, tow: %.2f",
         obs_array->t.wn,
@@ -344,17 +344,13 @@ void update_obss(obs_array_t *obs_array) {
     return;
   }
   
-  int error = convert_starling_obs_array_to_obss(obs_array, obss);
-  if (error) {
-    platform_mailbox_item_free(MB_ID_BASE_OBS, obss);
-    return;
-  }
-
+  // TODO(Kevin) remove this copy.
+  *new_obs_array = *obs_array;
   /* If we successfully get here without returning early, then go ahead and 
    * post into the Starling engine. */
-  errno_t post_error = platform_mailbox_post(MB_ID_BASE_OBS, obss, MB_NONBLOCKING);
+  errno_t post_error = platform_mailbox_post(MB_ID_BASE_OBS, new_obs_array, MB_NONBLOCKING);
   if (post_error) {
     log_error("Base obs mailbox should have space!");
-    platform_mailbox_item_free(MB_ID_BASE_OBS, obss);
+    platform_mailbox_item_free(MB_ID_BASE_OBS, new_obs_array);
   }
 }
