@@ -277,8 +277,14 @@ static int convert_starling_obs_array_to_obss(obs_array_t *obs_array,
       has_base_position = true;
       MEMCPY_S(base_position_ecef, 
                sizeof(base_position_ecef), 
-               obss->pos_ecef,
-               sizeof(obss->pos_ecef));
+               soln.pos_ecef,
+               sizeof(soln.pos_ecef));
+
+      obss->has_pos = true;
+      MEMCPY_S(obss->pos_ecef,
+               sizeof(obss->pos_ecef),
+               soln.pos_ecef,
+               sizeof(soln.pos_ecef));
 
       /* Check if the base sender ID has changed and reset the RTK filter if
        * it has.
@@ -346,8 +352,8 @@ void update_obss(obs_array_t *obs_array) {
 
   /* If we successfully get here without returning early, then go ahead and 
    * post into the Starling engine. */
-  error = platform_mailbox_post(MB_ID_BASE_OBS, obss, MB_NONBLOCKING);
-  if (error) {
+  errno_t post_error = platform_mailbox_post(MB_ID_BASE_OBS, obss, MB_NONBLOCKING);
+  if (post_error) {
     log_error("Base obs mailbox should have space!");
     platform_mailbox_item_free(MB_ID_BASE_OBS, obss);
   }
