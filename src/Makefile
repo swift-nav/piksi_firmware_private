@@ -159,9 +159,10 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/calc/starling_integration.o \
         $(SWIFTNAV_ROOT)/src/calc/starling_chibios_shim.o \
         $(SWIFTNAV_ROOT)/src/calc/calc_pvt_me.o \
-        $(SWIFTNAV_ROOT)/src/calc/calc_nav_meas.o \
+        $(SWIFTNAV_ROOT)/src/calc/calc_starling_obs_array.o \
         $(SWIFTNAV_ROOT)/src/utils/obs_bias/obs_bias.o \
         $(SWIFTNAV_ROOT)/src/calc/calc_base_obs.o \
+        $(SWIFTNAV_ROOT)/src/calc/starling_base_obs.o \
         $(SWIFTNAV_ROOT)/src/simulator/simulator.o \
         $(SWIFTNAV_ROOT)/src/simulator/simulator_data.o \
         $(SWIFTNAV_ROOT)/src/utils/syscalls/syscalls.o \

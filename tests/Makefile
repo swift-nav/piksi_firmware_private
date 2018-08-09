@@ -164,7 +164,7 @@ C_SRCS = fixed_fft_r2.c \
          bds2_prns.c \
          qzss_prns.c \
          clock_filter.c \
-         calc_nav_meas.c \
+         calc_starling_obs_array.c \
          piksi_systime.c \
          sv_visibility.c \
          cnav_msg.c \
