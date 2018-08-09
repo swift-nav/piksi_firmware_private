@@ -60,8 +60,8 @@ void tp_profile_update_config(tracker_t *tracker);
 void tp_profile_apply_config(tracker_t *tracker, bool init);
 void tp_profile_switch(tracker_t *tracker);
 
-void tp_profile_get_cn0_params(const tp_profile_t *profile,
-                               tp_cn0_params_t *cn0_params);
+void tp_profile_get_cn0_thres(const tp_profile_t *profile,
+                              tp_cn0_thres_t *cn0_thres);
 bool tp_profile_has_new_profile(tracker_t *tracker);
 void tp_profile_report_data(tp_profile_t *profile, const tp_report_t *data);
 

@@ -123,10 +123,10 @@ typedef struct {
  * CN0 thresholds.
  */
 typedef struct {
-  float track_cn0_use_thres_dbhz;
-  float track_cn0_drop_thres_dbhz;
-  float track_cn0_ambiguity_thres_dbhz;
-} tp_cn0_params_t;
+  float use_thres_dbhz;
+  float drop_thres_dbhz;
+  float ambiguity_thres_dbhz;
+} tp_cn0_thres_t;
 
 /**
  * Tracking profile controller data.
@@ -150,7 +150,7 @@ typedef struct {
   tp_lock_detect_params_t ld_phase_params;
   /** Freq lock detector parameters */
   tp_lock_detect_params_t ld_freq_params;
-  tp_cn0_params_t cn0_params;
+  tp_cn0_thres_t cn0_thres;
 
   const struct tp_profile_entry *profiles; /**< Profiles switching table. */
 } tp_profile_t;
@@ -374,15 +374,15 @@ typedef struct {
   update_count_t xcorr_change_count;
   /**< update count value when cross-correlation
        flag has changed last time */
-  s32 TOW_ms;                /**< TOW in ms. */
-  s32 TOW_ms_prev;           /**< previous TOW in ms. */
-  s32 TOW_residual_ns;       /**< Residual to TOW_ms [ns] */
-  u64 sample_count;          /**< Total num samples channel has tracked for. */
-  double code_phase_prompt;  /**< Prompt code phase in chips. */
-  double code_phase_rate;    /**< Code phase rate in chips/s. */
-  double carrier_phase;      /**< Carrier phase in cycles. */
-  double carrier_freq;       /**< Carrier frequency Hz. */
-  double carrier_freq_prev;  /**< Carrier frequency Hz. */
+  s32 TOW_ms;               /**< TOW in ms. */
+  s32 TOW_ms_prev;          /**< previous TOW in ms. */
+  s32 TOW_residual_ns;      /**< Residual to TOW_ms [ns] */
+  u64 sample_count;         /**< Total num samples channel has tracked for. */
+  double code_phase_prompt; /**< Prompt code phase in chips. */
+  double code_phase_rate;   /**< Code phase rate in chips/s. */
+  double carrier_phase;     /**< Carrier phase in cycles. */
+  double carrier_freq;      /**< Carrier frequency Hz. */
+  double carrier_freq_prev; /**< Carrier frequency Hz. */
   bool carrier_freq_prev_valid;             /**< carrier_freq_prev is valid. */
   update_count_t carrier_freq_timestamp_ms; /**< carrier_freq_prev timestamp */
 
