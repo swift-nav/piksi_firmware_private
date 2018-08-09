@@ -90,7 +90,7 @@ bool tracker_calc_pseudorange(u64 ref_tc,
                  nm_ret);
     return false;
   }
-  *raw_pseudorange = obs.P;
+  *raw_pseudorange = obs.pseudorange;
   return true;
 }
 

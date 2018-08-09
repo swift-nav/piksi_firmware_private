@@ -35,9 +35,9 @@ void convert_starling_obs_to_navigation_measurement(
   /* Most fields are a direct conversion. */
   nm->sid = starling_obs->sid;
   nm->tot = starling_obs->tot;
-  nm->raw_pseudorange = starling_obs->P;
-  nm->raw_carrier_phase = starling_obs->L;
-  nm->raw_measured_doppler = starling_obs->D;
+  nm->raw_pseudorange = starling_obs->pseudorange;
+  nm->raw_carrier_phase = starling_obs->carrier_phase;
+  nm->raw_measured_doppler = starling_obs->doppler;
   nm->cn0 = starling_obs->cn0;
   nm->lock_time = starling_obs->lock_time;
   nm->flags = starling_obs->flags;
@@ -98,11 +98,11 @@ s8 convert_channel_measurement_to_starling_obs(
   gps_time_match_weeks(&obs->tot, rec_time);
 
   /* Compute the carrier phase measurement. */
-  obs->L = meas->carrier_phase;
+  obs->carrier_phase = meas->carrier_phase;
 
   /* For raw Doppler we use the instantaneous carrier frequency from the
    * tracking loop. */
-  obs->D = meas->carrier_freq;
+  obs->doppler = meas->carrier_freq;
 
   /* Copy over remaining values. */
   obs->cn0 = meas->cn0;
@@ -118,16 +118,16 @@ s8 convert_channel_measurement_to_starling_obs(
 
   /* The raw pseudorange is just the time of flight multiplied by the speed of
    * light. */
-  obs->P = GPS_C * (gpsdifftime(&meas_tor, &obs->tot));
+  obs->pseudorange = GPS_C * (gpsdifftime(&meas_tor, &obs->tot));
 
   /* Finally, propagate measurement back to reference time */
   obs->tot.tow -= dt;
   normalize_gps_time(&obs->tot);
 
   /* Propagate pseudorange with raw doppler times wavelength */
-  obs->P += dt * obs->D * lambda;
+  obs->pseudorange += dt * obs->doppler * lambda;
   /* Propagate carrier phase with carrier frequency */
-  obs->L += dt * obs->D;
+  obs->carrier_phase += dt * obs->doppler;
 
   /* Compute flags.
    *
