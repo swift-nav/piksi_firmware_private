@@ -79,6 +79,7 @@ float tp_get_flld_ms(tp_tm_e tracking_mode);
 u8 tp_get_flll_ms(tp_tm_e tracking_mode);
 u8 tp_get_bit_ms(tp_tm_e tracking_mode);
 u8 tp_get_pll_ms(tp_tm_e tracking_mode);
+u8 tp_get_dlld_ms(tp_tm_e tracking_mode);
 u8 tp_get_dll_ms(tp_tm_e tracking_mode);
 const char *tp_get_mode_str(tp_tm_e v);
 
@@ -96,7 +97,9 @@ void tp_tl_retune(tp_tl_state_t *s, tp_ctrl_e ctrl, const tl_config_t *config);
 void tp_tl_adjust(tp_tl_state_t *s, float err);
 void tp_tl_get_rates(const tp_tl_state_t *s, tl_rates_t *rates);
 void tp_tl_get_config(const tp_loop_params_t *l, tl_config_t *config);
-void tp_tl_update(tp_tl_state_t *s, const tp_epl_corr_t *cs, bool costas);
+void tp_tl_update_loop(tp_tl_state_t *s, const tp_epl_corr_t *cs, bool costas);
+void tp_tl_update_dll(tp_tl_state_t *s);
+void tp_tl_update_dll_discr(tp_tl_state_t *s, const tp_epl_corr_t *cs);
 float tp_tl_get_fll_error(const tp_tl_state_t *s);
 float tp_tl_get_dll_error(const tp_tl_state_t *s);
 void tp_tl_fll_discr_update(tp_tl_state_t *s, corr_t cs, bool halfq);

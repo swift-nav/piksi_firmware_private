@@ -14,6 +14,7 @@
    Based on
    Eliot D. Kaplan "Understanding GPS principles and applications" 1996 */
 
+#include <assert.h>
 #include <math.h>
 #include <string.h>
 
@@ -77,6 +78,30 @@ void tl_pll2_retune(tl_pll2_state_t *s, const tl_config_t *config) {
   update_params(s, config);
 }
 
+void tl_pll2_update_dll_discr(tl_pll2_state_t *s, const correlation_t cs[3]) {
+  s->dll_discr_sum_hz += dll_discriminator(cs);
+  s->dll_discr_cnt++;
+  assert(0 != s->dll_discr_cnt);
+}
+
+/**
+ * Updates dll filter state
+ * \param s Loop state
+ */
+void tl_pll2_update_dll(tl_pll2_state_t *s) {
+  /* Code loop */
+  float code_error = 0;
+  if (s->dll_discr_cnt > 0) {
+    code_error = s->dll_discr_sum_hz / s->dll_discr_cnt;
+  }
+  s->dll_discr_cnt = 0;
+  s->dll_discr_sum_hz = 0;
+  s->code_freq_hz = s->code_c1 * code_error;
+
+  /* Carrier aiding */
+  s->code_freq_hz += s->carr_freq_hz * s->carr_to_code;
+}
+
 /**
  * Updates pll/dll loop filter state
  *
@@ -84,9 +109,9 @@ void tl_pll2_retune(tl_pll2_state_t *s, const tl_config_t *config) {
  * \param[in]     cs     Complex valued epl correlations
  * \param[in]     costas Flag to indicate use of costas discriminator
  */
-void tl_pll2_update_dll(tl_pll2_state_t *s,
-                        const correlation_t cs[3],
-                        bool costas) {
+void tl_pll2_update_loop(tl_pll2_state_t *s,
+                         const correlation_t cs[3],
+                         bool costas) {
   /* Carrier loop */
   float carr_error_cyc = 0.0f;
   if (costas) {
@@ -102,7 +127,12 @@ void tl_pll2_update_dll(tl_pll2_state_t *s,
   s->carr_vel += carr_vel_change_hz_per_s;
 
   /* Code loop */
-  float code_error = dll_discriminator(cs);
+  float code_error = 0;
+  if (s->dll_discr_cnt > 0) {
+    code_error = s->dll_discr_sum_hz / s->dll_discr_cnt;
+  }
+  s->dll_discr_cnt = 0;
+  s->dll_discr_sum_hz = 0;
   s->code_freq_hz = s->code_c1 * code_error;
 
   /* Carrier aiding */
