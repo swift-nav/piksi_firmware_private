@@ -625,7 +625,7 @@ static void me_calc_pvt_thread(void *arg) {
 
     if (sid_set_get_sat_count(&codes) < 4) {
       /* Not enough sats to compute PVT, send them as unusable */
-      me_send_failed_obs(n_ready, obs_array, nav_meas, e_meas, &current_time);
+      me_send_failed_obs(n_ready, &obs_array, nav_meas, e_meas, &current_time);
       continue;
     }
 
@@ -661,7 +661,7 @@ static void me_calc_pvt_thread(void *arg) {
       /* If we can't report a SPP position, something is wrong and no point
        * continuing to process this epoch - mark observations unusable but send
        * them out to enable debugging. */
-      me_send_failed_obs(n_ready, obs_array, nav_meas, e_meas, &current_time);
+      me_send_failed_obs(n_ready, &obs_array, nav_meas, e_meas, &current_time);
 
       /* If we already had a good fix, degrade its quality to STATIC */
       if (lgf.position_quality > POSITION_STATIC) {
@@ -727,7 +727,7 @@ static void me_calc_pvt_thread(void *arg) {
                current_fix.clock_offset,
                current_fix.clock_drift);
 
-      me_send_failed_obs(n_ready, obs_array, nav_meas, e_meas, &current_time);
+      me_send_failed_obs(n_ready, &obs_array, nav_meas, e_meas, &current_time);
       /* adjust the deadline of the next fix to land on output epoch */
       piksi_systime_add_us(&next_epoch, round(output_offset * SECS_US));
       continue;
@@ -767,12 +767,12 @@ static void me_calc_pvt_thread(void *arg) {
       }
 
       /* Send the observations. */
-      me_send_all(n_ready, nav_meas, e_meas, &output_time);
+      me_send_all(n_ready, &obs_array, nav_meas, e_meas, &output_time);
     } else {
       log_info("clock_offset %.3f s greater than OBS_PROPAGATION_LIMIT",
                output_offset);
       /* Send the observations, but marked unusable */
-      me_send_failed_obs(n_ready, nav_meas, e_meas, &current_time);
+      me_send_failed_obs(n_ready, &obs_array, nav_meas, e_meas, &current_time);
     }
 
     if (fabs(current_fix.clock_offset) > MAX_CLOCK_ERROR_S) {
