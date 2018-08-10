@@ -1068,7 +1068,7 @@ u32 get_tracking_channel_meas(u8 i,
     if ((0 == carrier_phase_offset) &&
         (0 != (flags & TRACKER_FLAG_HAS_PLOCK)) &&
         (0 != (flags & TRACKER_FLAG_TOW_VALID)) &&
-        (0 != (flags & TRACKER_FLAG_CN0_SHORT)) &&
+        (0 != (flags & TRACKER_FLAG_CN0_USABLE)) &&
         (TIME_FINE <= get_time_quality())) {
       if (compute_cpo(ref_tc, meas, &carrier_phase_offset)) {
         tracker_set_carrier_phase_offset(&info, carrier_phase_offset);

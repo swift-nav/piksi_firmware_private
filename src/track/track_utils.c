@@ -58,7 +58,6 @@ void tracker_measurement_get(u64 ref_tc,
 
   meas->cn0 = info->cn0;
   meas->lock_time = tracker_get_lock_time(time_info, misc_info);
-  meas->time_in_track = time_info->cn0_usable_ms / 1000.0;
   meas->flags = 0;
 }
 

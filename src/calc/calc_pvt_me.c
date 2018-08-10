@@ -366,7 +366,7 @@ static void collect_measurements(u64 rec_tc,
           0 != (flags & TRACKER_FLAG_ELEVATION) &&
           0 != (flags & TRACKER_FLAG_TOW_VALID) &&
           0 != (flags & TRACKER_FLAG_HAS_EPHE) &&
-          0 != (flags & TRACKER_FLAG_CN0_SHORT) &&
+          0 != (flags & TRACKER_FLAG_CN0_USABLE) &&
           0 != (meas_flags & CHAN_MEAS_FLAG_CODE_VALID) &&
           0 != (meas_flags & CHAN_MEAS_FLAG_MEAS_DOPPLER_VALID)) {
         /* Tracking channel is suitable for solution calculation */
@@ -380,7 +380,7 @@ static void collect_measurements(u64 rec_tc,
                         (0 != (flags & TRACKER_FLAG_ELEVATION)) ? "Y" : "N",
                         (0 != (flags & TRACKER_FLAG_TOW_VALID)) ? "Y" : "N",
                         (0 != (flags & TRACKER_FLAG_HAS_EPHE)) ? "Y" : "N",
-                        (0 != (flags & TRACKER_FLAG_CN0_SHORT)) ? "Y" : "N");
+                        (0 != (flags & TRACKER_FLAG_CN0_USABLE)) ? "Y" : "N");
         }
       }
     }
