@@ -20,28 +20,12 @@
 #include <cn0_est/cn0_est_common.h>
 #include <nap/nap_constants.h>
 
-/** Fixed SNR offset for converting 1ms C/N0 to SNR */
-#define TRACK_CN0_SNR_OFFSET (-174.f + PLATFORM_NOISE_FIGURE)
-/** Converts C/N0 into SNR */
-#define TRACK_CN0_TO_SNR(x) ((x) + TRACK_CN0_SNR_OFFSET)
-/** Adjusts C/N0 according to noise figure */
-#define TRACK_CN0_ADJUST(x) ((float)(x) + 2.f - PLATFORM_NOISE_FIGURE)
-
-#define TRACK_CN0_FLAG_FAST_TYPE (0x80u)
-
 /* Configure C/N0 value filter algorithm */
 #define cn0_filter_params_t lp1_filter_params_t
 #define cn0_filter_compute_params lp1_filter_compute_params
 #define cn0_filter_t lp1_filter_t
 #define cn0_filter_init lp1_filter_init
 #define cn0_filter_update lp1_filter_update
-
-/**
- * C/N0 estimator types
- */
-typedef enum {
-  TRACK_CN0_EST_BASIC /**< Basic estimator */
-} track_cn0_est_e;
 
 /**
  * C/N0 estimator parameters.
@@ -86,14 +70,12 @@ void track_cn0_init(const me_gnss_signal_t mesid,
                     float cn0_0,
                     u8 flags);
 float track_cn0_update(const me_gnss_signal_t mesid,
-                       track_cn0_est_e t,
                        track_cn0_state_t *e,
                        u8 int_ms,
                        float I,
                        float Q,
                        float ve_I,
                        float ve_Q);
-const char *track_cn0_str(track_cn0_est_e t);
 float track_cn0_get_offset(u8 cn0_ms);
 
 #ifdef __cplusplus

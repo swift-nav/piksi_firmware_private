@@ -120,11 +120,9 @@ typedef struct {
 } tp_lock_detect_params_t;
 
 /**
- * Lock detector parameters.
+ * CN0 thresholds.
  */
 typedef struct {
-  track_cn0_est_e est;
-
   float track_cn0_use_thres_dbhz;
   float track_cn0_drop_thres_dbhz;
   float track_cn0_ambiguity_thres_dbhz;
@@ -141,7 +139,6 @@ typedef struct {
 
   u32 profile_update : 1; /**< Flag if the profile update is required */
   u32 dll_init : 1;       /**< DLL init required */
-  u32 cn0_est : 2;        /**< C/N0 estimator type */
   u32 use_alias_detection : 1;
 
   u16 lock_time_ms;         /**< Profile lock count down timer */
