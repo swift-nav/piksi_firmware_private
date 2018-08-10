@@ -184,7 +184,7 @@ void tp_profile_apply_config(tracker_t *tracker, bool init) {
     float cn0_t;
     float cn0_0;
 
-    if (tracker->flags & TRACKER_FLAG_CONFIRMED) {
+    if (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED)) {
       cn0_t = cn0_0 = tracker->cn0;
     } else {
       /* When confirmation is required, set C/N0 below drop threshold and
@@ -198,8 +198,7 @@ void tp_profile_apply_config(tracker_t *tracker, bool init) {
     track_cn0_init(mesid,             /* ME signal for logging */
                    cn0_ms,            /* C/N0 period in ms */
                    &tracker->cn0_est, /* C/N0 estimator state */
-                   cn0_0,             /* Initial C/N0 value */
-                   0);                /* Flags */
+                   cn0_0);            /* Initial C/N0 value */
 
     if (0 == (tracker->flags & TRACKER_FLAG_CONFIRMED)) {
       tracker->cn0_est.cn0_0 = cn0_t;
@@ -604,8 +603,7 @@ static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
       /* Update C/N0 estimate */
       u8 int_ms = tp_get_current_cycle_duration(tracker->tracking_mode,
                                                 tracker->cycle_no);
-      cn0 = track_cn0_update(tracker->mesid,
-                             &tracker->cn0_est,
+      cn0 = track_cn0_update(&tracker->cn0_est,
                              int_ms,
                              tracker->corrs.corr_cn0.prompt.I,
                              tracker->corrs.corr_cn0.prompt.Q,
@@ -633,8 +631,7 @@ static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
     track_cn0_init(tracker->mesid,          /* ME signal */
                    tracker->cn0_est.cn0_ms, /* C/N0 period in ms */
                    &tracker->cn0_est,       /* C/N0 estimator state */
-                   cn0,                     /* Initial C/N0 value */
-                   0);                      /* Flags */
+                   cn0);                    /* Initial C/N0 value */
   }
 
   if (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED)) {

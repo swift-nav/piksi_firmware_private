@@ -77,7 +77,6 @@ typedef struct {
   float scale;     /**< Scale factor for C/N0 estimator */
   float cn0_shift; /**< Shift for C/N0 estimator */
   float cutoff;    /**< C/N0 LP filter cutoff frequency [Hz] */
-  u8 update_count; /**< Configuration update counter */
   track_cn0_params_t params[INTEG_PERIODS_NUM]; /**< Estimator and filter
                                                  *   parameters */
 } track_cn0_config_t;
@@ -91,7 +90,6 @@ static track_cn0_config_t cn0_config = {
     .scale = PLATFORM_CN0_EST_SCALE,
     .cn0_shift = PLATFORM_CN0_EST_SHIFT,
     .cutoff = CN0_EST_LPF_CUTOFF_HZ,
-    .update_count = 0,
 };
 
 static float q_avg = 8.f; /* initial value for noise level */
@@ -113,7 +111,6 @@ void track_cn0_params_init(void) {
     cn0_filter_compute_params(
         &cn0_config.params[i].filter_params, cn0_config.cutoff, loop_freq);
   }
-  cn0_config.update_count = 1;
 }
 
 /**
@@ -190,10 +187,8 @@ static const track_cn0_params_t *track_cn0_get_params(u8 cn0_ms,
                            cn0_config.cn0_shift);
     p->est_params.t_int = cn0_ms;
 
-    float cutoff_freq = 1;
-    cutoff_freq = CN0_EST_LPF_CUTOFF_HZ;
-
-    cn0_filter_compute_params(&p->filter_params, cutoff_freq, loop_freq);
+    cn0_filter_compute_params(
+        &p->filter_params, CN0_EST_LPF_CUTOFF_HZ, loop_freq);
 
     pparams = p;
   }
@@ -208,19 +203,16 @@ static const track_cn0_params_t *track_cn0_get_params(u8 cn0_ms,
  * \param[in]  cn0_ms C/N0 estimator update period in ms.
  * \param[out] e      C/N0 estimator state.
  * \param[in]  cn0_0  Initial C/N0 value in dB/Hz.
- * \param[in]  flags  Tuning flags.
  *
  * \return None
  */
 void track_cn0_init(const me_gnss_signal_t mesid,
                     u8 cn0_ms,
                     track_cn0_state_t *e,
-                    float cn0_0,
-                    u8 flags) {
+                    float cn0_0) {
   track_cn0_params_t p;
 
   e->cn0_0 = (u8)cn0_0;
-  e->flags = flags;
   e->cn0_ms = cn0_ms;
 
   const track_cn0_params_t *pp = track_cn0_get_params(cn0_ms, &p);
@@ -228,8 +220,6 @@ void track_cn0_init(const me_gnss_signal_t mesid,
   init_estimator(e, &pp->est_params, cn0_0);
 
   cn0_filter_init(&e->filter, &pp->filter_params, cn0_0);
-
-  e->ver = cn0_config.update_count;
 
   log_debug_mesid(mesid,
                   "Initializing estimator (%f dB/Hz @ %u ms)",
@@ -240,7 +230,6 @@ void track_cn0_init(const me_gnss_signal_t mesid,
 /**
  * Updates C/N0 estimator.
  *
- * \param[in]     mesid  ME signal identifier for logging.
  * \param[in,out] e      Estimator state.
  * \param[in]     int_ms Integration time [ms]
  * \param[in]     I      In-phase component.
@@ -250,25 +239,14 @@ void track_cn0_init(const me_gnss_signal_t mesid,
  *
  * \return Filtered estimator value.
  */
-float track_cn0_update(const me_gnss_signal_t mesid,
-                       track_cn0_state_t *e,
-                       u8 int_ms,
-                       float I,
-                       float Q,
-                       float ve_I,
-                       float ve_Q) {
+float track_cn0_update(
+    track_cn0_state_t *e, u8 int_ms, float I, float Q, float ve_I, float ve_Q) {
   track_cn0_params_t p;
   const track_cn0_params_t *pp = track_cn0_get_params(e->cn0_ms, &p);
-  float cn0 = 0;
-
-  if (e->ver != cn0_config.update_count) {
-    u8 cn0_0 = e->cn0_0;
-    track_cn0_init(mesid, e->cn0_ms, e, e->filter.yn, e->flags);
-    e->cn0_0 = cn0_0;
-  }
 
   e->cn0_raw_dbhz = update_estimator(e, &pp->est_params, I, Q, ve_I, ve_Q);
-  cn0 = cn0_filter_update(&e->filter, &pp->filter_params, e->cn0_raw_dbhz);
+  float cn0 =
+      cn0_filter_update(&e->filter, &pp->filter_params, e->cn0_raw_dbhz);
 
   if (e->cn0_raw_dbhz < THRESH_SENS_DBHZ) {
     if (e->weak_signal_ms < SECS_MS) { /* to avoid wrapping to 0 */
