@@ -571,6 +571,17 @@ static void me_calc_pvt_thread(void *arg) {
       gps_time_match_weeks(&current_time, &e_meas[0].toe);
     }
 
+    /* Generate the Starling obs array. */
+    static obs_array_t obs_array;
+    obs_array.sender = 0;
+    obs_array.t = current_time;
+    obs_array.n = n_ready;
+    for (size_t i = 0; i < n_ready; ++i) {
+      convert_channel_measurement_to_starling_obs(&current_time,
+                                                  &meas[i], 
+                                                  &obs_array.observations[i]);
+    }
+
     /* Create navigation measurements from the channel measurements */
     s8 nm_ret =
         calc_navigation_measurement(n_ready, p_meas, p_nav_meas, &current_time);
