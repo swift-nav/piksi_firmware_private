@@ -584,13 +584,13 @@ static void starling_integration_solution_simulation(
 
     double t_check = soln->time.tow * (soln_freq_setting / obs_output_divisor);
     if (fabs(t_check - (u32)t_check) < TIME_MATCH_THRESHOLD) {
-      /* RFT_TODO *
-       * SBP_FRAMING_MAX_PAYLOAD_SIZE replaces the setting for now, but
-       * this function will completely go away */
+      /* TODO(kevin) RESTORE THIS FUNCTION. */ 
+#if 0
       send_observations(simulation_current_num_sats(),
                         SBP_FRAMING_MAX_PAYLOAD_SIZE,
                         simulation_current_navigation_measurements(),
                         &(soln->time));
+#endif
     }
   }
 }

@@ -10,13 +10,11 @@
 /** Max velocity accuracy we allow to output a SPP solution */
 #define MAX_SPP_VEL_ACCURACY_M_PER_S 10.0
 
-void send_observations(u8 n,
-                       u32 msg_obs_max_size,
-                       const navigation_measurement_t m[],
-                       const gps_time_t *t) {
+void send_observations(u32 msg_obs_max_size,
+                       const obs_array_t *obs_array) {
   static u8 buff[256];
 
-  if ((0 == n) || (NULL == m) || (NULL == t)) {
+  if (NULL == obs_array || 0 == obs_array->n) {
     gps_time_t t_dummy = GPS_TIME_UNKNOWN;
     pack_obs_header(&t_dummy, 1, 0, (observation_header_t *)buff);
     sbp_send_msg(SBP_MSG_OBS, sizeof(observation_header_t), buff);
@@ -36,23 +34,23 @@ void send_observations(u8 n,
   u16 obs_in_msg = msg_payload_size / sizeof(packed_obs_content_t);
 
   /* Round up the number of messages */
-  u16 total = MIN((n + obs_in_msg - 1) / obs_in_msg, MSG_OBS_HEADER_MAX_SIZE);
+  u16 total = MIN((obs_array->n + obs_in_msg - 1) / obs_in_msg, MSG_OBS_HEADER_MAX_SIZE);
 
   u8 obs_i = 0;
   for (u8 count = 0; count < total; count++) {
-    u8 curr_n = MIN(n - obs_i, obs_in_msg);
-    pack_obs_header(t, total, count, (observation_header_t *)buff);
+    u8 curr_n = MIN(obs_array->n - obs_i, obs_in_msg);
+    pack_obs_header(&obs_array->t, total, count, (observation_header_t *)buff);
     packed_obs_content_t *obs =
         (packed_obs_content_t *)&buff[sizeof(observation_header_t)];
 
     for (u8 i = 0; i < curr_n; i++, obs_i++) {
-      if (pack_obs_content(m[obs_i].raw_pseudorange,
-                           m[obs_i].raw_carrier_phase,
-                           m[obs_i].raw_measured_doppler,
-                           m[obs_i].cn0,
-                           m[obs_i].lock_time,
-                           m[obs_i].flags,
-                           m[obs_i].sid,
+      if (pack_obs_content(obs_array->observations[obs_i].pseudorange,
+                           obs_array->observations[obs_i].carrier_phase,
+                           obs_array->observations[obs_i].doppler,
+                           obs_array->observations[obs_i].cn0,
+                           obs_array->observations[obs_i].lock_time,
+                           obs_array->observations[obs_i].flags,
+                           obs_array->observations[obs_i].sid,
                            &obs[i]) < 0) {
         /* Error packing this observation, skip it. */
         i--;
