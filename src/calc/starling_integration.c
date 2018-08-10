@@ -1076,7 +1076,8 @@ static void initialize_vehicle_dynamics_filters(void) {
 
   /* TODO(kevin) register settings. */
   static const char *const vehicle_dynamics_filter_mode_enum[] = {"None",
-                                                                  "Tractor"};
+                                                                  "Tractor",
+                                                                  NULL};
   static struct setting_type vehicle_dynamics_filter_mode_setting;
   int TYPE_VEHICLE_DYNAMICS_FILTER_MODE = settings_type_register_enum(
       vehicle_dynamics_filter_mode_enum, &vehicle_dynamics_filter_mode_setting);
