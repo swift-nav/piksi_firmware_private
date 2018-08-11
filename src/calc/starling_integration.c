@@ -1139,7 +1139,7 @@ static void profile_low_latency_thread(enum ProfileDirective directive) {
 #define READ_OBS_ROVER_TIMEOUT DGNSS_TIMEOUT_MS
 #define READ_OBS_BASE_TIMEOUT DGNSS_TIMEOUT_MS
 
-static int read_obs_helper(int blocking, 
+static int read_obs_helper(int blocking,
                            obs_array_t *obs_array,
                            int mailbox_id,
                            const char *mailbox_name) {
@@ -1162,7 +1162,8 @@ static int read_obs_helper(int blocking,
 /* TODO(kevin) refactor common code. */
 static int read_obs_rover(int blocking, me_msg_obs_t *me_msg) {
   obs_array_t tmp_obs_array;
-  errno_t ret = read_obs_helper(blocking, &tmp_obs_array, MB_ID_ME_OBS, "Rover Obs Mailbox");
+  errno_t ret = read_obs_helper(
+      blocking, &tmp_obs_array, MB_ID_ME_OBS, "Rover Obs Mailbox");
   /* Convert into me_msg. */
   me_msg->size = tmp_obs_array.n;
   me_msg->obs_time = tmp_obs_array.t;
@@ -1177,7 +1178,8 @@ static int read_obs_rover(int blocking, me_msg_obs_t *me_msg) {
 /* TODO(kevin) refactor common code. */
 static int read_obs_base(int blocking, obss_t *obs) {
   obs_array_t tmp_obs_array;
-  errno_t ret = read_obs_helper(blocking, &tmp_obs_array, MB_ID_BASE_OBS, "Base Obs Mailbox");
+  errno_t ret = read_obs_helper(
+      blocking, &tmp_obs_array, MB_ID_BASE_OBS, "Base Obs Mailbox");
   if (STARLING_READ_OK == ret) {
     ret = convert_starling_obs_array_to_obss(&tmp_obs_array, obs);
   }

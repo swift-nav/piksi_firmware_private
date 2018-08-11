@@ -143,7 +143,7 @@ static void me_post_observations(u8 n,
    * are guaranteed to already be there. */
   me_post_ephemerides(n, _ephem);
 
-    /* TODO: use a buffer from the pool from the start instead of
+  /* TODO: use a buffer from the pool from the start instead of
    * allocating nav_meas as well. Downside, if we don't end up
    * pushing the message into the mailbox then we just wasted an
    * observation from the mailbox for no good reason. */
