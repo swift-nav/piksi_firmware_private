@@ -222,7 +222,7 @@ static mailbox_info_t mailbox_info[MB_ID_COUNT] =
      [MB_ID_ME_OBS] = {0,
                        MEO_QUEUE_NAME,
                        ME_OBS_MSG_N_BUFF,
-                       sizeof(me_msg_obs_t)},
+                       sizeof(obs_array_t)},
      [MB_ID_SBAS_DATA] = {0,
                           SBAS_DATA_QUEUE_NAME,
                           SBAS_DATA_N_BUFF,

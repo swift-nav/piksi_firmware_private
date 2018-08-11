@@ -23,6 +23,7 @@
 
 #include "calc/calc_pvt_common.h"
 #include "calc/calc_pvt_me.h"
+#include "calc/calc_starling_obs_array.h"
 #include "calc/starling_base_obs.h"
 #include "calc/starling_integration.h"
 #include "ndb/ndb.h"
@@ -1138,38 +1139,47 @@ static void profile_low_latency_thread(enum ProfileDirective directive) {
 #define READ_OBS_ROVER_TIMEOUT DGNSS_TIMEOUT_MS
 #define READ_OBS_BASE_TIMEOUT DGNSS_TIMEOUT_MS
 
-/* TODO(kevin) refactor common code. */
-static int read_obs_rover(int blocking, me_msg_obs_t *me_msg) {
-  me_msg_obs_t *local_me_msg = NULL;
+static int read_obs_helper(int blocking, 
+                           obs_array_t *obs_array,
+                           int mailbox_id,
+                           const char *mailbox_name) {
+  obs_array_t *new_obs_array = NULL;
   errno_t ret =
-      platform_mailbox_fetch(MB_ID_ME_OBS, (void **)&local_me_msg, blocking);
-  if (local_me_msg) {
+      platform_mailbox_fetch(mailbox_id, (void **)&new_obs_array, blocking);
+  if (new_obs_array) {
     if (STARLING_READ_OK == ret) {
-      *me_msg = *local_me_msg;
+      *obs_array = *new_obs_array;
     } else {
       /* Erroneous behavior for fetch to return non-NULL pointer and indicate
        * read failure. */
-      log_error("Rover obs mailbox fetch failed with %d", ret);
+      log_error("%s fetch failed with %d", mailbox_name, ret);
     }
-    platform_mailbox_item_free(MB_ID_ME_OBS, local_me_msg);
+    platform_mailbox_item_free(MB_ID_ME_OBS, new_obs_array);
+  }
+  return ret;
+}
+
+/* TODO(kevin) refactor common code. */
+static int read_obs_rover(int blocking, me_msg_obs_t *me_msg) {
+  obs_array_t tmp_obs_array;
+  errno_t ret = read_obs_helper(blocking, &tmp_obs_array, MB_ID_ME_OBS, "Rover Obs Mailbox");
+  /* Convert into me_msg. */
+  me_msg->size = tmp_obs_array.n;
+  me_msg->obs_time = tmp_obs_array.t;
+  for (size_t i = 0; i < me_msg->size; ++i) {
+    navigation_measurement_t *nm = &me_msg->obs[i];
+    starling_obs_t *obs = &tmp_obs_array.observations[i];
+    convert_starling_obs_to_navigation_measurement(obs, nm);
   }
   return ret;
 }
 
 /* TODO(kevin) refactor common code. */
 static int read_obs_base(int blocking, obss_t *obs) {
-  obs_array_t *new_obs_array = NULL;
-  errno_t ret =
-      platform_mailbox_fetch(MB_ID_BASE_OBS, (void **)&new_obs_array, blocking);
-  if (new_obs_array) {
-    if (STARLING_READ_OK == ret) {
-      ret = convert_starling_obs_array_to_obss(new_obs_array, obs);
-    } else {
-      /* Erroneous behavior for fetch to return non-NULL pointer and indicate
-       * read failure. */
-      log_error("Base obs mailbox fetch failed with %d", ret);
-    }
-    platform_mailbox_item_free(MB_ID_BASE_OBS, new_obs_array);
+  obs_array_t tmp_obs_array;
+  errno_t ret = read_obs_helper(blocking, &tmp_obs_array, MB_ID_BASE_OBS, "Base Obs Mailbox");
+  if (STARLING_READ_OK == ret) {
+    ret = convert_starling_obs_array_to_obss(&tmp_obs_array, obs);
   }
   return ret;
 }
