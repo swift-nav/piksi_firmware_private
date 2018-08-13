@@ -76,16 +76,21 @@ static void tracker_gal_e1_update(tracker_t *tracker) {
   bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
   bool inlock = ((0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) ||
                  (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK)));
+  double cn0_threshold_dbhz = TP_DEFAULT_CN0_USE_THRESHOLD_DBHZ;
+  cn0_threshold_dbhz += TRACK_CN0_HYSTERESIS_THRES_DBHZ;
+  bool cn0_high = (tracker->cn0 > cn0_threshold_dbhz);
 
   if (inlock && confirmed) {
     tracker->bit_polarity = BIT_POLARITY_NORMAL;
     tracker_update_bit_polarity_flags(tracker);
 
-    gal_e1_to_e7_handover(tracker->sample_count,
-                          tracker->mesid.sat,
-                          tracker->code_phase_prompt,
-                          tracker->carrier_freq,
-                          tracker->cn0);
+    if (cn0_high) {
+      gal_e1_to_e7_handover(tracker->sample_count,
+                            tracker->mesid.sat,
+                            tracker->code_phase_prompt,
+                            tracker->carrier_freq,
+                            tracker->cn0);
+    }
   }
 }
 

@@ -76,8 +76,12 @@ static void tracker_qzss_l1ca_update(tracker_t *tracker) {
   bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
   bool inlock = ((0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) ||
                  (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK)));
+  bool tow_valid = (TOW_UNKNOWN != (tracker->TOW_ms));
+  double cn0_threshold_dbhz = TP_DEFAULT_CN0_USE_THRESHOLD_DBHZ;
+  cn0_threshold_dbhz += TRACK_CN0_HYSTERESIS_THRES_DBHZ;
+  bool cn0_high = (tracker->cn0 > cn0_threshold_dbhz);
 
-  if (inlock && confirmed && (TOW_UNKNOWN != (tracker->TOW_ms))) {
+  if (inlock && confirmed && tow_valid && cn0_high) {
     log_debug_mesid(tracker->mesid, "calling qzss_l1ca_to_l2c_handover()");
 
     /* Start L2C tracker if not running */
