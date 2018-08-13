@@ -123,12 +123,12 @@ typedef struct tp_profile_entry {
 } tp_profile_entry_t;
 
 /**
- * C/N0 profile
+ * C/N0 profile thresholds
  */
-static const tp_cn0_params_t cn0_params_default = {
-    .track_cn0_drop_thres_dbhz = TP_DEFAULT_CN0_DROP_THRESHOLD_DBHZ,
-    .track_cn0_use_thres_dbhz = TP_DEFAULT_CN0_USE_THRESHOLD_DBHZ,
-    .track_cn0_ambiguity_thres_dbhz = TP_DEFAULT_CN0_AMBIGUITY_THRESHOLD_DBHZ};
+static const tp_cn0_thres_t cn0_thres_default = {
+    .drop_dbhz = TP_DEFAULT_CN0_DROP_THRESHOLD_DBHZ,
+    .use_dbhz = TP_DEFAULT_CN0_USE_THRESHOLD_DBHZ,
+    .ambiguity_dbhz = TP_DEFAULT_CN0_AMBIGUITY_THRESHOLD_DBHZ};
 
 #define UNUSED 0.
 
@@ -592,7 +592,7 @@ void tp_profile_update_config(tracker_t *tracker) {
   const tp_tm_e mode = profile->loop_params.mode;
   profile->use_alias_detection =
       (TP_TM_10MS_10MS == mode) || (TP_TM_20MS_20MS == mode);
-  tp_profile_get_cn0_params(profile, &profile->cn0_params);
+  tp_profile_get_cn0_thres(profile, &profile->cn0_thres);
 }
 
 /**
@@ -929,31 +929,31 @@ void tp_profile_switch(tracker_t *tracker) {
 /**
  * Method for obtaining current C/N0 thresholds.
  *
- * \param[in]  profile    Tracking profile data to check
- * \param[out] cn0_params Container for C/N0 limits.
+ * \param[in]  profile   Tracking profile data to check
+ * \param[out] cn0_thres Container for C/N0 limits.
  */
-void tp_profile_get_cn0_params(const tp_profile_t *profile,
-                               tp_cn0_params_t *cn0_params) {
-  assert(cn0_params);
+void tp_profile_get_cn0_thres(const tp_profile_t *profile,
+                              tp_cn0_thres_t *cn0_thres) {
+  assert(cn0_thres);
   assert(profile);
 
-  *cn0_params = cn0_params_default;
+  *cn0_thres = cn0_thres_default;
 
   /* Correction: higher integration time lowers thresholds linearly. For
    * example, 20ms integration has threshold by 13 dB lower, than for 1ms
    * integration. */
-  cn0_params->track_cn0_drop_thres_dbhz -= profile->cn0_offset;
+  cn0_thres->drop_dbhz -= profile->cn0_offset;
 
   float threshold_dbhz = TP_HARD_CN0_DROP_THRESHOLD_DBHZ;
 
-  if (cn0_params->track_cn0_drop_thres_dbhz < threshold_dbhz) {
-    cn0_params->track_cn0_drop_thres_dbhz = threshold_dbhz;
+  if (cn0_thres->drop_dbhz < threshold_dbhz) {
+    cn0_thres->drop_dbhz = threshold_dbhz;
   }
-  if (cn0_params->track_cn0_use_thres_dbhz < threshold_dbhz) {
-    cn0_params->track_cn0_use_thres_dbhz = threshold_dbhz;
+  if (cn0_thres->use_dbhz < threshold_dbhz) {
+    cn0_thres->use_dbhz = threshold_dbhz;
   }
-  if (cn0_params->track_cn0_ambiguity_thres_dbhz < threshold_dbhz) {
-    cn0_params->track_cn0_ambiguity_thres_dbhz = threshold_dbhz;
+  if (cn0_thres->ambiguity_dbhz < threshold_dbhz) {
+    cn0_thres->ambiguity_dbhz = threshold_dbhz;
   }
 }
 
