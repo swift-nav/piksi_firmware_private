@@ -56,18 +56,18 @@ void track_sbas_l1_register(void) {
   tracker_interface_register(&tracker_interface_sbas_l1ca);
 }
 
-static void tracker_sbas_l1ca_init(tracker_t *tracker_channel) {
-  tp_tracker_init(tracker_channel, &sbas_l1ca_config);
+static void tracker_sbas_l1ca_init(tracker_t *tracker) {
+  tp_tracker_init(tracker, &sbas_l1ca_config);
 }
 
-static void tracker_sbas_l1ca_update(tracker_t *tracker_channel) {
-  u32 cflags = tp_tracker_update(tracker_channel, &sbas_l1ca_config);
+static void tracker_sbas_l1ca_update(tracker_t *tracker) {
+  u32 cflags = tp_tracker_update(tracker, &sbas_l1ca_config);
 
   bool bit_aligned =
-      ((0 != (cflags & TPF_BSYNC_UPD)) && tracker_bit_aligned(tracker_channel));
+      ((0 != (cflags & TPF_BSYNC_UPD)) && tracker_bit_aligned(tracker));
 
   if (!bit_aligned) {
     return;
   }
-  tracker_tow_cache(tracker_channel);
+  tracker_tow_cache(tracker);
 }

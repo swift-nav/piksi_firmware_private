@@ -50,32 +50,32 @@ static const tracker_interface_t tracker_interface_bds2_b2 = {
     .update = tracker_bds2_b2_update,
 };
 
-static void tracker_bds2_b2_init(tracker_t *tracker_channel) {
-  tp_tracker_init(tracker_channel, &bds2_b2_config);
+static void tracker_bds2_b2_init(tracker_t *tracker) {
+  tp_tracker_init(tracker, &bds2_b2_config);
 
-  tracker_bit_sync_set(tracker_channel, /* bit_phase_ref = */ 0);
+  tracker_bit_sync_set(tracker, /* bit_phase_ref = */ 0);
 }
 
-static void tracker_bds2_b2_update(tracker_t *tracker_channel) {
-  u32 cflags = tp_tracker_update(tracker_channel, &bds2_b2_config);
+static void tracker_bds2_b2_update(tracker_t *tracker) {
+  u32 cflags = tp_tracker_update(tracker, &bds2_b2_config);
 
   /* If BDS SV is marked unhealthy from B2, also drop B1 tracker */
-  if (0 != (tracker_channel->flags & TRACKER_FLAG_UNHEALTHY)) {
+  if (0 != (tracker->flags & TRACKER_FLAG_UNHEALTHY)) {
     me_gnss_signal_t mesid_drop;
-    mesid_drop = construct_mesid(CODE_BDS2_B1, tracker_channel->mesid.sat);
+    mesid_drop = construct_mesid(CODE_BDS2_B1, tracker->mesid.sat);
     tracker_drop_unhealthy(mesid_drop);
     return;
   }
 
   bool bit_aligned =
-      ((0 != (cflags & TPF_BSYNC_UPD)) && tracker_bit_aligned(tracker_channel));
+      ((0 != (cflags & TPF_BSYNC_UPD)) && tracker_bit_aligned(tracker));
 
   if (!bit_aligned) {
     return;
   }
 
   /* TOW manipulation on bit edge */
-  tracker_tow_cache(tracker_channel);
+  tracker_tow_cache(tracker);
 }
 
 /** Register BDS2 B2 tracker into the the tracker interface & settings

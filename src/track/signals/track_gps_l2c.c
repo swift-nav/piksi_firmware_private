@@ -147,18 +147,18 @@ void do_l1ca_to_l2c_handover(u32 sample_count,
   }
 }
 
-static void tracker_gps_l2c_init(tracker_t *tracker_channel) {
-  gps_l2cm_tracker_data_t *data = &tracker_channel->gps_l2cm;
+static void tracker_gps_l2c_init(tracker_t *tracker) {
+  gps_l2cm_tracker_data_t *data = &tracker->gps_l2cm;
 
   memset(data, 0, sizeof(*data));
 
-  tp_tracker_init(tracker_channel, &gps_l2c_config);
+  tp_tracker_init(tracker, &gps_l2c_config);
 
   /* L2C bit sync is known once we start tracking it since
      the L2C ranging code length matches the bit length (20ms).
      This is the end of 20ms integration period and the edge
      of a data bit. */
-  tracker_bit_sync_set(tracker_channel, /* bit_phase_ref = */ 0);
+  tracker_bit_sync_set(tracker, /* bit_phase_ref = */ 0);
 }
 
 /**
@@ -166,19 +166,19 @@ static void tracker_gps_l2c_init(tracker_t *tracker_channel) {
  *
  * L2 satellite with mismatching doppler is xcorr flagged for investigation.
  *
- * \param[in,out] tracker_channel Tracker channel data
- * \param[in]     entry           xcorr data to be checked against.
- * \param[out]    xcorr_flag      Flag indicating satellite to be investigated.
+ * \param[in,out] tracker    Tracker channel data
+ * \param[in]     entry      xcorr data to be checked against.
+ * \param[out]    xcorr_flag Flag indicating satellite to be investigated.
  *
  * \return false if entry was not L1C/A from same SV, true if it was.
  */
-static bool check_L1_entries(tracker_t *tracker_channel,
+static bool check_L1_entries(tracker_t *tracker,
                              const tracker_cc_entry_t *entry,
                              bool *xcorr_flag) {
-  gps_l2cm_tracker_data_t *data = &tracker_channel->gps_l2cm;
+  gps_l2cm_tracker_data_t *data = &tracker->gps_l2cm;
 
   if (CODE_GPS_L1CA != entry->mesid.code ||
-      entry->mesid.sat != tracker_channel->mesid.sat) {
+      entry->mesid.sat != tracker->mesid.sat) {
     /* Ignore other than L1C/A from same SV */
     return false;
   }
@@ -186,7 +186,7 @@ static bool check_L1_entries(tracker_t *tracker_channel,
   /* Convert L2 doppler to L1 */
   float L2_to_L1_freq = GPS_L1_HZ / GPS_L2_HZ;
   float freq_mod =
-      fmodf(tracker_channel->xcorr_freq * L2_to_L1_freq, L1CA_XCORR_FREQ_STEP);
+      fmodf(tracker->xcorr_freq * L2_to_L1_freq, L1CA_XCORR_FREQ_STEP);
 
   float entry_cn0 = entry->cn0;
   float entry_freq = entry->freq;
@@ -207,7 +207,7 @@ static bool check_L1_entries(tracker_t *tracker_channel,
     data->xcorr_whitelist_l1 = false;
   }
 
-  if (tracker_channel->cn0 >= L2CM_XCORR_WHITELIST_THRESHOLD) {
+  if (tracker->cn0 >= L2CM_XCORR_WHITELIST_THRESHOLD) {
     /* If L2 signal is tracked with decent CN0 and
      * signals are not xcorr flagged,
      * then whitelist the signal */
@@ -226,17 +226,17 @@ static bool check_L1_entries(tracker_t *tracker_channel,
  * If counter reaches maximum value, then based on whitelist status
  * xcorr flags are set.
  *
- * \param[in,out] tracker_channel Tracker channel data
- * \param[in]     xcorr_flag      Flag indicating satellite to be investigated.
- * \param[out]    xcorr_suspect   Flag set if satellite is determined xcorr
+ * \param[in,out] tracker       Tracker channel data
+ * \param[in]     xcorr_flag    Flag indicating satellite to be investigated.
+ * \param[out]    xcorr_suspect Flag set if satellite is determined xcorr
  * suspect.
  *
  * \return None
  */
-static void check_L1_xcorr_flag(tracker_t *tracker_channel,
+static void check_L1_xcorr_flag(tracker_t *tracker,
                                 bool xcorr_flag,
                                 bool *xcorr_suspect) {
-  gps_l2cm_tracker_data_t *data = &tracker_channel->gps_l2cm;
+  gps_l2cm_tracker_data_t *data = &tracker->gps_l2cm;
   s32 max_time_cnt = (s32)(gps_l2c_config.xcorr_time * XCORR_UPDATE_RATE);
 
   if (xcorr_flag) {
@@ -245,13 +245,13 @@ static void check_L1_xcorr_flag(tracker_t *tracker_channel,
     } else {
       if (data->xcorr_whitelist && data->xcorr_whitelist_l1) {
         /* If both signals are whitelisted, mark as confirmed xcorr */
-        tracker_flag_drop(tracker_channel, CH_DROP_REASON_XCORR);
+        tracker_flag_drop(tracker, CH_DROP_REASON_XCORR);
       } else if (!data->xcorr_whitelist && !data->xcorr_whitelist_l1) {
         /* If neither signal is whitelisted, mark as xcorr suspect */
         *xcorr_suspect = true;
       } else if (!data->xcorr_whitelist) {
         /* Otherwise if L2 signal is not whitelisted, mark as confirmed xcorr */
-        tracker_flag_drop(tracker_channel, CH_DROP_REASON_XCORR);
+        tracker_flag_drop(tracker, CH_DROP_REASON_XCORR);
       }
     }
   } else {
@@ -277,16 +277,16 @@ static void check_L1_xcorr_flag(tracker_t *tracker_channel,
  *        1000 \right )}}\right| < \delta
  * \f]
  *
- * \param[in,out] tracker_channel Tracker channel data.
+ * \param[in,out] tracker Tracker channel data.
  *
  * \return None
  */
-static void update_l2_xcorr_from_l1(tracker_t *tracker_channel) {
-  gps_l2cm_tracker_data_t *data = &tracker_channel->gps_l2cm;
+static void update_l2_xcorr_from_l1(tracker_t *tracker) {
+  gps_l2cm_tracker_data_t *data = &tracker->gps_l2cm;
 
-  if (tracker_get_xcorr_flag(tracker_channel)) {
+  if (tracker_get_xcorr_flag(tracker)) {
     /* Cross-correlation is set by external thread */
-    tracker_flag_drop(tracker_channel, CH_DROP_REASON_XCORR);
+    tracker_flag_drop(tracker, CH_DROP_REASON_XCORR);
     return;
   }
 
@@ -297,13 +297,13 @@ static void update_l2_xcorr_from_l1(tracker_t *tracker_channel) {
   for (u16 idx = 0; idx < cnt; ++idx) {
     const tracker_cc_entry_t *const entry = &cc_data.entries[idx];
 
-    if (check_L1_entries(tracker_channel, entry, &xcorr_flag)) {
+    if (check_L1_entries(tracker, entry, &xcorr_flag)) {
       break;
     }
   }
 
   bool sensitivity_mode =
-      (0 != (tracker_channel->flags & TRACKER_FLAG_SENSITIVITY_MODE));
+      (0 != (tracker->flags & TRACKER_FLAG_SENSITIVITY_MODE));
   if (sensitivity_mode) {
     /* If signal is in sensitivity mode, its whitelisting is cleared */
     data->xcorr_whitelist = false;
@@ -311,12 +311,12 @@ static void update_l2_xcorr_from_l1(tracker_t *tracker_channel) {
 
   bool xcorr_suspect = false;
   /* Increment counter or Make decision if L1 is xcorr flagged */
-  check_L1_xcorr_flag(tracker_channel, xcorr_flag, &xcorr_suspect);
+  check_L1_xcorr_flag(tracker, xcorr_flag, &xcorr_suspect);
 
-  bool prn_check_fail = tracker_get_prn_fail_flag(tracker_channel);
+  bool prn_check_fail = tracker_get_prn_fail_flag(tracker);
 
   tracker_set_xcorr_suspect_flag(
-      tracker_channel, xcorr_suspect | prn_check_fail, sensitivity_mode);
+      tracker, xcorr_suspect | prn_check_fail, sensitivity_mode);
 }
 
 static void tracker_gps_l2c_update(tracker_t *tracker) {
