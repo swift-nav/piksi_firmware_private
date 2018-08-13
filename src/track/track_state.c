@@ -160,8 +160,6 @@ void tracker_get_state(u8 id,
 
   time_info->cn0_drop_ms =
       update_count_diff(tracker, &tracker->cn0_above_drop_thres_count);
-  time_info->cn0_usable_ms =
-      update_count_diff(tracker, &tracker->cn0_below_use_thres_count);
 
   if (0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) {
     time_info->ld_pess_locked_ms =

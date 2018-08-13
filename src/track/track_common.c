@@ -645,18 +645,14 @@ static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
   }
 
   if (cn0 < cn0_params.track_cn0_use_thres_dbhz) {
-    /* Update the latest time we were below the threshold. */
-    tracker->cn0_below_use_thres_count = tracker->update_count;
     /* Flag as low CN0 measurements. */
-    tracker->flags &= ~TRACKER_FLAG_CN0_LONG;
-    tracker->flags &= ~TRACKER_FLAG_CN0_SHORT;
+    tracker->flags &= ~TRACKER_FLAG_CN0_USABLE;
   }
 
   if (cn0 >
       (cn0_params.track_cn0_use_thres_dbhz + TRACK_CN0_HYSTERESIS_THRES_DBHZ)) {
     /* Flag as high CN0 measurements. */
-    tracker->flags |= TRACKER_FLAG_CN0_LONG;
-    tracker->flags |= TRACKER_FLAG_CN0_SHORT;
+    tracker->flags |= TRACKER_FLAG_CN0_USABLE;
   }
 }
 
