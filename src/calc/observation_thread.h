@@ -35,10 +35,6 @@ typedef struct {
  * clock jumps are always done by full milliseconds. */
 #define MAX_CLOCK_ERROR_S 0.00101
 
-/* If the residual in a pseudorange excluded by RAIM is larger than this, then
- * drop the channel and the corresponding ephemeris */
-#define RAIM_DROP_CHANNEL_THRESHOLD_M 1000
-
 extern u32 obs_output_divisor;
 extern double soln_freq_setting;
 
@@ -51,7 +47,7 @@ u8 collect_nav_meas(u64 current_tc,
                     ephemeris_t e_meas[]);
 
 u8 nav_meas_get_sat_count(u8 n_ready,
-                           const navigation_measurement_t nav_meas[]);
+                          const navigation_measurement_t nav_meas[]);
 
 soln_stats_t solution_last_stats_get(void);
 

@@ -41,8 +41,8 @@
 /** Minimum number of satellites to use with PVT */
 #define MINIMUM_SV_COUNT 5
 
-/* Maximum time to maintain POSITION_FIX after last successful solution */
-#define POSITION_FIX_TIMEOUT_S 60
+/* Solve ME PVT every 2 seconds */
+#define ME_PVT_SOLN_FREQ 0.5
 
 #define ME_CALC_PVT_THREAD_PRIORITY (HIGHPRIO - 3)
 #define ME_CALC_PVT_THREAD_STACK (64 * 1024)
@@ -100,6 +100,34 @@ static void me_thd_sleep(piksi_systime_t *next_epoch, u32 interval_us) {
 
 static THD_WORKING_AREA(wa_me_calc_pvt_thread, ME_CALC_PVT_THREAD_STACK);
 
+static void drop_gross_outlier(const navigation_measurement_t *nav_meas,
+                               const gnss_solution *current_fix) {
+  /* Check how large the outlier roughly is, and if it is a gross one,
+   * drop the channel and delete the possibly corrupt ephemeris */
+  double geometric_range[3];
+  for (u8 j = 0; j < 3; j++) {
+    geometric_range[j] = nav_meas->sat_pos[j] - current_fix->pos_ecef[j];
+  }
+  double pseudorng_error =
+      fabs(nav_meas->pseudorange - current_fix->clock_offset * GPS_C -
+           vector_norm(3, geometric_range));
+
+  bool generic_gross_outlier = pseudorng_error > RAIM_DROP_CHANNEL_THRESHOLD_M;
+  if (generic_gross_outlier) {
+    /* mark channel for dropping */
+    tracker_set_raim_flag(nav_meas->sid);
+    /* clear the ephemeris for this signal */
+    ndb_ephemeris_erase(nav_meas->sid);
+  }
+
+  bool boc_halfchip_outlier =
+      (CODE_GAL_E1B == nav_meas->sid.code) && (pseudorng_error > 100);
+  if (boc_halfchip_outlier) {
+    /* mark channel for dropping */
+    tracker_set_raim_flag(nav_meas->sid);
+  }
+}
+
 static void me_calc_pvt_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("me_calc_pvt");
@@ -111,15 +139,21 @@ static void me_calc_pvt_thread(void *arg) {
     lgf.position_quality = POSITION_UNKNOWN;
   }
 
-  /* solve position once a second */
-  const double soln_freq = 1;
-
   piksi_systime_t next_epoch;
   piksi_systime_get(&next_epoch);
-  piksi_systime_inc_us(&next_epoch, SECS_US / soln_freq);
+  piksi_systime_inc_us(&next_epoch, SECS_US / soln_freq_setting);
 
   while (TRUE) {
-    drop_glo_signals_on_leap_second();
+    /* compute ME PVT solution at low frequency, unless there is currently no
+     * time solution, in which case use the set soln frequency in order to not
+     * degrade TTFF
+     */
+    double soln_freq = ME_PVT_SOLN_FREQ;
+    if (TIME_PROPAGATED >= get_time_quality()) {
+      chSysLock();
+      soln_freq = soln_freq_setting;
+      chSysUnlock();
+    }
 
     /* sleep until next epoch, and update the deadline */
     me_thd_sleep(&next_epoch, SECS_US / soln_freq);
@@ -138,50 +172,6 @@ static void me_calc_pvt_thread(void *arg) {
     u64 current_tc = nap_timing_count();
     gps_time_t current_time = napcount2gpstime(current_tc);
 
-    /* The desired output time is at the closest solution epoch to current GPS
-     * time  */
-    gps_time_t output_time = gps_time_round_to_epoch(&current_time, soln_freq);
-
-    if (gps_time_valid(&output_time) &&
-        gps_time_valid(&lgf.position_solution.time)) {
-      /* too long time from last time solution, downgrade position quality */
-      if (lgf.position_quality > POSITION_STATIC &&
-          gpsdifftime(&output_time, &lgf.position_solution.time) >
-              POSITION_FIX_TIMEOUT_S) {
-        lgf.position_quality = POSITION_STATIC;
-      }
-
-      if (gpsdifftime(&output_time, &lgf.position_solution.time) <= 0) {
-        /* We are already past the next solution epoch, can happen when solution
-         * frequency changes */
-        log_info(
-            "Next epoch (wn %d tow %f) is in the past wrt (wn %d tow %f), "
-            "skipping",
-            output_time.wn,
-            output_time.tow,
-            lgf.position_solution.time.wn,
-            lgf.position_solution.time.tow);
-        continue;
-      }
-
-      /* get NAP count at the desired output time */
-      u64 output_tc = gpstime2napcount(&output_time);
-
-      /* time difference of current NAP count from the output epoch */
-      double dt = ((s64)output_tc - (s64)current_tc) * RX_DT_NOMINAL;
-
-      if (fabs(dt) < OBS_PROPAGATION_LIMIT) {
-        /* dampen small adjustments to get stabler corrections */
-        dt *= 0.5;
-      }
-
-      /* Adjust the deadline for the next wake-up to get it to land closer to
-       * the epoch. Note that the sleep time can be set only at the resolution
-       * of system tick frequency, and also due to other CPU load, we can expect
-       * this adjustment to be somewhere between +-0.5 milliseconds */
-      piksi_systime_add_us(&next_epoch, round(dt * SECS_US));
-    }
-
     /* Collect measurements from trackers, load ephemerides and compute flags.
      * Reference the measurements to the current time. */
     static navigation_measurement_t nav_meas[MAX_CHANNELS];
@@ -198,6 +188,7 @@ static void me_calc_pvt_thread(void *arg) {
 
     dops_t dops;
     gnss_solution current_fix;
+    gnss_sid_set_t raim_removed_sids;
 
     /* Calculate the SPP position
      * disable_raim controlled by external setting. Defaults to false. */
@@ -211,18 +202,15 @@ static void me_calc_pvt_thread(void *arg) {
                           GPS_L1CA_WHEN_POSSIBLE,
                           &current_fix,
                           &dops,
-                          NULL);
-    if (pvt_ret < 0 || (lgf.position_quality == POSITION_FIX &&
-                        gate_covariance(&current_fix))) {
-      if (pvt_ret < 0) {
-        /* An error occurred with calc_PVT! */
-        /* pvt_err_msg defined in libswiftnav/pvt.c */
-        /* Print out max. once per second */
-        DO_EACH_MS(SECS_MS,
-                   log_warn("PVT solver: %s (code %d)",
-                            pvt_err_msg[-pvt_ret - 1],
-                            pvt_ret));
-      }
+                          &raim_removed_sids);
+    if (pvt_ret < 0) {
+      /* An error occurred with calc_PVT! */
+      /* pvt_err_msg defined in libswiftnav/pvt.c */
+      /* Print out max. once per second */
+      DO_EACH_MS(
+          SECS_MS,
+          log_warn(
+              "PVT solver: %s (code %d)", pvt_err_msg[-pvt_ret - 1], pvt_ret));
 
       /* If we already had a good fix, degrade its quality to STATIC */
       if (lgf.position_quality > POSITION_STATIC) {
@@ -231,6 +219,23 @@ static void me_calc_pvt_thread(void *arg) {
 
       continue;
     }
+
+    /* If we have a success RAIM repair, check for gross outliers and tracker to
+     * drop those channels. */
+    if (pvt_ret == PVT_CONVERGED_RAIM_REPAIR) {
+      for (u8 i = 0; i < n_ready; i++) {
+        if (sid_set_contains(&raim_removed_sids, nav_meas[i].sid)) {
+          /* Check how large the outlier roughly is, and if it is a gross one,
+           * drop the channel and delete the possibly corrupt ephemeris */
+          drop_gross_outlier(&nav_meas[i], &current_fix);
+        }
+      }
+    }
+
+    log_info("PVT solution: tow %.3f clk_offset %.3e clk_drift %.3e",
+             current_fix.time.tow,
+             current_fix.clock_offset,
+             current_fix.clock_drift);
 
     time_quality_t old_time_quality = get_time_quality();
 
@@ -241,15 +246,6 @@ static void me_calc_pvt_thread(void *arg) {
     gps_time_t smoothed_time = napcount2gpstime(current_tc);
     double smoothed_drift = get_clock_drift();
 
-    /* if desired output time is still unknown, use the epoch closest to the fix
-     * time */
-    if (!gps_time_valid(&output_time)) {
-      output_time = gps_time_round_to_epoch(&current_fix.time, soln_freq);
-    }
-
-    /* offset of smoothed solution time from the desired output time */
-    double output_offset = gpsdifftime(&output_time, &smoothed_time);
-
     /* Update global position solution state. */
     lgf.position_solution = current_fix;
     lgf.position_quality = POSITION_FIX;
@@ -259,31 +255,9 @@ static void me_calc_pvt_thread(void *arg) {
     ndb_lgf_store(&lgf);
 
     if (TIME_PROPAGATED > old_time_quality) {
-      /* If the time quality was not at least TIME_PROPAGATED then this solution
-       * likely causes a clock jump and should be discarded.
-       *
-       * Note that the lack of knowledge of the receiver clock bias does NOT
-       * degrade the quality of the position solution but the rapid change in
-       * bias after the time estimate is first improved may cause issues for
-       * e.g. carrier smoothing. Easier just to discard this first solution.
-       */
-
       log_info("first fix clk_offset %.3e clk_drift %.3e",
                current_fix.clock_offset,
                current_fix.clock_drift);
-
-      /* adjust the deadline of the next fix to land on output epoch */
-      piksi_systime_add_us(&next_epoch, round(output_offset * SECS_US));
-      continue;
-    }
-
-    if (fabs(current_fix.clock_offset) > MAX_CLOCK_ERROR_S) {
-      /* Note we should not enter here except in very exceptional circumstances,
-       * like time solved grossly wrong on the first fix. */
-
-      log_warn("Receiver clock offset %g ms larger than %g ms",
-               current_fix.clock_offset * SECS_MS,
-               MAX_CLOCK_ERROR_S * SECS_MS);
     }
   }
 }

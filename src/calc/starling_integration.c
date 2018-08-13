@@ -22,7 +22,6 @@
 #include <starling/starling_platform.h>
 
 #include "calc/calc_pvt_common.h"
-#include "calc/calc_pvt_me.h"
 #include "calc/observation_thread.h"
 #include "calc/starling_base_obs.h"
 #include "calc/starling_integration.h"
@@ -1076,9 +1075,8 @@ static void initialize_vehicle_dynamics_filters(void) {
   dynamics_filter = default_dynamics_filter;
 
   /* TODO(kevin) register settings. */
-  static const char *const vehicle_dynamics_filter_mode_enum[] = {"None",
-                                                                  "Tractor",
-                                                                  NULL};
+  static const char *const vehicle_dynamics_filter_mode_enum[] = {
+      "None", "Tractor", NULL};
   static struct setting_type vehicle_dynamics_filter_mode_setting;
   int TYPE_VEHICLE_DYNAMICS_FILTER_MODE = settings_type_register_enum(
       vehicle_dynamics_filter_mode_enum, &vehicle_dynamics_filter_mode_setting);

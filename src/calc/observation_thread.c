@@ -355,6 +355,9 @@ static void collect_measurements(u64 rec_tc,
 
 static THD_WORKING_AREA(wa_me_obs_thread, ME_OBS_THREAD_STACK);
 
+/* collects measurements from trackers, form navigation measurements, applies
+ * corrections, and also returns a valid current_time if it is not already valid
+ */
 u8 collect_nav_meas(u64 current_tc,
                     gps_time_t *current_time,
                     const last_good_fix_t *lgf,
@@ -466,6 +469,8 @@ static void me_obs_thread(void *arg) {
     chSysLock();
     double soln_freq = soln_freq_setting;
     chSysUnlock();
+
+    drop_glo_signals_on_leap_second();
 
     /* sleep until next epoch, and update the deadline */
     me_thd_sleep(&next_epoch, SECS_US / soln_freq);
