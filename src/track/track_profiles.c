@@ -126,9 +126,9 @@ typedef struct tp_profile_entry {
  * C/N0 profile thresholds
  */
 static const tp_cn0_thres_t cn0_thres_default = {
-    .drop_thres_dbhz = TP_DEFAULT_CN0_DROP_THRESHOLD_DBHZ,
-    .use_thres_dbhz = TP_DEFAULT_CN0_USE_THRESHOLD_DBHZ,
-    .ambiguity_thres_dbhz = TP_DEFAULT_CN0_AMBIGUITY_THRESHOLD_DBHZ};
+    .drop_dbhz = TP_DEFAULT_CN0_DROP_THRESHOLD_DBHZ,
+    .use_dbhz = TP_DEFAULT_CN0_USE_THRESHOLD_DBHZ,
+    .ambiguity_dbhz = TP_DEFAULT_CN0_AMBIGUITY_THRESHOLD_DBHZ};
 
 #define UNUSED 0.
 
@@ -942,18 +942,18 @@ void tp_profile_get_cn0_thres(const tp_profile_t *profile,
   /* Correction: higher integration time lowers thresholds linearly. For
    * example, 20ms integration has threshold by 13 dB lower, than for 1ms
    * integration. */
-  cn0_thres->drop_thres_dbhz -= profile->cn0_offset;
+  cn0_thres->drop_dbhz -= profile->cn0_offset;
 
   float threshold_dbhz = TP_HARD_CN0_DROP_THRESHOLD_DBHZ;
 
-  if (cn0_thres->drop_thres_dbhz < threshold_dbhz) {
-    cn0_thres->drop_thres_dbhz = threshold_dbhz;
+  if (cn0_thres->drop_dbhz < threshold_dbhz) {
+    cn0_thres->drop_dbhz = threshold_dbhz;
   }
-  if (cn0_thres->use_thres_dbhz < threshold_dbhz) {
-    cn0_thres->use_thres_dbhz = threshold_dbhz;
+  if (cn0_thres->use_dbhz < threshold_dbhz) {
+    cn0_thres->use_dbhz = threshold_dbhz;
   }
-  if (cn0_thres->ambiguity_thres_dbhz < threshold_dbhz) {
-    cn0_thres->ambiguity_thres_dbhz = threshold_dbhz;
+  if (cn0_thres->ambiguity_dbhz < threshold_dbhz) {
+    cn0_thres->ambiguity_dbhz = threshold_dbhz;
   }
 }
 

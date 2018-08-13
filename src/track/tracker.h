@@ -123,9 +123,9 @@ typedef struct {
  * CN0 thresholds.
  */
 typedef struct {
-  float use_thres_dbhz;
-  float drop_thres_dbhz;
-  float ambiguity_thres_dbhz;
+  float use_dbhz;
+  float drop_dbhz;
+  float ambiguity_dbhz;
 } tp_cn0_thres_t;
 
 /**

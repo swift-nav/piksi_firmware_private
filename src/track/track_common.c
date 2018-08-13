@@ -189,7 +189,7 @@ void tp_profile_apply_config(tracker_t *tracker, bool init) {
     } else {
       /* When confirmation is required, set C/N0 below drop threshold and
        * check that is actually grows to correct range */
-      cn0_0 = cn0_thres.drop_thres_dbhz - TP_TRACKER_CN0_CONFIRM_DELTA;
+      cn0_0 = cn0_thres.drop_dbhz - TP_TRACKER_CN0_CONFIRM_DELTA;
       cn0_t = init ? tracker->cn0 : tracker->cn0_est.cn0_0;
     }
 
@@ -611,7 +611,7 @@ static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
     }
   }
 
-  if (cn0 > cn0_thres.drop_thres_dbhz) {
+  if (cn0 > cn0_thres.drop_dbhz) {
     /* When C/N0 is above a drop threshold tracking shall continue. */
     tracker->cn0_above_drop_thres_count = tracker->update_count;
   }
@@ -619,7 +619,7 @@ static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
   bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
   bool inlock = ((0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) ||
                  (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK)));
-  if (cn0 > cn0_thres.drop_thres_dbhz && !confirmed && inlock &&
+  if (cn0 > cn0_thres.drop_dbhz && !confirmed && inlock &&
       tracker_has_bit_sync(tracker)) {
     tracker->flags |= TRACKER_FLAG_CONFIRMED;
     log_debug_mesid(
@@ -637,18 +637,18 @@ static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
     tracker->cn0 = cn0;
   }
 
-  if (cn0 < cn0_thres.ambiguity_thres_dbhz) {
+  if (cn0 < cn0_thres.ambiguity_dbhz) {
     /* C/N0 has dropped below threshold, indicate that the carrier phase
      * ambiguity is now unknown as cycle slips are likely. */
     tracker_ambiguity_unknown(tracker);
   }
 
-  if (cn0 < cn0_thres.use_thres_dbhz) {
+  if (cn0 < cn0_thres.use_dbhz) {
     /* Flag as low CN0 measurements. */
     tracker->flags &= ~TRACKER_FLAG_CN0_USABLE;
   }
 
-  if (cn0 > (cn0_thres.use_thres_dbhz + TRACK_CN0_HYSTERESIS_THRES_DBHZ)) {
+  if (cn0 > (cn0_thres.use_dbhz + TRACK_CN0_HYSTERESIS_THRES_DBHZ)) {
     /* Flag as high CN0 measurements. */
     tracker->flags |= TRACKER_FLAG_CN0_USABLE;
   }
