@@ -207,6 +207,7 @@ static bool decimate_observations(const gps_time_t *_t) {
 }
 
 static void me_send_all(u8 _num_obs,
+                        const obs_array_t *obs_array,
                         const navigation_measurement_t _meas[],
                         const ephemeris_t _ephem[],
                         const gps_time_t *_t) {
@@ -214,7 +215,7 @@ static void me_send_all(u8 _num_obs,
   /* Output observations only every obs_output_divisor times, taking
    * care to ensure that the observations are aligned. */
   if (decimate_observations(_t) && !simulation_enabled()) {
-    send_observations(_num_obs, msg_obs_max_size, _meas, _t);
+    send_observations(msg_obs_max_size, obs_array);
   }
   DO_EVERY(biases_message_freq_setting, send_glonass_biases());
 }
@@ -231,7 +232,7 @@ static void me_send_emptyobs(void) {
     current_time = gps_time_round_to_epoch(&current_time, soln_freq_setting);
   }
   if (decimate_observations(&current_time) && !simulation_enabled()) {
-    send_observations(0, msg_obs_max_size, NULL, NULL);
+    send_observations(msg_obs_max_size, NULL);
   }
 }
 
@@ -265,6 +266,7 @@ static void remove_clock_offset(navigation_measurement_t *nm,
  * not available. Flag all with RAIM exclusion so they do not get used
  * downstream. */
 static void me_send_failed_obs(u8 _num_obs,
+                               const obs_array_t *obs_array,
                                navigation_measurement_t _meas[],
                                const ephemeris_t _ephem[],
                                const gps_time_t *_t) {
@@ -297,7 +299,7 @@ static void me_send_failed_obs(u8 _num_obs,
   /* Output observations only every obs_output_divisor times, taking
    * care to ensure that the observations are aligned. */
   if (decimate_observations(_t) && !simulation_enabled()) {
-    send_observations(_num_obs, msg_obs_max_size, _meas, _t);
+    send_observations(msg_obs_max_size, obs_array);
   }
 }
 
@@ -604,6 +606,17 @@ static void me_calc_pvt_thread(void *arg) {
       gps_time_match_weeks(&current_time, &e_meas[0].toe);
     }
 
+    /* Generate the Starling obs array. */
+    static obs_array_t obs_array;
+    obs_array.sender = 0;
+    obs_array.t = current_time;
+    obs_array.n = n_ready;
+    for (size_t i = 0; i < n_ready; ++i) {
+      convert_channel_measurement_to_starling_obs(&current_time,
+                                                  &meas[i], 
+                                                  &obs_array.observations[i]);
+    }
+
     /* Create navigation measurements from the channel measurements */
     s8 nm_ret =
         calc_navigation_measurement(n_ready, p_meas, p_nav_meas, &current_time);
@@ -645,7 +658,7 @@ static void me_calc_pvt_thread(void *arg) {
 
     if (sid_set_get_sat_count(&codes) < 4) {
       /* Not enough sats to compute PVT, send them as unusable */
-      me_send_failed_obs(n_ready, nav_meas, e_meas, &current_time);
+      me_send_failed_obs(n_ready, &obs_array, nav_meas, e_meas, &current_time);
       continue;
     }
 
@@ -681,7 +694,7 @@ static void me_calc_pvt_thread(void *arg) {
       /* If we can't report a SPP position, something is wrong and no point
        * continuing to process this epoch - mark observations unusable but send
        * them out to enable debugging. */
-      me_send_failed_obs(n_ready, nav_meas, e_meas, &current_time);
+      me_send_failed_obs(n_ready, &obs_array, nav_meas, e_meas, &current_time);
 
       /* If we already had a good fix, degrade its quality to STATIC */
       if (lgf.position_quality > POSITION_STATIC) {
@@ -747,7 +760,7 @@ static void me_calc_pvt_thread(void *arg) {
                current_fix.clock_offset,
                current_fix.clock_drift);
 
-      me_send_failed_obs(n_ready, nav_meas, e_meas, &current_time);
+      me_send_failed_obs(n_ready, &obs_array, nav_meas, e_meas, &current_time);
       /* adjust the deadline of the next fix to land on output epoch */
       piksi_systime_add_us(&next_epoch, round(output_offset * SECS_US));
       continue;
@@ -787,12 +800,12 @@ static void me_calc_pvt_thread(void *arg) {
       }
 
       /* Send the observations. */
-      me_send_all(n_ready, nav_meas, e_meas, &output_time);
+      me_send_all(n_ready, &obs_array, nav_meas, e_meas, &output_time);
     } else {
       log_info("clock_offset %.3f s greater than OBS_PROPAGATION_LIMIT",
                output_offset);
       /* Send the observations, but marked unusable */
-      me_send_failed_obs(n_ready, nav_meas, e_meas, &current_time);
+      me_send_failed_obs(n_ready, &obs_array, nav_meas, e_meas, &current_time);
     }
 
     if (fabs(current_fix.clock_offset) > MAX_CLOCK_ERROR_S) {
