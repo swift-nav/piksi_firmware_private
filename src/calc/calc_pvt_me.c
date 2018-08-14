@@ -50,6 +50,8 @@
 #include "track/track_sid_db.h"
 #include "track/track_utils.h"
 
+// WHAT IS HAPPENING!!!!
+
 /** Mandatory flags filter for measurements */
 #define MANAGE_TRACK_FLAGS_FILTER                               \
   (MANAGE_TRACK_FLAG_ACTIVE | MANAGE_TRACK_FLAG_NO_ERROR |      \
