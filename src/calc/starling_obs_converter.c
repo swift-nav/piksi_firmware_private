@@ -31,7 +31,7 @@
 #include "calc_base_obs.h"
 #include "calc_pvt_me.h"
 #include "calc_starling_obs_array.h"
-#include "starling_base_obs.h"
+#include "starling_obs_converter.h"
 #include "manage.h"
 #include "nav_msg/cnav_msg_storage.h"
 #include "ndb/ndb.h"
@@ -45,6 +45,34 @@
 #include "signal_db/signal_db.h"
 #include "simulator.h"
 #include "timing/timing.h"
+
+/**
+ * Uncollapsed observation input type.
+ * Remote observations may contain multiple useful signals for satellites.
+ * This observation type can fit more observations than the obss_t.
+ * Eventually signals in uncollapsed_obss_t are collapsed, and copied to obss_t.
+ */
+typedef struct {
+  /** GPS system time of the observation. */
+  gps_time_t tor;
+  /** Approximate base station position.
+   * This may be the position as reported by the base station itself or the
+   * position obtained from doing a single point solution using the base
+   * station observations. */
+  double pos_ecef[3];
+  /** Is the `pos_ecef` field valid? */
+  u8 has_pos;
+  /** Observation Solution */
+  pvt_engine_result_t soln;
+
+  /** Number of observations in the set. */
+  u8 n;
+  u8 sender_id;
+  /** Set of observations. */
+  navigation_measurement_t nm[STARLING_MAX_OBS_COUNT];
+} uncollapsed_obss_t;
+
+
 /* Count the number of satellites in a given constellation for a
  * composite observation. */
 static size_t get_sat_count_for_constellation(
@@ -61,7 +89,7 @@ static size_t get_sat_count_for_constellation(
 
 /* Helper function used for sorting starling observations based on their
  * SID field. */
-int compare_starling_obs_by_sid(const void *a, const void *b) {
+static int compare_starling_obs_by_sid(const void *a, const void *b) {
   return sid_compare(((starling_obs_t *)a)->sid, ((starling_obs_t *)b)->sid);
 }
 
@@ -75,7 +103,7 @@ static bool has_enough_sats_for_pvt_solve(const obss_t *obss) {
 /* Converter for moving into the intermediary uncollapsed observation type.
  * This performs some preliminary filtering of the observations in addition to
  * populating the navigation measurement fields. */
-void convert_starling_obs_array_to_uncollapsed_obss(
+static void convert_starling_obs_array_to_uncollapsed_obss(
     obs_array_t *obs_array, uncollapsed_obss_t *obss) {
   assert(obs_array);
   assert(obss);
@@ -147,7 +175,7 @@ void convert_starling_obs_array_to_uncollapsed_obss(
  *
  * NOTE: This function assumes that the navigation measurements in the
  * incoming uncollapsed obs have already been sorted. */
-void collapse_obss(uncollapsed_obss_t *uncollapsed_obss, obss_t *obss) {
+static void collapse_obss(uncollapsed_obss_t *uncollapsed_obss, obss_t *obss) {
   /** Precheck any base station observations and filter if needed. This is not a
    *  permanent solution for actually correcting GPS L2 base station
    *  observations that have mixed tracking modes in a signal epoch. For more

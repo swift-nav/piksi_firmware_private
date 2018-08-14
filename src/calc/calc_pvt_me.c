@@ -32,7 +32,7 @@
 #include "calc_pvt_common.h"
 #include "calc_pvt_me.h"
 #include "calc_starling_obs_array.h"
-#include "starling_base_obs.h"
+#include "starling_obs_converter.h"
 #include "main.h"
 #include "manage.h"
 #include "ndb/ndb.h"
@@ -164,16 +164,8 @@ static void me_post_observations(u8 n,
   }
   fill_starling_obs_array_from_navigation_measurements(obs_array, n, _meas);
 
-  qsort(obs_array->observations,
-        obs_array->n,
-        sizeof(obs_array->observations[0]),
-        compare_starling_obs_by_sid);
-
-  /* First we need to convert the obs array into this type. */
   obss_t obss;
-  uncollapsed_obss_t uncollapsed_obss;
-  convert_starling_obs_array_to_uncollapsed_obss(obs_array, &uncollapsed_obss);
-  collapse_obss(&uncollapsed_obss, &obss);
+  convert_starling_obs_array_to_obss(obs_array, &obss);
 
   me_msg->obs_time = obs_array->t;
   me_msg->size = obss.n;
