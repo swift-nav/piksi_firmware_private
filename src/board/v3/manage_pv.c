@@ -17,7 +17,7 @@
 #include <assert.h>
 #include <hal.h>
 
-#include "calc_pvt_me.h"
+#include "calc/observation_thread.h"
 #include "peripherals/antenna.h"
 #include "piksi_systime.h"
 #include "starling_integration.h"

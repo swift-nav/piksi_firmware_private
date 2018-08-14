@@ -19,6 +19,7 @@
 
 #include <hal.h>
 #include "calc_pvt_me.h"
+#include "observation_thread.h"
 
 #include "board/frontend.h"
 #include "board/nap/track_channel.h"
@@ -136,6 +137,7 @@ int main(void) {
   system_monitor_setup();
 
   me_calc_pvt_setup();
+  me_obs_setup();
   starling_calc_pvt_setup();
   base_obs_setup();
 
