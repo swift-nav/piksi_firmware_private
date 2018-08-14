@@ -3,6 +3,7 @@ core-*
 ext/ext.c
 .DS_Store
 .gdbinit
+.idea/
 docs/html
 *.o
 *.a
