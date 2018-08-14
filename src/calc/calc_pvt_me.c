@@ -22,6 +22,7 @@
 #include <libswiftnav/observation.h>
 #include <libswiftnav/pvt_engine/firmware_binding.h>
 #include <libswiftnav/sid_set.h>
+#include <libswiftnav/signal.h>
 #include <libswiftnav/single_epoch_solver.h>
 #include <libswiftnav/troposphere.h>
 #include <starling/starling.h>
