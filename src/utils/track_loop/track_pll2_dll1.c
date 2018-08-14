@@ -104,9 +104,6 @@ void tl_pll2_update_dll(tl_pll2_state_t *s,
   /* Code loop */
   float code_error = dll_discriminator(cs);
   s->code_freq_hz = s->code_c1 * code_error;
-
-  /* Carrier aiding */
-  s->code_freq_hz += s->carr_freq_hz * s->carr_to_code;
 }
 
 /**
@@ -122,17 +119,6 @@ void tl_pll2_adjust(tl_pll2_state_t *s, float err_hz) {
 }
 
 /**
- * Returns frequency error between DLL and PLL
- *
- * \param[in] s Loop controller
- *
- * \return Error between DLL and PLL in chip rate.
- */
-float tl_pll2_get_dll_error(const tl_pll2_state_t *s) {
-  return s->code_freq_hz - s->carr_to_code * s->carr_freq_hz;
-}
-
-/**
  * Get tracking loop rates
  *
  * \param[in]  s     Loop controller
@@ -142,6 +128,6 @@ void tl_pll2_get_rates(const tl_pll2_state_t *s, tl_rates_t *rates) {
   memset(rates, 0, sizeof(*rates));
 
   rates->carr_freq = s->carr_freq_hz;
-  rates->code_freq = s->code_freq_hz;
+  rates->code_freq = s->code_freq_hz + s->carr_freq_hz * s->carr_to_code;
   rates->acceleration = 0;
 }

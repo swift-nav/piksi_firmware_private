@@ -758,16 +758,11 @@ static void tp_tracker_update_locks(tracker_t *tracker, u32 cycle_flags) {
 }
 
 /**
- * Handle FLL tracker operations
- *
- * The method performs FLL tracking or FLL tracking assistance for PLL.
- *
+ * Update FLL discriminator
  * \param[in]     tracker Tracker channel data
  * \param[in]     cycle_flags  Current cycle flags.
- *
- * \return None
  */
-void tp_tracker_update_fll(tracker_t *tracker, u32 cycle_flags) {
+static void tp_tracker_update_fll_discr(tracker_t *tracker, u32 cycle_flags) {
   bool halfq = (0 != (cycle_flags & TPF_FLL_HALFQ));
 
   if (0 != (cycle_flags & TPF_FLL_USE)) {
@@ -777,24 +772,24 @@ void tp_tracker_update_fll(tracker_t *tracker, u32 cycle_flags) {
 }
 
 /**
- * Runs PLL and DLL controller updates.
+ * Runs FLL, PLL and DLL controller updates.
  *
- * This method updates PLL and DLL loops and additionally checks for DLL errors
- * and report data to profile managements.
+ * This method updates FLL, PLL and DLL loops and additionally checks for DLL
+ * errors and report data to profile managements.
  *
  * \param[in]     tracker Tracker channel data
  * \param[in]     cycle_flags  Current cycle flags.
  *
  * \return None
  */
-static void tp_tracker_update_pll_dll(tracker_t *tracker, u32 cycle_flags) {
+static void tp_tracker_update_loops(tracker_t *tracker, u32 cycle_flags) {
+  tp_tracker_update_fll_discr(tracker, cycle_flags);
+
   if (0 != (cycle_flags & TPF_EPL_USE)) {
     /* Output I/Q correlations using SBP if enabled for this channel */
     if (tracker->tracking_mode != TP_TM_INITIAL) {
       tracker_correlations_send(tracker, tracker->corrs.corr_all.five);
     }
-
-    tl_rates_t rates = {0};
 
     bool costas = true;
     tp_epl_corr_t corr_all = tracker->corrs.corr_all;
@@ -814,6 +809,8 @@ static void tp_tracker_update_pll_dll(tracker_t *tracker, u32 cycle_flags) {
       costas = false;
     }
     tp_tl_update(&tracker->tl_state, &corr_all, costas);
+
+    tl_rates_t rates = {0};
     tp_tl_get_rates(&tracker->tl_state, &rates);
 
     tracker->carrier_freq = rates.carr_freq;
@@ -828,7 +825,11 @@ static void tp_tracker_update_pll_dll(tracker_t *tracker, u32 cycle_flags) {
     } else {
       report.cn0 = tracker->cn0;
     }
-    report.time_ms = tp_get_dll_ms(tracker->tracking_mode);
+
+    /* Subtracted from profile stabilization timeout */
+    u64 delta_ms = tracker->update_timestamp_ms - tracker->report_last_ms;
+    tracker->report_last_ms = tracker->update_timestamp_ms;
+    report.time_ms = (u32)delta_ms;
 
     tp_profile_report_data(&tracker->profile, &report);
   }
@@ -994,8 +995,7 @@ u32 tp_tracker_update(tracker_t *tracker, const tp_tracker_config_t *config) {
   tp_tracker_update_correlators(tracker, cflags);
   tp_tracker_update_bsync(tracker, cflags);
   tp_tracker_update_cn0(tracker, cflags);
-  tp_tracker_update_fll(tracker, cflags);
-  tp_tracker_update_pll_dll(tracker, cflags);
+  tp_tracker_update_loops(tracker, cflags);
   tp_tracker_update_locks(tracker, cflags);
   tp_tracker_flag_outliers(tracker);
   tp_tracker_update_alias(tracker, cflags);

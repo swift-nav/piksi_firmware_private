@@ -198,53 +198,25 @@ void tp_tl_update(tp_tl_state_t *s, const tp_epl_corr_t *cs, bool costas) {
  *
  * \param[in] s  Tracker state.
  *
- * \return Raw frequency error
+ * \return Raw frequency error [Hz]
  *
  */
 float tp_tl_get_fll_error(const tp_tl_state_t *s) {
-  float freq_error = 0.0f;
+  float freq_error_hz = 0.0f;
 
   switch (s->ctrl) {
     case TP_CTRL_PLL2:
       break;
 
     case TP_CTRL_PLL3:
-      if ((s->pll3.fll_bw_hz > 0) && (0 != s->pll3.discr_cnt)) {
-        freq_error = s->pll3.discr_sum_hz / s->pll3.discr_cnt;
-      }
+      freq_error_hz = tl_pll3_get_freq_error(&s->pll3);
       break;
 
     default:
       assert(false);
   }
 
-  return freq_error;
-}
-
-/**
- * Return DLL error if available.
- *
- * \param[in] s Tracker state.
- *
- * \return Error in Hz between DLL and PLL/FLL filters.
- */
-float tp_tl_get_dll_error(const tp_tl_state_t *s) {
-  float dll_error = 0.;
-
-  switch (s->ctrl) {
-    case TP_CTRL_PLL2:
-      dll_error = tl_pll2_get_dll_error(&s->pll2);
-      break;
-
-    case TP_CTRL_PLL3:
-      dll_error = tl_pll3_get_dll_error(&s->pll3);
-      break;
-
-    default:
-      assert(false);
-  }
-
-  return dll_error;
+  return freq_error_hz;
 }
 
 /**
@@ -262,7 +234,7 @@ void tp_tl_fll_discr_update(tp_tl_state_t *s, corr_t cs, bool halfq) {
       break;
 
     case TP_CTRL_PLL3:
-      tl_pll3_discr_update(&s->pll3, cs.I, cs.Q, true, halfq);
+      tl_pll3_discr_update(&s->pll3, cs.I, cs.Q, halfq);
       break;
 
     default:

@@ -427,6 +427,9 @@ typedef struct {
     gps_l1ca_tracker_data_t gps_l1ca;
     gps_l2cm_tracker_data_t gps_l2cm;
   };
+
+  /* for tracking profile stabilization timeout bookkeeping */
+  u64 report_last_ms;
 } tracker_t;
 
 #endif /* SWIFTNAV_TRACKER_H  */

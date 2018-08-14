@@ -80,7 +80,7 @@ void tl_pll3_init(tl_pll3_state_t *s,
                   const tl_config_t *config) {
   memset(s, 0, sizeof(*s));
   float code_freq = rates->code_freq;
-  if (config->carr_to_code != 0) {
+  if (config->carr_to_code > 0) {
     code_freq = 0.0f;
   }
 
@@ -121,10 +121,15 @@ void tl_pll3_update_dll(tl_pll3_state_t *s,
                         bool costas) {
   /* Perform FLL loop update now within this function. */
   float freq_error = 0;
-  if ((s->fll_bw_hz > 0) && (0 != s->discr_cnt)) {
-    freq_error = (s->discr_sum_hz) / (s->discr_cnt);
-    s->discr_sum_hz = 0.f;
-    s->discr_cnt = 0;
+  if (s->fll_bw_hz > 0) {
+    if (0 != s->discr_cnt) {
+      freq_error = (s->discr_sum_hz) / (s->discr_cnt);
+      s->freq_error_hz = freq_error;
+      s->discr_sum_hz = 0.f;
+      s->discr_cnt = 0;
+    }
+  } else {
+    s->freq_error_hz = 0;
   }
 
   /* Carrier loop */
@@ -154,9 +159,10 @@ void tl_pll3_update_dll(tl_pll3_state_t *s,
       s->code_c1 * code_error +
       0.5f * (2.0f * s->code_vel + s->code_c2 * s->T_CODE * code_error);
   s->code_vel += s->code_c2 * s->T_CODE * code_error;
+}
 
-  /* Carrier aiding */
-  s->code_freq += s->carr_freq * s->carr_to_code;
+float tl_pll3_get_freq_error(const tl_pll3_state_t *s) {
+  return s->freq_error_hz;
 }
 
 /**
@@ -170,18 +176,9 @@ void tl_pll3_update_dll(tl_pll3_state_t *s,
 void tl_pll3_adjust(tl_pll3_state_t *s, float err) {
   s->carr_freq += err;
   s->carr_vel += err;
-  s->code_freq += err * s->carr_to_code;
-}
-
-/**
- * Returns frequency error between DLL and PLL/FLL
- *
- * \param[in] s Loop controller
- *
- * \return Error between DLL and PLL/FLL in chip rate.
- */
-float tl_pll3_get_dll_error(const tl_pll3_state_t *s) {
-  return s->code_freq - s->carr_to_code * s->carr_freq;
+  if (s->carr_to_code <= 0) {
+    s->code_freq += err * s->carr_to_code;
+  }
 }
 
 /**
@@ -190,18 +187,16 @@ float tl_pll3_get_dll_error(const tl_pll3_state_t *s) {
  * \param[in,out] s                 FLL filter configuration object
  * \param[in]     I                 Prompt in-phase correlation
  * \param[in]     Q                 Prompt quadrature-phase correlation
- * \param[in]     update_fll_discr  Flag to perform discriminator update
  * \param[in]     halfq             Half quadrant discriminator (no bitsync)
  *
  * \return None
  */
-void tl_pll3_discr_update(
-    tl_pll3_state_t *s, float I, float Q, bool update_fll_discr, bool halfq) {
+void tl_pll3_discr_update(tl_pll3_state_t *s, float I, float Q, bool halfq) {
   if (s->fll_bw_hz <= 0) {
     /* FLL disabled, skip function all together */
     return;
   }
-  if (update_fll_discr && (s->prev_period_s > 0)) {
+  if (s->prev_period_s > 0) {
     /* Skip update if the previous integration period was 0 */
     float dot = I * s->prev_I + Q * s->prev_Q;
     float cross = s->prev_I * Q - I * s->prev_Q;
@@ -231,6 +226,6 @@ void tl_pll3_get_rates(const tl_pll3_state_t *s, tl_rates_t *rates) {
   memset(rates, 0, sizeof(*rates));
 
   rates->carr_freq = s->carr_freq;
-  rates->code_freq = s->code_freq;
+  rates->code_freq = s->code_freq + s->carr_freq * s->carr_to_code;
   rates->acceleration = s->carr_acc;
 }

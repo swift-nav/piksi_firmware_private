@@ -97,7 +97,7 @@ TEST(tracking_loop_test, test_aided) {
 
   tl_pll3_get_rates(&stl_f2p3, &rates);
   EXPECT_LT(fabsf(rates.carr_freq - carr_freq), LOW_TOL);
-  EXPECT_LT(fabsf(rates.code_freq), LOW_TOL);
+  EXPECT_LT(fabsf(rates.code_freq), carr_freq * 1. / carr_to_code);
   EXPECT_LT(fabsf(rates.acceleration - acceleration), LOW_TOL);
 
   tl_pll3_retune(&stl_f2p3, &config);
@@ -118,19 +118,18 @@ TEST(tracking_loop_test, test_aided) {
   EXPECT_LT(fabsf(stl_f2p3.carr_vel - carr_freq), LOW_TOL);
   EXPECT_LT(fabsf(stl_f2p3.carr_acc - acceleration), LOW_TOL);
   EXPECT_LT(fabsf(stl_f2p3.code_vel - 0.0039352775f), LOW_TOL);
-  EXPECT_LT(fabsf(stl_f2p3.code_freq - 98.6056671143f), LOW_TOL);
+
+  tl_pll3_get_rates(&stl_f2p3, &rates);
+  EXPECT_LT(fabsf(rates.code_freq - 98.6056671143f), LOW_TOL);
 
   tl_pll3_adjust(&stl_f2p3, freq_err);
   EXPECT_LT(fabsf(stl_f2p3.carr_freq - (carr_freq + freq_err)), LOW_TOL);
   EXPECT_LT(fabsf(stl_f2p3.carr_vel - (carr_freq + freq_err)), LOW_TOL);
-  EXPECT_LT(fabsf(stl_f2p3.code_freq - 98.6093521118f), LOW_TOL);
 
-  EXPECT_LT(
-      fabsf(tl_pll3_get_dll_error(&stl_f2p3) -
-            (stl_f2p3.code_freq - stl_f2p3.carr_to_code * stl_f2p3.carr_freq)),
-      LOW_TOL);
+  tl_pll3_get_rates(&stl_f2p3, &rates);
+  EXPECT_LT(fabsf(rates.code_freq - 98.6093521118f), LOW_TOL);
 
-  tl_pll3_discr_update(&stl_f2p3, cs[1].I, cs[1].Q, true, false);
+  tl_pll3_discr_update(&stl_f2p3, cs[1].I, cs[1].Q, /*halfq=*/false);
   EXPECT_LT(fabsf(stl_f2p3.discr_sum_hz), LOW_TOL);
   EXPECT_LT(fabsf(stl_f2p3.prev_I), LOW_TOL);
   EXPECT_LT(fabsf(stl_f2p3.prev_Q), LOW_TOL);
