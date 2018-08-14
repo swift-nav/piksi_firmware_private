@@ -278,13 +278,12 @@ static bool xcorr_check_eph_to_eph(const ephemeris_t *e) {
     /* Next step is to make sure that stored ephemeris was from real SV
     So, first, check if stored SV is being tracked */
     tracker_t *tc_test = NULL;
-    tc_test = tracker_channel_get_by_mesid(
-        construct_mesid(test_e.sid.code, test_e.sid.sat));
+    tc_test =
+        tracker_get_by_mesid(construct_mesid(test_e.sid.code, test_e.sid.sat));
     if (tc_test) {
       /* stored SV is still being tracked */
       tracker_t *tc_new = NULL;
-      tc_new = tracker_channel_get_by_mesid(
-          construct_mesid(e->sid.code, e->sid.sat));
+      tc_new = tracker_get_by_mesid(construct_mesid(e->sid.code, e->sid.sat));
       assert(tc_new != NULL);
       /* now check which SV has stronger signal, consider that
        * stronger signal belongs to real SV */

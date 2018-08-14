@@ -196,7 +196,7 @@ void tracker_set_carrier_phase_offset(const tracker_info_t *info,
  *
  * \return tracker channel container for the requested mesid.
  */
-tracker_t *tracker_channel_get_by_mesid(const me_gnss_signal_t mesid) {
+tracker_t *tracker_get_by_mesid(const me_gnss_signal_t mesid) {
   for (u8 i = 0; i < nap_track_n_channels; i++) {
     tracker_t *tracker = tracker_get(i);
     if (mesid_is_equal(tracker->mesid, mesid)) {
@@ -223,7 +223,7 @@ tracker_t *tracker_channel_get_by_mesid(const me_gnss_signal_t mesid) {
  */
 void tracker_drop_unhealthy(const me_gnss_signal_t mesid) {
   assert(IS_GLO(mesid) || IS_BDS2(mesid) || IS_GAL(mesid));
-  tracker_t *tracker = tracker_channel_get_by_mesid(mesid);
+  tracker_t *tracker = tracker_get_by_mesid(mesid);
   if (tracker == NULL) {
     return;
   }

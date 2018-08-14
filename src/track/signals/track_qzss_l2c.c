@@ -138,14 +138,14 @@ void qzss_l1ca_to_l2c_handover(u32 sample_count,
   }
 }
 
-static void tracker_qzss_l2c_init(tracker_t *tracker_channel) {
-  tp_tracker_init(tracker_channel, &qzss_l2c_config);
+static void tracker_qzss_l2c_init(tracker_t *tracker) {
+  tp_tracker_init(tracker, &qzss_l2c_config);
 
   /* L2C bit sync is known once we start tracking it since
      the L2C ranging code length matches the bit length (20ms).
      This is the end of 20ms integration period and the edge
      of a data bit. */
-  tracker_bit_sync_set(tracker_channel, /* bit_phase_ref = */ 0);
+  tracker_bit_sync_set(tracker, /* bit_phase_ref = */ 0);
 }
 
 /**
@@ -160,29 +160,28 @@ static void tracker_qzss_l2c_init(tracker_t *tracker_channel) {
  * makes
  * it more robust to propagation errors.
  *
- * \param[in]     tracker_channel Tracker channel data
- * \param[in]     cycle_flags    Current cycle flags.
+ * \param[in] tracker     Tracker channel data
+ * \param[in] cycle_flags Current cycle flags.
  *
  * \return None
  */
-static void update_tow_qzss_l2c(tracker_t *tracker_channel, u32 cycle_flags) {
+static void update_tow_qzss_l2c(tracker_t *tracker, u32 cycle_flags) {
   tp_tow_entry_t tow_entry;
-  me_gnss_signal_t mesid = tracker_channel->mesid;
+  me_gnss_signal_t mesid = tracker->mesid;
   gnss_signal_t sid = construct_sid(mesid.code, mesid.sat);
   track_sid_db_load_tow(sid, &tow_entry);
 
-  u64 sample_time_tk = nap_sample_time_to_count(tracker_channel->sample_count);
+  u64 sample_time_tk = nap_sample_time_to_count(tracker->sample_count);
 
-  if (0 != (cycle_flags & TPF_BSYNC_UPD) &&
-      tracker_bit_aligned(tracker_channel)) {
-    if (TOW_UNKNOWN != tracker_channel->TOW_ms) {
+  if (0 != (cycle_flags & TPF_BSYNC_UPD) && tracker_bit_aligned(tracker)) {
+    if (TOW_UNKNOWN != tracker->TOW_ms) {
       /*
        * Verify ToW alignment
        * Current block assumes the bit sync has been reached and current
        * interval has closed a bit interval. ToW shall be aligned by bit
        * duration, which is 20ms for QZSS L1 C/A / L2 C.
        */
-      u8 tail = tracker_channel->TOW_ms % QZS_L2C_SYMBOL_LENGTH_MS;
+      u8 tail = tracker->TOW_ms % QZS_L2C_SYMBOL_LENGTH_MS;
       if (0 != tail) {
         s8 error_ms = tail < (QZS_L2C_SYMBOL_LENGTH_MS >> 1)
                           ? -tail
@@ -192,22 +191,21 @@ static void update_tow_qzss_l2c(tracker_t *tracker_channel, u32 cycle_flags) {
                         "[+%" PRIu32
                         "ms] TOW error detected: "
                         "error=%" PRId8 "ms old_tow=%" PRId32,
-                        tracker_channel->update_count,
+                        tracker->update_count,
                         error_ms,
-                        tracker_channel->TOW_ms);
+                        tracker->TOW_ms);
 
         /* This is rude, but safe. Do not expect it to happen normally. */
-        tracker_flag_drop(tracker_channel, CH_DROP_REASON_OUTLIER);
+        tracker_flag_drop(tracker, CH_DROP_REASON_OUTLIER);
       }
     }
 
-    if (TOW_UNKNOWN == tracker_channel->TOW_ms &&
-        TOW_UNKNOWN != tow_entry.TOW_ms) {
+    if (TOW_UNKNOWN == tracker->TOW_ms && TOW_UNKNOWN != tow_entry.TOW_ms) {
       /* ToW is not known, but there is a cached value */
       s32 ToW_ms = TOW_UNKNOWN;
       double error_ms = 0;
       u64 time_delta_tk = sample_time_tk - tow_entry.sample_time_tk;
-      u8 bit_length = tracker_bit_length_get(tracker_channel);
+      u8 bit_length = tracker_bit_length_get(tracker);
       ToW_ms = tp_tow_compute(
           tow_entry.TOW_ms, time_delta_tk, bit_length, &error_ms);
 
@@ -218,28 +216,28 @@ static void update_tow_qzss_l2c(tracker_t *tracker_channel, u32 cycle_flags) {
                         " Initializing TOW from cache [%" PRIu8
                         "ms] "
                         "delta=%.2lfms ToW=%" PRId32 "ms error=%lf",
-                        tracker_channel->update_count,
+                        tracker->update_count,
                         bit_length,
                         nap_count_to_ms(time_delta_tk),
                         ToW_ms,
                         error_ms);
-        tracker_channel->TOW_ms = ToW_ms;
-        if (tp_tow_is_sane(tracker_channel->TOW_ms)) {
-          tracker_channel->flags |= TRACKER_FLAG_TOW_VALID;
+        tracker->TOW_ms = ToW_ms;
+        if (tp_tow_is_sane(tracker->TOW_ms)) {
+          tracker->flags |= TRACKER_FLAG_TOW_VALID;
         } else {
           log_error_mesid(mesid,
                           "[+%" PRIu32 "ms] Error TOW propagation %" PRId32,
-                          tracker_channel->update_count,
-                          tracker_channel->TOW_ms);
-          tracker_channel->TOW_ms = TOW_UNKNOWN;
-          tracker_channel->flags &= ~TRACKER_FLAG_TOW_VALID;
+                          tracker->update_count,
+                          tracker->TOW_ms);
+          tracker->TOW_ms = TOW_UNKNOWN;
+          tracker->flags &= ~TRACKER_FLAG_TOW_VALID;
         }
       }
     }
 
-    bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
-    if ((TOW_UNKNOWN != tracker_channel->TOW_ms) &&
-        (tracker_channel->cn0 >= CN0_TOW_CACHE_THRESHOLD) && confirmed &&
+    bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
+    if ((TOW_UNKNOWN != tracker->TOW_ms) &&
+        (tracker->cn0 >= CN0_TOW_CACHE_THRESHOLD) && confirmed &&
         !mesid_is_tracked(construct_mesid(CODE_QZS_L1CA, mesid.sat))) {
       /* Update ToW cache:
        * - bit edge is reached
@@ -247,7 +245,7 @@ static void update_tow_qzss_l2c(tracker_t *tracker_channel, u32 cycle_flags) {
        * - Tracker is confirmed
        * - There is no QZSS L1 C/A tracker for the same SV.
        */
-      tow_entry.TOW_ms = tracker_channel->TOW_ms;
+      tow_entry.TOW_ms = tracker->TOW_ms;
       tow_entry.sample_time_tk = sample_time_tk;
       track_sid_db_update_tow(sid, &tow_entry);
     }

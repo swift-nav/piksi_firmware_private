@@ -56,37 +56,36 @@ void track_qzss_l1ca_register(void) {
   tracker_interface_register(&tracker_interface_qzss_l1ca);
 }
 
-static void tracker_qzss_l1ca_init(tracker_t *tracker_channel) {
-  tp_tracker_init(tracker_channel, &qzss_l1ca_config);
+static void tracker_qzss_l1ca_init(tracker_t *tracker) {
+  tp_tracker_init(tracker, &qzss_l1ca_config);
 }
 
-static void tracker_qzss_l1ca_update(tracker_t *tracker_channel) {
-  u32 cflags = tp_tracker_update(tracker_channel, &qzss_l1ca_config);
+static void tracker_qzss_l1ca_update(tracker_t *tracker) {
+  u32 cflags = tp_tracker_update(tracker, &qzss_l1ca_config);
 
   bool bit_aligned =
-      ((0 != (cflags & TPF_BSYNC_UPD)) && tracker_bit_aligned(tracker_channel));
+      ((0 != (cflags & TPF_BSYNC_UPD)) && tracker_bit_aligned(tracker));
 
   if (!bit_aligned) {
     return;
   }
 
   /* TOW manipulation on bit edge */
-  tracker_tow_cache(tracker_channel);
+  tracker_tow_cache(tracker);
 
-  bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
-  bool inlock = ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) &&
-                 (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)));
+  bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
+  bool inlock = ((0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) &&
+                 (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK)));
 
-  if (inlock && confirmed && (TOW_UNKNOWN != (tracker_channel->TOW_ms))) {
-    log_debug_mesid(tracker_channel->mesid,
-                    "calling qzss_l1ca_to_l2c_handover()");
+  if (inlock && confirmed && (TOW_UNKNOWN != (tracker->TOW_ms))) {
+    log_debug_mesid(tracker->mesid, "calling qzss_l1ca_to_l2c_handover()");
 
     /* Start L2C tracker if not running */
-    qzss_l1ca_to_l2c_handover(tracker_channel->sample_count,
-                              tracker_channel->mesid.sat,
-                              tracker_channel->code_phase_prompt,
-                              tracker_channel->carrier_freq,
-                              tracker_channel->cn0,
-                              tracker_channel->TOW_ms);
+    qzss_l1ca_to_l2c_handover(tracker->sample_count,
+                              tracker->mesid.sat,
+                              tracker->code_phase_prompt,
+                              tracker->carrier_freq,
+                              tracker->cn0,
+                              tracker->TOW_ms);
   }
 }

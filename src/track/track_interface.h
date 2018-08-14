@@ -16,7 +16,7 @@
 #include "tracker.h"
 
 /** Tracker interface function template. */
-typedef void(tracker_interface_function_t)(tracker_t *tracker_channel);
+typedef void(tracker_interface_function_t)(tracker_t *tracker);
 
 /** Interface to a tracker implementation. */
 typedef struct _tracker_interface_t {

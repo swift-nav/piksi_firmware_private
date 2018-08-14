@@ -57,44 +57,44 @@ void track_glo_l1of_register(void) {
   tracker_interface_register(&tracker_interface_glo_l1of);
 }
 
-static void tracker_glo_l1of_init(tracker_t *tracker_channel) {
-  tp_tracker_init(tracker_channel, &glo_l1of_config);
+static void tracker_glo_l1of_init(tracker_t *tracker) {
+  tp_tracker_init(tracker, &glo_l1of_config);
 }
 
-static void tracker_glo_l1of_update(tracker_t *tracker_channel) {
-  u32 cflags = tp_tracker_update(tracker_channel, &glo_l1of_config);
+static void tracker_glo_l1of_update(tracker_t *tracker) {
+  u32 cflags = tp_tracker_update(tracker, &glo_l1of_config);
 
   /* If GLO SV is marked unhealthy from L1, also drop L2 tracker */
-  if (0 != (tracker_channel->flags & TRACKER_FLAG_UNHEALTHY)) {
+  if (0 != (tracker->flags & TRACKER_FLAG_UNHEALTHY)) {
     me_gnss_signal_t mesid_drop;
-    mesid_drop = construct_mesid(CODE_GLO_L2OF, tracker_channel->mesid.sat);
+    mesid_drop = construct_mesid(CODE_GLO_L2OF, tracker->mesid.sat);
     tracker_drop_unhealthy(mesid_drop);
     return;
   }
 
   bool bit_aligned =
-      ((0 != (cflags & TPF_BSYNC_UPD)) && tracker_bit_aligned(tracker_channel));
+      ((0 != (cflags & TPF_BSYNC_UPD)) && tracker_bit_aligned(tracker));
 
   if (!bit_aligned) {
     return;
   }
 
   /* TOW manipulation on bit edge */
-  tracker_tow_cache(tracker_channel);
+  tracker_tow_cache(tracker);
 
-  bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
-  bool inlock = ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) &&
-                 (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)));
+  bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
+  bool inlock = ((0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) &&
+                 (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK)));
   double cn0_threshold_dbhz = TP_DEFAULT_CN0_USE_THRESHOLD_DBHZ;
   cn0_threshold_dbhz += TRACK_CN0_HYSTERESIS_THRES_DBHZ;
-  bool cn0_high = (tracker_channel->cn0 > cn0_threshold_dbhz);
+  bool cn0_high = (tracker->cn0 > cn0_threshold_dbhz);
 
   if (inlock && confirmed && cn0_high) {
     /* Start GLO L2CA tracker if not running */
-    do_glo_l1of_to_l2of_handover(tracker_channel->sample_count,
-                                 tracker_channel->mesid.sat,
-                                 tracker_channel->code_phase_prompt,
-                                 tracker_channel->carrier_freq,
-                                 tracker_channel->cn0);
+    do_glo_l1of_to_l2of_handover(tracker->sample_count,
+                                 tracker->mesid.sat,
+                                 tracker->code_phase_prompt,
+                                 tracker->carrier_freq,
+                                 tracker->cn0);
   }
 }

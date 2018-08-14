@@ -1074,7 +1074,7 @@ static bool should_update_tow_cache(const tracker_t *tracker) {
     } else {
       assert(!"Unsupported TOW cache code");
     }
-    tracker_t *trk_ch = tracker_channel_get_by_mesid(mesid_L1);
+    tracker_t *trk_ch = tracker_get_by_mesid(mesid_L1);
     responsible_for_update =
         ((NULL == trk_ch) || (TOW_UNKNOWN == trk_ch->TOW_ms));
   }
