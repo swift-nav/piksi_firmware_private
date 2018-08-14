@@ -162,17 +162,12 @@ void tp_tl_get_config(const tp_loop_params_t *l, tl_config_t *config) {
 }
 
 /**
- * Updates tracker filter.
- *
- * The method performs computation of DLL and PLL(FLL) corrections according
- * to input data.
- *
- * \param[in, out] s  Tracker state.
+ * Updates FLL & PLL filters.
+ * \param[in, out] s  FLL & PLL filters state.
  * \param[in]      cs EPL correlator outputs.
- *
- * \return None
+ * \param[in]      costas Costas (true) or 4 quadrant discriminator (false).
  */
-void tp_tl_update(tp_tl_state_t *s, const tp_epl_corr_t *cs, bool costas) {
+void tp_tl_update_fpll(tp_tl_state_t *s, const tp_epl_corr_t *cs, bool costas) {
   correlation_t cs2[3];
   for (u32 i = 0; i < 3; i++) {
     cs2[i].I = cs->five[i].I;
@@ -181,11 +176,29 @@ void tp_tl_update(tp_tl_state_t *s, const tp_epl_corr_t *cs, bool costas) {
 
   switch (s->ctrl) {
     case TP_CTRL_PLL2:
-      tl_pll2_update(&s->pll2, cs2, costas);
+      tl_pll2_update_pll(&s->pll2, cs2, costas);
       break;
 
     case TP_CTRL_PLL3:
-      tl_pll3_update(&s->pll3, cs2, costas);
+      tl_pll3_update_fpll(&s->pll3, cs2, costas);
+      break;
+
+    default:
+      assert(false);
+  }
+}
+
+/**
+ * DLL update.
+ * \param s Tracker state.
+ */
+void tp_tl_update_dll(tp_tl_state_t *s) {
+  switch (s->ctrl) {
+    case TP_CTRL_PLL2:
+      tl_pll2_update_dll(&s->pll2);
+      break;
+    case TP_CTRL_PLL3:
+      tl_pll3_update_dll(&s->pll3);
       break;
 
     default:
@@ -220,7 +233,34 @@ float tp_tl_get_fll_error(const tp_tl_state_t *s) {
 }
 
 /**
- * FLL discriminator update.
+ * DLL discriminator update.
+ *
+ * \param s  Tracker state.
+ * \param cs EPL correlator data.
+ */
+void tp_tl_update_dll_discr(tp_tl_state_t *s, const tp_epl_corr_t *cs) {
+  correlation_t cs2[3];
+  for (u32 i = 0; i < 3; i++) {
+    cs2[i].I = cs->five[i].I;
+    cs2[i].Q = cs->five[i].Q;
+  }
+
+  switch (s->ctrl) {
+    case TP_CTRL_PLL2:
+      tl_pll2_update_dll_discr(&s->pll2, cs2);
+      break;
+
+    case TP_CTRL_PLL3:
+      tl_pll3_update_dll_discr(&s->pll3, cs2);
+      break;
+
+    default:
+      assert(false);
+  }
+}
+
+/**
+ * Second FLL discriminator update.
  *
  * Update discriminator, I_prev & Q_prev.
  *
@@ -228,13 +268,13 @@ float tp_tl_get_fll_error(const tp_tl_state_t *s) {
  * \param[in]     cs EPL correlator outputs.
  * \param[in]     halfq Half quadrant discriminator (no bitsync)
  */
-void tp_tl_fll_discr_update(tp_tl_state_t *s, corr_t cs, bool halfq) {
+void tp_tl_update_fll_discr(tp_tl_state_t *s, corr_t cs, bool halfq) {
   switch (s->ctrl) {
     case TP_CTRL_PLL2:
       break;
 
     case TP_CTRL_PLL3:
-      tl_pll3_discr_update(&s->pll3, cs.I, cs.Q, halfq);
+      tl_pll3_update_fll_discr(&s->pll3, cs.I, cs.Q, halfq);
       break;
 
     default:

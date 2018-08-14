@@ -148,10 +148,10 @@ void tp_profile_apply_config(tracker_t *tracker, bool init) {
   /**< Set tracking loop configuration parameters */
   tl_config_t config;
   tp_tl_get_config(l, &config);
-  config.code_loop_period_s =
+  config.code_loop_period_s = tp_get_dll_ms(tracker->tracking_mode) / (float)SECS_MS;
+  config.dll_discr_period_s =
       tp_get_dll_ms(tracker->tracking_mode) / (float)SECS_MS;
-  config.carr_loop_period_s =
-      tp_get_flll_ms(tracker->tracking_mode) / (float)SECS_MS;
+  config.carr_loop_period_s = tp_get_pll_ms(tracker->tracking_mode) / (float)SECS_MS;
   config.fll_discr_period_s =
       tp_get_flld_ms(tracker->tracking_mode) / (float)SECS_MS;
 
@@ -766,7 +766,7 @@ static void tp_tracker_update_fll_discr(tracker_t *tracker, u32 cycle_flags) {
   bool halfq = (0 != (cycle_flags & TPF_FLL_HALFQ));
 
   if (0 != (cycle_flags & TPF_FLL_USE)) {
-    tp_tl_fll_discr_update(&tracker->tl_state, tracker->corrs.corr_fll, halfq);
+    tp_tl_update_fll_discr(&tracker->tl_state, tracker->corrs.corr_fll, halfq);
     tracker->unfiltered_freq_error = tp_tl_get_fll_error(&tracker->tl_state);
   }
 }
@@ -808,7 +808,10 @@ static void tp_tracker_update_loops(tracker_t *tracker, u32 cycle_flags) {
        * so no need for a Costas loop*/
       costas = false;
     }
-    tp_tl_update(&tracker->tl_state, &corr_all, costas);
+
+    tp_tl_update_dll_discr(&tracker->tl_state, &corr_all);
+    tp_tl_update_dll(&tracker->tl_state);
+    tp_tl_update_fpll(&tracker->tl_state, &corr_all, costas);
 
     tl_rates_t rates = {0};
     tp_tl_get_rates(&tracker->tl_state, &rates);
