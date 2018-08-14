@@ -9,9 +9,12 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
-#ifndef STARLING_BASE_OBS_H_
-#define STARLING_BASE_OBS_H_
+#ifndef STARLING_OBS_CONVERTER_H_
+#define STARLING_OBS_CONVERTER_H_
 
+#include <libswiftnav/gnss_time.h>
+#include <libswiftnav/nav_meas.h>
+#include <libswiftnav/pvt_engine/firmware_binding.h>
 #include <starling/starling.h>
 
 int convert_starling_obs_array_to_obss(obs_array_t *obs_array, obss_t *obss);

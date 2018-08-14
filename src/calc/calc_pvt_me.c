@@ -44,6 +44,7 @@
 #include "settings/settings.h"
 #include "shm/shm.h"
 #include "simulator.h"
+#include "starling_obs_converter.h"
 #include "system_monitor/system_monitor.h"
 #include "timing/timing.h"
 #include "track/track_sid_db.h"
@@ -63,7 +64,7 @@
 #define POSITION_FIX_TIMEOUT_S 60
 
 #define ME_CALC_PVT_THREAD_PRIORITY (HIGHPRIO - 3)
-#define ME_CALC_PVT_THREAD_STACK (64 * 1024)
+#define ME_CALC_PVT_THREAD_STACK (10 * 64 * 1024)
 
 /* Limits the sets of possible solution frequencies (in increasing order) */
 static const double valid_soln_freqs_hz[] = {1.0, 2.0, 4.0, 5.0, 10.0};
@@ -83,6 +84,22 @@ static soln_stats_t last_stats = {.signals_tracked = 0, .signals_useable = 0};
  * check that Klobuchar is used in SPP solver */
 
 /* STATIC FUNCTIONS */
+
+static void fill_starling_obs_array_from_navigation_measurements(
+    obs_array_t *obs_array, u8 n, const navigation_measurement_t nm[]) {
+  assert(n <= STARLING_MAX_OBS_COUNT);
+  obs_array->n = n;
+  for (size_t i = 0; i < obs_array->n; ++i) {
+    obs_array->observations[i].sid = nm[i].sid;
+    obs_array->observations[i].tot = nm[i].tot;
+    obs_array->observations[i].pseudorange = nm[i].raw_pseudorange;
+    obs_array->observations[i].carrier_phase = nm[i].raw_carrier_phase;
+    obs_array->observations[i].doppler = nm[i].raw_measured_doppler;
+    obs_array->observations[i].cn0 = nm[i].cn0;
+    obs_array->observations[i].lock_time = nm[i].lock_time;
+    obs_array->observations[i].flags = nm[i].flags;
+  }
+}
 
 static void me_post_ephemerides(u8 n, const ephemeris_t ephemerides[]) {
   ephemeris_array_t *eph_array = platform_mailbox_item_alloc(MB_ID_EPHEMERIS);
@@ -132,27 +149,43 @@ static void me_post_observations(u8 n,
    * pushing the message into the mailbox then we just wasted an
    * observation from the mailbox for no good reason. */
 
-  me_msg_obs_t *me_msg_obs = platform_mailbox_item_alloc(MB_ID_ME_OBS);
-  if (NULL == me_msg_obs) {
+  me_msg_obs_t *me_msg = platform_mailbox_item_alloc(MB_ID_ME_OBS);
+  if (NULL == me_msg) {
     log_error("ME: Could not allocate pool for obs!");
     return;
   }
 
-  me_msg_obs->size = n;
-  if (n) {
-    MEMCPY_S(me_msg_obs->obs,
-             sizeof(me_msg_obs->obs),
-             _meas,
-             n * sizeof(navigation_measurement_t));
+  obs_array_t tmp_obs_array;
+  obs_array_t *obs_array = &tmp_obs_array;
+  obs_array->sender = 0;
+  obs_array->t = GPS_TIME_UNKNOWN;
+  if (NULL != _t) {
+    obs_array->t = *_t;
   }
-  if (_t != NULL) {
-    me_msg_obs->obs_time = *_t;
-  } else {
-    me_msg_obs->obs_time.wn = WN_UNKNOWN;
-    me_msg_obs->obs_time.tow = TOW_UNKNOWN;
+  fill_starling_obs_array_from_navigation_measurements(obs_array, n, _meas);
+
+  me_msg->obs_time = obs_array->t;
+  me_msg->size = 0;
+  for (size_t i = 0; i < obs_array->n; ++i) {
+    starling_obs_t *obs = &obs_array->observations[i];
+    navigation_measurement_t *nm = &me_msg->obs[me_msg->size];
+    convert_starling_obs_to_navigation_measurement(obs, nm);
+    if (0 != calc_sat_state(&_ephem[i],
+                            &(nm->tot),
+                            nm->sat_pos,
+                            nm->sat_vel,
+                            nm->sat_acc,
+                            &(nm->sat_clock_err),
+                            &(nm->sat_clock_err_rate),
+                            &(nm->IODC),
+                            &(nm->IODE))) {
+      log_error_sid(nm->sid, "Recomputing sat state failed");
+      continue;
+    }
+    me_msg->size++;
   }
 
-  errno_t ret = platform_mailbox_post(MB_ID_ME_OBS, me_msg_obs, MB_NONBLOCKING);
+  errno_t ret = platform_mailbox_post(MB_ID_ME_OBS, me_msg, MB_NONBLOCKING);
   if (ret != 0) {
     /* We could grab another item from the mailbox, discard it and then
      * post our obs again but if the size of the mailbox and the pool
@@ -160,7 +193,7 @@ static void me_post_observations(u8 n,
      * mailbox is full when we handled the case that the pool was full.
      * */
     log_error("ME: Mailbox should have space for obs!");
-    platform_mailbox_item_free(MB_ID_ME_OBS, me_msg_obs);
+    platform_mailbox_item_free(MB_ID_ME_OBS, me_msg);
   }
 }
 

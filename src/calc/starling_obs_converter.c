@@ -43,6 +43,7 @@
 #include "shm/shm.h"
 #include "signal_db/signal_db.h"
 #include "simulator.h"
+#include "starling_obs_converter.h"
 #include "timing/timing.h"
 
 /**
