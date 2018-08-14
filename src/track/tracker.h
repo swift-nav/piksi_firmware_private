@@ -378,15 +378,15 @@ typedef struct {
   update_count_t xcorr_change_count;
   /**< update count value when cross-correlation
        flag has changed last time */
-  s32 TOW_ms;                /**< TOW in ms. */
-  s32 TOW_ms_prev;           /**< previous TOW in ms. */
-  s32 TOW_residual_ns;       /**< Residual to TOW_ms [ns] */
-  u64 sample_count;          /**< Total num samples channel has tracked for. */
-  double code_phase_prompt;  /**< Prompt code phase in chips. */
-  double code_phase_rate;    /**< Code phase rate in chips/s. */
-  double carrier_phase;      /**< Carrier phase in cycles. */
-  double carrier_freq;       /**< Carrier frequency Hz. */
-  double carrier_freq_prev;  /**< Carrier frequency Hz. */
+  s32 TOW_ms;               /**< TOW in ms. */
+  s32 TOW_ms_prev;          /**< previous TOW in ms. */
+  s32 TOW_residual_ns;      /**< Residual to TOW_ms [ns] */
+  u64 sample_count;         /**< Total num samples channel has tracked for. */
+  double code_phase_prompt; /**< Prompt code phase in chips. */
+  double code_phase_rate;   /**< Code phase rate in chips/s. */
+  double carrier_phase;     /**< Carrier phase in cycles. */
+  double carrier_freq;      /**< Carrier frequency Hz. */
+  double carrier_freq_prev; /**< Carrier frequency Hz. */
   bool carrier_freq_prev_valid;             /**< carrier_freq_prev is valid. */
   update_count_t carrier_freq_timestamp_ms; /**< carrier_freq_prev timestamp */
 

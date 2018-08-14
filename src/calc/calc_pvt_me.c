@@ -32,7 +32,6 @@
 #include "calc_pvt_common.h"
 #include "calc_pvt_me.h"
 #include "calc_starling_obs_array.h"
-#include "starling_obs_converter.h"
 #include "main.h"
 #include "manage.h"
 #include "ndb/ndb.h"
@@ -45,6 +44,7 @@
 #include "settings/settings.h"
 #include "shm/shm.h"
 #include "simulator.h"
+#include "starling_obs_converter.h"
 #include "system_monitor/system_monitor.h"
 #include "timing/timing.h"
 #include "track/track_sid_db.h"
@@ -179,8 +179,8 @@ static void me_post_observations(u8 n,
                             &(nm->sat_clock_err_rate),
                             &(nm->IODC),
                             &(nm->IODE))) {
-          log_error_sid(nm->sid, "Recomputing sat state failed");
-          continue;
+      log_error_sid(nm->sid, "Recomputing sat state failed");
+      continue;
     }
     me_msg->size++;
   }

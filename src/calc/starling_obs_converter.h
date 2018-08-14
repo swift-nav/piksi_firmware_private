@@ -12,10 +12,10 @@
 #ifndef STARLING_OBS_CONVERTER_H_
 #define STARLING_OBS_CONVERTER_H_
 
-#include <starling/starling.h>
 #include <libswiftnav/gnss_time.h>
-#include <libswiftnav/pvt_engine/firmware_binding.h>
 #include <libswiftnav/nav_meas.h>
+#include <libswiftnav/pvt_engine/firmware_binding.h>
+#include <starling/starling.h>
 
 int convert_starling_obs_array_to_obss(obs_array_t *obs_array, obss_t *obss);
 

@@ -31,7 +31,6 @@
 #include "calc_base_obs.h"
 #include "calc_pvt_me.h"
 #include "calc_starling_obs_array.h"
-#include "starling_obs_converter.h"
 #include "manage.h"
 #include "nav_msg/cnav_msg_storage.h"
 #include "ndb/ndb.h"
@@ -44,6 +43,7 @@
 #include "shm/shm.h"
 #include "signal_db/signal_db.h"
 #include "simulator.h"
+#include "starling_obs_converter.h"
 #include "timing/timing.h"
 
 /**
@@ -71,7 +71,6 @@ typedef struct {
   /** Set of observations. */
   navigation_measurement_t nm[STARLING_MAX_OBS_COUNT];
 } uncollapsed_obss_t;
-
 
 /* Count the number of satellites in a given constellation for a
  * composite observation. */
