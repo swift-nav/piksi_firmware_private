@@ -32,6 +32,7 @@
 #include "calc_pvt_common.h"
 #include "calc_pvt_me.h"
 #include "calc_starling_obs_array.h"
+#include "starling_base_obs.h"
 #include "main.h"
 #include "manage.h"
 #include "ndb/ndb.h"
@@ -63,7 +64,7 @@
 #define POSITION_FIX_TIMEOUT_S 60
 
 #define ME_CALC_PVT_THREAD_PRIORITY (HIGHPRIO - 3)
-#define ME_CALC_PVT_THREAD_STACK (64 * 1024)
+#define ME_CALC_PVT_THREAD_STACK (10 * 64 * 1024)
 
 /* Limits the sets of possible solution frequencies (in increasing order) */
 static const double valid_soln_freqs_hz[] = {1.0, 2.0, 4.0, 5.0, 10.0};
@@ -148,12 +149,14 @@ static void me_post_observations(u8 n,
    * pushing the message into the mailbox then we just wasted an
    * observation from the mailbox for no good reason. */
 
-  obs_array_t *obs_array = platform_mailbox_item_alloc(MB_ID_ME_OBS);
-  if (NULL == obs_array) {
+  me_msg_obs_t *me_msg = platform_mailbox_item_alloc(MB_ID_ME_OBS);
+  if (NULL == me_msg) {
     log_error("ME: Could not allocate pool for obs!");
     return;
   }
 
+  obs_array_t tmp_obs_array;
+  obs_array_t *obs_array = &tmp_obs_array;
   obs_array->sender = 0;
   obs_array->t = GPS_TIME_UNKNOWN;
   if (NULL != _t) {
@@ -161,7 +164,27 @@ static void me_post_observations(u8 n,
   }
   fill_starling_obs_array_from_navigation_measurements(obs_array, n, _meas);
 
-  errno_t ret = platform_mailbox_post(MB_ID_ME_OBS, obs_array, MB_NONBLOCKING);
+  qsort(obs_array->observations,
+        obs_array->n,
+        sizeof(obs_array->observations[0]),
+        compare_starling_obs_by_sid);
+
+  /* First we need to convert the obs array into this type. */
+  obss_t obss;
+  uncollapsed_obss_t uncollapsed_obss;
+  convert_starling_obs_array_to_uncollapsed_obss(obs_array, &uncollapsed_obss);
+  collapse_obss(&uncollapsed_obss, &obss);
+
+  me_msg->obs_time = obs_array->t;
+  me_msg->size = obss.n;
+  if (obss.n > 0) {
+    MEMCPY_S(me_msg->obs,
+             sizeof(me_msg->obs),
+             obss.nm,
+             obss.n * sizeof(navigation_measurement_t));
+  }
+
+  errno_t ret = platform_mailbox_post(MB_ID_ME_OBS, me_msg, MB_NONBLOCKING);
   if (ret != 0) {
     /* We could grab another item from the mailbox, discard it and then
      * post our obs again but if the size of the mailbox and the pool
@@ -169,7 +192,7 @@ static void me_post_observations(u8 n,
      * mailbox is full when we handled the case that the pool was full.
      * */
     log_error("ME: Mailbox should have space for obs!");
-    platform_mailbox_item_free(MB_ID_ME_OBS, obs_array);
+    platform_mailbox_item_free(MB_ID_ME_OBS, me_msg);
   }
 }
 

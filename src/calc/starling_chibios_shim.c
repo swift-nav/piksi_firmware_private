@@ -78,7 +78,7 @@ static obs_array_t base_obs_buff[BASE_OBS_N_BUFF] _CCM;
 
 /* ME Data API data-structures. */
 static msg_t me_obs_mailbox_buff[ME_OBS_MSG_N_BUFF];
-static obs_array_t me_obs_buff[ME_OBS_MSG_N_BUFF];
+static me_msg_obs_t me_obs_buff[ME_OBS_MSG_N_BUFF];
 
 /* SBAS Data API data-structures. */
 static msg_t sbas_data_mailbox_buff[SBAS_DATA_N_BUFF];
@@ -196,7 +196,7 @@ static mailbox_info_t mailbox_info[MB_ID_COUNT] =
                        me_obs_mailbox_buff,
                        me_obs_buff,
                        ME_OBS_MSG_N_BUFF,
-                       sizeof(obs_array_t)},
+                       sizeof(me_msg_obs_t)},
      [MB_ID_SBAS_DATA] = {{0},
                           {0},
                           sbas_data_mailbox_buff,
