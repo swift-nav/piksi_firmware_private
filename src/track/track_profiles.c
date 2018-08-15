@@ -30,10 +30,16 @@
 #include "track/track_common.h"
 #include "track/track_flags.h"
 
-/* 35ms is a result of experimenting.
+/* 20ms is a candidate value.
+   10ms would keep the mechanism instant for the profiles that use 10ms cn0_ms.
+   Debug shows that GPS and GLO L2 signals sometimes have outlier raw_cno
+   values, (less than THRESH_SENS_DBHZ) when the filtered signal is around
+   32 dBHz, resulting in unnecessary activation of sensitivity mode. */
+#define TP_FAST_SIGNAL_THRESHOLD_MS 20
+/* 100ms is a result of experimenting.
    The threshold is needed to avoid spontaneous transitions
    to sensitivity profile, when signal is reasonably strong */
-#define TP_WEAK_SIGNAL_THRESHOLD_MS 35
+#define TP_WEAK_SIGNAL_THRESHOLD_MS 100
 
 /** Unknown delay indicator */
 #define TP_DELAY_UNKNOWN -1
@@ -847,6 +853,7 @@ static bool low_cn0_profile_switch_requested(tracker_t *tracker) {
 
   if (tracker->cn0_est.weak_signal_ms > 0) {
     if ((state->filt_cn0 > THRESH_20MS_DBHZ) &&
+        (tracker->cn0_est.weak_signal_ms >= TP_FAST_SIGNAL_THRESHOLD_MS) &&
         profile_switch_requested(tracker, IDX_SENS, "low cn0: instant")) {
       /* filt_cn0 reports a reasonably strong signal, but
          weak_signal_ms derived from raw CN0 says there is no signal.
