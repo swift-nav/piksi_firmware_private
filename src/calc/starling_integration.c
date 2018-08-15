@@ -245,13 +245,6 @@ static void solution_send_pos_messages(
     }
   }
 
-  utc_params_t utc_params;
-  utc_params_t *p_utc_params = &utc_params;
-  /* read UTC parameters from NDB if they exist*/
-  if (NDB_ERR_NONE != ndb_utc_params_read(&utc_params, NULL)) {
-    p_utc_params = NULL;
-  }
-
   /* Send NMEA alongside the sbp */
   nmea_send_msgs(&sbp_messages->pos_llh,
                  &sbp_messages->vel_ned,
@@ -259,7 +252,7 @@ static void solution_send_pos_messages(
                  &sbp_messages->gps_time,
                  &sbp_messages->age_corrections,
                  base_sender_id,
-                 p_utc_params,
+                 &sbp_messages->utc_time,
                  &sbp_messages->baseline_heading,
                  n_meas,
                  nav_meas);

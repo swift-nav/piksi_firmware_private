@@ -233,7 +233,7 @@ static void get_utc_time_string(const msg_gps_time_t *sbp_msg_time,
                                 bool time,
                                 bool date,
                                 bool trunc_date,
-                                const utc_tm *t,
+                                const msg_utc_time_t *sbp_utc_time,
                                 char *utc_str,
                                 u8 size) {
   char *buf_end = utc_str + size;
@@ -256,11 +256,11 @@ static void get_utc_time_string(const msg_gps_time_t *sbp_msg_time,
     vsnprintf_wrap(&utc_str,
                    buf_end,
                    "%02u%02u%02u.%0*u,",
-                   t->hour,
-                   t->minute,
-                   t->second_int,
+                   sbp_utc_time->hours,
+                   sbp_utc_time->minutes,
+                   sbp_utc_time->seconds,
                    NMEA_UTC_S_DECIMALS,
-                   (u16)roundf(NMEA_UTC_S_FRAC_DIVISOR * t->second_frac));
+                   (u16)roundf(NMEA_UTC_S_FRAC_DIVISOR * sbp_utc_time->ns));
   }
 
   if (date) {
@@ -270,16 +270,16 @@ static void get_utc_time_string(const msg_gps_time_t *sbp_msg_time,
       vsnprintf_wrap(&utc_str,
                      buf_end,
                      "%02u%02u%02u,",
-                     t->month_day,
-                     t->month,
-                     (u8)(t->year % 100));
+                     sbp_utc_time->day,
+                     sbp_utc_time->month,
+                     (u8)(sbp_utc_time->year % 100));
     } else {
       vsnprintf_wrap(&utc_str,
                      buf_end,
                      "%02u,%02u,%" PRIu32 ",",
-                     t->month_day,
-                     t->month,
-                     t->year);
+                     sbp_utc_time->day,
+                     sbp_utc_time->month,
+                     sbp_utc_time->year);
     }
   }
 }
@@ -306,7 +306,7 @@ static void get_utc_time_string(const msg_gps_time_t *sbp_msg_time,
  */
 void nmea_gpgga(const msg_pos_llh_t *sbp_pos_llh,
                 const msg_gps_time_t *sbp_msg_time,
-                const utc_tm *utc_time,
+                const msg_utc_time_t *sbp_utc_time,
                 const msg_dops_t *sbp_dops,
                 const msg_age_corrections_t *sbp_age,
                 u8 station_id) {
@@ -345,7 +345,7 @@ void nmea_gpgga(const msg_pos_llh_t *sbp_pos_llh,
 
   char utc[NMEA_TS_MAX_LEN];
   get_utc_time_string(
-      sbp_msg_time, true, false, false, utc_time, utc, NMEA_TS_MAX_LEN);
+      sbp_msg_time, true, false, false, sbp_utc_time, utc, NMEA_TS_MAX_LEN);
   NMEA_SENTENCE_PRINTF("%s", utc);
 
   if (fix_type != NMEA_GGA_QI_INVALID) {
@@ -773,7 +773,7 @@ static void calc_cog_sog(const msg_vel_ned_t *sbp_vel_ned,
 void nmea_gprmc(const msg_pos_llh_t *sbp_pos_llh,
                 const msg_vel_ned_t *sbp_vel_ned,
                 const msg_gps_time_t *sbp_msg_time,
-                const utc_tm *utc_time) {
+                const msg_utc_time_t *sbp_utc_time) {
   /* See the relevant comment for the similar code in nmea_gpgga() function
      for the reasoning behind (... * 1e8 / 1e8) trick */
   double lat = fabs(round(sbp_pos_llh->lat * 1e8) / 1e8);
@@ -800,7 +800,7 @@ void nmea_gprmc(const msg_pos_llh_t *sbp_pos_llh,
 
   char utc[NMEA_TS_MAX_LEN];
   get_utc_time_string(
-      sbp_msg_time, true, false, false, utc_time, utc, NMEA_TS_MAX_LEN);
+      sbp_msg_time, true, false, false, sbp_utc_time, utc, NMEA_TS_MAX_LEN);
   NMEA_SENTENCE_PRINTF("%s", utc);
 
   NMEA_SENTENCE_PRINTF("%c,", /* Status */
@@ -831,7 +831,7 @@ void nmea_gprmc(const msg_pos_llh_t *sbp_pos_llh,
 
   char date[NMEA_TS_MAX_LEN];
   get_utc_time_string(
-      sbp_msg_time, false, true, true, utc_time, date, NMEA_TS_MAX_LEN);
+      sbp_msg_time, false, true, true, sbp_utc_time, date, NMEA_TS_MAX_LEN);
   NMEA_SENTENCE_PRINTF("%s", date);
 
   NMEA_SENTENCE_PRINTF(
@@ -913,7 +913,7 @@ void nmea_gphdt(const msg_baseline_heading_t *sbp_baseline_heading) {
  */
 void nmea_gpgll(const msg_pos_llh_t *sbp_pos_llh,
                 const msg_gps_time_t *sbp_msg_time,
-                const utc_tm *utc_time) {
+                const msg_utc_time_t *sbp_utc_time) {
   /* See the relevant comment for the similar code in nmea_gpgga() function
      for the reasoning behind (... * 1e8 / 1e8) trick */
   double lat = fabs(round(sbp_pos_llh->lat * 1e8) / 1e8);
@@ -949,7 +949,7 @@ void nmea_gpgll(const msg_pos_llh_t *sbp_pos_llh,
 
   char utc[NMEA_TS_MAX_LEN];
   get_utc_time_string(
-      sbp_msg_time, true, false, false, utc_time, utc, NMEA_TS_MAX_LEN);
+      sbp_msg_time, true, false, false, sbp_utc_time, utc, NMEA_TS_MAX_LEN);
   NMEA_SENTENCE_PRINTF("%s", utc);
 
   NMEA_SENTENCE_PRINTF("%c,%c", /* Status, Mode */
@@ -964,13 +964,13 @@ void nmea_gpgll(const msg_pos_llh_t *sbp_pos_llh,
  * \param sbp_msg_time Pointer to the current SBP GPS Time.
  * \param utc_time     Pointer to UTC time
  */
-void nmea_gpzda(const msg_gps_time_t *sbp_msg_time, const utc_tm *utc_time) {
+void nmea_gpzda(const msg_gps_time_t *sbp_msg_time, const msg_utc_time_t *sbp_utc_time) {
   NMEA_SENTENCE_START(40);
   NMEA_SENTENCE_PRINTF("$GPZDA,"); /* Command */
 
   char utc[NMEA_TS_MAX_LEN];
   get_utc_time_string(
-      sbp_msg_time, true, true, false, utc_time, utc, NMEA_TS_MAX_LEN);
+      sbp_msg_time, true, true, false, sbp_utc_time, utc, NMEA_TS_MAX_LEN);
   NMEA_SENTENCE_PRINTF("%s", utc);
 
   NMEA_SENTENCE_PRINTF(","); /* Time zone */
@@ -1025,12 +1025,11 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh,
                     const msg_gps_time_t *sbp_msg_time,
                     const msg_age_corrections_t *sbp_age,
                     u8 sender_id,
-                    const utc_params_t *utc_params,
+                    const msg_utc_time_t *sbp_utc_time,
                     const msg_baseline_heading_t *sbp_baseline_heading,
                     u8 n_meas,
                     const navigation_measurement_t nav_meas[]) {
 
-  utc_tm utc_time;
   static bool first_fix = false;
 
   piksi_systime_t piksi_system_time;
@@ -1040,29 +1039,6 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh,
    * solution */
   piksi_time_ms = piksi_systime_to_ms(&piksi_system_time);
 
-  /* prepare utc_tm structure with time rounded to NMEA precision */
-  if ((sbp_msg_time->flags & TIME_SOURCE_MASK) != NO_TIME) {
-    first_fix = true;
-    gps_time_t t = {
-        .wn = sbp_msg_time->wn,
-        .tow = 1e-3 * sbp_msg_time->tow + 1e-9 * sbp_msg_time->ns_residual};
-    gps2utc(&t, &utc_time, utc_params);
-    u16 second_frac = roundf(utc_time.second_frac * NMEA_UTC_S_FRAC_DIVISOR);
-    if (second_frac == NMEA_UTC_S_FRAC_DIVISOR) {
-      /* the UTC timestamp rounds up to next second, so recompute the UTC time
-       * structure to normalize it and to handle leap second correctly */
-      double dt = 1.0 - utc_time.second_frac;
-      /* round up to the next representable floating point number */
-      t.tow = nextafter(t.tow + dt, INFINITY);
-      normalize_gps_time(&t);
-      gps2utc(&t, &utc_time, utc_params);
-      /* if the fractional part of the resulting new time stamp is not zero
-       * then we computed wrong... */
-      second_frac = roundf(utc_time.second_frac * NMEA_UTC_S_FRAC_DIVISOR);
-      assert(second_frac == 0);
-    }
-  }
-
   if (first_fix) {
     piksi_time_ms = sbp_msg_time->tow;
   }
@@ -1071,7 +1047,7 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh,
     if (send_nmea(gpgga_msg_rate, piksi_time_ms)) {
       nmea_gpgga(sbp_pos_llh,
                  sbp_msg_time,
-                 &utc_time,
+                 sbp_utc_time,
                  sbp_dops,
                  sbp_age,
                  sender_id);
@@ -1084,12 +1060,12 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh,
   }
   if (sbp_vel_ned && sbp_pos_llh && sbp_msg_time) {
     if (send_nmea(gprmc_msg_rate, piksi_time_ms)) {
-      nmea_gprmc(sbp_pos_llh, sbp_vel_ned, sbp_msg_time, &utc_time);
+      nmea_gprmc(sbp_pos_llh, sbp_vel_ned, sbp_msg_time, sbp_utc_time);
     }
   }
   if (sbp_pos_llh && sbp_msg_time) {
     if (send_nmea(gpgll_msg_rate, piksi_time_ms)) {
-      nmea_gpgll(sbp_pos_llh, sbp_msg_time, &utc_time);
+      nmea_gpgll(sbp_pos_llh, sbp_msg_time, sbp_utc_time);
     }
   }
   if (sbp_vel_ned && sbp_pos_llh && sbp_msg_time) {
@@ -1099,7 +1075,7 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh,
   }
   if (sbp_msg_time) {
     if (send_nmea(gpzda_msg_rate, piksi_time_ms)) {
-      nmea_gpzda(sbp_msg_time, &utc_time);
+      nmea_gpzda(sbp_msg_time, sbp_utc_time);
     }
   }
   if (sbp_dops && sbp_pos_llh && sbp_msg_time) {
