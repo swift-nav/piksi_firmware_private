@@ -1,7 +1,6 @@
 [submodule "libswiftnav"]
   path = libswiftnav
   url = ssh://git@github.com/swift-nav/libswiftnav-private.git
-  shallow = true
 [submodule "ChibiOS-RT"]
   path = ChibiOS
   url = ssh://git@github.com/swift-nav/ChibiOS
