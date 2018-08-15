@@ -12,6 +12,7 @@
 #include <assert.h>
 #include <float.h>
 #include <stdio.h>
+//#include <string.h>
 
 #include <libsbp/sbp.h>
 #include <libswiftnav/constants.h>
@@ -164,25 +165,18 @@ static void me_post_observations(u8 n,
   }
   fill_starling_obs_array_from_navigation_measurements(obs_array, n, _meas);
 
-  me_msg->obs_time = obs_array->t;
-  me_msg->size = 0;
-  for (size_t i = 0; i < obs_array->n; ++i) {
-    starling_obs_t *obs = &obs_array->observations[i];
-    navigation_measurement_t *nm = &me_msg->obs[me_msg->size];
-    convert_starling_obs_to_navigation_measurement(obs, nm);
-    if (0 != calc_sat_state(&_ephem[i],
-                            &(nm->tot),
-                            nm->sat_pos,
-                            nm->sat_vel,
-                            nm->sat_acc,
-                            &(nm->sat_clock_err),
-                            &(nm->sat_clock_err_rate),
-                            &(nm->IODC),
-                            &(nm->IODE))) {
-      log_error_sid(nm->sid, "Recomputing sat state failed");
-      continue;
-    }
-    me_msg->size++;
+  uncollapsed_obss_t uncollapsed_obss;
+  convert_starling_obs_array_to_uncollapsed_obss(obs_array, &uncollapsed_obss);
+
+  //log_info("Doing ME obs conversion with %u obs.", obs_array->n);
+  assert(uncollapsed_obss.n <= MAX_CHANNELS);
+  me_msg->obs_time = uncollapsed_obss.tor;
+  me_msg->size = uncollapsed_obss.n;
+  if (uncollapsed_obss.n) {
+    MEMCPY_S(me_msg->obs,
+             sizeof(me_msg->obs),
+             uncollapsed_obss.nm,
+             uncollapsed_obss.n * sizeof(navigation_measurement_t));
   }
 
   errno_t ret = platform_mailbox_post(MB_ID_ME_OBS, me_msg, MB_NONBLOCKING);
