@@ -44,6 +44,11 @@
 #define TPF_PLD_ADD ((u32)1 << 23)
 #define TPF_PLD_USE ((u32)1 << 24)
 
+#define TPF_DLL_RUN ((u32)1 << 25)
+#define TPF_FPLL_RUN ((u32)1 << 26)
+
+#define TPF_LOOPS_RUN (TPF_DLL_RUN | TPF_FPLL_RUN)
+
 /** GPS L1 C/A cross-correlation frequency step [hz] */
 #define L1CA_XCORR_FREQ_STEP 1000.f
 /** GPS L1 C/A CN0 threshold for whitelisting [dB-Hz] */

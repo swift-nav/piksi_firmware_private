@@ -349,7 +349,7 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
   /* sensitivity profile */
   [IDX_SENS] =
   { {      0,         1.0,           .5,   TP_CTRL_PLL3,
-      TP_TM_20MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS,  TP_TM_20MS_NH20MS,  TP_TM_20MS_SC4 },
+      TP_TM_200MS_20MS, TP_TM_200MS_10MS, TP_TM_2MS_2MS, TP_TM_200MS_NH20MS, TP_TM_200MS_SC4 },
       TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
       300,             0,          32,
       IDX_SENS,  IDX_NONE,     IDX_20MS,
@@ -514,7 +514,7 @@ static struct profile_vars get_profile_vars(const me_gnss_signal_t mesid,
     vars.pll_bw = entry->profile.pll_bw;
   } else { /* dynamic PLL BW */
     tp_tm_e track_mode = get_track_mode(mesid, entry);
-    u8 pll_t_ms = tp_get_pll_ms(track_mode);
+    u8 pll_t_ms = tp_get_fpll_ms(track_mode);
     vars.pll_bw = compute_pll_bw(cn0, pll_t_ms);
   }
 
@@ -522,7 +522,7 @@ static struct profile_vars get_profile_vars(const me_gnss_signal_t mesid,
     vars.fll_bw = entry->profile.fll_bw;
   } else { /* dynamic FLL BW */
     tp_tm_e track_mode = get_track_mode(mesid, entry);
-    u8 fll_t_ms = tp_get_flll_ms(track_mode);
+    u8 fll_t_ms = tp_get_fpll_ms(track_mode);
     vars.fll_bw = compute_fll_bw(cn0, fll_t_ms);
   }
 
@@ -662,7 +662,7 @@ static bool pll_bw_changed(tracker_t *tracker, profile_indices_t index) {
     pll_bw = entry->profile.pll_bw;
   } else { /* dynamic PLL BW */
     tp_tm_e track_mode = get_track_mode(tracker->mesid, entry);
-    u8 pll_t_ms = tp_get_pll_ms(track_mode);
+    u8 pll_t_ms = tp_get_fpll_ms(track_mode);
     pll_bw = compute_pll_bw(tracker->cn0, pll_t_ms);
   }
 
@@ -696,7 +696,7 @@ static bool fll_bw_changed(tracker_t *tracker, profile_indices_t index) {
   } else { /* dynamic FLL BW */
     float cn0 = tracker->cn0;
     tp_tm_e track_mode = get_track_mode(tracker->mesid, entry);
-    u8 fll_t_ms = tp_get_flll_ms(track_mode);
+    u8 fll_t_ms = tp_get_fpll_ms(track_mode);
     fll_bw = compute_fll_bw(cn0, fll_t_ms);
   }
 
@@ -921,6 +921,11 @@ void tp_profile_switch(tracker_t *tracker) {
 
   /* Do transition of current profile */
   profile->profile_update = 0;
+
+  if (profile->cur.index != profile->next.index) {
+    tracker->dll_cycle = 0;
+    tracker->fpll_cycle = 0;
+  }
 
   profile->cur = profile->next;
   profile->cn0_offset = compute_cn0_offset(tracker->mesid, profile);
