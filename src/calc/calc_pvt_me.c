@@ -169,7 +169,7 @@ static void me_post_observations(u8 n,
   me_msg->size = obs_array->n;
   for (size_t i = 0; i < obs_array->n; ++i) {
     starling_obs_t *obs = &obs_array->observations[i];
-    navigation_measurement_t *nm = &me_msg->obs[me_msg->size];
+    navigation_measurement_t *nm = &me_msg->obs[i];
     convert_starling_obs_to_navigation_measurement(obs, nm);
   }
 
