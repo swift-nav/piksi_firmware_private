@@ -166,24 +166,11 @@ static void me_post_observations(u8 n,
   fill_starling_obs_array_from_navigation_measurements(obs_array, n, _meas);
 
   me_msg->obs_time = obs_array->t;
-  me_msg->size = 0;
+  me_msg->size = obs_array->n;
   for (size_t i = 0; i < obs_array->n; ++i) {
     starling_obs_t *obs = &obs_array->observations[i];
     navigation_measurement_t *nm = &me_msg->obs[me_msg->size];
     convert_starling_obs_to_navigation_measurement(obs, nm);
-    if (0 != calc_sat_state(&_ephem[i],
-                            &(nm->tot),
-                            nm->sat_pos,
-                            nm->sat_vel,
-                            nm->sat_acc,
-                            &(nm->sat_clock_err),
-                            &(nm->sat_clock_err_rate),
-                            &(nm->IODC),
-                            &(nm->IODE))) {
-      log_error_sid(nm->sid, "Recomputing sat state failed");
-      continue;
-    }
-    me_msg->size++;
   }
 
   errno_t ret = platform_mailbox_post(MB_ID_ME_OBS, me_msg, MB_NONBLOCKING);
