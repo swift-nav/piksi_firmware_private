@@ -77,8 +77,8 @@ static bool has_enough_sats_for_pvt_solve(const obss_t *obss) {
 /* Converter for moving into the intermediary uncollapsed observation type.
  * This performs some preliminary filtering of the observations in addition to
  * populating the navigation measurement fields. */
-void convert_starling_obs_array_to_uncollapsed_obss(
-    obs_array_t *obs_array, uncollapsed_obss_t *obss) {
+void convert_starling_obs_array_to_uncollapsed_obss(obs_array_t *obs_array,
+                                                    uncollapsed_obss_t *obss) {
   assert(obs_array);
   assert(obss);
   assert(obs_array->n <= STARLING_MAX_OBS_COUNT);

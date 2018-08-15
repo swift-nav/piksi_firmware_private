@@ -43,10 +43,10 @@ typedef struct {
   navigation_measurement_t nm[STARLING_MAX_OBS_COUNT];
 } uncollapsed_obss_t;
 
-void convert_starling_obs_array_to_uncollapsed_obss(
-    obs_array_t *obs_array, uncollapsed_obss_t *obss); 
+void convert_starling_obs_array_to_uncollapsed_obss(obs_array_t *obs_array,
+                                                    uncollapsed_obss_t *obss);
 
-void collapse_obss(uncollapsed_obss_t *uncollapsed_obss, obss_t *obss); 
+void collapse_obss(uncollapsed_obss_t *uncollapsed_obss, obss_t *obss);
 
 int convert_starling_obs_array_to_obss(obs_array_t *obs_array, obss_t *obss);
 

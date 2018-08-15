@@ -87,7 +87,10 @@ static soln_stats_t last_stats = {.signals_tracked = 0, .signals_useable = 0};
 /* STATIC FUNCTIONS */
 
 static void fill_starling_obs_array_from_navigation_measurements(
-    obs_array_t *obs_array, const gps_time_t *t, u8 n, const navigation_measurement_t nm[]) {
+    obs_array_t *obs_array,
+    const gps_time_t *t,
+    u8 n,
+    const navigation_measurement_t nm[]) {
   assert(n <= STARLING_MAX_OBS_COUNT);
   obs_array->n = n;
   for (size_t i = 0; i < obs_array->n; ++i) {
@@ -99,15 +102,16 @@ static void fill_starling_obs_array_from_navigation_measurements(
     obs_array->observations[i].lock_time = nm[i].lock_time;
     obs_array->observations[i].flags = nm[i].flags;
 
-    /* TOT is special. We want to recompute from the observation time and raw pseudorange
-     * because the navigation measurement tot will have already had clock corrections 
-     * applied. */
+    /* TOT is special. We want to recompute from the observation time and raw
+     * pseudorange because the navigation measurement tot will have already had
+     * clock corrections applied. */
     obs_array->observations[i].tot = GPS_TIME_UNKNOWN;
     if (t) {
       obs_array->observations[i].tot = *t;
-      obs_array->observations[i].tot.tow -= obs_array->observations[i].pseudorange / GPS_C;
+      obs_array->observations[i].tot.tow -=
+          obs_array->observations[i].pseudorange / GPS_C;
     }
-  } 
+  }
 }
 
 static void me_post_ephemerides(u8 n, const ephemeris_t ephemerides[]) {
@@ -176,7 +180,7 @@ static void me_post_observations(u8 n,
   uncollapsed_obss_t uncollapsed_obss;
   convert_starling_obs_array_to_uncollapsed_obss(obs_array, &uncollapsed_obss);
 
-  //log_info("Doing ME obs conversion with %u obs.", obs_array->n);
+  // log_info("Doing ME obs conversion with %u obs.", obs_array->n);
   assert(uncollapsed_obss.n <= MAX_CHANNELS);
   me_msg->obs_time = uncollapsed_obss.tor;
   me_msg->size = uncollapsed_obss.n;
