@@ -122,14 +122,6 @@ typedef struct tp_profile_entry {
   u16 flags; /**< Bit combination of tp_profile_flags_t */
 } tp_profile_entry_t;
 
-/**
- * C/N0 profile thresholds
- */
-static const tp_cn0_thres_t cn0_thres_default = {
-    .drop_dbhz = TP_DEFAULT_CN0_DROP_THRESHOLD_DBHZ,
-    .use_dbhz = TP_DEFAULT_CN0_USE_THRESHOLD_DBHZ,
-    .ambiguity_dbhz = TP_DEFAULT_CN0_AMBIGUITY_THRESHOLD_DBHZ};
-
 #define UNUSED 0.
 
 /**
@@ -592,7 +584,6 @@ void tp_profile_update_config(tracker_t *tracker) {
   const tp_tm_e mode = profile->loop_params.mode;
   profile->use_alias_detection =
       (TP_TM_10MS_10MS == mode) || (TP_TM_20MS_20MS == mode);
-  tp_profile_get_cn0_thres(profile, &profile->cn0_thres);
 }
 
 /**
@@ -924,37 +915,6 @@ void tp_profile_switch(tracker_t *tracker) {
 
   profile->cur = profile->next;
   profile->cn0_offset = compute_cn0_offset(tracker->mesid, profile);
-}
-
-/**
- * Method for obtaining current C/N0 thresholds.
- *
- * \param[in]  profile   Tracking profile data to check
- * \param[out] cn0_thres Container for C/N0 limits.
- */
-void tp_profile_get_cn0_thres(const tp_profile_t *profile,
-                              tp_cn0_thres_t *cn0_thres) {
-  assert(cn0_thres);
-  assert(profile);
-
-  *cn0_thres = cn0_thres_default;
-
-  /* Correction: higher integration time lowers thresholds linearly. For
-   * example, 20ms integration has threshold by 13 dB lower, than for 1ms
-   * integration. */
-  cn0_thres->drop_dbhz -= profile->cn0_offset;
-
-  float threshold_dbhz = TP_HARD_CN0_DROP_THRESHOLD_DBHZ;
-
-  if (cn0_thres->drop_dbhz < threshold_dbhz) {
-    cn0_thres->drop_dbhz = threshold_dbhz;
-  }
-  if (cn0_thres->use_dbhz < threshold_dbhz) {
-    cn0_thres->use_dbhz = threshold_dbhz;
-  }
-  if (cn0_thres->ambiguity_dbhz < threshold_dbhz) {
-    cn0_thres->ambiguity_dbhz = threshold_dbhz;
-  }
 }
 
 /**
