@@ -976,7 +976,8 @@ void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
 
   u8 base_sender_id = STARLING_BASE_SENDER_ID_DEFAULT;
   if (spp_solution) {
-    solution_make_sbp(&filtered_pvt_result, &spp_solution->dops, &sbp_messages);
+    solution_make_sbp(
+        &spp_solution->result, &spp_solution->dops, &sbp_messages);
     if (rtk_solution) {
       solution_make_baseline_sbp(&filtered_pvt_result,
                                  spp_solution->result.baseline,
