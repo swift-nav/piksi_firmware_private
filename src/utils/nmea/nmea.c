@@ -301,14 +301,14 @@ static void get_utc_time_string(const msg_gps_time_t *sbp_msg_time,
  * \param sbp_msg_time      SBP GPS Time message
  * \param utc_time          Pointer to UTC time
  * \param sbp_dops          SBP DOP Message for this epoch
- * \param propagation_time  Age of differential corrections [s].
+ * \param sbp_age           SBP age of corrections message
  * \param station_id        Differential reference station ID.
  */
 void nmea_gpgga(const msg_pos_llh_t *sbp_pos_llh,
                 const msg_gps_time_t *sbp_msg_time,
                 const utc_tm *utc_time,
                 const msg_dops_t *sbp_dops,
-                double propagation_time,
+                const msg_age_corrections_t *sbp_age,
                 u8 station_id) {
   /* GGA sentence is formed by splitting latitude and longitude
      into degrees and minutes parts and then printing them separately
@@ -374,7 +374,7 @@ void nmea_gpgga(const msg_pos_llh_t *sbp_pos_llh,
   if ((fix_type == NMEA_GGA_QI_DGPS) || (fix_type == NMEA_GGA_QI_FLOAT) ||
       (fix_type == NMEA_GGA_QI_RTK)) {
     NMEA_SENTENCE_PRINTF("%.1f,%04d",
-                         propagation_time,
+                         sbp_age->tow * 0.1,
                          station_id & 0x3FF); /* ID range is 0000 to 1023 */
   } else {
     NMEA_SENTENCE_PRINTF(",");
@@ -1013,7 +1013,7 @@ bool send_nmea(u32 rate, u32 gps_tow_ms) {
  * \param sbp_vel_ned  Pointer to sbp vel ned.
  * \param sbp_dops     Pointer to sbp dops.
  * \param sbp_msg_time Pointer to sbp msg time.
- * \param propagation_time time of base observation propagation
+ * \param sbp_age      Pointer to the sbp age of correction message
  * \param sender_id    NMEA sender id
  * \param utc_params   Pointer to UTC parameters
  * \param n_meas       nav_meas len
@@ -1023,12 +1023,13 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh,
                     const msg_vel_ned_t *sbp_vel_ned,
                     const msg_dops_t *sbp_dops,
                     const msg_gps_time_t *sbp_msg_time,
-                    double propagation_time,
+                    const msg_age_corrections_t *sbp_age,
                     u8 sender_id,
                     const utc_params_t *utc_params,
                     const msg_baseline_heading_t *sbp_baseline_heading,
                     u8 n_meas,
                     const navigation_measurement_t nav_meas[]) {
+
   utc_tm utc_time;
   static bool first_fix = false;
 
@@ -1072,7 +1073,7 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh,
                  sbp_msg_time,
                  &utc_time,
                  sbp_dops,
-                 propagation_time,
+                 sbp_age,
                  sender_id);
     }
   }

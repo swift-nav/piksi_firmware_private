@@ -253,12 +253,11 @@ static void solution_send_pos_messages(
   }
 
   /* Send NMEA alongside the sbp */
-  double propagation_time = sbp_messages->age_corrections.age * 0.1;
   nmea_send_msgs(&sbp_messages->pos_llh,
                  &sbp_messages->vel_ned,
                  &sbp_messages->sbp_dops,
                  &sbp_messages->gps_time,
-                 propagation_time,
+                 &sbp_messages->age_corrections,
                  base_sender_id,
                  p_utc_params,
                  &sbp_messages->baseline_heading,
