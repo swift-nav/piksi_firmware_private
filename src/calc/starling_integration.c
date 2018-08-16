@@ -1006,7 +1006,7 @@ static void initialize_starling_settings(void) {
   int TYPE_GNSS_FILTER =
       settings_type_register_enum(dgnss_filter_enum, &dgnss_filter_setting);
 
-  // The base obs can optionally enable RAIM exclusion algorithm.
+  /* The base obs can optionally enable RAIM exclusion algorithm. */
   SETTING("solution", "disable_raim", disable_raim, TYPE_BOOL);
 
   SETTING_NOTIFY("solution",
