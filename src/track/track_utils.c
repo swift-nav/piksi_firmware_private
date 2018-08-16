@@ -74,22 +74,22 @@ void tracker_measurement_get(u64 ref_tc,
 bool tracker_calc_pseudorange(u64 ref_tc,
                               const channel_measurement_t *meas,
                               double *raw_pseudorange) {
-  starling_obs_t obs;
+  navigation_measurement_t nm;
   gps_time_t rec_time = napcount2gpstime(ref_tc);
   if (!gps_time_valid(&rec_time)) {
     log_warn("Invalid gps time in tracker_calc_pseudorange");
     return false;
   }
 
-  s8 nm_ret =
-      convert_channel_measurement_to_starling_obs(&rec_time, meas, &obs);
+  s8 nm_ret = convert_channel_measurement_to_navigation_measurement(
+      &rec_time, meas, &nm);
   if (nm_ret != 0) {
     log_warn_sid(meas->sid,
                  "calc_navigation_measurement() returned an error: %" PRId8,
                  nm_ret);
     return false;
   }
-  *raw_pseudorange = obs.pseudorange;
+  *raw_pseudorange = nm.pseudorange;
   return true;
 }
 

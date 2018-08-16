@@ -25,11 +25,6 @@
 extern "C" {
 #endif /* __cplusplus */
 
-s8 convert_channel_measurement_to_starling_obs(
-    const gps_time_t *rec_time,
-    const channel_measurement_t *meas,
-    starling_obs_t *obs);
-
 s8 calc_navigation_measurement(u8 n_channels,
                                const channel_measurement_t *meas[],
                                navigation_measurement_t *nav_meas[],

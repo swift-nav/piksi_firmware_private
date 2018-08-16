@@ -110,10 +110,7 @@ TEST(test_nav_meas_calc_data, first_test) {
       1899                     /* .wn */
   };
 
-  starling_obs_t starling_obs;
-  convert_channel_measurement_to_starling_obs(
-      &rec_time, &l1ca_meas_in, &starling_obs);
-  convert_starling_obs_to_navigation_measurement(&starling_obs, &out_l1ca);
+  calc_nav_meas(1, &l1ca_meas_in, &p_out_l1ca, &rec_time);
   calc_sat_clock_corrections(1, &p_out_l1ca, e);
   log_debug(" ***** L1CA: *****\n");
   log_debug("raw_pseudorange = %30.20f\n", out_l1ca.raw_pseudorange);
@@ -137,9 +134,7 @@ TEST(test_nav_meas_calc_data, first_test) {
             (unsigned int)out_l1ca.sid.code);
   log_debug("TOR = %30.20f\n", out_l1ca.tot.tow + out_l1ca.pseudorange / GPS_C);
 
-  convert_channel_measurement_to_starling_obs(
-      &rec_time, &l2cm_meas_in, &starling_obs);
-  convert_starling_obs_to_navigation_measurement(&starling_obs, &out_l2cm);
+  calc_nav_meas(1, &l2cm_meas_in, &p_out_l2cm, &rec_time);
   calc_sat_clock_corrections(1, &p_out_l2cm, e);
   log_debug(" \n***** L2CM: *****\n");
   log_debug("raw_pseudorange = %30.20f\n", out_l2cm.raw_pseudorange);
