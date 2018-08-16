@@ -44,14 +44,14 @@ typedef struct {
   float dll_loop_period_s;  /**< DLL loop period [s] */
   float fll_loop_period_s;  /**< FLL loop period [s] */
   float fll_discr_period_s; /**< FLL discriminator period [s] */
-  float code_bw;        /**< DLL bandwidth [Hz] */
-  float code_zeta;      /**< DLL damping factor (unitless) */
-  float code_k;         /**< DLL loop gain (unitless) */
-  float carr_to_code;   /**< PLL/DLL output ratio */
-  float carr_bw;        /**< PLL bandwidth [Hz] */
-  float carr_zeta;      /**< PLL damping factor (unitless) */
-  float carr_k;         /**< PLL loop gain (unitless) */
-  float fll_bw;         /**< FLL bandwidth [Hz] */
+  float code_bw;            /**< DLL bandwidth [Hz] */
+  float code_zeta;          /**< DLL damping factor (unitless) */
+  float code_k;             /**< DLL loop gain (unitless) */
+  float carr_to_code;       /**< PLL/DLL output ratio */
+  float carr_bw;            /**< PLL bandwidth [Hz] */
+  float carr_zeta;          /**< PLL damping factor (unitless) */
+  float carr_k;             /**< PLL loop gain (unitless) */
+  float fll_bw;             /**< FLL bandwidth [Hz] */
 } tl_config_t;
 
 /**

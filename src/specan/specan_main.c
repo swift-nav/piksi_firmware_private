@@ -175,16 +175,16 @@ static void SpecanCore(uint8_t _uWhichBand) {
         pBaseBand[k].r = iSignMagLut[((pSampleBuf[k] >> 0) & 0x3)];
         pBaseBand[k].i = 0;
       }
-      uTraceStart = SPECAN_FFT_SIZE / 2;
-      fStartFreq = fFreqNco1 - fFrontEndSpms / 2;
+      uTraceStart = 0;
+      fStartFreq = fFreqNco1;
       break;
     case 2:
       for (k = 0; k < SPECAN_GRABBER_LENGTH; k++) {
         pBaseBand[k].r = iSignMagLut[((pSampleBuf[k] >> 2) & 0x3)];
         pBaseBand[k].i = 0;
       }
-      uTraceStart = 0;
-      fStartFreq = fFreqNco1;
+      uTraceStart = SPECAN_FFT_SIZE / 2;
+      fStartFreq = fFreqNco1 - fFrontEndSpms / 2;
       break;
     case 3:
       for (k = 0; k < SPECAN_GRABBER_LENGTH; k++) {
