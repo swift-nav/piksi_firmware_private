@@ -120,15 +120,6 @@ typedef struct {
 } tp_lock_detect_params_t;
 
 /**
- * CN0 thresholds.
- */
-typedef struct {
-  float use_dbhz;
-  float drop_dbhz;
-  float ambiguity_dbhz;
-} tp_cn0_thres_t;
-
-/**
  * Tracking profile controller data.
  *
  * The controller uses this container for managing profile switching logic.
@@ -150,7 +141,6 @@ typedef struct {
   tp_lock_detect_params_t ld_phase_params;
   /** Freq lock detector parameters */
   tp_lock_detect_params_t ld_freq_params;
-  tp_cn0_thres_t cn0_thres;
 
   const struct tp_profile_entry *profiles; /**< Profiles switching table. */
 } tp_profile_t;

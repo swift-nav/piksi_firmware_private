@@ -85,8 +85,8 @@ static void tracker_glo_l1of_update(tracker_t *tracker) {
   bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
   bool inlock = ((0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) &&
                  (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK)));
-  double cn0_threshold_dbhz = TP_DEFAULT_CN0_USE_THRESHOLD_DBHZ;
-  cn0_threshold_dbhz += TRACK_CN0_HYSTERESIS_THRES_DBHZ;
+  double cn0_threshold_dbhz = CN0_USE_THRESHOLD_DBHZ;
+  cn0_threshold_dbhz += CN0_HYSTERESIS_THRES_DBHZ;
   bool cn0_high = (tracker->cn0 > cn0_threshold_dbhz);
 
   if (inlock && confirmed && cn0_high) {

@@ -178,9 +178,6 @@ void tp_profile_apply_config(tracker_t *tracker, bool init) {
   }
 
   if (init || cn0_ms != prev_cn0_ms) {
-    tp_cn0_thres_t cn0_thres;
-    tp_profile_get_cn0_thres(&tracker->profile, &cn0_thres);
-
     float cn0_t;
     float cn0_0;
 
@@ -189,7 +186,7 @@ void tp_profile_apply_config(tracker_t *tracker, bool init) {
     } else {
       /* When confirmation is required, set C/N0 below drop threshold and
        * check that is actually grows to correct range */
-      cn0_0 = cn0_thres.drop_dbhz - TP_TRACKER_CN0_CONFIRM_DELTA;
+      cn0_0 = CN0_DROP_THRESHOLD_DBHZ - CN0_CONFIRM_DELTA_DBHZ;
       cn0_t = init ? tracker->cn0 : tracker->cn0_est.cn0_0;
     }
 
@@ -572,8 +569,6 @@ static void tp_tracker_update_bsync(tracker_t *tracker, u32 cycle_flags) {
  */
 static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
   float cn0 = tracker->cn0_est.filter.yn;
-  tp_cn0_thres_t cn0_thres;
-  tp_profile_get_cn0_thres(&tracker->profile, &cn0_thres);
 
   if (0 != (cycle_flags & TPF_CN0_USE)) {
     /* Workaround for
@@ -611,7 +606,7 @@ static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
     }
   }
 
-  if (cn0 > cn0_thres.drop_dbhz) {
+  if (cn0 > CN0_DROP_THRESHOLD_DBHZ) {
     /* When C/N0 is above a drop threshold tracking shall continue. */
     tracker->cn0_above_drop_thres_count = tracker->update_count;
   }
@@ -619,7 +614,7 @@ static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
   bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
   bool inlock = ((0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) ||
                  (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK)));
-  if (cn0 > cn0_thres.drop_dbhz && !confirmed && inlock &&
+  if (cn0 > CN0_DROP_THRESHOLD_DBHZ && !confirmed && inlock &&
       tracker_has_bit_sync(tracker)) {
     tracker->flags |= TRACKER_FLAG_CONFIRMED;
     log_debug_mesid(
@@ -637,18 +632,18 @@ static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
     tracker->cn0 = cn0;
   }
 
-  if (cn0 < cn0_thres.ambiguity_dbhz) {
+  if (cn0 < CN0_AMBIGUITY_THRESHOLD_DBHZ) {
     /* C/N0 has dropped below threshold, indicate that the carrier phase
      * ambiguity is now unknown as cycle slips are likely. */
     tracker_ambiguity_unknown(tracker);
   }
 
-  if (cn0 < cn0_thres.use_dbhz) {
+  if (cn0 < CN0_USE_THRESHOLD_DBHZ) {
     /* Flag as low CN0 measurements. */
     tracker->flags &= ~TRACKER_FLAG_CN0_USABLE;
   }
 
-  if (cn0 > (cn0_thres.use_dbhz + TRACK_CN0_HYSTERESIS_THRES_DBHZ)) {
+  if (cn0 > (CN0_USE_THRESHOLD_DBHZ + CN0_HYSTERESIS_THRES_DBHZ)) {
     /* Flag as high CN0 measurements. */
     tracker->flags |= TRACKER_FLAG_CN0_USABLE;
   }
@@ -881,7 +876,7 @@ static void tp_tracker_flag_outliers(tracker_t *tracker) {
        So let's account for it in max_diff_hz */
     double max_diff_hz = max_freq_rate_hz_per_s * elapsed_s;
     /* If raw CN0 is high the outliers are likely due to genuine acceleration */
-    bool low_cn0 = (tracker->cn0_est.cn0_raw_dbhz < TP_OUTLIERS_CN0_THRES_DBHZ);
+    bool low_cn0 = (tracker->cn0_est.cn0_raw_dbhz < CN0_OUTLIERS_THRES_DBHZ);
     if (low_cn0 && (fabs(diff_hz) > max_diff_hz)) {
       log_debug_mesid(
           tracker->mesid, "Doppler difference %.2f is too high", diff_hz);

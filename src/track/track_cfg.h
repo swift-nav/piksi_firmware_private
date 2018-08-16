@@ -68,35 +68,23 @@
 
 /** False lock detector filter interval in ms. */
 #define TP_TRACKER_ALIAS_DURATION_MS (3000)
-/** Initial C/N0 for confirmation [dB/Hz] */
-#define TP_TRACKER_CN0_CONFIRM_DELTA (2.f)
-
-/** C/N0 threshold long interval [ms] */
-#define TRACK_CN0_THRES_COUNT_LONG 2000
-
-/** C/N0 threshold short interval [ms] */
-#define TRACK_CN0_THRES_COUNT_SHORT 100
-
-/** C/N0 hysteresis threshold */
-#define TRACK_CN0_HYSTERESIS_THRES_DBHZ (3.f)
-
-/* The outliers are likely due to genuine acceleration if CN0 > 35.f */
-#define TP_OUTLIERS_CN0_THRES_DBHZ 35.f
-
 /** Correct the false lock if the absolute detected freq error is more than
     this value in [Hz]. In practice, observed alias frequencies were
     above 12Hz, so 10Hz is deemed a reasonable threshold. */
 #define TRACK_ALIAS_THRESHOLD_HZ 10.f
 
-/** C/N0 threshold when we can't say if we are still tracking */
-#define TP_HARD_CN0_DROP_THRESHOLD_DBHZ (18.f)
-
-/** Default C/N0 threshold in dB/Hz for bit polarity ambiguity */
-#define TP_DEFAULT_CN0_AMBIGUITY_THRESHOLD_DBHZ (30.f)
-/** Default C/N0 threshold in dB/Hz for dropping track (for 1 ms integration) */
-#define TP_DEFAULT_CN0_DROP_THRESHOLD_DBHZ (31.f)
+/** Initial C/N0 for confirmation [dB/Hz] */
+#define CN0_CONFIRM_DELTA_DBHZ (2.f)
+/** C/N0 hysteresis threshold */
+#define CN0_HYSTERESIS_THRES_DBHZ (3.f)
+/* The outliers are likely due to genuine acceleration if CN0 > 35.f */
+#define CN0_OUTLIERS_THRES_DBHZ 35.f
+/** Default C/N0 threshold in dB/Hz for dropping track */
+#define CN0_DROP_THRESHOLD_DBHZ (18.f)
 /** C/N0 threshold for measurements use */
-#define TP_DEFAULT_CN0_USE_THRESHOLD_DBHZ (27.f)
+#define CN0_USE_THRESHOLD_DBHZ (27.f)
+/** Default C/N0 threshold in dB/Hz for bit polarity ambiguity */
+#define CN0_AMBIGUITY_THRESHOLD_DBHZ (30.f)
 
 #define TL_BWT_MAX (18.f * 0.020f)
 
