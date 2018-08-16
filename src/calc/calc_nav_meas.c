@@ -14,8 +14,8 @@
 #include <string.h>
 
 #include "calc_nav_meas.h"
-#include "starling_obs_converter.h"
 #include "me_constants.h"
+#include "starling_obs_converter.h"
 
 #include <libswiftnav/coord_system.h>
 #include <libswiftnav/cycle_slip.h>

@@ -29,9 +29,9 @@
 #include <starling/starling_platform.h>
 
 #include "board/nap/track_channel.h"
+#include "calc_nav_meas.h"
 #include "calc_pvt_common.h"
 #include "calc_pvt_me.h"
-#include "calc_nav_meas.h"
 #include "main.h"
 #include "manage.h"
 #include "ndb/ndb.h"
@@ -162,7 +162,7 @@ static void me_post_observations(u8 n,
    * pushing the message into the mailbox then we just wasted an
    * observation from the mailbox for no good reason. */
 
-  obs_array_t *obs_array= platform_mailbox_item_alloc(MB_ID_ME_OBS);
+  obs_array_t *obs_array = platform_mailbox_item_alloc(MB_ID_ME_OBS);
   if (NULL == obs_array) {
     log_error("ME: Could not allocate pool for obs!");
     return;
@@ -174,8 +174,6 @@ static void me_post_observations(u8 n,
     obs_array->t = *_t;
   }
   fill_starling_obs_array_from_navigation_measurements(obs_array, _t, n, _meas);
-
-  
 
   errno_t ret = platform_mailbox_post(MB_ID_ME_OBS, obs_array, MB_NONBLOCKING);
   if (ret != 0) {

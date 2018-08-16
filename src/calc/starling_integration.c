@@ -1152,16 +1152,17 @@ static int read_obs_rover(int blocking, me_msg_obs_t *me_msg) {
   if (new_obs_array) {
     if (STARLING_READ_OK == ret) {
       uncollapsed_obss_t uncollapsed_obss;
-      convert_starling_obs_array_to_uncollapsed_obss(new_obs_array, &uncollapsed_obss);
+      convert_starling_obs_array_to_uncollapsed_obss(new_obs_array,
+                                                     &uncollapsed_obss);
 
       assert(uncollapsed_obss.n <= MAX_CHANNELS);
       me_msg->obs_time = uncollapsed_obss.tor;
       me_msg->size = uncollapsed_obss.n;
       if (uncollapsed_obss.n) {
         MEMCPY_S(me_msg->obs,
-            sizeof(me_msg->obs),
-            uncollapsed_obss.nm,
-            uncollapsed_obss.n * sizeof(navigation_measurement_t));
+                 sizeof(me_msg->obs),
+                 uncollapsed_obss.nm,
+                 uncollapsed_obss.n * sizeof(navigation_measurement_t));
       }
     } else {
       /* Erroneous behavior for fetch to return non-NULL pointer and indicate
@@ -1180,7 +1181,8 @@ static int read_obs_base(int blocking, obss_t *obs) {
       platform_mailbox_fetch(MB_ID_BASE_OBS, (void **)&new_obs_array, blocking);
   if (new_obs_array) {
     if (STARLING_READ_OK == ret) {
-      ret = convert_starling_obs_array_to_obss(new_obs_array, disable_raim, obs);
+      ret =
+          convert_starling_obs_array_to_obss(new_obs_array, disable_raim, obs);
     } else {
       /* Erroneous behavior for fetch to return non-NULL pointer and indicate
        * read failure. */

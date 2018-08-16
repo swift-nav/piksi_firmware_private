@@ -44,12 +44,12 @@ typedef struct {
 } uncollapsed_obss_t;
 
 void convert_starling_obs_to_navigation_measurement(
-    starling_obs_t *starling_obs, navigation_measurement_t *nm); 
+    starling_obs_t *starling_obs, navigation_measurement_t *nm);
 
 void convert_starling_obs_array_to_uncollapsed_obss(obs_array_t *obs_array,
                                                     uncollapsed_obss_t *obss);
 
-int convert_starling_obs_array_to_obss(obs_array_t *obs_array, 
+int convert_starling_obs_array_to_obss(obs_array_t *obs_array,
                                        bool is_raim_disabled,
                                        obss_t *obss);
 

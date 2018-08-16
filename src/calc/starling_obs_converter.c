@@ -28,9 +28,8 @@
 #include <starling/starling.h>
 #include <starling/starling_platform.h>
 
-#include "ndb/ndb.h"
+#include "starling_external_dependencies.h"
 #include "starling_obs_converter.h"
-#include "track/track_sid_db.h"
 
 /* Count the number of satellites in a given constellation for a
  * composite observation. */
@@ -84,8 +83,6 @@ void convert_starling_obs_to_navigation_measurement(
     nm->elevation = 0;
   }
 }
-
-
 
 /* Converter for moving into the intermediary uncollapsed observation type.
  * This performs some preliminary filtering of the observations in addition to
@@ -198,7 +195,7 @@ static void collapse_obss(uncollapsed_obss_t *uncollapsed_obss, obss_t *obss) {
  *
  * Zero return indicates successful conversion.
  */
-int convert_starling_obs_array_to_obss(obs_array_t *obs_array, 
+int convert_starling_obs_array_to_obss(obs_array_t *obs_array,
                                        bool is_raim_disabled,
                                        obss_t *obss) {
   /* We keep this around to track the previous observation. */
