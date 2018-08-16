@@ -60,7 +60,13 @@ typedef enum {
 
   TP_TM_20MS_20MS,   /**< 20 ms */
   TP_TM_20MS_NH20MS, /**< 20 ms */
-  TP_TM_20MS_SC4     /**< 20 ms */
+  TP_TM_20MS_SC4,    /**< 20 ms */
+
+  TP_TM_200MS_20MS,   /**< 200 ms */
+  TP_TM_200MS_10MS,   /**< 200 ms */
+  TP_TM_200MS_2MS,    /**< 200 ms */
+  TP_TM_200MS_NH20MS, /**< 200 ms */
+  TP_TM_200MS_SC4     /**< 200 ms */
 } tp_tm_e;
 
 /**
@@ -417,7 +423,7 @@ typedef struct {
   lock_detect_t ld_freq;       /**< Frequency lock detector state. */
   lp1_filter_t xcorr_filter;   /**< Low-pass SV POV doppler filter */
   tp_tm_e tracking_mode;       /**< Tracking mode */
-  u16 cycle_no : 5;            /**< Cycle index inside current
+  u8 cycle_no;                 /**< Cycle index inside current
                                 *   integration mode. */
   u16 has_next_params : 1;     /**< Flag if stage transition is in
                                 *   progress */

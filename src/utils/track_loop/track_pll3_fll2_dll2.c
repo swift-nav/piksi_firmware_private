@@ -45,6 +45,9 @@ static void update_params(tl_pll3_state_t *s, const tl_config_t *config) {
   }
   s->discr_cnt = 0;
 
+  s->dll_discr_period_s = config->dll_discr_period_s;
+  s->dll_discr_cnt = 0;
+
   /* PLL constants */
   float omega_0 = config->carr_bw / 0.7845f;
   float omega_0_2 = omega_0 * omega_0;
@@ -108,6 +111,41 @@ void tl_pll3_retune(tl_pll3_state_t *s, const tl_config_t *config) {
 }
 
 /**
+ * Updates dll loop discriminator state
+ *
+ * \param[in,out] s      FLL/PLL filter configuration object
+ * \param[in]     cs     Complex valued epl correlations
+ *
+ * \return None
+ */
+void tl_pll3_update_dll_discr(tl_pll3_state_t *s, const correlation_t cs[3]) {
+  s->dll_discr_sum_hz += dll_discriminator(cs);
+  s->dll_discr_cnt++;
+  assert(0 != s->dll_discr_cnt);
+}
+
+/**
+ * Updates dll filter state
+ * \param s Loop state
+ */
+void tl_pll3_update_dll(tl_pll3_state_t *s) {
+  /* Code loop */
+  float code_error = 0;
+  if (s->dll_discr_cnt > 0) {
+    code_error = s->dll_discr_sum_hz / s->dll_discr_cnt;
+  }
+  s->dll_discr_cnt = 0;
+  s->dll_discr_sum_hz = 0;
+  s->code_freq =
+      s->code_c1 * code_error +
+      0.5f * (2.0f * s->code_vel + s->code_c2 * s->T_DLL * code_error);
+  s->code_vel += s->code_c2 * s->T_DLL * code_error;
+
+  /* Carrier aiding */
+  s->code_freq += s->carr_freq * s->carr_to_code;
+}
+
+/**
  * Updates pll/dll loop filter state
  *
  * \param[in,out] s      FLL/PLL filter configuration object
@@ -116,9 +154,9 @@ void tl_pll3_retune(tl_pll3_state_t *s, const tl_config_t *config) {
  *
  * \return None
  */
-void tl_pll3_update_dll(tl_pll3_state_t *s,
-                        const correlation_t cs[3],
-                        bool costas) {
+void tl_pll3_update_loop(tl_pll3_state_t *s,
+                         const correlation_t cs[3],
+                         bool costas) {
   /* Perform FLL loop update now within this function. */
   float freq_error = 0;
   if ((s->fll_bw_hz > 0) && (0 != s->discr_cnt)) {
@@ -149,7 +187,12 @@ void tl_pll3_update_dll(tl_pll3_state_t *s,
   s->carr_acc += carr_acc_change;
 
   /* Code loop */
-  float code_error = dll_discriminator(cs);
+  float code_error = 0;
+  if (s->dll_discr_cnt > 0) {
+    code_error = s->dll_discr_sum_hz / s->dll_discr_cnt;
+  }
+  s->dll_discr_cnt = 0;
+  s->dll_discr_sum_hz = 0;
   s->code_freq =
       s->code_c1 * code_error +
       0.5f * (2.0f * s->code_vel + s->code_c2 * s->T_DLL * code_error);
