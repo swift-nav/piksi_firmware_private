@@ -1140,18 +1140,29 @@ static void profile_low_latency_thread(enum ProfileDirective directive) {
 
 /* TODO(kevin) refactor common code. */
 static int read_obs_rover(int blocking, me_msg_obs_t *me_msg) {
-  me_msg_obs_t *local_me_msg = NULL;
+  obs_array_t *new_obs_array = NULL;
   errno_t ret =
-      platform_mailbox_fetch(MB_ID_ME_OBS, (void **)&local_me_msg, blocking);
-  if (local_me_msg) {
+      platform_mailbox_fetch(MB_ID_ME_OBS, (void **)&new_obs_array, blocking);
+  if (new_obs_array) {
     if (STARLING_READ_OK == ret) {
-      *me_msg = *local_me_msg;
+      uncollapsed_obss_t uncollapsed_obss;
+      convert_starling_obs_array_to_uncollapsed_obss(new_obs_array, &uncollapsed_obss);
+
+      assert(uncollapsed_obss.n <= MAX_CHANNELS);
+      me_msg->obs_time = uncollapsed_obss.tor;
+      me_msg->size = uncollapsed_obss.n;
+      if (uncollapsed_obss.n) {
+        MEMCPY_S(me_msg->obs,
+            sizeof(me_msg->obs),
+            uncollapsed_obss.nm,
+            uncollapsed_obss.n * sizeof(navigation_measurement_t));
+      }
     } else {
       /* Erroneous behavior for fetch to return non-NULL pointer and indicate
        * read failure. */
       log_error("Rover obs mailbox fetch failed with %d", ret);
     }
-    platform_mailbox_item_free(MB_ID_ME_OBS, local_me_msg);
+    platform_mailbox_item_free(MB_ID_ME_OBS, new_obs_array);
   }
   return ret;
 }
