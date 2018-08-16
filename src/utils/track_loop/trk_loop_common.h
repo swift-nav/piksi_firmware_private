@@ -63,8 +63,8 @@ typedef struct {
   float carr_freq; /**< Frequency doppler */
   float code_freq; /**< Code doppler */
 
-  float T_DLL; /**< DLL/PLL Integration interval */
-  float T_FLL; /**< FLL Integration interval */
+  float T_DLL;  /**< DLL Integration interval */
+  float T_FPLL; /**< FLL & PLL Integration interval */
 
   float prev_I;        /**< FLL: I[n-1] */
   float prev_Q;        /**< FLL: Q[n-1] */

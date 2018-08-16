@@ -25,7 +25,7 @@
  * \return None
  */
 static void update_params(tl_pll3_state_t *s, const tl_config_t *config) {
-  s->T_FLL = config->fll_loop_period_s;
+  s->T_FPLL = config->fll_loop_period_s;
   s->T_DLL = config->dll_loop_period_s;
   s->fll_bw_hz = config->fll_bw;
 
@@ -139,10 +139,10 @@ void tl_pll3_update_dll(tl_pll3_state_t *s,
   }
 
   float carr_acc_change =
-      s->carr_c3 * s->T_DLL * carr_error + s->freq_c2 * s->T_FLL * freq_error;
+      s->carr_c3 * s->T_FPLL * carr_error + s->freq_c2 * s->T_FPLL * freq_error;
   float carr_vel_change =
-      s->T_DLL * (s->carr_c2 * carr_error + s->freq_c1 * freq_error +
-                  0.5f * (2.0f * s->carr_acc + carr_acc_change));
+      s->T_FPLL * (s->carr_c2 * carr_error + s->freq_c1 * freq_error +
+                   0.5f * (2.0f * s->carr_acc + carr_acc_change));
   s->carr_freq =
       s->carr_c1 * carr_error + 0.5f * (2.0f * s->carr_vel + carr_vel_change);
   s->carr_vel += carr_vel_change;

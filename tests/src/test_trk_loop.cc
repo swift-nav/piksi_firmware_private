@@ -78,7 +78,7 @@ TEST(tracking_loop_test, test_aided) {
   EXPECT_LT(fabsf(stl_f2p3.carr_freq - carr_freq), LOW_TOL);
   EXPECT_LT(fabsf(stl_f2p3.code_freq), LOW_TOL);
   EXPECT_LT(fabsf(stl_f2p3.T_DLL - dll_loop_period_s), LOW_TOL);
-  EXPECT_LT(fabsf(stl_f2p3.T_FLL - fll_loop_period_s), LOW_TOL);
+  EXPECT_LT(fabsf(stl_f2p3.T_FPLL - fll_loop_period_s), LOW_TOL);
   EXPECT_LT(fabsf(stl_f2p3.prev_I), LOW_TOL);
   EXPECT_LT(fabsf(stl_f2p3.prev_Q), LOW_TOL);
   EXPECT_LT(fabsf(stl_f2p3.discr_sum_hz), LOW_TOL);
@@ -101,7 +101,7 @@ TEST(tracking_loop_test, test_aided) {
   EXPECT_LT(fabsf(rates.acceleration - acceleration), LOW_TOL);
 
   tl_pll3_retune(&stl_f2p3, &config);
-  EXPECT_LT(fabsf(stl_f2p3.T_FLL - fll_loop_period_s), LOW_TOL);
+  EXPECT_LT(fabsf(stl_f2p3.T_FPLL - fll_loop_period_s), LOW_TOL);
   EXPECT_LT(fabsf(stl_f2p3.T_DLL - dll_loop_period_s), LOW_TOL);
   EXPECT_LT(fabsf(stl_f2p3.freq_c1 - 92.452835f), HIGH_TOL);
   EXPECT_LT(fabsf(stl_f2p3.freq_c2 - 4360.983398f), HIGH_TOL);
