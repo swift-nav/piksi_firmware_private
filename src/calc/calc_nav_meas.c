@@ -72,11 +72,11 @@ static s8 convert_channel_measurement_to_navigation_measurement(
   gps_time_match_weeks(&nm->tot, rec_time);
 
   /* Compute the carrier phase measurement. */
-  nm->carrier_phase = meas->carrier_phase;
+  nm->raw_carrier_phase = meas->carrier_phase;
 
   /* For raw Doppler we use the instantaneous carrier frequency from the
    * tracking loop. */
-  nm->doppler = meas->carrier_freq;
+  nm->raw_measured_doppler = meas->carrier_freq;
 
   /* Copy over remaining values. */
   nm->cn0 = meas->cn0;
@@ -92,16 +92,16 @@ static s8 convert_channel_measurement_to_navigation_measurement(
 
   /* The raw pseudorange is just the time of flight multiplied by the speed of
    * light. */
-  nm->pseudorange = GPS_C * (gpsdifftime(&meas_tor, &nm->tot));
+  nm->raw_pseudorange = GPS_C * (gpsdifftime(&meas_tor, &nm->tot));
 
   /* Finally, propagate measurement back to reference time */
   nm->tot.tow -= dt;
   normalize_gps_time(&nm->tot);
 
   /* Propagate pseudorange with raw doppler times wavelength */
-  nm->pseudorange += dt * nm->doppler * lambda;
+  nm->raw_pseudorange += dt * nm->raw_measured_doppler * lambda;
   /* Propagate carrier phase with carrier frequency */
-  nm->carrier_phase += dt * nm->doppler;
+  nm->raw_carrier_phase += dt * nm->raw_measured_doppler;
 
   /* Compute flags.
    *
