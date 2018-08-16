@@ -109,6 +109,7 @@ static void fill_starling_obs_array_from_navigation_measurements(
       obs_array->observations[i].tot = *t;
       obs_array->observations[i].tot.tow -=
           obs_array->observations[i].pseudorange / GPS_C;
+      normalize_gps_time(&obs_array->observations[i].tot);
     }
   }
 }
