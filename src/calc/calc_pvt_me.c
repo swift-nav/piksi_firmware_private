@@ -770,30 +770,8 @@ static void me_calc_pvt_thread(void *arg) {
           current_fix.clock_drift,
           smoothed_drift);
 
-      for (u8 i = 0; i < n_ready; i++) {
-        navigation_measurement_t *nm = &nav_meas[i];
-
-        /* remove clock offset from the measurement */
-        remove_clock_offset(nm, output_offset, smoothed_drift, current_tc);
-
-        /* Recompute satellite position, velocity and clock errors */
-        /* NOTE: calc_sat_state changes `tot` */
-        if (0 != calc_sat_state(&e_meas[i],
-                                &(nm->tot),
-                                nm->sat_pos,
-                                nm->sat_vel,
-                                nm->sat_acc,
-                                &(nm->sat_clock_err),
-                                &(nm->sat_clock_err_rate),
-                                &(nm->IODC),
-                                &(nm->IODE))) {
-          log_error_sid(nm->sid, "Recomputing sat state failed");
-          continue;
-        }
-      }
-
       /* Send the observations. */
-      me_send_all(n_ready, nav_meas, e_meas, &output_time);
+      me_send_all(n_ready, nav_meas, e_meas, &current_fix.time);
     } else {
       log_info("clock_offset %.3f s greater than OBS_PROPAGATION_LIMIT",
                output_offset);
