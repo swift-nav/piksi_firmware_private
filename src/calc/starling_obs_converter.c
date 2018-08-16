@@ -30,7 +30,6 @@
 
 #include "calc_base_obs.h"
 #include "calc_pvt_me.h"
-#include "calc_starling_obs_array.h"
 #include "manage.h"
 #include "nav_msg/cnav_msg_storage.h"
 #include "ndb/ndb.h"

@@ -15,7 +15,7 @@
 #include <libswiftnav/nav_meas.h>
 
 #include "board/nap/track_channel.h"
-#include "calc/calc_starling_obs_array.h"
+#include "calc/calc_nav_meas.h"
 #include "timing/timing.h"
 #include "track_api.h"
 #include "track_flags.h"

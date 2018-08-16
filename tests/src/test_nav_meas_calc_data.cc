@@ -23,7 +23,7 @@
 #include <libswiftnav/nav_meas.h>
 #include <libswiftnav/observation.h>
 
-#include "calc_starling_obs_array.h"
+#include "calc_nav_meas.h"
 
 #include "gtest/gtest.h"
 
