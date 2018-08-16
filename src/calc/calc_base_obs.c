@@ -44,8 +44,6 @@
 #include "simulator.h"
 #include "timing/timing.h"
 
-bool disable_raim = false;
-
 /** \defgroup base_obs Base station observation handling
  * \{ */
 
@@ -382,9 +380,6 @@ static void ics_msg_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
 
 /** Setup the base station observation handling subsystem. */
 void base_obs_setup() {
-  // The base obs can optionally enable RAIM exclusion algorithm.
-  SETTING("solution", "disable_raim", disable_raim, TYPE_BOOL);
-
   platform_mailbox_init(MB_ID_BASE_OBS);
 
   /* Register callbacks on base station messages. */

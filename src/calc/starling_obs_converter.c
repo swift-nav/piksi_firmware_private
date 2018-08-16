@@ -28,24 +28,9 @@
 #include <starling/starling.h>
 #include <starling/starling_platform.h>
 
-#include "calc_base_obs.h"
-#include "calc_pvt_me.h"
-#include "manage.h"
-#include "nav_msg/cnav_msg_storage.h"
 #include "ndb/ndb.h"
-#include "nmea/nmea.h"
-#include "peripherals/leds.h"
-#include "position/position.h"
-#include "sbp.h"
-#include "sbp_utils.h"
-#include "settings/settings.h"
-#include "shm/shm.h"
-#include "signal_db/signal_db.h"
-#include "simulator.h"
 #include "starling_obs_converter.h"
-#include "timing/timing.h"
 #include "track/track_sid_db.h"
-
 
 /* Count the number of satellites in a given constellation for a
  * composite observation. */
@@ -213,7 +198,9 @@ static void collapse_obss(uncollapsed_obss_t *uncollapsed_obss, obss_t *obss) {
  *
  * Zero return indicates successful conversion.
  */
-int convert_starling_obs_array_to_obss(obs_array_t *obs_array, obss_t *obss) {
+int convert_starling_obs_array_to_obss(obs_array_t *obs_array, 
+                                       bool is_raim_disabled,
+                                       obss_t *obss) {
   /* We keep this around to track the previous observation. */
   static bool has_base_position = false;
   static double base_position_ecef[3];
@@ -264,7 +251,7 @@ int convert_starling_obs_array_to_obss(obs_array_t *obs_array, obss_t *obss) {
     s32 ret = calc_PVT(obss->n,
                        obss->nm,
                        &obss->tor,
-                       disable_raim,
+                       is_raim_disabled,
                        true,
                        GPS_ONLY,
                        &soln,

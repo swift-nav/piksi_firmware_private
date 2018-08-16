@@ -29,7 +29,6 @@
 #include <starling/starling_platform.h>
 
 #include "board/nap/track_channel.h"
-#include "calc_base_obs.h"
 #include "calc_pvt_common.h"
 #include "calc_pvt_me.h"
 #include "calc_nav_meas.h"
@@ -45,6 +44,7 @@
 #include "settings/settings.h"
 #include "shm/shm.h"
 #include "simulator.h"
+#include "starling_integration.h"
 #include "starling_obs_converter.h"
 #include "system_monitor/system_monitor.h"
 #include "timing/timing.h"

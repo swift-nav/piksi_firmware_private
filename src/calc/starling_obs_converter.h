@@ -49,6 +49,8 @@ void convert_starling_obs_to_navigation_measurement(
 void convert_starling_obs_array_to_uncollapsed_obss(obs_array_t *obs_array,
                                                     uncollapsed_obss_t *obss);
 
-int convert_starling_obs_array_to_obss(obs_array_t *obs_array, obss_t *obss);
+int convert_starling_obs_array_to_obss(obs_array_t *obs_array, 
+                                       bool is_raim_disabled,
+                                       obss_t *obss);
 
 #endif

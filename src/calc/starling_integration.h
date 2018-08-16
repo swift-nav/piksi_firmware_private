@@ -28,6 +28,7 @@ extern bool enable_glonass;
 extern bool enable_galileo;
 extern bool enable_beidou;
 extern bool send_heading;
+extern bool disable_raim;
 
 typedef struct {
   piksi_systime_t systime;

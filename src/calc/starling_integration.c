@@ -81,6 +81,9 @@ bool enable_beidou = true;
 bool send_heading = false;
 double heading_offset = 0.0;
 
+/* TODO(kevin) what to do about this? */
+bool disable_raim = false;
+
 /*******************************************************************************
  * Locals
  ******************************************************************************/
@@ -1003,6 +1006,9 @@ static void initialize_starling_settings(void) {
   int TYPE_GNSS_FILTER =
       settings_type_register_enum(dgnss_filter_enum, &dgnss_filter_setting);
 
+  // The base obs can optionally enable RAIM exclusion algorithm.
+  SETTING("solution", "disable_raim", disable_raim, TYPE_BOOL);
+
   SETTING_NOTIFY("solution",
                  "dgnss_filter",
                  dgnss_filter_mode,
@@ -1174,7 +1180,7 @@ static int read_obs_base(int blocking, obss_t *obs) {
       platform_mailbox_fetch(MB_ID_BASE_OBS, (void **)&new_obs_array, blocking);
   if (new_obs_array) {
     if (STARLING_READ_OK == ret) {
-      ret = convert_starling_obs_array_to_obss(new_obs_array, obs);
+      ret = convert_starling_obs_array_to_obss(new_obs_array, disable_raim, obs);
     } else {
       /* Erroneous behavior for fetch to return non-NULL pointer and indicate
        * read failure. */
