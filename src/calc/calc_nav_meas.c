@@ -16,6 +16,7 @@
 #include "calc_nav_meas.h"
 #include "me_constants.h"
 #include "starling_obs_converter.h"
+#include "track/track_sid_db.h"
 
 #include <libswiftnav/coord_system.h>
 #include <libswiftnav/cycle_slip.h>
@@ -78,6 +79,13 @@ static s8 convert_channel_measurement_to_navigation_measurement(
    * tracking loop. */
   nm->raw_measured_doppler = meas->carrier_freq;
 
+  /* Get the approximate elevation from track DB */
+  if (!track_sid_db_elevation_degrees_get(nm->sid, &nm->elevation)) {
+    /* Use 0 degrees as unknown elevation to assign it the smallest weight */
+    log_debug_sid(nm->sid, "Elevation unknown, using 0");
+    nm->elevation = 0;
+  }
+
   /* Copy over remaining values. */
   nm->cn0 = meas->cn0;
   nm->lock_time = meas->lock_time;
@@ -123,6 +131,9 @@ static s8 convert_channel_measurement_to_navigation_measurement(
   }
   nm->flags |= NAV_MEAS_FLAG_CN0_VALID;
 
+  nm->IODE = INVALID_IODE;
+  nm->IODC = INVALID_IODC;
+
   return 0;
 }
 
@@ -150,13 +161,12 @@ s8 calc_navigation_measurement(u8 n_channels,
 
   assert(n_channels <= MAX_CHANNELS);
   for (u8 i = 0; i < n_channels; ++i) {
-    s8 error = convert_channel_measurement_to_navigation_measurement(
+    s8 ret = convert_channel_measurement_to_navigation_measurement(
         rec_time, meas[i], nav_meas[i]);
-    if (error) {
-      return error;
+    if (ret) {
+      return ret;
     }
   }
-
   return 0;
 }
 
