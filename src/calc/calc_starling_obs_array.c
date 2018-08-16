@@ -14,8 +14,8 @@
 #include <string.h>
 
 #include "calc_starling_obs_array.h"
+#include "starling_obs_converter.h"
 #include "me_constants.h"
-#include "track/track_sid_db.h"
 
 #include <libswiftnav/coord_system.h>
 #include <libswiftnav/cycle_slip.h>
@@ -26,32 +26,6 @@
 /* Warning threshold for the difference between TDCP and measured Doppler.
  * (85Hz threshold allows for max 1 ms error in the timestamp difference.) */
 #define TDCP_MAX_DELTA_HZ 85
-
-/* Copy all fields from a Starling-style obs type into the
- * corresponding navigation measurement fields. As of
- * (August 2018), all fields have identical units. */
-void convert_starling_obs_to_navigation_measurement(
-    starling_obs_t *starling_obs, navigation_measurement_t *nm) {
-  /* Most fields are a direct conversion. */
-  nm->sid = starling_obs->sid;
-  nm->tot = starling_obs->tot;
-  nm->raw_pseudorange = starling_obs->pseudorange;
-  nm->raw_carrier_phase = starling_obs->carrier_phase;
-  nm->raw_measured_doppler = starling_obs->doppler;
-  nm->cn0 = starling_obs->cn0;
-  nm->lock_time = starling_obs->lock_time;
-  nm->flags = starling_obs->flags;
-
-  /* Some other fields we also provide an initial value to be overwritten later.
-   */
-  nm->IODE = INVALID_IODE;
-  nm->IODC = INVALID_IODC;
-  if (!track_sid_db_elevation_degrees_get(nm->sid, &nm->elevation)) {
-    /* Use 0 degrees as unknown elevation to assign it the smallest weight */
-    log_debug_sid(nm->sid, "Elevation unknown, using 0");
-    nm->elevation = 0;
-  }
-}
 
 /* Convert a single channel measurement into a single navigation measurement. */
 s8 convert_channel_measurement_to_starling_obs(

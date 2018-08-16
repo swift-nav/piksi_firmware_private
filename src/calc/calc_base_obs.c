@@ -46,8 +46,6 @@
 
 bool disable_raim = false;
 
-extern void update_obss(obs_array_t *obs_array);
-
 /** \defgroup base_obs Base station observation handling
  * \{ */
 
@@ -146,6 +144,47 @@ static bool is_first_message_in_obs_sequence(u8 count) { return count == 0; }
  * by comparing the "count" and "total" fields. */
 static bool is_final_message_in_obs_sequence(u8 count, u8 total) {
   return count == total - 1;
+}
+
+/** Update the #base_obss state given a new set of obss.
+ * First sorts by PRN and computes the TDCP Doppler for the observation set. If
+ * #base_pos_known is false then a single point position solution is also
+ * calculated. Next the `has_pos`, `pos_ecef` and `sat_dists` fields are filled
+ * in. Finally the #base_obs_received semaphore is flagged to indicate that new
+ * observations are available.
+ *
+ * \note This function is stateful as it must store the previous observation
+ *       set for the TDCP Doppler.
+ */
+static void update_obss(obs_array_t *obs_array) {
+  /* Warn on receiving observations which are very old. This may be indicative
+   * of a connectivity problem. Obviously, if we don't have a good local time
+   * estimate, then we can't perform this check. */
+  gps_time_t now = get_current_time();
+  if (get_time_quality() > TIME_UNKNOWN &&
+      gpsdifftime(&now, &obs_array->t) > BASE_LATENCY_TIMEOUT) {
+    log_info("Communication latency exceeds 15 seconds");
+  }
+
+  /* Before doing anything, try to get new observation to post to. */
+  obs_array_t *new_obs_array = platform_mailbox_item_alloc(MB_ID_BASE_OBS);
+  if (new_obs_array == NULL) {
+    log_warn("Base obs pool full, discarding base obs at: wn: %d, tow: %.2f",
+             obs_array->t.wn,
+             obs_array->t.tow);
+    return;
+  }
+
+  // TODO(Kevin) remove this copy.
+  *new_obs_array = *obs_array;
+  /* If we successfully get here without returning early, then go ahead and
+   * post into the Starling engine. */
+  errno_t post_error =
+      platform_mailbox_post(MB_ID_BASE_OBS, new_obs_array, MB_NONBLOCKING);
+  if (post_error) {
+    log_error("Base obs mailbox should have space!");
+    platform_mailbox_item_free(MB_ID_BASE_OBS, new_obs_array);
+  }
 }
 
 /** SBP callback for observation messages.

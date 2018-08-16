@@ -30,9 +30,6 @@ s8 convert_channel_measurement_to_starling_obs(
     const channel_measurement_t *meas,
     starling_obs_t *obs);
 
-void convert_starling_obs_to_navigation_measurement(
-    starling_obs_t *starling_obs, navigation_measurement_t *nm);
-
 s8 calc_navigation_measurement(u8 n_channels,
                                const channel_measurement_t *meas[],
                                navigation_measurement_t *nav_meas[],
