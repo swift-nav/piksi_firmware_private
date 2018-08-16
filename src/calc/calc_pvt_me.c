@@ -12,7 +12,6 @@
 #include <assert.h>
 #include <float.h>
 #include <stdio.h>
-//#include <string.h>
 
 #include <libsbp/sbp.h>
 #include <libswiftnav/constants.h>
