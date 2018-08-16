@@ -16,8 +16,8 @@
 /* For the time being, Starling has a couple unresolved external dependencies.
  * They are enumerated here.
  *
- * As we work to the functionality provided in these functions with implementations
- * internal to Starling, this file should vanish. */
+ * As we work to the functionality provided in these functions with
+ * implementations internal to Starling, this file should vanish. */
 
 typedef enum ndb_op_code {
   NDB_ERR_NONE = 0,         /**< No error */
@@ -35,13 +35,13 @@ typedef enum ndb_op_code {
   NDB_ERR_GPS_TIME_MISSING, /**< GPS time missing, can't use NDB data */
 } ndb_op_code_t;
 
-ndb_op_code_t ndb_ephemeris_read(const gnss_signal_t sid, ephemeris_t *ephemeris);
+ndb_op_code_t ndb_ephemeris_read(const gnss_signal_t sid,
+                                 ephemeris_t *ephemeris);
 ndb_op_code_t ndb_iono_corr_read(ionosphere_t *iono);
 
-bool track_sid_db_elevation_degrees_get(const gnss_signal_t sid, double *elevation);
+bool track_sid_db_elevation_degrees_get(const gnss_signal_t sid,
+                                        double *elevation);
 
 bool shm_navigation_unusable(const gnss_signal_t sid);
 
 #endif
-
-
