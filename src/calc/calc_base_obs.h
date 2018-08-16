@@ -33,7 +33,6 @@
 #define BASE_OBS_N_BUFF 5
 
 /* \} */
-extern bool disable_raim;
 
 extern bool base_pos_known;
 extern double base_pos_ecef[3];

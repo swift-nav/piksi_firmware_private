@@ -28,24 +28,8 @@
 #include <starling/starling.h>
 #include <starling/starling_platform.h>
 
-#include "calc_base_obs.h"
-#include "calc_pvt_me.h"
-#include "calc_starling_obs_array.h"
-#include "manage.h"
-#include "nav_msg/cnav_msg_storage.h"
-#include "ndb/ndb.h"
-#include "nmea/nmea.h"
-#include "peripherals/leds.h"
-#include "position/position.h"
-#include "sbp.h"
-#include "sbp_utils.h"
-#include "settings/settings.h"
-#include "shm/shm.h"
-#include "signal_db/signal_db.h"
-#include "simulator.h"
+#include "starling_external_dependencies.h"
 #include "starling_obs_converter.h"
-#include "timing/timing.h"
-
 
 /* Count the number of satellites in a given constellation for a
  * composite observation. */
@@ -72,6 +56,32 @@ static int compare_starling_obs_by_sid(const void *a, const void *b) {
 static bool has_enough_sats_for_pvt_solve(const obss_t *obss) {
   size_t n = get_sat_count_for_constellation(obss, CONSTELLATION_GPS);
   return (n >= MIN_SATS_FOR_PVT);
+}
+
+/* Copy all fields from a Starling-style obs type into the
+ * corresponding navigation measurement fields. As of
+ * (August 2018), all fields have identical units. */
+void convert_starling_obs_to_navigation_measurement(
+    starling_obs_t *starling_obs, navigation_measurement_t *nm) {
+  /* Most fields are a direct conversion. */
+  nm->sid = starling_obs->sid;
+  nm->tot = starling_obs->tot;
+  nm->raw_pseudorange = starling_obs->pseudorange;
+  nm->raw_carrier_phase = starling_obs->carrier_phase;
+  nm->raw_measured_doppler = starling_obs->doppler;
+  nm->cn0 = starling_obs->cn0;
+  nm->lock_time = starling_obs->lock_time;
+  nm->flags = starling_obs->flags;
+
+  /* Some other fields we also provide an initial value to be overwritten later.
+   */
+  nm->IODE = INVALID_IODE;
+  nm->IODC = INVALID_IODC;
+  if (!track_sid_db_elevation_degrees_get(nm->sid, &nm->elevation)) {
+    /* Use 0 degrees as unknown elevation to assign it the smallest weight */
+    log_debug_sid(nm->sid, "Elevation unknown, using 0");
+    nm->elevation = 0;
+  }
 }
 
 /* Converter for moving into the intermediary uncollapsed observation type.
@@ -149,7 +159,7 @@ void convert_starling_obs_array_to_uncollapsed_obss(obs_array_t *obs_array,
  *
  * NOTE: This function assumes that the navigation measurements in the
  * incoming uncollapsed obs have already been sorted. */
-void collapse_obss(uncollapsed_obss_t *uncollapsed_obss, obss_t *obss) {
+static void collapse_obss(uncollapsed_obss_t *uncollapsed_obss, obss_t *obss) {
   /** Precheck any base station observations and filter if needed. This is not a
    *  permanent solution for actually correcting GPS L2 base station
    *  observations that have mixed tracking modes in a signal epoch. For more
@@ -185,7 +195,9 @@ void collapse_obss(uncollapsed_obss_t *uncollapsed_obss, obss_t *obss) {
  *
  * Zero return indicates successful conversion.
  */
-int convert_starling_obs_array_to_obss(obs_array_t *obs_array, obss_t *obss) {
+int convert_starling_obs_array_to_obss(obs_array_t *obs_array,
+                                       bool is_raim_disabled,
+                                       obss_t *obss) {
   /* We keep this around to track the previous observation. */
   static bool has_base_position = false;
   static double base_position_ecef[3];
@@ -236,7 +248,7 @@ int convert_starling_obs_array_to_obss(obs_array_t *obs_array, obss_t *obss) {
     s32 ret = calc_PVT(obss->n,
                        obss->nm,
                        &obss->tor,
-                       disable_raim,
+                       is_raim_disabled,
                        true,
                        GPS_ONLY,
                        &soln,
@@ -286,43 +298,3 @@ int convert_starling_obs_array_to_obss(obs_array_t *obs_array, obss_t *obss) {
   return 0;
 }
 
-/** Update the #base_obss state given a new set of obss.
- * First sorts by PRN and computes the TDCP Doppler for the observation set. If
- * #base_pos_known is false then a single point position solution is also
- * calculated. Next the `has_pos`, `pos_ecef` and `sat_dists` fields are filled
- * in. Finally the #base_obs_received semaphore is flagged to indicate that new
- * observations are available.
- *
- * \note This function is stateful as it must store the previous observation
- *       set for the TDCP Doppler.
- */
-void update_obss(obs_array_t *obs_array) {
-  /* Warn on receiving observations which are very old. This may be indicative
-   * of a connectivity problem. Obviously, if we don't have a good local time
-   * estimate, then we can't perform this check. */
-  gps_time_t now = get_current_time();
-  if (get_time_quality() > TIME_UNKNOWN &&
-      gpsdifftime(&now, &obs_array->t) > BASE_LATENCY_TIMEOUT) {
-    log_info("Communication latency exceeds 15 seconds");
-  }
-
-  /* Before doing anything, try to get new observation to post to. */
-  obs_array_t *new_obs_array = platform_mailbox_item_alloc(MB_ID_BASE_OBS);
-  if (new_obs_array == NULL) {
-    log_warn("Base obs pool full, discarding base obs at: wn: %d, tow: %.2f",
-             obs_array->t.wn,
-             obs_array->t.tow);
-    return;
-  }
-
-  // TODO(Kevin) remove this copy.
-  *new_obs_array = *obs_array;
-  /* If we successfully get here without returning early, then go ahead and
-   * post into the Starling engine. */
-  errno_t post_error =
-      platform_mailbox_post(MB_ID_BASE_OBS, new_obs_array, MB_NONBLOCKING);
-  if (post_error) {
-    log_error("Base obs mailbox should have space!");
-    platform_mailbox_item_free(MB_ID_BASE_OBS, new_obs_array);
-  }
-}
