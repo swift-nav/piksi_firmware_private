@@ -74,22 +74,24 @@ $(LIBSBP_BUILDDIR)/src/libsbp-static.a:
 	      $(CMAKEFLAGS) ../
 	$(MAKE) -C $(LIBSBP_BUILDDIR) $(MAKEFLAGS)
 
-$(LIBSWIFTNAV_BUILDDIR)/src/libswiftnav.a: .FORCE
+$(LIBSWIFTNAV_BUILDDIR)/src/libswiftnav.a: $(LIBSWIFTNAV_BUILDDIR)/Makefile
 	@printf "BUILD   libswiftnav for target $(PIKSI_TARGET)\n"; \
-	mkdir -p $(LIBSWIFTNAV_BUILDDIR); cd $(LIBSWIFTNAV_BUILDDIR); \
-	cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-	      -DCMAKE_TOOLCHAIN_FILE=../cmake/Toolchain-gcc-arm-embedded.cmake \
-	      $(CMAKEFLAGS) ../
 	$(MAKE) swiftnav -C $(LIBSWIFTNAV_BUILDDIR) $(MAKEFLAGS)
 
-$(LIBSWIFTNAV_BUILDDIR)/src/libstarling.a: .FORCE
+# Make starling dependent of swiftnav because otherwise both
+# might build in parallel, and both trying to build swiftnav-common in parallel
+# which leads to occasional failures.
+$(LIBSWIFTNAV_BUILDDIR)/src/libstarling.a: $(LIBSWIFTNAV_BUILDDIR)/Makefile \
+                                           $(LIBSWIFTNAV_BUILDDIR)/src/libswiftnav.a
 	@printf "BUILD   libstarling for target $(PIKSI_TARGET)\n"; \
-	mkdir -p $(LIBSWIFTNAV_BUILDDIR); cd $(LIBSWIFTNAV_BUILDDIR); \
-	cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-	      -DCMAKE_TOOLCHAIN_FILE=../cmake/Toolchain-gcc-arm-embedded.cmake \
-	      $(CMAKEFLAGS) ../
 	$(MAKE) starling -C $(LIBSWIFTNAV_BUILDDIR) $(MAKEFLAGS)
 
+$(LIBSWIFTNAV_BUILDDIR)/Makefile:
+	@printf "Run cmake for target $(LIBSWIFTNAV_BUILDDIR)\n"; \
+    mkdir -p $(LIBSWIFTNAV_BUILDDIR); cd $(LIBSWIFTNAV_BUILDDIR); \
+    cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+          -DCMAKE_TOOLCHAIN_FILE=../cmake/Toolchain-gcc-arm-embedded.cmake \
+          $(CMAKEFLAGS) ../
 
 $(OPENAMP_BUILDDIR)/lib/libopen-amp.a:
 	@printf "BUILD   open-amp for target $(PIKSI_TARGET)\n"; \

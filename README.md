@@ -21,6 +21,34 @@ Check them out using:
 Remember to run `git submodule update` after pulling in the latest changes to
 ensure all the submodules are in sync.
 
+Build
+=====
+macOS
+-----
+First install python if you don't have it yet:
+```bash
+% brew install python
+```
+This installs Python 3; symlinks for `python` and `pip` are created in `/usr/local/opt/python/libexec/bin` 
+so add this dir to your PATH in ~/.bashrc, ~/.profile, or similar, and restart the shell.
+```bash
+export PATH="$PATH:/usr/local/opt/python/libexec/bin"
+```
+
+Now run the script that calls the ansible installer
+```bash
+% bash setup.sh -x install
+```
+
+Add the path for the arm-gcc compiler to ~/.bashrc, ~/.profile, or similar:
+```bash
+export PATH="$PATH:$HOME/gcc-arm-none-eabi/bin"
+```
+Run the build
+```bash
+% make PIKSI_HW=v3 PIKSI_REV=prod
+```
+
 Installation
 ============
 
