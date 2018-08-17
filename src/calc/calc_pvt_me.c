@@ -72,8 +72,8 @@ static const double valid_soln_freqs_hz[] = {1.0, 2.0, 4.0, 5.0, 10.0};
 #define SOLN_FREQ_SETTING_MAX \
   (valid_soln_freqs_hz[ARRAY_SIZE(valid_soln_freqs_hz) - 1])
 
-double soln_freq_setting = 10.0;
-u32 obs_output_divisor = 10;
+double soln_freq_setting = 5.0;
+u32 obs_output_divisor = 1;
 
 s16 msg_obs_max_size = SBP_FRAMING_MAX_PAYLOAD_SIZE;
 
@@ -667,7 +667,7 @@ static void me_calc_pvt_thread(void *arg) {
     s8 pvt_ret = calc_PVT(n_ready,
                           nav_meas,
                           &current_time,
-                          disable_raim,
+                          /* disable_raim = */ true,
                           false,
                           GPS_L1CA_WHEN_POSSIBLE,
                           &current_fix,
@@ -722,6 +722,19 @@ static void me_calc_pvt_thread(void *arg) {
     /* Get the updated time and drift */
     gps_time_t smoothed_time = napcount2gpstime(current_tc);
     double smoothed_drift = get_clock_drift();
+
+    double true_state[8];
+
+    true_state[0] = TRUE_X;
+    true_state[1] = TRUE_Y;
+    true_state[2] = TRUE_Z;
+    true_state[3] = GPS_C * gpsdifftime(&smoothed_time, &current_time);
+    true_state[4] = 0.0;
+    true_state[5] = 0.0;
+    true_state[6] = 0.0;
+    true_state[7] = GPS_C * smoothed_drift;
+
+    print_residuals(n_ready, nav_meas, true_state, current_fix.time.tow);
 
     /* if desired output time is still unknown, use the epoch closest to the fix
      * time */
