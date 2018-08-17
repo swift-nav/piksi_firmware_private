@@ -82,7 +82,7 @@ $(LIBSWIFTNAV_BUILDDIR)/src/libstarling.a: $(LIBSWIFTNAV_BUILDDIR)/Makefile
 	@printf "BUILD   libstarling for target $(PIKSI_TARGET)\n"; \
 	$(MAKE) starling -C $(LIBSWIFTNAV_BUILDDIR) $(MAKEFLAGS)
 
-$(LIBSWIFTNAV_BUILDDIR)/Makefile: .FORCE
+$(LIBSWIFTNAV_BUILDDIR)/Makefile:
 	@printf "Run cmake for target $(LIBSWIFTNAV_BUILDDIR)\n"; \
     mkdir -p $(LIBSWIFTNAV_BUILDDIR); cd $(LIBSWIFTNAV_BUILDDIR); \
     cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
