@@ -78,7 +78,11 @@ $(LIBSWIFTNAV_BUILDDIR)/src/libswiftnav.a: $(LIBSWIFTNAV_BUILDDIR)/Makefile
 	@printf "BUILD   libswiftnav for target $(PIKSI_TARGET)\n"; \
 	$(MAKE) swiftnav -C $(LIBSWIFTNAV_BUILDDIR) $(MAKEFLAGS)
 
-$(LIBSWIFTNAV_BUILDDIR)/src/libstarling.a: $(LIBSWIFTNAV_BUILDDIR)/Makefile
+# Make starling dependent of swiftnav because otherwise both
+# might build in parallel, and both trying to build swiftnav-common in parallel
+# which leads to occasional failures.
+$(LIBSWIFTNAV_BUILDDIR)/src/libstarling.a: $(LIBSWIFTNAV_BUILDDIR)/Makefile \
+                                           $(LIBSWIFTNAV_BUILDDIR)/src/libswiftnav.a
 	@printf "BUILD   libstarling for target $(PIKSI_TARGET)\n"; \
 	$(MAKE) starling -C $(LIBSWIFTNAV_BUILDDIR) $(MAKEFLAGS)
 
