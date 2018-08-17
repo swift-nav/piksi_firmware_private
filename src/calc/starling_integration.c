@@ -24,7 +24,6 @@
 #include "calc/calc_pvt_common.h"
 #include "calc/calc_pvt_me.h"
 #include "calc/starling_integration.h"
-#include "calc/starling_obs_converter.h"
 #include "ndb/ndb.h"
 #include "nmea/nmea.h"
 #include "sbp/sbp.h"

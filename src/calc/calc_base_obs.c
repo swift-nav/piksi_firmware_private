@@ -121,10 +121,6 @@ static void base_glonass_biases_callback(u16 sender_id,
   sbp_send_msg_(SBP_MSG_GLO_BIASES, len, msg, MSG_FORWARD_SENDER_ID);
 }
 
-static inline bool shm_suitable_wrapper(navigation_measurement_t meas) {
-  return shm_navigation_suitable(meas.sid);
-}
-
 /* Check that a given time is aligned (within some tolerance) to the
  * local solution epoch. */
 static bool is_time_aligned_to_local_epoch(const gps_time_t *t) {
@@ -411,8 +407,5 @@ void base_obs_setup() {
   static sbp_msg_callbacks_node_t ics_node;
   sbp_register_cbk(SBP_MSG_GROUP_DELAY, &ics_msg_callback, &ics_node);
 }
-
-/** Get a rolling count of received base observations. */
-u32 base_obs_msg_counter_get(void) { return base_obs_msg_counter; }
 
 /* \} */
