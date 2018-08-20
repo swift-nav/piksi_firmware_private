@@ -448,6 +448,89 @@ static void drop_gross_outlier(const navigation_measurement_t *nav_meas,
   }
 }
 
+/* Solve for position from the given navigation measurements, and if succesful
+ * update LGF and clock model
+ */
+s8 compute_me_pvt(u8 n_ready,
+                  const navigation_measurement_t nav_meas[MAX_CHANNELS],
+                  u64 current_tc,
+                  const gps_time_t *current_time,
+                  last_good_fix_t *lgf) {
+  time_quality_t old_time_quality = get_time_quality();
+  dops_t dops;
+  gnss_solution current_fix;
+  gnss_sid_set_t raim_removed_sids;
+
+  /* Calculate the SPP position
+   * disable_raim controlled by external setting. Defaults to false. */
+  /* Don't skip velocity solving. If there is a cycle slip, tdcp_doppler
+   * will just return the rough value from the tracking loop. */
+  s8 pvt_ret = calc_PVT(n_ready,
+                        nav_meas,
+                        &*current_time,
+                        disable_raim,
+                        false,
+                        GPS_L1CA_WHEN_POSSIBLE,
+                        &current_fix,
+                        &dops,
+                        &raim_removed_sids);
+
+  if (pvt_ret < 0 || (lgf->position_quality == POSITION_FIX &&
+                      gate_covariance(&current_fix))) {
+    if (pvt_ret < 0) {
+      /* An error occurred with calc_PVT! */
+      /* pvt_err_msg defined in libswiftnav/pvt.c */
+      /* Print out max. once per second */
+      DO_EACH_MS(
+          SECS_MS,
+          log_warn(
+              "PVT solver: %s (code %d)", pvt_err_msg[-pvt_ret - 1], pvt_ret));
+    }
+    /* If we already had a good fix, degrade its quality to STATIC */
+    if (lgf->position_quality > POSITION_STATIC) {
+      lgf->position_quality = POSITION_STATIC;
+    }
+  }
+
+  /* If we have a success RAIM repair, mark the removed observations as
+   invalid, and ask tracker to drop the channels (if needed). */
+  if (pvt_ret == PVT_CONVERGED_RAIM_REPAIR) {
+    for (u8 i = 0; i < n_ready; i++) {
+      if (sid_set_contains(&raim_removed_sids, nav_meas[i].sid)) {
+        log_debug_sid(nav_meas[i].sid,
+                      "RAIM repair, setting observation invalid.");
+        // nav_meas[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION;
+        /* Check how large the outlier roughly is, and if it is a gross one,
+         * drop the channel and delete the possibly corrupt ephemeris */
+        drop_gross_outlier(&nav_meas[i], &current_fix);
+      }
+    }
+  }
+
+  if (pvt_ret >= 0) {
+    /* PVT succeeded, update the relationship between the solved GPS time
+     * and NAP count tc.*/
+    update_time(current_tc, &current_fix);
+
+    /* Update global position solution state. */
+    lgf->position_solution = current_fix;
+    lgf->position_quality = POSITION_FIX;
+    /* Store the smoothed clock solution into lgf */
+    lgf->position_solution.time = napcount2gpstime(current_tc);
+    lgf->position_solution.clock_drift = get_clock_drift();
+    ndb_lgf_store(&*lgf);
+
+    if (TIME_PROPAGATED > old_time_quality) {
+      /* Notify of the first fix */
+      log_info("first fix clk_offset %.3e clk_drift %.3e",
+               current_fix.clock_offset,
+               current_fix.clock_drift);
+    }
+  }
+
+  return pvt_ret;
+}
+
 static void me_calc_pvt_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("me_calc_pvt");
@@ -476,7 +559,9 @@ static void me_calc_pvt_thread(void *arg) {
     me_thd_sleep(&next_epoch, SECS_US / soln_freq);
     watchdog_notify(WD_NOTIFY_ME_CALC_PVT);
 
-    if (TIME_UNKNOWN != get_time_quality() && lgf.position_solution.valid &&
+    time_quality_t time_quality = get_time_quality();
+
+    if (TIME_UNKNOWN != time_quality && lgf.position_solution.valid &&
         lgf.position_quality >= POSITION_GUESS) {
       /* Update the satellite elevation angles so that they stay current
        * (currently once every 30 seconds) */
@@ -490,7 +575,7 @@ static void me_calc_pvt_thread(void *arg) {
     gps_time_t current_time = napcount2gpstime(current_tc);
 
     /* The desired output time is at the closest solution epoch to current GPS
-     * time  */
+     * time. Note that this will be invalid time stamp before the first fix. */
     gps_time_t output_time = gps_time_round_to_epoch(&current_time, soln_freq);
 
     if (gps_time_valid(&output_time) &&
@@ -656,120 +741,37 @@ static void me_calc_pvt_thread(void *arg) {
       continue;
     }
 
-    dops_t dops;
-    gnss_solution current_fix;
-    gnss_sid_set_t raim_removed_sids;
-
-    /* Calculate the SPP position
-     * disable_raim controlled by external setting. Defaults to false. */
-    /* Don't skip velocity solving. If there is a cycle slip, tdcp_doppler will
-     * just return the rough value from the tracking loop. */
-    s8 pvt_ret = calc_PVT(n_ready,
-                          nav_meas,
-                          &current_time,
-                          disable_raim,
-                          false,
-                          GPS_L1CA_WHEN_POSSIBLE,
-                          &current_fix,
-                          &dops,
-                          &raim_removed_sids);
-    if (pvt_ret < 0 || (lgf.position_quality == POSITION_FIX &&
-                        gate_covariance(&current_fix))) {
-      if (pvt_ret < 0) {
-        /* An error occurred with calc_PVT! */
-        /* pvt_err_msg defined in libswiftnav/pvt.c */
-        /* Print out max. once per second */
-        DO_EACH_MS(SECS_MS,
-                   log_warn("PVT solver: %s (code %d)",
-                            pvt_err_msg[-pvt_ret - 1],
-                            pvt_ret));
-      }
-
-      /* If we can't report a SPP position, something is wrong and no point
-       * continuing to process this epoch - mark observations unusable but send
-       * them out to enable debugging. */
-      me_send_failed_obs(n_ready, nav_meas, e_meas, &current_time);
-
-      /* If we already had a good fix, degrade its quality to STATIC */
-      if (lgf.position_quality > POSITION_STATIC) {
-        lgf.position_quality = POSITION_STATIC;
-      }
-
-      continue;
+    /* Compute a PVT solution from the measurements to update LGF and clock
+     * models. Compute on every epoch if time quality is not finest, otherwise
+     * once per second is enough */
+    if (TIME_FINEST > time_quality) {
+      compute_me_pvt(n_ready, nav_meas, current_tc, &current_time, &lgf);
+    } else {
+      DO_EACH_MS(
+          SECS_MS,
+          compute_me_pvt(n_ready, nav_meas, current_tc, &current_time, &lgf));
     }
-
-    /* If we have a success RAIM repair, mark the removed observations as
-       invalid, and ask tracker to drop the channels (if needed). */
-    if (pvt_ret == PVT_CONVERGED_RAIM_REPAIR) {
-      for (u8 i = 0; i < n_ready; i++) {
-        if (sid_set_contains(&raim_removed_sids, nav_meas[i].sid)) {
-          log_debug_sid(nav_meas[i].sid,
-                        "RAIM repair, setting observation invalid.");
-          nav_meas[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION;
-
-          /* Check how large the outlier roughly is, and if it is a gross one,
-           * drop the channel and delete the possibly corrupt ephemeris */
-          drop_gross_outlier(&nav_meas[i], &current_fix);
-        }
-      }
-    }
-
-    time_quality_t old_time_quality = get_time_quality();
-
-    /* Update the relationship between the solved GPS time and NAP count tc.*/
-    update_time(current_tc, &current_fix);
 
     /* Get the updated time and drift */
     gps_time_t smoothed_time = napcount2gpstime(current_tc);
     double smoothed_drift = get_clock_drift();
 
-    /* if desired output time is still unknown, use the epoch closest to the fix
-     * time */
+    /* send unpropagated measurements if desired output epoch is not set
+     * (ie on first fix or after a long blackout) */
     if (!gps_time_valid(&output_time)) {
-      output_time = gps_time_round_to_epoch(&current_fix.time, soln_freq);
+      me_send_failed_obs(n_ready, nav_meas, e_meas, &current_time);
+      continue;
     }
 
     /* offset of smoothed solution time from the desired output time */
     double output_offset = gpsdifftime(&output_time, &smoothed_time);
 
-    /* Update global position solution state. */
-    lgf.position_solution = current_fix;
-    lgf.position_quality = POSITION_FIX;
-    /* Store the smoothed clock solution into lgf */
-    lgf.position_solution.time = smoothed_time;
-    lgf.position_solution.clock_drift = smoothed_drift;
-    ndb_lgf_store(&lgf);
-
-    if (TIME_PROPAGATED > old_time_quality) {
-      /* If the time quality was not at least TIME_PROPAGATED then this solution
-       * likely causes a clock jump and should be discarded.
-       *
-       * Note that the lack of knowledge of the receiver clock bias does NOT
-       * degrade the quality of the position solution but the rapid change in
-       * bias after the time estimate is first improved may cause issues for
-       * e.g. carrier smoothing. Easier just to discard this first solution.
-       */
-
-      log_info("first fix clk_offset %.3e clk_drift %.3e",
-               current_fix.clock_offset,
-               current_fix.clock_drift);
-
-      me_send_failed_obs(n_ready, nav_meas, e_meas, &current_time);
-      /* adjust the deadline of the next fix to land on output epoch */
-      piksi_systime_add_us(&next_epoch, round(output_offset * SECS_US));
-      continue;
-    }
-
     /* Only send observations that are closely aligned with the desired
      * solution epochs to ensure they haven't been propagated too far. */
     if (fabs(output_offset) < OBS_PROPAGATION_LIMIT) {
-      log_debug(
-          "clk_offset %.4e, output offset %.4e, clk_drift %.3e, "
-          "smoothed_drift %.3e",
-          current_fix.clock_offset,
-          output_offset,
-          current_fix.clock_drift,
-          smoothed_drift);
+      log_debug("output offset %.4e, smoothed_drift %.3e",
+                output_offset,
+                smoothed_drift);
 
       for (u8 i = 0; i < n_ready; i++) {
         navigation_measurement_t *nm = &nav_meas[i];
@@ -800,15 +802,6 @@ static void me_calc_pvt_thread(void *arg) {
                output_offset);
       /* Send the observations, but marked unusable */
       me_send_failed_obs(n_ready, nav_meas, e_meas, &current_time);
-    }
-
-    if (fabs(current_fix.clock_offset) > MAX_CLOCK_ERROR_S) {
-      /* Note we should not enter here except in very exceptional circumstances,
-       * like time solved grossly wrong on the first fix. */
-
-      log_warn("Receiver clock offset %g ms larger than %g ms",
-               current_fix.clock_offset * SECS_MS,
-               MAX_CLOCK_ERROR_S * SECS_MS);
     }
   }
 }
