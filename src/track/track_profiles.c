@@ -349,7 +349,7 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
   /* sensitivity profile */
   [IDX_SENS] =
   { {      0,         1.0,           .5,   TP_CTRL_PLL3,
-      TP_TM_200MS_20MS, TP_TM_200MS_10MS, TP_TM_2MS_2MS, TP_TM_200MS_NH20MS, TP_TM_200MS_SC4 },
+      TP_TM_200MS_20MS, TP_TM_200MS_10MS, TP_TM_200MS_2MS, TP_TM_200MS_NH20MS, TP_TM_200MS_SC4 },
       TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
       300,             0,          32,
       IDX_SENS,  IDX_NONE,     IDX_20MS,
