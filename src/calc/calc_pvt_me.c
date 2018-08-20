@@ -44,7 +44,6 @@
 #include "shm/shm.h"
 #include "simulator.h"
 #include "starling_integration.h"
-#include "starling_obs_converter.h"
 #include "system_monitor/system_monitor.h"
 #include "timing/timing.h"
 #include "track/track_sid_db.h"
