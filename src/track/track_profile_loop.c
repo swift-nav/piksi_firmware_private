@@ -260,7 +260,7 @@ void tp_tl_update_dll_discr(tp_tl_state_t *s, const tp_epl_corr_t *cs) {
 }
 
 /**
- * Second FLL discriminator update.
+ * FLL discriminator update.
  *
  * Update discriminator, I_prev & Q_prev.
  *
