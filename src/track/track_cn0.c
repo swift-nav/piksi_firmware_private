@@ -92,8 +92,6 @@ static track_cn0_config_t cn0_config = {
     .cutoff = CN0_EST_LPF_CUTOFF_HZ,
 };
 
-static float q_avg = 8.f; /* initial value for noise level */
-
 /** Pre-compute C/N0 estimator and filter parameters. The parameters are
  * computed using equivalent of cn0_est_compute_params() function for
  * integration periods and cut-off frequency defined in this file.
@@ -125,7 +123,7 @@ void track_cn0_params_init(void) {
 static void init_estimator(track_cn0_state_t *e,
                            const cn0_est_params_t *p,
                            float cn0_0) {
-  cn0_est_basic_init(&e->basic, p, cn0_0, q_avg * sqrtf(p->t_int));
+  cn0_est_mm_init(&e->moment, p, cn0_0);
 }
 
 /**
@@ -147,10 +145,9 @@ static float update_estimator(track_cn0_state_t *e,
                               float Q,
                               float ve_I,
                               float ve_Q) {
-  float cn0 = cn0_est_basic_update(&e->basic, p, I, Q, ve_I, ve_Q);
-
-  q_avg = q_avg * (1 - p->alpha) +
-          p->alpha * e->basic.noise_Q_abs / sqrtf(p->t_int);
+  (void)ve_I;
+  (void)ve_Q;
+  float cn0 = cn0_est_mm_update(&e->moment, p, I, Q);
 
   return cn0;
 }
