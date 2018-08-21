@@ -249,7 +249,7 @@ static const tp_loop_params_t loop_params_template = {
     .fll_bw = TP_LOOP_PARAM_PLACE_HOLDER};
 
 /**
- * The tracking profiles switching table.
+ * Each tracker mode is described by tracking profiles switching table.
  *
  * The table describes a set of different profiles and
  * the logic controlling how different profiles are selected.
@@ -274,11 +274,19 @@ static const tp_loop_params_t loop_params_template = {
  *
  * See more details at
  * https://swiftnav.hackpad.com/High-sensitivity-tracking-FLL-PLL-profile-switching-design-HDpuFC1BygA
+ *
  * Each entry of the array is a set of initialization parameters of
  * tp_profile_entry_t struct.
  */
+
+/**
+ * The tracking profiles switching table for rover mode.
+ * The main strategy is to use shorter integration time for stronger signals
+ * and longer integration time for weaker signals. This is done to achieve
+ * better dynamic tolerance of the tracking loops.
+ */
 /* clang-format off */
-static const tp_profile_entry_t gnss_track_profiles[] = {
+static const tp_profile_entry_t tracker_profiles_rover[] = {
 /*
   These are the short names of the numbers & parameters listed
   in the same order below.
@@ -355,46 +363,92 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
       IDX_SENS,  IDX_NONE,     IDX_20MS,
       TP_HIGH_CN0 | TP_USE_NEXT }
 };
-/* clang-format on */
 
 /**
- * Helper method to get tracking profiles array.
- *
- * \param[in] mesid ME signal ID
- * \param[in] num_profiles number of profiles
- * \return Tracking profiles array pointer
+ * The tracking profiles switching table for base station mode.
+ * The main strategy is to always use the longest integration time
+ * for all signals.
+ * This is done to achieve less measurement noise in exchange of worse
+ * dynamics tolerance of the tracking loops.
  */
-static const tp_profile_entry_t *mesid_to_profiles(const me_gnss_signal_t mesid,
-                                                   size_t *num_profiles) {
-  const tp_profile_entry_t *profiles = NULL;
+static const tp_profile_entry_t tracker_profiles_base[] = {
+/*
+  These are the short names of the numbers & parameters listed
+  in the same order below.
+  { { pll_bw,      fll_bw,       dll_bw,     controller,
+      tracking_mode_gps, tracking_mode_glo, tracking_mode_sbas, tracking_mode_bds2 },
+      ld_phase_params,   ld_freq_params,
+    time_ms,   cn0_low_thr,   cn0_high_thr,
+       next,       cn0_low,       cn0_high,
+     flags }
+*/
 
-  /* GPS and SBAS constellations use similar signal encoding scheme and thus
-     share the same tracking profiles.
-     For GLONASS signals we limit the maximum integration time to 10 ms.
-     Otherwise we use the same set of tracking profiles. */
+  [IDX_INIT_0] =
+{ {     10,           7,           20,   TP_CTRL_PLL2,
+        TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL},
+        TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
+       100,             0,            0,
+      IDX_NONE,  IDX_NONE,     IDX_NONE,
+      TP_UNAIDED | TP_WAIT_FLOCK},
 
-  switch (mesid_to_constellation(mesid)) {
-    case CONSTELLATION_GPS:
-    case CONSTELLATION_GLO:
-    case CONSTELLATION_SBAS:
-    case CONSTELLATION_BDS:
-    case CONSTELLATION_QZS:
-    case CONSTELLATION_GAL:
-      profiles = gnss_track_profiles;
-      if (num_profiles) {
-        *num_profiles = ARRAY_SIZE(gnss_track_profiles);
-      }
-      break;
+  [IDX_INIT_1] =
+  { { BW_DYN,      BW_DYN,           20,   TP_CTRL_PLL2,
+        TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL },
+        TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
+       100,             0,            0,
+      IDX_NONE,  IDX_NONE,     IDX_NONE,
+      TP_WAIT_BSYNC | TP_WAIT_PLOCK | TP_UNAIDED },
 
-    case CONSTELLATION_INVALID:
-    case CONSTELLATION_COUNT:
-    default:
-      assert(!"Invalid constellation");
-      break;
-  }
+  [IDX_INIT_2] =
+  { { BW_DYN,      BW_DYN,            5,   TP_CTRL_PLL2,
+      TP_TM_1MS_20MS,  TP_TM_1MS_10MS,  TP_TM_1MS_2MS,  TP_TM_1MS_NH20MS,  TP_TM_1MS_SC4 },
+      TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
+      100,              0,            0,
+      IDX_NONE,  IDX_NONE,     IDX_NONE,
+      TP_WAIT_PLOCK },
 
-  return profiles;
-}
+  [IDX_2MS] =
+  { { BW_DYN,      BW_DYN,            2,   TP_CTRL_PLL2,
+      TP_TM_2MS_20MS,  TP_TM_2MS_10MS,  TP_TM_2MS_2MS,  TP_TM_2MS_NH20MS,  TP_TM_2MS_SC4 },
+      TP_LD_PARAMS_PHASE_2MS, TP_LD_PARAMS_FREQ_2MS,
+        40,             0,            0,
+      IDX_NONE,  IDX_NONE,     IDX_NONE,
+      0},
+
+  [IDX_5MS] =
+  { { BW_DYN,      BW_DYN,            1,   TP_CTRL_PLL2,
+      TP_TM_5MS_20MS,  TP_TM_5MS_10MS,  TP_TM_2MS_2MS,  TP_TM_5MS_NH20MS,  TP_TM_4MS_SC4 },
+      TP_LD_PARAMS_PHASE_5MS, TP_LD_PARAMS_FREQ_5MS,
+      40,               0,            0,
+      IDX_NONE,  IDX_NONE,     IDX_NONE,
+      0},
+
+  [IDX_10MS] =
+  { { BW_DYN,      BW_DYN,            1,   TP_CTRL_PLL2,
+      TP_TM_10MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS, TP_TM_10MS_NH20MS,  TP_TM_10MS_SC4 },
+      TP_LD_PARAMS_PHASE_10MS, TP_LD_PARAMS_FREQ_10MS,
+      40,               0,            0,
+      IDX_NONE,  IDX_NONE,     IDX_NONE,
+      0},
+
+  [IDX_20MS] =
+  { { BW_DYN,      BW_DYN,           .5,   TP_CTRL_PLL2,
+      TP_TM_20MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS,  TP_TM_20MS_NH20MS,  TP_TM_20MS_SC4 },
+      TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
+      40,               0,            0,
+      IDX_20MS,  IDX_NONE,     IDX_NONE,
+      TP_USE_NEXT },
+};
+/* clang-format on */
+
+typedef struct {
+  const tp_profile_entry_t *profiles;
+  size_t size;
+} tracker_mode_t;
+
+/* These two globals get their initial value in track_setup() */
+static tracker_mode_t g_tracker_mode = {0};
+static tracker_mode_t g_tracker_mode_pending = {0};
 
 /** Return track mode for the given code.
  * \param mesid ME signal ID
@@ -486,6 +540,12 @@ static u8 get_profile_index(code_t code,
     return 0;
   }
 
+  if (tp_is_base_station_mode()) {
+    /* in the base tracker mode we always strive to reach the
+       longest intergration time for better measurements quality */
+    return IDX_20MS;
+  }
+
   /* the bit/symbol sync is known so we can start with non-init profiles */
   for (size_t i = 0; i < num_profiles; i++) {
     if (profiles[i].cn0_low_threshold <= 0) {
@@ -500,8 +560,8 @@ static u8 get_profile_index(code_t code,
 
 static struct profile_vars get_profile_vars(const me_gnss_signal_t mesid,
                                             float cn0) {
-  size_t num_profiles = 0;
-  const tp_profile_entry_t *profiles = mesid_to_profiles(mesid, &num_profiles);
+  size_t num_profiles = g_tracker_mode.size;
+  const tp_profile_entry_t *profiles = g_tracker_mode.profiles;
   assert(profiles);
 
   u8 index = get_profile_index(mesid.code, profiles, num_profiles, cn0);
@@ -735,7 +795,7 @@ static bool profile_switch_requested(tracker_t *tracker,
                                      profile_indices_t index,
                                      const char *reason) {
   assert(index != IDX_NONE);
-  assert((size_t)index < ARRAY_SIZE(gnss_track_profiles));
+  assert((size_t)index < g_tracker_mode.size);
 
   tp_profile_t *state = &tracker->profile;
   const tp_profile_entry_t *next = &state->profiles[index];
@@ -779,6 +839,13 @@ static bool low_cn0_profile_switch_requested(tracker_t *tracker) {
 
   bool settled = (tracker->age_ms >= tracker->settle_time_ms);
   if (!settled) {
+    return false;
+  }
+
+  if (tp_is_base_station_mode()) {
+    /* in base tracker mode the profile switches to the longer integration
+       time are ensured by the strategy implemented in the profile switching
+       table: always activate the longest possible integration time profile. */
     return false;
   }
 
@@ -885,6 +952,46 @@ static float compute_cn0_offset(const me_gnss_signal_t mesid,
   return cn0_offset;
 }
 
+/* Activates the base station tracking mode */
+void tp_set_base_station_mode(void) {
+  if (g_tracker_mode.profiles == tracker_profiles_base) {
+    return;
+  }
+  g_tracker_mode_pending.profiles = tracker_profiles_base;
+  g_tracker_mode_pending.size = ARRAY_SIZE(tracker_profiles_base);
+  log_info("Base station tracking mode activated");
+}
+
+/* Activates the rover tracking mode */
+void tp_set_rover_mode(void) {
+  if (g_tracker_mode.profiles == tracker_profiles_rover) {
+    return;
+  }
+  g_tracker_mode_pending.profiles = tracker_profiles_rover;
+  g_tracker_mode_pending.size = ARRAY_SIZE(tracker_profiles_rover);
+  log_info("Rover tracking mode activated");
+}
+
+/* The rover tracking mode predicate */
+bool tp_is_rover_mode(void) {
+  return (g_tracker_mode.profiles == tracker_profiles_rover);
+}
+
+/* The base station mode predicate */
+bool tp_is_base_station_mode(void) {
+  return (g_tracker_mode.profiles == tracker_profiles_base);
+}
+
+/* The new tracking mode predicate */
+bool tp_tracker_has_new_mode(void) {
+  return g_tracker_mode.profiles != g_tracker_mode_pending.profiles;
+}
+
+/* Applies a new tracking mode */
+void tp_tracker_apply_new_mode(void) {
+  g_tracker_mode = g_tracker_mode_pending;
+}
+
 /**
  * Registers GNSS satellite in facility.
  *
@@ -902,7 +1009,7 @@ void tp_profile_init(tracker_t *tracker, const tp_report_t *data) {
   memset(profile, 0, sizeof(*profile));
 
   profile->filt_cn0 = data->cn0;
-  profile->profiles = mesid_to_profiles(mesid, /* num_profiles = */ NULL);
+  profile->profiles = g_tracker_mode.profiles;
 
   profile->cur = get_profile_vars(mesid, data->cn0);
 

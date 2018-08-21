@@ -661,6 +661,9 @@ static const char *get_ch_drop_reason_str(ch_drop_reason_t reason) {
     case CH_DROP_REASON_RAIM:
       str = "Measurement flagged by RAIM, dropping";
       break;
+    case CH_DROP_REASON_NEW_MODE:
+      str = "New tracker mode, dropping";
+      break;
     default:
       assert(!"Unknown channel drop reason");
   }
@@ -676,7 +679,7 @@ static const char *get_ch_drop_reason_str(ch_drop_reason_t reason) {
  * \param[in,out] tracker Tracker channel data
  * \param[in] reason     Channel drop reason
  */
-static void drop_channel(tracker_t *tracker, ch_drop_reason_t reason) {
+void drop_channel(tracker_t *tracker, ch_drop_reason_t reason) {
   /* Read the required parameters from the tracking channel first to ensure
    * that the tracking channel is not restarted in the mean time.
    */

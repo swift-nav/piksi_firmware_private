@@ -26,6 +26,7 @@
 #include "main.h"
 #include "manage.h"
 #include "system_monitor/system_monitor.h"
+#include "track/track_common.h"
 #include "track/track_sid_db.h"
 #include "track/track_state.h"
 
@@ -180,6 +181,15 @@ static void handle_nap_track_irq(void) {
   u32 irq2 = NAP->TRK_IRQS[2];
   trackers_update(irq2, 64);
   NAP->TRK_IRQS[2] = irq2;
+
+  if (tp_tracker_has_new_mode()) {
+    /* A tracker mode switch was detected.
+       Trackers carry various state related to tracker mode.
+       To avoid breaking trackers state machines operations we drop
+       all trackers before applying the new mode. */
+    trackers_drop_all();
+    tp_tracker_apply_new_mode();
+  }
 
   asm("dsb");
 
