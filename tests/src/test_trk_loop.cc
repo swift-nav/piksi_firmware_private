@@ -45,8 +45,8 @@ TEST(tracking_loop_test, test_aided) {
   rates.carr_freq = carr_freq;
   rates.acceleration = acceleration;
   tl_config_t config;
-  const float dll_loop_period_s = 1 / 1000.4f;
-  const float fll_loop_period_s = 1 / 1000.4f;
+  const float code_loop_period_s = 1 / 1000.4f;
+  const float carr_loop_period_s = 1 / 1000.4f;
   const float fll_discr_period_s = 1 / 1000.4f;
   const float code_bw = 2.0f;
   const float code_zeta = 0.6f;
@@ -57,8 +57,8 @@ TEST(tracking_loop_test, test_aided) {
   const float carr_k = 1.0f;
   const float fll_bw = 35.0f;
   const float freq_err = 5.67f;
-  config.dll_loop_period_s = dll_loop_period_s;
-  config.fll_loop_period_s = fll_loop_period_s;
+  config.code_loop_period_s = code_loop_period_s;
+  config.carr_loop_period_s = carr_loop_period_s;
   config.fll_discr_period_s = fll_discr_period_s;
   config.code_bw = code_bw;
   config.code_zeta = code_zeta;
@@ -77,8 +77,8 @@ TEST(tracking_loop_test, test_aided) {
   tl_pll3_init(&stl_f2p3, &rates, &config);
   EXPECT_LT(fabsf(stl_f2p3.carr_freq - carr_freq), LOW_TOL);
   EXPECT_LT(fabsf(stl_f2p3.code_freq), LOW_TOL);
-  EXPECT_LT(fabsf(stl_f2p3.T_DLL - dll_loop_period_s), LOW_TOL);
-  EXPECT_LT(fabsf(stl_f2p3.T_FPLL - fll_loop_period_s), LOW_TOL);
+  EXPECT_LT(fabsf(stl_f2p3.T_CODE - code_loop_period_s), LOW_TOL);
+  EXPECT_LT(fabsf(stl_f2p3.T_CARR - carr_loop_period_s), LOW_TOL);
   EXPECT_LT(fabsf(stl_f2p3.prev_I), LOW_TOL);
   EXPECT_LT(fabsf(stl_f2p3.prev_Q), LOW_TOL);
   EXPECT_LT(fabsf(stl_f2p3.discr_sum_hz), LOW_TOL);
@@ -101,8 +101,8 @@ TEST(tracking_loop_test, test_aided) {
   EXPECT_LT(fabsf(rates.acceleration - acceleration), LOW_TOL);
 
   tl_pll3_retune(&stl_f2p3, &config);
-  EXPECT_LT(fabsf(stl_f2p3.T_FPLL - fll_loop_period_s), LOW_TOL);
-  EXPECT_LT(fabsf(stl_f2p3.T_DLL - dll_loop_period_s), LOW_TOL);
+  EXPECT_LT(fabsf(stl_f2p3.T_CARR - carr_loop_period_s), LOW_TOL);
+  EXPECT_LT(fabsf(stl_f2p3.T_CODE - code_loop_period_s), LOW_TOL);
   EXPECT_LT(fabsf(stl_f2p3.freq_c1 - 92.452835f), HIGH_TOL);
   EXPECT_LT(fabsf(stl_f2p3.freq_c2 - 4360.983398f), HIGH_TOL);
   EXPECT_LT(fabsf(stl_f2p3.discr_period_s - 0.001f), LOW_TOL);
