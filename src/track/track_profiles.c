@@ -214,10 +214,10 @@ static const tp_lock_detect_params_t ld_params_qzss[] = {
 static const tp_lock_detect_params_t ld_params_gal[] = {
                                   /* k1,     k2, lp */
     [TP_LD_PARAMS_PHASE_INI]  = { 0.09f,    1.f, 50 },
-    [TP_LD_PARAMS_PHASE_1MS]  = { 0.09f,    .5f, 50 },
-    [TP_LD_PARAMS_PHASE_2MS]  = { 0.08f,    .5f, 50 },
-    [TP_LD_PARAMS_PHASE_5MS]  = { 0.06f,   1.0f, 50 },
-    [TP_LD_PARAMS_PHASE_10MS] = { 0.02f,   1.4f, 50 },
+    [TP_LD_PARAMS_PHASE_1MS]  = { 0.29f,   0.7f, 50 },
+    [TP_LD_PARAMS_PHASE_2MS]  = { 0.28f,   0.8f, 50 },
+    [TP_LD_PARAMS_PHASE_5MS]  = { 0.26f,   1.0f, 50 },
+    [TP_LD_PARAMS_PHASE_10MS] = { 0.22f,   1.4f, 50 },
     [TP_LD_PARAMS_PHASE_20MS] = { 0.01f,   1.4f, 50 },
     [TP_LD_PARAMS_FREQ_INI]   = { 0.07f, UNUSED, 50 },
     [TP_LD_PARAMS_FREQ_1MS]   = { 0.07f, UNUSED, 50 },
