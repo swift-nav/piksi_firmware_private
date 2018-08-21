@@ -27,7 +27,6 @@ typedef struct {
  * State table.
  */
 typedef struct {
-  u8 int_ms;                     /**< General integration time */
   u8 cn0_ms;                     /**< C/N0 estimator integration time */
   u8 lockdet_ms;                 /**< Lock detector integration time */
   float alias_ms;                /**< Alias detector integration time */
@@ -51,7 +50,6 @@ typedef struct {
  * Initial tracking mode (no bit sync, FLL-assisted PLL, 1 ms)
  */
 static const state_table_t mode_1msINI = {
-  .int_ms = 1,
   .cn0_ms = 1,
   .lockdet_ms = 1,
   .alias_ms = 0, /* not used for 1ms profile as equal to flld_ms */
@@ -82,7 +80,6 @@ static const state_table_t mode_1msINI = {
  * 1 ms tracking mode for most GPS and QZSS: exactly as above but with bitsync
  */
 static const state_table_t mode_1ms_20ms = {
-  .int_ms = 1,
   .cn0_ms = 10,
   .lockdet_ms = 1,
   .alias_ms = 0, /* not used as equal to flld_ms */
@@ -125,7 +122,6 @@ static const state_table_t mode_1ms_20ms = {
  * 1 ms tracking mode for GLO
  */
 static const state_table_t mode_1ms_10ms = {
-  .int_ms = 1,
   .cn0_ms = 10,
   .lockdet_ms = 1,
   .alias_ms = 0, /* not used as equal to flld_ms */
@@ -157,7 +153,6 @@ static const state_table_t mode_1ms_10ms = {
  * 1 ms tracking mode for SBAS and Beidou with D2 nav
  */
 static const state_table_t mode_1ms_2ms = {
-  .int_ms = 1,
   .cn0_ms = 2,
   .lockdet_ms = 1,
   .alias_ms = 0, /* not used as equal to flld_ms */
@@ -181,7 +176,6 @@ static const state_table_t mode_1ms_2ms = {
  * 1 ms tracking mode for Galileo I/NAV
  */
 static const state_table_t mode_1ms_sc4 = {
-  .int_ms = 1,
   .cn0_ms = 4,
   .lockdet_ms = 1,
   .alias_ms = 0, /* not used as equal to flld_ms */
@@ -206,7 +200,6 @@ static const state_table_t mode_1ms_sc4 = {
  * 1 ms tracking mode for Beidou with D1 nav and GPS L5
  */
 static const state_table_t mode_1ms_nh20ms = {
-  .int_ms = 1,
   .cn0_ms = 10,
   .lockdet_ms = 1,
   .alias_ms = 0, /* not used as equal to flld_ms */
@@ -263,7 +256,6 @@ static const state_table_t mode_1ms_nh20ms = {
  * 2 ms integration profile for most GPS and QZSS
  */
 static const state_table_t mode_2ms_20ms = {
-  .int_ms = 2,
   .cn0_ms = 10,
   .lockdet_ms = 2,
   .alias_ms = 0, /* not used as equal to flld_ms */
@@ -298,7 +290,6 @@ static const state_table_t mode_2ms_20ms = {
  * 2 ms integration profile for GLO
  */
 static const state_table_t mode_2ms_10ms = {
-  .int_ms = 2,
   .cn0_ms = 10,
   .lockdet_ms = 2,
   .alias_ms = 0, /* not used for as equal to flld_ms */
@@ -326,7 +317,6 @@ static const state_table_t mode_2ms_10ms = {
  * 2 ms tracking mode for SBAS and Beidou with D2 nav
  */
 static const state_table_t mode_2ms_2ms = {
-  .int_ms = 2,
   .cn0_ms = 2,
   .lockdet_ms = 2,
   .alias_ms = 0, /* not used as equal to flld_ms */
@@ -351,7 +341,6 @@ static const state_table_t mode_2ms_2ms = {
  * 200 ms tracking mode for SBAS and Beidou with D2 nav
  */
 static const state_table_t mode_200ms_2ms = {
-  .int_ms = 200,
   .cn0_ms = 2,
   .lockdet_ms = 2,
   .alias_ms = 0, /* not used as equal to flld_ms */
@@ -376,7 +365,6 @@ static const state_table_t mode_200ms_2ms = {
  * 2 ms tracking mode for Galileo I/NAV
  */
 static const state_table_t mode_2ms_sc4 = {
-  .int_ms = 2,
   .cn0_ms = 10,
   .lockdet_ms = 2,
   .alias_ms = 0, /* not used as equal to flld_ms */
@@ -418,7 +406,6 @@ static const state_table_t mode_2ms_sc4 = {
  * 2 ms integration profile for Beidou with D1 nav and GPS L5
  */
 static const state_table_t mode_2ms_nh20ms = {
-  .int_ms = 2,
   .cn0_ms = 10,
   .lockdet_ms = 2,
   .alias_ms = 0, /* not used as equal to flld_ms */
@@ -480,7 +467,6 @@ static const state_table_t mode_2ms_nh20ms = {
  * 4 ms tracking mode for Galileo I/NAV
  */
 static const state_table_t mode_4ms_sc4 = {
-  .int_ms = 4,
   .cn0_ms = 10,
   .lockdet_ms = 4,
   .alias_ms = 0, /* not used as equal to flld_ms */
@@ -521,7 +507,6 @@ static const state_table_t mode_4ms_sc4 = {
  * 5 ms integrations for most GPS and QZSS
  */
 static const state_table_t mode_5ms_20ms = {
-  .int_ms = 5,
   .cn0_ms = 10,
   .lockdet_ms = 5,
   .alias_ms = 0, /* not used in this profile as replaced by FLL */
@@ -562,7 +547,6 @@ static const state_table_t mode_5ms_20ms = {
  * 5 ms integrations for GLO
  */
 static const state_table_t mode_5ms_10ms = {
-  .int_ms = 5,
   .cn0_ms = 10,
   .lockdet_ms = 5,
   .alias_ms = 0, /* not used in this profile as replaced by FLL  */
@@ -593,7 +577,6 @@ static const state_table_t mode_5ms_10ms = {
  * 5 ms integrations for Beidou with D1 nav and GPS L5
  */
 static const state_table_t mode_5ms_nh20ms = {
-  .int_ms = 5,
   .cn0_ms = 10,
   .lockdet_ms = 5,
   .alias_ms = 0, /* not used in this profile as equal to flld_ms */
@@ -640,7 +623,6 @@ static const state_table_t mode_5ms_nh20ms = {
  * 10 ms tracking mode for Galileo I/NAV
  */
 static const state_table_t mode_10ms_sc4 = {
-  .int_ms = 10,
   .cn0_ms = 10,
   .lockdet_ms = 10,
   .alias_ms = 0, /* not used in this profile as replaced by FLL */
@@ -680,7 +662,6 @@ static const state_table_t mode_10ms_sc4 = {
  * 10 ms integrations for most GPS and QZSS
  */
 static const state_table_t mode_10ms_20ms = {
-  .int_ms = 10,
   .cn0_ms = 10,
   .lockdet_ms = 5,
   .alias_ms = 5, /* not used in this profile as replaced by FLL */
@@ -717,7 +698,6 @@ static const state_table_t mode_10ms_20ms = {
  * 10 ms integrations for GLO
  */
 static const state_table_t mode_10ms_10ms = {
-  .int_ms = 10,
   .cn0_ms = 10,
   .lockdet_ms = 5,
   .alias_ms = 2.5,
@@ -748,7 +728,6 @@ static const state_table_t mode_10ms_10ms = {
  * 200 ms integrations for GLO
  */
 static const state_table_t mode_200ms_10ms = {
-  .int_ms = 200,
   .cn0_ms = 10,
   .lockdet_ms = 5,
   .alias_ms = 0, /* not used */
@@ -777,7 +756,6 @@ static const state_table_t mode_200ms_10ms = {
  * 10 ms integrations for Beidou with D1 nav and GPS L5
  */
 static const state_table_t mode_10ms_nh20ms = {
-  .int_ms = 10,
   .cn0_ms = 10,
   .lockdet_ms = 5,
   .alias_ms = 5,
@@ -825,7 +803,6 @@ static const state_table_t mode_10ms_nh20ms = {
  * 20 ms integrations for Galileo I/NAV
  */
 static const state_table_t mode_20ms_sc4 = {
-  .int_ms = 20,
   .cn0_ms = 10,
   .lockdet_ms = 20,
   .alias_ms = 4,
@@ -862,7 +839,6 @@ static const state_table_t mode_20ms_sc4 = {
  * 200 ms integrations for Galileo I/NAV
  */
 static const state_table_t mode_200ms_sc4 = {
-  .int_ms = 200,
   .cn0_ms = 4,
   .lockdet_ms = 20,
   .alias_ms = 4,
@@ -900,7 +876,6 @@ static const state_table_t mode_200ms_sc4 = {
  * 20 ms integrations for most GPS and QZSS
  */
 static const state_table_t mode_20ms_20ms = {
-  .int_ms = 20,
   .cn0_ms = 10,
   .lockdet_ms = 20,
   .alias_ms = 2.5,
@@ -938,7 +913,6 @@ static const state_table_t mode_20ms_20ms = {
 };
 
 static const state_table_t mode_200ms_20ms = {
-  .int_ms = 200,
   .cn0_ms = 10,
   .lockdet_ms = 20,
   .alias_ms = 0, /* not used */
@@ -971,7 +945,6 @@ static const state_table_t mode_200ms_20ms = {
  * 20 ms integrations for Beidou with D1 nav and GPS L5
  */
 static const state_table_t mode_20ms_nh20ms = {
-  .int_ms = 20,
   .cn0_ms = 10,
   .lockdet_ms = 20,
   .alias_ms = 5,
@@ -1018,7 +991,6 @@ static const state_table_t mode_20ms_nh20ms = {
  * 200 ms integrations for Beidou with D1 nav and GPS L5
  */
 static const state_table_t mode_200ms_nh20ms = {
-  .int_ms = 200,
   .cn0_ms = 10,
   .lockdet_ms = 20,
   .alias_ms = 5,
