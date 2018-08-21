@@ -155,7 +155,7 @@ void tp_tl_get_config(const tp_loop_params_t *l, tl_config_t *config) {
   config->code_zeta = l->code_zeta;
   config->code_k = l->code_k;
   config->carr_to_code = l->carr_to_code;
-  config->carr_bw = l->carr_bw;
+  config->pll_bw = l->pll_bw;
   config->carr_zeta = l->carr_zeta;
   config->carr_k = l->carr_k;
   config->fll_bw = l->fll_bw;

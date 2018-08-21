@@ -30,7 +30,7 @@ static void update_params(tl_pll2_state_t *s, const tl_config_t *config) {
   s->T_CODE = config->code_loop_period_s;
 
   /* PLL constants */
-  float omega_0 = config->carr_bw / 0.53f;
+  float omega_0 = config->pll_bw / 0.53f;
   float omega_0_2 = omega_0 * omega_0;
   float a2 = 1.414f;
 

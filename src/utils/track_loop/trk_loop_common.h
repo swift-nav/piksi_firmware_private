@@ -49,7 +49,7 @@ typedef struct {
   float code_zeta;          /**< DLL damping factor (unitless) */
   float code_k;             /**< DLL loop gain (unitless) */
   float carr_to_code;       /**< PLL/DLL output ratio */
-  float carr_bw;            /**< PLL bandwidth [Hz] */
+  float pll_bw;             /**< PLL bandwidth [Hz] */
   float carr_zeta;          /**< PLL damping factor (unitless) */
   float carr_k;             /**< PLL loop gain (unitless) */
   float fll_bw;             /**< FLL bandwidth [Hz] */

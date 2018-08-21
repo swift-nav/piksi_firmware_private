@@ -28,7 +28,7 @@ static void update_params(tl_pll3_state_t *s, const tl_config_t *config) {
   s->T_CARR = config->carr_loop_period_s;
   s->T_CODE = config->code_loop_period_s;
   s->fll_bw_hz = config->fll_bw;
-  s->pll_bw_hz = config->carr_bw;
+  s->pll_bw_hz = config->pll_bw;
 
   /** PLL & FLL constants
    *  References: Kaplan
@@ -50,7 +50,7 @@ static void update_params(tl_pll3_state_t *s, const tl_config_t *config) {
   s->dll_discr_cnt = 0;
 
   /* PLL constants */
-  float omega_0 = config->carr_bw / 0.7845f;
+  float omega_0 = config->pll_bw / 0.7845f;
   float omega_0_2 = omega_0 * omega_0;
   float omega_0_3 = omega_0_2 * omega_0;
   float a3 = 1.1f;
@@ -146,7 +146,7 @@ void tl_pll3_update_dll(tl_pll3_state_t *s) {
 void tl_pll3_update_fpll(tl_pll3_state_t *s,
                          const correlation_t cs[3],
                          bool costas) {
-  float freq_error = 0;
+  float freq_error = 0.0f;
   if (s->fll_bw_hz > 0) {
     if (0 != s->fll_discr_cnt) {
       freq_error = (s->fll_discr_sum_hz) / (s->fll_discr_cnt);
@@ -158,7 +158,7 @@ void tl_pll3_update_fpll(tl_pll3_state_t *s,
     s->freq_error_hz = 0;
   }
 
-  float carr_error = 0;
+  float carr_error = 0.0f;
   if (s->pll_bw_hz > 0) {
     if (costas) {
       carr_error = costas_discriminator(cs[1].I, cs[1].Q);

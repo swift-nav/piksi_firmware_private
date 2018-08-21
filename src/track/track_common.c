@@ -170,7 +170,7 @@ void tp_profile_apply_config(tracker_t *tracker, bool init) {
 
   tracker->flags &= ~TRACKER_FLAG_PLL_USE;
   tracker->flags &= ~TRACKER_FLAG_FLL_USE;
-  if (profile->loop_params.carr_bw > 0) {
+  if (profile->loop_params.pll_bw > 0) {
     tracker->flags |= TRACKER_FLAG_PLL_USE;
   }
   if (profile->loop_params.fll_bw > 0) {
@@ -758,20 +758,6 @@ static void tp_tracker_update_locks(tracker_t *tracker, u32 cycle_flags) {
 }
 
 /**
- * Update FLL discriminator
- * \param[in]     tracker Tracker channel data
- * \param[in]     cycle_flags  Current cycle flags.
- */
-static void tp_tracker_update_fll_discr(tracker_t *tracker, u32 cycle_flags) {
-  bool halfq = (0 != (cycle_flags & TPF_FLL_HALFQ));
-
-  if (0 != (cycle_flags & TPF_FLL_USE)) {
-    tp_tl_update_fll_discr(&tracker->tl_state, tracker->corrs.corr_fll, halfq);
-    tracker->unfiltered_freq_error = tp_tl_get_fll_error(&tracker->tl_state);
-  }
-}
-
-/**
  * Runs FLL, PLL and DLL controller updates.
  *
  * This method updates FLL, PLL and DLL loops and additionally checks for DLL
@@ -783,7 +769,11 @@ static void tp_tracker_update_fll_discr(tracker_t *tracker, u32 cycle_flags) {
  * \return None
  */
 static void tp_tracker_update_loops(tracker_t *tracker, u32 cycle_flags) {
-  tp_tracker_update_fll_discr(tracker, cycle_flags);
+  if (0 != (cycle_flags & TPF_FLL_USE)) {
+    bool halfq = (0 != (cycle_flags & TPF_FLL_HALFQ));
+    tp_tl_update_fll_discr(&tracker->tl_state, tracker->corrs.corr_fll, halfq);
+    tracker->unfiltered_freq_error = tp_tl_get_fll_error(&tracker->tl_state);
+  }
 
   if (0 != (cycle_flags & TPF_EPL_USE)) {
     /* Output I/Q correlations using SBP if enabled for this channel */

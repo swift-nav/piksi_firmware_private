@@ -241,8 +241,8 @@ static const tp_loop_params_t loop_params_template = {
     .code_k = 1.,        /**< Code tracking loop gain coefficient */
     /** carrier frequency /  chip rate */
     .carr_to_code = TP_LOOP_PARAM_PLACE_HOLDER,
-    /** Carrier tracking loop noise bandwidth in Hz */
-    .carr_bw = TP_LOOP_PARAM_PLACE_HOLDER,
+    /** PLL noise bandwidth in Hz */
+    .pll_bw = TP_LOOP_PARAM_PLACE_HOLDER,
     .carr_zeta = 0.707f, /**< Carrier tracking loop damping ratio */
     .carr_k = 1,         /**< Carrier tracking loop gain coefficient */
     /** FLL noise bandwidth in Hz */
@@ -578,7 +578,7 @@ void tp_profile_update_config(tracker_t *tracker) {
 
   /* fill out the rest of tracking loop parameters */
   profile->loop_params.carr_to_code = carr_to_code;
-  profile->loop_params.carr_bw = profile->cur.pll_bw;
+  profile->loop_params.pll_bw = profile->cur.pll_bw;
   profile->loop_params.fll_bw = profile->cur.fll_bw;
   profile->loop_params.code_bw = cur_profile->profile.dll_bw;
   profile->loop_params.mode = get_track_mode(mesid, cur_profile);
