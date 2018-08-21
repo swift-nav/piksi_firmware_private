@@ -78,15 +78,15 @@ void tl_pll2_retune(tl_pll2_state_t *s, const tl_config_t *config) {
 }
 
 /**
- * Updates pll/dll loop filter state
+ * Updates pll & dll loop filter state
  *
- * \param[in,out] s      The filter configuration object
+ * \param[in,out] s      The filter state
  * \param[in]     cs     Complex valued epl correlations
  * \param[in]     costas Flag to indicate use of costas discriminator
  */
-void tl_pll2_update_dll(tl_pll2_state_t *s,
-                        const correlation_t cs[3],
-                        bool costas) {
+void tl_pll2_update(tl_pll2_state_t *s,
+                    const correlation_t cs[3],
+                    bool costas) {
   /* Carrier loop */
   float carr_error_cyc = 0.0f;
   if (costas) {

@@ -108,19 +108,19 @@ void tl_pll3_retune(tl_pll3_state_t *s, const tl_config_t *config) {
 }
 
 /**
- * Updates pll/dll loop filter state
+ * Updates pll/fll & dll loop filter state
  *
- * \param[in,out] s      FLL/PLL filter configuration object
+ * \param[in,out] s      The filter state
  * \param[in]     cs     Complex valued epl correlations
  * \param[in]     costas Flag to indicate use of costas discriminator
  *
  * \return None
  */
-void tl_pll3_update_dll(tl_pll3_state_t *s,
-                        const correlation_t cs[3],
-                        bool costas) {
+void tl_pll3_update(tl_pll3_state_t *s,
+                    const correlation_t cs[3],
+                    bool costas) {
   /* Perform FLL loop update now within this function. */
-  float freq_error = 0;
+  float freq_error = 0.0f;
   if (s->fll_bw_hz > 0) {
     if (0 != s->discr_cnt) {
       freq_error = (s->discr_sum_hz) / (s->discr_cnt);
@@ -176,9 +176,6 @@ float tl_pll3_get_freq_error(const tl_pll3_state_t *s) {
 void tl_pll3_adjust(tl_pll3_state_t *s, float err) {
   s->carr_freq += err;
   s->carr_vel += err;
-  if (s->carr_to_code <= 0) {
-    s->code_freq += err * s->carr_to_code;
-  }
 }
 
 /**

@@ -181,11 +181,11 @@ void tp_tl_update(tp_tl_state_t *s, const tp_epl_corr_t *cs, bool costas) {
 
   switch (s->ctrl) {
     case TP_CTRL_PLL2:
-      tl_pll2_update_dll(&s->pll2, cs2, costas);
+      tl_pll2_update(&s->pll2, cs2, costas);
       break;
 
     case TP_CTRL_PLL3:
-      tl_pll3_update_dll(&s->pll3, cs2, costas);
+      tl_pll3_update(&s->pll3, cs2, costas);
       break;
 
     default:

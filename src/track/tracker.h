@@ -429,7 +429,7 @@ typedef struct {
   };
 
   /* for tracking profile stabilization timeout bookkeeping */
-  u64 report_last_ms;
+  u32 report_last_ms;
 } tracker_t;
 
 #endif /* SWIFTNAV_TRACKER_H  */

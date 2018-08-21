@@ -141,9 +141,7 @@ void tl_pll3_init(tl_pll3_state_t *s,
                   const tl_rates_t *rates,
                   const tl_config_t *config);
 void tl_pll3_retune(tl_pll3_state_t *s, const tl_config_t *config);
-void tl_pll3_update_dll(tl_pll3_state_t *s,
-                        const correlation_t cs[3],
-                        bool costas);
+void tl_pll3_update(tl_pll3_state_t *s, const correlation_t cs[3], bool costas);
 void tl_pll3_adjust(tl_pll3_state_t *s, float carr_err);
 void tl_pll3_discr_update(tl_pll3_state_t *s, float I, float Q, bool halfq);
 void tl_pll3_get_rates(const tl_pll3_state_t *s, tl_rates_t *rates);
@@ -154,9 +152,7 @@ void tl_pll2_init(tl_pll2_state_t *s,
                   const tl_rates_t *rates,
                   const tl_config_t *config);
 void tl_pll2_retune(tl_pll2_state_t *s, const tl_config_t *config);
-void tl_pll2_update_dll(tl_pll2_state_t *s,
-                        const correlation_t cs[3],
-                        bool costas);
+void tl_pll2_update(tl_pll2_state_t *s, const correlation_t cs[3], bool costas);
 void tl_pll2_adjust(tl_pll2_state_t *s, float err_hz);
 void tl_pll2_get_rates(const tl_pll2_state_t *s, tl_rates_t *rates);
 
