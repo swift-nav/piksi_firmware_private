@@ -26,7 +26,7 @@
  * \param[in]     config Tracking loop configuration parameters
  */
 static void update_params(tl_pll2_state_t *s, const tl_config_t *config) {
-  s->T_DLL = config->dll_loop_period_s;
+  s->T_CODE = config->code_loop_period_s;
 
   /* PLL constants */
   float omega_0 = config->carr_bw / 0.53f;
@@ -96,7 +96,7 @@ void tl_pll2_update_dll(tl_pll2_state_t *s,
     carr_error_cyc = atan2f(cs[1].Q, cs[1].I) * (float)(1 / (2 * M_PI));
   }
 
-  float carr_vel_change_hz_per_s = carr_error_cyc * s->carr_c2 * s->T_DLL;
+  float carr_vel_change_hz_per_s = carr_error_cyc * s->carr_c2 * s->T_CODE;
   s->carr_freq_hz = carr_error_cyc * s->carr_c1;
   s->carr_freq_hz += 0.5f * (2.0f * s->carr_vel + carr_vel_change_hz_per_s);
   s->carr_vel += carr_vel_change_hz_per_s;

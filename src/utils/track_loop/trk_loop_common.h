@@ -41,8 +41,8 @@ typedef struct {
  * Tracking loop configuration parameters
  */
 typedef struct {
-  float dll_loop_period_s;  /**< DLL loop period [s] */
-  float fll_loop_period_s;  /**< FLL loop period [s] */
+  float code_loop_period_s; /**< code loop period [s] */
+  float carr_loop_period_s; /**< carrier loop period [s] */
   float fll_discr_period_s; /**< FLL discriminator period [s] */
   float code_bw;            /**< DLL bandwidth [Hz] */
   float code_zeta;          /**< DLL damping factor (unitless) */
@@ -63,8 +63,8 @@ typedef struct {
   float carr_freq; /**< Frequency doppler */
   float code_freq; /**< Code doppler */
 
-  float T_DLL; /**< DLL/PLL Integration interval */
-  float T_FLL; /**< FLL Integration interval */
+  float T_CODE; /**< code integration interval [s] */
+  float T_CARR; /**< carrier integration interval [s] */
 
   float prev_I;        /**< FLL: I[n-1] */
   float prev_Q;        /**< FLL: Q[n-1] */
@@ -91,15 +91,15 @@ typedef struct {
 } tl_pll3_state_t;
 
 /**
- * FLL-assisted PLL controller.
+ * PLL controller.
  *
- * The controller implements third order PLL assisted with second order FLL.
+ * The controller implements 2nd order PLL and 1st order DLL
  */
 typedef struct {
   float carr_freq_hz; /**< Carrier doppler */
   float code_freq_hz; /**< Code doppler */
 
-  float T_DLL; /**< DLL/PLL Integration interval */
+  float T_CODE; /**< DLL/PLL integration interval [s] */
 
   float carr_c1;  /**< PLL: c1 coefficient */
   float carr_c2;  /**< PLL: c2 coefficient */

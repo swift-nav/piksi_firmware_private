@@ -25,8 +25,8 @@
  * \return None
  */
 static void update_params(tl_pll3_state_t *s, const tl_config_t *config) {
-  s->T_FLL = config->fll_loop_period_s;
-  s->T_DLL = config->dll_loop_period_s;
+  s->T_CARR = config->carr_loop_period_s;
+  s->T_CODE = config->code_loop_period_s;
   s->fll_bw_hz = config->fll_bw;
 
   /** PLL & FLL constants
@@ -139,10 +139,10 @@ void tl_pll3_update_dll(tl_pll3_state_t *s,
   }
 
   float carr_acc_change =
-      s->carr_c3 * s->T_DLL * carr_error + s->freq_c2 * s->T_FLL * freq_error;
+      s->carr_c3 * s->T_CARR * carr_error + s->freq_c2 * s->T_CARR * freq_error;
   float carr_vel_change =
-      s->T_DLL * (s->carr_c2 * carr_error + s->freq_c1 * freq_error +
-                  0.5f * (2.0f * s->carr_acc + carr_acc_change));
+      s->T_CARR * (s->carr_c2 * carr_error + s->freq_c1 * freq_error +
+                   0.5f * (2.0f * s->carr_acc + carr_acc_change));
   s->carr_freq =
       s->carr_c1 * carr_error + 0.5f * (2.0f * s->carr_vel + carr_vel_change);
   s->carr_vel += carr_vel_change;
@@ -152,8 +152,8 @@ void tl_pll3_update_dll(tl_pll3_state_t *s,
   float code_error = dll_discriminator(cs);
   s->code_freq =
       s->code_c1 * code_error +
-      0.5f * (2.0f * s->code_vel + s->code_c2 * s->T_DLL * code_error);
-  s->code_vel += s->code_c2 * s->T_DLL * code_error;
+      0.5f * (2.0f * s->code_vel + s->code_c2 * s->T_CODE * code_error);
+  s->code_vel += s->code_c2 * s->T_CODE * code_error;
 
   /* Carrier aiding */
   s->code_freq += s->carr_freq * s->carr_to_code;
