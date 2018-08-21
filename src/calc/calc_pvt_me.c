@@ -72,6 +72,9 @@ static const double valid_soln_freqs_hz[] = {1.0, 2.0, 4.0, 5.0, 10.0};
 #define SOLN_FREQ_SETTING_MAX \
   (valid_soln_freqs_hz[ARRAY_SIZE(valid_soln_freqs_hz) - 1])
 
+/* Maximum interval for computing ME PVT solution */
+#define ME_PVT_INTERVAL_S 1.0
+
 double soln_freq_setting = 10.0;
 u32 obs_output_divisor = 10;
 
@@ -448,28 +451,82 @@ static void drop_gross_outlier(const navigation_measurement_t *nav_meas,
   }
 }
 
-/* Solve for position from the given navigation measurements, and if succesful
- * update LGF and clock model
- */
+/* Apply corrections and solve for position from the given navigation
+ * measurements, and if succesful update LGF and clock model */
 s8 compute_me_pvt(u8 n_ready,
-                  const navigation_measurement_t nav_meas[MAX_CHANNELS],
+                  navigation_measurement_t nav_meas[],
                   u64 current_tc,
                   const gps_time_t *current_time,
+                  const ephemeris_t *p_e_meas[],
                   last_good_fix_t *lgf) {
-  time_quality_t old_time_quality = get_time_quality();
+  gnss_sid_set_t codes;
+  sid_set_init(&codes);
+  for (u8 i = 0; i < n_ready; i++) {
+    sid_set_add(&codes, nav_meas[i].sid);
+  }
+
+  if (sid_set_get_sat_count(&codes) < MINIMUM_SV_COUNT) {
+    /* Not enough sats to even try PVT */
+    return PVT_INSUFFICENT_MEAS;
+  }
+
+  /* Create array of pointers to measurements */
+  navigation_measurement_t *p_nav_meas[n_ready];
+  for (u8 i = 0; i < n_ready; i++) {
+    p_nav_meas[i] = &nav_meas[i];
+  }
+
+  /* Compute satellite positions, velocities, and satellite clock and
+   * clock rate corrections for all measurements*/
+  for (u8 i = 0; i < n_ready; i++) {
+    s8 sc_ret = calc_sat_state(p_e_meas[i],
+                               &(p_nav_meas[i]->tot),
+                               p_nav_meas[i]->sat_pos,
+                               p_nav_meas[i]->sat_vel,
+                               p_nav_meas[i]->sat_acc,
+                               &(p_nav_meas[i]->sat_clock_err),
+                               &(p_nav_meas[i]->sat_clock_err_rate),
+                               &(p_nav_meas[i]->IODC),
+                               &(p_nav_meas[i]->IODE));
+
+    if (sc_ret != 0) {
+      log_error_sid(
+          p_e_meas[i]->sid, "calc_sat_state() returned error %d", sc_ret);
+      return PVT_INSUFFICENT_MEAS; /* TODO define "other error?" */
+    }
+  }
+
+  /* correct measurements for satellite clock and clock rate errors */
+  apply_sat_clock_corrections(n_ready, p_nav_meas);
+
+  /* apply GPS inter-signal corrections from CNAV messages */
+  apply_gps_cnav_isc(n_ready, p_nav_meas, p_e_meas);
+
+  /* apply empirical (Piksi Multi specific) inter-signal corrections */
+  apply_isc_table(n_ready, p_nav_meas);
+
+  /* apply iono and tropo corrections if LGF available */
+  if (lgf->position_quality >= POSITION_GUESS) {
+    ionosphere_t i_params;
+    /* get iono parameters if available, otherwise use default ones */
+    if (ndb_iono_corr_read(&i_params) != NDB_ERR_NONE) {
+      i_params = DEFAULT_IONO_PARAMS;
+    }
+    correct_tropo(lgf->position_solution.pos_ecef, n_ready, nav_meas);
+    correct_iono(lgf->position_solution.pos_ecef, &i_params, n_ready, nav_meas);
+  }
+
   dops_t dops;
   gnss_solution current_fix;
   gnss_sid_set_t raim_removed_sids;
 
   /* Calculate the SPP position
    * disable_raim controlled by external setting. Defaults to false. */
-  /* Don't skip velocity solving. If there is a cycle slip, tdcp_doppler
-   * will just return the rough value from the tracking loop. */
   s8 pvt_ret = calc_PVT(n_ready,
                         nav_meas,
-                        &*current_time,
+                        current_time,
                         disable_raim,
-                        false,
+                        /*disable_velocity = */ false,
                         GPS_L1CA_WHEN_POSSIBLE,
                         &current_fix,
                         &dops,
@@ -499,7 +556,7 @@ s8 compute_me_pvt(u8 n_ready,
       if (sid_set_contains(&raim_removed_sids, nav_meas[i].sid)) {
         log_debug_sid(nav_meas[i].sid,
                       "RAIM repair, setting observation invalid.");
-        // nav_meas[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION;
+        nav_meas[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION;
         /* Check how large the outlier roughly is, and if it is a gross one,
          * drop the channel and delete the possibly corrupt ephemeris */
         drop_gross_outlier(&nav_meas[i], &current_fix);
@@ -508,8 +565,15 @@ s8 compute_me_pvt(u8 n_ready,
   }
 
   if (pvt_ret >= 0) {
+    if (lgf->position_quality <= POSITION_GUESS) {
+      /* Notify of the first fix */
+      log_info("first fix clk_offset %.3e clk_drift %.3e",
+               current_fix.clock_offset,
+               current_fix.clock_drift);
+    }
+
     /* PVT succeeded, update the relationship between the solved GPS time
-     * and NAP count tc.*/
+     * and NAP count */
     update_time(current_tc, &current_fix);
 
     /* Update global position solution state. */
@@ -519,13 +583,6 @@ s8 compute_me_pvt(u8 n_ready,
     lgf->position_solution.time = napcount2gpstime(current_tc);
     lgf->position_solution.clock_drift = get_clock_drift();
     ndb_lgf_store(&*lgf);
-
-    if (TIME_PROPAGATED > old_time_quality) {
-      /* Notify of the first fix */
-      log_info("first fix clk_offset %.3e clk_drift %.3e",
-               current_fix.clock_offset,
-               current_fix.clock_drift);
-    }
   }
 
   return pvt_ret;
@@ -649,14 +706,6 @@ static void me_calc_pvt_thread(void *arg) {
       continue;
     }
 
-    cnav_msg_t cnav_30[MAX_CHANNELS];
-    const cnav_msg_type_30_t *p_cnav_30[MAX_CHANNELS];
-    for (u8 i = 0; i < n_ready; i++) {
-      p_cnav_30[i] = cnav_msg_get(meas[i].sid, CNAV_MSG_TYPE_30, &cnav_30[i])
-                         ? &cnav_30[i].data.type_30
-                         : NULL;
-    }
-
     static navigation_measurement_t nav_meas[MAX_CHANNELS];
     const channel_measurement_t *p_meas[n_ready];
     navigation_measurement_t *p_nav_meas[n_ready];
@@ -688,68 +737,17 @@ static void me_calc_pvt_thread(void *arg) {
       continue;
     }
 
-    s8 sc_ret;
-    for (u8 i = 0; i < n_ready; i++) {
-      /* calculate satellite position */
-      sc_ret = calc_sat_state(p_e_meas[i],
-                              &(p_nav_meas[i]->tot),
-                              p_nav_meas[i]->sat_pos,
-                              p_nav_meas[i]->sat_vel,
-                              p_nav_meas[i]->sat_acc,
-                              &(p_nav_meas[i]->sat_clock_err),
-                              &(p_nav_meas[i]->sat_clock_err_rate),
-                              &(p_nav_meas[i]->IODC),
-                              &(p_nav_meas[i]->IODE));
-
-      if (sc_ret != 0) {
-        log_error_sid(p_e_meas[i]->sid, "calc_sat_state() returned an error");
-        break;
-      }
-    }
-
-    if (sc_ret != 0) {
-      me_send_emptyobs();
-      continue;
-    }
-
-    apply_sat_clock_corrections(n_ready, p_nav_meas);
-
-    apply_gps_cnav_isc(n_ready, p_nav_meas, p_cnav_30, p_e_meas);
-    apply_isc_table(n_ready, p_nav_meas);
-
-    gnss_sid_set_t codes;
-    sid_set_init(&codes);
-    for (u8 i = 0; i < n_ready; i++) {
-      sid_set_add(&codes, nav_meas[i].sid);
-    }
-
-    /* check if we have a solution, if yes calc iono and tropo correction */
-    if (lgf.position_quality >= POSITION_GUESS) {
-      ionosphere_t i_params;
-      /* get iono parameters if available, otherwise use default ones */
-      if (ndb_iono_corr_read(&i_params) != NDB_ERR_NONE) {
-        i_params = DEFAULT_IONO_PARAMS;
-      }
-      correct_tropo(lgf.position_solution.pos_ecef, n_ready, nav_meas);
-      correct_iono(
-          lgf.position_solution.pos_ecef, &i_params, n_ready, nav_meas);
-    }
-
-    if (sid_set_get_sat_count(&codes) < 4) {
-      /* Not enough sats to compute PVT, send them as unusable */
-      me_send_failed_obs(n_ready, nav_meas, e_meas, &current_time);
-      continue;
-    }
-
     /* Compute a PVT solution from the measurements to update LGF and clock
      * models. Compute on every epoch if time quality is not finest, otherwise
      * once per second is enough */
     if (TIME_FINEST > time_quality) {
-      compute_me_pvt(n_ready, nav_meas, current_tc, &current_time, &lgf);
+      compute_me_pvt(
+          n_ready, nav_meas, current_tc, &current_time, p_e_meas, &lgf);
     } else {
       DO_EACH_MS(
-          SECS_MS,
-          compute_me_pvt(n_ready, nav_meas, current_tc, &current_time, &lgf));
+          ME_PVT_INTERVAL_S * SECS_MS,
+          compute_me_pvt(
+              n_ready, nav_meas, current_tc, &current_time, p_e_meas, &lgf));
     }
 
     /* Get the updated time and drift */
