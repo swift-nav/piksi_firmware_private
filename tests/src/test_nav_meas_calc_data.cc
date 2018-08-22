@@ -173,6 +173,7 @@ static navigation_measurement_t nm1 = {
     15,              /* cn0 */
     16,              /* lock_time */
     0.0,             /* elevation */
+    0.0,             /* azimuth */
     {0.0,            /* tot.tow */
      0},             /* tot.wn */
     {1,              /* sid.sat */
@@ -205,6 +206,7 @@ static navigation_measurement_t nm1_2 = {
     115,             /* cn0 */
     116,             /* lock_time */
     0.0,             /* elevation */
+    0.0,             /* azimuth */
     {0.0,            /* tot.tow */
      0},             /* tot.wn */
     {1,              /* sid.sat */
@@ -237,6 +239,7 @@ static navigation_measurement_t nm2 = {
     25,              /* cn0 */
     26,              /* lock_time */
     0.0,             /* elevation */
+    0.0,             /* azimuth */
     {0.0,            /* tot.tow */
      0},             /* tot.wn */
     {2,              /* sid.sat */
@@ -269,6 +272,7 @@ static navigation_measurement_t nm2_2 = {
     225,             /* cn0 */
     226,             /* lock_time */
     0.0,             /* elevation */
+    0.0,             /* azimuth */
     {0.0,            /* tot.tow */
      0},             /* tot.wn */
     {2,              /* sid.sat */
@@ -301,6 +305,7 @@ static navigation_measurement_t nm3 = {
     35,              /* cn0 */
     36,              /* lock_time */
     0.0,             /* elevation */
+    0.0,             /* azimuth */
     {0.0,            /* tot.tow */
      0},             /* tot.wn */
     {3,              /* sid.sat */
@@ -496,6 +501,7 @@ TEST(iono_tropo_usage_test, iono_tropo_test) {
       35,              /* cn0 */
       36,              /* lock_time */
       0.0,             /* elevation */
+      0.0,             /* azimuth */
       {479820,         /* tot.tow */
        1875},          /* tot.wn */
       {1,              /* sid.sat */

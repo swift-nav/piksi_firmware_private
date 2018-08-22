@@ -282,6 +282,12 @@ bool track_sid_db_elevation_degrees_get(const gnss_signal_t sid,
   return false;
 }
 
+bool track_sid_db_azimuth_degrees_get(const gnss_signal_t sid, double *result) {
+  (void)sid;
+  (void)result;
+  return false;
+}
+
 /*** EPHEMERIS UNIT TESTS STUBS ***/
 eph_new_status_t ephemeris_new(const ephemeris_t *e) {
   (void)e;
