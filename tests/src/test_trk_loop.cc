@@ -52,7 +52,7 @@ TEST(tracking_loop_test, test_aided) {
   const float code_zeta = 0.6f;
   const float code_k = 1.0f;
   const float carr_to_code = 1540.0f;
-  const float carr_bw = 30.0f;
+  const float pll_bw = 30.0f;
   const float carr_zeta = 0.7f;
   const float carr_k = 1.0f;
   const float fll_bw = 35.0f;
@@ -64,7 +64,7 @@ TEST(tracking_loop_test, test_aided) {
   config.code_zeta = code_zeta;
   config.code_k = code_k;
   config.carr_to_code = carr_to_code;
-  config.carr_bw = carr_bw;
+  config.pll_bw = pll_bw;
   config.carr_zeta = carr_zeta;
   config.carr_k = carr_k;
   config.fll_bw = fll_bw;

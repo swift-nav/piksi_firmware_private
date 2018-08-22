@@ -148,10 +148,12 @@ void tp_profile_apply_config(tracker_t *tracker, bool init) {
   /**< Set tracking loop configuration parameters */
   tl_config_t config;
   tp_tl_get_config(l, &config);
-  config.code_loop_period_s = tp_get_dll_ms(tracker->tracking_mode) / (float)SECS_MS;
+  config.code_loop_period_s =
+      tp_get_dll_ms(tracker->tracking_mode) / (float)SECS_MS;
   config.dll_discr_period_s =
       tp_get_dll_ms(tracker->tracking_mode) / (float)SECS_MS;
-  config.carr_loop_period_s = tp_get_pll_ms(tracker->tracking_mode) / (float)SECS_MS;
+  config.carr_loop_period_s =
+      tp_get_pll_ms(tracker->tracking_mode) / (float)SECS_MS;
   config.fll_discr_period_s =
       tp_get_flld_ms(tracker->tracking_mode) / (float)SECS_MS;
 
