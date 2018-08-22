@@ -88,6 +88,10 @@ typedef struct {
 
   float carr_to_code; /**< FLL to DLL assist coefficient */
   float fll_bw_hz;    /**< FLL BW [Hz] */
+
+  float pll_bw_hz; /**< PLL BW [Hz] */
+
+  float freq_error_hz;
 } tl_pll3_state_t;
 
 /**
@@ -137,25 +141,19 @@ void tl_pll3_init(tl_pll3_state_t *s,
                   const tl_rates_t *rates,
                   const tl_config_t *config);
 void tl_pll3_retune(tl_pll3_state_t *s, const tl_config_t *config);
-void tl_pll3_update_dll(tl_pll3_state_t *s,
-                        const correlation_t cs[3],
-                        bool costas);
+void tl_pll3_update(tl_pll3_state_t *s, const correlation_t cs[3], bool costas);
 void tl_pll3_adjust(tl_pll3_state_t *s, float carr_err);
-float tl_pll3_get_dll_error(const tl_pll3_state_t *s);
-void tl_pll3_discr_update(
-    tl_pll3_state_t *s, float I, float Q, bool update_fll_discr, bool halfq);
+void tl_pll3_discr_update(tl_pll3_state_t *s, float I, float Q, bool halfq);
 void tl_pll3_get_rates(const tl_pll3_state_t *s, tl_rates_t *rates);
+float tl_pll3_get_freq_error(const tl_pll3_state_t *s);
 
 /* PLL2, DLL1 */
 void tl_pll2_init(tl_pll2_state_t *s,
                   const tl_rates_t *rates,
                   const tl_config_t *config);
 void tl_pll2_retune(tl_pll2_state_t *s, const tl_config_t *config);
-void tl_pll2_update_dll(tl_pll2_state_t *s,
-                        const correlation_t cs[3],
-                        bool costas);
+void tl_pll2_update(tl_pll2_state_t *s, const correlation_t cs[3], bool costas);
 void tl_pll2_adjust(tl_pll2_state_t *s, float err_hz);
-float tl_pll2_get_dll_error(const tl_pll2_state_t *s);
 void tl_pll2_get_rates(const tl_pll2_state_t *s, tl_rates_t *rates);
 
 #ifdef __cplusplus
