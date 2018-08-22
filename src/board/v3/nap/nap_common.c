@@ -184,9 +184,9 @@ static void handle_nap_track_irq(void) {
 
   if (tp_tracker_has_new_mode()) {
     /* A tracker mode switch was detected.
-       Trackers carry various state related to tracker mode.
-       To avoid breaking trackers state machines operations we drop
-       all trackers before applying the new mode. */
+       Trackers maintain state linked to the current tracker mode.
+       To avoid breaking that state we drop all trackers before applying
+       the new mode. */
     trackers_drop_all();
     tp_tracker_apply_new_mode();
   }

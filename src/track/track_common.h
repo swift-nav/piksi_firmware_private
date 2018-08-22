@@ -21,7 +21,7 @@
 #include "me_constants.h"
 #include "track/tracker.h"
 
-/** Tracker modes supported by the measuremente engine */
+/** Tracker modes supported by the measurement engine */
 enum tracker_mode {
   TRACKER_MODE_ROVER, /* rover tracker mode */
   TRACKER_MODE_BASE   /* base station tracker mode */

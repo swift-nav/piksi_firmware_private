@@ -281,9 +281,9 @@ static const tp_loop_params_t loop_params_template = {
 
 /**
  * The tracking profiles switching table for rover mode.
- * The main strategy is to use shorter integration time for stronger signals
- * and longer integration time for weaker signals. This is done to achieve
- * better dynamic tolerance of the tracking loops.
+ * The rover mode strategy is to use shorter integration time for stronger
+ * signals and longer integration time for weaker signals.
+ * This is done to achieve better dynamic tolerance of the tracking loops.
  */
 /* clang-format off */
 static const tp_profile_entry_t tracker_profiles_rover[] = {
@@ -366,7 +366,7 @@ static const tp_profile_entry_t tracker_profiles_rover[] = {
 
 /**
  * The tracking profiles switching table for base station mode.
- * The main strategy is to always use the longest integration time
+ * The base station mode strategy is to always use the longest integration time
  * for all signals.
  * This is done to achieve less measurement noise in exchange of worse
  * dynamics tolerance of the tracking loops.
@@ -843,9 +843,9 @@ static bool low_cn0_profile_switch_requested(tracker_t *tracker) {
   }
 
   if (tp_is_base_station_mode()) {
-    /* in base tracker mode the profile switches to the longer integration
-       time are ensured by the strategy implemented in the profile switching
-       table: always activate the longest possible integration time profile. */
+    /* in base tracker mode longer integration times are ensured
+       by the strategy implemented in the profile switching table:
+       always activate the longest possible integration time profile. */
     return false;
   }
 
