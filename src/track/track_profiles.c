@@ -392,7 +392,7 @@ static const tp_profile_entry_t tracker_profiles_base[] = {
       TP_UNAIDED | TP_WAIT_FLOCK},
 
   [IDX_INIT_1] =
-  { { BW_DYN,           3,           20,   TP_CTRL_PLL3,
+  { {    8,             3,           20,   TP_CTRL_PLL3,
         TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL },
         TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
        100,             0,            0,
@@ -400,15 +400,15 @@ static const tp_profile_entry_t tracker_profiles_base[] = {
       TP_WAIT_BSYNC | TP_WAIT_PLOCK | TP_UNAIDED },
 
   [IDX_INIT_2] =
-  { { BW_DYN,           1,            5,   TP_CTRL_PLL3,
+  { {    7,             1,            5,   TP_CTRL_PLL3,
       TP_TM_1MS_20MS,  TP_TM_1MS_10MS,  TP_TM_1MS_2MS,  TP_TM_1MS_NH20MS,  TP_TM_1MS_SC4 },
       TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
-      100,              0,            0,
+       100,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
       TP_WAIT_PLOCK },
 
   [IDX_2MS] =
-  { { BW_DYN,           0,            2,   TP_CTRL_PLL2,
+  { {    3,             0,            2,   TP_CTRL_PLL2,
       TP_TM_2MS_20MS,  TP_TM_2MS_10MS,  TP_TM_2MS_2MS,  TP_TM_2MS_NH20MS,  TP_TM_2MS_SC4 },
       TP_LD_PARAMS_PHASE_2MS, TP_LD_PARAMS_FREQ_2MS,
         40,             0,            0,
@@ -416,26 +416,26 @@ static const tp_profile_entry_t tracker_profiles_base[] = {
       0},
 
   [IDX_5MS] =
-  { { BW_DYN,           0,            1,   TP_CTRL_PLL2,
+  { {    3,             0,            1,   TP_CTRL_PLL2,
       TP_TM_5MS_20MS,  TP_TM_5MS_10MS,  TP_TM_2MS_2MS,  TP_TM_5MS_NH20MS,  TP_TM_4MS_SC4 },
       TP_LD_PARAMS_PHASE_5MS, TP_LD_PARAMS_FREQ_5MS,
-      40,               0,            0,
+        40,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
       0},
 
   [IDX_10MS] =
-  { { BW_DYN,           0,            1,   TP_CTRL_PLL2,
+  { {    3,             0,           .5,   TP_CTRL_PLL2,
       TP_TM_10MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS, TP_TM_10MS_NH20MS,  TP_TM_10MS_SC4 },
       TP_LD_PARAMS_PHASE_10MS, TP_LD_PARAMS_FREQ_10MS,
-      40,               0,            0,
+        40,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
       0},
 
   [IDX_20MS] =
-  { { BW_DYN,           0,           .5,   TP_CTRL_PLL2,
+  { {    3,             0,           .4,   TP_CTRL_PLL2,
       TP_TM_20MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS,  TP_TM_20MS_NH20MS,  TP_TM_20MS_SC4 },
       TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
-      40,               0,            0,
+        40,             0,            0,
       IDX_20MS,  IDX_NONE,     IDX_NONE,
       TP_USE_NEXT },
 };
@@ -721,16 +721,18 @@ static bool pll_bw_changed(tracker_t *tracker, profile_indices_t index) {
   if (entry->profile.pll_bw >= 0) { /* fixed PLL BW */
     pll_bw = entry->profile.pll_bw;
   } else { /* dynamic PLL BW */
+    /* in base tracker mode PLL BW is expected to be fixed */
+    assert(!tp_is_base_station_mode());
     tp_tm_e track_mode = get_track_mode(tracker->mesid, entry);
     u8 pll_t_ms = tp_get_fpll_ms(track_mode);
     pll_bw = compute_pll_bw(tracker->cn0, pll_t_ms);
-  }
 
-  /* Simple hysteresis to avoid too often PLL retunes */
-  float pll_bw_diff = fabsf(pll_bw - state->cur.pll_bw);
-  if ((pll_bw_diff < (state->cur.pll_bw * .20f)) || (pll_bw_diff < .5f)) {
-    state->next.pll_bw = state->cur.pll_bw;
-    return false;
+    /* Simple hysteresis to avoid too often PLL retunes */
+    float pll_bw_diff = fabsf(pll_bw - state->cur.pll_bw);
+    if ((pll_bw_diff < (state->cur.pll_bw * .20f)) || (pll_bw_diff < .5f)) {
+      state->next.pll_bw = state->cur.pll_bw;
+      return false;
+    }
   }
 
   if ((pll_bw > 0) && (pll_bw < state->cur.pll_bw)) {
@@ -742,8 +744,8 @@ static bool pll_bw_changed(tracker_t *tracker, profile_indices_t index) {
   }
 
   state->next.pll_bw = pll_bw;
-
-  return true;
+  bool changed = fabsf(state->next.pll_bw - state->cur.pll_bw) > 0.01;
+  return changed;
 }
 
 static bool fll_bw_changed(tracker_t *tracker, profile_indices_t index) {
@@ -758,13 +760,13 @@ static bool fll_bw_changed(tracker_t *tracker, profile_indices_t index) {
     tp_tm_e track_mode = get_track_mode(tracker->mesid, entry);
     u8 fll_t_ms = tp_get_fpll_ms(track_mode);
     fll_bw = compute_fll_bw(cn0, fll_t_ms);
-  }
 
-  /* Simple hysteresis to avoid too often FLL retunes */
-  float fll_bw_diff = fabsf(fll_bw - state->cur.fll_bw);
-  if ((fll_bw_diff < (state->cur.fll_bw * .10f)) || (fll_bw_diff < .3)) {
-    state->next.fll_bw = state->cur.fll_bw;
-    return false;
+    /* Simple hysteresis to avoid too often FLL retunes */
+    float fll_bw_diff = fabsf(fll_bw - state->cur.fll_bw);
+    if ((fll_bw_diff < (state->cur.fll_bw * .10f)) || (fll_bw_diff < .3)) {
+      state->next.fll_bw = state->cur.fll_bw;
+      return false;
+    }
   }
 
   if (fll_bw < state->cur.fll_bw) {
@@ -776,7 +778,8 @@ static bool fll_bw_changed(tracker_t *tracker, profile_indices_t index) {
   }
 
   state->next.fll_bw = fll_bw;
-  return true;
+  bool changed = fabsf(state->next.fll_bw - state->cur.fll_bw) > 0.01;
+  return changed;
 }
 
 /**
@@ -824,6 +827,11 @@ static bool profile_switch_requested(tracker_t *tracker,
 }
 
 static bool low_cn0_profile_switch_requested(tracker_t *tracker) {
+  /* in base tracker mode longer integration times are ensured
+     by the strategy implemented in the profile switching table:
+     always activate the longest possible integration time profile. */
+  assert(!tp_is_base_station_mode());
+
   tp_profile_t *state = &tracker->profile;
   const tp_profile_entry_t *cur_profile = &state->profiles[state->cur.index];
 
@@ -839,13 +847,6 @@ static bool low_cn0_profile_switch_requested(tracker_t *tracker) {
 
   bool settled = (tracker->age_ms >= tracker->settle_time_ms);
   if (!settled) {
-    return false;
-  }
-
-  if (tp_is_base_station_mode()) {
-    /* in base tracker mode longer integration times are ensured
-       by the strategy implemented in the profile switching table:
-       always activate the longest possible integration time profile. */
     return false;
   }
 
