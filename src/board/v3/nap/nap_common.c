@@ -208,14 +208,6 @@ static void handle_nap_track_irq(void) {
   }
 
   DO_EVERY(4096, watchdog_notify(WD_NOTIFY_NAP_ISR));
-
-  DO_EACH_MS(60 * 1000,
-    if (tp_is_rover_mode()) {
-      tp_set_base_station_mode();
-    }
-    if (tp_is_base_station_mode()) {
-      tp_set_rover_mode();
-    });
 }
 
 static void nap_irq_thread(void *arg) {
