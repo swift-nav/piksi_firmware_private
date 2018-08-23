@@ -923,7 +923,6 @@ void tp_profile_switch(tracker_t *tracker) {
   profile->profile_update = 0;
 
   if (profile->cur.index != profile->next.index) {
-    tracker->dll_cycle = 0;
     tracker->fpll_cycle = 0;
   }
 

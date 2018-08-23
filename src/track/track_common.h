@@ -78,9 +78,7 @@ float tp_get_alias_ms(tp_tm_e tracking_mode);
 float tp_get_flld_ms(tp_tm_e tracking_mode);
 u8 tp_get_fpll_ms(tp_tm_e tracking_mode);
 u8 tp_get_bit_ms(tp_tm_e tracking_mode);
-u8 tp_get_dlld_ms(tp_tm_e tracking_mode);
 u8 tp_get_dll_ms(tp_tm_e tracking_mode);
-u8 tp_get_dll_decim(tp_tm_e tracking_mode);
 u8 tp_get_fpll_decim(tp_tm_e tracking_mode);
 const char *tp_get_mode_str(tp_tm_e v);
 

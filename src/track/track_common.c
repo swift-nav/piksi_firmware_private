@@ -148,10 +148,9 @@ void tp_profile_apply_config(tracker_t *tracker, bool init) {
   /**< Set tracking loop configuration parameters */
   tl_config_t config;
   tp_tl_get_config(l, &config);
+  /* DLL discriminator period is same as code_loop_period_s */
   config.code_loop_period_s =
       tp_get_dll_ms(tracker->tracking_mode) / (float)SECS_MS;
-  config.dll_discr_period_s =
-      tp_get_dlld_ms(tracker->tracking_mode) / (float)SECS_MS;
   config.carr_loop_period_s =
       tp_get_fpll_ms(tracker->tracking_mode) / (float)SECS_MS;
   config.fll_discr_period_s =
@@ -816,17 +815,7 @@ static void tp_tracker_update_loops(tracker_t *tracker, u32 cycle_flags) {
     }
 
     tp_tl_update_dll_discr(&tracker->tl_state, &corr_all);
-
-    bool run_dll = (0 != (cycle_flags & TPF_DLL_RUN));
-    if (run_dll) {
-      tracker->dll_cycle++;
-      u8 dll_decim = tp_get_dll_decim(tracker->tracking_mode);
-      run_dll = !cycle_decimated(tracker->dll_cycle, dll_decim);
-      if (run_dll) {
-        tp_tl_update_dll(&tracker->tl_state);
-        tracker->dll_cycle = 0;
-      }
-    }
+    tp_tl_update_dll(&tracker->tl_state);
 
     bool run_fpll = (0 != (cycle_flags & TPF_FPLL_RUN));
     if (run_fpll) {
@@ -837,10 +826,6 @@ static void tp_tracker_update_loops(tracker_t *tracker, u32 cycle_flags) {
         tp_tl_update_fpll(&tracker->tl_state, &corr_all, costas);
         tracker->fpll_cycle = 0;
       }
-    }
-
-    if (!run_dll && !run_fpll) {
-      return;
     }
 
     tl_rates_t rates = {0};

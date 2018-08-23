@@ -41,8 +41,8 @@ typedef struct {
  * Tracking loop configuration parameters
  */
 typedef struct {
-  float code_loop_period_s; /**< code loop period [s] */
-  float dll_discr_period_s; /**< DLL discriminator period [s] */
+  float code_loop_period_s; /**< code loop period [s]
+                                 DLL discriminator period is same. */
   float carr_loop_period_s; /**< carrier loop period [s] */
   float fll_discr_period_s; /**< FLL discriminator period [s] */
   float code_bw;            /**< DLL bandwidth [Hz] */
@@ -76,7 +76,6 @@ typedef struct {
   u8 fll_discr_cnt; /**< FLL: discr_sum is averaged across this many updates */
 
   float dll_discr_sum_hz; /* DLL discriminator sum over coh. int. period [Hz] */
-  float dll_discr_period_s; /**< DLL: Discriminator period [s] */
   u8 dll_discr_cnt; /**< DLL: discr_sum is averaged across this many updates */
 
   float freq_c1; /**< FLL: c1 coefficient */
@@ -116,7 +115,6 @@ typedef struct {
   float carr_vel; /**< PLL: y[n-1] */
 
   float dll_discr_sum_hz; /* DLL discriminator sum over coh. int. period [Hz] */
-  float dll_discr_period_s; /**< DLL: Discriminator period [s] */
   u8 dll_discr_cnt; /**< DLL: discr_sum is averaged across this many updates */
 
   float code_c1; /**< DLL: c1 coefficient */

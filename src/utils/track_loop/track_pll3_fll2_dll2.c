@@ -45,8 +45,6 @@ static void update_params(tl_pll3_state_t *s, const tl_config_t *config) {
     s->freq_c2 = 0;
   }
   s->fll_discr_cnt = 0;
-
-  s->dll_discr_period_s = config->dll_discr_period_s;
   s->dll_discr_cnt = 0;
 
   /* PLL constants */

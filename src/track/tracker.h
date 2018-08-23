@@ -437,7 +437,6 @@ typedef struct {
   /* for tracking profile stabilization timeout bookkeeping */
   u64 report_last_ms;
 
-  u8 dll_cycle;  /**< DLL run cycle within current profile */
   u8 fpll_cycle; /**< FPLL run cycle within current profile */
 } tracker_t;
 
