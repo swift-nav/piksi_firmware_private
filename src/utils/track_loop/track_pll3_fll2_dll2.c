@@ -28,6 +28,7 @@ static void update_params(tl_pll3_state_t *s, const tl_config_t *config) {
   s->T_CARR = config->carr_loop_period_s;
   s->T_CODE = config->code_loop_period_s;
   s->fll_bw_hz = config->fll_bw;
+  s->pll_bw_hz = config->pll_bw;
 
   /** PLL & FLL constants
    *  References: Kaplan
@@ -38,15 +39,18 @@ static void update_params(tl_pll3_state_t *s, const tl_config_t *config) {
     s->freq_c1 = freq_a2 * freq_omega_0 / config->carr_k;
     s->freq_c2 = freq_omega_0 * freq_omega_0 / config->carr_k;
 
-    s->discr_period_s = config->fll_discr_period_s;
+    s->fll_discr_period_s = config->fll_discr_period_s;
   } else {
     s->freq_c1 = 0;
     s->freq_c2 = 0;
   }
-  s->discr_cnt = 0;
+  s->fll_discr_cnt = 0;
+
+  s->dll_discr_period_s = config->dll_discr_period_s;
+  s->dll_discr_cnt = 0;
 
   /* PLL constants */
-  float omega_0 = config->carr_bw / 0.7845f;
+  float omega_0 = config->pll_bw / 0.7845f;
   float omega_0_2 = omega_0 * omega_0;
   float omega_0_3 = omega_0_2 * omega_0;
   float a3 = 1.1f;
@@ -108,39 +112,60 @@ void tl_pll3_retune(tl_pll3_state_t *s, const tl_config_t *config) {
 }
 
 /**
- * Updates pll/fll & dll loop filter state
+ * Updates dll loop discriminator state
  *
  * \param[in,out] s      The filter state
  * \param[in]     cs     Complex valued epl correlations
- * \param[in]     costas Flag to indicate use of costas discriminator
  *
  * \return None
  */
-void tl_pll3_update(tl_pll3_state_t *s,
-                    const correlation_t cs[3],
-                    bool costas) {
-  /* Perform FLL loop update now within this function. */
+void tl_pll3_update_dll_discr(tl_pll3_state_t *s, const correlation_t cs[3]) {
+  s->dll_discr_sum_hz += dll_discriminator(cs);
+  s->dll_discr_cnt++;
+  assert(0 != s->dll_discr_cnt);
+}
+
+/**
+ * Updates dll filter state
+ * \param s Loop state
+ */
+void tl_pll3_update_dll(tl_pll3_state_t *s) {
+  /* Code loop */
+  float code_error = 0;
+  if (s->dll_discr_cnt > 0) {
+    code_error = s->dll_discr_sum_hz / s->dll_discr_cnt;
+  }
+  s->dll_discr_cnt = 0;
+  s->dll_discr_sum_hz = 0;
+  s->code_freq =
+      s->code_c1 * code_error +
+      0.5f * (2.0f * s->code_vel + s->code_c2 * s->T_CODE * code_error);
+  s->code_vel += s->code_c2 * s->T_CODE * code_error;
+}
+
+void tl_pll3_update_fpll(tl_pll3_state_t *s,
+                         const correlation_t cs[3],
+                         bool costas) {
   float freq_error = 0.0f;
   if (s->fll_bw_hz > 0) {
-    if (0 != s->discr_cnt) {
-      freq_error = (s->discr_sum_hz) / (s->discr_cnt);
+    if (0 != s->fll_discr_cnt) {
+      freq_error = (s->fll_discr_sum_hz) / (s->fll_discr_cnt);
       s->freq_error_hz = freq_error;
-      s->discr_sum_hz = 0.f;
-      s->discr_cnt = 0;
+      s->fll_discr_sum_hz = 0.f;
+      s->fll_discr_cnt = 0;
     }
   } else {
     s->freq_error_hz = 0;
   }
 
-  /* Carrier loop */
   float carr_error = 0.0f;
-  /* Carrier loop */
-  if (costas) {
-    carr_error = costas_discriminator(cs[1].I, cs[1].Q); /* [cycles] */
-  } else if (cs[1].I != 0.0f) {
-    /* Otherwise use coherent discriminator */
-    carr_error =
-        atan2f(cs[1].Q, cs[1].I) * (float)(1 / (2 * M_PI)); /* [cycles] */
+  if (s->pll_bw_hz > 0) {
+    if (costas) {
+      carr_error = costas_discriminator(cs[1].I, cs[1].Q);
+    } else if (cs[1].I != 0.0f) {
+      /* use coherent discriminator */
+      carr_error = atan2f(cs[1].Q, cs[1].I) * (float)(1 / (2 * M_PI));
+    }
   }
 
   float carr_acc_change =
@@ -152,13 +177,6 @@ void tl_pll3_update(tl_pll3_state_t *s,
       s->carr_c1 * carr_error + 0.5f * (2.0f * s->carr_vel + carr_vel_change);
   s->carr_vel += carr_vel_change;
   s->carr_acc += carr_acc_change;
-
-  /* Code loop */
-  float code_error = dll_discriminator(cs);
-  s->code_freq =
-      s->code_c1 * code_error +
-      0.5f * (2.0f * s->code_vel + s->code_c2 * s->T_CODE * code_error);
-  s->code_vel += s->code_c2 * s->T_CODE * code_error;
 }
 
 float tl_pll3_get_freq_error(const tl_pll3_state_t *s) {
@@ -188,7 +206,10 @@ void tl_pll3_adjust(tl_pll3_state_t *s, float err) {
  *
  * \return None
  */
-void tl_pll3_discr_update(tl_pll3_state_t *s, float I, float Q, bool halfq) {
+void tl_pll3_update_fll_discr(tl_pll3_state_t *s,
+                              float I,
+                              float Q,
+                              bool halfq) {
   if (s->fll_bw_hz <= 0) {
     /* FLL disabled, skip function all together */
     return;
@@ -201,14 +222,14 @@ void tl_pll3_discr_update(tl_pll3_state_t *s, float I, float Q, bool halfq) {
     if (halfq && (ABS(angle_circ) > 0.25f)) {
       angle_circ = SIGN(angle_circ) * (ABS(angle_circ) - 0.5f);
     }
-    float mean_period_s = ((s->prev_period_s) + (s->discr_period_s)) / 2.0f;
-    s->discr_sum_hz += (angle_circ / mean_period_s);
-    s->discr_cnt++;
-    assert(0 != s->discr_cnt);
+    float mean_period_s = ((s->prev_period_s) + (s->fll_discr_period_s)) / 2.0f;
+    s->fll_discr_sum_hz += (angle_circ / mean_period_s);
+    s->fll_discr_cnt++;
+    assert(0 != s->fll_discr_cnt);
   }
   s->prev_I = I;
   s->prev_Q = Q;
-  s->prev_period_s = s->discr_period_s;
+  s->prev_period_s = s->fll_discr_period_s;
 }
 
 /**

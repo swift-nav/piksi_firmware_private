@@ -102,10 +102,10 @@ typedef struct {
   float code_zeta;    /**< Code tracking loop damping ratio */
   float code_k;       /**< Code tracking loop gain coefficient */
   float carr_to_code; /**< */
-  float carr_bw;      /**< Carrier tracking loop noise bandwidth in Hz */
+  float pll_bw;       /**< PLL BW [Hz] */
   float carr_zeta;    /**< Carrier tracking loop damping ratio */
   float carr_k;       /**< Carrier tracking loop gain coefficient */
-  float fll_bw;       /**< FLL BW */
+  float fll_bw;       /**< FLL BW [Hz] */
   tp_tm_e mode;       /**< Operation mode */
   tp_ctrl_e ctrl;     /**< Controller type */
 } tp_loop_params_t;

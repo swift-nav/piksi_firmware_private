@@ -150,8 +150,10 @@ void tp_profile_apply_config(tracker_t *tracker, bool init) {
   tp_tl_get_config(l, &config);
   config.code_loop_period_s =
       tp_get_dll_ms(tracker->tracking_mode) / (float)SECS_MS;
+  config.dll_discr_period_s =
+      tp_get_dll_ms(tracker->tracking_mode) / (float)SECS_MS;
   config.carr_loop_period_s =
-      tp_get_flll_ms(tracker->tracking_mode) / (float)SECS_MS;
+      tp_get_pll_ms(tracker->tracking_mode) / (float)SECS_MS;
   config.fll_discr_period_s =
       tp_get_flld_ms(tracker->tracking_mode) / (float)SECS_MS;
 
@@ -170,7 +172,7 @@ void tp_profile_apply_config(tracker_t *tracker, bool init) {
 
   tracker->flags &= ~TRACKER_FLAG_PLL_USE;
   tracker->flags &= ~TRACKER_FLAG_FLL_USE;
-  if (profile->loop_params.carr_bw > 0) {
+  if (profile->loop_params.pll_bw > 0) {
     tracker->flags |= TRACKER_FLAG_PLL_USE;
   }
   if (profile->loop_params.fll_bw > 0) {
@@ -758,20 +760,6 @@ static void tp_tracker_update_locks(tracker_t *tracker, u32 cycle_flags) {
 }
 
 /**
- * Update FLL discriminator
- * \param[in]     tracker Tracker channel data
- * \param[in]     cycle_flags  Current cycle flags.
- */
-static void tp_tracker_update_fll_discr(tracker_t *tracker, u32 cycle_flags) {
-  bool halfq = (0 != (cycle_flags & TPF_FLL_HALFQ));
-
-  if (0 != (cycle_flags & TPF_FLL_USE)) {
-    tp_tl_fll_discr_update(&tracker->tl_state, tracker->corrs.corr_fll, halfq);
-    tracker->unfiltered_freq_error = tp_tl_get_fll_error(&tracker->tl_state);
-  }
-}
-
-/**
  * Runs FLL, PLL and DLL controller updates.
  *
  * This method updates FLL, PLL and DLL loops and additionally checks for DLL
@@ -783,7 +771,11 @@ static void tp_tracker_update_fll_discr(tracker_t *tracker, u32 cycle_flags) {
  * \return None
  */
 static void tp_tracker_update_loops(tracker_t *tracker, u32 cycle_flags) {
-  tp_tracker_update_fll_discr(tracker, cycle_flags);
+  if (0 != (cycle_flags & TPF_FLL_USE)) {
+    bool halfq = (0 != (cycle_flags & TPF_FLL_HALFQ));
+    tp_tl_update_fll_discr(&tracker->tl_state, tracker->corrs.corr_fll, halfq);
+    tracker->unfiltered_freq_error = tp_tl_get_fll_error(&tracker->tl_state);
+  }
 
   if (0 != (cycle_flags & TPF_EPL_USE)) {
     /* Output I/Q correlations using SBP if enabled for this channel */
@@ -808,7 +800,10 @@ static void tp_tracker_update_loops(tracker_t *tracker, u32 cycle_flags) {
        * so no need for a Costas loop*/
       costas = false;
     }
-    tp_tl_update(&tracker->tl_state, &corr_all, costas);
+
+    tp_tl_update_dll_discr(&tracker->tl_state, &corr_all);
+    tp_tl_update_dll(&tracker->tl_state);
+    tp_tl_update_fpll(&tracker->tl_state, &corr_all, costas);
 
     tl_rates_t rates = {0};
     tp_tl_get_rates(&tracker->tl_state, &rates);
