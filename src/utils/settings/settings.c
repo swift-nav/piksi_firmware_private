@@ -166,13 +166,18 @@ static bool enum_from_string(const void *priv,
 }
 
 int enum_format_type(const void *priv, char *str, int len) {
-  int i = 5;
-  strncpy(str, "enum:", len);
-  for (const char *const *enumnames = priv; *enumnames; enumnames++) {
-    i = snprintf(str, len - i, "%s%s,", str, *enumnames);
+  if ((NULL == priv) || (NULL == str) || (5 >= len)) {
+    return 0;
   }
-  str[i - 1] = '\0';
-  return i;
+  int wr = snprintf(str, len, "enum:");;
+  for (const char *const *enumnames = priv; *enumnames; enumnames++) {
+    char tmp[len];
+    wr += snprintf(tmp, len, "%s,", *enumnames);
+    strncat(str, tmp, len - wr);
+  }
+  str[wr - 1] = '\0';
+  log_error("%s: \"%s\"\n", __FUNCTION__, str);
+  return wr;
 }
 
 static struct setting_type type_string = {
