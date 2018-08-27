@@ -176,7 +176,6 @@ int enum_format_type(const void *priv, char *str, int len) {
     strncat(str, tmp, len - wr);
   }
   str[wr - 1] = '\0';
-  log_error("%s: \"%s\"\n", __FUNCTION__, str);
   return wr;
 }
 
