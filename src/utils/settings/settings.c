@@ -169,7 +169,7 @@ int enum_format_type(const void *priv, char *str, int len) {
   if ((NULL == priv) || (NULL == str) || (5 >= len)) {
     return 0;
   }
-  int wr = snprintf(str, len, "enum:");;
+  int wr = snprintf(str, len, "enum:");
   for (const char *const *enumnames = priv; *enumnames; enumnames++) {
     char tmp[len];
     wr += snprintf(tmp, len, "%s,", *enumnames);
