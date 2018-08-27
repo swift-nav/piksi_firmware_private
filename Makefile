@@ -74,7 +74,7 @@ $(LIBSBP_BUILDDIR)/src/libsbp-static.a:
 	      $(CMAKEFLAGS) ../
 	$(MAKE) -C $(LIBSBP_BUILDDIR) $(MAKEFLAGS)
 
-$(LIBSWIFTNAV_BUILDDIR)/src/libswiftnav.a: $(LIBSWIFTNAV_BUILDDIR)/Makefile
+$(LIBSWIFTNAV_BUILDDIR)/src/libswiftnav.a: .PHONY
 	@printf "BUILD   libswiftnav for target $(PIKSI_TARGET)\n"; \
 	$(MAKE) swiftnav -C $(LIBSWIFTNAV_BUILDDIR) $(MAKEFLAGS)
 
