@@ -15,4 +15,6 @@
 
 void imu_init(void);
 
+static const double BMI160_DT_LOOKUP[] = {0.04, 0.02, 0.01, 0.005};
+
 #endif
