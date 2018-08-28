@@ -131,25 +131,16 @@ static void init_estimator(track_cn0_state_t *e,
  *
  * \param[in,out] e Estimator state.
  * \param[in]     p Estimator parameters.
- * \param[in]     t Estimator type.
  * \param[in]     I      In-phase component.
  * \param[in]     Q      Quadrature component.
- * \param[in]     ve_I   Very early in-phase accumulator
- * \param[in]     ve_Q   Very early quadrature accumulator
  *
  * \return Estimator update result (dB/Hz).
  */
 static float update_estimator(track_cn0_state_t *e,
                               const cn0_est_params_t *p,
                               float I,
-                              float Q,
-                              float ve_I,
-                              float ve_Q) {
-  (void)ve_I;
-  (void)ve_Q;
-  float cn0 = cn0_est_mm_update(&e->moment, p, I, Q);
-
-  return cn0;
+                              float Q) {
+  return cn0_est_mm_update(&e->moment, p, I, Q);
 }
 
 /**
@@ -231,17 +222,14 @@ void track_cn0_init(const me_gnss_signal_t mesid,
  * \param[in]     int_ms Integration time [ms]
  * \param[in]     I      In-phase component.
  * \param[in]     Q      Quadrature component.
- * \param[in]     ve_I   Very early in-phase accumulator
- * \param[in]     ve_Q   Very early quadrature accumulator
  *
  * \return Filtered estimator value.
  */
-float track_cn0_update(
-    track_cn0_state_t *e, u8 int_ms, float I, float Q, float ve_I, float ve_Q) {
+float track_cn0_update(track_cn0_state_t *e, u8 int_ms, float I, float Q) {
   track_cn0_params_t p;
   const track_cn0_params_t *pp = track_cn0_get_params(e->cn0_ms, &p);
 
-  e->cn0_raw_dbhz = update_estimator(e, &pp->est_params, I, Q, ve_I, ve_Q);
+  e->cn0_raw_dbhz = update_estimator(e, &pp->est_params, I, Q);
   float cn0 =
       cn0_filter_update(&e->filter, &pp->filter_params, e->cn0_raw_dbhz);
 
