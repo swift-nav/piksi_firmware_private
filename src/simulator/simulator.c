@@ -34,7 +34,7 @@
 
 #include "simulator_data.h"
 
-/** \simulator
+/** \addtogroup simulator
  * \{ */
 
 u8 sim_enabled;

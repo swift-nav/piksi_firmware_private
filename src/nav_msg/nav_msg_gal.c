@@ -79,8 +79,8 @@ static gps_time_t parse_inav_w0tow(const u8 content[GAL_INAV_CONTENT_BYTE]);
 /**
  * Initializes Galileo message decoder.
  *
- * \param[in] n   GAL message decoder object
- * \param[in] prn Galileo PRN id
+ * \param[in] n     GAL message decoder object
+ * \param[in] mesid Galileo SID
  */
 void gal_inav_msg_init(nav_msg_gal_inav_t *n, const me_gnss_signal_t *mesid) {
   const s8 coeffs[2] = {GAL_INAV_V27_POLY_A, GAL_INAV_V27_POLY_B};

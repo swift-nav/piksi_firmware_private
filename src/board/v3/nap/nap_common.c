@@ -96,7 +96,7 @@ u64 nap_timing_count(void) {
  * counter. If sample counter is greater, than the low half of NAP counter, the
  * result is adjusted.
  *
- * \param[ın] sample_count Readings of sample counter register
+ * \param[in] sample_count Readings of sample counter register
  *
  * \return Resulting time in ticks.
  */

@@ -71,7 +71,7 @@
 static msg_t paired_obs_mailbox_buff[PAIRED_OBS_N_BUFF];
 static paired_obss_t paired_obs_buff[PAIRED_OBS_N_BUFF] _CCM;
 
-/** Keep a mailbox of received base obs so we can process all of them in
+/* Keep a mailbox of received base obs so we can process all of them in
  * order even if we have a bursty base station connection. */
 static msg_t base_obs_mailbox_buff[BASE_OBS_N_BUFF];
 static obs_array_t base_obs_buff[BASE_OBS_N_BUFF] _CCM;

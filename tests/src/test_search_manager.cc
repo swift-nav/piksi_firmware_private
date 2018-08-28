@@ -54,9 +54,6 @@ test_case_t test_cases[] = {
 
 /** Test program checking search manager operation
  *
- * \param argc Unused
- * \param argv Unused
- *
  * \return 1 on failure, 0 othersiwe
  */
 TEST(search_manager_test, test_search_manager) {

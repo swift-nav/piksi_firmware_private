@@ -845,6 +845,7 @@ void nmea_gprmc(const msg_pos_llh_t *sbp_pos_llh,
  * NMEA VTG contains Course Over Ground & Ground Speed.
  *
  * \param sbp_vel_ned Pointer to sbp vel ned struct.
+ * \param sbp_pos_llh Pointer to sbp vel llh struct.
  */
 void nmea_gpvtg(const msg_vel_ned_t *sbp_vel_ned,
                 const msg_pos_llh_t *sbp_pos_llh) {
@@ -1016,6 +1017,7 @@ bool send_nmea(u32 rate, u32 gps_tow_ms) {
  * \param propagation_time time of base observation propagation
  * \param sender_id    NMEA sender id
  * \param utc_params   Pointer to UTC parameters
+ * \param sbp_baseline_heading   Pointer to BP heading message
  * \param n_meas       nav_meas len
  * \param nav_meas     Valid navigation measurements
  */

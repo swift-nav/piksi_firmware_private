@@ -82,7 +82,7 @@ void track_setup(void) {
 
 /** Retrieve the tracker channel associated with a tracker channel ID.
  *
- * \param tracker_channel_id ID of the tracker channel to be retrieved.
+ * \param id ID of the tracker channel to be retrieved.
  *
  * \return Associated tracker channel.
  */
@@ -362,6 +362,7 @@ static void serve_nap_request(tracker_t *tracker) {
 /** Handles pending IRQs and background tasks for tracking channels.
  * \param channels_mask   Bitfield indicating the tracking channels for which
  *                        an IRQ is pending.
+ * \param c0              Channel offset.
  */
 void trackers_update(u32 channels_mask, const u8 c0) {
   const u64 now_ms = timing_getms();
@@ -383,6 +384,7 @@ void trackers_update(u32 channels_mask, const u8 c0) {
 /** Sets the missed update error for the specified tracking channels.
  * \param channels_mask   Bitfield indicating the tracking channels for which
  *                        a missed update error has occurred.
+ * \param c0              Channel offset.
  */
 void trackers_missed(u32 channels_mask, const u8 c0) {
   for (u8 ci = c0; channels_mask && (ci < nap_track_n_channels); ci++) {

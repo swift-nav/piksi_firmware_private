@@ -101,9 +101,6 @@ static void sbp_thread(void *arg) {
 /** Setup the SBP interface.
  * Initializes state and starts the SBP message processing
  * thread.
- *
- * \param use_settings If 0 use default baud rate, else use baud rates in
- *                     flash settings
  */
 void sbp_setup(void) {
   sbp_state_init(&sbp_state);

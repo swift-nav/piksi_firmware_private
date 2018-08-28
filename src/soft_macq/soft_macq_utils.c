@@ -281,13 +281,13 @@ bool IsAcquired3D(const float *vec,
 }
 
 /** Resample PRN code for the given ME sid.
- * \param[in] code         Pointer to code bits
- * \param[in] code_len     Code length in chip
- * \param[in] code_rate_hz Chip rate in Hz
- * \param[in] resamp     Resampled PRN code placeholder
- * \param[in] resamp_len Size of of resampled code placeholder
- * \param[in] fs_hz      Sampling frequency
- * \param[in] m          Type of modulation
+ * \param[in] code          Pointer to code bits
+ * \param[in] code_len      Code length in chip
+ * \param[in] code_rate_hz  Chip rate in Hz
+ * \param[in] upsamp        Resampled PRN code placeholder
+ * \param[in] upsamp_length Size of of resampled code placeholder
+ * \param[in] fs_hz         Sampling frequency
+ * \param[in] m             Type of modulation
  */
 void code_resample(const u8 *const code,
                    const u32 code_len,

@@ -143,13 +143,11 @@ const gnss_capb_t *ndb_get_gnss_capb(void) { return &ndb_gnss_capb; }
 /**
  * Store gnss capabilities
  *
+ * \param[in] capb        gnss capabilities
  * \param[in] sid         GNSS signal identifier for the source of gnss
  *                        capabilities data in case of data source being
  *                        NDB_DS_RECEIVER, NULL for other cases.
- * \param[in] gnss_capb   gnss capabilities
- * \param[in] src         Data source
- * \param[in] sender_id   Sender ID if data source is NDB_DS_SBP. In other cases
- *                        set to NDB_EVENT_SENDER_ID_VOID.
+ *
  * \return NDB error code
  */
 ndb_op_code_t ndb_store_gps_l2c_capb(u64 capb, const gnss_signal_t *sid) {

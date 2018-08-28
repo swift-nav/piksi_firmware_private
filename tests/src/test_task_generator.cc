@@ -27,8 +27,6 @@
  *
  * Test failure triggers assertion
  *
- * \param none
- *
  * \return 0
  */
 TEST(task_genertor_test, test_task_generator) {
