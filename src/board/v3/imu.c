@@ -44,6 +44,14 @@ static BSEMAPHORE_DECL(imu_irq_sem, TRUE);
  * interrupt. */
 static u32 nap_tc;
 
+/* this lookuptable is used to translate enum values of imu_rate setting 
+ * to the period in seconds expected for this setting value */
+
+static const double BMI160_DT_LOOKUP[] = {0.04,   /* 25 Hz */
+                                          0.02,   /* 50 Hz */
+                                          0.01,   /* 100 Hz */
+                                          0.005}; /* 200 Hz */
+
 /* Settings */
 static u8 imu_rate = 1;
 static bool raw_imu_output = false;
@@ -154,7 +162,7 @@ static void imu_thread(void *arg) {
       rate_change_in_progress = false;
       continue;
     } else if (ret == MSG_RESET) {
-      log_error("IMU frame overrun. IMU not serviced before next interrupt.");
+      log_warn("IMU frame overrun. IMU not serviced before next interrupt.");
       /* In the case of a frame overrun, we still need to read from IMU to tell
        * it to take next sample. We expect that the nap_timing_count from ISR
        * represents that of the latest sample (the 2nd interrupt received)
@@ -194,12 +202,13 @@ static void imu_thread(void *arg) {
       dt_err_pcent = (fabs(dt - expected_dt) / expected_dt * 100.0);
 
       if (!rate_change_in_progress &&
-          dt_err_pcent > BMI160_DT_ERR_THRESH_PERCENT && dt_err_pcent < 800.0 &&
+          dt_err_pcent > BMI160_DT_ERR_THRESH_PERCENT && 
+          dt_err_pcent <  BMI160_DT_ERR_MAX_PERCENT &&
           p_sensor_time > 0) {
         log_warn("Reported IMU sampling period of %.0f ms (expected %.0f) ",
                  dt * 1000.0,
                  expected_dt * 1000.0);
-        log_warn("IMU Error registor: %u. IMU status register: %u",
+        log_warn("IMU Error register: %u. IMU status register: %u",
                  bmi160_read_error(),
                  bmi160_read_status());
       }
