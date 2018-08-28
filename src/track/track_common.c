@@ -606,9 +606,7 @@ static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
       cn0 = track_cn0_update(&tracker->cn0_est,
                              int_ms,
                              tracker->corrs.corr_cn0.prompt.I,
-                             tracker->corrs.corr_cn0.prompt.Q,
-                             tracker->corrs.corr_cn0.very_early.I,
-                             tracker->corrs.corr_cn0.very_early.Q);
+                             tracker->corrs.corr_cn0.prompt.Q);
     }
   }
 
