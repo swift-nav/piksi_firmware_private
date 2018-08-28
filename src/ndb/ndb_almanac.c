@@ -12,8 +12,8 @@
 
 #include <assert.h>
 #include <libswiftnav/constants.h>
-#include <libswiftnav/logging.h>
 #include <libswiftnav/gnss_time.h>
+#include <libswiftnav/logging.h>
 #include <sbp.h>
 #include <sbp_utils.h>
 #include <string.h>

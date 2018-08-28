@@ -67,7 +67,8 @@ ndb_op_code_t ndb_utc_params_read(utc_params_t *utc_params_p, bool *is_nv) {
  *                          other cases.
  * \param[in] utc_params_p  UTC parameters structure
  * \param[in] src           Data source
- * \param[in] sender_id     Sender ID if data source is NDB_DS_SBP. In other cases
+ * \param[in] sender_id     Sender ID if data source is NDB_DS_SBP. In other
+ * cases
  *                          set to NDB_EVENT_SENDER_ID_VOID.
  *
  * \retval NDB_ERR_NONE            On success. UTC parameters updated.
