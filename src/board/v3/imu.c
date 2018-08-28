@@ -194,7 +194,7 @@ static void imu_thread(void *arg) {
     /* Warn if dt error exceeds threshhold according to IMU. Ignore
        large errors since there is an undiagnosed discontinuity problem where
        the sensor_time register reads bogus information. The datasheet seems
-       to imply that this registor is shadowed.
+       to imply that this register is shadowed.
     */
 
     if (raw_imu_output) {
@@ -247,7 +247,7 @@ static void imu_thread(void *arg) {
           log_warn("Measured IMU sampling period of %.0f ms (expected %.0f ms)",
                    dt * 1000.0,
                    expected_dt * 1000.0);
-          log_warn("IMU Error registor: %u. IMU status register: %u",
+          log_warn("IMU Error register: %u. IMU status register: %u",
                    bmi160_read_error(),
                    bmi160_read_status());
         }
@@ -268,7 +268,7 @@ static void imu_thread(void *arg) {
           log_warn("IMU read delay of %.0f ms (%.0f %% of period)",
                    dt * 1000.0,
                    dt_err_pcent);
-          log_warn("IMU Error registor: %u. IMU status register: %u",
+          log_warn("IMU Error register: %u. IMU status register: %u",
                    bmi160_read_error(),
                    bmi160_read_status());
         }
