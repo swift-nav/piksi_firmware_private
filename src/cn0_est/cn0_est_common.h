@@ -40,11 +40,12 @@ typedef struct {
 } cn0_est_rscn_state_t;
 
 typedef struct {
-  float M_2;    /**< Running sum of second order moments. */
-  float M_4;    /**< Running sum of fourth order moments. */
-  float cn0_db; /**< Signal to noise ratio in dB/Hz. */
-  u16 cnt;
-  u16 lim;
+  float M2;       /**< Running sum of second order moments. */
+  float M4;       /**< Running sum of fourth order moments. */
+  float Pn;       /**< Running sum of noise power. */
+  float cnt_ms;   /**< Counter for CN0 smoothing in milliseconds. */
+  float cn0_db;   /**< Carrier to noise ratio in dB/Hz. */
+  float cn0_init; /**< Initial carrier to noise ratio in dB/Hz. */
 } cn0_est_mm_state_t;
 
 typedef struct {
