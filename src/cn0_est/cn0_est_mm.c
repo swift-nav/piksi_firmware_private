@@ -15,39 +15,48 @@
 
 #include "cn0_est_common.h"
 
-#define CN0_EST_MM_INIT_COUNT 200
-
 /** \defgroup track Tracking
  * Functions used in tracking.
  * \{ */
 
 /** Multiplier for checking out-of bounds NSR */
 #define CN0_MM_NSR_MIN_MULTIPLIER (1e-6f)
-/** Maximum supported NSR value (1/CN0_MM_NSR_MIN_MULTIPLIER)*/
+/** Maximum supported NSR value (1/CN0_MM_NSR_MIN_MULTIPLIER) */
 #define CN0_MM_NSR_MIN (1e6f)
+/** Mean of N moments. Minimum value N = 2 for fastest response time */
+#define CN0_MM_N (2)
+/** Mean multiplier */
+#define CN0_MM_MEAN_MULT (1.0f / CN0_MM_N)
+/** CNO smoothing time in milliseconds. Removes CN0 bumps in the beginning */
+#define CN0_MM_CNO_SMOOTH_MS (2000)
 
-static float compute_cn0(const cn0_est_params_t *p, float M_2, float M_4) {
-  float tmp = 2 * M_2 * M_2 - M_4;
+static float compute_cn0(cn0_est_mm_state_t *s,
+                         const cn0_est_params_t *p,
+                         float m2) {
+  float tmp = 2.0f * s->M2 * s->M2 - s->M4;
   float nsr;
 
-  if (0 > tmp) {
+  if (0.0f > tmp) {
     nsr = CN0_MM_NSR_MIN;
   } else {
-    float P_d = sqrtf(tmp);
-    float P_n = M_2 - P_d;
+    float Pd = sqrtf(tmp);
+    float Pn = s->M2 - Pd;
+    s->Pn += (Pn - s->Pn) * p->alpha;
 
     /* Ensure the NSR is within the limit */
-    if (P_d < P_n * CN0_MM_NSR_MIN_MULTIPLIER)
-      return 60;
-    else
-      nsr = P_n / P_d;
+    if (Pd < s->Pn * CN0_MM_NSR_MIN_MULTIPLIER) {
+      return 60.0f;
+    } else {
+      /* Unfiltered m2 used for fast response to signal loss. */
+      nsr = s->Pn / m2;
+    }
   }
 
-  float nsr_db = 10.f * log10f(nsr);
+  float nsr_db = 10.0f * log10f(nsr);
 
   /* Compute CN0 */
   float x = p->log_bw - nsr_db;
-  return x < 10 ? 10 : x > 60 ? 60 : x;
+  return x < 10.0f ? 10.0f : x > 60.0f ? 60.0f : x;
 }
 
 /** Initialize the \f$ C / N_0 \f$ estimator state.
@@ -57,15 +66,15 @@ static float compute_cn0(const cn0_est_params_t *p, float M_2, float M_4) {
  * The method uses the function for C/N0 computation:
  *
  * \f[
- *    \frac{C}{N_0}(n) = \frac{P_d}{P_n}
+ *    \frac{C}{N_0}(n) = \frac{Pd}{Pn}
  * \f]
  * where
  * \f[
- *    P_n(n) = M2(n) - P_d(n)
+ *    Pn(n) = M2(n) - Pd(n)
  * \f]
  * where
  * \f[
- *    P_d(n) = \sqrt{2 * M2(n)^2 - M4(n)}
+ *    Pd(n) = \sqrt{2 * M2(n)^2 - M4(n)}
  * \f]
  * where
  * \f[
@@ -84,16 +93,15 @@ static float compute_cn0(const cn0_est_params_t *p, float M_2, float M_4) {
 void cn0_est_mm_init(cn0_est_mm_state_t *s,
                      const cn0_est_params_t *p,
                      float cn0_0) {
+  (void)p;
   memset(s, 0, sizeof(*s));
 
-  (void)p;
-
-  /* Normalize by sampling frequency and integration period */
-  s->M_2 = 0.f;
-  s->M_4 = 0.f;
+  s->M2 = -1.0f; /* Set negative for first iteration */
+  s->M4 = -1.0f;
+  s->Pn = 0.0f;
+  s->cnt_ms = 0;
   s->cn0_db = cn0_0;
-  s->cnt = 0;
-  s->lim = (u16)(1 / p->alpha);
+  s->cn0_init = cn0_0;
 }
 
 /**
@@ -110,34 +118,37 @@ float cn0_est_mm_update(cn0_est_mm_state_t *s,
                         const cn0_est_params_t *p,
                         float I,
                         float Q) {
-  float m_2 = I * I + Q * Q;
-  float m_4 = m_2 * m_2;
+  float m2 = I * I + Q * Q;
+  float m4 = m2 * m2;
 
-  if (s->cnt < s->lim) {
-    s->M_2 += m_2;
-    s->M_4 += m_4;
-    s->cnt++;
-    float avg = 1.f / s->lim;
-    float M_2 = s->M_2 * avg;
-    float M_4 = s->M_4 * avg;
-
-    if (s->cnt == s->lim) {
-      s->M_2 = M_2;
-      s->M_4 = M_4;
-    }
-
-    float alpha = (float)s->cnt / s->lim;
-
-    return s->cn0_db + alpha * (compute_cn0(p, M_2, M_4) - s->cn0_db);
+  if (s->M2 < 0.0f) {
+    /* This is the first iteration, just initialize moments. */
+    s->M2 = m2;
+    s->M4 = m4;
   } else {
-    s->M_2 += (m_2 - s->M_2) * p->alpha;
-    s->M_4 += (m_4 - s->M_4) * p->alpha;
+    s->M2 += (m2 - s->M2) * CN0_MM_MEAN_MULT;
+    s->M4 += (m4 - s->M4) * CN0_MM_MEAN_MULT;
 
-    /* Compute and store updated CN0 */
-    s->cn0_db = compute_cn0(p, s->M_2, s->M_4);
+    /* Compute and store updated CN0. */
+    s->cn0_db = compute_cn0(s, p, m2);
   }
 
-  return s->cn0_db;
+  /* Increment CN0 smoothing counter with integration period. */
+  if (s->cnt_ms < CN0_MM_CNO_SMOOTH_MS) {
+    s->cnt_ms += p->t_int;
+    /* Limit CN0 smoothing counter to max. */
+    if (s->cnt_ms > CN0_MM_CNO_SMOOTH_MS) {
+      s->cnt_ms = CN0_MM_CNO_SMOOTH_MS;
+    }
+  }
+
+  /* CN0 smoothing weight for init value. Goes from 1 to 0. */
+  float w1 = (CN0_MM_CNO_SMOOTH_MS - s->cnt_ms) / CN0_MM_CNO_SMOOTH_MS;
+  /* CN0 smoothing weight for computed value. Goes from 0 to 1. */
+  float w2 = s->cnt_ms / CN0_MM_CNO_SMOOTH_MS;
+
+  /* Smoothed CN0. Start with init CN0, and transition using computed CN0. */
+  return s->cn0_init * w1 + s->cn0_db * w2;
 }
 
 /** \} */

@@ -60,9 +60,10 @@ void cn0_est_compute_params(cn0_est_params_t *p,
                             float loop_freq,
                             float scale,
                             float cn0_shift) {
+  (void)bw;
   memset(p, 0, sizeof(*p));
 
-  p->log_bw = 10.f * log10f(bw * loop_freq);
+  p->log_bw = 10.f * log10f(loop_freq);
   p->alpha = alpha;
   p->scale = scale;
   p->cn0_shift = cn0_shift;
