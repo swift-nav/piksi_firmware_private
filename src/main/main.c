@@ -49,6 +49,17 @@
 
 extern void ext_setup(void);
 
+static bool modem_enabled = true;
+
+static bool cell_modem_changed(struct setting *s, const char *val) {
+  if (!s->type->from_string(s->type->priv, s->addr, s->len, val)) {
+    return false;
+  }
+  log_info("Updating Modem Power bool to %u", modem_enabled);
+  board_modem_en_changed(modem_enabled);
+  return true;
+}
+
 void* __dso_handle(void) { return (void*)0; };
 
 int main(void) {
@@ -139,6 +150,11 @@ int main(void) {
 
   ext_setup();
   pps_setup();
+  SETTING_NOTIFY("cell_modem",
+                 "modem_enabled",
+                 modem_enabled,
+                 TYPE_BOOL,
+                 cell_modem_changed);
 
   READ_ONLY_PARAMETER(
       "system_info", "sbp_sender_id", sender_id_str, TYPE_STRING);

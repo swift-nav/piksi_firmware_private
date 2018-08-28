@@ -79,6 +79,7 @@
 extern "C" {
 #endif
 void boardRevInit(void);
+void boardRevUpdateModem(bool);
 #ifdef __cplusplus
 }
 #endif

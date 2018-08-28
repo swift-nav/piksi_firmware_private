@@ -49,3 +49,11 @@ void boardRevInit(void) {
   palSetLineMode(IMU_EN_GPIO_LINE, PAL_MODE_OUTPUT);
   palSetLine(IMU_EN_GPIO_LINE);
 }
+
+void boardRevUpdateModem(bool modem_enabled) {
+  if (modem_enabled) {
+    palSetLine(MODEM_PWR_EN_LINE);
+  } else {
+    palClearLine(MODEM_PWR_EN_LINE);
+  }
+}
