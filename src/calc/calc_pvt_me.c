@@ -603,13 +603,31 @@ static void me_calc_pvt_thread(void *arg) {
       continue;
     }
 
-    s8 sc_ret = calc_sat_clock_corrections(n_ready, p_nav_meas, p_e_meas);
+    s8 sc_ret;
+    for (u8 i = 0; i < n_ready; i++) {
+      /* calculate satellite position */
+      sc_ret = calc_sat_state(p_e_meas[i],
+                              &(p_nav_meas[i]->tot),
+                              p_nav_meas[i]->sat_pos,
+                              p_nav_meas[i]->sat_vel,
+                              p_nav_meas[i]->sat_acc,
+                              &(p_nav_meas[i]->sat_clock_err),
+                              &(p_nav_meas[i]->sat_clock_err_rate),
+                              &(p_nav_meas[i]->IODC),
+                              &(p_nav_meas[i]->IODE));
+
+      if (sc_ret != 0) {
+        log_error_sid(p_e_meas[i]->sid, "calc_sat_state() returned an error");
+        break;
+      }
+    }
 
     if (sc_ret != 0) {
-      log_error("calc_sat_clock_correction() returned an error");
       me_send_emptyobs();
       continue;
     }
+
+    apply_sat_clock_corrections(n_ready, p_nav_meas);
 
     apply_gps_cnav_isc(n_ready, p_nav_meas, p_cnav_30, p_e_meas);
     apply_isc_table(n_ready, p_nav_meas);
@@ -759,8 +777,8 @@ static void me_calc_pvt_thread(void *arg) {
         /* remove clock offset from the measurement */
         remove_clock_offset(nm, output_offset, smoothed_drift, current_tc);
 
-        /* Recompute satellite position, velocity and clock errors */
-        /* NOTE: calc_sat_state changes `tot` */
+        /* Recompute satellite position, velocity and clock errors at the
+         * updated tot */
         if (0 != calc_sat_state(&e_meas[i],
                                 &(nm->tot),
                                 nm->sat_pos,
