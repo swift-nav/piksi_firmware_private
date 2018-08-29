@@ -73,7 +73,7 @@ static const double valid_soln_freqs_hz[] = {1.0, 2.0, 4.0, 5.0, 10.0};
   (valid_soln_freqs_hz[ARRAY_SIZE(valid_soln_freqs_hz) - 1])
 
 /* Maximum interval for computing ME PVT solution */
-#define ME_PVT_INTERVAL_S 1.0
+#define ME_PVT_INTERVAL_S 10.0
 
 double soln_freq_setting = 10.0;
 u32 obs_output_divisor = 10;
@@ -519,6 +519,8 @@ s8 compute_me_pvt(u8 n_ready,
   dops_t dops;
   gnss_solution current_fix;
   gnss_sid_set_t raim_removed_sids;
+
+  log_info("Computing ME PVT solution");
 
   /* Calculate the SPP position
    * disable_raim controlled by external setting. Defaults to false. */
