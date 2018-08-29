@@ -145,6 +145,7 @@ void ext_event_service(u32 events) {
       u64 full;
     } tc;
     tc.full = nap_timing_count();
+    u8 time_qual = get_time_quality();
     if (tc.half[0] < event_nap_time) { /* Rollover occurred since event */
       tc.half[1]--;
     }
@@ -153,7 +154,7 @@ void ext_event_service(u32 events) {
     msg_ext_event_t msg;
     msg.flags = (event_trig == TRIG_RISING) ? (1 << 0) : (0 << 0);
     /* Is gps time good, i.e. within 1 microsecond */
-    if (get_time_quality() >= TIME_PROPAGATED) {
+    if (time_qual >= TIME_PROPAGATED) {
       msg.flags |= (1 << 1);
     }
     msg.pin = event_pin;
@@ -161,7 +162,7 @@ void ext_event_service(u32 events) {
     /* Convert to the SBP convention of rounded ms + signed ns residual */
     gps_time_t gpst = napcount2gpstime(tc.full);
     msg_gps_time_t mgt;
-    sbp_make_gps_time(&mgt, &gpst, 0);
+    sbp_make_gps_time(&mgt, &gpst, time_qual);
     msg.wn = mgt.wn;
     msg.tow = mgt.tow;
     msg.ns_residual = mgt.ns_residual;

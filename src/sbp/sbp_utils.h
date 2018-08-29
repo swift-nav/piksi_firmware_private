@@ -95,7 +95,10 @@ void sbp_init_vel_ecef_cov(msg_vel_ecef_cov_t *vel_ecef_cov, gps_time_t *t);
 void sbp_init_pos_llh_cov(msg_pos_llh_cov_t *pos_llh_cov, gps_time_t *t);
 void sbp_init_vel_ned_cov(msg_vel_ned_cov_t *vel_ned_cov, gps_time_t *t);
 
-void sbp_make_gps_time(msg_gps_time_t *t_out, const gps_time_t *t_in, u8 flags);
+void sbp_make_gps_time(msg_gps_time_t *t_out,
+                       const gps_time_t *t_in,
+                       u8 time_qual);
+u8 sbp_get_time_quality_flags(u8 time_qual);
 void sbp_make_pos_llh_vect(msg_pos_llh_t *pos_llh,
                            const double llh[3],
                            double h_accuracy,
@@ -175,7 +178,9 @@ void sbp_make_dgnss_status(msg_dgnss_status_t *dgnss_status,
                            u8 num_sats,
                            double obs_latency,
                            u8 flags);
-void sbp_make_utc_time(msg_utc_time_t *t_out, const gps_time_t *t_in, u8 flags);
+void sbp_make_utc_time(msg_utc_time_t *t_out,
+                       const gps_time_t *t_in,
+                       u8 time_qual);
 void sbp_send_ndb_event(u8 event,
                         u8 obj_type,
                         u8 result,
