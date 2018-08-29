@@ -25,7 +25,7 @@
 #include <math.h>
 #include <sbp.h>
 
-#define IMU_THREAD_PRIO (HIGHPRIO - 1)
+#define IMU_THREAD_PRIO (HIGHPRIO)
 #define IMU_THREAD_STACK (2 * 1024)
 #define IMU_AUX_THREAD_PRIO (LOWPRIO + 10)
 #define IMU_AUX_THREAD_STACK (2 * 1024)
@@ -44,6 +44,14 @@ static BSEMAPHORE_DECL(imu_irq_sem, TRUE);
  * interrupt. */
 static u32 nap_tc;
 
+/* this lookuptable is used to translate enum values of imu_rate setting
+ * to the period in seconds expected for this setting value */
+
+static const double BMI160_DT_LOOKUP[] = {0.04,   /* 25 Hz */
+                                          0.02,   /* 50 Hz */
+                                          0.01,   /* 100 Hz */
+                                          0.005}; /* 200 Hz */
+
 /* Settings */
 static u8 imu_rate = 1;
 static bool raw_imu_output = false;
@@ -51,6 +59,13 @@ static u8 acc_range = 2;
 static bmi160_gyr_range_t gyr_range = BMI160_GYR_1000DGS;
 static u8 mag_rate = 1;
 static bool raw_mag_output = false;
+
+/* rate_change_in_progress indicates that imu rate has recently been changed.
+ * Set by settings callback. Unset the first time imu_thread is awoken after
+ * change. Used to suppress warnings when IMU has just been reconfigured.
+ */
+
+static bool rate_change_in_progress = false;
 
 /** Interrupt service routine for the IMU_INT1 interrupt.
  * Records the time and then flags the IMU data processing thread to wake up. */
@@ -60,12 +75,19 @@ static void imu_isr(void *context) {
 
   /* Record the NAP timing count in the interrupt to minimize latency.
    * Note that this is just the 32 LSBs, we will recover the full 64 bit value
-   * in the processing thread. */
+   * in the processing thread.
+   */
   nap_tc = NAP->TIMING_COUNT;
 
   /* Wake up processing thread */
-  chBSemSignalI(&imu_irq_sem);
-
+  if (imu_irq_sem.bs_sem.s_cnt == 1) {
+    /* If cnt == 1, interrupt was received again before imu_thread was awoken.
+     * Use semaphore reset to communicate to imu_thread that it misssed an IRQ.
+     */
+    chBSemResetI(&imu_irq_sem, 1);
+  } else {
+    chBSemSignalI(&imu_irq_sem);
+  }
   chSysUnlockFromISR();
 }
 
@@ -102,6 +124,8 @@ static void imu_thread(void *arg) {
   s16 gyro[3];
   s16 mag[3];
   u32 sensor_time;
+  u32 p_sensor_time = 0;
+  double p_tow_ms = 0;
   msg_imu_raw_t imu_raw;
   msg_mag_raw_t mag_raw;
 
@@ -130,23 +154,68 @@ static void imu_thread(void *arg) {
       }
       timeout = MS2ST(200) / (1 << (max_rate - 4));
     }
-    chBSemWaitTimeout(&imu_irq_sem, timeout);
+    s32 ret = chBSemWaitTimeout(&imu_irq_sem, timeout);
+    if (ret == MSG_TIMEOUT) {
+      if (!rate_change_in_progress) {
+        log_info("IMU IRQ not received before timeout.");
+      }
+      rate_change_in_progress = false;
+      continue;
+    } else if (ret == MSG_RESET) {
+      log_warn("IMU frame overrun. IMU not serviced before next interrupt.");
+      /* In the case of a frame overrun, we still need to read from IMU to tell
+       * it to take next sample. We expect that the nap_timing_count from ISR
+       * represents that of the latest sample (the 2nd interrupt received)
+       */
+    }
 
     bool new_acc, new_gyro, new_mag;
+    double expected_dt, dt, dt_err_pcent; /* Timing instrumentation */
+    expected_dt = BMI160_DT_LOOKUP[imu_rate];
     bmi160_new_data_available(&new_acc, &new_gyro, &new_mag);
 
-    if (new_acc != new_gyro) {
-      log_debug(
-          "Accelerometer and Gyro not both ready %u %u\n", new_acc, new_gyro);
+    if (new_acc != new_gyro && raw_imu_output) {
+      log_warn("IMU interrupt without both accel and gyro ready: (%u, %u)",
+               new_acc,
+               new_gyro);
       continue;
     }
 
     if (!new_acc && !new_gyro && !new_mag) {
+      log_warn("IMU interrupt serviced with no data ready.");
       continue;
     }
 
+    /* read data */
+
     s16 *mag_ptr = (new_mag) ? mag : NULL;
     bmi160_get_data(acc, gyro, mag_ptr, &sensor_time);
+
+    /* Warn if dt error exceeds threshhold according to IMU. Ignore
+       large errors since there is an undiagnosed discontinuity problem where
+       the sensor_time register reads bogus information. The datasheet seems
+       to imply that this register is shadowed.
+    */
+
+    if (raw_imu_output) {
+      dt = (sensor_time - p_sensor_time) * BMI160_SENSOR_TIME_TO_SECONDS;
+      dt_err_pcent = (fabs(dt - expected_dt) / expected_dt * 100.0);
+
+      if (!rate_change_in_progress &&
+          dt_err_pcent > BMI160_DT_ERR_THRESH_PERCENT &&
+          dt_err_pcent < BMI160_DT_ERR_MAX_PERCENT && p_sensor_time > 0) {
+        log_warn("Reported IMU sampling period of %.0f ms (expected %.0f) ",
+                 dt * 1000.0,
+                 expected_dt * 1000.0);
+        log_warn("IMU Error register: %u. IMU status register: %u",
+                 bmi160_read_error(),
+                 bmi160_read_status());
+      }
+      p_sensor_time = sensor_time;
+      if (rate_change_in_progress) {
+        p_sensor_time = 0;
+      }
+    }
 
     u32 tow;
     u8 tow_f;
@@ -165,6 +234,44 @@ static void imu_thread(void *arg) {
       double tow_ms = t.tow * 1000;
       tow = (u32)tow_ms;
       tow_f = (u8)round((tow_ms - tow) * 255);
+
+      /* Warn if imu dt error exceeds threshhold according to our ME */
+
+      if (raw_imu_output) {
+        dt = (tow_ms - p_tow_ms) / 1000.0;
+        dt_err_pcent = fabs(dt - expected_dt) / expected_dt * 100.0;
+
+        if (!rate_change_in_progress && p_tow_ms != 0 &&
+            dt_err_pcent > BMI160_DT_ERR_THRESH_PERCENT) {
+          log_warn("Measured IMU sampling period of %.0f ms (expected %.0f ms)",
+                   dt * 1000.0,
+                   expected_dt * 1000.0);
+          log_warn("IMU Error register: %u. IMU status register: %u",
+                   bmi160_read_error(),
+                   bmi160_read_status());
+        }
+
+        p_tow_ms = tow_ms;
+        if (rate_change_in_progress) {
+          p_tow_ms = 0;
+        }
+
+        /* Warn if sensor read delay after ISR exceeds threshhold */
+
+        u64 tc_now = nap_sample_time_to_count(NAP->TIMING_COUNT);
+        gps_time_t t_now = napcount2gpstime(tc_now);
+        dt = gpsdifftime(&t_now, &t);
+        dt_err_pcent =
+            dt / expected_dt * 100.0; /* Delay's proportion of period */
+        if (dt_err_pcent > BMI160_READ_DELAY_THRESH_PERCENT) {
+          log_warn("IMU read delay of %.0f ms (%.0f %% of period)",
+                   dt * 1000.0,
+                   dt_err_pcent);
+          log_warn("IMU Error register: %u. IMU status register: %u",
+                   bmi160_read_error(),
+                   bmi160_read_status());
+        }
+      }
     } else {
       /* Time is unknown, make it as invalid in the SBP message. */
       tow = (1 << 31);
@@ -196,6 +303,7 @@ static void imu_thread(void *arg) {
       /* Send out MAG_RAW SBP message. */
       sbp_send_msg(SBP_MSG_MAG_RAW, sizeof(mag_raw), (u8 *)&mag_raw);
     }
+    rate_change_in_progress = false;
   }
 }
 
@@ -206,6 +314,7 @@ static bool imu_rate_changed(struct setting *s, const char *val) {
   /* Convert between the setting value, which is an integer corresponding to
    * the index of the selected setting in the list of strings, and the relevant
    * enum values */
+  rate_change_in_progress = true;
   switch (imu_rate) {
     case 0: /* 25Hz */
       bmi160_set_imu_rate(BMI160_RATE_25HZ);
