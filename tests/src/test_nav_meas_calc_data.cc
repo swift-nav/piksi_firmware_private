@@ -23,45 +23,9 @@
 #include <libswiftnav/nav_meas.h>
 #include <libswiftnav/observation.h>
 
-#include "calc_nav_meas.h"
+#include "calc/calc_nav_meas.h"
 
 #include "gtest/gtest.h"
-
-/* real ephemeris for SV 15 at 8:00, 30-May-2016 */
-/* tow and toc modified to fit the dates below */
-static const ephemeris_t e_in = {
-    {15,                         /* sid.sat */
-     CODE_GPS_L1CA},             /* sid.code */
-    {205200.0,                   /* toe.tow */
-     1899},                      /* toe.wn */
-    1.0,                         /* ura */
-    14400,                       /* fit_interval */
-    1,                           /* valid */
-    0,                           /* health_bits */
-    {{{-0.00000001071020960808}, /* kepler.tgd_gps_s */
-      222.34375000000000000000,  /* kepler.crc */
-      62.87500000000000000000,   /* kepler.crs */
-      0.00000356882810592651,    /* kepler.cuc */
-      0.00000734068453311920,    /* kepler.cus */
-      0.00000002793967723846,    /* kepler.cic */
-      0.00000012852251529694,    /* kepler.cis */
-      0.00000000562166273625,    /* kepler.dn */
-      1.32453305390110598339,    /* kepler.m0 */
-      0.00812081422191113234,    /* kepler.ecc */
-      5153.59741973876953125000, /* kepler.sqrta */
-      -0.25515026323261330576,   /* kepler.omega0 */
-      -0.00000000872250618454,   /* kepler.omegadot */
-      0.48344690815566465636,    /* kepler.w */
-      0.93105119838528094256,    /* kepler.inc */
-      0.00000000008536069847,    /* kepler.inc_dot */
-      -0.00031310319900512695,   /* kepler.af0 */
-      -0.00000000000170530257,   /* kepler.af1 */
-      0.00000000000000000000,    /* kepler.af2 */
-      {205200.0,                 /* kepler.toc.tow */
-       1899},                    /* kepler.toc.wn */
-      40,                        /* kepler.iodc */
-      40}}                       /* kepler.iode */
-};
 
 /* Real measurements from tracking (Piksi v3 board) channel for L1C/A, SV 31. */
 static const channel_measurement_t l1ca_meas_in = {
@@ -101,10 +65,12 @@ static const channel_measurement_t l2cm_meas_in = {
 TEST(test_nav_meas_calc_data, first_test) {
   const channel_measurement_t *input_meas[1];
   navigation_measurement_t out_l1ca, out_l2cm;
+  out_l1ca.sat_clock_err = 0;
+  out_l1ca.sat_clock_err_rate = 0;
+  out_l2cm.sat_clock_err = 0;
+  out_l2cm.sat_clock_err_rate = 0;
   navigation_measurement_t *p_out_l1ca = &out_l1ca;
   navigation_measurement_t *p_out_l2cm = &out_l2cm;
-  const ephemeris_t *e[1] = {&e_in}; /* Use one ephemeris
-                                      for both calculations */
 
   gps_time_t rec_time = {
       206957.3995198214543052, /* .tow */
@@ -113,7 +79,7 @@ TEST(test_nav_meas_calc_data, first_test) {
 
   input_meas[0] = &l1ca_meas_in;
   calc_navigation_measurement(1, input_meas, &p_out_l1ca, &rec_time);
-  calc_sat_clock_corrections(1, &p_out_l1ca, e);
+  apply_sat_clock_corrections(1, &p_out_l1ca);
   log_debug(" ***** L1CA: *****\n");
   log_debug("raw_pseudorange = %30.20f\n", out_l1ca.raw_pseudorange);
   log_debug("pseudorange = %30.20f\n", out_l1ca.pseudorange);
@@ -138,7 +104,7 @@ TEST(test_nav_meas_calc_data, first_test) {
 
   input_meas[0] = &l2cm_meas_in;
   calc_navigation_measurement(1, input_meas, &p_out_l2cm, &rec_time);
-  calc_sat_clock_corrections(1, &p_out_l2cm, e);
+  apply_sat_clock_corrections(1, &p_out_l2cm);
   log_debug(" \n***** L2CM: *****\n");
   log_debug("raw_pseudorange = %30.20f\n", out_l2cm.raw_pseudorange);
   log_debug("pseudorange = %30.20f\n", out_l2cm.pseudorange);
@@ -161,12 +127,7 @@ TEST(test_nav_meas_calc_data, first_test) {
             (unsigned int)out_l2cm.sid.code);
   log_debug("TOR = %30.20f\n", out_l2cm.tot.tow + out_l2cm.pseudorange / GPS_C);
 
-  double check_value =
-      fabs(sqrt(pow(out_l1ca.sat_pos[0], 2) + pow(out_l1ca.sat_pos[1], 2) +
-                pow(out_l1ca.sat_pos[2], 2)) -
-           sqrt(pow(out_l2cm.sat_pos[0], 2) + pow(out_l2cm.sat_pos[1], 2) +
-                pow(out_l2cm.sat_pos[2], 2)));
-  EXPECT_LT(check_value, 0.02);
+  double check_value;
 
   /* L1 and L2 pseudoranges differ some meters because of ionosphere and
    * inter-signal delay */
@@ -178,11 +139,11 @@ TEST(test_nav_meas_calc_data, first_test) {
   EXPECT_LT(check_value, 0.003);
 
   check_value =
-      fabs(out_l1ca.tot.tow + out_l1ca.pseudorange / GPS_C - rec_time.tow);
+      fabs(out_l1ca.tot.tow + out_l1ca.raw_pseudorange / GPS_C - rec_time.tow);
   EXPECT_LT(check_value, 5e-8);
 
   check_value =
-      fabs(out_l2cm.tot.tow + out_l2cm.pseudorange / GPS_C - rec_time.tow);
+      fabs(out_l2cm.tot.tow + out_l2cm.raw_pseudorange / GPS_C - rec_time.tow);
   EXPECT_LT(check_value, 5e-8);
 }
 

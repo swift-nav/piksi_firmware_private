@@ -110,6 +110,11 @@ static s8 convert_channel_measurement_to_navigation_measurement(
   /* Propagate carrier phase with carrier frequency */
   nm->raw_carrier_phase += dt * nm->raw_measured_doppler;
 
+  /* Initialize the fields for corrected measurements */
+  nm->pseudorange = nm->raw_pseudorange;
+  nm->carrier_phase = nm->raw_carrier_phase;
+  nm->measured_doppler = nm->raw_measured_doppler;
+
   /* Compute flags.
    *
    * \note currently algorithm uses 1 to 1 flag mapping, however it can use
