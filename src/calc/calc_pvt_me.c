@@ -773,26 +773,10 @@ static void me_calc_pvt_thread(void *arg) {
                 output_offset,
                 smoothed_drift);
 
+      /* Propagate the measurements to the output epoch */
       for (u8 i = 0; i < n_ready; i++) {
-        navigation_measurement_t *nm = &nav_meas[i];
-
-        /* remove clock offset from the measurement */
-        remove_clock_offset(nm, output_offset, smoothed_drift, current_tc);
-
-        /* Recompute satellite position, velocity and clock errors at the
-         * updated tot */
-        if (0 != calc_sat_state(&e_meas[i],
-                                &(nm->tot),
-                                nm->sat_pos,
-                                nm->sat_vel,
-                                nm->sat_acc,
-                                &(nm->sat_clock_err),
-                                &(nm->sat_clock_err_rate),
-                                &(nm->IODC),
-                                &(nm->IODE))) {
-          log_error_sid(nm->sid, "Recomputing sat state failed");
-          continue;
-        }
+        remove_clock_offset(
+            &nav_meas[i], output_offset, smoothed_drift, current_tc);
       }
 
       /* Send the observations. */
