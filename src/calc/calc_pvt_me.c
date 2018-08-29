@@ -734,14 +734,14 @@ static void me_calc_pvt_thread(void *arg) {
         calc_navigation_measurement(n_ready, p_meas, p_nav_meas, &current_time);
 
     if (nm_ret != 0) {
-      log_error("calc_navigation_measurement() returned an error");
+      log_error("calc_navigation_measurement() returned error %d", nm_ret);
       me_send_emptyobs();
       continue;
     }
 
     /* Compute a PVT solution from the measurements to update LGF and clock
-     * models. Compute on every epoch if time quality is not finest, otherwise
-     * once per second is enough */
+     * models. Compute on every epoch until the time quality gets to FINEST,
+     * otherwise at a lower rate */
     if (TIME_FINEST > time_quality) {
       compute_me_pvt(
           n_ready, nav_meas, current_tc, &current_time, p_e_meas, &lgf);
@@ -752,22 +752,22 @@ static void me_calc_pvt_thread(void *arg) {
               n_ready, nav_meas, current_tc, &current_time, p_e_meas, &lgf));
     }
 
-    /* Get the updated time and drift */
+    /* Get the current estimate of GPS time and receiver clock drift */
     gps_time_t smoothed_time = napcount2gpstime(current_tc);
     double smoothed_drift = get_clock_drift();
 
-    /* send unpropagated measurements if desired output epoch is not set
-     * (ie on first fix or after a long blackout) */
+    /* If desired output epoch is not set (e.g. on the first fix or after a long
+     * blackout), send unpropagated measurements */
     if (!gps_time_valid(&output_time)) {
       me_send_failed_obs(n_ready, nav_meas, e_meas, &current_time);
       continue;
     }
 
-    /* offset of smoothed solution time from the desired output time */
+    /* Get the offset of measurement time from the desired output time */
     double output_offset = gpsdifftime(&output_time, &smoothed_time);
 
     /* Only send observations that are closely aligned with the desired
-     * solution epochs to ensure they haven't been propagated too far. */
+     * solution epoch to ensure they haven't been propagated too far. */
     if (fabs(output_offset) < OBS_PROPAGATION_LIMIT) {
       log_debug("output offset %.4e, smoothed_drift %.3e",
                 output_offset,
