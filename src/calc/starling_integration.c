@@ -316,11 +316,11 @@ static void starling_integration_solution_send_low_latency_output(
 
 static void solution_make_sbp(const pvt_engine_result_t *soln,
                               const dops_t *dops,
-                              sbp_messages_t *sbp_messages) {
+                              sbp_messages_t *sbp_messages,
+                              u8 time_qual) {
   if (soln && soln->valid) {
-    /* Send GPS_TIME message first. */
-    sbp_make_gps_time(&sbp_messages->gps_time, &soln->time, POSITION_MODE_SPP);
-    sbp_make_utc_time(&sbp_messages->utc_time, &soln->time, POSITION_MODE_SPP);
+    sbp_make_gps_time(&sbp_messages->gps_time, &soln->time, time_qual);
+    sbp_make_utc_time(&sbp_messages->utc_time, &soln->time, time_qual);
 
     /* In SPP, `baseline` is actually absolute position in ECEF. */
     double pos_ecef[3], pos_llh[3];
@@ -549,7 +549,8 @@ static void starling_integration_solution_simulation(
   pvt_engine_result_t *soln = simulation_current_pvt_engine_result_t();
 
   if (simulation_enabled_for(SIMULATION_MODE_PVT)) {
-    solution_make_sbp(soln, simulation_current_dops_solution(), sbp_messages);
+    solution_make_sbp(
+        soln, simulation_current_dops_solution(), sbp_messages, TIME_FINEST);
   }
 
   if (simulation_enabled_for(SIMULATION_MODE_FLOAT) ||
@@ -885,7 +886,15 @@ void send_solution_time_matched(const StarlingFilterSolution *solution,
   starling_integration_sbp_messages_init(&sbp_messages, &obss_base->tor);
 
   pvt_engine_result_t soln_copy = obss_rover->soln;
-  solution_make_sbp(&soln_copy, NULL, &sbp_messages);
+
+  /* TODO: Actually get the timing quality from ME / Starling
+   * the time quality could have degraded or improved AFTER this
+   * solution epoch was calculated. Thus time quality isn't strictly
+   * true but it is good enough.  The plumbing exercise remains to remove
+   * discrepancy between current time qual and this epoch's time qual */
+
+  u8 time_qual = get_time_quality();
+  solution_make_sbp(&soln_copy, NULL, &sbp_messages, time_qual);
 
   if (solution) {
     solution_make_baseline_sbp(&solution->result,
@@ -977,9 +986,15 @@ void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
   starling_integration_sbp_messages_init(&sbp_messages, &epoch_time);
 
   u8 base_sender_id = STARLING_BASE_SENDER_ID_DEFAULT;
+  /* TODO: Actually get the timing quality from ME / Starling
+   * the time quality could have degraded or improved AFTER this
+   * solution epoch was calculated. Thus time quality isn't strictly
+   * true but is good enough.  The plumbing exercise remains to remove
+   * discrepancy between current time qual and this epoch's time qual */
   if (spp_solution) {
+    u8 time_qual = get_time_quality();
     solution_make_sbp(
-        &spp_solution->result, &spp_solution->dops, &sbp_messages);
+        &spp_solution->result, &spp_solution->dops, &sbp_messages, time_qual);
     if (rtk_solution) {
       solution_make_baseline_sbp(&filtered_pvt_result,
                                  spp_solution->result.baseline,

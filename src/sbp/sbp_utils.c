@@ -53,9 +53,32 @@ gnss_signal_t sid_from_sbp(const sbp_gnss_signal_t from) {
   return sid;
 }
 
+u8 sbp_get_time_quality_flags(u8 time_qual) {
+  /* time_qual is the same as get_time_quality() return in ME API */
+  u8 flags = 0;
+  switch (time_qual) {
+    case TIME_FINE: /* Intentionally FALLTHROUGH */
+    case TIME_FINEST:
+      /* Time comes from the measurement engine and if it is
+       * FINE or FINEST then it is GNSS derived (flags=1) */
+      flags = 1;
+      break;
+    case TIME_PROPAGATED:
+      /* Time Propagated (flags=2) */
+      flags = 2;
+      break;
+    case TIME_COARSE:  /* Intentionally FALLTHROUGH  */
+    case TIME_UNKNOWN: /* Intentionally FALLTHROUGH  */
+    default:
+      /* Time COARSE or UNKNOWN ->  mark time as invalid    */
+      flags = 0;
+  }
+  return flags;
+}
+
 void sbp_make_gps_time(msg_gps_time_t *t_out,
                        const gps_time_t *t_in,
-                       u8 flags) {
+                       u8 time_qual) {
   if (!gps_time_valid(t_in)) {
     memset(t_out, 0, sizeof(msg_gps_time_t));
     return;
@@ -66,17 +89,17 @@ void sbp_make_gps_time(msg_gps_time_t *t_out,
   t_out->wn = t_nano.wn;
   t_out->tow = t_nano.tow;
   t_out->ns_residual = t_nano.ns_residual;
-  t_out->flags = flags;
+  t_out->flags = sbp_get_time_quality_flags(time_qual) & 0x7;
 }
 
 void sbp_make_utc_time(msg_utc_time_t *t_out,
                        const gps_time_t *t_in,
-                       u8 flags) {
+                       u8 time_qual) {
   if (!gps_time_valid(t_in)) {
     memset(t_out, 0, sizeof(msg_utc_time_t));
     return;
   }
-
+  u8 flags = 0;
   utc_params_t utc_params;
   utc_params_t *p_utc_params = &utc_params;
   bool is_nv;
@@ -91,6 +114,8 @@ void sbp_make_utc_time(msg_utc_time_t *t_out,
     p_utc_params = NULL;
     flags |= (DEFAULT_UTC << 3);
   }
+
+  flags |= (sbp_get_time_quality_flags(time_qual) & 0x7);
 
   /* convert to UTC (falls back to a hard-coded table if the pointer is null) */
   utc_tm utc_time;
@@ -1158,12 +1183,12 @@ void sbp_alma_reg_cbks(void (*almanac_msg_callback)(u16, u8, u8 *, void *)) {
 
 void sbp_init_gps_time(msg_gps_time_t *gps_time, gps_time_t *t) {
   memset(gps_time, 0, sizeof(msg_gps_time_t));
-  sbp_make_gps_time(gps_time, t, POSITION_MODE_NONE);
+  sbp_make_gps_time(gps_time, t, 0);
 }
 
 void sbp_init_utc_time(msg_utc_time_t *utc_time, gps_time_t *t) {
   memset(utc_time, 0, sizeof(msg_utc_time_t));
-  sbp_make_utc_time(utc_time, t, POSITION_MODE_NONE);
+  sbp_make_utc_time(utc_time, t, 0);
 }
 
 void sbp_init_pos_llh(msg_pos_llh_t *pos_llh, gps_time_t *t) {
