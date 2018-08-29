@@ -19,45 +19,12 @@
  * Functions used in tracking.
  * \{ */
 
-/** Multiplier for checking out-of bounds NSR */
-#define CN0_MM_NSR_MIN_MULTIPLIER (1e-6f)
-/** Maximum supported NSR value (1/CN0_MM_NSR_MIN_MULTIPLIER) */
-#define CN0_MM_NSR_MIN (1e6f)
 /** Mean of N moments. Minimum value N = 2 for fastest response time */
 #define CN0_MM_N (2)
 /** Mean multiplier */
 #define CN0_MM_MEAN_MULT (1.0f / CN0_MM_N)
 /** CNO smoothing time in milliseconds. Removes CN0 bumps in the beginning */
 #define CN0_MM_CNO_SMOOTH_MS (2000)
-
-static float compute_cn0(cn0_est_mm_state_t *s,
-                         const cn0_est_params_t *p,
-                         float m2) {
-  float tmp = 2.0f * s->M2 * s->M2 - s->M4;
-  float nsr;
-
-  if (0.0f > tmp) {
-    nsr = CN0_MM_NSR_MIN;
-  } else {
-    float Pd = sqrtf(tmp);
-    float Pn = s->M2 - Pd;
-    s->Pn += (Pn - s->Pn) * p->alpha;
-
-    /* Ensure the NSR is within the limit */
-    if (Pd < s->Pn * CN0_MM_NSR_MIN_MULTIPLIER) {
-      return 60.0f;
-    } else {
-      /* Unfiltered m2 used for fast response to signal loss. */
-      nsr = s->Pn / m2;
-    }
-  }
-
-  float nsr_db = 10.0f * log10f(nsr);
-
-  /* Compute CN0 */
-  float x = p->log_bw - nsr_db;
-  return x < 10.0f ? 10.0f : x > 60.0f ? 60.0f : x;
-}
 
 /** Initialize the \f$ C / N_0 \f$ estimator state.
  *
@@ -128,9 +95,32 @@ float cn0_est_mm_update(cn0_est_mm_state_t *s,
   } else {
     s->M2 += (m2 - s->M2) * CN0_MM_MEAN_MULT;
     s->M4 += (m4 - s->M4) * CN0_MM_MEAN_MULT;
+  }
 
-    /* Compute and store updated CN0. */
-    s->cn0_db = compute_cn0(s, p, m2);
+  float tmp = 2.0f * s->M2 * s->M2 - s->M4;
+  if (0.0f > tmp) {
+    tmp = 0.0f;
+  }
+
+  float Pd = sqrtf(tmp);
+  float Pn = s->M2 - Pd;
+  s->Pn += (Pn - s->Pn) * p->alpha;
+
+  float snr = m2 / s->Pn;
+
+  if (!isfinite(snr) || (snr <= 0.0f)) {
+    /* CN0 out of limits, no updates. */
+  } else {
+    float snr_db = 10.0f * log10f(snr);
+
+    /* Compute CN0 */
+    float cn0_dbhz = p->log_bw + snr_db;
+    if (cn0_dbhz < 10.0f) {
+      cn0_dbhz = 10.0f;
+    } else if (cn0_dbhz > 60.0f) {
+      cn0_dbhz = 60.0f;
+    }
+    s->cn0_db = cn0_dbhz;
   }
 
   /* Increment CN0 smoothing counter with integration period. */
