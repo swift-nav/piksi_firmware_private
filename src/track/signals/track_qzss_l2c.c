@@ -70,7 +70,7 @@ void track_qzss_l2c_register(void) {
  * \param[in] sat          Satellite ID
  * \param[in] code_phase   code phase [chips]
  * \param[in] carrier_freq Doppler [Hz]
- * \param[in] cn0          CN0 estimate [dB-Hz]
+ * \param[in] cn0_init     CN0 estimate [dB-Hz]
  * \param[in] TOW_ms       Latest decoded TOW [ms]
  */
 void qzss_l1ca_to_l2c_handover(u32 sample_count,

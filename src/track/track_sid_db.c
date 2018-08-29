@@ -174,7 +174,7 @@ void track_sid_db_azel_degrees_set(const gnss_signal_t sid,
 /** Return the azimuth angle for a satellite.
  *
  * \param[in] sid Signal identifier for which the elevation should be returned.
- * \param[out] elevation Pointer for storing the SV azimuth in degrees
+ * \param[out] result Pointer for storing the SV azimuth in degrees
  *
  * \return true if success, false if azimuth is not present in the cache,
  *                                   cache entry is too old, or GNSS
@@ -196,7 +196,7 @@ bool track_sid_db_azimuth_degrees_get(const gnss_signal_t sid, double *result) {
 /** Return the elevation angle for a satellite.
  *
  * \param[in] sid Signal identifier for which the elevation should be returned.
- * \param[out] elevation Pointer for storing the SV elevation in degrees
+ * \param[out] result Pointer for storing the SV elevation in degrees
  *
  * \return true if success, false if elevation is not present in the cache,
  *                                   cache entry is too old, or GNSS

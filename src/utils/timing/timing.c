@@ -320,11 +320,10 @@ gps_time_t glo2gps_with_utc_params(me_gnss_signal_t mesid,
 }
 
 /** Given a gps time, return the gps time of the nearest solution epoch
- * \param gps_time_t *time
- * \param double soln_freq
+ * \param time time to round
+ * \param soln_freq solution frequency
  * \return The GPS time of nearest epoch
  */
-
 gps_time_t gps_time_round_to_epoch(const gps_time_t *time, double soln_freq) {
   gps_time_t rounded_time = GPS_TIME_UNKNOWN;
   /* round the time-of-week */

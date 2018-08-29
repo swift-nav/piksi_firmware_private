@@ -415,7 +415,7 @@ void piksi_systime_inc_s(piksi_systime_t *t, u64 inc) {
 /** Decrease piksi_system_t.
  *
  * \param[in,out] t         Pointer to piksi_systime_t variable.
- * \param[in] inc           System tick value to be decreased.
+ * \param[in] dec           System tick value to be decreased.
  */
 void piksi_systime_dec_internal(piksi_systime_t *t, u64 dec) {
   assert(t);
@@ -443,7 +443,7 @@ void piksi_systime_dec_internal(piksi_systime_t *t, u64 dec) {
  * tick boundary.
  *
  * \param[in,out] t         Pointer to piksi_systime_t variable.
- * \param[in] inc           Microsecond value to be decreased.
+ * \param[in] dec           Microsecond value to be decreased.
  */
 void piksi_systime_dec_us(piksi_systime_t *t, u64 dec) {
   piksi_systime_dec_internal(t, us2st(dec));
@@ -455,7 +455,7 @@ void piksi_systime_dec_us(piksi_systime_t *t, u64 dec) {
  * tick boundary.
  *
  * \param[in,out] t         Pointer to piksi_systime_t variable.
- * \param[in] inc           Millisecond value to be decreased.
+ * \param[in] dec           Millisecond value to be decreased.
  */
 void piksi_systime_dec_ms(piksi_systime_t *t, u64 dec) {
   piksi_systime_dec_internal(t, ms2st(dec));
@@ -467,7 +467,7 @@ void piksi_systime_dec_ms(piksi_systime_t *t, u64 dec) {
  * tick boundary.
  *
  * \param[in,out] t         Pointer to piksi_systime_t variable.
- * \param[in] inc           Second value to be decreased.
+ * \param[in] dec           Second value to be decreased.
  */
 void piksi_systime_dec_s(piksi_systime_t *t, u64 dec) {
   piksi_systime_dec_internal(t, s2st(dec));

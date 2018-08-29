@@ -67,9 +67,9 @@ typedef struct {
   float T_CODE; /**< code integration interval [s] */
   float T_CARR; /**< carrier integration interval [s] */
 
-  float prev_I;        /**< FLL: I[n-1] */
-  float prev_Q;        /**< FLL: Q[n-1] */
-  float prev_period_s; /**< FLL: Discriminator period [n-1] */
+  float prev_I;           /**< FLL: I[n-1] */
+  float prev_Q;           /**< FLL: Q[n-1] */
+  float prev_period_s;    /**< FLL: Discriminator period [n-1] */
   float fll_discr_sum_hz; /**< FLL: Discriminator sum over coh. int. period [Hz]
                            */
   float fll_discr_period_s; /**< FLL: Discriminator period [s] */

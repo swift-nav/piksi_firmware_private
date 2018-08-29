@@ -461,7 +461,7 @@ bool shm_signal_unhealthy(gnss_signal_t sid) {
 
 /** Check if signal is suitable for navigation
  *
- * \param sat Signal ID
+ * \param sid Signal ID
  *
  * \returns true if health of signal is CODE_NAV_STATE_VALID,
  *          false otherwise
@@ -472,7 +472,7 @@ bool shm_navigation_suitable(gnss_signal_t sid) {
 
 /** Check if signal is unusable for navigation
  *
- * \param sat Signal ID
+ * \param sid Signal ID
  *
  * \returns true if health of signal is not CODE_NAV_STATE_VALID,
  *          false otherwise
@@ -483,7 +483,7 @@ bool shm_navigation_unusable(gnss_signal_t sid) {
 
 /** Check if signal health is unknown
  *
- * \param sat Signal ID
+ * \param sid Signal ID
  *
  * \returns true if health of signal is not CODE_NAV_STATE_UNKNOWN,
  *          false otherwise

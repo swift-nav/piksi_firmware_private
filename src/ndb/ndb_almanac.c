@@ -12,6 +12,7 @@
 
 #include <assert.h>
 #include <libswiftnav/constants.h>
+#include <libswiftnav/gnss_time.h>
 #include <libswiftnav/logging.h>
 #include <sbp.h>
 #include <sbp_utils.h>
@@ -871,7 +872,7 @@ ndb_op_code_t ndb_almanac_wn_read(u32 toa, u16 *wn) {
  * updated.
  *
  * \param[in] sid  Time source
- * \param[in] tow  Almanac's week time [s]
+ * \param[in] toa  Almanac's week time [s]
  * \param[in] wn   Almanac's week number
  * \param[in] ds   Data source
  * \param[in] sender_id Sender ID if data source is NDB_DS_SBP. In other cases
@@ -958,7 +959,7 @@ ndb_op_code_t ndb_almanac_erase(gnss_signal_t sid) {
 /**
  * Erase almanac data by data source SV
  *
- * \param[in] sid Data source SV signal identifier
+ * \param[in] src_sid Data source SV signal identifier
  *
  * \retval NDB_ERR_NONE      Successful operation.
  * \retval NDB_ERR_NO_CHANGE No data to erase.

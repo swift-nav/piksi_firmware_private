@@ -34,8 +34,8 @@ static bool raw_samples(u8 *out, u32 len_bytes, u64 *sample_count);
 
 /** Grab raw samples from NAP.
  *
- * \param[out]  length        Number of samples in the buffer.
- * \param[out]  sample_count  Output sample count of the first sample used.
+ * \param[out]  length   Number of samples in the buffer.
+ * \param[out]  p_count  Output sample count of the first sample used.
  *
  * \return Pointer to the beginning of the sample buffer.
  */

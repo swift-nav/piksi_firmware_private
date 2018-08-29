@@ -37,7 +37,7 @@ static u8 code_to_nav_bit_fifo_size(const code_t code) {
 }
 
 /** Return occupied navigation data bit FIFO size for a given read index
- * \param  nav_bit_fifo_t *fifo object pointer
+ * \param  fifo object pointer
  * \param  rd The read index the FIFO length is computed for
  * \return Number of bits in FIFO.
  */
@@ -54,6 +54,8 @@ u8 nav_bit_fifo_length_for_rd_index(const nav_bit_fifo_t *fifo, const u8 rd) {
 /** Initialize a nav_bit_fifo_t struct.
  *
  * \param fifo        nav_bit_fifo_t struct to use.
+ * \param code        code of the signal for which the FIFO is
+ *
  */
 void nav_bit_fifo_init(nav_bit_fifo_t *fifo, const code_t code) {
   assert(NULL != fifo);

@@ -61,7 +61,7 @@ static void Rank0(sc16_t *_A, sc16_t *_B, u32 _nblocks);
 
 static void Rank0N(sc16_t *_A, sc16_t *_B, u32 _nblocks);
 
-/*! \fn int InitINTFFT
+/*! \fn void InitIntFFTr2
  *  \brief Init the memory for a FFT
  */
 void InitIntFFTr2(void *_pFFT, u32 _N) {

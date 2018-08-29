@@ -107,7 +107,7 @@ void track_gal_e7_register(void) {
  * \param[in] sat          Satellite ID
  * \param[in] code_phase   code phase [chips]
  * \param[in] carrier_freq Doppler [Hz]
- * \param[in] cn0          CN0 estimate [dB-Hz]
+ * \param[in] cn0_init     CN0 estimate [dB-Hz]
  */
 void gal_e1_to_e7_handover(u32 sample_count,
                            u16 sat,

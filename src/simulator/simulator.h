@@ -17,9 +17,6 @@
 #include <libswiftnav/pvt_engine/firmware_binding.h>
 #include <libswiftnav/single_epoch_solver.h>
 
-/** \addtogroup simulator
- * \{ */
-
 /** \defgroup simulator GPS Simulator
  * Functions used to simulate PVT and baseline fixes for hardware-in-the-loop
  * testing. Generates GPS output from Piksi as if the GPS was performing
@@ -63,8 +60,6 @@ typedef struct __attribute__((packed)) {
   u8 mode_mask;      /** < Current mode of the simulator */
 } simulation_settings_t;
 
-/** \} */
-
 // Math Helpers:
 double rand_gaussian(const double variance);
 double lerp(double t, double u, double v, double x, double y);
@@ -101,5 +96,7 @@ navigation_measurement_t* simulation_current_navigation_measurements(void);
 // Initialization:
 void simulator_setup_almanacs(void);
 void simulator_setup(void);
+
+/** \} */
 
 #endif /* SWIFTNAV_SIMULATOR_H */

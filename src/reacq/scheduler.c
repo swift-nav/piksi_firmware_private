@@ -38,7 +38,6 @@ u16 sm_constellation_to_start_index(constellation_t gnss);
  *
  * \param init_job job whose cost is initialized
  * \param all_jobs_data pointer to jobs data
- * \param gnss GNSS constellation
  *
  * \return none
  */

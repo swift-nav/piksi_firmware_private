@@ -22,8 +22,8 @@ void nav_data_sync_init(nav_data_sync_t *sync) { sync->valid = false; }
  *
  * \note This function should only be called externally by the decoder thread.
  *
- * \param to_tracker   struct to sync.
- * \param from_decoder struct to sync with.
+ * \param to_tracker   structure to sync.
+ * \param from_decoder structure to sync with.
  *
  * \return true if data was stored successfully, false otherwise.
  */
@@ -46,12 +46,12 @@ bool nav_data_sync_set(nav_data_sync_t *to_tracker,
 
 /** Read pending sync data provided by the decoder thread.
  *
- * \note This function should only be called internally by the tracking thread.
- *
- * \param to_tracker   struct to sync.
- * \param sync         struct to sync with.
+ * \param to_tracker   structure to sync.
+ * \param from_decoder structure to sync with.
  *
  * \return true if outputs are valid, false otherwise.
+ *
+ * \note This function should only be called internally by the tracking thread.
  */
 bool nav_data_sync_get(nav_data_sync_t *to_tracker,
                        nav_data_sync_t *from_decoder) {

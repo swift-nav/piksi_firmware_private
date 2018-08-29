@@ -32,8 +32,6 @@ u32 hw_code_index; /** Set to code index for which hw was run */
  *
  *  Test failure triggers assertion
  *
- * \param none
- *
  * \return none
  */
 TEST(scheduler_test, test_sch_cost_init) {
@@ -112,8 +110,6 @@ TEST(scheduler_test, test_sch_cost_init) {
  *
  *  Test failure triggers assertion
  *
- * \param none
- *
  * \return none
  */
 TEST(scheduler_test, test_sch_job_select) {
@@ -186,8 +182,6 @@ static void sch_expect_hw_run(bool run, u32 code_index) {
 /** Test job scheduling
  *
  *  Test failure triggers assertion
- *
- * \param none
  *
  * \return none
  */

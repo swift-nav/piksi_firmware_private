@@ -155,8 +155,6 @@ typedef struct {
   const struct tp_profile_entry *profiles; /**< Profiles switching table. */
 } tp_profile_t;
 
-/** \} */
-
 /** Counter type. Value changes every time tracking mode changes. */
 typedef u32 update_count_t;
 
@@ -177,8 +175,6 @@ typedef struct {
   s8 polarity; /**< Polarity of the matching carrier phases */
   bool synced; /**< Flag for indicating half-cycle ambiguity resolution */
 } cp_sync_t;
-
-/** \} */
 
 /** \addtogroup tracking
  * \{ */
@@ -431,5 +427,7 @@ typedef struct {
   /* for tracking profile stabilization timeout bookkeeping */
   u64 report_last_ms;
 } tracker_t;
+
+/** \} */
 
 #endif /* SWIFTNAV_TRACKER_H  */

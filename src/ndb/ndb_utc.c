@@ -43,8 +43,8 @@ void ndb_utc_params_init(void) {
 /**
  * Read the UTC parameters information
  *
- * \param[out] utc_params  Pointer to UTC parameters structure
- * \param[out] is_nv       Pointer to NV flag, set to true if data was from NV
+ * \param[out] utc_params_p  Pointer to UTC parameters structure
+ * \param[out] is_nv         Pointer to NV flag, set to true if data was from NV
  *
  * \retval NDB_ERR_NONE       On success
  * \retval NDB_ERR_BAD_PARAM  On parameter error
@@ -62,13 +62,14 @@ ndb_op_code_t ndb_utc_params_read(utc_params_t *utc_params_p, bool *is_nv) {
 /**
  * Store UTC parameters information
  *
- * \param[in] sid         GNSS signal identifier for the source of UTC data in
- *                        case of data source being NDB_DS_RECEIVER, NULL for
- *                        other cases.
- * \param[in] utc_params  UTC parameters structure
- * \param[in] src         Data source
- * \param[in] sender_id   Sender ID if data source is NDB_DS_SBP. In other cases
- *                        set to NDB_EVENT_SENDER_ID_VOID.
+ * \param[in] sid           GNSS signal identifier for the source of UTC data in
+ *                          case of data source being NDB_DS_RECEIVER, NULL for
+ *                          other cases.
+ * \param[in] utc_params_p  UTC parameters structure
+ * \param[in] src           Data source
+ * \param[in] sender_id     Sender ID if data source is NDB_DS_SBP. In other
+ * cases
+ *                          set to NDB_EVENT_SENDER_ID_VOID.
  *
  * \retval NDB_ERR_NONE            On success. UTC parameters updated.
  * \retval NDB_ERR_NO_CHANGE       UTC parameters unchanged.

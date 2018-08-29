@@ -535,7 +535,7 @@ static struct profile_vars get_profile_vars(const me_gnss_signal_t mesid,
  * The method generates tracking loop parameters according to selected
  * configuration.
  *
- * \param tracker[in,out] Tracker channel data
+ * \param[in,out] tracker Tracker channel data
  *
  * \return None
  */

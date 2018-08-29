@@ -52,6 +52,7 @@ static u32 fallback_write_ftdi(u8 *buff, u32 n, void *context) {
  * message format to the FTDI USART, in a way that should get the message
  * through to the Python console even if it's interrupting another transmission.
  *
+ * \param pos Position of the error on the file
  * \param msg A pointer to an array of chars containing the error message.
  */
 void _screaming_death(const char *pos, const char *msg) {

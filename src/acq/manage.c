@@ -20,6 +20,7 @@
 #include <libswiftnav/constants.h>
 #include <libswiftnav/coord_system.h>
 #include <libswiftnav/glo_map.h>
+#include <libswiftnav/gnss_time.h>
 #include <libswiftnav/linear_algebra.h>
 #include <libswiftnav/logging.h>
 #include <libswiftnav/memcpy_s.h>
@@ -518,7 +519,7 @@ static void manage_acq(void) {
 
 /** Send results of an acquisition to the host.
  *
- * \param sid SID of the acquisition
+ * \param mesid ME SID of the acquisition
  * \param cn0 Carrier to noise ratio of best point from acquisition.
  * \param cp  Code phase of best point.
  * \param cf  Carrier frequency of best point.
