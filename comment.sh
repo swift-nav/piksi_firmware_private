@@ -106,7 +106,7 @@ echo "Comment BRANCH ($TRAVIS_BRANCH)"
 echo "Comment TAG ($TRAVIS_TAG)"
 
 if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
-    if [[ "$TRAVIS_BRANCH" == master || "$TRAVIS_TAG" == v* || "$TRAVIS_BRANCH" == v*-release ]]; then
+    if [[ "$TRAVIS_BRANCH" == master || "$TRAVIS_TAG" == v* || "$TRAVIS_BRANCH" == v*-release || "$TRAVIS_BRANCH" == v*-dev ]]; then
         COMMENT="$(slack_links)"
         URL="https://slack.com/api/chat.postMessage?token=$SLACK_TOKEN&channel=$SLACK_CHANNEL"
         DATA="text=$COMMENT"
