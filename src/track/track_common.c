@@ -148,12 +148,11 @@ void tp_profile_apply_config(tracker_t *tracker, bool init) {
   /**< Set tracking loop configuration parameters */
   tl_config_t config;
   tp_tl_get_config(l, &config);
+  /* DLL discriminator period is same as code_loop_period_s */
   config.code_loop_period_s =
       tp_get_dll_ms(tracker->tracking_mode) / (float)SECS_MS;
-  config.dll_discr_period_s =
-      tp_get_dll_ms(tracker->tracking_mode) / (float)SECS_MS;
   config.carr_loop_period_s =
-      tp_get_pll_ms(tracker->tracking_mode) / (float)SECS_MS;
+      tp_get_fpll_ms(tracker->tracking_mode) / (float)SECS_MS;
   config.fll_discr_period_s =
       tp_get_flld_ms(tracker->tracking_mode) / (float)SECS_MS;
 
@@ -760,6 +759,20 @@ static void tp_tracker_update_locks(tracker_t *tracker, u32 cycle_flags) {
 }
 
 /**
+ * Predicate that checks if the given cycle is decimated
+ * \param cycle_no cycle index to check (one based)
+ * \param decim_factor decimation factor
+ * \retval true the given cycle index is decimated
+ * \retval false the given cycle index in not decimated (passed through)
+ */
+static bool cycle_decimated(u8 cycle_no, u8 decim_factor) {
+  if ((0 == decim_factor) || (1 == decim_factor)) {
+    return false;
+  }
+  return (0 != (cycle_no % decim_factor));
+}
+
+/**
  * Runs FLL, PLL and DLL controller updates.
  *
  * This method updates FLL, PLL and DLL loops and additionally checks for DLL
@@ -803,7 +816,17 @@ static void tp_tracker_update_loops(tracker_t *tracker, u32 cycle_flags) {
 
     tp_tl_update_dll_discr(&tracker->tl_state, &corr_all);
     tp_tl_update_dll(&tracker->tl_state);
-    tp_tl_update_fpll(&tracker->tl_state, &corr_all, costas);
+
+    bool run_fpll = (0 != (cycle_flags & TPF_FPLL_RUN));
+    if (run_fpll) {
+      tracker->fpll_cycle++;
+      u8 fpll_decim = tp_get_fpll_decim(tracker->tracking_mode);
+      run_fpll = !cycle_decimated(tracker->fpll_cycle, fpll_decim);
+      if (run_fpll) {
+        tp_tl_update_fpll(&tracker->tl_state, &corr_all, costas);
+        tracker->fpll_cycle = 0;
+      }
+    }
 
     tl_rates_t rates = {0};
     tp_tl_get_rates(&tracker->tl_state, &rates);
