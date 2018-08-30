@@ -188,16 +188,6 @@ void platform_thread_set_name(const char *name) {
 
 /* NDB */
 
-/* Return true on success. */
-bool platform_try_read_ephemeris(const gnss_signal_t sid, ephemeris_t *eph) {
-  return (ndb_ephemeris_read(sid, eph) == NDB_ERR_NONE);
-}
-
-/* Return true on success. */
-bool platform_try_read_iono_corr(ionosphere_t *params) {
-  return (ndb_iono_corr_read(params) == NDB_ERR_NONE);
-}
-
 void platform_watchdog_notify_starling_main_thread() { /* TODO */
 }
 
@@ -278,12 +268,6 @@ int platform_mailbox_post(mailbox_id_t id, void *msg, int blocking) {
   uint32_t timeout_ms =
       (MB_BLOCKING == blocking) ? MAILBOX_BLOCKING_TIMEOUT_MS : 0;
   return platform_mailbox_post_internal(id, msg, timeout_ms, MSG_PRIO_NORMAL);
-}
-
-int platform_mailbox_post_ahead(mailbox_id_t id, void *msg, int blocking) {
-  uint32_t timeout_ms =
-      (MB_BLOCKING == blocking) ? MAILBOX_BLOCKING_TIMEOUT_MS : 0;
-  return platform_mailbox_post_internal(id, msg, timeout_ms, MSG_PRIO_HIGH);
 }
 
 int platform_mailbox_fetch(mailbox_id_t id, void **msg, int blocking) {
