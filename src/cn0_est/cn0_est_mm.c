@@ -19,10 +19,8 @@
  * Functions used in tracking.
  * \{ */
 
-/** Mean of N moments. Minimum value N = 2 for fastest response time */
-#define CN0_MM_N (2)
-/** Mean multiplier */
-#define CN0_MM_MEAN_MULT (1.0f / CN0_MM_N)
+/** Filter coefficient for M2 an M4. */
+#define CN0_MM_ALPHA (0.5f)
 /** Estimate of noise power Pn. For smoother initial CN0 output. */
 #define CN0_MM_PN_INIT (700000.0f)
 
@@ -62,7 +60,7 @@ void cn0_est_mm_init(cn0_est_mm_state_t *s, float cn0_0) {
   s->M2 = -1.0f; /* Set negative for first iteration */
   s->M4 = -1.0f;
   s->Pn = CN0_MM_PN_INIT;
-  s->cn0_db = cn0_0;
+  s->cn0_dbhz = cn0_0;
 }
 
 /**
@@ -87,8 +85,8 @@ float cn0_est_mm_update(cn0_est_mm_state_t *s,
     s->M2 = m2;
     s->M4 = m4;
   } else {
-    s->M2 += (m2 - s->M2) * CN0_MM_MEAN_MULT;
-    s->M4 += (m4 - s->M4) * CN0_MM_MEAN_MULT;
+    s->M2 += (m2 - s->M2) * CN0_MM_ALPHA;
+    s->M4 += (m4 - s->M4) * CN0_MM_ALPHA;
   }
 
   float tmp = 2.0f * s->M2 * s->M2 - s->M4;
@@ -104,7 +102,7 @@ float cn0_est_mm_update(cn0_est_mm_state_t *s,
 
   if (!isfinite(snr) || (snr <= 0.0f)) {
     /* CN0 out of limits, no updates. */
-    return s->cn0_db;
+    return s->cn0_dbhz;
   }
 
   float snr_db = 10.0f * log10f(snr);
@@ -116,9 +114,9 @@ float cn0_est_mm_update(cn0_est_mm_state_t *s,
   } else if (cn0_dbhz > 60.0f) {
     cn0_dbhz = 60.0f;
   }
-  s->cn0_db = cn0_dbhz;
+  s->cn0_dbhz = cn0_dbhz;
 
-  return s->cn0_db;
+  return s->cn0_dbhz;
 }
 
 /** \} */
