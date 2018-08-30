@@ -30,6 +30,9 @@
 #define IMU_AUX_THREAD_PRIO (LOWPRIO + 10)
 #define IMU_AUX_THREAD_STACK (2 * 1024)
 
+#define IMU_RATE_MAX 200.0f
+#define MAG_RATE_MAX 25.0f
+
 /** Working area for the IMU data processing thread. */
 static THD_WORKING_AREA(wa_imu_thread, IMU_THREAD_STACK);
 /** Working area for the IMU auxiliary data processing thread. */
@@ -44,20 +47,26 @@ static BSEMAPHORE_DECL(imu_irq_sem, TRUE);
  * interrupt. */
 static u32 nap_tc;
 
-/* this lookuptable is used to translate enum values of imu_rate setting
- * to the period in seconds expected for this setting value */
-
-static const double BMI160_DT_LOOKUP[] = {0.04,   /* 25 Hz */
-                                          0.02,   /* 50 Hz */
-                                          0.01,   /* 100 Hz */
-                                          0.005}; /* 200 Hz */
+/* rate = 25 * 2 ^ (imu_rate - 6) valid for 12 > imu_rate > 0 */
+static bool rate_enum_to_hz(const u8 rate_e, float *rate_hz) {
+  if ((rate_e == 0) || (rate_e >= 12)) return false;
+  (*rate_hz) = 25.0f * powf(2.0f, rate_e - 6.0f);
+  return true;
+}
+static bool rate_hz_to_enum(const float rate_hz, u8 *rate_e) {
+  if (rate_hz < 0) return false;
+  u8 rate_tmp = rintf(log2f(rate_hz / 25.0)) + 6;
+  if ((rate_tmp == 0) || (rate_tmp >= 12)) return false;
+  (*rate_e) = rate_tmp;
+  return true;
+}
 
 /* Settings */
-static u8 imu_rate = 1;
+static float imu_rate_hz = 50.0f;
 static bool raw_imu_output = false;
 static u8 acc_range = 2;
 static bmi160_gyr_range_t gyr_range = BMI160_GYR_1000DGS;
-static u8 mag_rate = 1;
+static float mag_rate_hz = 12.5f;
 static bool raw_mag_output = false;
 
 /* rate_change_in_progress indicates that imu rate has recently been changed.
@@ -81,8 +90,8 @@ static void imu_isr(void *context) {
 
   /* Wake up processing thread */
   if (imu_irq_sem.bs_sem.s_cnt == 1) {
-    /* If cnt == 1, interrupt was received again before imu_thread was awoken.
-     * Use semaphore reset to communicate to imu_thread that it misssed an IRQ.
+    /* If cnt == 1, interrupt was received again before imu_thread was awaken.
+     * Use semaphore reset to communicate to imu_thread that it missed an IRQ.
      */
     chBSemResetI(&imu_irq_sem, 1);
   } else {
@@ -141,18 +150,13 @@ static void imu_thread(void *arg) {
        * imu_rate = BMI160_RATE_400HZ = 10 -> 2.5ms,so timeout is set to
        * 3.125ms
        */
-      u32 max_rate;
-      /* Only drive timeout from mag if IMU is disabled
-       * since max mag rate == min imu rate
-       */
+      float max_rate_hz;
       if (!raw_imu_output) {
-        /* Setting enum offset by 4 from rate enum for mag */
-        max_rate = mag_rate + 4;
+        max_rate_hz = mag_rate_hz;
       } else {
-        /* Setting enum offset by 6 from rate enum for imu */
-        max_rate = imu_rate + 6;
+        max_rate_hz = imu_rate_hz;
       }
-      timeout = MS2ST(200) / (1 << (max_rate - 4));
+      timeout = MS2ST((1200.0f / max_rate_hz));
     }
     s32 ret = chBSemWaitTimeout(&imu_irq_sem, timeout);
     if (ret == MSG_TIMEOUT) {
@@ -170,8 +174,8 @@ static void imu_thread(void *arg) {
     }
 
     bool new_acc, new_gyro, new_mag;
-    double expected_dt, dt, dt_err_pcent; /* Timing instrumentation */
-    expected_dt = BMI160_DT_LOOKUP[imu_rate];
+    float expected_dt, dt, dt_err_pcent; /* Timing instrumentation */
+    expected_dt = 1.0f / imu_rate_hz;
     bmi160_new_data_available(&new_acc, &new_gyro, &new_mag);
 
     if (new_acc != new_gyro && raw_imu_output) {
@@ -191,7 +195,7 @@ static void imu_thread(void *arg) {
     s16 *mag_ptr = (new_mag) ? mag : NULL;
     bmi160_get_data(acc, gyro, mag_ptr, &sensor_time);
 
-    /* Warn if dt error exceeds threshhold according to IMU. Ignore
+    /* Warn if dt error exceeds threshold according to IMU. Ignore
        large errors since there is an undiagnosed discontinuity problem where
        the sensor_time register reads bogus information. The datasheet seems
        to imply that this register is shadowed.
@@ -199,14 +203,14 @@ static void imu_thread(void *arg) {
 
     if (raw_imu_output) {
       dt = (sensor_time - p_sensor_time) * BMI160_SENSOR_TIME_TO_SECONDS;
-      dt_err_pcent = (fabs(dt - expected_dt) / expected_dt * 100.0);
+      dt_err_pcent = (fabsf(dt - expected_dt) / expected_dt * 100.0f);
 
       if (!rate_change_in_progress &&
           dt_err_pcent > BMI160_DT_ERR_THRESH_PERCENT &&
           dt_err_pcent < BMI160_DT_ERR_MAX_PERCENT && p_sensor_time > 0) {
         log_warn("Reported IMU sampling period of %.0f ms (expected %.0f) ",
-                 dt * 1000.0,
-                 expected_dt * 1000.0);
+                 dt * 1000.0f,
+                 expected_dt * 1000.0f);
         log_warn("IMU Error register: %u. IMU status register: %u",
                  bmi160_read_error(),
                  bmi160_read_status());
@@ -235,17 +239,17 @@ static void imu_thread(void *arg) {
       tow = (u32)tow_ms;
       tow_f = (u8)round((tow_ms - tow) * 255);
 
-      /* Warn if imu dt error exceeds threshhold according to our ME */
+      /* Warn if imu dt error exceeds threshold according to our ME */
 
       if (raw_imu_output) {
         dt = (tow_ms - p_tow_ms) / 1000.0;
-        dt_err_pcent = fabs(dt - expected_dt) / expected_dt * 100.0;
+        dt_err_pcent = fabsf(dt - expected_dt) / expected_dt * 100.0f;
 
         if (!rate_change_in_progress && p_tow_ms != 0 &&
             dt_err_pcent > BMI160_DT_ERR_THRESH_PERCENT) {
           log_warn("Measured IMU sampling period of %.0f ms (expected %.0f ms)",
-                   dt * 1000.0,
-                   expected_dt * 1000.0);
+                   dt * 1000.0f,
+                   expected_dt * 1000.0f);
           log_warn("IMU Error register: %u. IMU status register: %u",
                    bmi160_read_error(),
                    bmi160_read_status());
@@ -256,13 +260,13 @@ static void imu_thread(void *arg) {
           p_tow_ms = 0;
         }
 
-        /* Warn if sensor read delay after ISR exceeds threshhold */
+        /* Warn if sensor read delay after ISR exceeds threshold */
 
         u64 tc_now = nap_sample_time_to_count(NAP->TIMING_COUNT);
         gps_time_t t_now = napcount2gpstime(tc_now);
         dt = gpsdifftime(&t_now, &t);
         dt_err_pcent =
-            dt / expected_dt * 100.0; /* Delay's proportion of period */
+            dt / expected_dt * 100.0f; /* Delay's proportion of period */
         if (dt_err_pcent > BMI160_READ_DELAY_THRESH_PERCENT) {
           log_warn("IMU read delay of %.0f ms (%.0f %% of period)",
                    dt * 1000.0,
@@ -311,27 +315,16 @@ static bool imu_rate_changed(struct setting *s, const char *val) {
   if (!s->type->from_string(s->type->priv, s->addr, s->len, val)) {
     return false;
   }
-  /* Convert between the setting value, which is an integer corresponding to
-   * the index of the selected setting in the list of strings, and the relevant
-   * enum values */
-  rate_change_in_progress = true;
-  switch (imu_rate) {
-    case 0: /* 25Hz */
-      bmi160_set_imu_rate(BMI160_RATE_25HZ);
-      break;
-    case 1: /* 50Hz */
-      bmi160_set_imu_rate(BMI160_RATE_50HZ);
-      break;
-    case 2: /* 100Hz */
-      bmi160_set_imu_rate(BMI160_RATE_100HZ);
-      break;
-    case 3: /* 200Hz */
-      bmi160_set_imu_rate(BMI160_RATE_200HZ);
-      break;
-    default:
-      log_error("Unexpected imu rate setting: %u", imu_rate);
-      return false;
+  if (imu_rate_hz > IMU_RATE_MAX) return false;
+  u8 imu_rate_e;
+  if (!rate_hz_to_enum(imu_rate_hz, &imu_rate_e)) {
+    log_error("Unexpected IMU rate setting: %.3f Hz", imu_rate_hz);
+    return false;
   }
+  float imu_rate_tmp = 0.0f;
+  rate_enum_to_hz(imu_rate_e, &imu_rate_tmp);
+  log_info("validate IMU rate change to %.3f", imu_rate_tmp);
+  bmi160_set_imu_rate(imu_rate_e);
   return true;
 }
 
@@ -347,23 +340,16 @@ static bool mag_rate_changed(struct setting *s, const char *val) {
   if (!s->type->from_string(s->type->priv, s->addr, s->len, val)) {
     return false;
   }
-  /* Convert between the setting value, which is an integer corresponding to
-   * the index of the selected setting in the list of strings, and the relevant
-   * enum values */
-  switch (mag_rate) {
-    case 0: /* 6.25Hz */
-      bmi160_set_mag_rate(BMI160_RATE_6_25HZ);
-      break;
-    case 1: /* 12.5Hz */
-      bmi160_set_mag_rate(BMI160_RATE_12_5HZ);
-      break;
-    case 2: /* 25Hz */
-      bmi160_set_mag_rate(BMI160_RATE_25HZ);
-      break;
-    default:
-      log_error("Unexpected magnetometer rate setting: %u", mag_rate);
-      return false;
+  if (mag_rate_hz > MAG_RATE_MAX) return false;
+  u8 mag_rate_e;
+  if (!rate_hz_to_enum(mag_rate_hz, &mag_rate_e)) {
+    log_error("Unexpected magnetometer rate setting: %.3f", mag_rate_hz);
+    return false;
   }
+  float mag_rate_tmp = 0.0f;
+  rate_enum_to_hz(mag_rate_e, &mag_rate_tmp);
+  log_info("validate IMU rate change to %.3f", mag_rate_tmp);
+  bmi160_set_mag_rate(mag_rate_e);
   return true;
 }
 
@@ -440,14 +426,7 @@ void imu_init(void) {
                  TYPE_BOOL,
                  raw_imu_output_changed);
 
-  static const char *const imu_rate_enum[] =
-      /* TODO: 400 Hz mode disabled for now as at that speed there is a timing
-       * issue resulting in messages with duplicate timestamps. */
-      {"25", "50", "100", "200", /* "400",*/ NULL};
-  static struct setting_type imu_rate_setting;
-  int TYPE_IMU_RATE =
-      settings_type_register_enum(imu_rate_enum, &imu_rate_setting);
-  SETTING_NOTIFY("imu", "imu_rate", imu_rate, TYPE_IMU_RATE, imu_rate_changed);
+  SETTING_NOTIFY("imu", "imu_rate", imu_rate_hz, TYPE_FLOAT, imu_rate_changed);
 
   static const char *const acc_range_enum[] = {"2g", "4g", "8g", "16g", NULL};
   static struct setting_type acc_range_setting;
@@ -469,13 +448,8 @@ void imu_init(void) {
                  raw_mag_output,
                  TYPE_BOOL,
                  raw_mag_output_changed);
-  static const char *const mag_rate_enum[] =
-      /* Rates up to 100Hz possible, but not recomended */
-      {"6.25", "12.5", "25", NULL};
-  static struct setting_type mag_rate_setting;
-  int TYPE_MAG_RATE =
-      settings_type_register_enum(mag_rate_enum, &mag_rate_setting);
-  SETTING_NOTIFY("imu", "mag_rate", mag_rate, TYPE_MAG_RATE, mag_rate_changed);
+
+  SETTING_NOTIFY("imu", "mag_rate", mag_rate_hz, TYPE_FLOAT, mag_rate_changed);
 
   chThdCreateStatic(
       wa_imu_thread, sizeof(wa_imu_thread), IMU_THREAD_PRIO, imu_thread, NULL);
