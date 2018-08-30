@@ -86,7 +86,6 @@ typedef struct {
  */
 static track_cn0_config_t cn0_config = {
     .alpha = CN0_EST_LPF_ALPHA,
-    .nbw = PLATFORM_CN0_EST_BW_HZ,
     .scale = PLATFORM_CN0_EST_SCALE,
     .cn0_shift = PLATFORM_CN0_EST_SHIFT,
     .cutoff = CN0_EST_LPF_CUTOFF_HZ,
@@ -100,7 +99,6 @@ void track_cn0_params_init(void) {
   for (u32 i = 0; i < INTEG_PERIODS_NUM; i++) {
     float loop_freq = 1e3f / cn0_periods_ms[i];
     cn0_est_compute_params(&cn0_config.params[i].est_params,
-                           cn0_config.nbw,
                            cn0_config.alpha,
                            loop_freq,
                            cn0_config.scale,
@@ -168,7 +166,6 @@ static const track_cn0_params_t *track_cn0_get_params(u8 cn0_ms,
   if (NULL == pparams) {
     float loop_freq = 1e3f / cn0_ms;
     cn0_est_compute_params(&p->est_params,
-                           cn0_config.nbw,
                            cn0_config.alpha,
                            loop_freq,
                            cn0_config.scale,
