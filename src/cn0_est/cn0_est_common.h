@@ -100,7 +100,6 @@ typedef struct {
 
 /* C/N0 estimators */
 void cn0_est_compute_params(cn0_est_params_t *p,
-                            float bw,
                             float alpha,
                             float loop_freq,
                             float scale,
