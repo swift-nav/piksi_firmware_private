@@ -113,15 +113,12 @@ void track_cn0_params_init(void) {
  * Helper for estimator initialization
  *
  * \param[out] e     Estimator state.
- * \param[in]  p     Estimator parameters.
  * \param[in]  cn0_0 Initial C/N0 value.
  *
  * \return None
  */
-static void init_estimator(track_cn0_state_t *e,
-                           const cn0_est_params_t *p,
-                           float cn0_0) {
-  cn0_est_mm_init(&e->moment, p, cn0_0);
+static void init_estimator(track_cn0_state_t *e, float cn0_0) {
+  cn0_est_mm_init(&e->moment, cn0_0);
 }
 
 /**
@@ -202,7 +199,7 @@ void track_cn0_init(const me_gnss_signal_t mesid,
 
   const track_cn0_params_t *pp = track_cn0_get_params(cn0_ms, &p);
 
-  init_estimator(e, &pp->est_params, cn0_0);
+  init_estimator(e, cn0_0);
 
   cn0_filter_init(&e->filter, &pp->filter_params, cn0_0);
 

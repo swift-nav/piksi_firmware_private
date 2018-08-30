@@ -113,7 +113,7 @@ TEST(cn0_test, test_cn0_mm_init) {
   cn0_est_params_t p;
   cn0_est_compute_params(&p, CUTOFF_FREQ, LOOP_FREQ, 1, 0);
   cn0_est_mm_state_t cn0;
-  cn0_est_mm_init(&cn0, &p, 40.f);
+  cn0_est_mm_init(&cn0, 40.f);
   EXPECT_FLOAT_EQ(cn0.cn0_db, 40.f);
   EXPECT_FLOAT_EQ(p.log_bw, 30.f);
   EXPECT_FLOAT_EQ(cn0.M2, -1.0f);
@@ -138,7 +138,7 @@ TEST(cn0_test, test_cn0_mm) {
   ASSERT_NE((s8*)NULL, signal_Q) << "Could not allocate Q data";
 
   cn0_est_compute_params(&p, CUTOFF_FREQ, LOOP_FREQ, 1, 0);
-  cn0_est_mm_init(&s, &p, CN0_0);
+  cn0_est_mm_init(&s, CN0_0);
 
   for (ii = 0; ii < test_length; ii++) {
     cn0 = cn0_est_mm_update(&s, &p, signal_I[ii], signal_Q[ii]);
