@@ -6,7 +6,6 @@
 
 #include "cn0_est/cn0_est_common.h"
 
-#define BW 1000
 #define CN0_0 40
 #define CUTOFF_FREQ 0.1
 #define LOOP_FREQ 1000
@@ -29,7 +28,7 @@ static s8* generate_input(u32 length, u32 value) {
 
 TEST(cn0_test, test_cn0_bl_init) {
   cn0_est_params_t p;
-  cn0_est_compute_params(&p, BW, CUTOFF_FREQ, LOOP_FREQ, 1, 0);
+  cn0_est_compute_params(&p, CUTOFF_FREQ, LOOP_FREQ, 1, 0);
   EXPECT_FLOAT_EQ(p.log_bw, 30.f);
 
   cn0_est_bl_state_t cn0;
@@ -44,7 +43,7 @@ TEST(cn0_test, test_cn0_bl_init) {
 
 TEST(cn0_test, test_cn0_bl) {
   cn0_est_params_t p;
-  cn0_est_compute_params(&p, BW, CUTOFF_FREQ, LOOP_FREQ, 1, 0);
+  cn0_est_compute_params(&p, CUTOFF_FREQ, LOOP_FREQ, 1, 0);
   cn0_est_bl_state_t s;
   s8* signal_I;
   s8* signal_Q;
@@ -71,7 +70,7 @@ TEST(cn0_test, test_cn0_bl) {
 
 TEST(cn0_test, test_cn0_snv_init) {
   cn0_est_params_t p;
-  cn0_est_compute_params(&p, BW, CUTOFF_FREQ, LOOP_FREQ, 1, 0);
+  cn0_est_compute_params(&p, CUTOFF_FREQ, LOOP_FREQ, 1, 0);
   cn0_est_snv_state_t cn0;
   cn0_est_snv_init(&cn0, &p, 40.f);
   EXPECT_FLOAT_EQ(cn0.cn0_db, 40.f);
@@ -97,7 +96,7 @@ TEST(cn0_test, test_cn0_snv) {
   signal_Q = generate_input(test_length, 50);
   ASSERT_NE((s8*)NULL, signal_Q) << "Could not allocate Q data";
 
-  cn0_est_compute_params(&p, BW, CUTOFF_FREQ, LOOP_FREQ, 1, 0);
+  cn0_est_compute_params(&p, CUTOFF_FREQ, LOOP_FREQ, 1, 0);
   cn0_est_snv_init(&s, &p, CN0_0);
 
   for (ii = 0; ii < test_length; ii++) {
@@ -112,7 +111,7 @@ TEST(cn0_test, test_cn0_snv) {
 
 TEST(cn0_test, test_cn0_mm_init) {
   cn0_est_params_t p;
-  cn0_est_compute_params(&p, BW, CUTOFF_FREQ, LOOP_FREQ, 1, 0);
+  cn0_est_compute_params(&p, CUTOFF_FREQ, LOOP_FREQ, 1, 0);
   cn0_est_mm_state_t cn0;
   cn0_est_mm_init(&cn0, &p, 40.f);
   EXPECT_FLOAT_EQ(cn0.cn0_db, 40.f);
@@ -138,7 +137,7 @@ TEST(cn0_test, test_cn0_mm) {
   signal_Q = generate_input(test_length, 50);
   ASSERT_NE((s8*)NULL, signal_Q) << "Could not allocate Q data";
 
-  cn0_est_compute_params(&p, BW, CUTOFF_FREQ, LOOP_FREQ, 1, 0);
+  cn0_est_compute_params(&p, CUTOFF_FREQ, LOOP_FREQ, 1, 0);
   cn0_est_mm_init(&s, &p, CN0_0);
 
   for (ii = 0; ii < test_length; ii++) {
@@ -153,7 +152,7 @@ TEST(cn0_test, test_cn0_mm) {
 
 TEST(cn0_test, test_cn0_nwpr_init) {
   cn0_est_params_t p;
-  cn0_est_compute_params(&p, BW, CUTOFF_FREQ, LOOP_FREQ, 1, 0);
+  cn0_est_compute_params(&p, CUTOFF_FREQ, LOOP_FREQ, 1, 0);
   cn0_est_nwpr_state_t cn0;
   cn0_est_nwpr_init(&cn0, &p, 40.f);
   EXPECT_FLOAT_EQ(cn0.cn0_db, 40.f);
@@ -182,7 +181,7 @@ TEST(cn0_test, test_cn0_nwpr) {
   signal_Q = generate_input(test_length, 50);
   ASSERT_NE((s8*)NULL, signal_Q) << "Could not allocate Q data";
 
-  cn0_est_compute_params(&p, BW, CUTOFF_FREQ, LOOP_FREQ, 1, 0);
+  cn0_est_compute_params(&p, CUTOFF_FREQ, LOOP_FREQ, 1, 0);
   cn0_est_nwpr_init(&s, &p, CN0_0);
 
   for (ii = 0; ii < test_length; ii++) {
@@ -197,7 +196,7 @@ TEST(cn0_test, test_cn0_nwpr) {
 
 TEST(cn0_test, test_cn0_rscn_init) {
   cn0_est_params_t p;
-  cn0_est_compute_params(&p, BW, CUTOFF_FREQ, LOOP_FREQ, 1, 0);
+  cn0_est_compute_params(&p, CUTOFF_FREQ, LOOP_FREQ, 1, 0);
   cn0_est_rscn_state_t cn0;
   cn0_est_rscn_init(&cn0, &p, 40.f);
   EXPECT_FLOAT_EQ(cn0.cn0_db, 40.f);
@@ -223,7 +222,7 @@ TEST(cn0_test, test_cn0_rscn) {
   signal_Q = generate_input(test_length, 50);
   ASSERT_NE((s8*)NULL, signal_Q) << "Could not allocate Q data";
 
-  cn0_est_compute_params(&p, BW, CUTOFF_FREQ, LOOP_FREQ, 1, 0);
+  cn0_est_compute_params(&p, CUTOFF_FREQ, LOOP_FREQ, 1, 0);
   cn0_est_rscn_init(&s, &p, CN0_0);
 
   for (ii = 0; ii < test_length; ii++) {
@@ -238,7 +237,7 @@ TEST(cn0_test, test_cn0_rscn) {
 
 TEST(cn0_test, test_cn0_basic_init) {
   cn0_est_params_t p;
-  cn0_est_compute_params(&p, BW, CUTOFF_FREQ, LOOP_FREQ, 1, 0);
+  cn0_est_compute_params(&p, CUTOFF_FREQ, LOOP_FREQ, 1, 0);
   EXPECT_FLOAT_EQ(p.log_bw, 30.f);
 
   cn0_est_basic_state_t cn0;
@@ -249,7 +248,7 @@ TEST(cn0_test, test_cn0_basic_init) {
 
 TEST(cn0_test, test_cn0_basic) {
   cn0_est_params_t p;
-  cn0_est_compute_params(&p, BW, CUTOFF_FREQ, LOOP_FREQ, 1, 0);
+  cn0_est_compute_params(&p, CUTOFF_FREQ, LOOP_FREQ, 1, 0);
   cn0_est_basic_state_t s;
   s8* signal_I;
   s8* signal_Q;

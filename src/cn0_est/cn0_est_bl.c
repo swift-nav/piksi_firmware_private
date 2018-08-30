@@ -48,19 +48,16 @@ static float compute_nsr(float P_s, float P_n) {
 /**
  * Initializes C/No filter parameters
  * \param[out] p Pointer to estimator parameters
- * \param[in]  bw Noise bandwidth, Hz
  * \param[in]  alpha Cutoff frequency
  * \param[in]  loop_freq Loop frequency, Hz
  * \param[in]  scale Scale coefficient for output C/No values
  * \param[in]  cn0_shift shift for output C/No values, dB-Hz
  */
 void cn0_est_compute_params(cn0_est_params_t *p,
-                            float bw,
                             float alpha,
                             float loop_freq,
                             float scale,
                             float cn0_shift) {
-  (void)bw;
   memset(p, 0, sizeof(*p));
 
   p->log_bw = 10.f * log10f(loop_freq);
