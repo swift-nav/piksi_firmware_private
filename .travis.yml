@@ -14,6 +14,7 @@ branches:
   only:
     - master
     - /^v\d+\.\d+\.0-release$/
+    - /^v\d+\.\d+\.0-dev$/
 
 matrix:
   include:
