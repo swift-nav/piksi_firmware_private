@@ -23,8 +23,8 @@
 #define CN0_MM_N (2)
 /** Mean multiplier */
 #define CN0_MM_MEAN_MULT (1.0f / CN0_MM_N)
-/** CNO smoothing time in milliseconds. Removes CN0 bumps in the beginning */
-#define CN0_MM_CNO_SMOOTH_MS (2000)
+/** Estimate of noise power Pn. For smoother initial CN0 output. */
+#define CN0_MM_PN_INIT (700000.0f)
 
 /** Initialize the \f$ C / N_0 \f$ estimator state.
  *
@@ -61,10 +61,8 @@ void cn0_est_mm_init(cn0_est_mm_state_t *s, float cn0_0) {
 
   s->M2 = -1.0f; /* Set negative for first iteration */
   s->M4 = -1.0f;
-  s->Pn = 0.0f;
-  s->cnt_ms = 0;
+  s->Pn = CN0_MM_PN_INIT;
   s->cn0_db = cn0_0;
-  s->cn0_init = cn0_0;
 }
 
 /**
@@ -106,35 +104,21 @@ float cn0_est_mm_update(cn0_est_mm_state_t *s,
 
   if (!isfinite(snr) || (snr <= 0.0f)) {
     /* CN0 out of limits, no updates. */
-  } else {
-    float snr_db = 10.0f * log10f(snr);
-
-    /* Compute CN0 */
-    float cn0_dbhz = p->log_bw + snr_db;
-    if (cn0_dbhz < 10.0f) {
-      cn0_dbhz = 10.0f;
-    } else if (cn0_dbhz > 60.0f) {
-      cn0_dbhz = 60.0f;
-    }
-    s->cn0_db = cn0_dbhz;
+    return s->cn0_db;
   }
 
-  /* Increment CN0 smoothing counter with integration period. */
-  if (s->cnt_ms < CN0_MM_CNO_SMOOTH_MS) {
-    s->cnt_ms += p->t_int;
-    /* Limit CN0 smoothing counter to max. */
-    if (s->cnt_ms > CN0_MM_CNO_SMOOTH_MS) {
-      s->cnt_ms = CN0_MM_CNO_SMOOTH_MS;
-    }
+  float snr_db = 10.0f * log10f(snr);
+
+  /* Compute CN0 */
+  float cn0_dbhz = p->log_bw + snr_db;
+  if (cn0_dbhz < 10.0f) {
+    cn0_dbhz = 10.0f;
+  } else if (cn0_dbhz > 60.0f) {
+    cn0_dbhz = 60.0f;
   }
+  s->cn0_db = cn0_dbhz;
 
-  /* CN0 smoothing weight for init value. Goes from 1 to 0. */
-  float w1 = (CN0_MM_CNO_SMOOTH_MS - s->cnt_ms) / CN0_MM_CNO_SMOOTH_MS;
-  /* CN0 smoothing weight for computed value. Goes from 0 to 1. */
-  float w2 = s->cnt_ms / CN0_MM_CNO_SMOOTH_MS;
-
-  /* Smoothed CN0. Start with init CN0, and transition using computed CN0. */
-  return s->cn0_init * w1 + s->cn0_db * w2;
+  return s->cn0_db;
 }
 
 /** \} */
