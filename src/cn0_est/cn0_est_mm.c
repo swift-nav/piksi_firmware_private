@@ -52,15 +52,11 @@
  * \f]
  *
  * \param s     The estimator state struct to initialize.
- * \param p     Common C/N0 estimator parameters.
  * \param cn0_0 The initial value of \f$ C / N_0 \f$ in dBHz.
  *
  * \return None
  */
-void cn0_est_mm_init(cn0_est_mm_state_t *s,
-                     const cn0_est_params_t *p,
-                     float cn0_0) {
-  (void)p;
+void cn0_est_mm_init(cn0_est_mm_state_t *s, float cn0_0) {
   memset(s, 0, sizeof(*s));
 
   s->M2 = -1.0f; /* Set negative for first iteration */
