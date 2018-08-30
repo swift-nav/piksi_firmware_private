@@ -15,7 +15,7 @@ branches:
     - v1.6.0-release
     - master
     - /^v\d+\.\d+\.0-release$/
-    - v2.1-dev
+    - /^v\d+\.\d+\.0-dev$/
 
 matrix:
   include:
