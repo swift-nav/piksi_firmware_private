@@ -129,9 +129,7 @@ float cn0_est_rscn_update(cn0_est_rscn_state_t *s,
                           const cn0_est_params_t *p,
                           float I,
                           float Q);
-void cn0_est_mm_init(cn0_est_mm_state_t *s,
-                     const cn0_est_params_t *p,
-                     float cn0_0);
+void cn0_est_mm_init(cn0_est_mm_state_t *s, float cn0_0);
 float cn0_est_mm_update(cn0_est_mm_state_t *s,
                         const cn0_est_params_t *p,
                         float I,
