@@ -531,6 +531,9 @@ static void me_calc_pvt_thread(void *arg) {
        * of system tick frequency, and also due to other CPU load, we can expect
        * this adjustment to be somewhere between +-0.5 milliseconds */
       piksi_systime_add_us(&next_epoch, round(dt * SECS_US));
+
+      /* add extra 90 milliseconds at every 31th sleep */
+      DO_EVERY(31, piksi_systime_add_us(&next_epoch, round(0.09 * SECS_US)));
     }
 
     /* Collect measurements from trackers, load ephemerides and compute flags.
@@ -762,7 +765,7 @@ static void me_calc_pvt_thread(void *arg) {
 
     /* Only send observations that are closely aligned with the desired
      * solution epochs to ensure they haven't been propagated too far. */
-    if (fabs(output_offset) < OBS_PROPAGATION_LIMIT) {
+    if (fabs(output_offset) < 1.0) {
       log_debug(
           "clk_offset %.4e, output offset %.4e, clk_drift %.3e, "
           "smoothed_drift %.3e",
