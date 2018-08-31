@@ -188,9 +188,9 @@ void tp_profile_apply_config(tracker_t *tracker, bool init) {
     if (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED)) {
       cn0_t = cn0_0 = tracker->cn0;
     } else {
-      /* When confirmation is required, set C/N0 below drop threshold and
+      /* When confirmation is required, set C/N0 near drop threshold and
        * check that is actually grows to correct range */
-      cn0_0 = tracker->cn0;
+      cn0_0 = cn0_thres.drop_dbhz + TP_TRACKER_CN0_CONFIRM_DELTA;
       cn0_t = init ? tracker->cn0 : tracker->cn0_est.cn0_0;
     }
 
