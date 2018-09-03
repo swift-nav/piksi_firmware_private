@@ -78,11 +78,13 @@ static s8 convert_channel_measurement_to_navigation_measurement(
    * tracking loop. */
   nm->raw_measured_doppler = meas->carrier_freq;
 
-  /* Get the approximate elevation from track DB */
-  if (!track_sid_db_elevation_degrees_get(nm->sid, &nm->elevation)) {
+  /* Get the approximate azimuth and elevation from track DB */
+  if (!(track_sid_db_elevation_degrees_get(nm->sid, &nm->elevation) &&
+        track_sid_db_azimuth_degrees_get(nm->sid, &nm->azimuth))) {
     /* Use 0 degrees as unknown elevation to assign it the smallest weight */
     log_debug_sid(nm->sid, "Elevation unknown, using 0");
-    nm->elevation = 0;
+    nm->elevation = 0.0;
+    nm->azimuth = 0.0;
   }
 
   /* Copy over remaining values. */
