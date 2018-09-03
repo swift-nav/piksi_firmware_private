@@ -879,12 +879,15 @@ static bool low_cn0_profile_switch_requested(tracker_t *tracker) {
  * \retval false No profile change is required.
  */
 bool tp_profile_has_new_profile(tracker_t *tracker) {
-  const tp_profile_entry_t *cur_profile;
-  u16 flags;
   tp_profile_t *state = &tracker->profile;
+  bool tracker_mode_changed = (state->profiles != g_tracker_mode.profiles);
+  if (tracker_mode_changed) {
+    tracker_flag_drop(tracker, CH_DROP_REASON_NEW_MODE);
+    return false;
+  }
 
-  cur_profile = &state->profiles[state->cur.index];
-  flags = cur_profile->flags;
+  const tp_profile_entry_t *cur_profile = &state->profiles[state->cur.index];
+  u16 flags = cur_profile->flags;
 
   state->profile_update = false;
 

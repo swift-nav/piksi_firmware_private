@@ -394,20 +394,6 @@ static void serve_nap_request(tracker_t *tracker) {
   }
 }
 
-/* Unconditionally drops all active tracking channels */
-void trackers_drop_all(void) {
-  for (u8 ci = 0; ci < nap_track_n_channels; ci++) {
-    tracker_t *tracker = tracker_get(ci);
-    if (!(tracker->busy)) {
-      continue;
-    }
-    if (0 == (tracker->flags & TRACKER_FLAG_ACTIVE)) {
-      continue;
-    }
-    drop_channel(tracker, CH_DROP_REASON_NEW_MODE);
-  }
-}
-
 /** Handles pending IRQs and background tasks for tracking channels.
  * \param channels_mask   Bitfield indicating the tracking channels for which
  *                        an IRQ is pending.

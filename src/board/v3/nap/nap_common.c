@@ -182,15 +182,6 @@ static void handle_nap_track_irq(void) {
   trackers_update(irq2, 64);
   NAP->TRK_IRQS[2] = irq2;
 
-  if (tp_tracker_has_new_mode()) {
-    /* A tracker mode switch was detected.
-       Trackers maintain state linked to the current tracker mode.
-       To avoid breaking that state we drop all trackers before applying
-       the new mode. */
-    trackers_drop_all();
-    tp_tracker_apply_new_mode();
-  }
-
   asm("dsb");
 
   u32 err[3];
