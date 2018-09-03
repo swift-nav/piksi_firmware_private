@@ -121,8 +121,6 @@ tp_tm_e tp_profile_get_next_track_mode(const tp_profile_t *profile,
 
 void tp_set_base_station_mode(void);
 void tp_set_rover_mode(void);
-bool tp_tracker_has_new_mode(void);
-void tp_tracker_apply_new_mode(void);
 bool tp_is_rover_mode(void);
 bool tp_is_base_station_mode(void);
 

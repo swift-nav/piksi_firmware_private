@@ -60,7 +60,7 @@ static bool set_tracker_mode(struct setting *s, const char *val) {
   int value = 0;
   bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
   if (!ret) {
-    return ret;
+    return false;
   }
   enum tracker_mode mode = value;
   switch (mode) {
@@ -91,8 +91,6 @@ void track_setup(void) {
 
   /* define and apply the default tracking mode */
   static enum tracker_mode tracker_mode = TRACKER_MODE_BASE;
-  tp_set_rover_mode();
-  tp_tracker_apply_new_mode();
 
   SETTING_NOTIFY(
       "track", "mode", tracker_mode, TYPE_TRACKER_MODE, set_tracker_mode);
