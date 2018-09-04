@@ -45,12 +45,10 @@
 /** Integration interval: 20ms */
 #define INTEG_PERIOD_20_MS 20
 
-/** C/N0 offset for reliable drop of 2ms SBAS signals [dB/Hz] */
-#define TRACK_CN0_OFFSET_SBAS_DROP_DBHZ (1)
 /** C/N0 offset for 1ms estimator interval [dB/Hz] */
 #define TRACK_CN0_OFFSET_1MS_DBHZ 0
 /** C/N0 offset for 2ms estimator interval [dB/Hz] */
-#define TRACK_CN0_OFFSET_2MS_DBHZ (3 - TRACK_CN0_OFFSET_SBAS_DROP_DBHZ)
+#define TRACK_CN0_OFFSET_2MS_DBHZ 3
 /** C/N0 offset for 4ms estimator interval [dB/Hz] */
 #define TRACK_CN0_OFFSET_4MS_DBHZ 6
 /** C/N0 offset for 5ms estimator interval [dB/Hz] */

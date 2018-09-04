@@ -44,6 +44,9 @@ typedef struct {
   float M4;       /**< Running sum of fourth order moments. */
   float Pn;       /**< Running sum of noise power. */
   float cn0_dbhz; /**< Carrier to noise ratio in dB/Hz. */
+  float I_acc;    /**< Accumulated in-phase correlation. */
+  float Q_acc;    /**< Accumulated quadrature correlation. */
+  u8 int_ms;      /**< CN0 integration time in ms */
 } cn0_est_mm_state_t;
 
 typedef struct {

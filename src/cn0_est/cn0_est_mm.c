@@ -13,6 +13,7 @@
 #include <math.h>
 #include <string.h>
 
+#include <libswiftnav/logging.h>
 #include "cn0_est_common.h"
 
 /** \defgroup track Tracking
@@ -23,6 +24,8 @@
 #define CN0_MM_ALPHA (0.5f)
 /** Estimate of noise power Pn. For smoother initial CN0 output. */
 #define CN0_MM_PN_INIT (700000.0f)
+/** CN0 integration length for MM, in milliseconds. */
+#define CN0_MM_INT_MS (20)
 
 /** Initialize the \f$ C / N_0 \f$ estimator state.
  *
@@ -61,6 +64,9 @@ void cn0_est_mm_init(cn0_est_mm_state_t *s, float cn0_0) {
   s->M4 = -1.0f;
   s->Pn = CN0_MM_PN_INIT;
   s->cn0_dbhz = cn0_0;
+  s->I_acc = 0.0f;
+  s->Q_acc = 0.0f;
+  s->int_ms = 0;
 }
 
 /**
@@ -77,8 +83,20 @@ float cn0_est_mm_update(cn0_est_mm_state_t *s,
                         const cn0_est_params_t *p,
                         float I,
                         float Q) {
-  float m2 = I * I + Q * Q;
+  s->I_acc += I * I;
+  s->Q_acc += Q * Q;
+  s->int_ms += p->t_int;
+
+  if (s->int_ms < CN0_MM_INT_MS) {
+    return s->cn0_dbhz;
+  }
+
+  float m2 = s->I_acc + s->Q_acc;
   float m4 = m2 * m2;
+
+  s->I_acc = 0.0f;
+  s->Q_acc = 0.0f;
+  s->int_ms = 0;
 
   if (s->M2 < 0.0f) {
     /* This is the first iteration, just initialize moments. */
@@ -90,7 +108,7 @@ float cn0_est_mm_update(cn0_est_mm_state_t *s,
   }
 
   float tmp = 2.0f * s->M2 * s->M2 - s->M4;
-  if (0.0f > tmp) {
+  if (tmp < 0.0f) {
     tmp = 0.0f;
   }
 
@@ -108,7 +126,8 @@ float cn0_est_mm_update(cn0_est_mm_state_t *s,
   float snr_db = 10.0f * log10f(snr);
 
   /* Compute CN0 */
-  float cn0_dbhz = p->log_bw + snr_db;
+  /* TODO: Magic number 20 - from previous 10 ms cno */
+  float cn0_dbhz = 20.0f + snr_db;
   if (cn0_dbhz < 10.0f) {
     cn0_dbhz = 10.0f;
   } else if (cn0_dbhz > 60.0f) {

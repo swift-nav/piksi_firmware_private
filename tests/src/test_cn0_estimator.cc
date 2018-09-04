@@ -119,8 +119,8 @@ TEST(cn0_test, test_cn0_mm_init) {
   EXPECT_FLOAT_EQ(cn0.M2, -1.0f);
   EXPECT_FLOAT_EQ(cn0.M4, -1.0f);
   cn0_est_mm_update(&cn0, &p, -0.5, 0.f);
-  EXPECT_FLOAT_EQ(cn0.M2, 0.25);
-  EXPECT_FLOAT_EQ(cn0.M4, 0.25f * 0.25f);
+  EXPECT_FLOAT_EQ(cn0.M2, -1.0f);
+  EXPECT_FLOAT_EQ(cn0.M4, -1.0f);
 }
 
 TEST(cn0_test, test_cn0_mm) {
