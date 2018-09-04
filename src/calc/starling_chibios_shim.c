@@ -153,16 +153,6 @@ void platform_thread_set_name(const char *name) { chRegSetThreadName(name); }
 
 /* NDB */
 
-/* Return true on success. */
-bool platform_try_read_ephemeris(const gnss_signal_t sid, ephemeris_t *eph) {
-  return (ndb_ephemeris_read(sid, eph) == NDB_ERR_NONE);
-}
-
-/* Return true on success. */
-bool platform_try_read_iono_corr(ionosphere_t *params) {
-  return (ndb_iono_corr_read(params) == NDB_ERR_NONE);
-}
-
 void platform_watchdog_notify_starling_main_thread() {
   watchdog_notify(WD_NOTIFY_STARLING);
 }
@@ -225,18 +215,6 @@ errno_t platform_mailbox_post(mailbox_id_t id, void *msg, int blocking) {
       (MB_BLOCKING == blocking) ? MAILBOX_BLOCKING_TIMEOUT_MS : 0;
   if (MSG_OK !=
       chMBPost(&mailbox_info[id].mailbox, (msg_t)msg, MS2ST(timeout_ms))) {
-    /* Full or mailbox reset while waiting */
-    return EBUSY;
-  }
-
-  return 0;
-}
-
-errno_t platform_mailbox_post_ahead(mailbox_id_t id, void *msg, int blocking) {
-  uint32_t timeout_ms =
-      (MB_BLOCKING == blocking) ? MAILBOX_BLOCKING_TIMEOUT_MS : 0;
-  if (MSG_OK !=
-      chMBPostAhead(&mailbox_info[id].mailbox, (msg_t)msg, MS2ST(timeout_ms))) {
     /* Full or mailbox reset while waiting */
     return EBUSY;
   }
