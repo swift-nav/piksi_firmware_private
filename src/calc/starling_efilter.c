@@ -46,7 +46,6 @@ static void set_ephe(const ephemeris_t *e) {
   }
   estack->prev_ephe = estack->cur_ephe;
   estack->cur_ephe = *e;
-  log_info_sid(e->sid, "New ephe");
 }
 
 void starling_efilter_set_ephe(const ephemeris_t *e) {
@@ -97,22 +96,16 @@ static ephemeris_t get_ephe(const gnss_signal_t *sid) {
   }
 
   if (sbas_has_corrections_for_ephe(&estack->cur_ephe)) {
-    // log_info_sid(*sid, "efilter: cur1");
     estack->cur_ephe.sid = *sid;
     return estack->cur_ephe;
   }
 
   if (estack->prev_ephe.valid &&
       sbas_has_corrections_for_ephe(&estack->prev_ephe)) {
-    log_info_sid(*sid,
-                 "efilter: prev IODE=%d (cur IODE=%d)",
-                 (int)get_ephe_iode(&estack->prev_ephe),
-                 (int)get_ephe_iode(&estack->cur_ephe));
     estack->prev_ephe.sid = *sid;
     return estack->prev_ephe;
   }
 
-  // log_info_sid(*sid, "efilter: cur2");
   estack->cur_ephe.sid = *sid;
   return estack->cur_ephe;
 }
