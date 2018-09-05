@@ -39,9 +39,9 @@ typedef struct {
  * C/N0 estimator state.
  */
 typedef struct {
-  u32 cn0_0 : 8;               /**< Initial C/N0 for bootstrap */
-  u32 cn0_ms : 6;              /**< C/N0 filter interval in ms */
-  cn0_est_basic_state_t basic; /**< Basic estimator for Very Early tap in use */
+  u32 cn0_0 : 8;             /**< Initial C/N0 for bootstrap */
+  u32 cn0_ms : 6;            /**< C/N0 filter interval in ms */
+  cn0_est_mm_state_t moment; /**< MM estimator */
 
   float cn0_raw_dbhz; /**< Last unfiltered CN0 estimation [dB-Hz] */
   u32 weak_signal_ms; /**< Signal is below #THRESH_SENS_DBHZ this long [ms] */
@@ -58,8 +58,7 @@ void track_cn0_init(const me_gnss_signal_t mesid,
                     u8 cn0_ms,
                     track_cn0_state_t *e,
                     float cn0_0);
-float track_cn0_update(
-    track_cn0_state_t *e, u8 int_ms, float I, float Q, float ve_I, float ve_Q);
+float track_cn0_update(track_cn0_state_t *e, u8 int_ms, float I, float Q);
 float track_cn0_get_offset(u8 cn0_ms);
 
 #ifdef __cplusplus

@@ -15,40 +15,14 @@
 
 #include "cn0_est_common.h"
 
-#define CN0_EST_MM_INIT_COUNT 200
-
 /** \defgroup track Tracking
  * Functions used in tracking.
  * \{ */
 
-/** Multiplier for checking out-of bounds NSR */
-#define CN0_MM_NSR_MIN_MULTIPLIER (1e-6f)
-/** Maximum supported NSR value (1/CN0_MM_NSR_MIN_MULTIPLIER)*/
-#define CN0_MM_NSR_MIN (1e6f)
-
-static float compute_cn0(const cn0_est_params_t *p, float M_2, float M_4) {
-  float tmp = 2 * M_2 * M_2 - M_4;
-  float nsr;
-
-  if (0 > tmp) {
-    nsr = CN0_MM_NSR_MIN;
-  } else {
-    float P_d = sqrtf(tmp);
-    float P_n = M_2 - P_d;
-
-    /* Ensure the NSR is within the limit */
-    if (P_d < P_n * CN0_MM_NSR_MIN_MULTIPLIER)
-      return 60;
-    else
-      nsr = P_n / P_d;
-  }
-
-  float nsr_db = 10.f * log10f(nsr);
-
-  /* Compute CN0 */
-  float x = p->log_bw - nsr_db;
-  return x < 10 ? 10 : x > 60 ? 60 : x;
-}
+/** Filter coefficient for M2 an M4. */
+#define CN0_MM_ALPHA (0.5f)
+/** Estimate of noise power Pn. For smoother initial CN0 output. */
+#define CN0_MM_PN_INIT (700000.0f)
 
 /** Initialize the \f$ C / N_0 \f$ estimator state.
  *
@@ -57,15 +31,15 @@ static float compute_cn0(const cn0_est_params_t *p, float M_2, float M_4) {
  * The method uses the function for C/N0 computation:
  *
  * \f[
- *    \frac{C}{N_0}(n) = \frac{P_d}{P_n}
+ *    \frac{C}{N_0}(n) = \frac{Pd}{Pn}
  * \f]
  * where
  * \f[
- *    P_n(n) = M2(n) - P_d(n)
+ *    Pn(n) = M2(n) - Pd(n)
  * \f]
  * where
  * \f[
- *    P_d(n) = \sqrt{2 * M2(n)^2 - M4(n)}
+ *    Pd(n) = \sqrt{2 * M2(n)^2 - M4(n)}
  * \f]
  * where
  * \f[
@@ -76,24 +50,17 @@ static float compute_cn0(const cn0_est_params_t *p, float M_2, float M_4) {
  * \f]
  *
  * \param s     The estimator state struct to initialize.
- * \param p     Common C/N0 estimator parameters.
  * \param cn0_0 The initial value of \f$ C / N_0 \f$ in dBHz.
  *
  * \return None
  */
-void cn0_est_mm_init(cn0_est_mm_state_t *s,
-                     const cn0_est_params_t *p,
-                     float cn0_0) {
+void cn0_est_mm_init(cn0_est_mm_state_t *s, float cn0_0) {
   memset(s, 0, sizeof(*s));
 
-  (void)p;
-
-  /* Normalize by sampling frequency and integration period */
-  s->M_2 = 0.f;
-  s->M_4 = 0.f;
-  s->cn0_db = cn0_0;
-  s->cnt = 0;
-  s->lim = (u16)(1 / p->alpha);
+  s->M2 = -1.0f; /* Set negative for first iteration */
+  s->M4 = -1.0f;
+  s->Pn = CN0_MM_PN_INIT;
+  s->cn0_dbhz = cn0_0;
 }
 
 /**
@@ -110,34 +77,46 @@ float cn0_est_mm_update(cn0_est_mm_state_t *s,
                         const cn0_est_params_t *p,
                         float I,
                         float Q) {
-  float m_2 = I * I + Q * Q;
-  float m_4 = m_2 * m_2;
+  float m2 = I * I + Q * Q;
+  float m4 = m2 * m2;
 
-  if (s->cnt < s->lim) {
-    s->M_2 += m_2;
-    s->M_4 += m_4;
-    s->cnt++;
-    float avg = 1.f / s->lim;
-    float M_2 = s->M_2 * avg;
-    float M_4 = s->M_4 * avg;
-
-    if (s->cnt == s->lim) {
-      s->M_2 = M_2;
-      s->M_4 = M_4;
-    }
-
-    float alpha = (float)s->cnt / s->lim;
-
-    return s->cn0_db + alpha * (compute_cn0(p, M_2, M_4) - s->cn0_db);
+  if (s->M2 < 0.0f) {
+    /* This is the first iteration, just initialize moments. */
+    s->M2 = m2;
+    s->M4 = m4;
   } else {
-    s->M_2 += (m_2 - s->M_2) * p->alpha;
-    s->M_4 += (m_4 - s->M_4) * p->alpha;
-
-    /* Compute and store updated CN0 */
-    s->cn0_db = compute_cn0(p, s->M_2, s->M_4);
+    s->M2 += (m2 - s->M2) * CN0_MM_ALPHA;
+    s->M4 += (m4 - s->M4) * CN0_MM_ALPHA;
   }
 
-  return s->cn0_db;
+  float tmp = 2.0f * s->M2 * s->M2 - s->M4;
+  if (0.0f > tmp) {
+    tmp = 0.0f;
+  }
+
+  float Pd = sqrtf(tmp);
+  float Pn = s->M2 - Pd;
+  s->Pn += (Pn - s->Pn) * p->alpha;
+
+  float snr = m2 / s->Pn;
+
+  if (!isfinite(snr) || (snr <= 0.0f)) {
+    /* CN0 out of limits, no updates. */
+    return s->cn0_dbhz;
+  }
+
+  float snr_db = 10.0f * log10f(snr);
+
+  /* Compute CN0 */
+  float cn0_dbhz = p->log_bw + snr_db;
+  if (cn0_dbhz < 10.0f) {
+    cn0_dbhz = 10.0f;
+  } else if (cn0_dbhz > 60.0f) {
+    cn0_dbhz = 60.0f;
+  }
+  s->cn0_dbhz = cn0_dbhz;
+
+  return s->cn0_dbhz;
 }
 
 /** \} */
