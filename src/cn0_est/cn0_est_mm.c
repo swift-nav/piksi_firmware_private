@@ -98,7 +98,7 @@ float cn0_est_mm_update(cn0_est_mm_state_t *s,
   float Pn = s->M2 - Pd;
   s->Pn += (Pn - s->Pn) * p->alpha;
 
-  float snr = Pd / s->Pn;
+  float snr = m2 / s->Pn;
 
   if (!isfinite(snr) || (snr <= 0.0f)) {
     /* CN0 out of limits, no updates. */
