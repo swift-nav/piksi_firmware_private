@@ -91,7 +91,7 @@ bool platform_try_read_ephemeris(const gnss_signal_t sid, ephemeris_t *eph) {
     return false;
   }
   /* the starling_sbas_has_corrections callback is already set at the
-     begining of me_cacl_pvt thread live */
+     beginning of me_calc_pvt thread life */
   starling_efilter_set_ephe(eph);
   *eph = starling_efilter_get_ephe(&eph->sid);
 

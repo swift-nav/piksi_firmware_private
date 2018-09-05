@@ -1030,7 +1030,7 @@ u32 get_tracking_channel_meas(u8 i,
     /* ephemeris filtering based on SBAS corrections availability in Starling */
     if (ephe) {
       /* the starling_sbas_has_corrections callback is already set at the
-         begining of me_cacl_pvt thread live */
+         beginning of me_calc_pvt thread life */
       starling_efilter_set_ephe(ephe);
       *ephe = starling_efilter_get_ephe(&ephe->sid);
     }
