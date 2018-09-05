@@ -188,9 +188,9 @@ void tp_profile_apply_config(tracker_t *tracker, bool init) {
     if (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED)) {
       cn0_t = cn0_0 = tracker->cn0;
     } else {
-      /* When confirmation is required, set C/N0 below drop threshold and
+      /* When confirmation is required, set C/N0 near drop threshold and
        * check that is actually grows to correct range */
-      cn0_0 = cn0_thres.drop_dbhz - TP_TRACKER_CN0_CONFIRM_DELTA;
+      cn0_0 = cn0_thres.drop_dbhz + TP_TRACKER_CN0_CONFIRM_DELTA;
       cn0_t = init ? tracker->cn0 : tracker->cn0_est.cn0_0;
     }
 
@@ -606,9 +606,7 @@ static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
       cn0 = track_cn0_update(&tracker->cn0_est,
                              int_ms,
                              tracker->corrs.corr_cn0.prompt.I,
-                             tracker->corrs.corr_cn0.prompt.Q,
-                             tracker->corrs.corr_cn0.very_early.I,
-                             tracker->corrs.corr_cn0.very_early.Q);
+                             tracker->corrs.corr_cn0.prompt.Q);
     }
   }
 

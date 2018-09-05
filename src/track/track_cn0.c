@@ -45,10 +45,12 @@
 /** Integration interval: 20ms */
 #define INTEG_PERIOD_20_MS 20
 
+/** C/N0 offset for reliable drop of 2ms SBAS signals [dB/Hz] */
+#define TRACK_CN0_OFFSET_SBAS_DROP_DBHZ (1)
 /** C/N0 offset for 1ms estimator interval [dB/Hz] */
 #define TRACK_CN0_OFFSET_1MS_DBHZ 0
 /** C/N0 offset for 2ms estimator interval [dB/Hz] */
-#define TRACK_CN0_OFFSET_2MS_DBHZ 3
+#define TRACK_CN0_OFFSET_2MS_DBHZ (3 - TRACK_CN0_OFFSET_SBAS_DROP_DBHZ)
 /** C/N0 offset for 4ms estimator interval [dB/Hz] */
 #define TRACK_CN0_OFFSET_4MS_DBHZ 6
 /** C/N0 offset for 5ms estimator interval [dB/Hz] */
@@ -86,13 +88,10 @@ typedef struct {
  */
 static track_cn0_config_t cn0_config = {
     .alpha = CN0_EST_LPF_ALPHA,
-    .nbw = PLATFORM_CN0_EST_BW_HZ,
     .scale = PLATFORM_CN0_EST_SCALE,
     .cn0_shift = PLATFORM_CN0_EST_SHIFT,
     .cutoff = CN0_EST_LPF_CUTOFF_HZ,
 };
-
-static float q_avg = 8.f; /* initial value for noise level */
 
 /** Pre-compute C/N0 estimator and filter parameters. The parameters are
  * computed using equivalent of cn0_est_compute_params() function for
@@ -102,7 +101,6 @@ void track_cn0_params_init(void) {
   for (u32 i = 0; i < INTEG_PERIODS_NUM; i++) {
     float loop_freq = 1e3f / cn0_periods_ms[i];
     cn0_est_compute_params(&cn0_config.params[i].est_params,
-                           cn0_config.nbw,
                            cn0_config.alpha,
                            loop_freq,
                            cn0_config.scale,
@@ -117,15 +115,12 @@ void track_cn0_params_init(void) {
  * Helper for estimator initialization
  *
  * \param[out] e     Estimator state.
- * \param[in]  p     Estimator parameters.
  * \param[in]  cn0_0 Initial C/N0 value.
  *
  * \return None
  */
-static void init_estimator(track_cn0_state_t *e,
-                           const cn0_est_params_t *p,
-                           float cn0_0) {
-  cn0_est_basic_init(&e->basic, p, cn0_0, q_avg * sqrtf(p->t_int));
+static void init_estimator(track_cn0_state_t *e, float cn0_0) {
+  cn0_est_mm_init(&e->moment, cn0_0);
 }
 
 /**
@@ -133,26 +128,16 @@ static void init_estimator(track_cn0_state_t *e,
  *
  * \param[in,out] e Estimator state.
  * \param[in]     p Estimator parameters.
- * \param[in]     t Estimator type.
  * \param[in]     I      In-phase component.
  * \param[in]     Q      Quadrature component.
- * \param[in]     ve_I   Very early in-phase accumulator
- * \param[in]     ve_Q   Very early quadrature accumulator
  *
  * \return Estimator update result (dB/Hz).
  */
 static float update_estimator(track_cn0_state_t *e,
                               const cn0_est_params_t *p,
                               float I,
-                              float Q,
-                              float ve_I,
-                              float ve_Q) {
-  float cn0 = cn0_est_basic_update(&e->basic, p, I, Q, ve_I, ve_Q);
-
-  q_avg = q_avg * (1 - p->alpha) +
-          p->alpha * e->basic.noise_Q_abs / sqrtf(p->t_int);
-
-  return cn0;
+                              float Q) {
+  return cn0_est_mm_update(&e->moment, p, I, Q);
 }
 
 /**
@@ -180,7 +165,6 @@ static const track_cn0_params_t *track_cn0_get_params(u8 cn0_ms,
   if (NULL == pparams) {
     float loop_freq = 1e3f / cn0_ms;
     cn0_est_compute_params(&p->est_params,
-                           cn0_config.nbw,
                            cn0_config.alpha,
                            loop_freq,
                            cn0_config.scale,
@@ -217,7 +201,7 @@ void track_cn0_init(const me_gnss_signal_t mesid,
 
   const track_cn0_params_t *pp = track_cn0_get_params(cn0_ms, &p);
 
-  init_estimator(e, &pp->est_params, cn0_0);
+  init_estimator(e, cn0_0);
 
   cn0_filter_init(&e->filter, &pp->filter_params, cn0_0);
 
@@ -234,17 +218,14 @@ void track_cn0_init(const me_gnss_signal_t mesid,
  * \param[in]     int_ms Integration time [ms]
  * \param[in]     I      In-phase component.
  * \param[in]     Q      Quadrature component.
- * \param[in]     ve_I   Very early in-phase accumulator
- * \param[in]     ve_Q   Very early quadrature accumulator
  *
  * \return Filtered estimator value.
  */
-float track_cn0_update(
-    track_cn0_state_t *e, u8 int_ms, float I, float Q, float ve_I, float ve_Q) {
+float track_cn0_update(track_cn0_state_t *e, u8 int_ms, float I, float Q) {
   track_cn0_params_t p;
   const track_cn0_params_t *pp = track_cn0_get_params(e->cn0_ms, &p);
 
-  e->cn0_raw_dbhz = update_estimator(e, &pp->est_params, I, Q, ve_I, ve_Q);
+  e->cn0_raw_dbhz = update_estimator(e, &pp->est_params, I, Q);
   float cn0 =
       cn0_filter_update(&e->filter, &pp->filter_params, e->cn0_raw_dbhz);
 
