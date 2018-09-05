@@ -46,6 +46,7 @@
 #include "shm/shm.h"
 #include "signal_db/signal_db.h"
 #include "simulator.h"
+#include "starling_efilter.h"
 #include "starling_platform_shim.h"
 #include "starling_threads.h"
 #include "system_monitor/system_monitor.h"
@@ -85,7 +86,16 @@ void platform_thread_set_name(const char *name) { chRegSetThreadName(name); }
 
 /* Return true on success. */
 bool platform_try_read_ephemeris(const gnss_signal_t sid, ephemeris_t *eph) {
-  return (ndb_ephemeris_read(sid, eph) == NDB_ERR_NONE);
+  ndb_op_code_t err = ndb_ephemeris_read(sid, eph);
+  if (err != NDB_ERR_NONE) {
+    return false;
+  }
+  /* the starling_sbas_has_corrections callback is already set at the
+     begining of me_cacl_pvt thread live */
+  starling_efilter_set_ephe(eph);
+  *eph = starling_efilter_get_ephe(&eph->sid);
+
+  return true;
 }
 
 /* Return true on success. */

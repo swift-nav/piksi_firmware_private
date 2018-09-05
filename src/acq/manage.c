@@ -19,6 +19,7 @@
 #include <libswiftnav/almanac.h>
 #include <libswiftnav/constants.h>
 #include <libswiftnav/coord_system.h>
+#include <libswiftnav/ephemeris.h>
 #include <libswiftnav/glo_map.h>
 #include <libswiftnav/linear_algebra.h>
 #include <libswiftnav/logging.h>
@@ -26,6 +27,7 @@
 #include <libswiftnav/signal.h>
 
 #include "board/nap/track_channel.h"
+#include "calc/starling_efilter.h"
 #include "calc/starling_threads.h"
 #include "decode.h"
 #include "dum/dum.h"
@@ -1023,6 +1025,14 @@ u32 get_tracking_channel_meas(u8 i,
      * is no confirmed candidate */
     if ((NDB_ERR_NONE != res) && (NDB_ERR_UNCONFIRMED_DATA != res)) {
       ephe = NULL;
+    }
+
+    /* ephemeris filtering based on SBAS corrections availability in Starling */
+    if (ephe) {
+      /* the starling_sbas_has_corrections callback is already set at the
+         begining of me_cacl_pvt thread live */
+      starling_efilter_set_ephe(ephe);
+      *ephe = starling_efilter_get_ephe(&ephe->sid);
     }
 
     /* Load information from SID cache */
