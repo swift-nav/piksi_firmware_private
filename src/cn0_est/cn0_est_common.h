@@ -40,11 +40,13 @@ typedef struct {
 } cn0_est_rscn_state_t;
 
 typedef struct {
-  float M_2;    /**< Running sum of second order moments. */
-  float M_4;    /**< Running sum of fourth order moments. */
-  float cn0_db; /**< Signal to noise ratio in dB/Hz. */
-  u16 cnt;
-  u16 lim;
+  float M2;       /**< Running sum of second order moments. */
+  float M4;       /**< Running sum of fourth order moments. */
+  float Pn;       /**< Running sum of noise power. */
+  float cn0_dbhz; /**< Carrier to noise ratio in dB/Hz. */
+  float I_acc;    /**< Accumulated in-phase correlation. */
+  float Q_acc;    /**< Accumulated quadrature correlation. */
+  u8 int_ms;      /**< CN0 integration time in ms */
 } cn0_est_mm_state_t;
 
 typedef struct {
@@ -99,7 +101,6 @@ typedef struct {
 
 /* C/N0 estimators */
 void cn0_est_compute_params(cn0_est_params_t *p,
-                            float bw,
                             float alpha,
                             float loop_freq,
                             float scale,
@@ -129,9 +130,7 @@ float cn0_est_rscn_update(cn0_est_rscn_state_t *s,
                           const cn0_est_params_t *p,
                           float I,
                           float Q);
-void cn0_est_mm_init(cn0_est_mm_state_t *s,
-                     const cn0_est_params_t *p,
-                     float cn0_0);
+void cn0_est_mm_init(cn0_est_mm_state_t *s, float cn0_0);
 float cn0_est_mm_update(cn0_est_mm_state_t *s,
                         const cn0_est_params_t *p,
                         float I,
