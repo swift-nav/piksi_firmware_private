@@ -299,7 +299,7 @@ static const tp_profile_entry_t tracker_profiles_rover[] = {
 */
 
   [IDX_INIT_0] =
-{ {     10,           7,           20,   TP_CTRL_PLL3,
+  { {   10,           7,             20,   TP_CTRL_PLL3,
         TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL},
         TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
        100,             0,            0,
@@ -432,7 +432,7 @@ static const tp_profile_entry_t tracker_profiles_base[] = {
       0},
 
   [IDX_20MS] =
-  { {    8,             0,           .5,   TP_CTRL_PLL2,
+  { {    8,             0,           .25,   TP_CTRL_PLL2,
       TP_TM_20MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS,  TP_TM_20MS_NH20MS,  TP_TM_20MS_SC4 },
       TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
         40,             0,            0,
@@ -692,7 +692,7 @@ static void log_switch(tracker_t *tracker, const char *reason) {
   /* To help debugging report tracking mode each 5 minutes */
   DO_EACH_MS(5 * 60 * 1000,
              log_info("Tracking mode: %s",
-             tp_is_rover_mode() ? "rover" : "base station"));
+                      tp_is_rover_mode() ? "rover" : "base station"));
 
   log_debug_mesid(mesid,
                   "%s:"
