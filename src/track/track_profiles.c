@@ -548,7 +548,8 @@ static u8 get_profile_index(code_t code,
       return i;
     }
   }
-  return IDX_SENS;
+  /* IDX_SENS for rover and IDX_20MS for base station */
+  return g_tracker_mode.size - 1;
 }
 
 static struct profile_vars get_profile_vars(const me_gnss_signal_t mesid,
