@@ -495,9 +495,6 @@ s8 compute_me_pvt(u8 n_ready,
   /* apply GPS inter-signal corrections from CNAV messages */
   apply_gps_cnav_isc(n_ready, p_nav_meas, p_e_meas);
 
-  /* apply empirical (Piksi Multi specific) inter-signal corrections */
-  apply_isc_table(n_ready, p_nav_meas);
-
   /* apply iono and tropo corrections if LGF available */
   if (lgf->position_quality >= POSITION_GUESS) {
     ionosphere_t i_params;
@@ -729,6 +726,9 @@ static void me_calc_pvt_thread(void *arg) {
       me_send_emptyobs();
       continue;
     }
+
+    /* Apply empirical (Piksi Multi specific) inter-signal corrections */
+    apply_isc_table(n_ready, p_nav_meas);
 
     /* Compute a PVT solution from the measurements to update LGF and clock
      * models. Compute on every epoch until the time quality gets to FINEST,
