@@ -152,8 +152,6 @@ int main(void) {
   READ_ONLY_PARAMETER(
       "system_info", "pfwp_build_date", __DATE__ " " __TIME__, TYPE_STRING);
   READ_ONLY_PARAMETER(
-      "system_info", "hw_revision", hw_revision_string, TYPE_STRING);
-  READ_ONLY_PARAMETER(
       "system_info", "nap_build_id", nap_version_string, TYPE_STRING);
   READ_ONLY_PARAMETER(
       "system_info", "nap_build_date", nap_date_string, TYPE_STRING);
@@ -163,8 +161,6 @@ int main(void) {
   READ_ONLY_PARAMETER(
       "system_info", "mac_address", mac_address_string, TYPE_STRING);
   READ_ONLY_PARAMETER("system_info", "uuid", uuid_string, TYPE_STRING);
-  READ_ONLY_PARAMETER(
-      "system_info", "hw_version", hw_version_string, TYPE_STRING);
 
   /* Send message to inform host we are up and running. */
   u32 startup_flags = 0;
