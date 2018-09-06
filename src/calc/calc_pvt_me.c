@@ -444,7 +444,7 @@ static void drop_gross_outlier(const navigation_measurement_t *nav_meas,
 /* Apply corrections and solve for position from the given navigation
  * measurements, and if succesful update LGF and clock model */
 s8 compute_me_pvt(u8 n_ready,
-                  navigation_measurement_t nav_meas[],
+                  const navigation_measurement_t nav_meas_in[],
                   u64 current_tc,
                   const gps_time_t *current_time,
                   const ephemeris_t *p_e_meas[],
@@ -452,7 +452,7 @@ s8 compute_me_pvt(u8 n_ready,
   gnss_sid_set_t codes;
   sid_set_init(&codes);
   for (u8 i = 0; i < n_ready; i++) {
-    sid_set_add(&codes, nav_meas[i].sid);
+    sid_set_add(&codes, nav_meas_in[i].sid);
   }
 
   if (sid_set_get_sat_count(&codes) < MINIMUM_SV_COUNT) {
@@ -460,9 +460,12 @@ s8 compute_me_pvt(u8 n_ready,
     return PVT_INSUFFICENT_MEAS;
   }
 
-  /* Create array of pointers to measurements */
+  /* Copy navigation measurements to a local array and create array of pointers
+   * to it */
+  navigation_measurement_t nav_meas[n_ready];
   navigation_measurement_t *p_nav_meas[n_ready];
   for (u8 i = 0; i < n_ready; i++) {
+    nav_meas[i] = nav_meas_in[i];
     p_nav_meas[i] = &nav_meas[i];
   }
 
