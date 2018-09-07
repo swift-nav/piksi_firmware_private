@@ -24,7 +24,6 @@
 #include "calc/starling_threads.h"
 #include "me_msg/me_msg.h"
 #include "ndb/ndb.h"
-#include "nmea/nmea.h"
 #include "sbp/sbp.h"
 #include "sbp/sbp_utils.h"
 #include "settings/settings.h"
@@ -150,16 +149,10 @@ static bool dgnss_timeout(piksi_systime_t *_last_dgnss,
 
 /**
  *
- * @param base_sender_id sender id of base obs
  * @param sbp_messages struct of sbp messages
- * @param n_meas nav_meas len
- * @param nav_meas Valid navigation measurements
  */
 static void solution_send_pos_messages(
-    u8 base_sender_id,
-    const sbp_messages_t *sbp_messages,
-    u8 n_meas,
-    const navigation_measurement_t nav_meas[]) {
+    const sbp_messages_t *sbp_messages) {
   dgnss_solution_mode_t dgnss_soln_mode = starling_get_solution_mode();
   if (sbp_messages) {
     sbp_send_msg(SBP_MSG_GPS_TIME,
@@ -226,26 +219,6 @@ static void solution_send_pos_messages(
                    (u8 *)&sbp_messages->baseline_heading);
     }
   }
-
-  utc_params_t utc_params;
-  utc_params_t *p_utc_params = &utc_params;
-  /* read UTC parameters from NDB if they exist*/
-  if (NDB_ERR_NONE != ndb_utc_params_read(&utc_params, NULL)) {
-    p_utc_params = NULL;
-  }
-
-  /* Send NMEA alongside the sbp */
-  double propagation_time = sbp_messages->age_corrections.age * 0.1;
-  nmea_send_msgs(&sbp_messages->pos_llh,
-                 &sbp_messages->vel_ned,
-                 &sbp_messages->sbp_dops,
-                 &sbp_messages->gps_time,
-                 propagation_time,
-                 base_sender_id,
-                 p_utc_params,
-                 &sbp_messages->baseline_heading,
-                 n_meas,
-                 nav_meas);
 }
 
 void starling_integration_sbp_messages_init(sbp_messages_t *sbp_messages,
@@ -275,11 +248,7 @@ void starling_integration_sbp_messages_init(sbp_messages_t *sbp_messages,
  * Accessed externally from starling_threads.c
  * TODO(kevin) fix this.
  */
-void starling_integration_solution_send_low_latency_output(
-    u8 base_sender_id,
-    const sbp_messages_t *sbp_messages,
-    u8 n_meas,
-    const navigation_measurement_t nav_meas[]) {
+void starling_integration_solution_send_low_latency_output(const sbp_messages_t *sbp_messages) {
   dgnss_solution_mode_t dgnss_soln_mode = starling_get_solution_mode();
   /* Work out if we need to wait for a certain period of no time matched
    * positions before we output a SBP position */
@@ -290,7 +259,7 @@ void starling_integration_solution_send_low_latency_output(
   }
 
   if (!wait_for_timeout) {
-    solution_send_pos_messages(base_sender_id, sbp_messages, n_meas, nav_meas);
+    solution_send_pos_messages(sbp_messages);
     chMtxLock(&last_sbp_lock);
     last_spp.wn = sbp_messages->gps_time.wn;
     last_spp.tow = sbp_messages->gps_time.tow * 0.001;
@@ -594,9 +563,7 @@ void starling_integration_simulation_run(const me_msg_obs_t *me_msg) {
   sbp_messages_t sbp_messages;
   starling_integration_sbp_messages_init(&sbp_messages, &epoch_time);
   starling_integration_solution_simulation(&sbp_messages);
-  const u8 fake_base_sender_id = 1;
-  starling_integration_solution_send_low_latency_output(
-      fake_base_sender_id, &sbp_messages, me_msg->size, me_msg->obs);
+  starling_integration_solution_send_low_latency_output(&sbp_messages);
 }
 
 bool starling_integration_simulation_enabled(void) {
@@ -884,8 +851,7 @@ void send_solution_time_matched(const StarlingFilterSolution *solution,
    * and our current time-matched result occurs after the most recent
    * SPP output. */
   if (spp_timeout(&last_spp, &last_dgnss, starling_get_solution_mode())) {
-    solution_send_pos_messages(
-        obss_base->sender_id, &sbp_messages, obss_rover->n, obss_rover->nm);
+    solution_send_pos_messages(&sbp_messages);
   }
 
   /* Always keep track of which base station is sending in the
@@ -908,11 +874,8 @@ void send_solution_time_matched(const StarlingFilterSolution *solution,
  */
 void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
                                const StarlingFilterSolution *rtk_solution,
-                               const gps_time_t *solution_epoch_time,
-                               const navigation_measurement_t *nav_meas,
-                               const size_t num_nav_meas) {
+                               const gps_time_t *solution_epoch_time) {
   assert(solution_epoch_time);
-  assert(nav_meas);
 
   /* Check if observations do not have valid time. We may have locally a
    * reasonable estimate of current GPS time, so we can round that to the
@@ -931,7 +894,6 @@ void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
   sbp_messages_t sbp_messages;
   starling_integration_sbp_messages_init(&sbp_messages, &epoch_time);
 
-  u8 base_sender_id = STARLING_BASE_SENDER_ID_DEFAULT;
   /* TODO: Actually get the timing quality from ME / Starling
    * the time quality could have degraded or improved AFTER this
    * solution epoch was calculated. Thus time quality isn't strictly
@@ -947,13 +909,9 @@ void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
                                  &rtk_solution->dops,
                                  &sbp_messages);
 
-      chMtxLock(&current_base_sender_id_lock);
-      base_sender_id = current_base_sender_id;
-      chMtxUnlock(&current_base_sender_id_lock);
     }
   }
-  starling_integration_solution_send_low_latency_output(
-      base_sender_id, &sbp_messages, num_nav_meas, nav_meas);
+  starling_integration_solution_send_low_latency_output(&sbp_messages);
 }
 
 /*******************************************************************************
