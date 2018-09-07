@@ -494,9 +494,7 @@ static void tracking_send_state_85(void) {
  * calls the legacy function if the number of channels is lower than 63
  * so that we can incrementally move to 85 channels.
  */
-void tracking_send_state(void) {
-  tracking_send_state_85();
-}
+void tracking_send_state(void) { tracking_send_state_85(); }
 
 /** Goes through all the NAP tracker channels and cleans the stale ones
  * (there should NEVER be any!)
