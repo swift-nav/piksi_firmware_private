@@ -158,6 +158,7 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/calc/calc_pvt_common.o \
         $(SWIFTNAV_ROOT)/src/calc/starling_integration.o \
         $(SWIFTNAV_ROOT)/src/calc/starling_threads.o \
+        $(SWIFTNAV_ROOT)/src/calc/starling_efilter.o \
 	$(SWIFTNAV_ROOT)/src/calc/starling_platform_shim.o \
         $(SWIFTNAV_ROOT)/src/calc/calc_pvt_me.o \
         $(SWIFTNAV_ROOT)/src/calc/calc_nav_meas.o \

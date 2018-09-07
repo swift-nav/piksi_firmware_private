@@ -26,6 +26,7 @@
 #include <libswiftnav/troposphere.h>
 
 #include "board/nap/track_channel.h"
+#include "calc/starling_efilter.h"
 #include "calc/starling_threads.h"
 #include "calc_base_obs.h"
 #include "calc_nav_meas.h"
@@ -401,6 +402,8 @@ static void drop_gross_outlier(const navigation_measurement_t *nav_meas,
   }
 }
 
+extern bool starling_sbas_has_corrections(const gnss_signal_t *sid, u8 IODE);
+
 static void me_calc_pvt_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("me_calc_pvt");
@@ -415,6 +418,8 @@ static void me_calc_pvt_thread(void *arg) {
   piksi_systime_t next_epoch;
   piksi_systime_get(&next_epoch);
   piksi_systime_inc_us(&next_epoch, SECS_US / soln_freq_setting);
+
+  starling_efilter_set_sbas_cb(starling_sbas_has_corrections);
 
   while (TRUE) {
     /* read current value of soln_freq into a local variable that does not

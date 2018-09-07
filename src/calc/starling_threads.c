@@ -592,6 +592,21 @@ static void process_sbas_data(const sbas_raw_data_t *sbas_data) {
 }
 
 /**
+ * Checks the SBAS corrections availability status for the given sid and IODE.
+ */
+bool starling_sbas_has_corrections(const gnss_signal_t *sid, u8 IODE) {
+  assert(sid);
+  assert(sid_valid(*sid));
+  assert(spp_filter_manager);
+
+  platform_mutex_lock(&spp_filter_manager_lock);
+  bool has = filter_manager_has_sbas_corrections(spp_filter_manager, sid, IODE);
+  platform_mutex_unlock(&spp_filter_manager_lock);
+
+  return has;
+}
+
+/**
  * Try and fetch available SBAS messages from the SBAS mailbox.
  *
  * NOTE: This function should not block, so we use TIME_IMMEDIATE for
