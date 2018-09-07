@@ -78,8 +78,23 @@ void tl_pll2_retune(tl_pll2_state_t *s, const tl_config_t *config) {
   update_params(s, config);
 }
 
-void tl_pll2_update_dll_discr(tl_pll2_state_t *s, const correlation_t cs[3]) {
-  s->dll_discr_sum_hz += dll_discriminator(cs);
+/**
+ * Updates dll loop discriminator state
+ *
+ * \param[in,out] s        The filter state
+ * \param[in]     cs       Complex valued epl correlations
+ * \param[in]     pll_lock PLL lock status
+ *
+ * \return None
+ */
+void tl_pll2_update_dll_discr(tl_pll2_state_t *s,
+                              const correlation_t cs[3],
+                              bool pll_lock) {
+  if (pll_lock) {
+    s->dll_discr_sum_hz += coh_dll_discr(cs);
+  } else {
+    s->dll_discr_sum_hz += dll_discriminator(cs);
+  }
   s->dll_discr_cnt++;
   assert(0 != s->dll_discr_cnt);
 }

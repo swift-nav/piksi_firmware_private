@@ -235,10 +235,13 @@ float tp_tl_get_fll_error(const tp_tl_state_t *s) {
 /**
  * DLL discriminator update.
  *
- * \param s  Tracker state.
- * \param cs EPL correlator data.
+ * \param s        Tracker state.
+ * \param cs       EPL correlator data.
+ * \param pll_lock PLL lock status
  */
-void tp_tl_update_dll_discr(tp_tl_state_t *s, const tp_epl_corr_t *cs) {
+void tp_tl_update_dll_discr(tp_tl_state_t *s,
+                            const tp_epl_corr_t *cs,
+                            bool pll_lock) {
   correlation_t cs2[3];
   for (u32 i = 0; i < 3; i++) {
     cs2[i].I = cs->all[i].I;
@@ -247,11 +250,11 @@ void tp_tl_update_dll_discr(tp_tl_state_t *s, const tp_epl_corr_t *cs) {
 
   switch (s->ctrl) {
     case TP_CTRL_PLL2:
-      tl_pll2_update_dll_discr(&s->pll2, cs2);
+      tl_pll2_update_dll_discr(&s->pll2, cs2, pll_lock);
       break;
 
     case TP_CTRL_PLL3:
-      tl_pll3_update_dll_discr(&s->pll3, cs2);
+      tl_pll3_update_dll_discr(&s->pll3, cs2, pll_lock);
       break;
 
     default:

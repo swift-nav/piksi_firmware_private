@@ -144,6 +144,7 @@ void calc_loop_gains(
 void calc_loop_gains2(float bw, float zeta, float k, float *c1, float *c2);
 float costas_discriminator(float I, float Q);
 float dll_discriminator(const correlation_t cs[3]);
+float coh_dll_discr(const correlation_t cs[3]);
 
 /* FLL2, PLL3, DLL2 */
 void tl_pll3_init(tl_pll3_state_t *s,
@@ -151,7 +152,9 @@ void tl_pll3_init(tl_pll3_state_t *s,
                   const tl_config_t *config);
 void tl_pll3_retune(tl_pll3_state_t *s, const tl_config_t *config);
 
-void tl_pll3_update_dll_discr(tl_pll3_state_t *s, const correlation_t cs[3]);
+void tl_pll3_update_dll_discr(tl_pll3_state_t *s,
+                              const correlation_t cs[3],
+                              bool pll_lock);
 void tl_pll3_update_dll(tl_pll3_state_t *s);
 
 void tl_pll3_update_fll_discr(tl_pll3_state_t *s, float I, float Q, bool halfq);
@@ -169,7 +172,9 @@ void tl_pll2_init(tl_pll2_state_t *s,
                   const tl_config_t *config);
 void tl_pll2_retune(tl_pll2_state_t *s, const tl_config_t *config);
 void tl_pll2_update_dll(tl_pll2_state_t *s);
-void tl_pll2_update_dll_discr(tl_pll2_state_t *s, const correlation_t cs[3]);
+void tl_pll2_update_dll_discr(tl_pll2_state_t *s,
+                              const correlation_t cs[3],
+                              bool pll_lock);
 void tl_pll2_update_pll(tl_pll2_state_t *s,
                         const correlation_t cs[3],
                         bool costas);

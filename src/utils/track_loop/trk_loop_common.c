@@ -201,5 +201,22 @@ float dll_discriminator(const correlation_t cs[3]) {
   return 0;
 }
 
+/** Normalized coherent dot product discriminator.
+ *
+ * References:
+ *  -# Understanding GPS: Principles and Applications.
+ *     Elliott D. Kaplan. Artech House, 1996.
+ *
+ * \param cs An array [E, P, L] of correlation_t structs for the Early, Prompt
+ *           and Late correlations.
+ * \return The discriminator value.
+ */
+float coh_dll_discr(const correlation_t cs[3]) {
+  if (0.0f == cs[1].I) {
+    return 0.0f;
+  }
+  return 0.25f * (cs[0].I - cs[2].I) / cs[1].I;
+}
+
 /** \} */
 /** \} */

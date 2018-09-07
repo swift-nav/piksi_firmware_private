@@ -771,7 +771,9 @@ static void tp_tracker_update_loops(tracker_t *tracker, u32 cycle_flags) {
       /* The L2CM and L2CL codes are in phase,
        * copy the VL to P so that the PLL runs
        * on the pilot instead of the data */
+      corr_main.early = corr_main.dp_early;
       corr_main.prompt = corr_main.dp_prompt;
+      corr_main.late = corr_main.dp_late;
       costas = false;
     } else if (has_pilot_sync) {
       /* Once in bit-sync, Galileo pilots
@@ -780,7 +782,9 @@ static void tp_tracker_update_loops(tracker_t *tracker, u32 cycle_flags) {
       costas = false;
     }
 
-    tp_tl_update_dll_discr(&tracker->tl_state, &corr_main);
+    bool pll_lock = (0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK));
+
+    tp_tl_update_dll_discr(&tracker->tl_state, &corr_main, pll_lock);
     tp_tl_update_dll(&tracker->tl_state);
 
     bool run_fpll = (0 != (cycle_flags & TPF_FPLL_RUN));
