@@ -27,17 +27,17 @@ typedef struct {
  * State table.
  */
 typedef struct {
-  u8 cn0_ms;                     /**< C/N0 estimator integration time */
-  u8 lockdet_ms;                 /**< Lock detector integration time */
-  float alias_ms;                /**< Alias detector integration time */
-  float flld_ms;                 /**< FLL discriminator integration time */
-  float fpll_ms; /**< FLL & PLL discriminator integration time [ms] */
-  u8 fpll_decim; /**< TPF_FPLL_RUN decimation factor
-                      (0,1 - no decimation,
-                      2 - every second etc) */
-  u16 dll_ms;    /**< DLL filter integration time [ms] */
-  u8 bit_ms;                     /**< Data update period */
-  u8 ent_cnt;                    /**< State entries count */
+  u8 cn0_ms;      /**< C/N0 estimator integration time */
+  u8 lockdet_ms;  /**< Lock detector integration time */
+  float alias_ms; /**< Alias detector integration time */
+  float flld_ms;  /**< FLL discriminator integration time */
+  float fpll_ms;  /**< FLL & PLL discriminator integration time [ms] */
+  u8 fpll_decim;  /**< TPF_FPLL_RUN decimation factor
+                       (0,1 - no decimation,
+                       2 - every second etc) */
+  u16 dll_ms;     /**< DLL filter integration time [ms] */
+  u8 bit_ms;      /**< Data update period */
+  u8 ent_cnt;     /**< State entries count */
   const state_entry_t entries[]; /**< State entries */
 } state_table_t;
 
@@ -875,8 +875,8 @@ static const state_table_t mode_200ms_20ms = {
     {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
     {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
     {3, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
-    {3, TPF_EPL_ADD | TPF_CN0_USE | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
-                                                                  TPF_FLL_USE |
+    {3, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
+                      TPF_CN0_USE |                               TPF_FLL_USE |
                                                                   TPF_FLL_HALFQ},
 
     {1, TPF_EPL_ADD | TPF_CN0_SET | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET},
