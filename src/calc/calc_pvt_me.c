@@ -443,12 +443,12 @@ static void drop_gross_outlier(const navigation_measurement_t *nav_meas,
 
 /* Apply corrections and solve for position from the given navigation
  * measurements, and if succesful update LGF and clock model */
-s8 compute_me_pvt(u8 n_ready,
-                  const navigation_measurement_t nav_meas_in[],
-                  u64 current_tc,
-                  const gps_time_t *current_time,
-                  const ephemeris_t *p_e_meas[],
-                  last_good_fix_t *lgf) {
+static s8 me_compute_pvt(u8 n_ready,
+                         const navigation_measurement_t nav_meas_in[],
+                         u64 current_tc,
+                         const gps_time_t *current_time,
+                         const ephemeris_t *p_e_meas[],
+                         last_good_fix_t *lgf) {
   gnss_sid_set_t codes;
   sid_set_init(&codes);
   for (u8 i = 0; i < n_ready; i++) {
@@ -734,12 +734,12 @@ static void me_calc_pvt_thread(void *arg) {
      * models. Compute on every epoch until the time quality gets to FINEST,
      * otherwise at a lower rate */
     if (TIME_FINEST > time_quality) {
-      compute_me_pvt(
+      me_compute_pvt(
           n_ready, nav_meas, current_tc, &current_time, p_e_meas, &lgf);
     } else {
       DO_EACH_MS(
           ME_PVT_INTERVAL_S * SECS_MS,
-          compute_me_pvt(
+          me_compute_pvt(
               n_ready, nav_meas, current_tc, &current_time, p_e_meas, &lgf));
     }
 
