@@ -97,15 +97,13 @@ static StarlingSettings global_settings = {
 /* Glonass biases and mutex protection. */
 static MUTEX_DECL(glonass_biases_lock);
 static GlonassBiases glonass_biases = {
-    .is_valid = false,
-    .values = {0},
+    .is_valid = false, .values = {0},
 };
 
 /* Reference position and mutex protection. */
 static MUTEX_DECL(reference_position_lock);
 static ReferencePosition reference_position = {
-    .is_valid = false,
-    .xyz = {0},
+    .is_valid = false, .xyz = {0},
 };
 
 static FilterManager *time_matched_filter_manager = NULL;
