@@ -151,8 +151,7 @@ static bool dgnss_timeout(piksi_systime_t *_last_dgnss,
  *
  * @param sbp_messages struct of sbp messages
  */
-static void solution_send_pos_messages(
-    const sbp_messages_t *sbp_messages) {
+static void solution_send_pos_messages(const sbp_messages_t *sbp_messages) {
   dgnss_solution_mode_t dgnss_soln_mode = starling_get_solution_mode();
   if (sbp_messages) {
     sbp_send_msg(SBP_MSG_GPS_TIME,
@@ -248,7 +247,8 @@ void starling_integration_sbp_messages_init(sbp_messages_t *sbp_messages,
  * Accessed externally from starling_threads.c
  * TODO(kevin) fix this.
  */
-void starling_integration_solution_send_low_latency_output(const sbp_messages_t *sbp_messages) {
+void starling_integration_solution_send_low_latency_output(
+    const sbp_messages_t *sbp_messages) {
   dgnss_solution_mode_t dgnss_soln_mode = starling_get_solution_mode();
   /* Work out if we need to wait for a certain period of no time matched
    * positions before we output a SBP position */
@@ -908,7 +908,6 @@ void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
                                  spp_solution->result.baseline,
                                  &rtk_solution->dops,
                                  &sbp_messages);
-
     }
   }
   starling_integration_solution_send_low_latency_output(&sbp_messages);

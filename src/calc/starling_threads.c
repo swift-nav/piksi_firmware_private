@@ -97,13 +97,15 @@ static StarlingSettings global_settings = {
 /* Glonass biases and mutex protection. */
 static MUTEX_DECL(glonass_biases_lock);
 static GlonassBiases glonass_biases = {
-    .is_valid = false, .values = {0},
+    .is_valid = false,
+    .values = {0},
 };
 
 /* Reference position and mutex protection. */
 static MUTEX_DECL(reference_position_lock);
 static ReferencePosition reference_position = {
-    .is_valid = false, .xyz = {0},
+    .is_valid = false,
+    .xyz = {0},
 };
 
 static FilterManager *time_matched_filter_manager = NULL;
@@ -841,8 +843,7 @@ static void starling_thread(void) {
     }
 
     /* Forward solutions to outside world. */
-    send_solution_low_latency(
-        p_spp_solution, p_rtk_solution, &epoch_time);
+    send_solution_low_latency(p_spp_solution, p_rtk_solution, &epoch_time);
 
 #if defined PROFILE_STARLING && PROFILE_STARLING > 0
     u32 nap_snapshot_diff = (u32)(NAP->TIMING_COUNT - nap_snapshot_begin);
