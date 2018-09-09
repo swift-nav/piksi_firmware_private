@@ -174,8 +174,7 @@ static bool dgnss_timeout(piksi_systime_t *_last_dgnss,
  * @param n_meas nav_meas len
  * @param nav_meas Valid navigation measurements
  */
-static void solution_send_pos_messages(
-    const sbp_messages_t *sbp_messages) {
+static void solution_send_pos_messages(const sbp_messages_t *sbp_messages) {
   dgnss_solution_mode_t dgnss_soln_mode = starling_get_solution_mode();
   if (sbp_messages) {
     sbp_send_msg(SBP_MSG_GPS_TIME,
@@ -583,8 +582,7 @@ void starling_integration_simulation_run(const me_msg_obs_t *me_msg) {
   sbp_messages_t sbp_messages;
   starling_integration_sbp_messages_init(&sbp_messages, &epoch_time);
   starling_integration_solution_simulation(&sbp_messages);
-  starling_integration_solution_send_low_latency_output(
-       &sbp_messages);
+  starling_integration_solution_send_low_latency_output(&sbp_messages);
 }
 
 bool starling_integration_simulation_enabled(void) {
@@ -969,8 +967,7 @@ void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
                                  &sbp_messages);
     }
   }
-  starling_integration_solution_send_low_latency_output(
-      &sbp_messages);
+  starling_integration_solution_send_low_latency_output(&sbp_messages);
 }
 
 /*******************************************************************************
