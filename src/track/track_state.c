@@ -90,7 +90,7 @@ void track_setup(void) {
       settings_type_register_enum(tracker_mode_enum, &tracker_mode_setting);
 
   /* define and apply the default tracking mode */
-  static enum tracker_mode tracker_mode = TRACKER_MODE_BASE;
+  static enum tracker_mode tracker_mode = TRACKER_MODE_ROVER;
 
   SETTING_NOTIFY(
       "track", "mode", tracker_mode, TYPE_TRACKER_MODE, set_tracker_mode);
