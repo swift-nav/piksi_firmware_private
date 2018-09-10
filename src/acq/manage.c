@@ -661,6 +661,9 @@ static const char *get_ch_drop_reason_str(ch_drop_reason_t reason) {
     case CH_DROP_REASON_RAIM:
       str = "Measurement flagged by RAIM, dropping";
       break;
+    case CH_DROP_REASON_NEW_MODE:
+      str = "New tracker mode, dropping";
+      break;
     default:
       assert(!"Unknown channel drop reason");
   }
@@ -693,8 +696,10 @@ static void drop_channel(tracker_t *tracker, ch_drop_reason_t reason) {
                     time_in_track_ms,
                     tracker->nap_channel,
                     get_ch_drop_reason_str(reason));
-  } else if (0 == (flags & TRACKER_FLAG_CONFIRMED)) {
-    /* Unconfirmed tracker messages are always logged at debug level */
+  } else if ((0 == (flags & TRACKER_FLAG_CONFIRMED)) ||
+             (CH_DROP_REASON_NEW_MODE == reason)) {
+    /* Unconfirmed tracker messages are always logged at debug level.
+       Same is for new tracker mode activation. */
     log_debug_mesid(mesid,
                     "[+%" PRIu32 "ms] %s",
                     time_in_track_ms,

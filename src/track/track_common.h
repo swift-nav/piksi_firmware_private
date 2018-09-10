@@ -21,6 +21,12 @@
 #include "me_constants.h"
 #include "track/tracker.h"
 
+/** Tracker modes supported by the measurement engine */
+enum tracker_mode {
+  TRACKER_MODE_ROVER, /* rover tracker mode */
+  TRACKER_MODE_BASE   /* base station tracker mode */
+};
+
 /**
  * Common tracker configuration container.
  */
@@ -112,5 +118,10 @@ u32 tp_tracker_update(tracker_t *tracker, const tp_tracker_config_t *config);
 
 tp_tm_e tp_profile_get_next_track_mode(const tp_profile_t *profile,
                                        me_gnss_signal_t mesid);
+
+void tp_set_base_station_mode(void);
+void tp_set_rover_mode(void);
+bool tp_is_rover_mode(void);
+bool tp_is_base_station_mode(void);
 
 #endif

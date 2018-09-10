@@ -26,6 +26,7 @@
 #include "main.h"
 #include "manage.h"
 #include "system_monitor/system_monitor.h"
+#include "track/track_common.h"
 #include "track/track_sid_db.h"
 #include "track/track_state.h"
 

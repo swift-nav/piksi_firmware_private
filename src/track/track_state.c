@@ -54,6 +54,28 @@ static bool track_iq_output_notify(struct setting *s, const char *val) {
   return false;
 }
 
+static const char *const tracker_mode_enum[] = {"rover", "base station", NULL};
+
+static bool set_tracker_mode(struct setting *s, const char *val) {
+  int value = 0;
+  bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
+  if (!ret) {
+    return false;
+  }
+  enum tracker_mode mode = value;
+  switch (mode) {
+    case TRACKER_MODE_BASE:
+      tp_set_base_station_mode();
+      break;
+    case TRACKER_MODE_ROVER:
+    default:
+      tp_set_rover_mode();
+      break;
+  }
+  *(enum tracker_mode *)s->addr = mode;
+  return ret;
+}
+
 /** Set up the tracking module. */
 void track_setup(void) {
   SETTING_NOTIFY("track",
@@ -61,6 +83,17 @@ void track_setup(void) {
                  iq_output_mask,
                  TYPE_INT,
                  track_iq_output_notify);
+
+  static struct setting_type tracker_mode_setting = {0};
+
+  int TYPE_TRACKER_MODE =
+      settings_type_register_enum(tracker_mode_enum, &tracker_mode_setting);
+
+  /* define and apply the default tracking mode */
+  static enum tracker_mode tracker_mode = TRACKER_MODE_ROVER;
+
+  SETTING_NOTIFY(
+      "track", "mode", tracker_mode, TYPE_TRACKER_MODE, set_tracker_mode);
 
   track_internal_setup();
 
@@ -373,7 +406,10 @@ void trackers_update(u32 channels_mask, const u8 c0) {
     tracker_t *tracker = tracker_get(c0 + ci);
     bool update_required = (channels_mask & 1) ? true : false;
     /* if NAP has something to do, serve this channel */
-    if (update_required) {
+    /* due to a chance for a race condition between tracking thread and NAP
+       we may end up here for an inactive tracker, which was just dropped.
+       So we check the validity of the tracker by looking at its busy flag */
+    if (update_required && tracker->busy) {
       serve_nap_request(tracker);
       sanitize_tracker(tracker, now_ms);
     }
