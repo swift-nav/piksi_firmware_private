@@ -583,19 +583,18 @@ static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
      * last post-filter sample instead */
     if (0 == tracker->corrs.corr_cn0.prompt.I &&
         0 == tracker->corrs.corr_cn0.prompt.Q) {
-      log_warn_mesid(tracker->mesid,
-                     "Prompt I/Q: %" PRIi32 "/%" PRIi32 " Ea I/Q: %" PRIi32
-                     "/%" PRIi32 " La I/Q: %" PRIi32 "/%" PRIi32
-                     " VEa I/Q: %" PRIi32 "/%" PRIi32 " VLa I/Q: %" PRIi32
+      log_info_mesid(tracker->mesid,
+                     "I/Q: %" PRIi32 "/%" PRIi32 " %" PRIi32 "/%" PRIi32
+                     " %" PRIi32 "/%" PRIi32 " %" PRIi32 "/%" PRIi32 " %" PRIi32
                      "/%" PRIi32,
-                     tracker->corrs.corr_cn0.prompt.I,
-                     tracker->corrs.corr_cn0.prompt.Q,
-                     tracker->corrs.corr_cn0.early.I,
-                     tracker->corrs.corr_cn0.early.Q,
-                     tracker->corrs.corr_cn0.late.I,
-                     tracker->corrs.corr_cn0.late.Q,
                      tracker->corrs.corr_cn0.very_early.I,
                      tracker->corrs.corr_cn0.very_early.Q,
+                     tracker->corrs.corr_cn0.early.I,
+                     tracker->corrs.corr_cn0.early.Q,
+                     tracker->corrs.corr_cn0.prompt.I,
+                     tracker->corrs.corr_cn0.prompt.Q,
+                     tracker->corrs.corr_cn0.late.I,
+                     tracker->corrs.corr_cn0.late.Q,
                      tracker->corrs.corr_cn0.very_late.I,
                      tracker->corrs.corr_cn0.very_late.Q);
 
