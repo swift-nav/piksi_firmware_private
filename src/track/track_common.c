@@ -584,9 +584,8 @@ static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
     if (0 == tracker->corrs.corr_cn0.prompt.I &&
         0 == tracker->corrs.corr_cn0.prompt.Q) {
       log_info_mesid(tracker->mesid,
-                     "I/Q: %" PRIi32 "/%" PRIi32 " %" PRIi32
-                     "/%" PRIi32 " %" PRIi32 "/%" PRIi32
-                     " %" PRIi32 "/%" PRIi32 " %" PRIi32
+                     "I/Q: %" PRIi32 "/%" PRIi32 " %" PRIi32 "/%" PRIi32
+                     " %" PRIi32 "/%" PRIi32 " %" PRIi32 "/%" PRIi32 " %" PRIi32
                      "/%" PRIi32,
                      tracker->corrs.corr_cn0.very_early.I,
                      tracker->corrs.corr_cn0.very_early.Q,
