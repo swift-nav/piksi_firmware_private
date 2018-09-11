@@ -21,7 +21,7 @@
 /**
  * @brief   The sample rate decimation used by tracking channels
  */
-#define NAP_TRACK_DECIMATION_RATE (5)
+#define NAP_TRACK_DECIMATION_RATE (4)
 
 /**
  * @brief   The tracking channel sample rate after decimation

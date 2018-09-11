@@ -74,7 +74,7 @@ static u32 tp_convert_ms_to_chips(me_gnss_signal_t mesid,
 
   /* Log warning if an offset is applied (and we have a pessimistic lock). */
   if (0 != offset) {
-    log_warn_mesid(mesid, "Applying code phase offset: %" PRIi32 "", offset);
+    log_warn_mesid(mesid, "code_phase %.6lf results in code phase offset: %" PRIi32 "", code_phase, offset);
   }
 
   return ms * chip_rate - offset;
