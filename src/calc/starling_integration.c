@@ -1063,11 +1063,16 @@ static void initialize_starling_settings(void) {
                  set_glonass_downweight_factor);
 
   static bool disable_klobuchar = false;
-  SETTING_NOTIFY("solution",
-                 "disable_klobuchar_correction",
-                 disable_klobuchar,
-                 TYPE_BOOL,
-                 set_disable_klobuchar);
+  /* When skylark is enabled, klobuchar corrections shall be disabled. Note that
+   * this setting is originally from piksi_system_daemon but since PFWP settings
+   * module doesn't support setting_add_watch functionality, setting
+   * registration was moved here and original registration in
+   * piksi_system_daemon was replaced with watch trigger registration. If the
+   * setting infrastructure is reworked so that watch trigger registration is
+   * possible also from PFWP, the actual registration can be moved back to
+   * piksi_system_daemon. */
+  SETTING_NOTIFY(
+      "skylark", "enable", disable_klobuchar, TYPE_BOOL, set_disable_klobuchar);
 
   static const char *const dgnss_soln_mode_enum[] = {
       "Low Latency", "Time Matched", "No DGNSS", NULL};
