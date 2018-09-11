@@ -705,7 +705,7 @@ static void starling_thread(void) {
      * we send an empty solution. */
     if (me_msg->size == 0 || !gps_time_valid(&epoch_time)) {
       platform_me_obs_msg_free(me_msg);
-      send_solution_low_latency(NULL, NULL, &epoch_time, nav_meas, 0);
+      send_solution_low_latency(NULL, NULL, &epoch_time);
       continue;
     }
 
@@ -856,8 +856,7 @@ static void starling_thread(void) {
     }
 
     /* Forward solutions to outside world. */
-    send_solution_low_latency(
-        p_spp_solution, p_rtk_solution, &epoch_time, nav_meas, n_ready);
+    send_solution_low_latency(p_spp_solution, p_rtk_solution, &epoch_time);
 
 #if defined PROFILE_STARLING && PROFILE_STARLING > 0
     u32 nap_snapshot_diff = (u32)(NAP->TIMING_COUNT - nap_snapshot_begin);

@@ -151,9 +151,7 @@ void send_solution_time_matched(const StarlingFilterSolution *solution,
 
 void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
                                const StarlingFilterSolution *rtk_solution,
-                               const gps_time_t *solution_epoch_time,
-                               const navigation_measurement_t *nav_meas,
-                               const size_t num_nav_meas);
+                               const gps_time_t *solution_epoch_time);
 
 /*******************************************************************************
  * Starling Configuration API
