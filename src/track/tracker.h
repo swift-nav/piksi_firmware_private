@@ -148,7 +148,6 @@ typedef struct {
   float cn0_offset; /**< C/N0 offset in dB to tune thresholds */
   float filt_cn0;   /**< C/N0 value for decision logic */
 
-  u32 profile_update : 1; /**< Flag if the profile update is required */
   u32 dll_init : 1;       /**< DLL init required */
   u32 use_alias_detection : 1;
 
