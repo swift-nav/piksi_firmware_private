@@ -37,15 +37,15 @@
 #include "timing/timing.h"
 #include "track/track_sid_db.h"
 
-static u32 gpgga_msg_rate = 1; /* By design GGA should be output at the
+static u32 gpgga_msg_rate = 0; /* By design GGA should be output at the
                                   solution rate. */
 static u32 gpgsv_msg_rate = 10;
-static u32 gprmc_msg_rate = 10;
-static u32 gpvtg_msg_rate = 1;
-static u32 gphdt_msg_rate = 1;
-static u32 gpgll_msg_rate = 10;
-static u32 gpzda_msg_rate = 10;
-static u32 gsa_msg_rate = 10;
+static u32 gprmc_msg_rate = 0;
+static u32 gpvtg_msg_rate = 0;
+static u32 gphdt_msg_rate = 0;
+static u32 gpgll_msg_rate = 0;
+static u32 gpzda_msg_rate = 0;
+static u32 gsa_msg_rate = 0;
 
 /** \addtogroup io
  * \{ */
@@ -151,14 +151,7 @@ static void nmea_output(char *s, size_t size) {
 }
 
 void nmea_setup(void) {
-  SETTING("nmea", "gpgga_msg_rate", gpgga_msg_rate, TYPE_INT);
   SETTING("nmea", "gpgsv_msg_rate", gpgsv_msg_rate, TYPE_INT);
-  SETTING("nmea", "gprmc_msg_rate", gprmc_msg_rate, TYPE_INT);
-  SETTING("nmea", "gpvtg_msg_rate", gpvtg_msg_rate, TYPE_INT);
-  SETTING("nmea", "gphdt_msg_rate", gphdt_msg_rate, TYPE_INT);
-  SETTING("nmea", "gpgll_msg_rate", gpgll_msg_rate, TYPE_INT);
-  SETTING("nmea", "gpzda_msg_rate", gpzda_msg_rate, TYPE_INT);
-  SETTING("nmea", "gsa_msg_rate", gsa_msg_rate, TYPE_INT);
 }
 
 /** Calculate and append the checksum of an NMEA sentence.
