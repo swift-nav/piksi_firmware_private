@@ -606,7 +606,7 @@ static const state_table_t mode_10ms_sc4 = {
     {2, TPF_EPL_SET  | TPF_CN0_SET | TPF_DATAPILOT_ADD | TPF_PLD_SET | TPF_FLL_SET |
                                      TPF_DATAPILOT_UPD},
     {4, TPF_EPL_ADD  | TPF_CN0_ADD | TPF_DATAPILOT_SET | TPF_PLD_ADD | TPF_FLL_ADD |
-        TPF_EPL_ADD  |               TPF_DATAPILOT_UPD |               TPF_FLL_USE},
+                                     TPF_DATAPILOT_UPD |               TPF_FLL_USE},
 
     {4, TPF_EPL_ADD  | TPF_CN0_ADD | TPF_DATAPILOT_SET | TPF_PLD_ADD | TPF_FLL_SET |
         TPF_EPL_USE  | TPF_CN0_USE | TPF_DATAPILOT_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN},
@@ -676,7 +676,7 @@ static const state_table_t mode_10ms_10ms = {
 /**
  * 10 ms integrations for GLO (base station profile)
  */
-static const state_table_t mode_20ms_10ms_base = {
+static const state_table_t mode_10ms_10ms_base = {
   .cn0_ms = 10,
   .lockdet_ms = 5,
   .alias_ms = 0, /* not used */
@@ -697,7 +697,7 @@ static const state_table_t mode_20ms_10ms_base = {
         TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN},
 
     {5, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET |
-        TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE |
+                                                    TPF_PLD_USE | TPF_FLL_USE |
                                                                   TPF_FLL_HALFQ},
 
     {5, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_SET | TPF_FLL_SET |
@@ -812,7 +812,7 @@ static const state_table_t mode_20ms_sc4 = {
 };
 
 /**
- * 20 ms integrations for Galileo I/NAV
+ * 20 ms integrations for Galileo I/NAV  (base station profile)
  */
 static const state_table_t mode_20ms_sc4_base = {
   .cn0_ms = 10,
@@ -1076,7 +1076,7 @@ static const state_table_t *tracking_table_lut[TP_TM_COUNT] =
      [TP_TM_2MS_10MS] = &mode_2ms_10ms,
      [TP_TM_5MS_10MS] = &mode_5ms_10ms,
      [TP_TM_10MS_10MS] = &mode_10ms_10ms,
-     [TP_TM_10MS_10MS_BASE] = &mode_20ms_10ms_base,
+     [TP_TM_10MS_10MS_BASE] = &mode_10ms_10ms_base,
      [TP_TM_200MS_10MS] = &mode_200ms_10ms,
 
      [TP_TM_1MS_20MS] = &mode_1ms_20ms,
@@ -1114,6 +1114,7 @@ static const state_table_t *select_table(tp_tm_e tracking_mode) {
       (NULL == tracking_table_lut[tracking_mode])) {
     log_error("tracking mode %d is not initialized", tracking_mode);
     assert(0);
+    return NULL;
   }
   return tracking_table_lut[tracking_mode];
 }
@@ -1394,7 +1395,7 @@ static const char *tracking_table_str_lut[TP_TM_COUNT] =
  * @return Mode literal
  */
 const char *tp_get_mode_str(tp_tm_e tracking_mode) {
-  const char *str = "?";
+  static const char *str = "?";
   if ((TP_TM_COUNT <= tracking_mode) ||
       (NULL == tracking_table_str_lut[tracking_mode])) {
     log_error("tracking mode %d is not described", tracking_mode);
