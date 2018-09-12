@@ -433,7 +433,7 @@ static const tp_profile_entry_t tracker_profiles_base[] = {
 
   [IDX_20MS] =
   { {    8,             0,           .25,   TP_CTRL_PLL2,
-      TP_TM_20MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS,  TP_TM_20MS_NH20MS,  TP_TM_20MS_SC4 },
+      TP_TM_20MS_20MS_BASE,  TP_TM_10MS_10MS_BASE,  TP_TM_2MS_2MS,  TP_TM_20MS_NH20MS,  TP_TM_20MS_SC4_BASE },
       TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
         40,             0,            0,
       IDX_20MS,  IDX_NONE,     IDX_NONE,
