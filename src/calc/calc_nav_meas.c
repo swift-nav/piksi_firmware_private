@@ -15,6 +15,7 @@
 
 #include "calc_nav_meas.h"
 #include "me_constants.h"
+#include "nav_msg/cnav_msg_storage.h"
 #include "track/track_sid_db.h"
 
 #include <libswiftnav/coord_system.h>
@@ -228,12 +229,14 @@ static bool get_isc_corr(const code_t code,
  */
 void apply_gps_cnav_isc(u8 n_channels,
                         navigation_measurement_t *nav_meas[],
-                        const cnav_msg_type_30_t *p_cnav_30[],
                         const ephemeris_t *p_ephe[]) {
   u8 i = 0;
   for (i = 0; i < n_channels; i++) {
     double isc;
-    if (get_isc_corr(nav_meas[i]->sid.code, p_cnav_30[i], &isc)) {
+    cnav_msg_t cnav_msg;
+    /* get GPS inter-signal corrections from CNAV messages */
+    if (cnav_msg_get(nav_meas[i]->sid, CNAV_MSG_TYPE_30, &cnav_msg) &&
+        get_isc_corr(nav_meas[i]->sid.code, &cnav_msg.data.type_30, &isc)) {
       /* remove the already applied TGD correction */
       isc += get_tgd_correction(p_ephe[i], &nav_meas[i]->sid) * GPS_C;
       /* apply the new minus old */

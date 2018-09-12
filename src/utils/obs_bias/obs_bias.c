@@ -124,6 +124,7 @@ void apply_isc_table(u8 n_channels, navigation_measurement_t *nav_meas[]) {
 
     nav_meas[i]->pseudorange += pseudorange_corr;
     nav_meas[i]->raw_pseudorange += pseudorange_corr;
+    nav_meas[i]->carrier_phase += carrier_phase_corr;
     nav_meas[i]->raw_carrier_phase += carrier_phase_corr;
   }
 }
