@@ -213,13 +213,13 @@ void track_cn0_init(const me_gnss_signal_t mesid,
  * Updates C/N0 estimator.
  *
  * \param[in,out] e      Estimator state.
- * \param[in]     int_ms Integration time [ms]
+ * \param[in]     cn0_ms CN0 integration time [ms]
  * \param[in]     I      In-phase component.
  * \param[in]     Q      Quadrature component.
  *
  * \return Filtered estimator value.
  */
-float track_cn0_update(track_cn0_state_t *e, u8 int_ms, float I, float Q) {
+float track_cn0_update(track_cn0_state_t *e, u8 cn0_ms, float I, float Q) {
   track_cn0_params_t p;
   const track_cn0_params_t *pp = track_cn0_get_params(e->cn0_ms, &p);
 
@@ -229,7 +229,7 @@ float track_cn0_update(track_cn0_state_t *e, u8 int_ms, float I, float Q) {
 
   if (e->cn0_raw_dbhz < THRESH_SENS_DBHZ) {
     if (e->weak_signal_ms < SECS_MS) { /* to avoid wrapping to 0 */
-      e->weak_signal_ms += int_ms;
+      e->weak_signal_ms += cn0_ms;
     }
   } else {
     e->weak_signal_ms = 0;

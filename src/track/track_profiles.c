@@ -30,10 +30,10 @@
 #include "track/track_common.h"
 #include "track/track_flags.h"
 
-/* 35ms is a result of experimenting.
+/* 100ms is a result of experimenting.
    The threshold is needed to avoid spontaneous transitions
    to sensitivity profile, when signal is reasonably strong */
-#define TP_WEAK_SIGNAL_THRESHOLD_MS 35
+#define TP_WEAK_SIGNAL_THRESHOLD_MS 100
 
 /** Unknown delay indicator */
 #define TP_DELAY_UNKNOWN -1
@@ -845,21 +845,16 @@ static bool low_cn0_profile_switch_requested(tracker_t *tracker) {
     return false;
   }
 
-  if (tracker->cn0_est.weak_signal_ms > 0) {
-    if ((state->filt_cn0 > THRESH_20MS_DBHZ) &&
-        profile_switch_requested(tracker, IDX_SENS, "low cn0: instant")) {
-      /* filt_cn0 reports a reasonably strong signal, but
-         weak_signal_ms derived from raw CN0 says there is no signal.
-         So we expedite the transition to sensitivity profile. */
-      return true;
-    }
-    if ((tracker->cn0_est.weak_signal_ms >= TP_WEAK_SIGNAL_THRESHOLD_MS) &&
-        profile_switch_requested(tracker, IDX_SENS, "low cn0: delay")) {
-      return true;
-    }
+  if ((tracker->cn0_est.weak_signal_ms > 0) &&
+      (state->filt_cn0 > THRESH_20MS_DBHZ) &&
+      profile_switch_requested(tracker, IDX_SENS, "low cn0: instant")) {
+    /* filt_cn0 reports a reasonably strong signal, but
+       weak_signal_ms derived from raw CN0 says there is no signal.
+       So we expedite the transition to sensitivity profile. */
+    return true;
   }
-  if ((state->filt_cn0 < THRESH_SENS_DBHZ) &&
-      profile_switch_requested(tracker, IDX_SENS, "low cn0: sens")) {
+  if ((tracker->cn0_est.weak_signal_ms >= TP_WEAK_SIGNAL_THRESHOLD_MS) &&
+      profile_switch_requested(tracker, IDX_SENS, "low cn0: delay")) {
     return true;
   }
   return false;
