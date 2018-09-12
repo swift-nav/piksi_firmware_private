@@ -16,10 +16,10 @@
 #include <libsbp/navigation.h>
 #include <libsbp/observation.h>
 #include <libsbp/system.h>
+#include <libswiftnav/observation.h>
 #include <swiftnav/common.h>
 #include <swiftnav/gnss_time.h>
 #include <swiftnav/nav_meas.h>
-#include <libswiftnav/observation.h>
 #include <swiftnav/single_epoch_solver.h>
 
 #include <ch.h>

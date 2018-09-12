@@ -13,13 +13,13 @@
 #include <assert.h>
 #include <string.h>
 
+#include <piksi_systime.h>
+#include <sbp.h>
+#include <sbp_utils.h>
 #include <swiftnav/constants.h>
 #include <swiftnav/linear_algebra.h>
 #include <swiftnav/logging.h>
 #include <swiftnav/memcpy_s.h>
-#include <piksi_systime.h>
-#include <sbp.h>
-#include <sbp_utils.h>
 
 #include "ndb.h"
 #include "ndb_fs_access.h"

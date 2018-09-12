@@ -11,9 +11,9 @@
  */
 
 #include <assert.h>
-#include <swiftnav/logging.h>
 #include <math.h>
 #include <string.h>
+#include <swiftnav/logging.h>
 
 #include "cn0_est_common.h"
 

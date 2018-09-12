@@ -14,12 +14,12 @@
 #include <ch.h>
 #include <string.h>
 
-#include <swiftnav/coord_system.h>
-#include <swiftnav/linear_algebra.h>
-#include <swiftnav/memcpy_s.h>
 #include <libswiftnav/pvt_engine/vehicle_dynamics_filter.h>
 #include <starling/starling.h>
 #include <starling/starling_platform.h>
+#include <swiftnav/coord_system.h>
+#include <swiftnav/linear_algebra.h>
+#include <swiftnav/memcpy_s.h>
 
 #include "calc/calc_pvt_common.h"
 #include "calc/calc_pvt_me.h"

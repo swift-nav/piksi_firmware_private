@@ -17,19 +17,19 @@
 #include <ch.h>
 
 #include <libsbp/sbp.h>
+#include <libswiftnav/observation.h>
+#include <libswiftnav/pvt_engine/firmware_binding.h>
+#include <starling/starling_platform.h>
 #include <swiftnav/constants.h>
 #include <swiftnav/coord_system.h>
 #include <swiftnav/ephemeris.h>
 #include <swiftnav/linear_algebra.h>
 #include <swiftnav/logging.h>
 #include <swiftnav/memcpy_s.h>
-#include <libswiftnav/observation.h>
-#include <libswiftnav/pvt_engine/firmware_binding.h>
 #include <swiftnav/sbas_raw_data.h>
 #include <swiftnav/sid_set.h>
 #include <swiftnav/single_epoch_solver.h>
 #include <swiftnav/troposphere.h>
-#include <starling/starling_platform.h>
 
 #include "calc_base_obs.h"
 #include "calc_pvt_common.h"

@@ -11,9 +11,9 @@
  */
 
 #include <assert.h>
-#include <swiftnav/glo_map.h>
 #include <manage.h>
 #include <sbp_utils.h>
+#include <swiftnav/glo_map.h>
 #include "reacq_sbp_utility.h"
 #include "search_manager_api.h"
 

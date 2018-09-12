@@ -11,8 +11,8 @@
  */
 
 #include <libsbp/sbp.h>
-#include <swiftnav/logging.h>
 #include <string.h>
+#include <swiftnav/logging.h>
 #include "ndb.h"
 #include "ndb_fs_access.h"
 #include "ndb_internal.h"
