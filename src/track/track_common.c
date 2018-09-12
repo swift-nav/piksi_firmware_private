@@ -182,10 +182,12 @@ void tp_profile_apply_config(tracker_t *tracker, bool init) {
     tp_cn0_thres_t cn0_thres;
     tp_profile_get_cn0_thres(&tracker->profile, &cn0_thres);
 
+    bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
+
     float cn0_t;
     float cn0_0;
 
-    if (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED)) {
+    if (confirmed) {
       cn0_t = cn0_0 = tracker->cn0;
     } else {
       /* When confirmation is required, set C/N0 near drop threshold and
@@ -198,9 +200,10 @@ void tp_profile_apply_config(tracker_t *tracker, bool init) {
     track_cn0_init(mesid,             /* ME signal for logging */
                    cn0_ms,            /* C/N0 period in ms */
                    &tracker->cn0_est, /* C/N0 estimator state */
-                   cn0_0);            /* Initial C/N0 value */
+                   cn0_0,             /* Initial C/N0 value */
+                   init);             /* Init estimator */
 
-    if (0 == (tracker->flags & TRACKER_FLAG_CONFIRMED)) {
+    if (!confirmed) {
       tracker->cn0_est.cn0_0 = cn0_t;
       tracker->cn0 = cn0_t;
     }
@@ -627,7 +630,8 @@ static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
     track_cn0_init(tracker->mesid,          /* ME signal */
                    tracker->cn0_est.cn0_ms, /* C/N0 period in ms */
                    &tracker->cn0_est,       /* C/N0 estimator state */
-                   cn0);                    /* Initial C/N0 value */
+                   cn0,                     /* Initial C/N0 value */
+                   false);                  /* Init estimator */
   }
 
   if (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED)) {
