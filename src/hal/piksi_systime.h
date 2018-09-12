@@ -15,7 +15,7 @@
 
 #include <ch.h>
 
-#include <libswiftnav/common.h>
+#include <swiftnav/common.h>
 
 #include "chconf.h"
 

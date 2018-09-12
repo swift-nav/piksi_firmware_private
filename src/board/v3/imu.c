@@ -20,8 +20,8 @@
 #include <hal.h>
 #include <libsbp/imu.h>
 #include <libsbp/mag.h>
-#include <libswiftnav/gnss_time.h>
-#include <libswiftnav/logging.h>
+#include <swiftnav/gnss_time.h>
+#include <swiftnav/logging.h>
 #include <math.h>
 #include <sbp.h>
 

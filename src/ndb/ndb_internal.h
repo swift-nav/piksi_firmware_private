@@ -13,9 +13,10 @@
 #ifndef SRC_NDB_INTERNAL_H_
 #define SRC_NDB_INTERNAL_H_
 
-#include <libswiftnav/common.h>
-#include <libswiftnav/signal.h>
 #include <ndb/ndb_common.h>
+#include <stdbool.h>
+#include <swiftnav/common.h>
+#include <swiftnav/signal.h>
 
 #define MAX_NDB_FILE_VERSION_LEN 64
 extern u8 ndb_file_version[MAX_NDB_FILE_VERSION_LEN];

@@ -12,7 +12,7 @@
 #include <assert.h>
 #include <ch.h>
 
-#include <libswiftnav/logging.h>
+#include <swiftnav/logging.h>
 
 #include "axi_dma.h"
 #include "nap_constants.h"

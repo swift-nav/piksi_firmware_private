@@ -13,7 +13,7 @@
 #ifndef TRACK_FLAGS_H
 #define TRACK_FLAGS_H
 
-#include <libswiftnav/signal.h>
+#include <swiftnav/signal.h>
 
 #include "tracker.h"
 

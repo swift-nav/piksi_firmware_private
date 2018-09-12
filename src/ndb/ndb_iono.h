@@ -13,7 +13,7 @@
 #ifndef SRC_NDB_IONO_H_
 #define SRC_NDB_IONO_H_
 
-#include <libswiftnav/ionosphere.h>
+#include <swiftnav/ionosphere.h>
 #include <ndb/ndb_common.h>
 
 void ndb_iono_init(void);

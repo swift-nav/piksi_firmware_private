@@ -13,11 +13,12 @@
  */
 #include <assert.h>
 #include <ch.h>
-#include <libswiftnav/ephemeris.h>
-#include <libswiftnav/glo_map.h>
-#include <libswiftnav/linear_algebra.h>
-#include <libswiftnav/logging.h>
+#include <inttypes.h>
 #include <string.h>
+#include <swiftnav/ephemeris.h>
+#include <swiftnav/glo_map.h>
+#include <swiftnav/linear_algebra.h>
+#include <swiftnav/logging.h>
 
 #include "ephemeris.h"
 #include "ndb/ndb.h"

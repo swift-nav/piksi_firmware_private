@@ -13,7 +13,8 @@
 #ifndef SWIFTNAV_ANTENNA_H
 #define SWIFTNAV_ANTENNA_H
 
-#include <libswiftnav/common.h>
+#include <stdbool.h>
+#include <swiftnav/common.h>
 
 void antenna_init(void);
 

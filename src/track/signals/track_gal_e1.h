@@ -12,7 +12,7 @@
 #ifndef TRACK_GAL_E1_H
 #define TRACK_GAL_E1_H
 
-#include <libswiftnav/common.h>
+#include <swiftnav/common.h>
 
 #ifdef __cplusplus
 extern "C" {

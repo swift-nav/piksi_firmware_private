@@ -15,7 +15,7 @@
 
 #include "nav_msg/cnav_msg.h"
 
-#include <libswiftnav/signal.h>
+#include <swiftnav/signal.h>
 
 #ifdef __cplusplus
 extern "C" {

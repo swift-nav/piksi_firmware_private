@@ -10,9 +10,9 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <libswiftnav/coord_system.h>
-#include <libswiftnav/linear_algebra.h>
-#include <libswiftnav/signal.h>
+#include <swiftnav/coord_system.h>
+#include <swiftnav/linear_algebra.h>
+#include <swiftnav/signal.h>
 
 #include "sbas_select.h"
 

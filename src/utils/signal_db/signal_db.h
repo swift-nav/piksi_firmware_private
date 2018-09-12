@@ -14,8 +14,9 @@
 #ifndef SWIFTNAV_SIGNAL_H
 #define SWIFTNAV_SIGNAL_H
 
-#include <libswiftnav/common.h>
-#include <libswiftnav/signal.h>
+#include <stdbool.h>
+#include <swiftnav/common.h>
+#include <swiftnav/signal.h>
 
 #include "platform_signal.h"
 

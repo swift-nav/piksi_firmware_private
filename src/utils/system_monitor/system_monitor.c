@@ -10,16 +10,16 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <string.h>
-
 #include <hal.h>
+#include <inttypes.h>
+#include <string.h>
 
 #include <libsbp/system.h>
 #include <libsbp/version.h>
-#include <libswiftnav/constants.h>
-#include <libswiftnav/coord_system.h>
-#include <libswiftnav/linear_algebra.h>
-#include <libswiftnav/logging.h>
+#include <swiftnav/constants.h>
+#include <swiftnav/coord_system.h>
+#include <swiftnav/linear_algebra.h>
+#include <swiftnav/logging.h>
 
 #include "board.h"
 #include "board/nap/nap_common.h"

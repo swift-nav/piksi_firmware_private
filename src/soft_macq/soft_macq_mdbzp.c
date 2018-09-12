@@ -4,8 +4,8 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <libswiftnav/constants.h>
-#include <libswiftnav/logging.h>
+#include <swiftnav/constants.h>
+#include <swiftnav/logging.h>
 
 #include "lib/fixed_fft_r2.h"
 #include "soft_macq_defines.h"

@@ -11,21 +11,22 @@
  */
 #include <assert.h>
 #include <float.h>
+#include <inttypes.h>
 #include <stdio.h>
 
 #include <libsbp/sbp.h>
-#include <libswiftnav/constants.h>
-#include <libswiftnav/correct_iono_tropo.h>
-#include <libswiftnav/ephemeris.h>
-#include <libswiftnav/logging.h>
-#include <libswiftnav/memcpy_s.h>
 #include <libswiftnav/observation.h>
 #include <libswiftnav/pvt_engine/firmware_binding.h>
-#include <libswiftnav/sid_set.h>
-#include <libswiftnav/single_epoch_solver.h>
-#include <libswiftnav/troposphere.h>
 #include <starling/starling.h>
 #include <starling/starling_platform.h>
+#include <swiftnav/constants.h>
+#include <swiftnav/correct_iono_tropo.h>
+#include <swiftnav/ephemeris.h>
+#include <swiftnav/logging.h>
+#include <swiftnav/memcpy_s.h>
+#include <swiftnav/sid_set.h>
+#include <swiftnav/single_epoch_solver.h>
+#include <swiftnav/troposphere.h>
 
 #include "board/nap/track_channel.h"
 #include "calc_nav_meas.h"

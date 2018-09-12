@@ -18,18 +18,18 @@
 #include <string.h>
 
 #include <libsbp/sbp.h>
-#include <libswiftnav/constants.h>
-#include <libswiftnav/coord_system.h>
-#include <libswiftnav/ephemeris.h>
-#include <libswiftnav/linear_algebra.h>
-#include <libswiftnav/logging.h>
-#include <libswiftnav/memcpy_s.h>
+#include <swiftnav/constants.h>
+#include <swiftnav/coord_system.h>
+#include <swiftnav/ephemeris.h>
+#include <swiftnav/linear_algebra.h>
+#include <swiftnav/logging.h>
+#include <swiftnav/memcpy_s.h>
 #include <libswiftnav/observation.h>
 #include <libswiftnav/pvt_engine/firmware_binding.h>
-#include <libswiftnav/sbas_raw_data.h>
-#include <libswiftnav/sid_set.h>
-#include <libswiftnav/single_epoch_solver.h>
-#include <libswiftnav/troposphere.h>
+#include <swiftnav/sbas_raw_data.h>
+#include <swiftnav/sid_set.h>
+#include <swiftnav/single_epoch_solver.h>
+#include <swiftnav/troposphere.h>
 #include <starling/starling_platform.h>
 
 #include "calc_base_obs.h"

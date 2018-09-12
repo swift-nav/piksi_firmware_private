@@ -11,12 +11,12 @@
  */
 
 #include <assert.h>
+#include <inttypes.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include <libswiftnav/logging.h>
+#include <swiftnav/logging.h>
 
 #include "fixed_fft_r2.h"
 

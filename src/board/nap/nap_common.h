@@ -15,8 +15,9 @@
 #define SWIFTNAV_NAP_COMMON_H
 
 #include <ch.h>
+#include <stdbool.h>
 
-#include <libswiftnav/common.h>
+#include <swiftnav/common.h>
 
 #include "ext_events/ext_events.h"
 #include "nap/nap_constants.h"

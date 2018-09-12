@@ -17,11 +17,11 @@
 #include <string.h>
 
 #include <assert.h>
-#include <libswiftnav/almanac.h>
-#include <libswiftnav/constants.h>
-#include <libswiftnav/coord_system.h>
-#include <libswiftnav/gnss_time.h>
-#include <libswiftnav/linear_algebra.h>
+#include <swiftnav/almanac.h>
+#include <swiftnav/constants.h>
+#include <swiftnav/coord_system.h>
+#include <swiftnav/gnss_time.h>
+#include <swiftnav/linear_algebra.h>
 
 #include "settings/settings.h"
 

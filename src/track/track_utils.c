@@ -12,7 +12,7 @@
 
 #include <string.h>
 
-#include <libswiftnav/nav_meas.h>
+#include <swiftnav/nav_meas.h>
 
 #include "board/nap/track_channel.h"
 #include "calc/calc_nav_meas.h"

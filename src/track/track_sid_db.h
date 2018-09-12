@@ -13,7 +13,7 @@
 #ifndef SWIFTNAV_TRACK_SID_DB_H_
 #define SWIFTNAV_TRACK_SID_DB_H_
 
-#include <libswiftnav/signal.h>
+#include <swiftnav/signal.h>
 
 #include "ephemeris/ephemeris.h"
 #include "tracker.h"

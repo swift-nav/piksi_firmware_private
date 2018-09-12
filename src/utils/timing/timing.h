@@ -13,10 +13,10 @@
 #ifndef SWIFTNAV_TIME_H
 #define SWIFTNAV_TIME_H
 
-#include <libswiftnav/common.h>
-#include <libswiftnav/gnss_time.h>
-#include <libswiftnav/signal.h>
-#include <libswiftnav/single_epoch_solver.h>
+#include <swiftnav/common.h>
+#include <swiftnav/gnss_time.h>
+#include <swiftnav/signal.h>
+#include <swiftnav/single_epoch_solver.h>
 
 #include "nap/nap_constants.h"
 

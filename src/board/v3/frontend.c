@@ -13,7 +13,7 @@
 
 #include <ch.h>
 #include <hal.h>
-#include <libswiftnav/logging.h>
+#include <swiftnav/logging.h>
 
 #include "frontend.h"
 #include "nt1065.h"

@@ -17,7 +17,7 @@
 #include <assert.h>
 #include <string.h>
 
-#include <libswiftnav/constants.h>
+#include <swiftnav/constants.h>
 
 /** \defgroup signal GNSS signal identifiers (SID)
  * \{ */

@@ -17,11 +17,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <libswiftnav/constants.h>
-#include <libswiftnav/glo_map.h>
-#include <libswiftnav/logging.h>
-#include <libswiftnav/memcpy_s.h>
 #include <libswiftnav/pvt_engine/firmware_binding.h>
+#include <swiftnav/constants.h>
+#include <swiftnav/glo_map.h>
+#include <swiftnav/logging.h>
+#include <swiftnav/memcpy_s.h>
 
 #include "ndb/ndb.h"
 #include "sbp_utils.h"
@@ -1287,6 +1287,32 @@ void sbp_init_vel_ned_cov(msg_vel_ned_cov_t *vel_ned_cov, gps_time_t *t) {
   if (gps_time_valid(t)) {
     vel_ned_cov->tow = round_tow_ms(t->tow);
   }
+}
+
+void sbp_unpack_glonass_biases_content(const msg_glo_biases_t msg,
+                                       glo_biases_t *glonass_biases) {
+  glonass_biases->mask = ((u8)msg.mask);
+  glonass_biases->l1of_bias_m =
+      ((double)msg.l1ca_bias / MSG_GLO_BIASES_MULTIPLIER);
+  glonass_biases->l1p_bias_m =
+      ((double)msg.l1p_bias / MSG_GLO_BIASES_MULTIPLIER);
+  glonass_biases->l2of_bias_m =
+      ((double)msg.l2ca_bias / MSG_GLO_BIASES_MULTIPLIER);
+  glonass_biases->l2p_bias_m =
+      ((double)msg.l2p_bias / MSG_GLO_BIASES_MULTIPLIER);
+}
+
+void sbp_pack_glonass_biases_content(const glo_biases_t glonass_biases,
+                                     msg_glo_biases_t *msg) {
+  msg->mask = ((u8)glonass_biases.mask);
+  msg->l1ca_bias =
+      (s16)round(glonass_biases.l1of_bias_m * MSG_GLO_BIASES_MULTIPLIER);
+  msg->l1p_bias =
+      (s16)round(glonass_biases.l1p_bias_m * MSG_GLO_BIASES_MULTIPLIER);
+  msg->l2ca_bias =
+      (s16)round(glonass_biases.l2of_bias_m * MSG_GLO_BIASES_MULTIPLIER);
+  msg->l2p_bias =
+      (s16)round(glonass_biases.l2p_bias_m * MSG_GLO_BIASES_MULTIPLIER);
 }
 
 /** \} */

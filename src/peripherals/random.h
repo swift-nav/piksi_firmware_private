@@ -13,7 +13,7 @@
 #ifndef SWIFTNAV_RANDOM_H
 #define SWIFTNAV_RANDOM_H
 
-#include "libswiftnav/common.h"
+#include "swiftnav/common.h"
 
 void rng_setup(void);
 u32 random_int(void);

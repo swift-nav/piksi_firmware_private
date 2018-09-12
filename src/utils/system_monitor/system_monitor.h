@@ -13,7 +13,9 @@
 #ifndef SWIFTNAV_SYSTEM_MONITOR_H
 #define SWIFTNAV_SYSTEM_MONITOR_H
 
-#include <libswiftnav/common.h>
+#include <swiftnav/common.h>
+
+#define SPP_BASE_STATION_DIFFERENCE_WARNING_THRESHOLD 50.0
 
 void system_monitor_setup(void);
 

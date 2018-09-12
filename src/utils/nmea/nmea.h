@@ -15,9 +15,9 @@
 
 #include <libsbp/navigation.h>
 #include <libsbp/orientation.h>
-#include <libswiftnav/common.h>
-#include <libswiftnav/gnss_time.h>
-#include <libswiftnav/single_epoch_solver.h>
+#include <swiftnav/common.h>
+#include <swiftnav/gnss_time.h>
+#include <swiftnav/single_epoch_solver.h>
 
 #define FULL_CIRCLE_DEG 360.0f
 

@@ -15,10 +15,10 @@
 
 #include "nav_msg/cnav_msg.h"
 
-#include <libswiftnav/common.h>
-#include <libswiftnav/ephemeris.h>
-#include <libswiftnav/ionosphere.h>
-#include <libswiftnav/nav_meas.h>
+#include <swiftnav/common.h>
+#include <swiftnav/ephemeris.h>
+#include <swiftnav/ionosphere.h>
+#include <swiftnav/nav_meas.h>
 #include <starling/starling.h>
 
 #ifdef __cplusplus

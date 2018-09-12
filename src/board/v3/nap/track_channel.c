@@ -25,12 +25,13 @@
 
 #include <ch.h>
 
-#include <libswiftnav/bits.h>
-#include <libswiftnav/common.h>
-#include <libswiftnav/constants.h>
-#include <libswiftnav/signal.h>
+#include <swiftnav/bits.h>
+#include <swiftnav/common.h>
+#include <swiftnav/constants.h>
+#include <swiftnav/signal.h>
 
 #include <assert.h>
+#include <inttypes.h>
 #include <string.h>
 
 #define TIMING_COMPARE_DELTA_MIN (1e-3 * NAP_TRACK_SAMPLE_RATE_Hz)

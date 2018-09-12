@@ -11,10 +11,11 @@
  */
 
 #include <assert.h>
-#include <libswiftnav/constants.h>
-#include <libswiftnav/gnss_time.h>
-#include <libswiftnav/logging.h>
+#include <inttypes.h>
 #include <string.h>
+#include <swiftnav/constants.h>
+#include <swiftnav/gnss_time.h>
+#include <swiftnav/logging.h>
 
 #include "decode.h"
 #include "decode_common.h"

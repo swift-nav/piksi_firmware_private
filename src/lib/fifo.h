@@ -13,7 +13,7 @@
 #ifndef SWIFTNAV_FIFO_H
 #define SWIFTNAV_FIFO_H
 
-#include <libswiftnav/common.h>
+#include <swiftnav/common.h>
 
 typedef enum { FIFO_MODE_STANDARD, FIFO_MODE_RECORD } fifo_mode_t;
 

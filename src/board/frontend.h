@@ -13,7 +13,7 @@
 #ifndef SWIFTNAV_FRONTEND_H
 #define SWIFTNAV_FRONTEND_H
 
-#include <libswiftnav/common.h>
+#include <swiftnav/common.h>
 
 void frontend_configure(void);
 void frontend_setup(void);

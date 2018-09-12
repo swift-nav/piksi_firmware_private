@@ -1,7 +1,7 @@
 #include <assert.h>
 
 #include <libswiftnav/pvt_engine/firmware_binding.h>
-#include <libswiftnav/single_epoch_solver.h>
+#include <swiftnav/single_epoch_solver.h>
 
 #include "calc_pvt_common.h"
 

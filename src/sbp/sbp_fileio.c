@@ -12,14 +12,15 @@
 
 #include <alloca.h>
 #include <assert.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
 
 #include <ch.h>
 
 #include <libsbp/file_io.h>
-#include <libswiftnav/logging.h>
-#include <libswiftnav/memcpy_s.h>
+#include <swiftnav/logging.h>
+#include <swiftnav/memcpy_s.h>
 
 #include "sbp.h"
 #include "sbp_fileio.h"

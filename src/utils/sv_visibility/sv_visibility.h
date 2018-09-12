@@ -13,11 +13,12 @@
 #ifndef SWIFTNAV_SV_VISIBILITY_H_
 #define SWIFTNAV_SV_VISIBILITY_H_
 
-#include <libswiftnav/common.h>
-#include <libswiftnav/constants.h>
-#include <libswiftnav/coord_system.h>
-#include <libswiftnav/ephemeris.h>
-#include <libswiftnav/signal.h>
+#include <stdbool.h>
+#include <swiftnav/common.h>
+#include <swiftnav/constants.h>
+#include <swiftnav/coord_system.h>
+#include <swiftnav/ephemeris.h>
+#include <swiftnav/signal.h>
 
 #ifdef __cplusplus
 extern "C" {

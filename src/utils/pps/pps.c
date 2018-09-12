@@ -14,8 +14,8 @@
 
 #include <ch.h>
 
-#include <libswiftnav/gnss_time.h>
-#include <libswiftnav/logging.h>
+#include <swiftnav/gnss_time.h>
+#include <swiftnav/logging.h>
 
 #include "board/nap/nap_common.h"
 #include "main.h"

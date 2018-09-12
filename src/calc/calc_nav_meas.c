@@ -18,11 +18,11 @@
 #include "nav_msg/cnav_msg_storage.h"
 #include "track/track_sid_db.h"
 
-#include <libswiftnav/coord_system.h>
+#include <swiftnav/coord_system.h>
 #include <libswiftnav/cycle_slip.h>
-#include <libswiftnav/ionosphere.h>
-#include <libswiftnav/linear_algebra.h>
-#include <libswiftnav/troposphere.h>
+#include <swiftnav/ionosphere.h>
+#include <swiftnav/linear_algebra.h>
+#include <swiftnav/troposphere.h>
 
 /* Warning threshold for the difference between TDCP and measured Doppler.
  * (85Hz threshold allows for max 1 ms error in the timestamp difference.) */

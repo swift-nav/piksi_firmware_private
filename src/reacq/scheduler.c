@@ -10,7 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 #include <assert.h>
-#include <libswiftnav/glo_map.h>
+#include <swiftnav/glo_map.h>
 #include "dum/dum.h"
 #include "manage.h"
 #include "scheduler_api.h"

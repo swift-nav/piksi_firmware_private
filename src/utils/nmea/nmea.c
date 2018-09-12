@@ -11,18 +11,19 @@
  */
 
 #include <assert.h>
+#include <inttypes.h>
 #include <math.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include <libswiftnav/array_tools.h>
-#include <libswiftnav/constants.h>
-#include <libswiftnav/coord_system.h>
-#include <libswiftnav/gnss_time.h>
-#include <libswiftnav/logging.h>
 #include <libswiftnav/pvt_engine/firmware_binding.h>
+#include <swiftnav/array_tools.h>
+#include <swiftnav/constants.h>
+#include <swiftnav/coord_system.h>
+#include <swiftnav/gnss_time.h>
+#include <swiftnav/logging.h>
 
 #include "board/nap/track_channel.h"
 #include "calc_pvt_me.h"

@@ -13,9 +13,9 @@
 #ifndef CLOCK_FILTER_H
 #define CLOCK_FILTER_H
 
-#include <libswiftnav/common.h>
-#include <libswiftnav/gnss_time.h>
-#include <libswiftnav/single_epoch_solver.h>
+#include <swiftnav/common.h>
+#include <swiftnav/gnss_time.h>
+#include <swiftnav/single_epoch_solver.h>
 
 typedef struct {
   u64 tc;               /**< NAP tick of the estimate */

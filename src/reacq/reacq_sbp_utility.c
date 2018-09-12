@@ -12,7 +12,7 @@
 
 #include "reacq_sbp_utility.h"
 #include <board/nap/nap_common.h>
-#include <libswiftnav/memcpy_s.h>
+#include <swiftnav/memcpy_s.h>
 #include <string.h>
 #include "timing/timing.h"
 

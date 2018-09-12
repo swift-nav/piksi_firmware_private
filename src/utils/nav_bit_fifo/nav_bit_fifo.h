@@ -13,9 +13,10 @@
 #ifndef SWIFTNAV_NAV_BIT_FIFO_H
 #define SWIFTNAV_NAV_BIT_FIFO_H
 
-#include <libswiftnav/common.h>
-#include <libswiftnav/memcpy_s.h>
-#include <libswiftnav/signal.h>
+#include <stdbool.h>
+#include <swiftnav/common.h>
+#include <swiftnav/memcpy_s.h>
+#include <swiftnav/signal.h>
 
 /* Maximum latency that can be accumulated by the FIFO for all constellations */
 #define MAX_NAV_BIT_LATENCY_MS 400

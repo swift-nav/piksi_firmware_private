@@ -3,6 +3,7 @@
 
 #include <math.h>
 #include <stdint.h>
+
 #include "lib/fixed_fft_r2.h"
 
 #define TWOPI (2.0 * M_PI)

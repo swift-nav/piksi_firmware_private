@@ -12,8 +12,8 @@
 
 #include "clock_filter.h"
 
-#include <libswiftnav/linear_algebra.h>
-#include <libswiftnav/logging.h>
+#include <swiftnav/linear_algebra.h>
+#include <swiftnav/logging.h>
 
 /** Process noise parameters for clock state Kalman filter.
  *  Determined empirically from the raw PVT solutions of several boards on HITL

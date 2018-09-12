@@ -257,7 +257,7 @@ INCDIR = $(STARTUPINC) $(PORTINC) $(KERNINC) \
          $(SWIFTNAV_ROOT)/libsbp/c/include \
          $(SWIFTNAV_ROOT)/libswiftnav/include \
          $(SWIFTNAV_ROOT)/libswiftnav/include/libswiftnav \
-         $(SWIFTNAV_ROOT)/libswiftnav/refactor/common \
+         $(SWIFTNAV_ROOT)/libswiftnav/third_party/libswiftnav/include \
          $(SWIFTNAV_ROOT)/src \
          $(SWIFTNAV_ROOT)/src/board \
          $(SWIFTNAV_ROOT)/libswiftnav/libfec/include \
@@ -356,11 +356,11 @@ DINCDIR =
 DLIBDIR = $(LIBSBP_BUILDDIR)/src \
           $(LIBSWIFTNAV_BUILDDIR)/src \
           $(LIBSWIFTNAV_BUILDDIR)/libfec \
-          $(LIBSWIFTNAV_BUILDDIR)/refactor/common \
+          $(LIBSWIFTNAV_BUILDDIR)/third_party/libswiftnav \
           $(BOARDLIBDIR)
 
 # List all default libraries here
-DLIBS = $(BOARDLIBS) -lsbp-static -lswiftnav -lswiftnav-common -lstarling\
+DLIBS = $(BOARDLIBS) -lsbp-static -lswiftnav -lswiftnav-private -lstarling\
         -lm -Wl,--start-group -lstdc++ -lc -Wl,--end-group -lfec -lnosys
 
 #

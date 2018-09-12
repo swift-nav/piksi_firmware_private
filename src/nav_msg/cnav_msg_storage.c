@@ -13,7 +13,7 @@
 #include "cnav_msg_storage.h"
 #include <assert.h>
 #include <ch.h>
-#include <libswiftnav/signal.h>
+#include <swiftnav/signal.h>
 #include <string.h>
 #include "shm/shm.h"
 

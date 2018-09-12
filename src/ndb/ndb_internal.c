@@ -11,12 +11,13 @@
  */
 #include "ndb_internal.h"
 #include <assert.h>
-#include <libswiftnav/edc.h>
-#include <libswiftnav/logging.h>
-#include <libswiftnav/memcpy_s.h>
+#include <inttypes.h>
 #include <nap/nap_common.h>
 #include <stdlib.h>
 #include <string.h>
+#include <swiftnav/edc.h>
+#include <swiftnav/logging.h>
+#include <swiftnav/memcpy_s.h>
 #include "libsbp/piksi.h"
 #include "ndb.h"
 #include "ndb_fs_access.h"

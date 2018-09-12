@@ -13,7 +13,7 @@
 #include <stdio.h>
 
 #include <libsbp/observation.h>
-#include <libswiftnav/common.h>
+#include <swiftnav/common.h>
 
 #include "gnss_capabilities.h"
 #include "ndb/ndb.h"

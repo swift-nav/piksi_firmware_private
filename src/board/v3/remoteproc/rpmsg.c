@@ -17,8 +17,8 @@
 
 #include <assert.h>
 
-#include <libswiftnav/common.h>
-#include <libswiftnav/logging.h>
+#include <swiftnav/common.h>
+#include <swiftnav/logging.h>
 
 #include <ch.h>
 #include <hal.h>

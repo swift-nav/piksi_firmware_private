@@ -10,7 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <libswiftnav/logging.h>
+#include <swiftnav/logging.h>
 
 #include "decode.h"
 #include "decode_common.h"

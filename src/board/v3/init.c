@@ -12,13 +12,13 @@
 
 #include <hal.h>
 
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include <libsbp/sbp.h>
-
-#include <libswiftnav/logging.h>
-#include <libswiftnav/memcpy_s.h>
+#include <swiftnav/logging.h>
+#include <swiftnav/memcpy_s.h>
 
 #include "board/nap/nap_common.h"
 #include "clk_dac.h"

@@ -11,7 +11,7 @@
  */
 
 #include <assert.h>
-#include <libswiftnav/glo_map.h>
+#include <swiftnav/glo_map.h>
 #include <manage.h>
 #include <sbp_utils.h>
 #include "reacq_sbp_utility.h"

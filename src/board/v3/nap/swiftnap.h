@@ -15,7 +15,7 @@
 #ifndef SWIFTNAP_H
 #define SWIFTNAP_H
 
-#include <libswiftnav/common.h>
+#include <swiftnav/common.h>
 
 /* Version */
 #define NAP_VERSION (0x04050000)

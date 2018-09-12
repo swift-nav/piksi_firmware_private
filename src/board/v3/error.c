@@ -18,7 +18,7 @@
 #include <string.h>
 
 #include <libsbp/sbp.h>
-#include <libswiftnav/logging.h>
+#include <swiftnav/logging.h>
 
 #include "peripherals/leds.h"
 #include "piksi_systime.h"

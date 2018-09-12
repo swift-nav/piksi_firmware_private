@@ -11,21 +11,22 @@
  */
 
 #include <assert.h>
+#include <inttypes.h>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include <libsbp/piksi.h>
-#include <libswiftnav/almanac.h>
-#include <libswiftnav/constants.h>
-#include <libswiftnav/coord_system.h>
-#include <libswiftnav/glo_map.h>
-#include <libswiftnav/gnss_time.h>
-#include <libswiftnav/linear_algebra.h>
-#include <libswiftnav/logging.h>
-#include <libswiftnav/memcpy_s.h>
-#include <libswiftnav/signal.h>
 #include <starling/starling.h>
+#include <swiftnav/almanac.h>
+#include <swiftnav/constants.h>
+#include <swiftnav/coord_system.h>
+#include <swiftnav/glo_map.h>
+#include <swiftnav/gnss_time.h>
+#include <swiftnav/linear_algebra.h>
+#include <swiftnav/logging.h>
+#include <swiftnav/memcpy_s.h>
+#include <swiftnav/signal.h>
 
 #include "board/nap/track_channel.h"
 #include "decode.h"

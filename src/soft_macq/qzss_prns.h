@@ -13,8 +13,8 @@
 #ifndef QZSS_PRNS_H
 #define QZSS_PRNS_H
 
-#include <libswiftnav/common.h>
-#include <libswiftnav/signal.h>
+#include <swiftnav/common.h>
+#include <swiftnav/signal.h>
 
 #include "prns.h"
 

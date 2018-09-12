@@ -13,7 +13,8 @@
 #ifndef SWIFTNAV_SETTINGS_H
 #define SWIFTNAV_SETTINGS_H
 
-#include <libswiftnav/common.h>
+#include <stdbool.h>
+#include <swiftnav/common.h>
 
 enum setting_types {
   TYPE_INT,

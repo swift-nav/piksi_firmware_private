@@ -13,7 +13,8 @@
 #ifndef LOCK_DETECTOR_H
 #define LOCK_DETECTOR_H
 
-#include <libswiftnav/common.h>
+#include <stdbool.h>
+#include <swiftnav/common.h>
 
 #ifdef __cplusplus
 extern "C" {

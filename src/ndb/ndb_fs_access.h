@@ -12,6 +12,7 @@
 #ifndef NDB_FS_ACCESS_H
 #define NDB_FS_ACCESS_H
 
+#include <stdbool.h>
 #include <stdlib.h>
 #include <sys/types.h>
 

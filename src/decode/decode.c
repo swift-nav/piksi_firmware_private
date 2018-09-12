@@ -13,8 +13,8 @@
 #include "decode.h"
 #include <assert.h>
 #include <ch.h>
-#include <libswiftnav/glo_map.h>
-#include <libswiftnav/logging.h>
+#include <swiftnav/glo_map.h>
+#include <swiftnav/logging.h>
 #include "signal_db/signal_db.h"
 #include "track/track_decode.h"
 

@@ -13,9 +13,9 @@
 #ifndef GRABBER_H
 #define GRABBER_H
 
-#include <libswiftnav/common.h>
-#include <libswiftnav/constants.h>
-#include <libswiftnav/signal.h>
+#include <swiftnav/common.h>
+#include <swiftnav/constants.h>
+#include <swiftnav/signal.h>
 
 #define GRABBER_LEN_LOG2_MAX (17)
 #define FIXED_GRABBER_LENGTH_DW (1 << GRABBER_LEN_LOG2_MAX)

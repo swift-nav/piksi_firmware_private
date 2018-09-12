@@ -12,7 +12,7 @@
 
 #include <libsbp/ext_events.h>
 #include <libsbp/navigation.h>
-#include <libswiftnav/logging.h>
+#include <swiftnav/logging.h>
 
 #include "board/nap/nap_common.h"
 #include "ext_events.h"

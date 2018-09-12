@@ -11,7 +11,7 @@
  */
 
 #include <assert.h>
-#include <libswiftnav/logging.h>
+#include <swiftnav/logging.h>
 #include <math.h>
 #include <string.h>
 

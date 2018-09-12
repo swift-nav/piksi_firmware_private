@@ -12,9 +12,9 @@
 #ifndef SBAS_SELECT_H
 #define SBAS_SELECT_H
 
-#include <libswiftnav/common.h>
-#include <libswiftnav/constants.h>
-#include <libswiftnav/signal.h>
+#include <swiftnav/common.h>
+#include <swiftnav/constants.h>
+#include <swiftnav/signal.h>
 
 #include "position/position.h"
 

@@ -12,7 +12,7 @@
 
 #include <assert.h>
 #include <libsbp/sbp.h>
-#include <libswiftnav/logging.h>
+#include <swiftnav/logging.h>
 #include <string.h>
 #include "ndb.h"
 #include "ndb_internal.h"

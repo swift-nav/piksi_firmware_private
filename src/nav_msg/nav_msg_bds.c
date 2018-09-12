@@ -10,9 +10,9 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 #include <assert.h>
+#include <inttypes.h>
 #include <string.h>
-
-#include <libswiftnav/bits.h>
+#include <swiftnav/bits.h>
 
 #include "ephemeris/ephemeris.h"
 #include "nav_msg/nav_msg_bds.h"

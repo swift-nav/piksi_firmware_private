@@ -14,9 +14,9 @@
 #include <ch.h>
 #include <string.h>
 
-#include <libswiftnav/coord_system.h>
-#include <libswiftnav/linear_algebra.h>
-#include <libswiftnav/memcpy_s.h>
+#include <swiftnav/coord_system.h>
+#include <swiftnav/linear_algebra.h>
+#include <swiftnav/memcpy_s.h>
 #include <libswiftnav/pvt_engine/vehicle_dynamics_filter.h>
 #include <starling/starling.h>
 #include <starling/starling_platform.h>

@@ -12,9 +12,10 @@
 
 #include <assert.h>
 #include <ch.h>
+#include <inttypes.h>
 
-#include <libswiftnav/constants.h>
-#include <libswiftnav/logging.h>
+#include <swiftnav/constants.h>
+#include <swiftnav/logging.h>
 
 #include "board/nap/track_channel.h"
 #include "decode.h"
