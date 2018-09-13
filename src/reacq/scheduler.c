@@ -28,7 +28,7 @@ u16 sm_constellation_to_start_index(constellation_t gnss);
 /* Scheduler constants */
 
 /** Avoid busy loop by sleeping if there are no jobs to run. */
-#define ACQ_SLEEP_TIMEOUT_MS 100
+#define ACQ_SLEEP_TIMEOUT_MS 10
 
 /** Initialize job cost
  *
