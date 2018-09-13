@@ -71,12 +71,15 @@ void tp_profile_get_cn0_thres(const tp_profile_t *profile,
 bool tp_profile_has_new_profile(tracker_t *tracker);
 void tp_profile_report_data(tp_profile_t *profile, const tp_report_t *data);
 
-u8 tp_next_cycle_counter(tp_tm_e tracking_mode, u8 cycle_no);
-u32 tp_get_cycle_flags(tracker_t *tracker, u8 cycle_no);
+u32 tp_get_cycle_flags(tracker_t *tracker, u16 cycle_no);
 
-u8 tp_get_cycle_count(tp_tm_e tracking_mode);
-u8 tp_get_current_cycle_duration(tp_tm_e tracking_mode, u8 cycle_no);
-u32 tp_get_rollover_cycle_duration(tp_tm_e tracking_mode, u8 cycle_no);
+u16 tp_get_cycle_count(tp_tm_e tracking_mode);
+u16 tp_calc_init_cycle_no(const tracker_t *tracker,
+                          tp_tm_e mode,
+                          u8 switch_after_ms);
+u8 tp_get_cycle_duration(tp_tm_e tracking_mode, u16 cycle_no);
+u16 tp_wrap_cycle(tp_tm_e tracking_mode, u16 cycle_no);
+
 u8 tp_get_cn0_ms(tp_tm_e tracking_mode);
 u8 tp_get_ld_ms(tp_tm_e tracking_mode);
 float tp_get_alias_ms(tp_tm_e tracking_mode);

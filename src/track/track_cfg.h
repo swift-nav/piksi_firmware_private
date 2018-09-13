@@ -15,15 +15,16 @@
 #define TPF_BSYNC_SET ((u32)1 << 2)
 #define TPF_BSYNC_ADD ((u32)1 << 3)
 #define TPF_BSYNC_UPD ((u32)1 << 4)
+#define TPF_BSYNC_INV ((u32)1 << 5) /* invert symbol data */
 
 /* C/N0 estimator control */
-#define TPF_CN0_SET ((u32)1 << 5)
-#define TPF_CN0_ADD ((u32)1 << 6)
-#define TPF_CN0_USE ((u32)1 << 7)
+#define TPF_CN0_SET ((u32)1 << 6)
+#define TPF_CN0_ADD ((u32)1 << 7)
+#define TPF_CN0_USE ((u32)1 << 8)
 
 /* FLL control */
-#define TPF_FLL_SET ((u32)1 << 8)
-#define TPF_FLL_ADD ((u32)1 << 9)
+#define TPF_FLL_SET ((u32)1 << 9)
+#define TPF_FLL_ADD ((u32)1 << 10)
 #define TPF_FLL_USE ((u32)1 << 11)
 #define TPF_FLL_HALFQ ((u32)1 << 12)
 

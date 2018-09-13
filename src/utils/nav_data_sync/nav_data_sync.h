@@ -18,11 +18,11 @@
 #include "shm/shm.h"
 
 typedef enum {
-  SYNC_NONE = 0,                               /**< Nothing to sync */
-  SYNC_POL = (1 << 0),                         /**< Sync data polarity */
-  SYNC_TOW = (1 << 1),                         /**< Sync TOW */
-  SYNC_EPH = (1 << 2),                         /**< Sync ephemeris parameters */
-  SYNC_ALL = (SYNC_POL | SYNC_TOW | SYNC_EPH), /**< Sync all */
+  SYNC_NONE = 0,             /**< Nothing to sync */
+  SYNC_POL = (1 << 0),       /**< Sync data polarity */
+  SYNC_TOW = (1 << 1),       /**< Sync TOW */
+  SYNC_EPH = (1 << 2),       /**< Sync ephemeris parameters */
+  SYNC_GLO_STRING = (1 << 3) /**< Sync GLO string */
 } decode_sync_flags_t;
 
 typedef struct {

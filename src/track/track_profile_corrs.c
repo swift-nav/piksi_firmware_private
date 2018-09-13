@@ -128,6 +128,11 @@ void tp_update_correlators(u32 cycle_flags,
   else if (0 != (cycle_flags & TPF_FLL_ADD))
     corr_state->corr_fll = corr_add(corr_state->corr_fll, cs_straight->prompt);
 
+  if (0 != (cycle_flags & TPF_BSYNC_INV)) {
+    assert(0 != (cycle_flags & TPF_EPL_INV));
+    *cs_straight = *cs_now;
+  }
+
   /* Message payload / bit sync accumulator updates */
   corr_t bit = (0 != (cycle_flags & TPF_BIT_PILOT)) ? cs_straight->very_late
                                                     : cs_straight->prompt;

@@ -53,14 +53,15 @@ typedef enum {
   TP_TM_5MS_10MS,   /**< 5 ms */
   TP_TM_5MS_NH20MS, /**< 5 ms */
 
-  TP_TM_10MS_20MS,      /**< 10 ms */
-  TP_TM_10MS_10MS,      /**< 10 ms */
-  TP_TM_10MS_10MS_BASE, /**< 10 ms */
-  TP_TM_10MS_NH20MS,    /**< 10 ms */
-  TP_TM_10MS_SC4,       /**< 10 ms */
+  TP_TM_10MS_20MS,   /**< 10 ms */
+  TP_TM_10MS_10MS,   /**< 10 ms */
+  TP_TM_10MS_NH20MS, /**< 10 ms */
+  TP_TM_10MS_SC4,    /**< 10 ms */
 
   TP_TM_20MS_20MS,      /**< 20 ms */
   TP_TM_20MS_20MS_BASE, /**< 20 ms */
+  TP_TM_20MS_10MS,      /**< 20 ms */
+  TP_TM_20MS_10MS_BASE, /**< 10 ms */
   TP_TM_20MS_NH20MS,    /**< 20 ms */
   TP_TM_20MS_SC4,       /**< 20 ms */
   TP_TM_20MS_SC4_BASE,  /**< 20 ms */
@@ -347,6 +348,7 @@ typedef struct {
   u8 nap_channel;         /**< Associated NAP channel. */
   me_gnss_signal_t mesid; /**< Current ME signal being decoded. */
   u16 glo_orbit_slot;     /**< GLO orbital slot. */
+  u16 glo_into_string_ms; /**< ms into GLO string. Modulo GLO_STRING_LENGTH_MS*/
 
   /** FIFO for navigation message bits. */
   nav_bit_fifo_t nav_bit_fifo;
@@ -354,7 +356,7 @@ typedef struct {
    * back to tracking channel. */
   nav_data_sync_t nav_data_sync;
   /** Time since last nav bit was appended to the nav bit FIFO. */
-  u32 nav_bit_TOW_offset_ms;
+  u32 nav_bit_offset_ms;
   /** Bit sync state. */
   bit_sync_t bit_sync;
   /** Polarity of nav message bits. */
@@ -423,7 +425,7 @@ typedef struct {
   lock_detect_t ld_freq;       /**< Frequency lock detector state. */
   lp1_filter_t xcorr_filter;   /**< Low-pass SV POV doppler filter */
   tp_tm_e tracking_mode;       /**< Tracking mode */
-  u8 cycle_no;                 /**< Cycle index inside current
+  u16 cycle_no;                /**< Cycle index inside current
                                 *   integration mode. */
   u16 has_next_params : 1;     /**< Flag if stage transition is in
                                 *   progress */
@@ -437,7 +439,7 @@ typedef struct {
   /* for tracking profile stabilization timeout bookkeeping */
   u64 report_last_ms;
 
-  u8 fpll_cycle; /**< FPLL run cycle within current profile */
+  u16 fpll_cycle; /**< FPLL run cycle within current profile */
 } tracker_t;
 
 /** \} */

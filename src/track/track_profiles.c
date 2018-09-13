@@ -348,7 +348,7 @@ static const tp_profile_entry_t tracker_profiles_rover[] = {
 
   [IDX_20MS] =
   { { BW_DYN,      BW_DYN,           .5,   TP_CTRL_PLL3,
-      TP_TM_20MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS,  TP_TM_20MS_NH20MS,  TP_TM_20MS_SC4 },
+      TP_TM_20MS_20MS,  TP_TM_20MS_10MS,  TP_TM_2MS_2MS,  TP_TM_20MS_NH20MS,  TP_TM_20MS_SC4 },
       TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
       40,        THRESH_SENS_DBHZ,   35,
       IDX_20MS,   IDX_SENS,     IDX_10MS,
@@ -433,7 +433,7 @@ static const tp_profile_entry_t tracker_profiles_base[] = {
 
   [IDX_20MS] =
   { {    8,             0,           .25,   TP_CTRL_PLL2,
-      TP_TM_20MS_20MS_BASE,  TP_TM_10MS_10MS_BASE,  TP_TM_2MS_2MS,  TP_TM_20MS_NH20MS,  TP_TM_20MS_SC4_BASE },
+      TP_TM_20MS_20MS_BASE,  TP_TM_20MS_10MS_BASE,  TP_TM_2MS_2MS,  TP_TM_20MS_NH20MS,  TP_TM_20MS_SC4_BASE },
       TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
         40,             0,            0,
       IDX_20MS,  IDX_NONE,     IDX_NONE,
@@ -778,6 +778,23 @@ static bool profile_switch_requested(tracker_t *tracker,
                                      const char *reason) {
   assert(index != IDX_NONE);
   assert((size_t)index < g_tracker_mode.size);
+
+  if ((index > IDX_10MS) && IS_GLO(tracker->mesid)) {
+    /* GLO meander wipe-off prerequisites check-up */
+    if (0 == (tracker->flags & TRACKER_FLAG_GLO_STRING_SYNC)) {
+      index = IDX_10MS; /* no meander wipe-off without GLO string sync */
+    } else {
+      /* for a switch we must be 20ms aligned by the end of the current cycle */
+      tp_tm_e mode = tracker->tracking_mode;
+      u16 cycle = tp_wrap_cycle(mode, tracker->cycle_no + 1);
+      u8 ms = tp_get_cycle_duration(mode, cycle);
+      /* ms into GLO string by the end of the currently running cycle */
+      u16 glo_into_string_ms = tracker->glo_into_string_ms + ms;
+      if (glo_into_string_ms % GLO_MEANDER_WIPEOFF_ALIGN_MS) {
+        return false; /* no switch without the alignment */
+      }
+    }
+  }
 
   tp_profile_t *state = &tracker->profile;
   const tp_profile_entry_t *next = &state->profiles[index];

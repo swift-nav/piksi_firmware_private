@@ -37,7 +37,7 @@ typedef struct {
                        2 - every second etc) */
   u16 dll_ms;     /**< DLL filter integration time [ms] */
   u8 bit_ms;      /**< Data update period */
-  u8 ent_cnt;     /**< State entries count */
+  u16 ent_cnt;    /**< State entries count */
   const state_entry_t entries[]; /**< State entries */
 } state_table_t;
 
@@ -673,6 +673,109 @@ static const state_table_t mode_10ms_10ms = {
   }
 };
 
+#define GLO_FSM_20MS_NUM (GLO_STRING_LENGTH_MS / GLO_MEANDER_WIPEOFF_ALIGN_MS)
+
+#define GLO_FLAGS(x) ((x) ? (TPF_EPL_INV | TPF_BSYNC_INV) : 0)
+#define FSM_GLO_100_MS  FSM_GLO_20_MS(0, 1) /*20*/,  FSM_GLO_20_MS(0, 1) /*40*/,  \
+                        FSM_GLO_20_MS(0, 1) /*60*/,  FSM_GLO_20_MS(0, 1) /*80*/,  \
+                        FSM_GLO_20_MS(0, 1) /*100*/
+
+#define FSM_GLO_400_MS FSM_GLO_100_MS /*100*/, FSM_GLO_100_MS /*200*/, \
+                       FSM_GLO_100_MS /*300*/, FSM_GLO_100_MS /*400*/
+
+/* GLO string integration state machine */
+#define FSM_GLO_2000_MS                                 \
+    /* navigation part of GLO string (1.7s long) */     \
+    FSM_GLO_400_MS /*400*/ , FSM_GLO_400_MS /*800*/,    \
+    FSM_GLO_400_MS /*1200*/, FSM_GLO_400_MS /*1600*/,   \
+    FSM_GLO_100_MS /*1700*/,                            \
+                                                        \
+    /* time mark of GLO string (0.3s long) */           \
+                         FSM_GLO_20_MS(1, 1), /* 0x3 */ \
+    FSM_GLO_20_MS(1, 1), FSM_GLO_20_MS(1, 0), /* 0xE */ \
+    FSM_GLO_20_MS(0, 0), FSM_GLO_20_MS(1, 1), /* 0x3 */ \
+    FSM_GLO_20_MS(0, 1), FSM_GLO_20_MS(1, 1), /* 0x7 */ \
+    FSM_GLO_20_MS(0, 1), FSM_GLO_20_MS(0, 1), /* 0x5 */ \
+    FSM_GLO_20_MS(0, 0), FSM_GLO_20_MS(0, 0), /* 0x0 */ \
+    FSM_GLO_20_MS(1, 0), FSM_GLO_20_MS(0, 1), /* 0x9 */ \
+    FSM_GLO_20_MS(0, 1), FSM_GLO_20_MS(1, 0)  /* 0x6 */
+
+/**
+ * 20 ms integrations for GLO
+ */
+static const state_table_t mode_20ms_10ms = {
+  .cn0_ms = 10,
+  .lockdet_ms = 20,
+  .alias_ms = 2.5,
+  .flld_ms = 10,
+  .fpll_ms = 20,
+  .fpll_decim = 1,
+  .dll_ms = 20,
+  .bit_ms = 10,
+  .ent_cnt = GLO_FSM_20MS_NUM * 9, /* 900 */
+  .entries = {
+#define FSM_GLO_20_MS(odd, even)                                                                                  \
+    {1, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET | TPF_ALIAS_SET | GLO_FLAGS(odd)},  \
+    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | TPF_ALIAS_ADD | GLO_FLAGS(odd) |  \
+                                                                                TPF_ALIAS_1ST},                   \
+    {3, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | TPF_ALIAS_SET | GLO_FLAGS(odd) |  \
+                                                                                TPF_ALIAS_2ND},                   \
+                                                                                                                  \
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | TPF_ALIAS_SET | GLO_FLAGS(odd) |  \
+                                                                                TPF_ALIAS_2ND},                   \
+    {3, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | TPF_ALIAS_SET | GLO_FLAGS(odd) |  \
+                      TPF_CN0_USE | TPF_BSYNC_UPD |               TPF_FLL_USE | TPF_ALIAS_2ND |                   \
+                                                                  TPF_FLL_HALFQ},                                 \
+                                                                                                                  \
+    {2, TPF_EPL_ADD | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_ADD | TPF_FLL_SET | TPF_ALIAS_SET | GLO_FLAGS(even) | \
+                                                                                TPF_ALIAS_2ND},                   \
+    {3, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | TPF_ALIAS_SET | GLO_FLAGS(even) | \
+                                                                                TPF_ALIAS_2ND},                   \
+                                                                                                                  \
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | TPF_ALIAS_SET | GLO_FLAGS(even) | \
+                                                                                TPF_ALIAS_2ND},                   \
+    {3, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | TPF_ALIAS_SET | GLO_FLAGS(even) | \
+        TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_ALIAS_2ND | TPF_FPLL_RUN}
+
+    FSM_GLO_2000_MS
+#undef FSM_GLO_20_MS
+  }
+};
+
+/**
+ * 20 ms integrations for GLO
+ */
+static const state_table_t mode_20ms_10ms_base = {
+  .cn0_ms = 10,
+  .lockdet_ms = 20,
+  .alias_ms = 0,
+  .flld_ms = 10,
+  .fpll_ms = 20,
+  .fpll_decim = 1,
+  .dll_ms = 20,
+  .bit_ms = 10,
+  .ent_cnt = GLO_FSM_20MS_NUM * 6, /* 900 */
+  .entries = {
+#define FSM_GLO_20_MS(odd, even)                                                                  \
+    {1, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET | GLO_FLAGS(odd)},  \
+    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | GLO_FLAGS(odd)},  \
+                                                                                                  \
+    {3, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | GLO_FLAGS(odd)},  \
+                                                                                                  \
+    {5, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | GLO_FLAGS(odd) |  \
+                      TPF_CN0_USE | TPF_BSYNC_UPD |               TPF_FLL_USE |                   \
+                                                                  TPF_FLL_HALFQ},                 \
+                                                                                                  \
+    {5, TPF_EPL_ADD | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_ADD | TPF_FLL_SET | GLO_FLAGS(even)}, \
+                                                                                                  \
+    {5, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | GLO_FLAGS(even) | \
+        TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN}
+
+    FSM_GLO_2000_MS
+#undef FSM_GLO_20_MS
+  }
+};
+
 /**
  * 10 ms integrations for GLO (base station profile)
  */
@@ -713,22 +816,37 @@ static const state_table_t mode_200ms_10ms = {
   .cn0_ms = 10,
   .lockdet_ms = 0, /* not used in FLL only mode */
   .alias_ms = 0, /* not used */
-  .flld_ms = 5,
-  .fpll_ms = 10,
-  .fpll_decim = 20,
-  .dll_ms = 10,
+  .flld_ms = 10,
+  .fpll_ms = 20,
+  .fpll_decim = 10,
+  .dll_ms = 20,
   .bit_ms = 10,
-  .ent_cnt = 5,
+  .ent_cnt = GLO_FSM_20MS_NUM * 9, /* 900 */
   .entries = {
-    {1, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_FLL_SET},
-    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_ADD},
-    {3, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_ADD |
-                                                    TPF_FLL_USE |
-                                                    TPF_FLL_HALFQ},
 
-    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_SET},
-    {3, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_ADD |
-        TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_FLL_USE | TPF_FPLL_RUN}
+#define FSM_GLO_20_MS(odd, even)                                                                    \
+    {1, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_FLL_SET | TPF_ALIAS_SET | GLO_FLAGS(odd)},  \
+    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_ADD | TPF_ALIAS_ADD | GLO_FLAGS(odd) |  \
+                                                                  TPF_ALIAS_1ST},                   \
+    {3, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_ADD | TPF_ALIAS_SET | GLO_FLAGS(odd) |  \
+                                                                  TPF_ALIAS_2ND},                   \
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_ADD | TPF_ALIAS_SET | GLO_FLAGS(odd) |  \
+                                                                  TPF_ALIAS_2ND},                   \
+    {3, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_ADD | TPF_ALIAS_SET | GLO_FLAGS(odd) |  \
+                      TPF_CN0_USE | TPF_BSYNC_UPD | TPF_FLL_USE | TPF_ALIAS_2ND |                   \
+                                                    TPF_FLL_HALFQ}                                  \
+                                                                  ,                                 \
+    {2, TPF_EPL_ADD | TPF_CN0_SET | TPF_BSYNC_SET | TPF_FLL_SET | TPF_ALIAS_SET | GLO_FLAGS(even) | \
+                                                                  TPF_ALIAS_2ND},                   \
+    {3, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_ADD | TPF_ALIAS_SET | GLO_FLAGS(even) | \
+                                                                  TPF_ALIAS_2ND},                   \
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_ADD | TPF_ALIAS_SET | GLO_FLAGS(even) | \
+                                                                  TPF_ALIAS_2ND},                   \
+    {3, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_ADD | TPF_ALIAS_SET | GLO_FLAGS(even) | \
+        TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_FLL_USE | TPF_ALIAS_2ND | TPF_FPLL_RUN}
+
+    FSM_GLO_2000_MS
+#undef FSM_GLO_20_MS
   }
 };
 
@@ -1065,42 +1183,43 @@ static const state_table_t mode_200ms_nh20ms = {
 };
 /* clang-format on */
 
-static const state_table_t *tracking_table_lut[TP_TM_COUNT] =
-    {[TP_TM_INITIAL] = &mode_1msINI,
+static const state_table_t *tracking_table_lut[TP_TM_COUNT] = {
+    [TP_TM_INITIAL] = &mode_1msINI,
 
-     [TP_TM_1MS_2MS] = &mode_1ms_2ms,
-     [TP_TM_2MS_2MS] = &mode_2ms_2ms,
-     [TP_TM_200MS_2MS] = &mode_200ms_2ms,
+    [TP_TM_1MS_2MS] = &mode_1ms_2ms,
+    [TP_TM_2MS_2MS] = &mode_2ms_2ms,
+    [TP_TM_200MS_2MS] = &mode_200ms_2ms,
 
-     [TP_TM_1MS_10MS] = &mode_1ms_10ms,
-     [TP_TM_2MS_10MS] = &mode_2ms_10ms,
-     [TP_TM_5MS_10MS] = &mode_5ms_10ms,
-     [TP_TM_10MS_10MS] = &mode_10ms_10ms,
-     [TP_TM_10MS_10MS_BASE] = &mode_10ms_10ms_base,
-     [TP_TM_200MS_10MS] = &mode_200ms_10ms,
+    [TP_TM_1MS_10MS] = &mode_1ms_10ms,
+    [TP_TM_2MS_10MS] = &mode_2ms_10ms,
+    [TP_TM_5MS_10MS] = &mode_5ms_10ms,
+    [TP_TM_10MS_10MS] = &mode_10ms_10ms,
+    [TP_TM_20MS_10MS] = &mode_20ms_10ms,
+    [TP_TM_20MS_10MS_BASE] = &mode_20ms_10ms_base,
+    [TP_TM_200MS_10MS] = &mode_200ms_10ms,
 
-     [TP_TM_1MS_20MS] = &mode_1ms_20ms,
-     [TP_TM_2MS_20MS] = &mode_2ms_20ms,
-     [TP_TM_5MS_20MS] = &mode_5ms_20ms,
-     [TP_TM_10MS_20MS] = &mode_10ms_20ms,
-     [TP_TM_20MS_20MS] = &mode_20ms_20ms,
-     [TP_TM_20MS_20MS_BASE] = &mode_20ms_20ms_base,
-     [TP_TM_200MS_20MS] = &mode_200ms_20ms,
+    [TP_TM_1MS_20MS] = &mode_1ms_20ms,
+    [TP_TM_2MS_20MS] = &mode_2ms_20ms,
+    [TP_TM_5MS_20MS] = &mode_5ms_20ms,
+    [TP_TM_10MS_20MS] = &mode_10ms_20ms,
+    [TP_TM_20MS_20MS] = &mode_20ms_20ms,
+    [TP_TM_20MS_20MS_BASE] = &mode_20ms_20ms_base,
+    [TP_TM_200MS_20MS] = &mode_200ms_20ms,
 
-     [TP_TM_1MS_NH20MS] = &mode_1ms_nh20ms,
-     [TP_TM_2MS_NH20MS] = &mode_2ms_nh20ms,
-     [TP_TM_5MS_NH20MS] = &mode_5ms_nh20ms,
-     [TP_TM_10MS_NH20MS] = &mode_10ms_nh20ms,
-     [TP_TM_20MS_NH20MS] = &mode_20ms_nh20ms,
-     [TP_TM_200MS_NH20MS] = &mode_200ms_nh20ms,
+    [TP_TM_1MS_NH20MS] = &mode_1ms_nh20ms,
+    [TP_TM_2MS_NH20MS] = &mode_2ms_nh20ms,
+    [TP_TM_5MS_NH20MS] = &mode_5ms_nh20ms,
+    [TP_TM_10MS_NH20MS] = &mode_10ms_nh20ms,
+    [TP_TM_20MS_NH20MS] = &mode_20ms_nh20ms,
+    [TP_TM_200MS_NH20MS] = &mode_200ms_nh20ms,
 
-     [TP_TM_1MS_SC4] = &mode_1ms_sc4,
-     [TP_TM_2MS_SC4] = &mode_2ms_sc4,
-     [TP_TM_4MS_SC4] = &mode_4ms_sc4,
-     [TP_TM_10MS_SC4] = &mode_10ms_sc4,
-     [TP_TM_20MS_SC4] = &mode_20ms_sc4,
-     [TP_TM_20MS_SC4_BASE] = &mode_20ms_sc4_base,
-     [TP_TM_200MS_SC4] = &mode_200ms_sc4};
+    [TP_TM_1MS_SC4] = &mode_1ms_sc4,
+    [TP_TM_2MS_SC4] = &mode_2ms_sc4,
+    [TP_TM_4MS_SC4] = &mode_4ms_sc4,
+    [TP_TM_10MS_SC4] = &mode_10ms_sc4,
+    [TP_TM_20MS_SC4] = &mode_20ms_sc4,
+    [TP_TM_20MS_SC4_BASE] = &mode_20ms_sc4_base,
+    [TP_TM_200MS_SC4] = &mode_200ms_sc4};
 
 /**
  * Helper for locating tracker state table.
@@ -1128,33 +1247,11 @@ static const state_table_t *select_table(tp_tm_e tracking_mode) {
  * \return Entry for the given cycle number or NULL on error.
  */
 static const state_entry_t *select_entry(const state_table_t *table,
-                                         u8 cycle_no) {
+                                         u16 cycle_no) {
   if (NULL != table && cycle_no < table->ent_cnt) {
     return &table->entries[cycle_no];
   }
   return NULL;
-}
-
-/**
- * Returns next cycle number
- *
- * \param[in] tracking_mode Tracking mode.
- * \param[in] cycle_no      Cycle number.
- *
- * \return Number of cycles in the given mode
- */
-u8 tp_next_cycle_counter(tp_tm_e tracking_mode, u8 cycle_no) {
-  u8 cycle_cnt; /**< Number of cycles in the current tracking mode */
-
-  cycle_cnt = tp_get_cycle_count(tracking_mode);
-
-  if (cycle_cnt > 0) {
-    if (++cycle_no >= cycle_cnt) cycle_no = 0;
-  } else {
-    cycle_no = 0;
-  }
-
-  return cycle_no;
 }
 
 /**
@@ -1163,7 +1260,7 @@ u8 tp_next_cycle_counter(tp_tm_e tracking_mode, u8 cycle_no) {
  * \param tracker  Tracking channel data.
  * \param cycle_no
  */
-u32 tp_get_cycle_flags(tracker_t *tracker, u8 cycle_no) {
+u32 tp_get_cycle_flags(tracker_t *tracker, u16 cycle_no) {
   const state_table_t *tbl = select_table(tracker->tracking_mode);
   const state_entry_t *ent = select_entry(tbl, cycle_no);
 
@@ -1179,23 +1276,56 @@ u32 tp_get_cycle_flags(tracker_t *tracker, u8 cycle_no) {
  *
  * \return Number of cycles in the given mode
  */
-u8 tp_get_cycle_count(tp_tm_e tracking_mode) {
+u16 tp_get_cycle_count(tp_tm_e tracking_mode) {
   const state_table_t *tbl = select_table(tracking_mode);
 
   assert(NULL != tbl);
+  assert(tbl->ent_cnt);
 
   return tbl->ent_cnt;
 }
 
 /**
- * Returns current cycle duration.
+ * Calculates the cycle index to start integration with
+ *
+ * \param[in] tracker Tracker handler
+ * \param[in] mode Tracking mode.
+ * \param[in] switch_after_ms Profile switch is planned after this delay [ms]
+ *
+ * \return The init cycle
+ */
+u16 tp_calc_init_cycle_no(const tracker_t *tracker,
+                          tp_tm_e mode,
+                          u8 switch_after_ms) {
+  const state_table_t *const tbl = select_table(mode);
+  u16 cycle_no;
+  if ((tbl == &mode_20ms_10ms) || (tbl == &mode_200ms_10ms)) {
+    /* We are about to activate GLO >=20ms integration mode.
+       Compute the index within 2000ms FSM for GLO meander wipe-off. */
+    assert(0 != (tracker->flags & TRACKER_FLAG_GLO_STRING_SYNC));
+    u16 ms = tracker->glo_into_string_ms + switch_after_ms;
+    assert(0 == (ms % GLO_MEANDER_WIPEOFF_ALIGN_MS));
+    u8 cycles_in_20ms = tbl->ent_cnt / GLO_FSM_20MS_NUM;
+    cycle_no = (ms / GLO_MEANDER_WIPEOFF_ALIGN_MS) * cycles_in_20ms;
+    if (0 == cycle_no) {
+      cycle_no = tp_get_cycle_count(mode);
+    }
+  } else {
+    cycle_no = tp_get_cycle_count(mode);
+  }
+  assert(cycle_no);
+  return tp_wrap_cycle(mode, cycle_no - 1);
+}
+
+/**
+ * Returns cycle duration.
  *
  * \param[in] tracking_mode Tracking mode.
- * \param[in] cycle_no      Current cycle number.
+ * \param[in] cycle_no      Cycle number.
  *
- * \return Current cycle duration in ms.
+ * \return Cycle duration in ms.
  */
-u8 tp_get_current_cycle_duration(tp_tm_e tracking_mode, u8 cycle_no) {
+u8 tp_get_cycle_duration(tp_tm_e tracking_mode, u16 cycle_no) {
   const state_table_t *tbl = select_table(tracking_mode);
   const state_entry_t *ent = select_entry(tbl, cycle_no);
 
@@ -1205,29 +1335,18 @@ u8 tp_get_current_cycle_duration(tp_tm_e tracking_mode, u8 cycle_no) {
 }
 
 /**
- * Returns rollover cycle duration.
- *
- * Rollover cycle number corresponds to current cycle number plus two.
+ * Wraps cycle number as a modulo of the total number of cycles
  *
  * \param[in] tracking_mode Tracking mode.
- * \param[in] cycle_no      Current cycle number.
+ * \param[in] cycle_no      Cycle number to wrap
  *
- * \return Rollover cycle duration in ms.
+ * \return The wrapped cycle number
  */
-u32 tp_get_rollover_cycle_duration(tp_tm_e tracking_mode, u8 cycle_no) {
+u16 tp_wrap_cycle(tp_tm_e tracking_mode, u16 cycle_no) {
   const state_table_t *tbl = select_table(tracking_mode);
-
   assert(tbl != NULL);
-
-  u8 cycle_cnt = tbl->ent_cnt;
-  cycle_no += 2;
-  cycle_no %= cycle_cnt;
-
-  const state_entry_t *ent = select_entry(tbl, cycle_no);
-
-  assert(ent != NULL);
-
-  return ent->state_ms;
+  assert(tbl->ent_cnt);
+  return cycle_no % tbl->ent_cnt;
 }
 
 /**
@@ -1350,42 +1469,43 @@ u8 tp_get_dll_ms(tp_tm_e tracking_mode) {
   return tbl->dll_ms;
 }
 
-static const char *tracking_table_str_lut[TP_TM_COUNT] =
-    {[TP_TM_INITIAL] = "TM INI",
+static const char *tracking_table_str_lut[TP_TM_COUNT] = {
+    [TP_TM_INITIAL] = "TM INI",
 
-     [TP_TM_1MS_2MS] = "TM 1/2 MS",
-     [TP_TM_2MS_2MS] = "TM 2/2 MS",
-     [TP_TM_200MS_2MS] = "TM 200/2 MS",
+    [TP_TM_1MS_2MS] = "TM 1/2 MS",
+    [TP_TM_2MS_2MS] = "TM 2/2 MS",
+    [TP_TM_200MS_2MS] = "TM 200/2 MS",
 
-     [TP_TM_1MS_10MS] = "TM 1/10 MS",
-     [TP_TM_2MS_10MS] = "TM 2/10 MS",
-     [TP_TM_5MS_10MS] = "TM 5/10 MS",
-     [TP_TM_10MS_10MS] = "TM 10/10 MS",
-     [TP_TM_10MS_10MS_BASE] = "TM 10/10 MS BASE",
-     [TP_TM_200MS_10MS] = "TM 200/10 MS",
+    [TP_TM_1MS_10MS] = "TM 1/10 MS",
+    [TP_TM_2MS_10MS] = "TM 2/10 MS",
+    [TP_TM_5MS_10MS] = "TM 5/10 MS",
+    [TP_TM_10MS_10MS] = "TM 10/10 MS",
+    [TP_TM_20MS_10MS] = "TM 20/10 MS",
+    [TP_TM_20MS_10MS_BASE] = "TM 20/10 MS BASE",
+    [TP_TM_200MS_10MS] = "TM 200/10 MS",
 
-     [TP_TM_1MS_20MS] = "TM 1/20 MS",
-     [TP_TM_2MS_20MS] = "TM 2/20 MS",
-     [TP_TM_5MS_20MS] = "TM 5/20 MS",
-     [TP_TM_10MS_20MS] = "TM 10/20 MS",
-     [TP_TM_20MS_20MS] = "TM 20/20 MS",
-     [TP_TM_20MS_20MS_BASE] = "TM 20/20 MS BASE",
-     [TP_TM_200MS_20MS] = "TM 200/20 MS",
+    [TP_TM_1MS_20MS] = "TM 1/20 MS",
+    [TP_TM_2MS_20MS] = "TM 2/20 MS",
+    [TP_TM_5MS_20MS] = "TM 5/20 MS",
+    [TP_TM_10MS_20MS] = "TM 10/20 MS",
+    [TP_TM_20MS_20MS] = "TM 20/20 MS",
+    [TP_TM_20MS_20MS_BASE] = "TM 20/20 MS BASE",
+    [TP_TM_200MS_20MS] = "TM 200/20 MS",
 
-     [TP_TM_1MS_NH20MS] = "TM 1/NH20",
-     [TP_TM_2MS_NH20MS] = "TM 2/NH20",
-     [TP_TM_5MS_NH20MS] = "TM 5/NH20",
-     [TP_TM_10MS_NH20MS] = "TM 10/NH20",
-     [TP_TM_20MS_NH20MS] = "TM 20/NH20",
-     [TP_TM_200MS_NH20MS] = "TM 200/NH20",
+    [TP_TM_1MS_NH20MS] = "TM 1/NH20",
+    [TP_TM_2MS_NH20MS] = "TM 2/NH20",
+    [TP_TM_5MS_NH20MS] = "TM 5/NH20",
+    [TP_TM_10MS_NH20MS] = "TM 10/NH20",
+    [TP_TM_20MS_NH20MS] = "TM 20/NH20",
+    [TP_TM_200MS_NH20MS] = "TM 200/NH20",
 
-     [TP_TM_1MS_SC4] = "TM 1/SC4",
-     [TP_TM_2MS_SC4] = "TM 2/SC4",
-     [TP_TM_4MS_SC4] = "TM 4/SC4",
-     [TP_TM_10MS_SC4] = "TM 10/SC4",
-     [TP_TM_20MS_SC4] = "TM 20/SC4",
-     [TP_TM_20MS_SC4_BASE] = "TM 20/SC4 BASE",
-     [TP_TM_200MS_SC4] = "TM 200/SC4"};
+    [TP_TM_1MS_SC4] = "TM 1/SC4",
+    [TP_TM_2MS_SC4] = "TM 2/SC4",
+    [TP_TM_4MS_SC4] = "TM 4/SC4",
+    [TP_TM_10MS_SC4] = "TM 10/SC4",
+    [TP_TM_20MS_SC4] = "TM 20/SC4",
+    [TP_TM_20MS_SC4_BASE] = "TM 20/SC4 BASE",
+    [TP_TM_200MS_SC4] = "TM 200/SC4"};
 
 /**
  * Returns a literal for the given mode enumeration.

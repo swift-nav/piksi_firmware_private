@@ -94,8 +94,7 @@ static s32 adjust_tow_by_bit_fifo_delay(tracker_t *tracker,
   u32 fifo_time_diff_ms = fifo_length * tracker->bit_sync.bit_length;
 
   /* Add full bit times + fractional bit time to the specified TOW */
-  TOW_ms =
-      to_tracker->TOW_ms + fifo_time_diff_ms + tracker->nav_bit_TOW_offset_ms;
+  TOW_ms = to_tracker->TOW_ms + fifo_time_diff_ms + tracker->nav_bit_offset_ms;
 
   TOW_ms = normalize_tow(TOW_ms);
 
@@ -133,6 +132,22 @@ static void update_tow(tracker_t *tracker,
   *current_TOW_ms = TOW_ms;
   *decoded_tow = (TOW_ms >= 0);
   *TOW_residual_ns = data_sync->TOW_residual_ns;
+}
+
+static void update_glo_string_sync(tracker_t *tracker,
+                                   const nav_data_sync_t *sync) {
+  u8 len = nav_bit_fifo_length_for_rd_index(&tracker->nav_bit_fifo,
+                                            sync->read_index);
+  u16 ms = (u16)len * tracker->bit_sync.bit_length;
+  ms += tracker->nav_bit_offset_ms;
+  ms %= GLO_STRING_LENGTH_MS;
+
+  bool string_sync = (0 != (tracker->flags & TRACKER_FLAG_GLO_STRING_SYNC));
+  if (string_sync && (tracker->glo_into_string_ms != ms)) {
+    log_error_mesid(tracker->mesid, "String sync failure");
+  }
+  tracker->glo_into_string_ms = ms;
+  tracker->flags |= TRACKER_FLAG_GLO_STRING_SYNC;
 }
 
 static void update_eph(tracker_t *tracker, const nav_data_sync_t *data_sync) {
@@ -188,9 +203,15 @@ s32 tracker_tow_update(tracker_t *tracker,
     if (0 != (flags & SYNC_EPH)) {
       update_eph(tracker, &to_tracker);
     }
+
+    if (0 != (flags & SYNC_GLO_STRING)) {
+      update_glo_string_sync(tracker, &to_tracker);
+    }
   }
 
-  tracker->nav_bit_TOW_offset_ms += int_ms;
+  tracker->nav_bit_offset_ms += int_ms;
+  tracker->glo_into_string_ms += int_ms;
+  tracker->glo_into_string_ms %= GLO_STRING_LENGTH_MS;
 
   if (current_TOW_ms != TOW_INVALID) {
     /* Have a valid time of week - increment it. */
@@ -280,8 +301,8 @@ void tracker_bit_sync_update(tracker_t *tracker,
     }
   }
 
-  /* clear nav bit TOW offset */
-  tracker->nav_bit_TOW_offset_ms = 0;
+  /* clear nav bit offset */
+  tracker->nav_bit_offset_ms = 0;
 }
 
 /** Get the bit length for a tracker channel.
