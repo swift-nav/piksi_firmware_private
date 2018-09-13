@@ -24,7 +24,7 @@
 #include "timing/timing.h"
 #include "version.h"
 
-#define NDB_THREAD_PRIORITY (LOWPRIO + 2)
+#define NDB_THREAD_PRIORITY (LOWPRIO + 3)
 #define NDB_THREAD_STACK (4 * 1024)
 
 static THD_WORKING_AREA(ndb_thread_wa, NDB_THREAD_STACK);

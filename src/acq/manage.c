@@ -99,7 +99,7 @@ static bool track_mask[ARRAY_SIZE(acq_status)];
 /* BDS2 & GAL Unhealthy time out */
 #define ACQ_UNHEALTHY_TIMEOUT_SEC (5 * MINUTE_SECS)
 
-#define MANAGE_ACQ_THREAD_PRIORITY (LOWPRIO)
+#define MANAGE_ACQ_THREAD_PRIORITY (LOWPRIO + 1)
 #define MANAGE_ACQ_THREAD_STACK (32 * 1024)
 
 typedef u8 tracking_startup_fifo_index_t;
