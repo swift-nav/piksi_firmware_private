@@ -732,14 +732,6 @@ static bool pll_bw_changed(tracker_t *tracker, profile_indices_t index) {
     return false;
   }
 
-  if ((pll_bw > 0) && (pll_bw < state->cur.pll_bw)) {
-    /* Reducing the PLL BW by more than 12 percent at a time could lead
-       to PLL instabilities */
-    if ((state->cur.pll_bw - pll_bw) > (0.12 * state->cur.pll_bw)) {
-      pll_bw = (1 - 0.12) * state->cur.pll_bw;
-    }
-  }
-
   state->next.pll_bw = pll_bw;
   return true;
 }
@@ -763,14 +755,6 @@ static bool fll_bw_changed(tracker_t *tracker, profile_indices_t index) {
   if ((fll_bw_diff < (state->cur.fll_bw * .10f)) || (fll_bw_diff < .3)) {
     state->next.fll_bw = state->cur.fll_bw;
     return false;
-  }
-
-  if (fll_bw < state->cur.fll_bw) {
-    /* Reducing the FLL BW by more than 20 percent at a time could lead
-       to FLL instabilities */
-    if ((state->cur.fll_bw - fll_bw) > (0.20 * state->cur.fll_bw)) {
-      fll_bw = (1 - 0.20) * state->cur.fll_bw;
-    }
   }
 
   state->next.fll_bw = fll_bw;
