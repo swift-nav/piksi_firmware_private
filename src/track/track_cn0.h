@@ -57,7 +57,8 @@ void track_cn0_params_init(void);
 void track_cn0_init(const me_gnss_signal_t mesid,
                     u8 cn0_ms,
                     track_cn0_state_t *e,
-                    float cn0_0);
+                    float cn0_0,
+                    bool init_est);
 float track_cn0_update(track_cn0_state_t *e, u8 cn0_ms, float I, float Q);
 float track_cn0_get_offset(u8 cn0_ms);
 
