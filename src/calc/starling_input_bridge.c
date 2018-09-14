@@ -29,21 +29,24 @@ void starling_input_bridge_init(void) {
 }
 
 /******************************************************************************/
-void starling_send_rover_obs(const obs_array_t *obs_array) {
+int starling_send_rover_obs(const obs_array_t *obs_array) {
   (void)obs_array;
   chSemSignal(&input_sem);
+  return STARLING_SEND_OK;
 }
 
 /******************************************************************************/
-void starling_send_base_obs(const obs_array_t *obs_array) {
+int starling_send_base_obs(const obs_array_t *obs_array) {
   (void)obs_array;
   chSemSignal(&input_sem);
+  return STARLING_SEND_OK;
 }
 
 /******************************************************************************/
-void starling_send_ephemerides(const ephemeris_array_t *eph_array) {
+int starling_send_ephemerides(const ephemeris_array_t *eph_array) {
   (void)eph_array;
   chSemSignal(&input_sem);
+  return STARLING_SEND_OK;
 }
 
 /******************************************************************************/
@@ -52,6 +55,7 @@ void starling_send_sbas_data(const sbas_raw_data_t *sbas_data,
   (void)sbas_data;
   (void)n_sbas_data;
   chSemSignal(&input_sem);
+  return STARLING_SEND_OK;
 }
 
 /******************************************************************************/

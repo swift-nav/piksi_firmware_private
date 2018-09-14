@@ -14,16 +14,20 @@
 
 #include <starling/starling.h>
 
+/* Values returned by the firmware-facing functions. */
+#define STARLING_SEND_OK    0
+#define STARLING_SEND_ERROR 1
+
 /* This side faces the firmware. */
 void starling_input_bridge_init(void);
 
-void starling_send_rover_obs(const obs_array_t *obs_array);
+int starling_send_rover_obs(const obs_array_t *obs_array);
 
-void starling_send_base_obs(const obs_array_t *obs_array);
+int starling_send_base_obs(const obs_array_t *obs_array);
 
-void starling_send_ephemerides(const ephemeris_array_t *eph_array);
+int starling_send_ephemerides(const *ephemeris_t ephemerides, size_t n);
 
-void starling_send_sbas_data(const sbas_raw_data_t *sbas_data,
+int starling_send_sbas_data(const sbas_raw_data_t *sbas_data,
                              const size_t n_sbas_data);
 
 /* This side faces the Starling engine. */
