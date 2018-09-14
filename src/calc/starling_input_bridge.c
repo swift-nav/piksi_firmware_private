@@ -239,9 +239,20 @@ int starling_read_ephemeris_array(int blocking, ephemeris_array_t *eph_array) {
 
 /******************************************************************************/
 int starling_read_sbas_data(int blocking, sbas_raw_data_t *sbas_data) {
-  (void)blocking;
-  (void)sbas_data;
-  return 0;
+  sbas_raw_data_t *local_data = NULL;
+  errno_t ret =
+      platform_mailbox_fetch(MB_ID_SBAS_DATA, (void **)&local_data, blocking);
+  if (local_data) {
+    if (STARLING_READ_OK == ret) {
+      *sbas_data = *local_data;
+    } else {
+      /* Erroneous behavior for fetch to return non-NULL pointer and indicate
+       * read failure. */
+      log_error("STARLING: sbas mailbox fetch failed with %d", ret);
+    }
+    platform_mailbox_item_free(MB_ID_SBAS_DATA, local_data);
+  }
+  return ret;
 }
 
 
