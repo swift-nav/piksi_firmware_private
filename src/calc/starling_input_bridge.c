@@ -162,10 +162,20 @@ int starling_send_ephemerides(const ephemeris_t *ephemerides, size_t n) {
 }
 
 /******************************************************************************/
-int starling_send_sbas_data(const sbas_raw_data_t *sbas_data,
-    const size_t n_sbas_data) {
-  (void)sbas_data;
-  (void)n_sbas_data;
+int starling_send_sbas_data(const sbas_raw_data_t *sbas_data) {
+  sbas_raw_data_t *sbas_data_msg = platform_mailbox_item_alloc(MB_ID_SBAS_DATA);
+  if (NULL == sbas_data_msg) {
+    log_error("platform_mailbox_item_alloc(MB_ID_SBAS_DATA) failed!");
+    return STARLING_SEND_ERROR;
+  }
+  assert(sbas_data);
+  *sbas_data_msg = *sbas_data;
+  errno_t ret = platform_mailbox_post(MB_ID_SBAS_DATA, sbas_data_msg, MB_NONBLOCKING);
+  if (ret != 0) {
+    log_error("platform_mailbox_post(MB_ID_SBAS_DATA) failed!");
+    platform_mailbox_item_free(MB_ID_SBAS_DATA, sbas_data_msg);
+    return STARLING_SEND_ERROR;
+  }
   chSemSignal(&input_sem);
   return STARLING_SEND_OK;
 }

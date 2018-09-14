@@ -767,27 +767,6 @@ static void reset_filters_callback(u16 sender_id,
   }
 }
 
-/* Add SBAS data to the Starling engine. */
-void starling_add_sbas_data(const sbas_raw_data_t *sbas_data,
-                            const size_t n_sbas_data) {
-  for (size_t i = 0; i < n_sbas_data; ++i) {
-    sbas_raw_data_t *sbas_data_msg =
-        platform_mailbox_item_alloc(MB_ID_SBAS_DATA);
-    if (NULL == sbas_data_msg) {
-      log_error("platform_mailbox_item_alloc(MB_ID_SBAS_DATA) failed!");
-      continue;
-    }
-    assert(sbas_data);
-    *sbas_data_msg = *sbas_data;
-    errno_t ret =
-        platform_mailbox_post(MB_ID_SBAS_DATA, sbas_data_msg, MB_NONBLOCKING);
-    if (ret != 0) {
-      log_error("platform_mailbox_post(MB_ID_SBAS_DATA) failed!");
-      platform_mailbox_item_free(MB_ID_SBAS_DATA, sbas_data_msg);
-    }
-  }
-}
-
 /**
  * Simply apply whatever the current settings are to the
  * given dynamics filter.

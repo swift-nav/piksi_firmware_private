@@ -44,8 +44,4 @@ void starling_calc_pvt_setup(void);
 soln_dgnss_stats_t solution_last_dgnss_stats_get(void);
 soln_pvt_stats_t solution_last_pvt_stats_get(void);
 
-/* Add raw sbas data to the starling engine. */
-void starling_add_sbas_data(const sbas_raw_data_t *sbas_data,
-                            const size_t n_sbas_data);
-
 #endif
