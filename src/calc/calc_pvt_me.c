@@ -44,6 +44,7 @@
 #include "shm/shm.h"
 #include "simulator.h"
 #include "starling_integration.h"
+#include "starling_input_bridge.h"
 #include "system_monitor/system_monitor.h"
 #include "timing/timing.h"
 #include "track/track_sid_db.h"
@@ -117,36 +118,9 @@ static void fill_starling_obs_array_from_navigation_measurements(
 }
 
 static void me_post_ephemerides(u8 n, const ephemeris_t ephemerides[]) {
-  ephemeris_array_t *eph_array = platform_mailbox_item_alloc(MB_ID_EPHEMERIS);
-  if (NULL == eph_array) {
-    /* If we can't get allocate an item, fetch the oldest one and use that
-     * instead. */
-    int error = platform_mailbox_fetch(
-        MB_ID_EPHEMERIS, (void **)&eph_array, MB_NONBLOCKING);
-    if (error) {
-      log_error(
-          "ME: Unable to allocate ephemeris array, and mailbox is empty.");
-      if (eph_array) {
-        platform_mailbox_item_free(MB_ID_EPHEMERIS, eph_array);
-      }
-      return;
-    }
-  }
-
-  assert(NULL != eph_array);
-  /* Copy in all of the information. */
-  eph_array->n = n;
-  if (n > 0) {
-    MEMCPY_S(eph_array->ephemerides,
-             sizeof(eph_array->ephemerides),
-             ephemerides,
-             n * sizeof(ephemeris_t));
-  }
-  /* Try to post to Starling. */
-  int error = platform_mailbox_post(MB_ID_EPHEMERIS, eph_array, MB_BLOCKING);
-  if (error) {
-    log_error("ME: Unable to send ephemeris array.");
-    platform_mailbox_item_free(MB_ID_EPHEMERIS, eph_array);
+  int ret = starling_send_ephemerides(ephemerides, n);
+  if (STARLING_SEND_OK != ret) {
+    log_error("ME: Unable to send ephemeris array."); 
   }
 }
 

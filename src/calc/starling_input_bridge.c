@@ -12,8 +12,11 @@
 
 #include "calc/starling_input_bridge.h"
 
-#include <starling/starling_platform.h>
 #include <ch.h>
+#include <libswiftnav/memcpy_s.h>
+#include <starling/starling_platform.h>
+
+#include <assert.h>
 
 /* Warn on lack of input after 10 seconds. */
 #define STARLING_INPUT_TIMEOUT_UNTIL_WARN_SEC 10
@@ -43,14 +46,45 @@ int starling_send_base_obs(const obs_array_t *obs_array) {
 }
 
 /******************************************************************************/
-int starling_send_ephemerides(const ephemeris_array_t *eph_array) {
-  (void)eph_array;
+int starling_send_ephemerides(const ephemeris_t *ephemerides, size_t n) {
+  ephemeris_array_t *eph_array = platform_mailbox_item_alloc(MB_ID_EPHEMERIS);
+  if (NULL == eph_array) {
+    /* If we can't get allocate an item, fetch the oldest one and use that
+     * instead. */
+    int error = platform_mailbox_fetch(
+        MB_ID_EPHEMERIS, (void **)&eph_array, MB_NONBLOCKING);
+    if (error) {
+      log_error(
+          "Unable to allocate ephemeris array, and mailbox is empty.");
+      if (eph_array) {
+        platform_mailbox_item_free(MB_ID_EPHEMERIS, eph_array);
+      }
+      return STARLING_SEND_ERROR;
+    }
+  }
+
+  assert(NULL != eph_array);
+  /* Copy in all of the information. */
+  eph_array->n = n;
+  if (n > 0) {
+    MEMCPY_S(eph_array->ephemerides,
+             sizeof(eph_array->ephemerides),
+             ephemerides,
+             n * sizeof(ephemeris_t));
+  }
+  /* Try to post to Starling. */
+  int error = platform_mailbox_post(MB_ID_EPHEMERIS, eph_array, MB_BLOCKING);
+  if (error) {
+    platform_mailbox_item_free(MB_ID_EPHEMERIS, eph_array);
+    return STARLING_SEND_ERROR;
+  }
+
   chSemSignal(&input_sem);
   return STARLING_SEND_OK;
 }
 
 /******************************************************************************/
-void starling_send_sbas_data(const sbas_raw_data_t *sbas_data,
+int starling_send_sbas_data(const sbas_raw_data_t *sbas_data,
     const size_t n_sbas_data) {
   (void)sbas_data;
   (void)n_sbas_data;
