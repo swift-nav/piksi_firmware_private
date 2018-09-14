@@ -22,7 +22,7 @@
 /** Filter coefficient for M2 an M4. */
 #define CN0_MM_ALPHA (0.5f)
 /** Estimate of noise power Pn. For smoother initial CN0 output. */
-#define CN0_MM_PN_INIT (700000.0f)
+#define CN0_MM_PN_INIT (100000.0f)
 
 /** Initialize the \f$ C / N_0 \f$ estimator state.
  *
