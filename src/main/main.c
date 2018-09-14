@@ -15,7 +15,6 @@
 
 #include <libsbp/system.h>
 #include <libswiftnav/logging.h>
-#include <starling/starling_platform.h>
 
 #include <hal.h>
 #include "calc_pvt_me.h"
@@ -42,6 +41,7 @@
 #include "simulator.h"
 #include "specan/specan_main.h"
 #include "starling_integration.h"
+#include "starling_input_bridge.h"
 #include "system_monitor/system_monitor.h"
 #include "timing/timing.h"
 #include "track/track_state.h"
@@ -63,9 +63,7 @@ int main(void) {
 
   io_support_init();
   sbp_setup();
-  platform_mailbox_init(MB_ID_ME_OBS);
-  platform_mailbox_init(MB_ID_SBAS_DATA);
-  platform_mailbox_init(MB_ID_EPHEMERIS);
+  starling_input_bridge_init();
   settings_setup();
 
   starling_initialize_api();

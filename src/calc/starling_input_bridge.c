@@ -12,6 +12,7 @@
 
 #include "calc/starling_input_bridge.h"
 
+#include <starling/starling_platform.h>
 #include <ch.h>
 
 /* Warn on lack of input after 10 seconds. */
@@ -22,7 +23,9 @@ static semaphore_t input_sem;
 /******************************************************************************/
 void starling_input_bridge_init(void) {
   chSemObjectInit(&input_sem, 0);
-
+  platform_mailbox_init(MB_ID_ME_OBS);
+  platform_mailbox_init(MB_ID_SBAS_DATA);
+  platform_mailbox_init(MB_ID_EPHEMERIS);
 }
 
 /******************************************************************************/
@@ -82,6 +85,4 @@ int starling_read_base_obs(/*TODO*/void) {
 int starling_read_ephemerides(/*TODO*/void) {
   return 0;
 }
-
-
 

@@ -15,7 +15,7 @@
 #include <starling/starling.h>
 
 /* This side faces the firmware. */
-void starling_bridge_init(void);
+void starling_input_bridge_init(void);
 
 void starling_send_rover_obs(const obs_array_t *obs_array);
 
