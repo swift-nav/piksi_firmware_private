@@ -21,7 +21,9 @@
 /* This side faces the firmware. */
 void starling_input_bridge_init(void);
 
-int starling_send_rover_obs(const obs_array_t *obs_array);
+int starling_send_rover_obs(const gps_time_t *t, 
+                            const navigation_measurement_t *nm,
+                            size_t n);
 
 int starling_send_base_obs(const obs_array_t *obs_array);
 

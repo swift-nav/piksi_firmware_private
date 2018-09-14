@@ -13,6 +13,7 @@
 #include "calc/starling_input_bridge.h"
 
 #include <ch.h>
+#include <libswiftnav/gnss_time.h>
 #include <libswiftnav/memcpy_s.h>
 #include <starling/starling_platform.h>
 
@@ -24,6 +25,36 @@
 static semaphore_t input_sem;
 
 /******************************************************************************/
+static void fill_starling_obs_array_from_navigation_measurements(
+    obs_array_t *obs_array,
+    const gps_time_t *t,
+    u8 n,
+    const navigation_measurement_t nm[]) {
+  assert(n <= STARLING_MAX_OBS_COUNT);
+  obs_array->n = n;
+  for (size_t i = 0; i < obs_array->n; ++i) {
+    obs_array->observations[i].sid = nm[i].sid;
+    obs_array->observations[i].pseudorange = nm[i].raw_pseudorange;
+    obs_array->observations[i].carrier_phase = nm[i].raw_carrier_phase;
+    obs_array->observations[i].doppler = nm[i].raw_measured_doppler;
+    obs_array->observations[i].cn0 = nm[i].cn0;
+    obs_array->observations[i].lock_time = nm[i].lock_time;
+    obs_array->observations[i].flags = nm[i].flags;
+
+    /* TOT is special. We want to recompute from the observation time and raw
+     * pseudorange because the navigation measurement tot will have already had
+     * clock corrections applied. */
+    obs_array->observations[i].tot = GPS_TIME_UNKNOWN;
+    if (t) {
+      obs_array->observations[i].tot = *t;
+      obs_array->observations[i].tot.tow -=
+          obs_array->observations[i].pseudorange / GPS_C;
+      normalize_gps_time(&obs_array->observations[i].tot);
+    }
+  }
+}
+
+/******************************************************************************/
 void starling_input_bridge_init(void) {
   chSemObjectInit(&input_sem, 0);
   platform_mailbox_init(MB_ID_ME_OBS);
@@ -32,8 +63,34 @@ void starling_input_bridge_init(void) {
 }
 
 /******************************************************************************/
-int starling_send_rover_obs(const obs_array_t *obs_array) {
-  (void)obs_array;
+int starling_send_rover_obs(const gps_time_t *t,
+                            const navigation_measurement_t *nm,
+                            size_t n) {
+  obs_array_t *obs_array = platform_mailbox_item_alloc(MB_ID_ME_OBS);
+  if (NULL == obs_array) {
+    log_error("Could not allocate pool for obs!");
+    return STARLING_SEND_ERROR;
+  }
+
+  obs_array->sender = 0;
+  obs_array->t = GPS_TIME_UNKNOWN;
+  if (NULL != t) {
+    obs_array->t = *t;
+  }
+  fill_starling_obs_array_from_navigation_measurements(obs_array, t, n, nm);
+
+  errno_t ret = platform_mailbox_post(MB_ID_ME_OBS, obs_array, MB_NONBLOCKING);
+  if (ret != 0) {
+    /* We could grab another item from the mailbox, discard it and then
+     * post our obs again but if the size of the mailbox and the pool
+     * are equal then we should have already handled the case where the
+     * mailbox is full when we handled the case that the pool was full.
+     * */
+    log_error("Mailbox should have space for obs!");
+    platform_mailbox_item_free(MB_ID_ME_OBS, obs_array);
+    return STARLING_SEND_ERROR;
+  }
+
   chSemSignal(&input_sem);
   return STARLING_SEND_OK;
 }

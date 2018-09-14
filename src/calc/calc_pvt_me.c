@@ -88,78 +88,18 @@ static soln_stats_t last_stats = {.signals_tracked = 0, .signals_useable = 0};
 
 /* STATIC FUNCTIONS */
 
-static void fill_starling_obs_array_from_navigation_measurements(
-    obs_array_t *obs_array,
-    const gps_time_t *t,
-    u8 n,
-    const navigation_measurement_t nm[]) {
-  assert(n <= STARLING_MAX_OBS_COUNT);
-  obs_array->n = n;
-  for (size_t i = 0; i < obs_array->n; ++i) {
-    obs_array->observations[i].sid = nm[i].sid;
-    obs_array->observations[i].pseudorange = nm[i].raw_pseudorange;
-    obs_array->observations[i].carrier_phase = nm[i].raw_carrier_phase;
-    obs_array->observations[i].doppler = nm[i].raw_measured_doppler;
-    obs_array->observations[i].cn0 = nm[i].cn0;
-    obs_array->observations[i].lock_time = nm[i].lock_time;
-    obs_array->observations[i].flags = nm[i].flags;
-
-    /* TOT is special. We want to recompute from the observation time and raw
-     * pseudorange because the navigation measurement tot will have already had
-     * clock corrections applied. */
-    obs_array->observations[i].tot = GPS_TIME_UNKNOWN;
-    if (t) {
-      obs_array->observations[i].tot = *t;
-      obs_array->observations[i].tot.tow -=
-          obs_array->observations[i].pseudorange / GPS_C;
-      normalize_gps_time(&obs_array->observations[i].tot);
-    }
-  }
-}
-
-static void me_post_ephemerides(u8 n, const ephemeris_t ephemerides[]) {
-  int ret = starling_send_ephemerides(ephemerides, n);
-  if (STARLING_SEND_OK != ret) {
-    log_error("ME: Unable to send ephemeris array."); 
-  }
-}
-
 static void me_post_observations(u8 n,
                                  const navigation_measurement_t _meas[],
                                  const ephemeris_t _ephem[],
                                  const gps_time_t *_t) {
-  /* Post all ephemerides prior to posting any measurements. This way
-   * when Starling engine wakes on receiving measurements, the ephemerides
-   * are guaranteed to already be there. */
-  me_post_ephemerides(n, _ephem);
-
-  /* TODO: use a buffer from the pool from the start instead of
-   * allocating nav_meas as well. Downside, if we don't end up
-   * pushing the message into the mailbox then we just wasted an
-   * observation from the mailbox for no good reason. */
-
-  obs_array_t *obs_array = platform_mailbox_item_alloc(MB_ID_ME_OBS);
-  if (NULL == obs_array) {
-    log_error("ME: Could not allocate pool for obs!");
-    return;
+  int ret = starling_send_ephemerides(_ephem, n);
+  if (STARLING_SEND_OK != ret) {
+    log_error("ME: Unable to send ephemeris array."); 
   }
 
-  obs_array->sender = 0;
-  obs_array->t = GPS_TIME_UNKNOWN;
-  if (NULL != _t) {
-    obs_array->t = *_t;
-  }
-  fill_starling_obs_array_from_navigation_measurements(obs_array, _t, n, _meas);
-
-  errno_t ret = platform_mailbox_post(MB_ID_ME_OBS, obs_array, MB_NONBLOCKING);
-  if (ret != 0) {
-    /* We could grab another item from the mailbox, discard it and then
-     * post our obs again but if the size of the mailbox and the pool
-     * are equal then we should have already handled the case where the
-     * mailbox is full when we handled the case that the pool was full.
-     * */
-    log_error("ME: Mailbox should have space for obs!");
-    platform_mailbox_item_free(MB_ID_ME_OBS, obs_array);
+  ret = starling_send_rover_obs(_t, _meas, n);
+  if (STARLING_SEND_OK != ret) {
+    log_error("ME: Unable to send observations.");
   }
 }
 
