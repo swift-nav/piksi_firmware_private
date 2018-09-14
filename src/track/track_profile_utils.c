@@ -777,39 +777,6 @@ static const state_table_t mode_20ms_10ms_base = {
 };
 
 /**
- * 10 ms integrations for GLO (base station profile)
- */
-static const state_table_t mode_10ms_10ms_base = {
-  .cn0_ms = 10,
-  .lockdet_ms = 5,
-  .alias_ms = 0, /* not used */
-  .flld_ms = 5,
-  .fpll_ms = 10,
-  .fpll_decim = 1,
-  .dll_ms = 10,
-  .bit_ms = 10,
-  .ent_cnt = 6,
-  .entries = {
-    {1, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET},
-    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
-    {3, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
-                                                    TPF_PLD_USE | TPF_FLL_USE |
-                                                                  TPF_FLL_HALFQ},
-
-    {5, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_SET | TPF_FLL_SET |
-        TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN},
-
-    {5, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET |
-                                                    TPF_PLD_USE | TPF_FLL_USE |
-                                                                  TPF_FLL_HALFQ},
-
-    {5, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_SET | TPF_FLL_SET |
-        TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN},
-  }
-};
-
-
-/**
  * 200 ms integrations for GLO
  */
 static const state_table_t mode_200ms_10ms = {
@@ -1183,43 +1150,43 @@ static const state_table_t mode_200ms_nh20ms = {
 };
 /* clang-format on */
 
-static const state_table_t *tracking_table_lut[TP_TM_COUNT] = {
-    [TP_TM_INITIAL] = &mode_1msINI,
+static const state_table_t *tracking_table_lut[TP_TM_COUNT] =
+    {[TP_TM_INITIAL] = &mode_1msINI,
 
-    [TP_TM_1MS_2MS] = &mode_1ms_2ms,
-    [TP_TM_2MS_2MS] = &mode_2ms_2ms,
-    [TP_TM_200MS_2MS] = &mode_200ms_2ms,
+     [TP_TM_1MS_2MS] = &mode_1ms_2ms,
+     [TP_TM_2MS_2MS] = &mode_2ms_2ms,
+     [TP_TM_200MS_2MS] = &mode_200ms_2ms,
 
-    [TP_TM_1MS_10MS] = &mode_1ms_10ms,
-    [TP_TM_2MS_10MS] = &mode_2ms_10ms,
-    [TP_TM_5MS_10MS] = &mode_5ms_10ms,
-    [TP_TM_10MS_10MS] = &mode_10ms_10ms,
-    [TP_TM_20MS_10MS] = &mode_20ms_10ms,
-    [TP_TM_20MS_10MS_BASE] = &mode_20ms_10ms_base,
-    [TP_TM_200MS_10MS] = &mode_200ms_10ms,
+     [TP_TM_1MS_10MS] = &mode_1ms_10ms,
+     [TP_TM_2MS_10MS] = &mode_2ms_10ms,
+     [TP_TM_5MS_10MS] = &mode_5ms_10ms,
+     [TP_TM_10MS_10MS] = &mode_10ms_10ms,
+     [TP_TM_20MS_10MS] = &mode_20ms_10ms,
+     [TP_TM_20MS_10MS_BASE] = &mode_20ms_10ms_base,
+     [TP_TM_200MS_10MS] = &mode_200ms_10ms,
 
-    [TP_TM_1MS_20MS] = &mode_1ms_20ms,
-    [TP_TM_2MS_20MS] = &mode_2ms_20ms,
-    [TP_TM_5MS_20MS] = &mode_5ms_20ms,
-    [TP_TM_10MS_20MS] = &mode_10ms_20ms,
-    [TP_TM_20MS_20MS] = &mode_20ms_20ms,
-    [TP_TM_20MS_20MS_BASE] = &mode_20ms_20ms_base,
-    [TP_TM_200MS_20MS] = &mode_200ms_20ms,
+     [TP_TM_1MS_20MS] = &mode_1ms_20ms,
+     [TP_TM_2MS_20MS] = &mode_2ms_20ms,
+     [TP_TM_5MS_20MS] = &mode_5ms_20ms,
+     [TP_TM_10MS_20MS] = &mode_10ms_20ms,
+     [TP_TM_20MS_20MS] = &mode_20ms_20ms,
+     [TP_TM_20MS_20MS_BASE] = &mode_20ms_20ms_base,
+     [TP_TM_200MS_20MS] = &mode_200ms_20ms,
 
-    [TP_TM_1MS_NH20MS] = &mode_1ms_nh20ms,
-    [TP_TM_2MS_NH20MS] = &mode_2ms_nh20ms,
-    [TP_TM_5MS_NH20MS] = &mode_5ms_nh20ms,
-    [TP_TM_10MS_NH20MS] = &mode_10ms_nh20ms,
-    [TP_TM_20MS_NH20MS] = &mode_20ms_nh20ms,
-    [TP_TM_200MS_NH20MS] = &mode_200ms_nh20ms,
+     [TP_TM_1MS_NH20MS] = &mode_1ms_nh20ms,
+     [TP_TM_2MS_NH20MS] = &mode_2ms_nh20ms,
+     [TP_TM_5MS_NH20MS] = &mode_5ms_nh20ms,
+     [TP_TM_10MS_NH20MS] = &mode_10ms_nh20ms,
+     [TP_TM_20MS_NH20MS] = &mode_20ms_nh20ms,
+     [TP_TM_200MS_NH20MS] = &mode_200ms_nh20ms,
 
-    [TP_TM_1MS_SC4] = &mode_1ms_sc4,
-    [TP_TM_2MS_SC4] = &mode_2ms_sc4,
-    [TP_TM_4MS_SC4] = &mode_4ms_sc4,
-    [TP_TM_10MS_SC4] = &mode_10ms_sc4,
-    [TP_TM_20MS_SC4] = &mode_20ms_sc4,
-    [TP_TM_20MS_SC4_BASE] = &mode_20ms_sc4_base,
-    [TP_TM_200MS_SC4] = &mode_200ms_sc4};
+     [TP_TM_1MS_SC4] = &mode_1ms_sc4,
+     [TP_TM_2MS_SC4] = &mode_2ms_sc4,
+     [TP_TM_4MS_SC4] = &mode_4ms_sc4,
+     [TP_TM_10MS_SC4] = &mode_10ms_sc4,
+     [TP_TM_20MS_SC4] = &mode_20ms_sc4,
+     [TP_TM_20MS_SC4_BASE] = &mode_20ms_sc4_base,
+     [TP_TM_200MS_SC4] = &mode_200ms_sc4};
 
 /**
  * Helper for locating tracker state table.
@@ -1469,43 +1436,43 @@ u8 tp_get_dll_ms(tp_tm_e tracking_mode) {
   return tbl->dll_ms;
 }
 
-static const char *tracking_table_str_lut[TP_TM_COUNT] = {
-    [TP_TM_INITIAL] = "TM INI",
+static const char *tracking_table_str_lut[TP_TM_COUNT] =
+    {[TP_TM_INITIAL] = "TM INI",
 
-    [TP_TM_1MS_2MS] = "TM 1/2 MS",
-    [TP_TM_2MS_2MS] = "TM 2/2 MS",
-    [TP_TM_200MS_2MS] = "TM 200/2 MS",
+     [TP_TM_1MS_2MS] = "TM 1/2 MS",
+     [TP_TM_2MS_2MS] = "TM 2/2 MS",
+     [TP_TM_200MS_2MS] = "TM 200/2 MS",
 
-    [TP_TM_1MS_10MS] = "TM 1/10 MS",
-    [TP_TM_2MS_10MS] = "TM 2/10 MS",
-    [TP_TM_5MS_10MS] = "TM 5/10 MS",
-    [TP_TM_10MS_10MS] = "TM 10/10 MS",
-    [TP_TM_20MS_10MS] = "TM 20/10 MS",
-    [TP_TM_20MS_10MS_BASE] = "TM 20/10 MS BASE",
-    [TP_TM_200MS_10MS] = "TM 200/10 MS",
+     [TP_TM_1MS_10MS] = "TM 1/10 MS",
+     [TP_TM_2MS_10MS] = "TM 2/10 MS",
+     [TP_TM_5MS_10MS] = "TM 5/10 MS",
+     [TP_TM_10MS_10MS] = "TM 10/10 MS",
+     [TP_TM_20MS_10MS] = "TM 20/10 MS",
+     [TP_TM_20MS_10MS_BASE] = "TM 20/10 MS BASE",
+     [TP_TM_200MS_10MS] = "TM 200/10 MS",
 
-    [TP_TM_1MS_20MS] = "TM 1/20 MS",
-    [TP_TM_2MS_20MS] = "TM 2/20 MS",
-    [TP_TM_5MS_20MS] = "TM 5/20 MS",
-    [TP_TM_10MS_20MS] = "TM 10/20 MS",
-    [TP_TM_20MS_20MS] = "TM 20/20 MS",
-    [TP_TM_20MS_20MS_BASE] = "TM 20/20 MS BASE",
-    [TP_TM_200MS_20MS] = "TM 200/20 MS",
+     [TP_TM_1MS_20MS] = "TM 1/20 MS",
+     [TP_TM_2MS_20MS] = "TM 2/20 MS",
+     [TP_TM_5MS_20MS] = "TM 5/20 MS",
+     [TP_TM_10MS_20MS] = "TM 10/20 MS",
+     [TP_TM_20MS_20MS] = "TM 20/20 MS",
+     [TP_TM_20MS_20MS_BASE] = "TM 20/20 MS BASE",
+     [TP_TM_200MS_20MS] = "TM 200/20 MS",
 
-    [TP_TM_1MS_NH20MS] = "TM 1/NH20",
-    [TP_TM_2MS_NH20MS] = "TM 2/NH20",
-    [TP_TM_5MS_NH20MS] = "TM 5/NH20",
-    [TP_TM_10MS_NH20MS] = "TM 10/NH20",
-    [TP_TM_20MS_NH20MS] = "TM 20/NH20",
-    [TP_TM_200MS_NH20MS] = "TM 200/NH20",
+     [TP_TM_1MS_NH20MS] = "TM 1/NH20",
+     [TP_TM_2MS_NH20MS] = "TM 2/NH20",
+     [TP_TM_5MS_NH20MS] = "TM 5/NH20",
+     [TP_TM_10MS_NH20MS] = "TM 10/NH20",
+     [TP_TM_20MS_NH20MS] = "TM 20/NH20",
+     [TP_TM_200MS_NH20MS] = "TM 200/NH20",
 
-    [TP_TM_1MS_SC4] = "TM 1/SC4",
-    [TP_TM_2MS_SC4] = "TM 2/SC4",
-    [TP_TM_4MS_SC4] = "TM 4/SC4",
-    [TP_TM_10MS_SC4] = "TM 10/SC4",
-    [TP_TM_20MS_SC4] = "TM 20/SC4",
-    [TP_TM_20MS_SC4_BASE] = "TM 20/SC4 BASE",
-    [TP_TM_200MS_SC4] = "TM 200/SC4"};
+     [TP_TM_1MS_SC4] = "TM 1/SC4",
+     [TP_TM_2MS_SC4] = "TM 2/SC4",
+     [TP_TM_4MS_SC4] = "TM 4/SC4",
+     [TP_TM_10MS_SC4] = "TM 10/SC4",
+     [TP_TM_20MS_SC4] = "TM 20/SC4",
+     [TP_TM_20MS_SC4_BASE] = "TM 20/SC4 BASE",
+     [TP_TM_200MS_SC4] = "TM 200/SC4"};
 
 /**
  * Returns a literal for the given mode enumeration.
