@@ -133,7 +133,13 @@ void tp_profile_apply_config(tracker_t *tracker, bool init) {
 
   tracker->has_next_params = false;
 
-  tracker->cycle_no = init ? 0 : tp_calc_init_cycle_no(tracker, l->mode, 0);
+  u16 cycle_no = 0;
+  if (!init) {
+    cycle_no = tp_calc_init_cycle_no(tracker, l->mode, /*switch_in_ms=*/0);
+    /* compensate for tp_tracker_update_cycle_counter() call */
+    cycle_no = cycle_no ? (cycle_no - 1) : (tp_get_cycle_count(l->mode) - 1);
+  }
+  tracker->cycle_no = cycle_no;
 
   /**< C/N0 integration time */
   u8 cn0_ms = tp_get_cn0_ms(tracker->tracking_mode);
@@ -300,20 +306,17 @@ void tp_tracker_disable(tracker_t *tracker) {
  * \return Computed number of chips.
  */
 static u32 tp_tracker_compute_rollover_count(tracker_t *tracker) {
-  u16 cycle_no;
   u8 result_ms;
   tp_tm_e mode_cur = tracker->tracking_mode;
   if (tracker->has_next_params) {
     tp_profile_t *profile = &tracker->profile;
     tp_tm_e mode_next = tp_profile_get_next_track_mode(profile, tracker->mesid);
-    cycle_no = tp_wrap_cycle(mode_cur, tracker->cycle_no + 1);
+    u16 cycle_no = tp_wrap_cycle(mode_cur, tracker->cycle_no + 1);
     u8 ms = tp_get_cycle_duration(mode_cur, cycle_no);
-    cycle_no =
-        tp_calc_init_cycle_no(tracker, mode_next, /*switch_after_ms=*/ms);
-    cycle_no = tp_wrap_cycle(mode_next, cycle_no + 1);
+    cycle_no = tp_calc_init_cycle_no(tracker, mode_next, /*switch_in_ms=*/ms);
     result_ms = tp_get_cycle_duration(mode_next, cycle_no);
   } else {
-    cycle_no = tp_wrap_cycle(mode_cur, tracker->cycle_no + 2);
+    u16 cycle_no = tp_wrap_cycle(mode_cur, tracker->cycle_no + 2);
     result_ms = tp_get_cycle_duration(mode_cur, cycle_no);
   }
   assert(result_ms);

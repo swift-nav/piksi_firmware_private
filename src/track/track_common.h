@@ -76,7 +76,7 @@ u32 tp_get_cycle_flags(tracker_t *tracker, u16 cycle_no);
 u16 tp_get_cycle_count(tp_tm_e tracking_mode);
 u16 tp_calc_init_cycle_no(const tracker_t *tracker,
                           tp_tm_e mode,
-                          u8 switch_after_ms);
+                          u8 switch_in_ms);
 u8 tp_get_cycle_duration(tp_tm_e tracking_mode, u16 cycle_no);
 u16 tp_wrap_cycle(tp_tm_e tracking_mode, u16 cycle_no);
 

@@ -683,7 +683,8 @@ static const state_table_t mode_10ms_10ms = {
 #define FSM_GLO_400_MS FSM_GLO_100_MS /*100*/, FSM_GLO_100_MS /*200*/, \
                        FSM_GLO_100_MS /*300*/, FSM_GLO_100_MS /*400*/
 
-/* GLO string integration state machine */
+/* GLO string integration state machine for >=20 integration times
+   for 10ms GLO meander wipe-off */
 #define FSM_GLO_2000_MS                                 \
     /* navigation part of GLO string (1.7s long) */     \
     FSM_GLO_400_MS /*400*/ , FSM_GLO_400_MS /*800*/,    \
@@ -754,7 +755,7 @@ static const state_table_t mode_20ms_10ms_base = {
   .fpll_decim = 1,
   .dll_ms = 20,
   .bit_ms = 10,
-  .ent_cnt = GLO_FSM_20MS_NUM * 6, /* 900 */
+  .ent_cnt = GLO_FSM_20MS_NUM * 6, /* 600 */
   .entries = {
 #define FSM_GLO_20_MS(odd, even)                                                                  \
     {1, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET | GLO_FLAGS(odd)},  \
@@ -1257,31 +1258,25 @@ u16 tp_get_cycle_count(tp_tm_e tracking_mode) {
  *
  * \param[in] tracker Tracker handler
  * \param[in] mode Tracking mode.
- * \param[in] switch_after_ms Profile switch is planned after this delay [ms]
+ * \param[in] switch_in_ms Profile switch is planned after this delay [ms]
  *
  * \return The init cycle
  */
 u16 tp_calc_init_cycle_no(const tracker_t *tracker,
                           tp_tm_e mode,
-                          u8 switch_after_ms) {
+                          u8 switch_in_ms) {
   const state_table_t *const tbl = select_table(mode);
-  u16 cycle_no;
+  u16 cycle_no = 0;
   if ((tbl == &mode_20ms_10ms) || (tbl == &mode_200ms_10ms)) {
     /* We are about to activate GLO >=20ms integration mode.
        Compute the index within 2000ms FSM for GLO meander wipe-off. */
     assert(0 != (tracker->flags & TRACKER_FLAG_GLO_STRING_SYNC));
-    u16 ms = tracker->glo_into_string_ms + switch_after_ms;
+    u16 ms = tracker->glo_into_string_ms + switch_in_ms;
     assert(0 == (ms % GLO_MEANDER_WIPEOFF_ALIGN_MS));
     u8 cycles_in_20ms = tbl->ent_cnt / GLO_FSM_20MS_NUM;
     cycle_no = (ms / GLO_MEANDER_WIPEOFF_ALIGN_MS) * cycles_in_20ms;
-    if (0 == cycle_no) {
-      cycle_no = tp_get_cycle_count(mode);
-    }
-  } else {
-    cycle_no = tp_get_cycle_count(mode);
   }
-  assert(cycle_no);
-  return tp_wrap_cycle(mode, cycle_no - 1);
+  return cycle_no;
 }
 
 /**

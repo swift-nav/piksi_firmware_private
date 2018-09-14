@@ -144,7 +144,10 @@ static void update_glo_string_sync(tracker_t *tracker,
 
   bool string_sync = (0 != (tracker->flags & TRACKER_FLAG_GLO_STRING_SYNC));
   if (string_sync && (tracker->glo_into_string_ms != ms)) {
-    log_error_mesid(tracker->mesid, "String sync failure");
+    log_error_mesid(tracker->mesid,
+                    "String sync failure: new %d, old %d",
+                    ms,
+                    tracker->glo_into_string_ms);
   }
   tracker->glo_into_string_ms = ms;
   tracker->flags |= TRACKER_FLAG_GLO_STRING_SYNC;
