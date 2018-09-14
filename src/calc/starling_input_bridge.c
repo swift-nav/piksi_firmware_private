@@ -232,9 +232,24 @@ int starling_read_base_obs(int blocking, obs_array_t *obs_array) {
 
 /******************************************************************************/
 int starling_read_ephemeris_array(int blocking, ephemeris_array_t *eph_array) {
-  (void)blocking;
-  (void)eph_array;
-  return 0;
+  ephemeris_array_t *local_eph_arr = NULL;
+  errno_t ret = platform_mailbox_fetch(
+      MB_ID_EPHEMERIS, (void **)&local_eph_arr, blocking);
+  if (local_eph_arr) {
+    if (STARLING_READ_OK == ret) {
+      eph_array->n = local_eph_arr->n;
+      if (local_eph_arr->n > 0) {
+        MEMCPY_S(eph_array->ephemerides,
+                 sizeof(eph_array->ephemerides),
+                 local_eph_arr->ephemerides,
+                 local_eph_arr->n * sizeof(ephemeris_t));
+      }
+    } else {
+      log_error("STARLING: ephemeris mailbox fetch failed with %d", ret);
+    }
+    platform_mailbox_item_free(MB_ID_EPHEMERIS, local_eph_arr);
+  }
+  return ret;
 }
 
 /******************************************************************************/
