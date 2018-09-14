@@ -1267,7 +1267,8 @@ u16 tp_calc_init_cycle_no(const tracker_t *tracker,
                           u8 switch_in_ms) {
   const state_table_t *const tbl = select_table(mode);
   u16 cycle_no = 0;
-  if ((tbl == &mode_20ms_10ms) || (tbl == &mode_200ms_10ms)) {
+  if ((tbl == &mode_20ms_10ms) || (tbl == &mode_200ms_10ms) ||
+      (tbl == &mode_20ms_10ms_base)) {
     /* We are about to activate GLO >=20ms integration mode.
        Compute the index within 2000ms FSM for GLO meander wipe-off. */
     assert(0 != (tracker->flags & TRACKER_FLAG_GLO_STRING_SYNC));
@@ -1275,6 +1276,9 @@ u16 tp_calc_init_cycle_no(const tracker_t *tracker,
     assert(0 == (ms % GLO_MEANDER_WIPEOFF_ALIGN_MS));
     u8 cycles_in_20ms = tbl->ent_cnt / GLO_FSM_20MS_NUM;
     cycle_no = (ms / GLO_MEANDER_WIPEOFF_ALIGN_MS) * cycles_in_20ms;
+  } else if (IS_GLO(tracker->mesid) && (tbl->dll_ms > 10)) {
+    /* GLO meander removal is attempted without proper init cycle calculation */
+    assert(0);
   }
   return cycle_no;
 }
