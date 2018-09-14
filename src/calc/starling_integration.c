@@ -24,6 +24,7 @@
 #include "calc/calc_pvt_common.h"
 #include "calc/calc_pvt_me.h"
 #include "calc/starling_integration.h"
+#include "calc/starling_input_bridge.h"
 #include "ndb/ndb.h"
 #include "sbp/sbp.h"
 #include "sbp/sbp_utils.h"
@@ -1099,24 +1100,6 @@ static void profile_low_latency_thread(enum ProfileDirective directive) {
 }
 
 /* TODO(kevin) refactor common code. */
-static int read_obs_rover(int blocking, obs_array_t *obs_array) {
-  obs_array_t *new_obs_array = NULL;
-  errno_t ret =
-      platform_mailbox_fetch(MB_ID_ME_OBS, (void **)&new_obs_array, blocking);
-  if (new_obs_array) {
-    if (STARLING_READ_OK == ret) {
-      *obs_array = *new_obs_array;
-    } else {
-      /* Erroneous behavior for fetch to return non-NULL pointer and indicate
-       * read failure. */
-      log_error("Rover obs mailbox fetch failed with %d", ret);
-    }
-    platform_mailbox_item_free(MB_ID_ME_OBS, new_obs_array);
-  }
-  return ret;
-}
-
-/* TODO(kevin) refactor common code. */
 static int read_obs_base(int blocking, obs_array_t *obs_array) {
   obs_array_t *new_obs_array = NULL;
   errno_t ret =
@@ -1190,7 +1173,7 @@ static THD_FUNCTION(initialize_and_run_starling, arg) {
       SBP_MSG_RESET_FILTERS, &reset_filters_callback, &reset_filters_node);
 
   StarlingIoFunctionTable io_functions = {
-      .read_obs_rover = read_obs_rover,
+      .read_obs_rover = starling_read_rover_obs,
       .read_obs_base = read_obs_base,
       .read_sbas_data = read_sbas_data,
       .read_ephemeris_array = read_ephemeris_array,
