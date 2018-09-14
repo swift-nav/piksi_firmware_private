@@ -195,20 +195,31 @@ void starling_wait(void) {
 }
 
 /******************************************************************************/
-int starling_read_sbas_data(/*TODO*/void) {
+int starling_read_rover_obs(int blocking, obs_array_t *obs_array) {
+  (void)blocking;
+  (void)obs_array;
   return 0;
 }
 
 /******************************************************************************/
-int starling_read_rover_obs(/*TODO*/void) {
+int starling_read_base_obs(int blocking, obs_array_t *obs_array) {
+  (void)blocking;
+  (void)obs_array;
   return 0;
 }
 
-int starling_read_base_obs(/*TODO*/void) {
+/******************************************************************************/
+int starling_read_ephemeris_array(int blocking, ephemeris_array_t *eph_array) {
+  (void)blocking;
+  (void)eph_array;
   return 0;
 }
 
-int starling_read_ephemerides(/*TODO*/void) {
+/******************************************************************************/
+int starling_read_sbas_data(int blocking, sbas_raw_data_t *sbas_data) {
+  (void)blocking;
+  (void)sbas_data;
   return 0;
 }
+
 
