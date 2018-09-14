@@ -58,6 +58,7 @@ static void fill_starling_obs_array_from_navigation_measurements(
 void starling_input_bridge_init(void) {
   chSemObjectInit(&input_sem, 0);
   platform_mailbox_init(MB_ID_ME_OBS);
+  platform_mailbox_init(MB_ID_BASE_OBS);
   platform_mailbox_init(MB_ID_SBAS_DATA);
   platform_mailbox_init(MB_ID_EPHEMERIS);
 }
@@ -97,7 +98,27 @@ int starling_send_rover_obs(const gps_time_t *t,
 
 /******************************************************************************/
 int starling_send_base_obs(const obs_array_t *obs_array) {
-  (void)obs_array;
+  /* Before doing anything, try to get new observation to post to. */
+  obs_array_t *new_obs_array = platform_mailbox_item_alloc(MB_ID_BASE_OBS);
+  if (new_obs_array == NULL) {
+    log_warn("Base obs pool full, discarding base obs at: wn: %d, tow: %.2f",
+             obs_array->t.wn,
+             obs_array->t.tow);
+    return STARLING_SEND_ERROR;
+  }
+
+  // TODO(Kevin) remove this copy.
+  *new_obs_array = *obs_array;
+  /* If we successfully get here without returning early, then go ahead and
+   * post into the Starling engine. */
+  errno_t post_error =
+      platform_mailbox_post(MB_ID_BASE_OBS, new_obs_array, MB_NONBLOCKING);
+  if (post_error) {
+    log_error("Base obs mailbox should have space!");
+    platform_mailbox_item_free(MB_ID_BASE_OBS, new_obs_array);
+    return STARLING_SEND_ERROR;
+  }
+
   chSemSignal(&input_sem);
   return STARLING_SEND_OK;
 }
