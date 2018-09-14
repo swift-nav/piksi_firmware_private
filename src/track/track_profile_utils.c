@@ -1275,7 +1275,10 @@ u16 tp_calc_init_cycle_no(const tracker_t *tracker,
     u16 ms = tracker->glo_into_string_ms + switch_in_ms;
     assert(0 == (ms % GLO_MEANDER_WIPEOFF_ALIGN_MS));
     u8 cycles_in_20ms = tbl->ent_cnt / GLO_FSM_20MS_NUM;
+    assert(0 == (tbl->ent_cnt % GLO_FSM_20MS_NUM));
     cycle_no = (ms / GLO_MEANDER_WIPEOFF_ALIGN_MS) * cycles_in_20ms;
+    cycle_no = tp_wrap_cycle(mode, cycle_no);
+    assert(cycle_no < tbl->ent_cnt);
   } else if (IS_GLO(tracker->mesid) && (tbl->dll_ms > 10)) {
     /* GLO meander removal is attempted without proper init cycle calculation */
     assert(0);
