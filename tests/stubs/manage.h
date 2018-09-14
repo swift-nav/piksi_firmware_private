@@ -13,8 +13,8 @@
 #ifndef STUBS_MANAGE_H
 #define STUBS_MANAGE_H
 
-#include <libswiftnav/gnss_time.h>
-#include <libswiftnav/signal.h>
+#include <swiftnav/gnss_time.h>
+#include <swiftnav/signal.h>
 
 #include "ch.h"
 #include "ndb/ndb_common.h"

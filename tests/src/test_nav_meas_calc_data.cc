@@ -13,15 +13,15 @@
 #include <math.h>
 #include <stdio.h>
 
-#include <libswiftnav/ch_meas.h>
-#include <libswiftnav/constants.h>
-#include <libswiftnav/coord_system.h>
-#include <libswiftnav/correct_iono_tropo.h>
-#include <libswiftnav/ephemeris.h>
-#include <libswiftnav/ionosphere.h>
-#include <libswiftnav/logging.h>
-#include <libswiftnav/nav_meas.h>
 #include <libswiftnav/observation.h>
+#include <swiftnav/ch_meas.h>
+#include <swiftnav/constants.h>
+#include <swiftnav/coord_system.h>
+#include <swiftnav/correct_iono_tropo.h>
+#include <swiftnav/ephemeris.h>
+#include <swiftnav/ionosphere.h>
+#include <swiftnav/logging.h>
+#include <swiftnav/nav_meas.h>
 
 #include "calc/calc_nav_meas.h"
 

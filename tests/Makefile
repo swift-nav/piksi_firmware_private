@@ -13,10 +13,11 @@
 # but shouldn't modify.
 SWIFTNAV_ROOT := $(shell pwd)/..
 LIB_BUILDFOLDER = build_pm_test
-LIBSWIFTNAV_BUILDDIR=$(SWIFTNAV_ROOT)/libswiftnav/$(LIB_BUILDFOLDER)
-LIBSWIFTNAV_SEARCHPATH=$(LIBSWIFTNAV_BUILDDIR)/src
-LIBSWIFTNAV_COMMON_SEARCHPATH=$(LIBSWIFTNAV_BUILDDIR)/refactor/common
-LIBSWIFTNAV_FEC_SEARCHPATH=$(LIBSWIFTNAV_BUILDDIR)/libfec
+LIBSWIFTNAV_PRIVATE_BUILDDIR=$(SWIFTNAV_ROOT)/libswiftnav/$(LIB_BUILDFOLDER)
+LIBSWIFTNAV_BUILDDIR=$(LIBSWIFTNAV_PRIVATE_BUILDDIR)/third_party/libswiftnav
+LIBSWIFTNAV_PRIVATE_SEARCHPATH=$(LIBSWIFTNAV_PRIVATE_BUILDDIR)/src
+LIBSWIFTNAV_COMMON_SEARCHPATH=$(LIBSWIFTNAV_BUILDDIR)
+LIBSWIFTNAV_FEC_SEARCHPATH=$(LIBSWIFTNAV_PRIVATE_BUILDDIR)/libfec
 
 # Points to the root of Google Test, relative to where this file is.
 # Remember to tweak this if you move this file.
@@ -72,7 +73,7 @@ INCLUDE_DIRS += -I$(STUBS_DIR)
 INCLUDE_DIRS += -I$(USER_SRC_DIR)
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/board/v3/
 INCLUDE_DIRS += -I../libswiftnav/include
-INCLUDE_DIRS += -I../libswiftnav/refactor/common
+INCLUDE_DIRS += -I../libswiftnav/third_party/libswiftnav/include
 INCLUDE_DIRS += -I../libswiftnav/include/libswiftnav
 INCLUDE_DIRS += -I../libswiftnav/libfec/include
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/utils
@@ -98,19 +99,19 @@ GTEST_HEADERS = $(GTEST_DIR)/include/gtest/*.h \
 all : lsnp run_tests
 
 lsnp :
-	@printf "BUILD libswiftnav\n"; \
-	mkdir -p $(LIBSWIFTNAV_BUILDDIR); cd $(LIBSWIFTNAV_BUILDDIR); \
+	@printf "BUILD libswiftnav-private\n"; \
+	mkdir -p $(LIBSWIFTNAV_PRIVATE_BUILDDIR); cd $(LIBSWIFTNAV_PRIVATE_BUILDDIR); \
 	cmake -DMAX_CHANNELS=45 \
 	      -DPIKSI_MULTI_UNIT_TEST=ON \
 	      -DCMAKE_C_COMPILER=$(C_COMPILER) \
 	      -DCMAKE_CXX_COMPILER=$(CXX_COMPILER) \
 	      -DENABLE_AUTOFORMAT=OFF \
 	      ../
-	$(MAKE) -C $(LIBSWIFTNAV_BUILDDIR) --no-print-directory
+	$(MAKE) -C $(LIBSWIFTNAV_PRIVATE_BUILDDIR) --no-print-directory
 
 clean :
-	@printf "CLEAN   libswiftnav\n"; \
-	$(RM) -rf $(LIBSWIFTNAV_BUILDDIR)
+	@printf "CLEAN   libswiftnav-private\n"; \
+	$(RM) -rf $(LIBSWIFTNAV_PRIVATE_BUILDDIR)
 	$(RM) -rf $(OBJDIR)
 	rm -f run_tests
 
@@ -212,11 +213,11 @@ $(OBJDIR)/%.o: %.cc
 
 OBJS += $(OBJDIR)/gtest_main.a
 
-LIBS = -lswiftnav -lswiftnav-common -lpthread -lfec
-LIB_PATH = -L$(LIBSWIFTNAV_SEARCHPATH)
+LIBS = -lswiftnav -lswiftnav-private -lswiftnav -lpthread -lfec
+LIB_PATH = -L$(LIBSWIFTNAV_PRIVATE_SEARCHPATH)
 LIB_PATH += -L$(LIBSWIFTNAV_COMMON_SEARCHPATH)
 LIB_PATH += -L$(LIBSWIFTNAV_FEC_SEARCHPATH)
-LIB_RPATH = -Wl,-rpath,$(LIBSWIFTNAV_SEARCHPATH)
+LIB_RPATH = -Wl,-rpath,$(LIBSWIFTNAV_PRIVATE_SEARCHPATH)
 LIB_RPATH += -Wl,-rpath,$(LIBSWIFTNAV_COMMON_SEARCHPATH)
 LIB_RPATH += -Wl,-rpath,$(LIBSWIFTNAV_FEC_SEARCHPATH)
 

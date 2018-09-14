@@ -5,7 +5,7 @@
 #include <string.h>
 #include <cmath>
 
-#include <libswiftnav/logging.h>
+#include <swiftnav/logging.h>
 #undef log_error
 #define log_error(...)
 

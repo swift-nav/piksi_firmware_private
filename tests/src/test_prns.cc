@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <libswiftnav/constants.h>
+#include <swiftnav/constants.h>
 
 TEST(test_prns_sid_to_init_g1, init) {
   u32 g1;
