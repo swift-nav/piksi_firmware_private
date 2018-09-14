@@ -1098,10 +1098,6 @@ static void profile_low_latency_thread(enum ProfileDirective directive) {
   }
 }
 
-/* Determines how long each read operation will block for. */
-#define READ_OBS_ROVER_TIMEOUT DGNSS_TIMEOUT_MS
-#define READ_OBS_BASE_TIMEOUT DGNSS_TIMEOUT_MS
-
 /* TODO(kevin) refactor common code. */
 static int read_obs_rover(int blocking, obs_array_t *obs_array) {
   obs_array_t *new_obs_array = NULL;
