@@ -214,9 +214,20 @@ int starling_read_rover_obs(int blocking, obs_array_t *obs_array) {
 
 /******************************************************************************/
 int starling_read_base_obs(int blocking, obs_array_t *obs_array) {
-  (void)blocking;
-  (void)obs_array;
-  return 0;
+  obs_array_t *new_obs_array = NULL;
+  errno_t ret =
+      platform_mailbox_fetch(MB_ID_BASE_OBS, (void **)&new_obs_array, blocking);
+  if (new_obs_array) {
+    if (STARLING_READ_OK == ret) {
+      *obs_array = *new_obs_array;
+    } else {
+      /* Erroneous behavior for fetch to return non-NULL pointer and indicate
+       * read failure. */
+      log_error("Base obs mailbox fetch failed with %d", ret);
+    }
+    platform_mailbox_item_free(MB_ID_BASE_OBS, new_obs_array);
+  }
+  return ret;
 }
 
 /******************************************************************************/
