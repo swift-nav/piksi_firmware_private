@@ -14,12 +14,30 @@
 
 #include <starling/starling.h>
 
+/**
+ * Starling Input Bridge
+ * =====================
+ * This is a two-sided module which provides a thread-safe mechanism
+ * for pushing data into the Starling engine. A sequence of "send" functions
+ * allow a user to transmit data to Starling from any context.
+ *
+ * Symmetric "read" functions are then provided to the Starling engine
+ * so it may go about its business.
+ *
+ * Make sure to call the "init()" function before any of the main Starling
+ * setup occurs, as it will initialize the thread-safe data structures.
+ */
+
 /* Values returned by the firmware-facing functions. */
 #define STARLING_SEND_OK    0
 #define STARLING_SEND_ERROR 1
 
-/* This side faces the firmware. */
+/* Make sure to call this very early on! */
 void starling_input_bridge_init(void);
+
+/*******************************************************************************
+ * Client-Facing "Send" Functions
+ ******************************************************************************/
 
 int starling_send_rover_obs(const gps_time_t *t, 
                             const navigation_measurement_t *nm,
@@ -30,6 +48,10 @@ int starling_send_base_obs(const obs_array_t *obs_array);
 int starling_send_ephemerides(const ephemeris_t *ephemerides, size_t n);
 
 int starling_send_sbas_data(const sbas_raw_data_t *sbas_data);
+
+/*******************************************************************************
+ * Starling-Facing "Read" Functions
+ ******************************************************************************/
 
 /* This side faces the Starling engine. */
 void starling_wait(void);
