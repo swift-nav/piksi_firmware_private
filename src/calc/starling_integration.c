@@ -23,8 +23,8 @@
 
 #include "calc/calc_pvt_common.h"
 #include "calc/calc_pvt_me.h"
-#include "calc/starling_integration.h"
 #include "calc/starling_input_bridge.h"
+#include "calc/starling_integration.h"
 #include "ndb/ndb.h"
 #include "sbp/sbp.h"
 #include "sbp/sbp_utils.h"

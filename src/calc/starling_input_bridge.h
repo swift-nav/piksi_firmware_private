@@ -29,7 +29,7 @@
  */
 
 /* Values returned by the firmware-facing functions. */
-#define STARLING_SEND_OK    0
+#define STARLING_SEND_OK 0
 #define STARLING_SEND_ERROR 1
 
 /* Make sure to call this very early on! */
@@ -39,7 +39,7 @@ void starling_input_bridge_init(void);
  * Client-Facing "Send" Functions
  ******************************************************************************/
 
-int starling_send_rover_obs(const gps_time_t *t, 
+int starling_send_rover_obs(const gps_time_t *t,
                             const navigation_measurement_t *nm,
                             size_t n);
 
@@ -65,7 +65,3 @@ int starling_read_ephemeris_array(int blocking, ephemeris_array_t *eph_array);
 int starling_read_sbas_data(int blocking, sbas_raw_data_t *sbas_data);
 
 #endif
-
-
-
-

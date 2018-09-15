@@ -43,8 +43,8 @@
 #include "settings/settings.h"
 #include "shm/shm.h"
 #include "simulator.h"
-#include "starling_integration.h"
 #include "starling_input_bridge.h"
+#include "starling_integration.h"
 #include "system_monitor/system_monitor.h"
 #include "timing/timing.h"
 #include "track/track_sid_db.h"
@@ -94,7 +94,7 @@ static void me_post_observations(u8 n,
                                  const gps_time_t *_t) {
   int ret = starling_send_ephemerides(_ephem, n);
   if (STARLING_SEND_OK != ret) {
-    log_error("ME: Unable to send ephemeris array."); 
+    log_error("ME: Unable to send ephemeris array.");
   }
 
   ret = starling_send_rover_obs(_t, _meas, n);

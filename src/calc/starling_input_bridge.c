@@ -132,8 +132,7 @@ int starling_send_ephemerides(const ephemeris_t *ephemerides, size_t n) {
     int error = platform_mailbox_fetch(
         MB_ID_EPHEMERIS, (void **)&eph_array, MB_NONBLOCKING);
     if (error) {
-      log_error(
-          "Unable to allocate ephemeris array, and mailbox is empty.");
+      log_error("Unable to allocate ephemeris array, and mailbox is empty.");
       if (eph_array) {
         platform_mailbox_item_free(MB_ID_EPHEMERIS, eph_array);
       }
@@ -170,7 +169,8 @@ int starling_send_sbas_data(const sbas_raw_data_t *sbas_data) {
   }
   assert(sbas_data);
   *sbas_data_msg = *sbas_data;
-  errno_t ret = platform_mailbox_post(MB_ID_SBAS_DATA, sbas_data_msg, MB_NONBLOCKING);
+  errno_t ret =
+      platform_mailbox_post(MB_ID_SBAS_DATA, sbas_data_msg, MB_NONBLOCKING);
   if (ret != 0) {
     log_error("platform_mailbox_post(MB_ID_SBAS_DATA) failed!");
     platform_mailbox_item_free(MB_ID_SBAS_DATA, sbas_data_msg);
@@ -188,7 +188,7 @@ void starling_wait(void) {
     return;
   } else if (ret == MSG_TIMEOUT) {
     log_warn("Starling has not received any input for %d seconds.",
-        STARLING_INPUT_TIMEOUT_UNTIL_WARN_SEC);
+             STARLING_INPUT_TIMEOUT_UNTIL_WARN_SEC);
   } else {
     log_error("Starling input semaphore reset unexpectedly.");
   }
@@ -269,5 +269,3 @@ int starling_read_sbas_data(int blocking, sbas_raw_data_t *sbas_data) {
   }
   return ret;
 }
-
-
