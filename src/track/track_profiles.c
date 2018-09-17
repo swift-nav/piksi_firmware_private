@@ -796,7 +796,6 @@ static bool profile_switch_requested(tracker_t *tracker,
     state->dll_init = true;
   }
 
-  state->profile_update = true;
   state->next.index = index;
   state->lock_time_ms = next->lock_time_ms;
 
@@ -862,8 +861,6 @@ bool tp_profile_has_new_profile(tracker_t *tracker) {
 
   const tp_profile_entry_t *cur_profile = &state->profiles[state->cur.index];
   u16 flags = cur_profile->flags;
-
-  state->profile_update = false;
 
   if (0 != (flags & TP_LOW_CN0) && low_cn0_profile_switch_requested(tracker)) {
     return true;
@@ -981,8 +978,6 @@ void tp_profile_init(tracker_t *tracker, const tp_report_t *data) {
 
   profile->cur = get_profile_vars(mesid, data->cn0);
 
-  profile->profile_update = 0;
-
   profile->cn0_offset = compute_cn0_offset(mesid, profile);
 
   tp_profile_update_config(tracker);
@@ -992,10 +987,6 @@ void tp_profile_init(tracker_t *tracker, const tp_report_t *data) {
 
 void tp_profile_switch(tracker_t *tracker) {
   tp_profile_t *profile = &tracker->profile;
-  assert(profile->profile_update);
-
-  /* Do transition of current profile */
-  profile->profile_update = 0;
 
   if (profile->cur.index != profile->next.index) {
     tracker->fpll_cycle = 0;

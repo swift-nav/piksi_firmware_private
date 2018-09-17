@@ -73,7 +73,6 @@ void tp_profile_report_data(tp_profile_t *profile, const tp_report_t *data);
 
 u8 tp_next_cycle_counter(tp_tm_e tracking_mode, u8 cycle_no);
 u32 tp_get_cycle_flags(tracker_t *tracker, u8 cycle_no);
-u32 tp_compute_cycle_parameters(tp_tm_e tracking_mode, u8 cycle_no);
 
 u8 tp_get_cycle_count(tp_tm_e tracking_mode);
 u8 tp_get_current_cycle_duration(tp_tm_e tracking_mode, u8 cycle_no);
