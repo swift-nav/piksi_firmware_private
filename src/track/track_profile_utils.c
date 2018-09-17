@@ -1390,7 +1390,7 @@ static const char *tracking_table_str_lut[TP_TM_COUNT] =
 /**
  * Returns a literal for the given mode enumeration.
  *
- * @param[in] v Tracking mode
+ * @param[in] tracking_mode Tracking mode
  *
  * @return Mode literal
  */
