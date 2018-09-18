@@ -25,11 +25,10 @@
 static semaphore_t input_sem;
 
 /******************************************************************************/
-static void meas_to_obs(
-    obs_array_t *obs_array,
-    const gps_time_t *t,
-    u8 n,
-    const navigation_measurement_t nm[]) {
+static void meas_to_obs(obs_array_t *obs_array,
+                        const gps_time_t *t,
+                        u8 n,
+                        const navigation_measurement_t nm[]) {
   assert(n <= STARLING_MAX_OBS_COUNT);
   obs_array->n = n;
   for (size_t i = 0; i < obs_array->n; ++i) {
@@ -81,7 +80,8 @@ int starling_send_rover_obs(const gps_time_t *t,
 
   if (n > STARLING_MAX_OBS_COUNT) {
     log_warn("Trying to send %u/%u observations, extra will be discarded.",
-        n, STARLING_MAX_OBS_COUNT);
+             n,
+             STARLING_MAX_OBS_COUNT);
     n = STARLING_MAX_OBS_COUNT;
   }
   meas_to_obs(obs_array, t, n, nm);
@@ -231,7 +231,8 @@ int starling_receive_base_obs(int blocking, obs_array_t *obs_array) {
 }
 
 /******************************************************************************/
-int starling_receive_ephemeris_array(int blocking, ephemeris_array_t *eph_array) {
+int starling_receive_ephemeris_array(int blocking,
+                                     ephemeris_array_t *eph_array) {
   ephemeris_array_t *local_eph_arr = NULL;
   errno_t ret = platform_mailbox_fetch(
       MB_ID_EPHEMERIS, (void **)&local_eph_arr, blocking);

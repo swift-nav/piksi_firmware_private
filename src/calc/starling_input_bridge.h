@@ -60,7 +60,8 @@ int starling_receive_rover_obs(int blocking, obs_array_t *obs_array);
 
 int starling_receive_base_obs(int blocking, obs_array_t *obs_array);
 
-int starling_receive_ephemeris_array(int blocking, ephemeris_array_t *eph_array);
+int starling_receive_ephemeris_array(int blocking,
+                                     ephemeris_array_t *eph_array);
 
 int starling_receive_sbas_data(int blocking, sbas_raw_data_t *sbas_data);
 
