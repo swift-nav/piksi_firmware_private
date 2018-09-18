@@ -195,7 +195,7 @@ void starling_wait(void) {
 }
 
 /******************************************************************************/
-int starling_read_rover_obs(int blocking, obs_array_t *obs_array) {
+int starling_receive_rover_obs(int blocking, obs_array_t *obs_array) {
   obs_array_t *new_obs_array = NULL;
   errno_t ret =
       platform_mailbox_fetch(MB_ID_ME_OBS, (void **)&new_obs_array, blocking);
@@ -213,7 +213,7 @@ int starling_read_rover_obs(int blocking, obs_array_t *obs_array) {
 }
 
 /******************************************************************************/
-int starling_read_base_obs(int blocking, obs_array_t *obs_array) {
+int starling_receive_base_obs(int blocking, obs_array_t *obs_array) {
   obs_array_t *new_obs_array = NULL;
   errno_t ret =
       platform_mailbox_fetch(MB_ID_BASE_OBS, (void **)&new_obs_array, blocking);
@@ -231,7 +231,7 @@ int starling_read_base_obs(int blocking, obs_array_t *obs_array) {
 }
 
 /******************************************************************************/
-int starling_read_ephemeris_array(int blocking, ephemeris_array_t *eph_array) {
+int starling_receive_ephemeris_array(int blocking, ephemeris_array_t *eph_array) {
   ephemeris_array_t *local_eph_arr = NULL;
   errno_t ret = platform_mailbox_fetch(
       MB_ID_EPHEMERIS, (void **)&local_eph_arr, blocking);
@@ -253,7 +253,7 @@ int starling_read_ephemeris_array(int blocking, ephemeris_array_t *eph_array) {
 }
 
 /******************************************************************************/
-int starling_read_sbas_data(int blocking, sbas_raw_data_t *sbas_data) {
+int starling_receive_sbas_data(int blocking, sbas_raw_data_t *sbas_data) {
   sbas_raw_data_t *local_data = NULL;
   errno_t ret =
       platform_mailbox_fetch(MB_ID_SBAS_DATA, (void **)&local_data, blocking);
