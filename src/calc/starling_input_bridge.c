@@ -193,7 +193,7 @@ int starling_send_sbas_data(const sbas_raw_data_t *sbas_data) {
  *
  * It is a guarantee by the Starling interface that all IO functions are
  * called from a single thread. This means that all semaphore decrement
- * operations will never race with one another. 
+ * operations will never race with one another.
  *
  * However, we are going to ignore this altogether. Since Starling is
  * robust in the face of a spuriously returning "wait" function, we don't

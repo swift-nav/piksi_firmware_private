@@ -20,9 +20,9 @@
  * a platform-specific implementation of this API.
  */
 
-#define PLATFORM_SEM_OK      0
+#define PLATFORM_SEM_OK 0
 #define PLATFORM_SEM_TIMEOUT 1
-#define PLATFORM_SEM_ERROR   2
+#define PLATFORM_SEM_ERROR 2
 
 typedef struct platform_sem_t platform_sem_t;
 
@@ -34,7 +34,6 @@ void platform_sem_destroy(platform_sem_t **sem_loc);
 
 void platform_sem_signal(platform_sem_t *sem);
 
-
 /**
  * "Wait" functions return 0 on valid decrement operation,
  * non-zero on timeout or otherwise spurious return.
@@ -45,5 +44,3 @@ int platform_sem_wait(platform_sem_t *sem);
 int platform_sem_wait_timeout(platform_sem_t *sem, unsigned long millis);
 
 #endif
-
-

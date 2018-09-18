@@ -17,20 +17,23 @@
 #define MAX_N_SEMAPHORES 8
 
 static int convert_chibios_ret(msg_t ret) {
-  switch(ret) {
-    case MSG_OK: return PLATFORM_SEM_OK;
-    case MSG_TIMEOUT: return PLATFORM_SEM_TIMEOUT;
-    default: return PLATFORM_SEM_ERROR;
+  switch (ret) {
+    case MSG_OK:
+      return PLATFORM_SEM_OK;
+    case MSG_TIMEOUT:
+      return PLATFORM_SEM_TIMEOUT;
+    default:
+      return PLATFORM_SEM_ERROR;
   }
 }
 
 platform_sem_t *platform_sem_create(void) {
-   return platform_sem_create_count(0);
+  return platform_sem_create_count(0);
 }
 
-/** 
+/**
  * We make no effort here to reuse destroyed semaphores,
- * there is an upper bound on the number of semaphores which 
+ * there is an upper bound on the number of semaphores which
  * may be created during a single execution, and that is that.
  */
 platform_sem_t *platform_sem_create_count(int count) {
@@ -44,7 +47,7 @@ platform_sem_t *platform_sem_create_count(int count) {
   semaphore_t *sem = &semaphores[n_semaphores++];
 
   chSemObjectInit(sem, count);
-  return (platform_sem_t*)sem;
+  return (platform_sem_t *)sem;
 }
 
 void platform_sem_destroy(platform_sem_t **sem_loc) {
@@ -54,17 +57,16 @@ void platform_sem_destroy(platform_sem_t **sem_loc) {
 }
 
 void platform_sem_signal(platform_sem_t *sem) {
-  chSemSignal((semaphore_t*)sem);
+  chSemSignal((semaphore_t *)sem);
 }
 
 int platform_sem_wait(platform_sem_t *sem) {
-  int ret = chSemWait((semaphore_t*)sem);
+  int ret = chSemWait((semaphore_t *)sem);
   return convert_chibios_ret(ret);
 }
 
 int platform_sem_wait_timeout(platform_sem_t *sem, unsigned long millis) {
   const systime_t timeout = MS2ST(millis);
-  int ret = chSemWaitTimeout((semaphore_t*)sem, timeout);
+  int ret = chSemWaitTimeout((semaphore_t *)sem, timeout);
   return convert_chibios_ret(ret);
 }
-
