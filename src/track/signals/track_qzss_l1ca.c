@@ -74,7 +74,7 @@ static void tracker_qzss_l1ca_update(tracker_t *tracker) {
   tracker_tow_cache(tracker);
 
   bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
-  bool inlock = ((0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) &&
+  bool inlock = ((0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) ||
                  (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK)));
 
   if (inlock && confirmed && (TOW_UNKNOWN != (tracker->TOW_ms))) {
