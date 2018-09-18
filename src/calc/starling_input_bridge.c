@@ -206,13 +206,7 @@ int starling_receive_rover_obs(int blocking, obs_array_t *obs_array) {
   errno_t ret =
       platform_mailbox_fetch(MB_ID_ME_OBS, (void **)&new_obs_array, blocking);
   if (new_obs_array) {
-    if (STARLING_READ_OK == ret) {
-      *obs_array = *new_obs_array;
-    } else {
-      /* Erroneous behavior for fetch to return non-NULL pointer and indicate
-       * read failure. */
-      log_error("Rover obs mailbox fetch failed with %d", ret);
-    }
+    *obs_array = *new_obs_array;
     platform_mailbox_item_free(MB_ID_ME_OBS, new_obs_array);
   }
   return ret;
