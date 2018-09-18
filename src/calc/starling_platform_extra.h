@@ -20,6 +20,10 @@
  * a platform-specific implementation of this API.
  */
 
+#define PLATFORM_SEM_OK      0
+#define PLATFORM_SEM_TIMEOUT 1
+#define PLATFORM_SEM_ERROR   2
+
 typedef struct platform_sem_t platform_sem_t;
 
 platform_sem_t *platform_sem_create(void);

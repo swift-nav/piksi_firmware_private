@@ -16,6 +16,14 @@
 
 #define MAX_N_SEMAPHORES 8
 
+static int convert_chibios_ret(msg_t ret) {
+  switch(ret) {
+    case MSG_OK: return PLATFORM_SEM_OK;
+    case MSG_TIMEOUT: return PLATFORM_SEM_TIMEOUT;
+    default: return PLATFORM_SEM_ERROR;
+  }
+}
+
 platform_sem_t *platform_sem_create(void) {
    return platform_sem_create_count(0);
 }
@@ -50,11 +58,13 @@ void platform_sem_signal(platform_sem_t *sem) {
 }
 
 int platform_sem_wait(platform_sem_t *sem) {
-  return chSemWait((semaphore_t*)sem);
+  int ret = chSemWait((semaphore_t*)sem);
+  return convert_chibios_ret(ret);
 }
 
 int platform_sem_wait_timeout(platform_sem_t *sem, unsigned long millis) {
   const systime_t timeout = MS2ST(millis);
-  return chSemWaitTimeout((semaphore_t*)sem, timeout);
+  int ret = chSemWaitTimeout((semaphore_t*)sem, timeout);
+  return convert_chibios_ret(ret);
 }
 

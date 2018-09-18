@@ -11,8 +11,8 @@
  */
 
 #include "calc/starling_input_bridge.h"
+#include "calc/starling_platform_extra.h"
 
-#include <ch.h>
 #include <libswiftnav/gnss_time.h>
 #include <libswiftnav/memcpy_s.h>
 #include <starling/starling_platform.h>
@@ -22,7 +22,7 @@
 /* Warn on lack of input after 10 seconds. */
 #define STARLING_INPUT_TIMEOUT_UNTIL_WARN_SEC 10
 
-static semaphore_t input_sem;
+static platform_sem_t *input_sem = NULL;
 
 /******************************************************************************/
 static void meas_to_obs(obs_array_t *obs_array,
@@ -55,11 +55,13 @@ static void meas_to_obs(obs_array_t *obs_array,
 
 /******************************************************************************/
 void starling_input_bridge_init(void) {
-  chSemObjectInit(&input_sem, 0);
   platform_mailbox_init(MB_ID_ME_OBS);
   platform_mailbox_init(MB_ID_BASE_OBS);
   platform_mailbox_init(MB_ID_SBAS_DATA);
   platform_mailbox_init(MB_ID_EPHEMERIS);
+
+  input_sem = platform_sem_create();
+  assert(NULL != input_sem);
 }
 
 /******************************************************************************/
@@ -98,7 +100,7 @@ int starling_send_rover_obs(const gps_time_t *t,
     return STARLING_SEND_ERROR;
   }
 
-  chSemSignal(&input_sem);
+  platform_sem_signal(input_sem);
   return STARLING_SEND_OK;
 }
 
@@ -125,7 +127,7 @@ int starling_send_base_obs(const obs_array_t *obs_array) {
     return STARLING_SEND_ERROR;
   }
 
-  chSemSignal(&input_sem);
+  platform_sem_signal(input_sem);
   return STARLING_SEND_OK;
 }
 
@@ -162,7 +164,7 @@ int starling_send_ephemerides(const ephemeris_t *ephemerides, size_t n) {
     return STARLING_SEND_ERROR;
   }
 
-  chSemSignal(&input_sem);
+  platform_sem_signal(input_sem);
   return STARLING_SEND_OK;
 }
 
@@ -182,7 +184,7 @@ int starling_send_sbas_data(const sbas_raw_data_t *sbas_data) {
     platform_mailbox_item_free(MB_ID_SBAS_DATA, sbas_data_msg);
     return STARLING_SEND_ERROR;
   }
-  chSemSignal(&input_sem);
+  platform_sem_signal(input_sem);
   return STARLING_SEND_OK;
 }
 
@@ -204,12 +206,12 @@ int starling_send_sbas_data(const sbas_raw_data_t *sbas_data) {
 
 /******************************************************************************/
 void starling_wait(void) {
-  const systime_t timeout = S2ST(STARLING_INPUT_TIMEOUT_UNTIL_WARN_SEC);
-  msg_t ret = chSemWaitTimeout(&input_sem, timeout);
-  if (MSG_OK == ret) {
+  const unsigned long millis = 1000 * STARLING_INPUT_TIMEOUT_UNTIL_WARN_SEC;
+  int ret = platform_sem_wait_timeout(input_sem, millis);
+  if (PLATFORM_SEM_OK == ret) {
     return;
-  } else if (MSG_TIMEOUT == ret) {
-    log_warn("Starling has not received any input for %d seconds.",
+  } else if (PLATFORM_SEM_TIMEOUT == ret) {
+    log_warn("Starling has not received any input for over %d seconds.",
              STARLING_INPUT_TIMEOUT_UNTIL_WARN_SEC);
   } else {
     log_error("Starling input semaphore reset unexpectedly.");
