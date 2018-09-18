@@ -53,10 +53,10 @@ static const double BMI160_DT_LOOKUP[] = {0.04,   /* 25 Hz */
                                           0.005}; /* 200 Hz */
 
 /* Settings */
-static u8 imu_rate = 1;
+static u8 imu_rate = 2; /* 100 Hz */
 static bool raw_imu_output = false;
 static u8 acc_range = 2;
-static bmi160_gyr_range_t gyr_range = BMI160_GYR_1000DGS;
+static bmi160_gyr_range_t gyr_range = BMI160_GYR_125DGS;
 static u8 mag_rate = 1;
 static bool raw_mag_output = false;
 
