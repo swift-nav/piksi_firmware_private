@@ -35,8 +35,8 @@ void platform_sem_destroy(platform_sem_t **sem_loc);
 void platform_sem_signal(platform_sem_t *sem);
 
 /**
- * "Wait" functions return 0 on valid decrement operation,
- * non-zero on timeout or otherwise spurious return.
+ * "Wait" functions return one of the previously
+ * defined PLATFORM_SEM_<> return codes.
  */
 
 int platform_sem_wait(platform_sem_t *sem);
