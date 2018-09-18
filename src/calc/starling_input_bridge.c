@@ -186,6 +186,22 @@ int starling_send_sbas_data(const sbas_raw_data_t *sbas_data) {
   return STARLING_SEND_OK;
 }
 
+/**
+ * A note about the use of semaphores in the "receive" implementation.
+ *
+ * It is a guarantee by the Starling interface that all IO functions are
+ * called from a single thread. This means that all semaphore decrement
+ * operations will never race with one another. 
+ *
+ * However, we are going to ignore this altogether. Since Starling is
+ * robust in the face of a spuriously returning "wait" function, we don't
+ * bother trying to decrement the semaphore upon each read. Instead we
+ * just accept the fact that we will allow Starling to "wake" exactly once for
+ * every input that is posted. In the case where multiple inputs are processed
+ * during a single "wake" period, the remaining count in the semaphore will
+ * be expended as spurious wakeups.
+ */
+
 /******************************************************************************/
 void starling_wait(void) {
   const systime_t timeout = S2ST(STARLING_INPUT_TIMEOUT_UNTIL_WARN_SEC);

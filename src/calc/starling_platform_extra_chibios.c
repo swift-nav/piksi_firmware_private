@@ -1,0 +1,60 @@
+/*
+ * Copyright (C) 2018 Swift Navigation Inc.
+ * Contact: Kevin Dade <kevin@swiftnav.com>
+ *
+ * This source is subject to the license found in the file 'LICENSE' which must
+ * be be distributed together with this source. All other rights reserved.
+ *
+ * THIS CODE AND INFORMATION IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND,
+ * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
+ */
+
+#include "starling_platform_extra.h"
+
+#include <ch.h>
+
+#define MAX_N_SEMAPHORES 8
+
+platform_sem_t *platform_sem_create(void) {
+   return platform_sem_create_count(0);
+}
+
+/** 
+ * We make no effort here to reuse destroyed semaphores,
+ * there is an upper bound on the number of semaphores which 
+ * may be created during a single execution, and that is that.
+ */
+platform_sem_t *platform_sem_create_count(int count) {
+  static int n_semaphores = 0;
+  static semaphore_t semaphores[MAX_N_SEMAPHORES];
+
+  if (n_semaphores >= MAX_N_SEMAPHORES) {
+    return NULL;
+  }
+
+  semaphore_t *sem = &semaphores[n_semaphores++];
+
+  chSemObjectInit(sem, count);
+  return (platform_sem_t*)sem;
+}
+
+void platform_sem_destroy(platform_sem_t **sem_loc) {
+  if (sem_loc) {
+    *sem_loc = NULL;
+  }
+}
+
+void platform_sem_signal(platform_sem_t *sem) {
+  chSemSignal((semaphore_t*)sem);
+}
+
+int platform_sem_wait(platform_sem_t *sem) {
+  return chSemWait((semaphore_t*)sem);
+}
+
+int platform_sem_wait_timeout(platform_sem_t *sem, unsigned long millis) {
+  const systime_t timeout = MS2ST(millis);
+  return chSemWaitTimeout((semaphore_t*)sem, timeout);
+}
+
