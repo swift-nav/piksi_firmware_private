@@ -133,10 +133,13 @@ void tp_profile_apply_config(tracker_t *tracker, bool init) {
 
   tracker->has_next_params = false;
 
-  /* For mode switch the current step is one step behind bit edge.
-     For start-up it is 0. */
-  u8 cycle_cnt = tp_get_cycle_count(l->mode);
-  tracker->cycle_no = init ? 0 : (cycle_cnt - 1);
+  u16 cycle_no = 0;
+  if (!init) {
+    cycle_no = tp_calc_init_cycle_no(tracker, l->mode, /*switch_in_ms=*/0);
+    /* compensate for tp_tracker_update_cycle_counter() call */
+    cycle_no = cycle_no ? (cycle_no - 1) : (tp_get_cycle_count(l->mode) - 1);
+  }
+  tracker->cycle_no = cycle_no;
 
   /**< C/N0 integration time */
   u8 cn0_ms = tp_get_cn0_ms(tracker->tracking_mode);
@@ -303,25 +306,25 @@ void tp_tracker_disable(tracker_t *tracker) {
  * \return Computed number of chips.
  */
 static u32 tp_tracker_compute_rollover_count(tracker_t *tracker) {
-  double code_phase_chips = tracker->code_phase_prompt;
-
-  bool plock = ((0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) ||
-                (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK)));
-  u32 result_ms = 0;
+  u8 result_ms;
+  tp_tm_e mode_cur = tracker->tracking_mode;
   if (tracker->has_next_params) {
     tp_profile_t *profile = &tracker->profile;
-    tp_tm_e mode = tp_profile_get_next_track_mode(profile, tracker->mesid);
-    result_ms = tp_get_current_cycle_duration(mode, 0);
+    tp_tm_e mode_next = tp_profile_get_next_track_mode(profile, tracker->mesid);
+    u16 cycle_no = tp_wrap_cycle(mode_cur, tracker->cycle_no + 1);
+    u8 ms = tp_get_cycle_duration(mode_cur, cycle_no);
+    cycle_no = tp_calc_init_cycle_no(tracker, mode_next, /*switch_in_ms=*/ms);
+    result_ms = tp_get_cycle_duration(mode_next, cycle_no);
   } else {
-    result_ms = tp_get_rollover_cycle_duration(tracker->tracking_mode,
-                                               tracker->cycle_no);
+    u16 cycle_no = tp_wrap_cycle(mode_cur, tracker->cycle_no + 2);
+    result_ms = tp_get_cycle_duration(mode_cur, cycle_no);
   }
-  if (0 == result_ms) {
-    log_error_mesid(tracker->mesid,
-                    "tracking_mode %d cycle_no %d result_ms 0",
-                    tracker->tracking_mode,
-                    tracker->cycle_no);
-  }
+  assert(result_ms);
+
+  double code_phase_chips = tracker->code_phase_prompt;
+  bool plock = ((0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) ||
+                (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK)));
+
   return tp_convert_ms_to_chips(
       tracker->mesid, result_ms, code_phase_chips, plock);
 }
@@ -340,14 +343,12 @@ static u32 tp_tracker_compute_rollover_count(tracker_t *tracker) {
  */
 static void mode_change_init(tracker_t *tracker) {
   bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
-  if (tracker->has_next_params || !confirmed) {
-    /* If the mode switch has been initiated - do nothing */
+  if (!confirmed) {
     return;
   }
 
   /* Compute time of the currently integrated period */
-  u8 next_cycle =
-      tp_next_cycle_counter(tracker->tracking_mode, tracker->cycle_no);
+  u16 next_cycle = tp_wrap_cycle(tracker->tracking_mode, tracker->cycle_no + 1);
   u32 next_cycle_flags = tp_get_cycle_flags(tracker, next_cycle);
 
   if (0 == (next_cycle_flags & TPF_BSYNC_UPD)) {
@@ -361,10 +362,7 @@ static void mode_change_init(tracker_t *tracker) {
   if (tracker_next_bit_aligned(tracker, bit_ms)) {
     /* When the bit sync is available and the next integration interval is the
      * last one in the bit, check if the profile switch is required. */
-    if (tp_profile_has_new_profile(tracker)) {
-      /* Initiate profile change */
-      tracker->has_next_params = true;
-    }
+    tracker->has_next_params = tp_profile_has_new_profile(tracker);
   }
 }
 
@@ -394,9 +392,9 @@ static void mode_change_complete(tracker_t *tracker) {
  *
  * \return None
  */
-void tp_tracker_update_cycle_counter(tracker_t *tracker) {
+static void tp_tracker_update_cycle_counter(tracker_t *tracker) {
   tracker->cycle_no =
-      tp_next_cycle_counter(tracker->tracking_mode, tracker->cycle_no);
+      tp_wrap_cycle(tracker->tracking_mode, tracker->cycle_no + 1);
 }
 
 /**
@@ -479,8 +477,7 @@ static void tp_tracker_update_correlators(tracker_t *tracker, u32 cycle_flags) {
   tp_update_correlators(cycle_flags, &cs_now, &tracker->corrs);
 
   /* Current cycle duration */
-  int_ms =
-      tp_get_current_cycle_duration(tracker->tracking_mode, tracker->cycle_no);
+  int_ms = tp_get_cycle_duration(tracker->tracking_mode, tracker->cycle_no);
 
   u64 now = timing_getms();
   if (tracker->updated_once) {
@@ -765,7 +762,7 @@ static void tp_tracker_update_locks(tracker_t *tracker, u32 cycle_flags) {
  * \retval true the given cycle index is decimated
  * \retval false the given cycle index in not decimated (passed through)
  */
-static bool cycle_decimated(u8 cycle_no, u8 decim_factor) {
+static bool cycle_decimated(u16 cycle_no, u8 decim_factor) {
   if ((0 == decim_factor) || (1 == decim_factor)) {
     return false;
   }

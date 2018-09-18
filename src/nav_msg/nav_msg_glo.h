@@ -57,6 +57,7 @@ typedef enum {
 typedef enum {
   GLO_STRING_NOT_READY, /**< GLO string being collected */
   GLO_STRING_READY,     /**< GLO string ready for decoding */
+  GLO_TIME_MARK_DECODED /**< GLO 300ms time mark was decoded */
 } nav_msg_status_t;
 
 /** GLO string decoding status */
@@ -110,7 +111,7 @@ typedef struct {
 
 void nav_msg_init_glo(nav_msg_glo_t *n, me_gnss_signal_t mesid);
 u32 extract_word_glo(const nav_msg_glo_t *n, u16 bit_index, u8 n_bits);
-void seek_timemark_glo(nav_msg_glo_t *n, bool symbol);
+bool timemark_glo_decoded(nav_msg_glo_t *n, bool symbol);
 nav_msg_status_t get_data_bits_glo(nav_msg_glo_t *n, bool symbol);
 string_decode_status_t process_string_glo(nav_msg_glo_t *n, u32 time_tag_ms);
 nav_msg_status_t nav_msg_update_glo(nav_msg_glo_t *n, bool symbol);

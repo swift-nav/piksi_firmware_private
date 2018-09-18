@@ -198,7 +198,8 @@ void msg_update_test(bool inverted) {
       } else {
         ret = nav_msg_update_glo(&n, (GLO_TM >> (k - 1)) & 1);
       }
-      EXPECT_EQ(GLO_STRING_NOT_READY, ret);
+      EXPECT_TRUE((GLO_STRING_NOT_READY == ret) ||
+                  (GLO_TIME_MARK_DECODED == ret));
     }
   }
 }

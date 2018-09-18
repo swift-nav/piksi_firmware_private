@@ -34,6 +34,12 @@
 /** GLO L1CA symbol length [ms] */
 #define GLO_L1CA_SYMBOL_LENGTH_MS 10
 
+/** GLO meander wipe-off requires this symbol alignment [ms] */
+#define GLO_MEANDER_WIPEOFF_ALIGN_MS (2 * GLO_L1CA_SYMBOL_LENGTH_MS)
+
+/** GLO string length [ms] */
+#define GLO_STRING_LENGTH_MS 2000
+
 /** SBAS L1 symbol length [ms] */
 #define SBAS_L1CA_SYMBOL_LENGTH_MS 2
 

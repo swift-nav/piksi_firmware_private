@@ -28,6 +28,7 @@ typedef enum {
   GLO_DECODE_TOW_UPDATE,      /**< TOW decoded (TOW + polarity update) */
   GLO_DECODE_EPH_UPDATE,      /**< All GLO strings decoded
                                    (ephemeris + TOW + polarity update) */
+  GLO_DECODE_TIME_MARK        /**< 300ms time mark is decoded */
 } glo_decode_status_t;
 
 #ifdef __cplusplus

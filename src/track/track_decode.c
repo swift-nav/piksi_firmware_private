@@ -34,7 +34,7 @@ bool tracker_nav_bit_received(u8 id, nav_bit_t *nav_bit) {
 void tracker_data_sync_init(nav_data_sync_t *nav_data_sync) {
   memset(nav_data_sync, 0, sizeof(*nav_data_sync));
   nav_data_sync->health = SV_UNHEALTHY;
-  nav_data_sync->sync_flags = SYNC_ALL;
+  nav_data_sync->sync_flags = SYNC_POL | SYNC_TOW | SYNC_EPH;
 }
 
 /** Propagate decoded time of week, bit polarity and optional glo orbit slot

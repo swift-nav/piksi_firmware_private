@@ -496,7 +496,7 @@ nav_data_sync_t construct_gal_data_sync(const nav_msg_gal_inav_t *n,
       from_decoder.sync_flags = SYNC_POL | SYNC_TOW;
       break;
     case GAL_DECODE_EPH_UPDATE:
-      from_decoder.sync_flags = SYNC_ALL;
+      from_decoder.sync_flags = SYNC_POL | SYNC_TOW | SYNC_EPH;
       break;
     case GAL_DECODE_DUMMY_UPDATE:
       from_decoder.sync_flags = SYNC_POL | SYNC_EPH;

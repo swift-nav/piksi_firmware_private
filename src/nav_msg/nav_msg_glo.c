@@ -264,15 +264,16 @@ s8 error_detection_glo(const nav_msg_glo_t *n) {
  *
  * \param n      GLO Nav message decode state struct
  * \param symbol State of the nav symbol to process, 0 or 1
+ * \return GLO timemark was decoded (true) or not (false)
  */
-void seek_timemark_glo(nav_msg_glo_t *n, bool symbol) {
+bool timemark_glo_decoded(nav_msg_glo_t *n, bool symbol) {
   /* put incoming symbol at the tail of the buffer */
   n->string_bits[0] <<= 1; /* use one word of buffer for that purpose */
   n->string_bits[0] |= symbol;
   /* collected symbols match time mark? if not stay at this state */
   u32 tm = extract_word_glo(n, 1, GLO_TM_LEN_SYMBOLS);
   if ((GLO_TM != tm) && (GLO_TM_INV != tm)) {
-    return;
+    return false;
   }
 
   /* time mark found, next time start collecting data symbols */
@@ -285,11 +286,12 @@ void seek_timemark_glo(nav_msg_glo_t *n, bool symbol) {
   n->bit_polarity =
       (GLO_TM == tm) ? BIT_POLARITY_NORMAL : BIT_POLARITY_INVERTED;
   if (BIT_POLARITY_UNKNOWN == prev_bit_polarity) {
-    return;
+    return true;
   }
   if (prev_bit_polarity != n->bit_polarity) {
     log_warn_mesid(n->mesid, "Bit polarity mismatch");
   }
+  return true;
 }
 
 /** Collect data bits of GLO string.
@@ -358,6 +360,7 @@ nav_msg_status_t get_data_bits_glo(nav_msg_glo_t *n, bool symbol) {
  * \param symbol State of the nav symbol to process, 0 or 1
  *
  * \return GLO_STRING_READY if Glo nav string ready for decoding,
+ *         GLO_TIME_MARK_DECODED if GLO time mark was just decoded,
  *         GLO_STRING_NOT_READY otherwise.
  */
 nav_msg_status_t nav_msg_update_glo(nav_msg_glo_t *n, bool symbol) {
@@ -365,7 +368,9 @@ nav_msg_status_t nav_msg_update_glo(nav_msg_glo_t *n, bool symbol) {
 
   switch (n->state) {
     case SYNC_TM: /* try to find time mark */
-      seek_timemark_glo(n, symbol);
+      if (timemark_glo_decoded(n, symbol)) {
+        ret = GLO_TIME_MARK_DECODED;
+      }
       break;
     case GET_DATA_BIT: /* collect data bits of string */
       ret = get_data_bits_glo(n, symbol);

@@ -41,6 +41,9 @@ glo_decode_status_t glo_data_decoding(nav_msg_glo_t *n,
   /* Update GLO data decoder */
   bool bit_val = nav_bit.data > 0;
   nav_msg_status_t msg_status = nav_msg_update_glo(n, bit_val);
+  if (GLO_TIME_MARK_DECODED == msg_status) {
+    return GLO_DECODE_TIME_MARK;
+  }
   if (GLO_STRING_READY != msg_status) {
     return GLO_DECODE_WAIT;
   }
@@ -84,6 +87,9 @@ decode_sync_flags_t get_data_sync_flags(const nav_msg_glo_t *n,
   decode_sync_flags_t flags = 0;
 
   switch (status) {
+    case GLO_DECODE_TIME_MARK:
+      flags = SYNC_GLO_STRING;
+      break;
     case GLO_DECODE_POLARITY_UPDATE:
     case GLO_DECODE_POLARITY_LOSS:
       /* Update polarity status if new string has been decoded,
