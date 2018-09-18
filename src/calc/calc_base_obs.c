@@ -42,6 +42,7 @@
 #include "shm/shm.h"
 #include "signal_db/signal_db.h"
 #include "simulator.h"
+#include "starling_input_bridge.h"
 #include "timing/timing.h"
 
 /** \defgroup base_obs Base station observation handling
@@ -160,24 +161,9 @@ static void update_obss(obs_array_t *obs_array) {
     log_info("Communication latency exceeds 15 seconds");
   }
 
-  /* Before doing anything, try to get new observation to post to. */
-  obs_array_t *new_obs_array = platform_mailbox_item_alloc(MB_ID_BASE_OBS);
-  if (new_obs_array == NULL) {
-    log_warn("Base obs pool full, discarding base obs at: wn: %d, tow: %.2f",
-             obs_array->t.wn,
-             obs_array->t.tow);
-    return;
-  }
-
-  // TODO(Kevin) remove this copy.
-  *new_obs_array = *obs_array;
-  /* If we successfully get here without returning early, then go ahead and
-   * post into the Starling engine. */
-  errno_t post_error =
-      platform_mailbox_post(MB_ID_BASE_OBS, new_obs_array, MB_NONBLOCKING);
-  if (post_error) {
-    log_error("Base obs mailbox should have space!");
-    platform_mailbox_item_free(MB_ID_BASE_OBS, new_obs_array);
+  int ret = starling_send_base_obs(obs_array);
+  if (STARLING_SEND_OK != ret) {
+    log_error("BASE: Unable to send observations.");
   }
 }
 
@@ -376,8 +362,6 @@ static void ics_msg_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
 
 /** Setup the base station observation handling subsystem. */
 void base_obs_setup() {
-  platform_mailbox_init(MB_ID_BASE_OBS);
-
   /* Register callbacks on base station messages. */
   static sbp_msg_callbacks_node_t base_pos_llh_node;
   sbp_register_cbk(

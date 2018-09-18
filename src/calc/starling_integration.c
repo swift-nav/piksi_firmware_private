@@ -23,6 +23,7 @@
 
 #include "calc/calc_pvt_common.h"
 #include "calc/calc_pvt_me.h"
+#include "calc/starling_input_bridge.h"
 #include "calc/starling_integration.h"
 #include "ndb/ndb.h"
 #include "sbp/sbp.h"
@@ -767,27 +768,6 @@ static void reset_filters_callback(u16 sender_id,
   }
 }
 
-/* Add SBAS data to the Starling engine. */
-void starling_add_sbas_data(const sbas_raw_data_t *sbas_data,
-                            const size_t n_sbas_data) {
-  for (size_t i = 0; i < n_sbas_data; ++i) {
-    sbas_raw_data_t *sbas_data_msg =
-        platform_mailbox_item_alloc(MB_ID_SBAS_DATA);
-    if (NULL == sbas_data_msg) {
-      log_error("platform_mailbox_item_alloc(MB_ID_SBAS_DATA) failed!");
-      continue;
-    }
-    assert(sbas_data);
-    *sbas_data_msg = *sbas_data;
-    errno_t ret =
-        platform_mailbox_post(MB_ID_SBAS_DATA, sbas_data_msg, MB_NONBLOCKING);
-    if (ret != 0) {
-      log_error("platform_mailbox_post(MB_ID_SBAS_DATA) failed!");
-      platform_mailbox_item_free(MB_ID_SBAS_DATA, sbas_data_msg);
-    }
-  }
-}
-
 /**
  * Simply apply whatever the current settings are to the
  * given dynamics filter.
@@ -1119,85 +1099,6 @@ static void profile_low_latency_thread(enum ProfileDirective directive) {
   }
 }
 
-/* Determines how long each read operation will block for. */
-#define READ_OBS_ROVER_TIMEOUT DGNSS_TIMEOUT_MS
-#define READ_OBS_BASE_TIMEOUT DGNSS_TIMEOUT_MS
-
-/* TODO(kevin) refactor common code. */
-static int read_obs_rover(int blocking, obs_array_t *obs_array) {
-  obs_array_t *new_obs_array = NULL;
-  errno_t ret =
-      platform_mailbox_fetch(MB_ID_ME_OBS, (void **)&new_obs_array, blocking);
-  if (new_obs_array) {
-    if (STARLING_READ_OK == ret) {
-      *obs_array = *new_obs_array;
-    } else {
-      /* Erroneous behavior for fetch to return non-NULL pointer and indicate
-       * read failure. */
-      log_error("Rover obs mailbox fetch failed with %d", ret);
-    }
-    platform_mailbox_item_free(MB_ID_ME_OBS, new_obs_array);
-  }
-  return ret;
-}
-
-/* TODO(kevin) refactor common code. */
-static int read_obs_base(int blocking, obs_array_t *obs_array) {
-  obs_array_t *new_obs_array = NULL;
-  errno_t ret =
-      platform_mailbox_fetch(MB_ID_BASE_OBS, (void **)&new_obs_array, blocking);
-  if (new_obs_array) {
-    if (STARLING_READ_OK == ret) {
-      *obs_array = *new_obs_array;
-    } else {
-      /* Erroneous behavior for fetch to return non-NULL pointer and indicate
-       * read failure. */
-      log_error("Base obs mailbox fetch failed with %d", ret);
-    }
-    platform_mailbox_item_free(MB_ID_BASE_OBS, new_obs_array);
-  }
-  return ret;
-}
-
-/* TODO(kevin) refactor common code. */
-static int read_sbas_data(int blocking, sbas_raw_data_t *data) {
-  sbas_raw_data_t *local_data = NULL;
-  errno_t ret =
-      platform_mailbox_fetch(MB_ID_SBAS_DATA, (void **)&local_data, blocking);
-  if (local_data) {
-    if (STARLING_READ_OK == ret) {
-      *data = *local_data;
-    } else {
-      /* Erroneous behavior for fetch to return non-NULL pointer and indicate
-       * read failure. */
-      log_error("STARLING: sbas mailbox fetch failed with %d", ret);
-    }
-    platform_mailbox_item_free(MB_ID_SBAS_DATA, local_data);
-  }
-  return ret;
-}
-
-static int read_ephemeris_array(int blocking, ephemeris_array_t *eph_arr) {
-  ephemeris_array_t *local_eph_arr = NULL;
-  errno_t ret = platform_mailbox_fetch(
-      MB_ID_EPHEMERIS, (void **)&local_eph_arr, blocking);
-  if (local_eph_arr) {
-    if (STARLING_READ_OK == ret) {
-      eph_arr->n = local_eph_arr->n;
-      if (local_eph_arr->n > 0) {
-        MEMCPY_S(eph_arr->ephemerides,
-                 sizeof(eph_arr->ephemerides),
-                 local_eph_arr->ephemerides,
-                 local_eph_arr->n * sizeof(ephemeris_t));
-      }
-    } else {
-      log_error("STARLING: ephemeris mailbox fetch failed with %d", ret);
-    }
-    platform_mailbox_item_free(MB_ID_EPHEMERIS, local_eph_arr);
-  }
-  return ret;
-}
-
 static THD_FUNCTION(initialize_and_run_starling, arg) {
   (void)arg;
   chRegSetThreadName("starling");
@@ -1215,10 +1116,10 @@ static THD_FUNCTION(initialize_and_run_starling, arg) {
       SBP_MSG_RESET_FILTERS, &reset_filters_callback, &reset_filters_node);
 
   StarlingIoFunctionTable io_functions = {
-      .read_obs_rover = read_obs_rover,
-      .read_obs_base = read_obs_base,
-      .read_sbas_data = read_sbas_data,
-      .read_ephemeris_array = read_ephemeris_array,
+      .read_obs_rover = starling_receive_rover_obs,
+      .read_obs_base = starling_receive_base_obs,
+      .read_sbas_data = starling_receive_sbas_data,
+      .read_ephemeris_array = starling_receive_ephemeris_array,
       .read_imu = NULL,
       .handle_solution_low_latency = send_solution_low_latency,
       .handle_solution_time_matched = send_solution_time_matched,
