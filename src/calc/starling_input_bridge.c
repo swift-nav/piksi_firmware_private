@@ -106,7 +106,7 @@ int starling_send_rover_obs(const gps_time_t *t,
 int starling_send_base_obs(const obs_array_t *obs_array) {
   /* Before doing anything, try to get new observation to post to. */
   obs_array_t *new_obs_array = platform_mailbox_item_alloc(MB_ID_BASE_OBS);
-  if (new_obs_array == NULL) {
+  if (NULL == new_obs_array) {
     log_warn("Base obs pool full, discarding base obs at: wn: %d, tow: %.2f",
              obs_array->t.wn,
              obs_array->t.tow);
@@ -177,7 +177,7 @@ int starling_send_sbas_data(const sbas_raw_data_t *sbas_data) {
   *sbas_data_msg = *sbas_data;
   errno_t ret =
       platform_mailbox_post(MB_ID_SBAS_DATA, sbas_data_msg, MB_NONBLOCKING);
-  if (ret != 0) {
+  if (0 != ret) {
     log_error("platform_mailbox_post(MB_ID_SBAS_DATA) failed!");
     platform_mailbox_item_free(MB_ID_SBAS_DATA, sbas_data_msg);
     return STARLING_SEND_ERROR;
@@ -190,9 +190,9 @@ int starling_send_sbas_data(const sbas_raw_data_t *sbas_data) {
 void starling_wait(void) {
   const systime_t timeout = S2ST(STARLING_INPUT_TIMEOUT_UNTIL_WARN_SEC);
   msg_t ret = chSemWaitTimeout(&input_sem, timeout);
-  if (ret == MSG_OK) {
+  if (MSG_OK == ret) {
     return;
-  } else if (ret == MSG_TIMEOUT) {
+  } else if (MSG_TIMEOUT == ret) {
     log_warn("Starling has not received any input for %d seconds.",
              STARLING_INPUT_TIMEOUT_UNTIL_WARN_SEC);
   } else {
