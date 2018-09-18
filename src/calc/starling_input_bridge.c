@@ -25,7 +25,7 @@
 static semaphore_t input_sem;
 
 /******************************************************************************/
-static void fill_starling_obs_array_from_navigation_measurements(
+static void meas_to_obs(
     obs_array_t *obs_array,
     const gps_time_t *t,
     u8 n,
@@ -78,7 +78,13 @@ int starling_send_rover_obs(const gps_time_t *t,
   if (NULL != t) {
     obs_array->t = *t;
   }
-  fill_starling_obs_array_from_navigation_measurements(obs_array, t, n, nm);
+
+  if (n > STARLING_MAX_OBS_COUNT) {
+    log_warn("Trying to send %u/%u observations, extra will be discarded.",
+        n, STARLING_MAX_OBS_COUNT);
+    n = STARLING_MAX_OBS_COUNT;
+  }
+  meas_to_obs(obs_array, t, n, nm);
 
   errno_t ret = platform_mailbox_post(MB_ID_ME_OBS, obs_array, MB_NONBLOCKING);
   if (ret != 0) {
