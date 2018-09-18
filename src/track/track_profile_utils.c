@@ -781,7 +781,7 @@ static const state_table_t mode_20ms_10ms_base = {
  * 200 ms integrations for GLO
  */
 static const state_table_t mode_200ms_10ms = {
-  .cn0_ms = 10,
+  .cn0_ms = 20,
   .lockdet_ms = 0, /* not used in FLL only mode */
   .alias_ms = 2.5,
   .flld_ms = 10,
@@ -801,10 +801,10 @@ static const state_table_t mode_200ms_10ms = {
     {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_ADD | TPF_ALIAS_SET | GLO_FLAGS(odd) |  \
                                                                   TPF_ALIAS_2ND},                   \
     {3, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_ADD | TPF_ALIAS_SET | GLO_FLAGS(odd) |  \
-                      TPF_CN0_USE | TPF_BSYNC_UPD | TPF_FLL_USE | TPF_ALIAS_2ND |                   \
+                                    TPF_BSYNC_UPD | TPF_FLL_USE | TPF_ALIAS_2ND |                   \
                                                     TPF_FLL_HALFQ}                                  \
                                                                   ,                                 \
-    {2, TPF_EPL_ADD | TPF_CN0_SET | TPF_BSYNC_SET | TPF_FLL_SET | TPF_ALIAS_SET | GLO_FLAGS(even) | \
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_FLL_SET | TPF_ALIAS_SET | GLO_FLAGS(even) | \
                                                                   TPF_ALIAS_2ND},                   \
     {3, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_ADD | TPF_ALIAS_SET | GLO_FLAGS(even) | \
                                                                   TPF_ALIAS_2ND},                   \
