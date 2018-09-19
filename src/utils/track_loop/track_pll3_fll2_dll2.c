@@ -112,16 +112,16 @@ void tl_pll3_retune(tl_pll3_state_t *s, const tl_config_t *config) {
 /**
  * Updates dll loop discriminator state
  *
- * \param[in,out] s        The filter state
- * \param[in]     cs       Complex valued epl correlations
- * \param[in]     pll_lock PLL lock status
+ * \param[in,out] s         The filter state
+ * \param[in]     cs        Complex valued epl correlations
+ * \param[in]     dll_discr DLL discriminator type
  *
  * \return None
  */
 void tl_pll3_update_dll_discr(tl_pll3_state_t *s,
                               const correlation_t cs[3],
-                              bool pll_lock) {
-  if (pll_lock) {
+                              tp_dll_discr_e dll_discr) {
+  if (TP_COH_DLL_DISCR == dll_discr) {
     s->dll_discr_sum_hz += coh_dll_discr(cs);
   } else {
     s->dll_discr_sum_hz += dll_discriminator(cs);

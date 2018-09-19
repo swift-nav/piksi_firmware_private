@@ -783,8 +783,20 @@ static void tp_tracker_update_loops(tracker_t *tracker, u32 cycle_flags) {
     }
 
     bool pll_lock = (0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK));
+    bool low_cn0 = (tracker->cn0 < TP_OUTLIERS_CN0_THRES_DBHZ);
+    bool high_cn0 = (tracker->cn0 > TP_OUTLIERS_CN0_THRES_DBHZ +
+                                        TRACK_CN0_HYSTERESIS_THRES_DBHZ);
 
-    tp_tl_update_dll_discr(&tracker->tl_state, &corr_main, pll_lock);
+    /* Use previous DLL discriminator type if conditions do not change. */
+    tp_dll_discr_e dll_discr = tracker->dll_discr_prev;
+    if (!pll_lock || low_cn0) {
+      dll_discr = TP_NCOH_DLL_DISCR;
+    } else if (high_cn0) {
+      dll_discr = TP_COH_DLL_DISCR;
+    }
+    tracker->dll_discr_prev = dll_discr;
+
+    tp_tl_update_dll_discr(&tracker->tl_state, &corr_main, dll_discr);
     tp_tl_update_dll(&tracker->tl_state);
 
     bool run_fpll = (0 != (cycle_flags & TPF_FPLL_RUN));

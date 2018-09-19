@@ -393,12 +393,13 @@ typedef struct {
   /** carrier_freq_prev age timer */
   tracker_timer_t carrier_freq_age_timer;
 
-  double carrier_freq_at_lock; /**< Carrier frequency snapshot in the presence
-                                    of PLL/FLL pessimistic locks [Hz]. */
-  float unfiltered_freq_error; /**< Unfiltered frequency error at the FLL
-                                    discriminator output [Hz]. */
-  float cn0;                   /**< Current estimate of C/N0. */
-  u32 flags;                   /**< Tracker flags TRACKER_FLAG_... */
+  double carrier_freq_at_lock;   /**< Carrier frequency snapshot in the presence
+                                      of PLL/FLL pessimistic locks [Hz]. */
+  float unfiltered_freq_error;   /**< Unfiltered frequency error at the FLL
+                                      discriminator output [Hz]. */
+  tp_dll_discr_e dll_discr_prev; /**< Previously used DLL discriminator.  */
+  float cn0;                     /**< Current estimate of C/N0. */
+  u32 flags;                     /**< Tracker flags TRACKER_FLAG_... */
   ch_drop_reason_t ch_drop_reason; /* Drop reason if TRACKER_FLAG_DROP is set */
   float xcorr_freq;                /**< Doppler for cross-correlation [Hz] */
   tracker_timer_t age_timer;       /**< Tracking channel age timer */

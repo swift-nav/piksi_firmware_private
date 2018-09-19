@@ -118,7 +118,7 @@ TEST(tracking_loop_test, test_aided) {
   EXPECT_LT(fabsf(stl_f2p3.carr_acc - acceleration), LOW_TOL);
   EXPECT_LT(fabsf(stl_f2p3.carr_vel - carr_freq), LOW_TOL);
 
-  tl_pll3_update_dll_discr(&stl_f2p3, cs, false);
+  tl_pll3_update_dll_discr(&stl_f2p3, cs, TP_NCOH_DLL_DISCR);
   tl_pll3_update_fpll(&stl_f2p3, cs, true);
   tl_pll3_update_dll(&stl_f2p3);
 

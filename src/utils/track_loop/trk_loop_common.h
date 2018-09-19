@@ -30,6 +30,14 @@ extern "C" {
  * \{ */
 
 /**
+ * DLL discriminator types.
+ */
+typedef enum {
+  TP_NCOH_DLL_DISCR, /**< Non-coherent DLL discriminator */
+  TP_COH_DLL_DISCR,  /**< Coherent DLL discriminator */
+} tp_dll_discr_e;
+
+/**
  * Tracking loop rates
  */
 typedef struct {
@@ -154,7 +162,7 @@ void tl_pll3_retune(tl_pll3_state_t *s, const tl_config_t *config);
 
 void tl_pll3_update_dll_discr(tl_pll3_state_t *s,
                               const correlation_t cs[3],
-                              bool pll_lock);
+                              tp_dll_discr_e dll_discr);
 void tl_pll3_update_dll(tl_pll3_state_t *s);
 
 void tl_pll3_update_fll_discr(tl_pll3_state_t *s, float I, float Q, bool halfq);
@@ -174,7 +182,7 @@ void tl_pll2_retune(tl_pll2_state_t *s, const tl_config_t *config);
 void tl_pll2_update_dll(tl_pll2_state_t *s);
 void tl_pll2_update_dll_discr(tl_pll2_state_t *s,
                               const correlation_t cs[3],
-                              bool pll_lock);
+                              tp_dll_discr_e dll_discr);
 void tl_pll2_update_pll(tl_pll2_state_t *s,
                         const correlation_t cs[3],
                         bool costas);
