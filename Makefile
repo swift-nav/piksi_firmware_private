@@ -47,7 +47,7 @@ MAKEFLAGS += LIBSBP_BUILDDIR=$(LIBSBP_BUILDDIR)
 MAKEFLAGS += LIBSWIFTNAV_BUILDDIR=$(LIBSWIFTNAV_BUILDDIR)
 MAKEFLAGS += OPENAMP_BUILDDIR=$(OPENAMP_BUILDDIR)
 
-FW_DEPS=$(LIBSBP_BUILDDIR)/src/libsbp-static.a \
+FW_DEPS=$(LIBSBP_BUILDDIR)/src/libsbp.a \
 	$(LIBSWIFTNAV_BUILDDIR)/src/libstarling.a \
         $(LIBSWIFTNAV_BUILDDIR)/src/libswiftnav.a
 
@@ -66,7 +66,7 @@ firmware: $(FW_DEPS)
 	@printf "BUILD   src for target $(PIKSI_TARGET)\n"; \
 	$(MAKE) -r -C src $(MAKEFLAGS)
 
-$(LIBSBP_BUILDDIR)/src/libsbp-static.a:
+$(LIBSBP_BUILDDIR)/src/libsbp.a:
 	@printf "BUILD   libsbp for target $(PIKSI_TARGET)\n"; \
 	mkdir -p $(LIBSBP_BUILDDIR); cd $(LIBSBP_BUILDDIR); \
 	cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
