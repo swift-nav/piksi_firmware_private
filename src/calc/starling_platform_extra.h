@@ -13,7 +13,7 @@
 #define STARLING_PLATFORM_EXTRA_H_
 
 /**
- * Bare-bones semaphore abstraction used for implementating
+ * Bare-bones semaphore abstraction used for implementing
  * the Starling integration layer.
  *
  * If you want everything to work out of the box, you should provide
