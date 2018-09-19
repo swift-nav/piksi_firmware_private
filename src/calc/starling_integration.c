@@ -1116,6 +1116,7 @@ static THD_FUNCTION(initialize_and_run_starling, arg) {
       SBP_MSG_RESET_FILTERS, &reset_filters_callback, &reset_filters_node);
 
   StarlingIoFunctionTable io_functions = {
+      .wait = starling_wait,
       .read_obs_rover = starling_receive_rover_obs,
       .read_obs_base = starling_receive_base_obs,
       .read_sbas_data = starling_receive_sbas_data,
