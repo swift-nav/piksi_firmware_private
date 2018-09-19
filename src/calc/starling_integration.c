@@ -293,6 +293,7 @@ static void solution_make_sbp(const pvt_engine_result_t *soln,
                               u8 time_qual) {
   if (soln && soln->valid) {
     sbp_make_gps_time(&sbp_messages->gps_time, &soln->time, time_qual);
+
     sbp_make_utc_time(&sbp_messages->utc_time, &soln->time, time_qual);
 
     /* In SPP, `baseline` is actually absolute position in ECEF. */
@@ -402,7 +403,10 @@ static void solution_make_baseline_sbp(const pvt_engine_result_t *result,
                                        sbp_messages_t *sbp_messages) {
   double ecef_pos[3];
   if (result->has_known_reference_pos) {
-    vector_add(3, result->known_reference_pos, result->baseline, ecef_pos);
+    MEMCPY_S(ecef_pos,
+             sizeof(ecef_pos),
+             result->known_reference_pos,
+             SPP_ECEF_SIZE * sizeof(double));
   } else {
     MEMCPY_S(
         ecef_pos, sizeof(ecef_pos), spp_ecef, SPP_ECEF_SIZE * sizeof(double));
