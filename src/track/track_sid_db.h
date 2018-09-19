@@ -57,10 +57,6 @@ bool track_sid_db_azimuth_degrees_get(const gnss_signal_t sid, double *azimuth);
 bool track_sid_db_elevation_degrees_get(const gnss_signal_t sid,
                                         double *elevation);
 
-bool track_sid_db_load_positions(const gnss_signal_t sid,
-                                 xcorr_positions_t *position_entry);
-bool track_sid_db_update_positions(const gnss_signal_t sid,
-                                   const xcorr_positions_t *position_entry);
 void update_tow_in_sid_db(tracker_t *tracker);
 void propagate_tow_from_sid_db(tracker_t *tracker);
 void clear_tow_in_sid_db(const gnss_signal_t sid);

@@ -123,7 +123,6 @@ static void decode_almanac_new(gnss_signal_t sid, const almanac_t *alma) {
   switch (oc) {
     case NDB_ERR_NONE:
       log_debug_sid(alma->sid, "almanac from %s saved", src_sid_str);
-      // check_almanac_xcorr(alma->sid);
       break;
     case NDB_ERR_NO_CHANGE:
       log_debug_sid(
@@ -176,7 +175,6 @@ static void decode_almanac_time_new(gnss_signal_t sid,
                     "almanac time info saved (%" PRId16 ", %" PRId32 ")",
                     alma_time->wn,
                     (s32)alma_time->tow);
-      // check_almanac_wn_xcorr(alma_time->wn, (s32)alma_time->tow);
       break;
     case NDB_ERR_NO_CHANGE:
       log_debug_sid(sid,
@@ -410,8 +408,6 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
         log_info_mesid(channel_info->mesid,
                        "Channel cross-correlation detected "
                        "(ephe/ephe or ephe/alm check)");
-        /* Ephemeris cross-correlates with almanac of another SV */
-        // tracker_set_xcorr_flag(channel_info->mesid);
         break;
       default:
         break;

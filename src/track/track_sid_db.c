@@ -35,8 +35,6 @@
 typedef struct {
   tp_tow_entry_t tow;   /**< ToW cache entry */
   tp_azel_entry_t azel; /**< SV azimuth & elevation cache entry */
-  xcorr_positions_t
-      positions; /**< SV cross-correlation positions cache entry */
 } volatile sid_db_cache_entry_t;
 
 /**
@@ -287,58 +285,6 @@ s32 tp_tow_compute(s32 old_TOW_ms,
  */
 bool tp_tow_is_sane(s32 tow_ms) {
   return tow_ms == TOW_UNKNOWN || (tow_ms >= 0 && tow_ms < WEEK_MS);
-}
-
-/**
- * Loads SV almanac-based positions from the cache.
- *
- * \param[in]  sid            GNSS signal identifier.
- * \param[out] position_entry Container for loaded data.
- *
- * \retval true  If position entry has been loaded.
- * \retval false If position entry is not present.
- *
- * \sa track_sid_db_update_positions
- */
-bool track_sid_db_load_positions(const gnss_signal_t sid,
-                                 xcorr_positions_t *position_entry) {
-  bool result = false;
-
-  if (NULL != position_entry) {
-    u16 sv_index = sid_to_sv_index(sid);
-    chMtxLock(&sid_db_cache.mutex);
-    *position_entry = sid_db_cache.entries[sv_index].positions;
-    chMtxUnlock(&sid_db_cache.mutex);
-    result = true;
-  }
-
-  return result;
-}
-
-/**
- * Stores SV position data into the cache.
- *
- * \param[in] sid            GNSS signal identifier.
- * \param[in] position_entry Data to store.
- *
- * \retval true  If position entry has been updated.
- * \retval false If position entry is not present.
- *
- * \sa track_sid_db_load_positions
- */
-bool track_sid_db_update_positions(const gnss_signal_t sid,
-                                   const xcorr_positions_t *position_entry) {
-  bool result = false;
-
-  if (NULL != position_entry) {
-    u16 sv_index = sid_to_sv_index(sid);
-    chMtxLock(&sid_db_cache.mutex);
-    sid_db_cache.entries[sv_index].positions = *position_entry;
-    chMtxUnlock(&sid_db_cache.mutex);
-    result = true;
-  }
-
-  return result;
 }
 
 static bool tow_cache_sid_available(tracker_t *tracker, gnss_signal_t *sid) {

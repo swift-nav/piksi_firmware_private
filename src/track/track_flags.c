@@ -126,52 +126,6 @@ void tracker_set_leap_second_flag(void) {
 }
 
 /**
- * Sets and clears the L1 & L2 xcorr_suspect flag.
- *
- * This function checks if the xcorr_suspect status has changed for the
- * signal,
- * and sets / clears the flag respectively.
- *
- * \param         tracker Tracker channel data
- * \param[in]     xcorr_suspect     Flag indicating if signal is xcorr
- * suspect.
- * \param[in]     sensitivity_mode  Flag indicating sensitivity mode.
- *
- * \return None
- */
-void tracker_set_xcorr_suspect_flag(tracker_t *tracker,
-                                    bool xcorr_suspect,
-                                    bool sensitivity_mode) {
-  if (CODE_GPS_L1CA == tracker->mesid.code) {
-    gps_l1ca_tracker_data_t *data = &tracker->gps_l1ca;
-    if ((data->xcorr_flag) == xcorr_suspect) {
-      return;
-    }
-    // data->xcorr_flag = xcorr_suspect;
-  } else {
-    gps_l2cm_tracker_data_t *data = &tracker->gps_l2cm;
-    if ((data->xcorr_flag) == xcorr_suspect) {
-      return;
-    }
-    // data->xcorr_flag = xcorr_suspect;
-  }
-
-  if (xcorr_suspect) {
-    tracker->flags |= TRACKER_FLAG_XCORR_SUSPECT;
-    if (!sensitivity_mode) {
-      log_debug_mesid(tracker->mesid, "setting cross-correlation suspect flag");
-    }
-  } else {
-    tracker->flags &= ~TRACKER_FLAG_XCORR_SUSPECT;
-    if (!sensitivity_mode) {
-      log_debug_mesid(tracker->mesid,
-                      "clearing cross-correlation suspect flag");
-    }
-  }
-  tracker->xcorr_change_count = tracker->update_count;
-}
-
-/**
  * Update #TRACKER_FLAG_BIT_POLARITY_KNOWN and
  * #TRACKER_FLAG_BIT_INVERTED flags based on
  * tracker_t::bit_polarity value.
@@ -210,15 +164,3 @@ void tracker_update_bit_polarity_flags(tracker_t *tracker) {
 bool tracker_get_prn_fail_flag(tracker_t *tracker) {
   return tracker->prn_check_fail;
 }
-
-/**
- * Checks if the tracker has cross-correlation flag set.
- *
- * Tracker can use this method to check if a cross-correlation flag is set by
- * external thread.
- *
- * \param[in] tracker Tracker channel data
- *
- * \return Cross-correlation flag value-
- */
-bool tracker_get_xcorr_flag(tracker_t *tracker) { return tracker->xcorr_flag; }

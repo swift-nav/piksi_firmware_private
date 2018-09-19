@@ -184,14 +184,7 @@ static void decoder_gps_l2c_process(const decoder_channel_info_t *channel_info,
               data->cnav_msg.bit_polarity);
     tracker_data_sync(channel_info->tracking_channel, &from_decoder);
 
-    /* check PRN conformity */
-    bool prn_fail = channel_info->mesid.sat != (u16)data->cnav_msg.prn;
-    if (prn_fail) {
-      log_warn_mesid(channel_info->mesid,
-                     "Decoded PRN %" PRIu16 ". X-corr suspect",
-                     data->cnav_msg.prn);
-    }
     /* set or clear prn_fail flag for L2CM and parent L1CA */
-    tracker_set_prn_fail_flag(channel_info->mesid, prn_fail);
+    tracker_set_prn_fail_flag(channel_info->mesid, false);
   }
 }
