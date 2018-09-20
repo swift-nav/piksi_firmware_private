@@ -11,10 +11,10 @@
  */
 
 #include <assert.h>
-
-#include <libswiftnav/glo_map.h>
-#include <libswiftnav/gnss_time.h>
-#include <libswiftnav/signal.h>
+#include <inttypes.h>
+#include <swiftnav/glo_map.h>
+#include <swiftnav/gnss_time.h>
+#include <swiftnav/signal.h>
 
 #include "decode_common.h"
 #include "ndb/ndb.h"

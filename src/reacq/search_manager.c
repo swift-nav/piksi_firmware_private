@@ -10,8 +10,8 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 #include <assert.h>
-#include <libswiftnav/glo_map.h>
 #include <string.h>
+#include <swiftnav/glo_map.h>
 #include "manage.h"
 #include "ndb/ndb_lgf.h"
 #include "position/position.h"

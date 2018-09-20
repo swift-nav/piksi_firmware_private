@@ -13,7 +13,7 @@
 #include "decode_qzss_l1ca.h"
 #include "decode.h"
 
-#include <libswiftnav/logging.h>
+#include <swiftnav/logging.h>
 
 #include "decode_common.h"
 #include "nav_msg/nav_msg.h"

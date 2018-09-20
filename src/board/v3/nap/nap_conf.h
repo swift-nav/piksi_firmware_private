@@ -14,7 +14,8 @@
 #ifndef SWIFTNAV_NAP_CONF_H
 #define SWIFTNAV_NAP_CONF_H
 
-#include <libswiftnav/common.h>
+#include <stdbool.h>
+#include <swiftnav/common.h>
 
 /** \addtogroup conf
  * \{ */

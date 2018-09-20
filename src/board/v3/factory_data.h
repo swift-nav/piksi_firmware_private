@@ -13,9 +13,9 @@
 #ifndef SWIFTNAV_FACTORY_DATAL_H
 #define SWIFTNAV_FACTORY_DATAL_H
 
-#include <libswiftnav/common.h>
 #include <stddef.h>
 #include <string.h>
+#include <swiftnav/common.h>
 
 /* This assumes the CPU is little endian */
 #define cpu_to_le32(x) (x)

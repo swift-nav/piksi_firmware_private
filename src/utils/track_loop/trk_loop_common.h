@@ -13,10 +13,11 @@
 #ifndef TRACK_LOOP_H
 #define TRACK_LOOP_H
 
-#include <libswiftnav/common.h>
-#include <libswiftnav/ephemeris.h>
-#include <libswiftnav/linear_algebra.h>
-#include <libswiftnav/signal.h>
+#include <stdbool.h>
+#include <swiftnav/common.h>
+#include <swiftnav/ephemeris.h>
+#include <swiftnav/linear_algebra.h>
+#include <swiftnav/signal.h>
 
 #ifdef __cplusplus
 extern "C" {

@@ -13,8 +13,8 @@
 #include <assert.h>
 #include <string.h>
 
-#include <libswiftnav/glo_map.h>
-#include <libswiftnav/logging.h>
+#include <swiftnav/glo_map.h>
+#include <swiftnav/logging.h>
 
 #include "decode.h"
 #include "decode_common.h"

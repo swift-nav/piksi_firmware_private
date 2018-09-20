@@ -16,7 +16,7 @@
 #include "ndb/ndb_fs_access.h"
 #include "sbp_fileio.h"
 
-#include <libswiftnav/common.h>
+#include <swiftnav/common.h>
 
 /**
  * Checks if NDB persistence is available.

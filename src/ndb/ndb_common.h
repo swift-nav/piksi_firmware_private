@@ -14,10 +14,10 @@
 #define SRC_NDB_COMMON_H_
 
 #include <ch.h>
-#include <libswiftnav/almanac.h>
-#include <libswiftnav/common.h>
-#include <libswiftnav/ephemeris.h>
-#include <libswiftnav/signal.h>
+#include <swiftnav/almanac.h>
+#include <swiftnav/common.h>
+#include <swiftnav/ephemeris.h>
+#include <swiftnav/signal.h>
 
 typedef enum ndb_op_code {
   NDB_ERR_NONE = 0,         /**< No error */

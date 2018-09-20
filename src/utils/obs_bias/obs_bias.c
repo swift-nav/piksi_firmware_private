@@ -11,9 +11,9 @@
  */
 #include "obs_bias.h"
 #include <assert.h>
-#include <libswiftnav/glo_map.h>
-#include <libswiftnav/glonass_phase_biases.h>
-#include "sbp_utils.h"
+#include <swiftnav/glo_map.h>
+#include <swiftnav/glonass_phase_biases.h>
+#include "sbp/sbp_utils.h"
 
 /* exported setting */
 const u32 biases_message_freq_setting = 5.0;
@@ -132,6 +132,7 @@ void apply_isc_table(u8 n_channels, navigation_measurement_t *nav_meas[]) {
 void send_glonass_biases(void) {
   static u8 buff[256];
 
-  pack_glonass_biases_content(piksi_glonass_biases, (msg_glo_biases_t *)buff);
+  sbp_pack_glonass_biases_content(piksi_glonass_biases,
+                                  (msg_glo_biases_t *)buff);
   sbp_send_msg(SBP_MSG_GLO_BIASES, sizeof(msg_glo_biases_t), buff);
 }

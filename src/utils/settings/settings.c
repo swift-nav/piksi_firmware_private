@@ -15,7 +15,7 @@
 #include <ch.h>
 
 #include <libsbp/settings.h>
-#include <libswiftnav/logging.h>
+#include <swiftnav/logging.h>
 
 #include "sbp.h"
 #include "settings/settings.h"

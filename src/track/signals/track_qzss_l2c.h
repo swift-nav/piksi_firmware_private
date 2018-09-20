@@ -12,7 +12,7 @@
 #ifndef TRACK_QZSS_L2C_H
 #define TRACK_QZSS_L2C_H
 
-#include <libswiftnav/common.h>
+#include <swiftnav/common.h>
 
 #ifdef __cplusplus
 extern "C" {

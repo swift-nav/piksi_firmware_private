@@ -13,7 +13,7 @@
 #ifndef ALIAS_DETECTOR_H
 #define ALIAS_DETECTOR_H
 
-#include <libswiftnav/common.h>
+#include <swiftnav/common.h>
 
 #ifdef __cplusplus
 extern "C" {

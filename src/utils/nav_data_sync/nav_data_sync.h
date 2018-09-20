@@ -13,6 +13,7 @@
 #ifndef SWIFTNAV_NAV_DATA_SYNC_H
 #define SWIFTNAV_NAV_DATA_SYNC_H
 
+#include <stdbool.h>
 #include "main/main.h"
 #include "nav_bit_fifo/nav_bit_fifo.h"
 #include "shm/shm.h"

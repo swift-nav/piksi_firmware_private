@@ -15,7 +15,7 @@
 
 #include "filters/filter_common.h"
 
-#include <libswiftnav/signal.h>
+#include <swiftnav/signal.h>
 
 #include <cn0_est/cn0_est_common.h>
 #include <nap/nap_constants.h>

@@ -21,13 +21,13 @@
 #include <libsbp/observation.h>
 #include <libsbp/orientation.h>
 #include <libsbp/system.h>
-#include <libswiftnav/almanac.h>
-#include <libswiftnav/ephemeris.h>
-#include <libswiftnav/gnss_time.h>
-#include <libswiftnav/sbas_raw_data.h>
-#include <libswiftnav/signal.h>
-#include <libswiftnav/single_epoch_solver.h>
 #include <starling/starling.h>
+#include <swiftnav/almanac.h>
+#include <swiftnav/ephemeris.h>
+#include <swiftnav/gnss_time.h>
+#include <swiftnav/sbas_raw_data.h>
+#include <swiftnav/signal.h>
+#include <swiftnav/single_epoch_solver.h>
 
 #include "nav_msg/cnav_msg.h"
 #include "obs_bias/obs_bias.h"
@@ -264,6 +264,11 @@ void sbp_pack_sbas_raw_data(const gnss_signal_t sid,
                             const u8 *decoded,
                             msg_sbas_raw_t *sbas_raw_msg);
 void unpack_sbas_raw_data(const msg_sbas_raw_t *m, sbas_raw_data_t *d);
+
+void sbp_unpack_glonass_biases_content(msg_glo_biases_t msg,
+                                       glo_biases_t *glonass_biases);
+void sbp_pack_glonass_biases_content(glo_biases_t glonass_biases,
+                                     msg_glo_biases_t *msg);
 
 #ifdef __cplusplus
 }

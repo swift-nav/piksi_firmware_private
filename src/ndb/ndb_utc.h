@@ -13,8 +13,9 @@
 #ifndef SRC_NDB_UTC_H_
 #define SRC_NDB_UTC_H_
 
-#include <libswiftnav/gnss_time.h>
 #include <ndb/ndb_common.h>
+#include <stdbool.h>
+#include <swiftnav/gnss_time.h>
 
 void ndb_utc_params_init(void);
 ndb_op_code_t ndb_utc_params_read(utc_params_t *utc_params, bool *is_nv);

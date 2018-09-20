@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <libswiftnav/logging.h>
+#include <swiftnav/logging.h>
 
 #include "gtest/gtest.h"
 #include "nav_msg/nav_msg_bds.h"

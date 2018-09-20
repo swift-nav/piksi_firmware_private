@@ -13,7 +13,7 @@
 #ifndef CN0_EST_COMMON_H
 #define CN0_EST_COMMON_H
 
-#include <libswiftnav/common.h>
+#include <swiftnav/common.h>
 
 #ifdef __cplusplus
 extern "C" {

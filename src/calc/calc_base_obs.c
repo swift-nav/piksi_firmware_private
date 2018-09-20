@@ -14,19 +14,19 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <libswiftnav/constants.h>
-#include <libswiftnav/coord_system.h>
-#include <libswiftnav/correct_iono_tropo.h>
-#include <libswiftnav/ephemeris.h>
-#include <libswiftnav/glonass_phase_biases.h>
-#include <libswiftnav/linear_algebra.h>
-#include <libswiftnav/logging.h>
-#include <libswiftnav/memcpy_s.h>
 #include <libswiftnav/observation.h>
-#include <libswiftnav/sid_set.h>
-#include <libswiftnav/signal.h>
 #include <starling/starling.h>
 #include <starling/starling_platform.h>
+#include <swiftnav/constants.h>
+#include <swiftnav/coord_system.h>
+#include <swiftnav/correct_iono_tropo.h>
+#include <swiftnav/ephemeris.h>
+#include <swiftnav/glonass_phase_biases.h>
+#include <swiftnav/linear_algebra.h>
+#include <swiftnav/logging.h>
+#include <swiftnav/memcpy_s.h>
+#include <swiftnav/sid_set.h>
+#include <swiftnav/signal.h>
 
 #include "calc_base_obs.h"
 #include "calc_pvt_me.h"
@@ -36,8 +36,8 @@
 #include "nmea/nmea.h"
 #include "peripherals/leds.h"
 #include "position/position.h"
-#include "sbp.h"
-#include "sbp_utils.h"
+#include "sbp/sbp.h"
+#include "sbp/sbp_utils.h"
 #include "settings/settings.h"
 #include "shm/shm.h"
 #include "signal_db/signal_db.h"
@@ -115,7 +115,7 @@ static void base_glonass_biases_callback(u16 sender_id,
     return;
   }
   glo_biases_t biases;
-  unpack_glonass_biases_content(*(msg_glo_biases_t *)msg, &biases);
+  sbp_unpack_glonass_biases_content(*(msg_glo_biases_t *)msg, &biases);
 
   starling_set_known_glonass_biases(biases);
   /* Relay base station GLONASS biases using sender_id = 0. */

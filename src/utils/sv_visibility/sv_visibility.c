@@ -14,7 +14,7 @@
 #include <math.h>
 #include <string.h>
 
-#include <libswiftnav/gnss_time.h>
+#include <swiftnav/gnss_time.h>
 
 #include "sv_visibility.h"
 /**

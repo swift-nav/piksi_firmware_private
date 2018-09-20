@@ -13,8 +13,8 @@
 #include "bmi160.h"
 #include <ch.h>
 #include <hal.h>
-#include <libswiftnav/logging.h>
 #include <string.h>
+#include <swiftnav/logging.h>
 
 static const SPIConfig spi_config = IMU_SPI_CONFIG;
 

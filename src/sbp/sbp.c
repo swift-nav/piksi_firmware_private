@@ -20,8 +20,8 @@
 #include <hal.h>
 
 #include <libsbp/sbp.h>
-#include <libswiftnav/logging.h>
-#include <libswiftnav/memcpy_s.h>
+#include <swiftnav/logging.h>
+#include <swiftnav/memcpy_s.h>
 
 #include "error.h"
 #include "io_support.h"

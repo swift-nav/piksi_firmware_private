@@ -25,10 +25,10 @@
 #include <platform_track.h>
 
 /* Libraries */
-#include <libswiftnav/ch_meas.h>
-#include <libswiftnav/constants.h>
-#include <libswiftnav/logging.h>
-#include <libswiftnav/signal.h>
+#include <swiftnav/ch_meas.h>
+#include <swiftnav/constants.h>
+#include <swiftnav/logging.h>
+#include <swiftnav/signal.h>
 
 /* STD headers */
 #include <string.h>

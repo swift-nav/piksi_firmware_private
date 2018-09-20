@@ -13,7 +13,7 @@
 #ifndef SWIFTNAV_RUN_STATS_H
 #define SWIFTNAV_RUN_STATS_H
 
-#include <libswiftnav/common.h>
+#include <swiftnav/common.h>
 
 #ifdef __cplusplus
 extern "C" {

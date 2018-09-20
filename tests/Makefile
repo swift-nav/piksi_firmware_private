@@ -13,10 +13,12 @@
 # but shouldn't modify.
 SWIFTNAV_ROOT := $(shell pwd)/..
 LIB_BUILDFOLDER = build_pm_test
-LIBSWIFTNAV_BUILDDIR=$(SWIFTNAV_ROOT)/libswiftnav/$(LIB_BUILDFOLDER)
-LIBSWIFTNAV_SEARCHPATH=$(LIBSWIFTNAV_BUILDDIR)/src
-LIBSWIFTNAV_COMMON_SEARCHPATH=$(LIBSWIFTNAV_BUILDDIR)/refactor/common
-LIBSWIFTNAV_FEC_SEARCHPATH=$(LIBSWIFTNAV_BUILDDIR)/libfec
+STARLING_BUILDDIR=$(SWIFTNAV_ROOT)/libswiftnav/$(LIB_BUILDFOLDER)
+LIBSWIFTNAV_BUILDDIR=$(STARLING_BUILDDIR)/third_party/libswiftnav
+STARLING_SEARCHPATH=$(STARLING_BUILDDIR)
+LIBSWIFTNAV_SEARCHPATH=$(LIBSWIFTNAV_BUILDDIR)
+STARLING_FEC_SEARCHPATH=$(STARLING_BUILDDIR)/libfec
+LIBSBP_SEARCHPATH=$(SWIFTNAV_ROOT)/libsbp/c
 
 # Points to the root of Google Test, relative to where this file is.
 # Remember to tweak this if you move this file.
@@ -72,8 +74,7 @@ INCLUDE_DIRS += -I$(STUBS_DIR)
 INCLUDE_DIRS += -I$(USER_SRC_DIR)
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/board/v3/
 INCLUDE_DIRS += -I../libswiftnav/include
-INCLUDE_DIRS += -I../libswiftnav/refactor/common
-INCLUDE_DIRS += -I../libswiftnav/include/libswiftnav
+INCLUDE_DIRS += -I../libswiftnav/third_party/libswiftnav/include
 INCLUDE_DIRS += -I../libswiftnav/libfec/include
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/utils
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/hal
@@ -84,7 +85,7 @@ INCLUDE_DIRS += -I$(USER_SRC_DIR)/soft_macq
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/track
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/main
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/sbp
-INCLUDE_DIRS += -I../libsbp/c/include
+INCLUDE_DIRS += -I$(LIBSBP_SEARCHPATH)/include
 
 # All Google Test headers.  Usually you shouldn't change this
 # definition.
@@ -98,19 +99,19 @@ GTEST_HEADERS = $(GTEST_DIR)/include/gtest/*.h \
 all : lsnp run_tests
 
 lsnp :
-	@printf "BUILD libswiftnav\n"; \
-	mkdir -p $(LIBSWIFTNAV_BUILDDIR); cd $(LIBSWIFTNAV_BUILDDIR); \
+	@printf "BUILD Starling\n"; \
+	mkdir -p $(STARLING_BUILDDIR); cd $(STARLING_BUILDDIR); \
 	cmake -DMAX_CHANNELS=45 \
 	      -DPIKSI_MULTI_UNIT_TEST=ON \
 	      -DCMAKE_C_COMPILER=$(C_COMPILER) \
 	      -DCMAKE_CXX_COMPILER=$(CXX_COMPILER) \
 	      -DENABLE_AUTOFORMAT=OFF \
 	      ../
-	$(MAKE) -C $(LIBSWIFTNAV_BUILDDIR) --no-print-directory
+	$(MAKE) -C $(STARLING_BUILDDIR) --no-print-directory
 
 clean :
-	@printf "CLEAN   libswiftnav\n"; \
-	$(RM) -rf $(LIBSWIFTNAV_BUILDDIR)
+	@printf "CLEAN   Starling\n"; \
+	$(RM) -rf $(STARLING_BUILDDIR)
 	$(RM) -rf $(OBJDIR)
 	rm -f run_tests
 
@@ -212,13 +213,13 @@ $(OBJDIR)/%.o: %.cc
 
 OBJS += $(OBJDIR)/gtest_main.a
 
-LIBS = -lswiftnav -lswiftnav-common -lpthread -lfec
-LIB_PATH = -L$(LIBSWIFTNAV_SEARCHPATH)
-LIB_PATH += -L$(LIBSWIFTNAV_COMMON_SEARCHPATH)
-LIB_PATH += -L$(LIBSWIFTNAV_FEC_SEARCHPATH)
-LIB_RPATH = -Wl,-rpath,$(LIBSWIFTNAV_SEARCHPATH)
-LIB_RPATH += -Wl,-rpath,$(LIBSWIFTNAV_COMMON_SEARCHPATH)
-LIB_RPATH += -Wl,-rpath,$(LIBSWIFTNAV_FEC_SEARCHPATH)
+LIBS = -lswiftnav-private -lswiftnav -lpthread -lfec
+LIB_PATH = -L$(STARLING_SEARCHPATH)/src
+LIB_PATH += -L$(LIBSWIFTNAV_SEARCHPATH)
+LIB_PATH += -L$(STARLING_FEC_SEARCHPATH)
+LIB_RPATH = -Wl,-rpath,$(STARLING_SEARCHPATH)/src
+LIB_RPATH += -Wl,-rpath,$(LIBSWIFTNAV_SEARCHPATH)
+LIB_RPATH += -Wl,-rpath,$(STARLING_FEC_SEARCHPATH)
 
 run_tests : lsnp $(OBJDIR) $(OBJS)
 	$(CXX) $(CXXFLAGS) $(OBJS) $(LIB_PATH) $(LIBS) -o $@ $(LIB_RPATH)

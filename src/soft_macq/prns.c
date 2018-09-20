@@ -14,7 +14,7 @@
 #include <assert.h>
 #include <stdlib.h>
 
-#include <libswiftnav/constants.h>
+#include <swiftnav/constants.h>
 
 #include "bds2_prns.h"
 #include "gal_prns.h"

@@ -1,7 +1,7 @@
 #include "gtest/gtest.h"
 
-#include <libswiftnav/coord_system.h>
-#include <libswiftnav/linear_algebra.h>
+#include <swiftnav/coord_system.h>
+#include <swiftnav/linear_algebra.h>
 #include "sbas_select/sbas_select.h"
 
 void log_(u8 level, const char *msg, ...) {

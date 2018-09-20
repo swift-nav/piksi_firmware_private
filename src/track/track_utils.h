@@ -13,7 +13,7 @@
 #ifndef SWIFTNAV_TRACK_PARAMS_H
 #define SWIFTNAV_TRACK_PARAMS_H
 
-#include <libswiftnav/ch_meas.h>
+#include <swiftnav/ch_meas.h>
 
 #include "platform_signal.h"
 #include "tracker.h"

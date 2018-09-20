@@ -13,8 +13,8 @@
 #ifndef SWIFTNAV_PRNS_H
 #define SWIFTNAV_PRNS_H
 
-#include <libswiftnav/common.h>
-#include <libswiftnav/signal.h>
+#include <swiftnav/common.h>
+#include <swiftnav/signal.h>
 
 #define INT_NUM_BYTES(arg) (((arg) + 7) / 8)
 

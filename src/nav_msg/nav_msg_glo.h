@@ -13,8 +13,9 @@
 #ifndef SWIFTNAV_NAV_MSG_GLO_H
 #define SWIFTNAV_NAV_MSG_GLO_H
 
-#include <libswiftnav/common.h>
-#include <libswiftnav/ephemeris.h>
+#include <stdbool.h>
+#include <swiftnav/common.h>
+#include <swiftnav/ephemeris.h>
 
 #ifdef __cplusplus
 extern "C" {

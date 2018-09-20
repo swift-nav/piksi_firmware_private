@@ -12,9 +12,9 @@
 
 #include <assert.h>
 #include <ch.h>
-#include <libswiftnav/ephemeris.h>
-#include <libswiftnav/logging.h>
-#include <libswiftnav/shm.h>
+#include <swiftnav/ephemeris.h>
+#include <swiftnav/logging.h>
+#include <swiftnav/shm.h>
 
 #include "nav_msg/cnav_msg_storage.h"
 #include "nav_msg/nav_msg.h"
@@ -300,7 +300,7 @@ void shm_log_sat_state(const char* shi_name, u16 sat) {
 }
 
 /** Update shi_ephemeris for GPS satellite.
- *  Refer to libswiftnav/shm.h for details of SHIs.
+ *  Refer to swiftnav/shm.h for details of SHIs.
  *
  * \param sat GPS satellite ID
  * \param new_value value to set shi_ephemeris to
@@ -315,7 +315,7 @@ void shm_gps_set_shi_ephemeris(u16 sat, u8 new_value) {
 }
 
 /** Update shi_page25 for GPS satellite.
- *  Refer to libswiftnav/shm.h for details of SHIs.
+ *  Refer to swiftnav/shm.h for details of SHIs.
  *
  * \param sat GPS satellite ID
  * \param new_value value to set shi_page25 to
@@ -336,7 +336,7 @@ void shm_gps_set_shi_page25(u16 sat, u8 new_value) {
 }
 
 /** Update shi_lnav_how_alert for GPS satellite.
- *  Refer to libswiftnav/shm.h for details of SHIs.
+ *  Refer to swiftnav/shm.h for details of SHIs.
  *
  * \param sat GPS satellite ID
  * \param new_value value to set shi_lnav_how_alert to
@@ -351,7 +351,7 @@ void shm_gps_set_shi_lnav_how_alert(u16 sat, bool new_value) {
 }
 
 /** Update shi_cnav_alert for GPS satellite.
- *  Refer to libswiftnav/shm.h for details of SHIs.
+ *  Refer to swiftnav/shm.h for details of SHIs.
  *
  * \param sat GPS satellite ID
  * \param new_value value to set shi_cnav_alert to
@@ -366,7 +366,7 @@ void shm_gps_set_shi_cnav_alert(u16 sat, bool new_value) {
 }
 
 /** Update SHI for GLO satellite.
- *  Refer to libswiftnav/shm.h for details of SHI.
+ *  Refer to swiftnav/shm.h for details of SHI.
  *
  * \param sat GLO satellite ID
  * \param new_value value to set SHI to
@@ -380,7 +380,7 @@ void shm_glo_set_shi(u16 sat, u8 new_value) {
 }
 
 /** Update SHI for BDS satellite.
- *  Refer to libswiftnav/shm.h for details of SHI.
+ *  Refer to swiftnav/shm.h for details of SHI.
  *
  * \param sat BDS satellite ID
  * \param new_value value to set SHI to
@@ -394,7 +394,7 @@ void shm_bds_set_shi(u16 sat, u8 new_value) {
 }
 
 /** Update SHI for GAL satellite.
- *  Refer to libswiftnav/shm.h for details of SHI.
+ *  Refer to swiftnav/shm.h for details of SHI.
  *
  * \param sat GAL satellite ID
  * \param new_value value to set SHI to

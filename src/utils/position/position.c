@@ -13,7 +13,7 @@
 #include <math.h>
 #include <string.h>
 
-#include <libswiftnav/logging.h>
+#include <swiftnav/logging.h>
 
 #include "board/nap/nap_common.h"
 #include "ndb/ndb.h"

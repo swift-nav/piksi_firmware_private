@@ -13,9 +13,9 @@
 #include <assert.h>
 #include <string.h>
 
-#include <libswiftnav/common.h>
-#include <libswiftnav/logging.h>
-#include <libswiftnav/memcpy_s.h>
+#include <swiftnav/common.h>
+#include <swiftnav/logging.h>
+#include <swiftnav/memcpy_s.h>
 
 #include "fifo.h"
 

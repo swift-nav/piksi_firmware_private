@@ -14,7 +14,7 @@
 #include <string.h>
 
 #include <libsbp/system.h>
-#include <libswiftnav/logging.h>
+#include <swiftnav/logging.h>
 
 #include <hal.h>
 #include "calc_pvt_me.h"

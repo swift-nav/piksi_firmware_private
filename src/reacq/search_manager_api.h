@@ -12,6 +12,7 @@
 #ifndef SWIFTNAV_SEARCH_MANAGER_API_H
 #define SWIFTNAV_SEARCH_MANAGER_API_H
 
+#include <stdbool.h>
 #include "signal_db/signal_db.h"
 
 /* Search manager constants */

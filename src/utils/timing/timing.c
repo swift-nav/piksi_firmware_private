@@ -15,7 +15,7 @@
 #include <string.h>
 
 #include <libsbp/sbp.h>
-#include <libswiftnav/logging.h>
+#include <swiftnav/logging.h>
 
 #include "board/nap/nap_common.h"
 #include "clock_filter/clock_filter.h"

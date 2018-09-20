@@ -13,7 +13,8 @@
 #ifndef SWIFTNAV_RF_CLK_H
 #define SWIFTNAV_RF_CLK_H
 
-#include <libswiftnav/common.h>
+#include <stdbool.h>
+#include <swiftnav/common.h>
 
 void rf_clk_init(bool allow_ext_clk);
 

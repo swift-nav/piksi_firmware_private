@@ -12,11 +12,13 @@
 
 #include <assert.h>
 #include <ch.h>
-#include <libswiftnav/constants.h>
-#include <libswiftnav/logging.h>
-#include <libswiftnav/memcpy_s.h>
+#include <inttypes.h>
 #include <math.h>
 #include <string.h>
+#include <swiftnav/constants.h>
+#include <swiftnav/logging.h>
+#include <swiftnav/memcpy_s.h>
+
 #include "system_monitor/system_monitor.h"
 
 #include "lib/fixed_fft_r2.h"

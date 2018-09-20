@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#include <libswiftnav/common.h>
+#include <swiftnav/common.h>
 
 #define MAX_FFTR2_RANKS (14)
 #define INTFFT_MAXSIZE (1 << MAX_FFTR2_RANKS)

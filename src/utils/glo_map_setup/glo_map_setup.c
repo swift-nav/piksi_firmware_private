@@ -11,7 +11,7 @@
  */
 
 #include <ch.h>
-#include <libswiftnav/glo_map.h>
+#include <swiftnav/glo_map.h>
 
 static MUTEX_DECL(glo_map_mutex);
 

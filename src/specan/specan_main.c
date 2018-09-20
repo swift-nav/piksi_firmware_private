@@ -11,9 +11,9 @@
 #include <string.h>
 
 #include <ch.h>
-#include <libswiftnav/common.h>
-#include <libswiftnav/logging.h>
-#include <libswiftnav/memcpy_s.h>
+#include <swiftnav/common.h>
+#include <swiftnav/logging.h>
+#include <swiftnav/memcpy_s.h>
 
 #include <libsbp/piksi.h>
 #include <sbp.h>

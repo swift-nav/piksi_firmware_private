@@ -12,8 +12,8 @@
 #define DEBUG 0
 #include <stdio.h>
 
-#include <libswiftnav/coord_system.h>
-#include <libswiftnav/logging.h>
+#include <swiftnav/coord_system.h>
+#include <swiftnav/logging.h>
 
 #include "gtest/gtest.h"
 

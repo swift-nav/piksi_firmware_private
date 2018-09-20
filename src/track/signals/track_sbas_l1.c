@@ -24,9 +24,9 @@
 #include <platform_track.h>
 
 /* Libraries */
-#include <libswiftnav/constants.h>
-#include <libswiftnav/logging.h>
-#include <libswiftnav/signal.h>
+#include <swiftnav/constants.h>
+#include <swiftnav/logging.h>
+#include <swiftnav/signal.h>
 
 /* STD headers */
 #include <string.h>

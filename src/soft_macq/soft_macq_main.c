@@ -12,12 +12,13 @@
 
 #include <assert.h>
 #include <ch.h>
+#include <inttypes.h>
 #include <math.h>
 #include <stdint.h>
 #include <string.h>
 
-#include <libswiftnav/linear_algebra.h>
-#include <libswiftnav/logging.h>
+#include <swiftnav/linear_algebra.h>
+#include <swiftnav/logging.h>
 
 #include "board/v3/nap/grabber.h"
 #include "nap/nap_common.h"

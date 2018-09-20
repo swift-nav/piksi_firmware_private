@@ -19,7 +19,7 @@
 #include "hal.h"
 #include "zynq7000.h"
 
-#include <libswiftnav/logging.h>
+#include <swiftnav/logging.h>
 
 #include "board/v3/nt1065.h"
 #include "board/v3/xadc.h"

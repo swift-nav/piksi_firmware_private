@@ -12,7 +12,7 @@
 #ifndef SWIFTNAV_TRACK_GLO_L2CA_H
 #define SWIFTNAV_TRACK_GLO_L2CA_H
 
-#include <libswiftnav/common.h>
+#include <swiftnav/common.h>
 
 #ifdef __cplusplus
 extern "C" {

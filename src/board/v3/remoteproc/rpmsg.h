@@ -13,7 +13,7 @@
 #ifndef SWIFTNAV_RPMSG_H
 #define SWIFTNAV_RPMSG_H
 
-#include <libswiftnav/common.h>
+#include <swiftnav/common.h>
 
 typedef enum {
   RPMSG_ENDPOINT_A,

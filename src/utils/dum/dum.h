@@ -15,8 +15,8 @@
 
 #include "position/position.h"
 
-#include <libswiftnav/gnss_time.h>
-#include <libswiftnav/signal.h>
+#include <swiftnav/gnss_time.h>
+#include <swiftnav/signal.h>
 
 void dum_get_doppler_wndw(const gnss_signal_t *sid,
                           const gps_time_t *t,

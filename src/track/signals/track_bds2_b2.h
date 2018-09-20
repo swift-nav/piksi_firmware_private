@@ -12,7 +12,7 @@
 #ifndef TRACK_BDS2_B2_H
 #define TRACK_BDS2_B2_H
 
-#include <libswiftnav/common.h>
+#include <swiftnav/common.h>
 
 #ifdef __cplusplus
 extern "C" {

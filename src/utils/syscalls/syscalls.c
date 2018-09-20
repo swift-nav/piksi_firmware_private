@@ -18,8 +18,8 @@
 
 #include <ch.h>
 
-#include <libswiftnav/common.h>
-#include <libswiftnav/logging.h>
+#include <swiftnav/common.h>
+#include <swiftnav/logging.h>
 
 #include "error.h"
 

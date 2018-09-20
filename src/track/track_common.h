@@ -15,8 +15,8 @@
 
 #include <libsbp/tracking.h>
 
-#include <libswiftnav/common.h>
-#include <libswiftnav/signal.h>
+#include <swiftnav/common.h>
+#include <swiftnav/signal.h>
 
 #include "me_constants.h"
 #include "track/tracker.h"

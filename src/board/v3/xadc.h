@@ -13,7 +13,8 @@
 #ifndef SWIFTNAV_XADC_H
 #define SWIFTNAV_XADC_H
 
-#include <libswiftnav/common.h>
+#include <stdbool.h>
+#include <swiftnav/common.h>
 
 void xadc_init(void);
 

@@ -13,10 +13,11 @@
 #ifndef SWIFTNAV_EPHEMERIS_H
 #define SWIFTNAV_EPHEMERIS_H
 
-#include <libswiftnav/almanac.h>
-#include <libswiftnav/constants.h>
-#include <libswiftnav/ephemeris.h>
-#include <libswiftnav/signal.h>
+#include <stdbool.h>
+#include <swiftnav/almanac.h>
+#include <swiftnav/constants.h>
+#include <swiftnav/ephemeris.h>
+#include <swiftnav/signal.h>
 
 /** Ephemeris handling status */
 typedef enum {

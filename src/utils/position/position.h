@@ -13,8 +13,8 @@
 #ifndef SWIFTNAV_POSITION_H
 #define SWIFTNAV_POSITION_H
 
-#include <libswiftnav/common.h>
-#include <libswiftnav/single_epoch_solver.h>
+#include <swiftnav/common.h>
+#include <swiftnav/single_epoch_solver.h>
 
 /** \addtogroup position
  * \{ */

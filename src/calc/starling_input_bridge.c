@@ -13,9 +13,9 @@
 #include "calc/starling_input_bridge.h"
 #include "calc/starling_platform_extra.h"
 
-#include <libswiftnav/gnss_time.h>
-#include <libswiftnav/memcpy_s.h>
 #include <starling/starling_platform.h>
+#include <swiftnav/gnss_time.h>
+#include <swiftnav/memcpy_s.h>
 
 #include <assert.h>
 

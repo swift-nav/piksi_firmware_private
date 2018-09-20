@@ -13,9 +13,10 @@
 #ifndef SWIFTNAV_SIMULATOR_H
 #define SWIFTNAV_SIMULATOR_H
 
-#include <libswiftnav/common.h>
 #include <libswiftnav/pvt_engine/firmware_binding.h>
-#include <libswiftnav/single_epoch_solver.h>
+#include <stdbool.h>
+#include <swiftnav/common.h>
+#include <swiftnav/single_epoch_solver.h>
 
 /** \defgroup simulator GPS Simulator
  * Functions used to simulate PVT and baseline fixes for hardware-in-the-loop

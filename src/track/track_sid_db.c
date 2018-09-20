@@ -10,14 +10,14 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <libswiftnav/constants.h>
-#include <libswiftnav/gnss_time.h>
-
+#include "track_sid_db.h"
+#include <inttypes.h>
+#include <swiftnav/constants.h>
+#include <swiftnav/gnss_time.h>
 #include "signal_db/signal_db.h"
 #include "timing/timing.h"
 #include "track_api.h"
 #include "track_flags.h"
-#include "track_sid_db.h"
 
 #include <assert.h>
 

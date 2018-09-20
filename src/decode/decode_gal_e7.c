@@ -12,7 +12,7 @@
 #include <assert.h>
 #include <string.h>
 
-#include <libswiftnav/logging.h>
+#include <swiftnav/logging.h>
 
 #include "decode_common.h"
 #include "decode_gal_e7.h"

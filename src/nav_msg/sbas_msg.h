@@ -14,11 +14,11 @@
 #define SWIFTNAV_SBAS_MSG_H
 
 #include <libfec/fec.h>
-#include <libswiftnav/bits.h>
-#include <libswiftnav/common.h>
-#include <libswiftnav/constants.h>
-#include <libswiftnav/edc.h>
-#include <libswiftnav/signal.h>
+#include <swiftnav/bits.h>
+#include <swiftnav/common.h>
+#include <swiftnav/constants.h>
+#include <swiftnav/edc.h>
+#include <swiftnav/signal.h>
 
 #include <limits.h>
 #include <math.h>

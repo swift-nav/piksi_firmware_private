@@ -14,11 +14,11 @@
 #define SWIFTNAV_BASE_OBS_H
 
 #include <ch.h>
-
-#include <libswiftnav/common.h>
-#include <libswiftnav/constants.h>
-#include <libswiftnav/gnss_time.h>
-#include <libswiftnav/single_epoch_solver.h>
+#include <stdbool.h>
+#include <swiftnav/common.h>
+#include <swiftnav/constants.h>
+#include <swiftnav/gnss_time.h>
+#include <swiftnav/single_epoch_solver.h>
 
 #include <libswiftnav/pvt_engine/firmware_binding.h>
 

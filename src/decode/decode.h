@@ -12,8 +12,9 @@
 #ifndef SWIFTNAV_DECODE_H
 #define SWIFTNAV_DECODE_H
 
-#include <libswiftnav/common.h>
-#include <libswiftnav/signal.h>
+#include <stdbool.h>
+#include <swiftnav/common.h>
+#include <swiftnav/signal.h>
 
 /** \addtogroup decoding
  * \{ */

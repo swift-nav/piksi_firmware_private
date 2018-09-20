@@ -13,10 +13,11 @@
 #ifndef SWIFTNAV_NAV_MSG_H
 #define SWIFTNAV_NAV_MSG_H
 
-#include <libswiftnav/almanac.h>
-#include <libswiftnav/common.h>
-#include <libswiftnav/ephemeris.h>
-#include <libswiftnav/ionosphere.h>
+#include <stdbool.h>
+#include <swiftnav/almanac.h>
+#include <swiftnav/common.h>
+#include <swiftnav/ephemeris.h>
+#include <swiftnav/ionosphere.h>
 
 #include "me_constants.h"
 

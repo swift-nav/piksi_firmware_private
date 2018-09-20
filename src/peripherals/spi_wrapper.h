@@ -14,7 +14,7 @@
 #define SWIFTNAV_SPI_H
 
 #include <hal.h>
-#include <libswiftnav/common.h>
+#include <swiftnav/common.h>
 
 /** \addtogroup spi
  * \{ */

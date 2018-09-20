@@ -14,7 +14,7 @@
 
 #include <ch.h>
 #include <hal.h>
-#include <libswiftnav/logging.h>
+#include <swiftnav/logging.h>
 
 #include "settings/settings.h"
 

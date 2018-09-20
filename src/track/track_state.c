@@ -11,6 +11,7 @@
  */
 
 #include "track_state.h"
+#include <inttypes.h>
 #include "acq/manage.h"
 #include "board/nap/track_channel.h"
 #include "ndb/ndb.h"

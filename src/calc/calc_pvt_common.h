@@ -17,10 +17,11 @@
 
 #include <libsbp/navigation.h>
 #include <libsbp/system.h>
-#include <libswiftnav/common.h>
-#include <libswiftnav/gnss_time.h>
 #include <libswiftnav/observation.h>
-#include <libswiftnav/single_epoch_solver.h>
+#include <stdbool.h>
+#include <swiftnav/common.h>
+#include <swiftnav/gnss_time.h>
+#include <swiftnav/single_epoch_solver.h>
 
 #include "calc_base_obs.h"
 #include "ephemeris/ephemeris.h"

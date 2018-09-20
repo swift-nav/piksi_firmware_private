@@ -15,9 +15,10 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <libswiftnav/common.h>
-#include <libswiftnav/constants.h>
+#include <swiftnav/common.h>
+#include <swiftnav/constants.h>
 
+#include "nap_conf.h"
 #include "nap_constants.h"
 #include "nap_hw.h"
 

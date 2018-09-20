@@ -13,7 +13,8 @@
 #ifndef _SWIFTNAV_BMI160_H_
 #define _SWIFTNAV_BMI160_H_
 
-#include <libswiftnav/common.h>
+#include <stdbool.h>
+#include <swiftnav/common.h>
 
 /* BMI160 Register Addresses */
 

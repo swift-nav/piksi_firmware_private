@@ -9,7 +9,7 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
-#include <libswiftnav/gnss_time.h>
+#include <swiftnav/gnss_time.h>
 
 #include "ch.h"
 
