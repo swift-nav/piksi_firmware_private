@@ -117,7 +117,7 @@ static MUTEX_DECL(tracking_startup_mutex);
 /* Elevation mask for tracking, degrees */
 static float tracking_elevation_mask = 0.0;
 /* Elevation mask for solution, degrees */
-static float solution_elevation_mask = 10.0;
+static float solution_elevation_mask = 1.0;
 
 /** Flag if almanacs can be used in acq */
 static bool almanacs_enabled = false;
