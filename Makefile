@@ -40,16 +40,18 @@ LIB_BUILDFOLDER = build_$(PIKSI_HW)
 MAKEFLAGS += LIB_BUILDFOLDER=$(LIB_BUILDFOLDER)
 
 LIBSBP_BUILDDIR=$(SWIFTNAV_ROOT)/libsbp/c/$(LIB_BUILDFOLDER)
-LIBSWIFTNAV_BUILDDIR=$(SWIFTNAV_ROOT)/libswiftnav/$(LIB_BUILDFOLDER)
+STARLING_BUILDDIR=$(SWIFTNAV_ROOT)/libswiftnav/$(LIB_BUILDFOLDER)
+LIBSWIFTNAV_BUILDDIR=$(STARLING_BUILDDIR)/third_party/libswiftnav
 OPENAMP_BUILDDIR=$(SWIFTNAV_ROOT)/open-amp/$(LIB_BUILDFOLDER)
 
 MAKEFLAGS += LIBSBP_BUILDDIR=$(LIBSBP_BUILDDIR)
+MAKEFLAGS += STARLING_BUILDDIR=$(STARLING_BUILDDIR)
 MAKEFLAGS += LIBSWIFTNAV_BUILDDIR=$(LIBSWIFTNAV_BUILDDIR)
 MAKEFLAGS += OPENAMP_BUILDDIR=$(OPENAMP_BUILDDIR)
 
 FW_DEPS=$(LIBSBP_BUILDDIR)/src/libsbp-static.a \
-	$(LIBSWIFTNAV_BUILDDIR)/src/libstarling.a \
-        $(LIBSWIFTNAV_BUILDDIR)/src/libswiftnav.a
+				$(STARLING_BUILDDIR)/src/libstarling.a \
+				$(STARLING_BUILDDIR)/src/libswiftnav-private.a
 
 ifeq ($(PIKSI_HW),v3)
   CMAKEFLAGS += -DCMAKE_SYSTEM_PROCESSOR=cortex-a9
@@ -74,21 +76,21 @@ $(LIBSBP_BUILDDIR)/src/libsbp-static.a:
 	      $(CMAKEFLAGS) ../
 	$(MAKE) -C $(LIBSBP_BUILDDIR) $(MAKEFLAGS)
 
-$(LIBSWIFTNAV_BUILDDIR)/src/libswiftnav.a: .PHONY
-	@printf "BUILD   libswiftnav for target $(PIKSI_TARGET)\n"; \
-	$(MAKE) swiftnav -C $(LIBSWIFTNAV_BUILDDIR) $(MAKEFLAGS)
+$(STARLING_BUILDDIR)/src/libswiftnav-private.a: .PHONY
+	@printf "BUILD   libswiftnav-private for target $(PIKSI_TARGET)\n"; \
+	$(MAKE) swiftnav -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
 
 # Make starling dependent of swiftnav because otherwise both
 # might build in parallel, and both trying to build swiftnav-common in parallel
 # which leads to occasional failures.
-$(LIBSWIFTNAV_BUILDDIR)/src/libstarling.a: $(LIBSWIFTNAV_BUILDDIR)/Makefile \
-                                           $(LIBSWIFTNAV_BUILDDIR)/src/libswiftnav.a
+$(STARLING_BUILDDIR)/src/libstarling.a: $(STARLING_BUILDDIR)/Makefile \
+                                           $(STARLING_BUILDDIR)/src/libswiftnav-private.a
 	@printf "BUILD   libstarling for target $(PIKSI_TARGET)\n"; \
-	$(MAKE) starling -C $(LIBSWIFTNAV_BUILDDIR) $(MAKEFLAGS)
+	$(MAKE) starling -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
 
-$(LIBSWIFTNAV_BUILDDIR)/Makefile:
-	@printf "Run cmake for target $(LIBSWIFTNAV_BUILDDIR)\n"; \
-    mkdir -p $(LIBSWIFTNAV_BUILDDIR); cd $(LIBSWIFTNAV_BUILDDIR); \
+$(STARLING_BUILDDIR)/Makefile:
+	@printf "Run cmake for target $(STARLING_BUILDDIR)\n"; \
+    mkdir -p $(STARLING_BUILDDIR); cd $(STARLING_BUILDDIR); \
     cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
           -DCMAKE_TOOLCHAIN_FILE=../cmake/Toolchain-gcc-arm-embedded.cmake \
           $(CMAKEFLAGS) ../
@@ -107,8 +109,8 @@ clean:
 	$(MAKE) -C src $(MAKEFLAGS) clean
 	@printf "CLEAN   libsbp\n"; \
 	$(RM) -rf $(LIBSBP_BUILDDIR)
-	@printf "CLEAN   libswiftnav\n"; \
-	$(RM) -rf $(LIBSWIFTNAV_BUILDDIR)
+	@printf "CLEAN   starling\n"; \
+	$(RM) -rf $(STARLING_BUILDDIR)
 	@printf "CLEAN   open-amp\n"; \
 	$(RM) -rf $(OPENAMP_BUILDDIR)
 	@printf "CLEAN   tests\n"; \
