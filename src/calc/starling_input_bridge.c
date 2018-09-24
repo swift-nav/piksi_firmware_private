@@ -195,7 +195,8 @@ int starling_send_imu_data(const imu_data_t *imu_data) {
   /* For IMU data we simply want it to behave like a FIFO implemented as
    * circular buffer. We overwrite the oldest message if it is full. */
   if (NULL == imu_msg) {
-    int ret = platform_mailbox_fetch(MB_ID_IMU, (void**)&imu_msg, MB_NONBLOCKING);
+    int ret =
+        platform_mailbox_fetch(MB_ID_IMU, (void **)&imu_msg, MB_NONBLOCKING);
     if (0 != ret || NULL == imu_msg) {
       log_error("platform_mailbox_item_alloc(MB_ID_IMU) failed!");
       return STARLING_SEND_ERROR;
@@ -203,8 +204,7 @@ int starling_send_imu_data(const imu_data_t *imu_data) {
   }
   assert(imu_data);
   *imu_msg = *imu_data;
-  errno_t ret =
-      platform_mailbox_post(MB_ID_IMU, imu_msg, MB_NONBLOCKING);
+  errno_t ret = platform_mailbox_post(MB_ID_IMU, imu_msg, MB_NONBLOCKING);
   if (0 != ret) {
     log_error("platform_mailbox_post(MB_ID_IMU) failed!");
     platform_mailbox_item_free(MB_ID_IMU, imu_msg);

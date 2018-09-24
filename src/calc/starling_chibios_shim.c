@@ -94,7 +94,6 @@ static ephemeris_array_t ephemeris_buff[EPHEMERIS_N_BUFF];
 static msg_t imu_mailbox_buff[IMU_N_BUFF];
 static imu_data_t imu_buff[IMU_N_BUFF];
 
-
 static mutex_t mutexes[NUM_MUTEXES];
 
 /*******************************************************************************
@@ -206,12 +205,8 @@ static mailbox_info_t mailbox_info[MB_ID_COUNT] =
                           ephemeris_buff,
                           EPHEMERIS_N_BUFF,
                           sizeof(ephemeris_array_t)},
-     [MB_ID_IMU] = {{0},
-                    {0},
-                    imu_mailbox_buff,
-                    imu_buff,
-                    IMU_N_BUFF,
-                    sizeof(imu_data_t)}};
+     [MB_ID_IMU] = {
+         {0}, {0}, imu_mailbox_buff, imu_buff, IMU_N_BUFF, sizeof(imu_data_t)}};
 
 void platform_mailbox_init(mailbox_id_t id) {
   chMBObjectInit(&mailbox_info[id].mailbox,
