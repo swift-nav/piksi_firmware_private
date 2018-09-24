@@ -59,6 +59,7 @@ void starling_input_bridge_init(void) {
   platform_mailbox_init(MB_ID_BASE_OBS);
   platform_mailbox_init(MB_ID_SBAS_DATA);
   platform_mailbox_init(MB_ID_EPHEMERIS);
+  platform_mailbox_init(MB_ID_IMU);
 
   input_sem = platform_sem_create();
   assert(NULL != input_sem);
@@ -191,9 +192,14 @@ int starling_send_sbas_data(const sbas_raw_data_t *sbas_data) {
 /******************************************************************************/
 int starling_send_imu_data(const imu_data_t *imu_data) {
   imu_data_t *imu_msg = platform_mailbox_item_alloc(MB_ID_IMU);
+  /* For IMU data we simply want it to behave like a FIFO implemented as
+   * circular buffer. We overwrite the oldest message if it is full. */
   if (NULL == imu_msg) {
-    log_error("platform_mailbox_item_alloc(MB_ID_IMU) failed!");
-    return STARLING_SEND_ERROR;
+    int ret = platform_mailbox_fetch(MB_ID_IMU, (void**)&imu_msg, MB_NONBLOCKING);
+    if (0 != ret || NULL == imu_msg) {
+      log_error("platform_mailbox_item_alloc(MB_ID_IMU) failed!");
+      return STARLING_SEND_ERROR;
+    }
   }
   assert(imu_data);
   *imu_msg = *imu_data;
