@@ -1124,7 +1124,7 @@ static THD_FUNCTION(initialize_and_run_starling, arg) {
       .read_obs_base = starling_receive_base_obs,
       .read_sbas_data = starling_receive_sbas_data,
       .read_ephemeris_array = starling_receive_ephemeris_array,
-      .read_imu = NULL,
+      .read_imu = starling_receive_imu_data,
       .handle_solution_low_latency = send_solution_low_latency,
       .handle_solution_time_matched = send_solution_time_matched,
   };
