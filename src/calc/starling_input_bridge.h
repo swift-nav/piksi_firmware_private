@@ -49,6 +49,8 @@ int starling_send_ephemerides(const ephemeris_t *ephemerides, size_t n);
 
 int starling_send_sbas_data(const sbas_raw_data_t *sbas_data);
 
+int starling_send_imu_data(const imu_data_t *imu_data);
+
 /*******************************************************************************
  * Starling-Facing "Read" Functions
  ******************************************************************************/
@@ -64,5 +66,7 @@ int starling_receive_ephemeris_array(int blocking,
                                      ephemeris_array_t *eph_array);
 
 int starling_receive_sbas_data(int blocking, sbas_raw_data_t *sbas_data);
+
+int starling_receive_imu_data(int blocking, imu_data_t *imu_data);
 
 #endif

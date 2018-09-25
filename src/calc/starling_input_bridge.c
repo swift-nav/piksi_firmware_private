@@ -59,6 +59,7 @@ void starling_input_bridge_init(void) {
   platform_mailbox_init(MB_ID_BASE_OBS);
   platform_mailbox_init(MB_ID_SBAS_DATA);
   platform_mailbox_init(MB_ID_EPHEMERIS);
+  platform_mailbox_init(MB_ID_IMU);
 
   input_sem = platform_sem_create();
   assert(NULL != input_sem);
@@ -188,6 +189,31 @@ int starling_send_sbas_data(const sbas_raw_data_t *sbas_data) {
   return STARLING_SEND_OK;
 }
 
+/******************************************************************************/
+int starling_send_imu_data(const imu_data_t *imu_data) {
+  imu_data_t *imu_msg = platform_mailbox_item_alloc(MB_ID_IMU);
+  /* For IMU data we simply want it to behave like a FIFO implemented as
+   * circular buffer. We overwrite the oldest message if it is full. */
+  if (NULL == imu_msg) {
+    int ret =
+        platform_mailbox_fetch(MB_ID_IMU, (void **)&imu_msg, MB_NONBLOCKING);
+    if (0 != ret || NULL == imu_msg) {
+      log_error("platform_mailbox_item_alloc(MB_ID_IMU) failed!");
+      return STARLING_SEND_ERROR;
+    }
+  }
+  assert(imu_data);
+  *imu_msg = *imu_data;
+  errno_t ret = platform_mailbox_post(MB_ID_IMU, imu_msg, MB_NONBLOCKING);
+  if (0 != ret) {
+    log_error("platform_mailbox_post(MB_ID_IMU) failed!");
+    platform_mailbox_item_free(MB_ID_IMU, imu_msg);
+    return STARLING_SEND_ERROR;
+  }
+  platform_sem_signal(input_sem);
+  return STARLING_SEND_OK;
+}
+
 /**
  * A note about the use of semaphores in the "receive" implementation.
  *
@@ -285,6 +311,24 @@ int starling_receive_sbas_data(int blocking, sbas_raw_data_t *sbas_data) {
       log_error("STARLING: sbas mailbox fetch failed with %d", ret);
     }
     platform_mailbox_item_free(MB_ID_SBAS_DATA, local_data);
+  }
+  return ret;
+}
+
+/******************************************************************************/
+int starling_receive_imu_data(int blocking, imu_data_t *imu_data) {
+  imu_data_t *local_data = NULL;
+  errno_t ret =
+      platform_mailbox_fetch(MB_ID_IMU, (void **)&local_data, blocking);
+  if (local_data) {
+    if (STARLING_READ_OK == ret) {
+      *imu_data = *local_data;
+    } else {
+      /* Erroneous behavior for fetch to return non-NULL pointer and indicate
+       * read failure. */
+      log_error("STARLING: imu mailbox fetch failed with %d", ret);
+    }
+    platform_mailbox_item_free(MB_ID_IMU, local_data);
   }
   return ret;
 }

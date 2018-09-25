@@ -11,6 +11,8 @@
  */
 
 #include "imu.h"
+
+#include "calc/starling_input_bridge.h"
 #include "settings/settings.h"
 #include "timing/timing.h"
 
@@ -219,6 +221,7 @@ static void imu_thread(void *arg) {
 
     u32 tow;
     u8 tow_f;
+    gps_time_t sample_time = GPS_TIME_UNKNOWN;
     /* Recover the full 64 bit timing count from the 32 LSBs
      * captured in the ISR. */
     u64 tc = nap_sample_time_to_count(nap_tc);
@@ -227,11 +230,11 @@ static void imu_thread(void *arg) {
     if (get_time_quality() >= TIME_PROPAGATED) {
       /* We know the GPS time to high accuracy, this allows us to convert a
        * timing count value into a GPS time. */
-      gps_time_t t = napcount2gpstime(tc);
+      sample_time = napcount2gpstime(tc);
 
       /* Format the time of week as a fixed point value for the SBP message.
        */
-      double tow_ms = t.tow * 1000;
+      double tow_ms = sample_time.tow * SECS_MS;
       tow = (u32)tow_ms;
       tow_f = (u8)round((tow_ms - tow) * 255);
 
@@ -260,7 +263,7 @@ static void imu_thread(void *arg) {
 
         u64 tc_now = nap_sample_time_to_count(NAP->TIMING_COUNT);
         gps_time_t t_now = napcount2gpstime(tc_now);
-        dt = gpsdifftime(&t_now, &t);
+        dt = gpsdifftime(&t_now, &sample_time);
         dt_err_pcent =
             dt / expected_dt * 100.0; /* Delay's proportion of period */
         if (dt_err_pcent > BMI160_READ_DELAY_THRESH_PERCENT) {
@@ -291,6 +294,17 @@ static void imu_thread(void *arg) {
 
       /* Send out IMU_RAW SBP message. */
       sbp_send_msg(SBP_MSG_IMU_RAW, sizeof(imu_raw), (u8 *)&imu_raw);
+
+      /* Send data to Starling engine. */
+      imu_data_t imu_data;
+      imu_data.t = sample_time;
+      imu_data.acc_xyz[0] = imu_raw.acc_x;
+      imu_data.acc_xyz[1] = imu_raw.acc_y;
+      imu_data.acc_xyz[2] = imu_raw.acc_z;
+      imu_data.gyr_xyz[0] = imu_raw.gyr_x;
+      imu_data.gyr_xyz[1] = imu_raw.gyr_y;
+      imu_data.gyr_xyz[2] = imu_raw.gyr_z;
+      starling_send_imu_data(&imu_data);
     }
     if (new_mag && raw_mag_output) {
       /* Read out the magnetometer data and fill out the SBP message. */
