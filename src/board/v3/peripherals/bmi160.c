@@ -174,7 +174,6 @@ void bmi160_init(void) {
   u8 mag_id = bmi160_read_bmm150_reg(BMM150_REG_ID);
   if (mag_id != BMM150_REG_MFDVID) {
     log_error("Mag: BMM150 ID didn't match expected value (%u)", mag_id);
-    return;
   }
   read_mag_trim(&bmm150_trim_param);
   bmi160_mag_set_enabled(false);
