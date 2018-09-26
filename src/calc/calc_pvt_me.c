@@ -280,7 +280,6 @@ static void collect_measurements(u64 rec_tc,
   u8 n_collected = 0;
   u8 n_inview = 0;
   u8 n_active = 0;
-  bool any_gps = false;
 
   for (u8 i = 0; i < nap_track_n_channels; i++) {
     u32 flags = 0; /* Channel flags accumulator */
@@ -310,18 +309,12 @@ static void collect_measurements(u64 rec_tc,
           0 != (meas_flags & CHAN_MEAS_FLAG_CODE_VALID) &&
           0 != (meas_flags & CHAN_MEAS_FLAG_MEAS_DOPPLER_VALID)) {
         /* Tracking channel is suitable for solution calculation */
-        any_gps |= IS_GPS(meas[n_collected].sid);
         n_collected++;
       }
     }
   }
 
-  /* require that the measurements contain at least one valid GPS measurement
-   * before returning anything */
-  if (any_gps) {
-    *pn_ready = n_collected;
-  }
-
+  *pn_ready = n_collected;
   *pn_inview = n_inview;
   *pn_total = n_active;
 }
