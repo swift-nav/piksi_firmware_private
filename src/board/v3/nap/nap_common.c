@@ -18,6 +18,7 @@
 #include "nap/track_channel.h"
 #include "piksi_systime.h"
 #include "sbp.h"
+#include "timing/timing.h"
 
 #include "axi_dma.h"
 #include "nap_constants.h"
@@ -70,6 +71,8 @@ void nap_setup(void) {
   gic_irq_enable(IRQ_ID_NAP);
 }
 
+u32 nap_timing_count_32(void) { return NAP->TIMING_COUNT; }
+
 u64 nap_timing_count(void) {
   static MUTEX_DECL(timing_count_mutex);
   static u32 rollover_count = 0;
@@ -77,7 +80,7 @@ u64 nap_timing_count(void) {
 
   chMtxLock(&timing_count_mutex);
 
-  u32 count = NAP->TIMING_COUNT;
+  u32 count = nap_timing_count_32();
 
   if (count < prev_count) rollover_count++;
 
@@ -213,23 +216,30 @@ static void nap_irq_thread(void *arg) {
   }
 }
 
+#define TRACKER_SLEEP_TIME_US 250
+#define TRACKER_SLEEP_TIME_TICKS \
+  ((systime_t)(CH_CFG_ST_FREQUENCY * (TRACKER_SLEEP_TIME_US / 1e6)))
+
+#define MS2COUNT(ms) ((ms)*1000 / TRACKER_SLEEP_TIME_US)
+
 void nap_track_irq_thread(void *arg) {
-  piksi_systime_t sys_time;
   (void)arg;
   chRegSetThreadName("NAP Tracking");
 
   while (TRUE) {
-    piksi_systime_get(&sys_time);
+    u32 us = timing_getus_32();
 
     handle_nap_track_irq();
 
-    DO_EACH_MS(60 * SECS_MS, check_clear_unhealthy(););
+    DO_EVERY(MS2COUNT(60 * SECS_MS), check_clear_unhealthy(););
 
-    DO_EACH_MS(PROCESS_PERIOD_MS, tracking_send_state();
-               stale_trackers_cleanup(););
+    DO_EVERY(MS2COUNT(PROCESS_PERIOD_MS), tracking_send_state();
+             stale_trackers_cleanup(););
 
-    /* Sleep until 250 microseconds is full. */
-    piksi_systime_sleep_until_windowed_us(&sys_time, 250);
+    if ((timing_getus_32() - us) >= TRACKER_SLEEP_TIME_US) {
+      continue;
+    }
+    chThdSleep(TRACKER_SLEEP_TIME_TICKS);
   }
 }
 

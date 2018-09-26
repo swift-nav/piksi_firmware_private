@@ -18,6 +18,7 @@
 #include <swiftnav/signal.h>
 #include <swiftnav/single_epoch_solver.h>
 
+#include "board/nap/nap_common.h"
 #include "nap/nap_constants.h"
 
 #ifdef __cplusplus
@@ -50,7 +51,31 @@ void update_time(u64 tc, const gnss_solution* sol);
 time_quality_t get_time_quality(void);
 gps_time_t napcount2gpstime(const double tc);
 u64 gpstime2napcount(const gps_time_t* t);
-u64 timing_getms(void);
+
+/** Get current HW time in milliseconds
+ *
+ * \return HW time in milliseconds
+ */
+static inline u64 timing_getms(void) {
+  return (u64)(nap_timing_count() * (RX_DT_NOMINAL * 1000.0));
+}
+
+/** Get current HW time in microseconds
+ *
+ * \return HW time in microseconds
+ */
+static inline u64 timing_getus(void) {
+  return (u64)(nap_timing_count() * (RX_DT_NOMINAL * 1e6));
+}
+
+/** Get current HW time in microseconds
+ *
+ * \return HW time in microseconds
+ */
+static inline u32 timing_getus_32(void) {
+  return (u32)(nap_timing_count_32() * (RX_DT_NOMINAL * 1e6));
+}
+
 gps_time_t glo2gps_with_utc_params(me_gnss_signal_t mesid,
                                    const glo_time_t* glo_t);
 gps_time_t gps_time_round_to_epoch(const gps_time_t* time, double soln_freq);

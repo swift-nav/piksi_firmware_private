@@ -27,6 +27,7 @@
 #include "io_support.h"
 #include "main.h"
 #include "peripherals/leds.h"
+#include "piksi_systime.h"
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "settings/settings.h"
