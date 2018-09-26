@@ -456,17 +456,13 @@ static void tp_tracker_update_correlators(tracker_t *tracker, u32 cycle_flags) {
   /* Current cycle duration */
   int_ms = tp_get_cycle_duration(tracker->tracking_mode, tracker->cycle_no);
 
-  u64 now = timing_getms();
-  if (tracker->updated_once) {
-    u64 time_diff_ms = now - tracker->update_timestamp_ms;
-    if (time_diff_ms > NAP_CORR_LENGTH_MAX_MS) {
-      log_warn_mesid(mesid,
-                     "Unexpected tracking channel update rate: %" PRIu64 " ms",
-                     time_diff_ms);
-    }
+  u64 delay_ms = piksi_systime_timer_ms(&tracker->update_timer);
+  if (delay_ms > NAP_CORR_LENGTH_MAX_MS) {
+    log_warn_mesid(mesid,
+                   "Unexpected tracking channel update rate: %" PRIu64 " ms",
+                   delay_ms);
   }
-  tracker->updated_once = true;
-  tracker->update_timestamp_ms = now;
+  piksi_systime_timer_arm(&tracker->update_timer, /*deadline_ms=*/-1); /*rearm*/
 
   tracker->sample_count = sample_count;
   tracker->code_phase_prompt = code_phase_prompt;
@@ -701,13 +697,18 @@ static void tp_tracker_update_locks(tracker_t *tracker, u32 cycle_flags) {
 
   bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
   if (!outp_prev && outp && confirmed) {
-    u32 unlocked_ms =
-        update_count_diff(tracker, &tracker->ld_pess_change_count);
+    u32 unlocked_ms = piksi_systime_timer_ms(&tracker->unlocked_timer);
     log_debug_mesid(tracker->mesid, "Lock after %" PRIu32 "ms", unlocked_ms);
   }
 
   if (outp != outp_prev) {
-    tracker->ld_pess_change_count = tracker->update_count;
+    if (outp) {
+      piksi_systime_timer_init(&tracker->unlocked_timer);
+      piksi_systime_timer_arm(&tracker->locked_timer, /*deadline_ms=*/-1);
+    } else {
+      piksi_systime_timer_init(&tracker->locked_timer);
+      piksi_systime_timer_arm(&tracker->unlocked_timer, /*deadline_ms=*/-1);
+    }
   }
   if (outp) {
     tracker->carrier_freq_at_lock = tracker->carrier_freq;
@@ -805,11 +806,6 @@ static void tp_tracker_update_loops(tracker_t *tracker, u32 cycle_flags) {
     memset(&report, 0, sizeof(report));
     report.cn0 = tracker->cn0;
 
-    /* Subtracted from profile stabilization timeout */
-    u64 delta_ms = tracker->update_timestamp_ms - tracker->report_last_ms;
-    tracker->report_last_ms = tracker->update_timestamp_ms;
-    report.time_ms = (u32)delta_ms;
-
     tp_profile_report_data(&tracker->profile, &report);
   }
 }
@@ -848,7 +844,7 @@ static void tp_tracker_flag_outliers(tracker_t *tracker) {
   static const u32 diff_interval_ms =
       (u32)(SECS_MS * max_freq_diff_hz / max_freq_rate_hz_per_s);
 
-  u32 elapsed_ms = tracker->update_count - tracker->carrier_freq_timestamp_ms;
+  u32 elapsed_ms = piksi_systime_timer_ms(&tracker->carrier_freq_age_timer);
   if (elapsed_ms >= diff_interval_ms) {
     if (!tracker->carrier_freq_prev_valid) {
       tracker->carrier_freq_prev = tracker->carrier_freq;
@@ -869,7 +865,7 @@ static void tp_tracker_flag_outliers(tracker_t *tracker) {
     }
 
     tracker->carrier_freq_prev = tracker->carrier_freq;
-    tracker->carrier_freq_timestamp_ms = tracker->update_count;
+    piksi_systime_timer_arm(&tracker->carrier_freq_age_timer, -1);
   }
 }
 

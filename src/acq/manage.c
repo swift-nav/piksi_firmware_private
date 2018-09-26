@@ -686,8 +686,7 @@ static void drop_channel(tracker_t *tracker, ch_drop_reason_t reason) {
    */
   const u32 flags = tracker->flags;
   me_gnss_signal_t mesid = tracker->mesid;
-  u64 now_ms = timing_getms();
-  u32 time_in_track_ms = (u32)(now_ms - tracker->init_timestamp_ms);
+  u32 time_in_track_ms = (u32)piksi_systime_timer_ms(&tracker->age_timer);
 
   /* Log message with appropriate priority. */
   if ((CH_DROP_REASON_ERROR == reason) ||
@@ -719,9 +718,8 @@ static void drop_channel(tracker_t *tracker, ch_drop_reason_t reason) {
     bool had_locks =
         (0 != (flags & (TRACKER_FLAG_HAD_PLOCK | TRACKER_FLAG_HAD_FLOCK)));
     bool long_in_track = time_in_track_ms > TRACK_REACQ_MS;
-    u32 unlocked_time_ms =
-        update_count_diff(tracker, &tracker->ld_pess_change_count);
-    bool long_unlocked = unlocked_time_ms > TRACK_REACQ_MS;
+    u32 unlocked_ms = (u32)piksi_systime_timer_ms(&tracker->unlocked_timer);
+    bool long_unlocked = unlocked_ms > TRACK_REACQ_MS;
     bool was_xcorr = (flags & TRACKER_FLAG_DROP_CHANNEL) &&
                      (CH_DROP_REASON_XCORR == tracker->ch_drop_reason);
 
@@ -852,7 +850,7 @@ bool leap_second_imminent(void) {
  * or bit sync, or is flagged as cross-correlation, etc.
  * Keep tracking unhealthy (except GLO) and low-elevation satellites for
  * cross-correlation purposes. */
-void sanitize_tracker(tracker_t *tracker, u64 now_ms) {
+void sanitize_tracker(tracker_t *tracker) {
   /*! Addressing the problem where we try to disable a channel that is
    * not busy in the first place. It remains to check
    * why `TRACKING_CHANNEL_FLAG_ACTIVE` might not be effective here?
@@ -882,20 +880,10 @@ void sanitize_tracker(tracker_t *tracker, u64 now_ms) {
   }
 
   /* Give newly-initialized channels a chance to converge. */
-  u32 age_ms = now_ms - tracker->init_timestamp_ms;
-  tracker->age_ms = age_ms;
-  if (age_ms < tracker->settle_time_ms) {
+  if (!piksi_systime_timer_expired(&tracker->init_settle_timer)) {
     return;
   }
-  /*
-    if (now_ms > tracker->update_timestamp_ms) {
-      u32 update_delay_ms = now_ms - tracker->update_timestamp_ms;
-      if (update_delay_ms > NAP_CORR_LENGTH_MAX_MS) {
-        drop_channel(tracker, CH_DROP_REASON_NO_UPDATES);
-        return;
-      }
-    }
-  */
+
   /* Do we not have nav bit sync yet? */
   if (0 == (flags & TRACKER_FLAG_BIT_SYNC)) {
     drop_channel(tracker, CH_DROP_REASON_NO_BIT_SYNC);
@@ -907,11 +895,7 @@ void sanitize_tracker(tracker_t *tracker, u64 now_ms) {
      observed cases, when tracker could not achieve the pessimistic
      lock state for a long time (minutes?) and yet managed to pass
      CN0 sanity checks.*/
-  u32 unlocked_ms = 0;
-  if ((0 == (flags & TRACKER_FLAG_HAS_PLOCK)) &&
-      (0 == (flags & TRACKER_FLAG_HAS_FLOCK))) {
-    unlocked_ms = update_count_diff(tracker, &tracker->ld_pess_change_count);
-  }
+  u32 unlocked_ms = piksi_systime_timer_ms(&tracker->unlocked_timer);
   if (unlocked_ms > TRACK_DROP_UNLOCKED_MS) {
     drop_channel(tracker, CH_DROP_REASON_NO_PLOCK);
     return;

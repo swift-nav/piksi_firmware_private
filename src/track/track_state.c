@@ -181,10 +181,6 @@ void tracker_get_state(u8 id,
   info->tow_ms = tracker->TOW_ms;
   /* Current time of week residual for tow_ms of the tracker channel [ns] */
   info->tow_residual_ns = tracker->TOW_residual_ns;
-  /* Tracking channel init time [ms] */
-  info->init_timestamp_ms = tracker->init_timestamp_ms;
-  /* Tracking channel update time [ms] */
-  info->update_timestamp_ms = tracker->update_timestamp_ms;
   /* Lock counter */
   info->lock_counter = tracker->lock_counter;
   /* Sample counter */
@@ -197,26 +193,9 @@ void tracker_get_state(u8 id,
 
   if (0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) {
     time_info->ld_pess_locked_ms =
-        update_count_diff(tracker, &tracker->ld_pess_change_count);
+        piksi_systime_timer_ms(&tracker->locked_timer);
   } else {
     time_info->ld_pess_locked_ms = 0;
-  }
-
-  /* The time in ms for which the FLL/PLL pessimistic lock detector has
-   * reported
-   * being unlocked for a tracker channel.
-   *
-   * If tracker channel is run by FLL, then time of absence of FLL pessimistic
-   * lock is reported.
-   * If tracker channel is run by PLL, then time of absence of PLL pessimistic
-   * lock is reported.
-   */
-  if (0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK) ||
-      0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK)) {
-    time_info->ld_pess_unlocked_ms = 0;
-  } else {
-    time_info->ld_pess_unlocked_ms =
-        update_count_diff(tracker, &tracker->ld_pess_change_count);
   }
 
   /* Current carrier frequency for a tracker channel. */
@@ -295,13 +274,31 @@ bool tracker_init(const u8 id,
     tracker->sample_count = ref_sample_count;
     /* First profile selection is based on initial CN0 estimate. */
     tracker->cn0 = cn0_init;
-    u32 now = timing_getms();
-    tracker->init_timestamp_ms = now;
-    tracker->settle_time_ms = code_requires_direct_acq(mesid.code)
-                                  ? TRACK_INIT_FROM_ACQ_MS
-                                  : TRACK_INIT_FROM_HANDOVER_MS;
-    tracker->update_timestamp_ms = now;
-    tracker->updated_once = false;
+
+    piksi_systime_timer_init(&tracker->locked_timer);
+
+    piksi_systime_timer_init(&tracker->unlocked_timer);
+    piksi_systime_timer_arm(&tracker->unlocked_timer, /*deadline_ms=*/-1);
+
+    piksi_systime_timer_init(&tracker->age_timer);
+    piksi_systime_timer_arm(&tracker->age_timer, /*deadline_ms=*/-1);
+
+    s64 deadline_ms = (s64)piksi_systime_now_ms();
+    if (code_requires_direct_acq(mesid.code)) {
+      deadline_ms += TRACK_INIT_FROM_ACQ_MS;
+    } else {
+      deadline_ms += TRACK_INIT_FROM_HANDOVER_MS;
+    }
+    piksi_systime_timer_arm(&tracker->init_settle_timer, deadline_ms);
+
+    piksi_systime_timer_init(&tracker->update_timer);
+    piksi_systime_timer_arm(&tracker->update_timer, /*deadline_ms=*/-1);
+
+    piksi_systime_timer_init(&tracker->carrier_freq_age_timer);
+    piksi_systime_timer_arm(&tracker->carrier_freq_age_timer, -1);
+
+    piksi_systime_timer_init(&tracker->profile.profile_settle_timer);
+
     tracker->cp_sync.polarity = BIT_POLARITY_UNKNOWN;
     tracker->cp_sync.synced = false;
 
@@ -332,9 +329,6 @@ bool tracker_init(const u8 id,
     }
     chips_to_correlate = code_to_chip_rate(mesid.code) * 1e-3 * first_int_ms;
 
-    /* (tracker->update_timestamp_ms = now) must be executed strictly before
-       (tracker->busy = true). Otherwise stale_trackers_cleanup() may kick in
-       and kill the tracker as stale. */
     COMPILER_BARRIER();
 
     tracker->busy = true;
@@ -404,8 +398,6 @@ static void serve_nap_request(tracker_t *tracker) {
  * \param c0              Channel offset.
  */
 void trackers_update(u32 channels_mask, const u8 c0) {
-  const u64 now_ms = timing_getms();
-
   /* experiment 3: like this we always clean a tracker if it has to...
    * and don't clean trackers that are not to be served by NAP */
   for (u8 ci = 0; channels_mask && ((c0 + ci) < nap_track_n_channels); ci++) {
@@ -417,7 +409,7 @@ void trackers_update(u32 channels_mask, const u8 c0) {
        So we check the validity of the tracker by looking at its busy flag */
     if (update_required && tracker->busy) {
       serve_nap_request(tracker);
-      sanitize_tracker(tracker, now_ms);
+      sanitize_tracker(tracker);
     }
     channels_mask >>= 1;
   }
@@ -506,16 +498,16 @@ void tracking_send_state(void) { tracking_send_state_85(); }
  * (there should NEVER be any!)
  */
 void stale_trackers_cleanup(void) {
-  u64 now_ms = timing_getms();
-
   for (u8 i = 0; i < nap_track_n_channels; i++) {
     tracker_t *tracker = tracker_get(i);
-    if (!tracker->busy) continue;
-    u64 deadline_ms = NAP_CORR_LENGTH_MAX_MS + tracker->update_timestamp_ms;
-    if ((now_ms > deadline_ms) && (tracker->updated_once)) {
-      log_error_mesid(tracker->mesid, "hit deadline_ms: %" PRIu64, deadline_ms);
+    if (!tracker->busy) {
+      continue;
+    }
+    u64 delay_ms = piksi_systime_timer_ms(&tracker->update_timer);
+    if (delay_ms > NAP_CORR_LENGTH_MAX_MS) {
+      log_error_mesid(tracker->mesid, "hit delay_ms: %" PRIu64, delay_ms);
       tracker_flag_drop(tracker, CH_DROP_REASON_NO_UPDATES);
-      sanitize_tracker(tracker, now_ms);
+      sanitize_tracker(tracker);
     }
   }
 }

@@ -70,6 +70,17 @@ u32 piksi_systime_sleep_until_windowed_us(const piksi_systime_t *t,
 u32 piksi_systime_sleep_until_windowed_ms(const piksi_systime_t *t,
                                           u32 window_len_ms);
 
+typedef struct {
+  s64 deadline_ms; /** -1 - no deadline */
+  u64 armed_at_ms; /** the timestamp of piksi_systime_timer_arm() call */
+} piksi_systime_timer_t;
+
+u64 piksi_systime_now_ms(void);
+void piksi_systime_timer_init(piksi_systime_timer_t *tm);
+void piksi_systime_timer_arm(piksi_systime_timer_t *tm, s64 deadline_ms);
+bool piksi_systime_timer_expired(piksi_systime_timer_t *tm);
+u64 piksi_systime_timer_ms(piksi_systime_timer_t *tm);
+
 #ifdef __cplusplus
 }
 #endif

@@ -20,6 +20,7 @@
 #include "lock_detector/lock_detector.h"
 #include "nav_bit_fifo/nav_bit_fifo.h"
 #include "nav_data_sync/nav_data_sync.h"
+#include "timing/timing.h"
 #include "track_cfg.h"
 #include "track_cn0.h"
 #include "track_loop/trk_loop_common.h"
@@ -152,7 +153,6 @@ typedef struct {
   u32 dll_init : 1; /**< DLL init required */
   u32 use_alias_detection : 1;
 
-  u16 lock_time_ms;         /**< Profile lock count down timer */
   struct profile_vars cur;  /**< Current profile variables */
   struct profile_vars next; /**< Next profile variables */
 
@@ -162,6 +162,8 @@ typedef struct {
   /** Freq lock detector parameters */
   tp_lock_detect_params_t ld_freq_params;
   tp_cn0_thres_t cn0_thres;
+
+  piksi_systime_timer_t profile_settle_timer;
 
   const struct tp_profile_entry *profiles; /**< Profiles switching table. */
 } tp_profile_t;
@@ -207,10 +209,6 @@ typedef struct {
   s32 tow_ms;              /**< ToW [ms] or TOW_UNKNOWN */
   s32 tow_residual_ns;     /**< Residual to tow_ms [ns] */
   float cn0;               /**< C/N0 [dB/Hz] */
-  u64 init_timestamp_ms;   /**< Tracking channel init
-                                timestamp [ms] */
-  u64 update_timestamp_ms; /**< Tracking channel last
-                              update timestamp [ms] */
   u32 sample_count;        /**< Last measurement sample counter */
   u16 lock_counter;        /**< Lock state counter */
   float xcorr_freq;        /**< Cross-correlation doppler [hz] */
@@ -224,7 +222,6 @@ typedef struct {
 typedef struct {
   u32 cn0_drop_ms;         /**< Time with C/N0 below drop threshold [ms] */
   u32 ld_pess_locked_ms;   /**< Time in pessimistic lock [ms] */
-  u32 ld_pess_unlocked_ms; /**< Time without pessimistic lock [ms] */
 } tracker_time_info_t;
 
 /** Controller parameters for error sigma computations */
@@ -374,9 +371,9 @@ typedef struct {
 
   update_count_t update_count; /**< Number of ms channel has been running */
   update_count_t cn0_above_drop_thres_count;
-  /**< update_count value when C/N0 was
-       last above the drop threshold. */
-  update_count_t ld_pess_change_count;
+
+  piksi_systime_timer_t locked_timer;
+  piksi_systime_timer_t unlocked_timer;
   /**< update_count value when pessimistic
        phase detector has changed last time. */
   update_count_t xcorr_change_count;
@@ -391,8 +388,9 @@ typedef struct {
   double carrier_phase;     /**< Carrier phase in cycles. */
   double carrier_freq;      /**< Carrier frequency Hz. */
   double carrier_freq_prev; /**< Carrier frequency Hz. */
-  bool carrier_freq_prev_valid;             /**< carrier_freq_prev is valid. */
-  update_count_t carrier_freq_timestamp_ms; /**< carrier_freq_prev timestamp */
+  bool carrier_freq_prev_valid; /**< carrier_freq_prev is valid. */
+  /** carrier_freq_prev age timer */
+  piksi_systime_timer_t carrier_freq_age_timer;
 
   double carrier_freq_at_lock; /**< Carrier frequency snapshot in the presence
                                     of PLL/FLL pessimistic locks [Hz]. */
@@ -402,13 +400,9 @@ typedef struct {
   u32 flags;                   /**< Tracker flags TRACKER_FLAG_... */
   ch_drop_reason_t ch_drop_reason; /* Drop reason if TRACKER_FLAG_DROP is set */
   float xcorr_freq;                /**< Doppler for cross-correlation [Hz] */
-  u64 init_timestamp_ms;           /**< Tracking channel init timestamp [ms] */
-  u64 update_timestamp_ms;         /**< Tracking channel last update
-                                        timestamp [ms] */
-  u64 age_ms;                      /**< Tracking channel age [ms] */
-  u32 settle_time_ms;              /**< Apply some sanity checks once settled */
+  piksi_systime_timer_t age_timer; /**< Tracking channel age timer */
+  piksi_systime_timer_t update_timer; /**< Tracking channel last update timer */
 
-  bool updated_once; /**< Tracker was updated at least once flag. */
   cp_sync_t cp_sync; /**< Half-cycle ambiguity resolution */
 
   tracker_misc_info_t misc_info;
@@ -436,10 +430,9 @@ typedef struct {
     gps_l2cm_tracker_data_t gps_l2cm;
   };
 
-  /* for tracking profile stabilization timeout bookkeeping */
-  u64 report_last_ms;
-
   u16 fpll_cycle; /**< FPLL run cycle within current profile */
+
+  piksi_systime_timer_t init_settle_timer;
 } tracker_t;
 
 /** \} */
