@@ -686,7 +686,7 @@ static void drop_channel(tracker_t *tracker, ch_drop_reason_t reason) {
    */
   const u32 flags = tracker->flags;
   me_gnss_signal_t mesid = tracker->mesid;
-  u32 time_in_track_ms = (u32)piksi_systime_timer_ms(&tracker->age_timer);
+  u32 time_in_track_ms = (u32)tracker_timer_ms(&tracker->age_timer);
 
   /* Log message with appropriate priority. */
   if ((CH_DROP_REASON_ERROR == reason) ||
@@ -718,7 +718,7 @@ static void drop_channel(tracker_t *tracker, ch_drop_reason_t reason) {
     bool had_locks =
         (0 != (flags & (TRACKER_FLAG_HAD_PLOCK | TRACKER_FLAG_HAD_FLOCK)));
     bool long_in_track = time_in_track_ms > TRACK_REACQ_MS;
-    u32 unlocked_ms = (u32)piksi_systime_timer_ms(&tracker->unlocked_timer);
+    u32 unlocked_ms = (u32)tracker_timer_ms(&tracker->unlocked_timer);
     bool long_unlocked = unlocked_ms > TRACK_REACQ_MS;
     bool was_xcorr = (flags & TRACKER_FLAG_DROP_CHANNEL) &&
                      (CH_DROP_REASON_XCORR == tracker->ch_drop_reason);
@@ -880,7 +880,7 @@ void sanitize_tracker(tracker_t *tracker) {
   }
 
   /* Give newly-initialized channels a chance to converge. */
-  if (!piksi_systime_timer_expired(&tracker->init_settle_timer)) {
+  if (!tracker_timer_expired(&tracker->init_settle_timer)) {
     return;
   }
 
@@ -895,7 +895,7 @@ void sanitize_tracker(tracker_t *tracker) {
      observed cases, when tracker could not achieve the pessimistic
      lock state for a long time (minutes?) and yet managed to pass
      CN0 sanity checks.*/
-  u32 unlocked_ms = piksi_systime_timer_ms(&tracker->unlocked_timer);
+  u32 unlocked_ms = tracker_timer_ms(&tracker->unlocked_timer);
   if (unlocked_ms > TRACK_DROP_UNLOCKED_MS) {
     drop_channel(tracker, CH_DROP_REASON_NO_PLOCK);
     return;

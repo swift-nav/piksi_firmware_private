@@ -815,8 +815,8 @@ static bool profile_switch_requested(tracker_t *tracker,
 
   state->next.index = index;
 
-  s64 deadline_ms = (s64)(piksi_systime_now_ms() + next->lock_time_ms);
-  piksi_systime_timer_arm(&state->profile_settle_timer, deadline_ms);
+  s64 deadline_ms = (s64)(tracker_time_now_ms() + next->lock_time_ms);
+  tracker_timer_arm(&state->profile_settle_timer, deadline_ms);
 
   log_switch(tracker, reason);
 
@@ -842,7 +842,7 @@ static bool low_cn0_profile_switch_requested(tracker_t *tracker) {
     return false;
   }
 
-  if (!piksi_systime_timer_expired(&tracker->init_settle_timer)) {
+  if (!tracker_timer_expired(&tracker->init_settle_timer)) {
     return false;
   }
 
@@ -899,7 +899,7 @@ bool tp_profile_has_new_profile(tracker_t *tracker) {
     return profile_switch_requested(tracker, state->cur.index, "wplock");
   }
 
-  if (!piksi_systime_timer_expired(&state->profile_settle_timer)) {
+  if (!tracker_timer_expired(&state->profile_settle_timer)) {
     return false; /* tracking loop has not settled yet */
   }
 

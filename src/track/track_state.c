@@ -192,8 +192,7 @@ void tracker_get_state(u8 id,
       update_count_diff(tracker, &tracker->cn0_above_drop_thres_count);
 
   if (0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) {
-    time_info->ld_pess_locked_ms =
-        piksi_systime_timer_ms(&tracker->locked_timer);
+    time_info->ld_pess_locked_ms = tracker_timer_ms(&tracker->locked_timer);
   } else {
     time_info->ld_pess_locked_ms = 0;
   }
@@ -275,29 +274,29 @@ bool tracker_init(const u8 id,
     /* First profile selection is based on initial CN0 estimate. */
     tracker->cn0 = cn0_init;
 
-    piksi_systime_timer_init(&tracker->locked_timer);
+    tracker_timer_init(&tracker->locked_timer);
 
-    piksi_systime_timer_init(&tracker->unlocked_timer);
-    piksi_systime_timer_arm(&tracker->unlocked_timer, /*deadline_ms=*/-1);
+    tracker_timer_init(&tracker->unlocked_timer);
+    tracker_timer_arm(&tracker->unlocked_timer, /*deadline_ms=*/-1);
 
-    piksi_systime_timer_init(&tracker->age_timer);
-    piksi_systime_timer_arm(&tracker->age_timer, /*deadline_ms=*/-1);
+    tracker_timer_init(&tracker->age_timer);
+    tracker_timer_arm(&tracker->age_timer, /*deadline_ms=*/-1);
 
-    s64 deadline_ms = (s64)piksi_systime_now_ms();
+    s64 deadline_ms = (s64)tracker_time_now_ms();
     if (code_requires_direct_acq(mesid.code)) {
       deadline_ms += TRACK_INIT_FROM_ACQ_MS;
     } else {
       deadline_ms += TRACK_INIT_FROM_HANDOVER_MS;
     }
-    piksi_systime_timer_arm(&tracker->init_settle_timer, deadline_ms);
+    tracker_timer_arm(&tracker->init_settle_timer, deadline_ms);
 
-    piksi_systime_timer_init(&tracker->update_timer);
-    piksi_systime_timer_arm(&tracker->update_timer, /*deadline_ms=*/-1);
+    tracker_timer_init(&tracker->update_timer);
+    tracker_timer_arm(&tracker->update_timer, /*deadline_ms=*/-1);
 
-    piksi_systime_timer_init(&tracker->carrier_freq_age_timer);
-    piksi_systime_timer_arm(&tracker->carrier_freq_age_timer, -1);
+    tracker_timer_init(&tracker->carrier_freq_age_timer);
+    tracker_timer_arm(&tracker->carrier_freq_age_timer, -1);
 
-    piksi_systime_timer_init(&tracker->profile.profile_settle_timer);
+    tracker_timer_init(&tracker->profile.profile_settle_timer);
 
     tracker->cp_sync.polarity = BIT_POLARITY_UNKNOWN;
     tracker->cp_sync.synced = false;
@@ -503,7 +502,7 @@ void stale_trackers_cleanup(void) {
     if (!tracker->busy) {
       continue;
     }
-    u64 delay_ms = piksi_systime_timer_ms(&tracker->update_timer);
+    u64 delay_ms = tracker_timer_ms(&tracker->update_timer);
     if (delay_ms > NAP_CORR_LENGTH_MAX_MS) {
       log_error_mesid(tracker->mesid, "hit delay_ms: %" PRIu64, delay_ms);
       tracker_flag_drop(tracker, CH_DROP_REASON_NO_UPDATES);

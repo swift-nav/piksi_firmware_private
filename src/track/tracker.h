@@ -24,6 +24,7 @@
 #include "track_cfg.h"
 #include "track_cn0.h"
 #include "track_loop/trk_loop_common.h"
+#include "track_timer.h"
 
 #define TP_DLL_PLL_MEAS_DIM 5
 
@@ -163,7 +164,7 @@ typedef struct {
   tp_lock_detect_params_t ld_freq_params;
   tp_cn0_thres_t cn0_thres;
 
-  piksi_systime_timer_t profile_settle_timer;
+  tracker_timer_t profile_settle_timer;
 
   const struct tp_profile_entry *profiles; /**< Profiles switching table. */
 } tp_profile_t;
@@ -372,8 +373,8 @@ typedef struct {
   update_count_t update_count; /**< Number of ms channel has been running */
   update_count_t cn0_above_drop_thres_count;
 
-  piksi_systime_timer_t locked_timer;
-  piksi_systime_timer_t unlocked_timer;
+  tracker_timer_t locked_timer;
+  tracker_timer_t unlocked_timer;
   /**< update_count value when pessimistic
        phase detector has changed last time. */
   update_count_t xcorr_change_count;
@@ -390,7 +391,7 @@ typedef struct {
   double carrier_freq_prev; /**< Carrier frequency Hz. */
   bool carrier_freq_prev_valid; /**< carrier_freq_prev is valid. */
   /** carrier_freq_prev age timer */
-  piksi_systime_timer_t carrier_freq_age_timer;
+  tracker_timer_t carrier_freq_age_timer;
 
   double carrier_freq_at_lock; /**< Carrier frequency snapshot in the presence
                                     of PLL/FLL pessimistic locks [Hz]. */
@@ -400,8 +401,8 @@ typedef struct {
   u32 flags;                   /**< Tracker flags TRACKER_FLAG_... */
   ch_drop_reason_t ch_drop_reason; /* Drop reason if TRACKER_FLAG_DROP is set */
   float xcorr_freq;                /**< Doppler for cross-correlation [Hz] */
-  piksi_systime_timer_t age_timer; /**< Tracking channel age timer */
-  piksi_systime_timer_t update_timer; /**< Tracking channel last update timer */
+  tracker_timer_t age_timer;       /**< Tracking channel age timer */
+  tracker_timer_t update_timer;    /**< Tracking channel last update timer */
 
   cp_sync_t cp_sync; /**< Half-cycle ambiguity resolution */
 
@@ -432,7 +433,7 @@ typedef struct {
 
   u16 fpll_cycle; /**< FPLL run cycle within current profile */
 
-  piksi_systime_timer_t init_settle_timer;
+  tracker_timer_t init_settle_timer;
 } tracker_t;
 
 /** \} */

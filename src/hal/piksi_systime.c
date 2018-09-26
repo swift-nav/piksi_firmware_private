@@ -610,36 +610,3 @@ u32 piksi_systime_sleep_until_windowed_ms(const piksi_systime_t *t,
 
   return st2ms(ret);
 }
-
-u64 piksi_systime_now_ms(void) {
-  piksi_systime_t t;
-  piksi_systime_get(&t);
-  return piksi_systime_to_ms(&t);
-}
-
-void piksi_systime_timer_init(piksi_systime_timer_t *tm) {
-  assert(tm);
-  memset(tm, 0, sizeof(*tm));
-}
-
-void piksi_systime_timer_arm(piksi_systime_timer_t *tm, s64 deadline_ms) {
-  assert(tm);
-  tm->deadline_ms = deadline_ms;
-  tm->armed_at_ms = piksi_systime_now_ms();
-}
-
-u64 piksi_systime_timer_ms(piksi_systime_timer_t *tm) {
-  assert(tm);
-  if (tm->deadline_ms) {
-    return piksi_systime_now_ms() - tm->armed_at_ms;
-  }
-  return 0;
-}
-
-bool piksi_systime_timer_expired(piksi_systime_timer_t *tm) {
-  assert(tm);
-  if (tm->deadline_ms < 0) {
-    return false;
-  }
-  return (piksi_systime_now_ms() >= (u64)tm->deadline_ms);
-}
