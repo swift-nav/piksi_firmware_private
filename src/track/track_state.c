@@ -188,9 +188,6 @@ void tracker_get_state(u8 id,
   /* Cross-correlation doppler frequency [hz] */
   info->xcorr_freq = tracker->xcorr_freq;
 
-  time_info->cn0_drop_ms =
-      update_count_diff(tracker, &tracker->cn0_above_drop_thres_count);
-
   if (0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) {
     time_info->ld_pess_locked_ms = tracker_timer_ms(&tracker->locked_timer);
   } else {
@@ -278,6 +275,8 @@ bool tracker_init(const u8 id,
 
     tracker_timer_init(&tracker->unlocked_timer);
     tracker_timer_arm(&tracker->unlocked_timer, /*deadline_ms=*/-1);
+
+    tracker_timer_init(&tracker->cn0_below_drop_thres_timer);
 
     tracker_timer_init(&tracker->age_timer);
     tracker_timer_arm(&tracker->age_timer, /*deadline_ms=*/-1);

@@ -470,30 +470,6 @@ void tracker_correlations_send(tracker_t *tracker, const corr_t *cs) {
   }
 }
 
-/** Return the unsigned difference between update_count and *val for a
- * tracker channel.
- *
- * \note This function allows some margin to avoid glitches in case values
- * are not read atomically from the tracking channel data.
- *
- * \param tracker   Tracker channel to use.
- * \param val               Pointer to the value to be subtracted
- *                          from update_count.
- *
- * \return The unsigned difference between update_count and *val.
- */
-update_count_t update_count_diff(const tracker_t *tracker,
-                                 const update_count_t *val) {
-  update_count_t result = (update_count_t)(tracker->update_count - *val);
-  COMPILER_BARRIER(); /* Prevent compiler reordering */
-  /* Allow some margin in case values were not read atomically.
-   * Treat a difference of [-10000, 0) as zero. */
-  if (result > (update_count_t)(UINT32_MAX - 10000))
-    return 0;
-  else
-    return result;
-}
-
 /** Lock a tracker channel for exclusive access.
  *
  * \param tracker   Tracker channel to use.

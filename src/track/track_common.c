@@ -546,6 +546,7 @@ static void tp_tracker_update_bsync(tracker_t *tracker, u32 cycle_flags) {
  */
 static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
   float cn0 = tracker->cn0_est.filter.yn;
+  float cn0_prev = cn0;
   tp_cn0_thres_t cn0_thres;
   tp_profile_get_cn0_thres(&tracker->profile, &cn0_thres);
 
@@ -581,9 +582,8 @@ static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
     }
   }
 
-  if (cn0 > cn0_thres.drop_dbhz) {
-    /* When C/N0 is above a drop threshold tracking shall continue. */
-    tracker->cn0_above_drop_thres_count = tracker->update_count;
+  if ((cn0 < cn0_thres.drop_dbhz) && (cn0_prev > cn0_thres.drop_dbhz)) {
+    tracker_timer_arm(&tracker->cn0_below_drop_thres_timer, /*deadline_ms=*/-1);
   }
 
   bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));

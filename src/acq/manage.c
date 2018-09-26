@@ -902,8 +902,7 @@ void sanitize_tracker(tracker_t *tracker) {
   }
 
   /* CN0 below threshold for a while? */
-  u32 cn0_drop_ms =
-      update_count_diff(tracker, &tracker->cn0_above_drop_thres_count);
+  u32 cn0_drop_ms = tracker_timer_ms(&tracker->cn0_below_drop_thres_timer);
   if (cn0_drop_ms > TRACK_DROP_CN0_MS) {
     drop_channel(tracker, CH_DROP_REASON_LOW_CN0);
     return;

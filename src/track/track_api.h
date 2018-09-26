@@ -51,8 +51,6 @@ void tracker_ambiguity_set(tracker_t *tracker, s8 polarity);
 u16 tracker_glo_orbit_slot_get(tracker_t *tracker);
 void tracker_correlations_send(tracker_t *tracker, const corr_t *cs);
 
-update_count_t update_count_diff(const tracker_t *tracker,
-                                 const update_count_t *val);
 void tracker_cleanup(tracker_t *tracker);
 
 void tracker_tow_cache(tracker_t *tracker);

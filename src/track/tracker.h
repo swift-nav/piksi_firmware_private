@@ -221,7 +221,6 @@ typedef struct {
  * Timing information from tracking channel for external use.
  */
 typedef struct {
-  u32 cn0_drop_ms;         /**< Time with C/N0 below drop threshold [ms] */
   u32 ld_pess_locked_ms;   /**< Time in pessimistic lock [ms] */
 } tracker_time_info_t;
 
@@ -371,7 +370,7 @@ typedef struct {
   bool xcorr_flag;
 
   update_count_t update_count; /**< Number of ms channel has been running */
-  update_count_t cn0_above_drop_thres_count;
+  tracker_timer_t cn0_below_drop_thres_timer;
 
   tracker_timer_t locked_timer;
   tracker_timer_t unlocked_timer;
