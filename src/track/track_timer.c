@@ -12,5 +12,5 @@
 
 #include "track_timer.h"
 
-/* current time in microseconds. Updated by tracker_time_set() */
-u64 tracker_time_us = 0;
+/* current time in [ms]. Updated by tracker_time_set() */
+u64 tracker_time_ms = 0;

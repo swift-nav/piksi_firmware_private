@@ -221,8 +221,8 @@ void nap_track_irq_thread(void *arg) {
 
   while (TRUE) {
     piksi_systime_get(&sys_time);
-    u64 us = piksi_systime_to_us(&sys_time);
-    tracker_time_set(us);
+    u64 ms = piksi_systime_to_ms(&sys_time);
+    tracker_time_set(ms);
 
     handle_nap_track_irq();
 

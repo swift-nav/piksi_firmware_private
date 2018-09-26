@@ -24,15 +24,13 @@ typedef struct {
   u64 armed_at_ms; /** the timestamp of tracker_timer_arm() call */
 } tracker_timer_t;
 
-extern u64 tracker_time_us;
+extern u64 tracker_time_ms;
 
-/* Updates current global tracker time in microseconds */
-static inline void tracker_time_set(u64 us) { tracker_time_us = us; }
+/* Updates current global tracker time in [ms] */
+static inline void tracker_time_set(u64 ms) { tracker_time_ms = ms; }
 
 /* Returns current global tracker time in milliseconds */
-static inline u64 tracker_time_now_ms(void) {
-  return (tracker_time_us + 999) / 1000;
-}
+static inline u64 tracker_time_now_ms(void) { return tracker_time_ms; }
 
 /** Init tracker timer */
 static inline void tracker_timer_init(tracker_timer_t *tm) {
