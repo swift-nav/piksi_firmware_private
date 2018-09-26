@@ -11,38 +11,6 @@
  */
 
 #include "track_timer.h"
-#include <assert.h>
-#include <string.h>
 
-static u64 tracker_time_us = 0;
-
-void tracker_time_set(u64 us) { tracker_time_us = us; }
-
-u64 tracker_time_now_ms(void) { return (tracker_time_us + 999) / 1000; }
-
-void tracker_timer_init(tracker_timer_t *tm) {
-  assert(tm);
-  memset(tm, 0, sizeof(*tm));
-}
-
-void tracker_timer_arm(tracker_timer_t *tm, s64 deadline_ms) {
-  assert(tm);
-  tm->deadline_ms = deadline_ms;
-  tm->armed_at_ms = tracker_time_now_ms();
-}
-
-u64 tracker_timer_ms(tracker_timer_t *tm) {
-  assert(tm);
-  if (tm->deadline_ms) {
-    return tracker_time_now_ms() - tm->armed_at_ms;
-  }
-  return 0;
-}
-
-bool tracker_timer_expired(tracker_timer_t *tm) {
-  assert(tm);
-  if (tm->deadline_ms < 0) {
-    return false;
-  }
-  return (tracker_time_now_ms() >= (u64)tm->deadline_ms);
-}
+/* current time in microseconds. Updated by tracker_time_set() */
+u64 tracker_time_us = 0;
