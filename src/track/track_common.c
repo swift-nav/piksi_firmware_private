@@ -462,7 +462,7 @@ static void tp_tracker_update_correlators(tracker_t *tracker, u32 cycle_flags) {
                    "Unexpected tracking channel update rate: %" PRIu64 " ms",
                    delay_ms);
   }
-  tracker_timer_arm(&tracker->update_timer, /*deadline_ms=*/-1); /*rearm*/
+  tracker_timer_arm(&tracker->update_timer, /*deadline_ms=*/-1); /*re-arm*/
 
   tracker->sample_count = sample_count;
   tracker->code_phase_prompt = code_phase_prompt;
@@ -584,6 +584,8 @@ static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
 
   if ((cn0 < cn0_thres.drop_dbhz) && (cn0_prev > cn0_thres.drop_dbhz)) {
     tracker_timer_arm(&tracker->cn0_below_drop_thres_timer, /*deadline_ms=*/-1);
+  } else if (cn0 >= cn0_thres.drop_dbhz) {
+    tracker_timer_init(&tracker->cn0_below_drop_thres_timer);
   }
 
   bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
