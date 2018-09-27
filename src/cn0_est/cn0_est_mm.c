@@ -109,8 +109,8 @@ float cn0_est_mm_update(cn0_est_mm_state_t *s,
 
   /* Compute CN0 */
   float cn0_dbhz = p->log_bw + snr_db;
-  if (cn0_dbhz < 10.0f) {
-    cn0_dbhz = 10.0f;
+  if (cn0_dbhz < 0.0f) {
+    cn0_dbhz = 0.0f;
   } else if (cn0_dbhz > 60.0f) {
     cn0_dbhz = 60.0f;
   }
