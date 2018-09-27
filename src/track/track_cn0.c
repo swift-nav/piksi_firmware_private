@@ -29,9 +29,14 @@
  * For N=200 Alpha=0.0055(5)
  */
 #define CN0_EST_LPF_ALPHA (.005f)
-/** C/N0 LPF cutoff frequency. The lower it is, the more stable CN0 looks like
- * and the slower is the response. */
-#define CN0_EST_LPF_CUTOFF_HZ (.25f)
+
+/** Initial mode C/N0 LPF cutoff frequency. */
+#define CN0_EST_LPF_INIT_CUTOFF_HZ (4.0f)
+/** Default C/N0 LPF cutoff frequency. */
+#define CN0_EST_LPF_DEFAULT_CUTOFF_HZ (2.0f)
+/** Sensitivity mode C/N0 LPF cutoff frequency. */
+#define CN0_EST_LPF_SENS_CUTOFF_HZ (0.25f)
+
 /** Integration interval: 1ms */
 #define INTEG_PERIOD_1_MS 1
 /** Integration interval: 2ms */
@@ -60,6 +65,27 @@
 /** Total number of precomputed integration intervals */
 #define INTEG_PERIODS_NUM (ARRAY_SIZE(cn0_periods_ms))
 
+/** C/N0 cutoff frequency for 1ms filter [Hz] */
+#define TRACK_CN0_CUTOFF_1MS_HZ (CN0_EST_LPF_INIT_CUTOFF_HZ)
+/** C/N0 cutoff frequency for 2ms filter [Hz] */
+#define TRACK_CN0_CUTOFF_2MS_HZ (CN0_EST_LPF_DEFAULT_CUTOFF_HZ)
+/** C/N0 cutoff frequency for 4ms filter [Hz] */
+#define TRACK_CN0_CUTOFF_4MS_HZ (CN0_EST_LPF_DEFAULT_CUTOFF_HZ)
+/** C/N0 cutoff frequency for 5ms filter [Hz] */
+#define TRACK_CN0_CUTOFF_5MS_HZ (CN0_EST_LPF_DEFAULT_CUTOFF_HZ)
+/** C/N0 cutoff frequency for 10ms filter [Hz] */
+#define TRACK_CN0_CUTOFF_10MS_HZ (CN0_EST_LPF_DEFAULT_CUTOFF_HZ)
+/** C/N0 cutoff frequency for 20ms filter [Hz] */
+#define TRACK_CN0_CUTOFF_20MS_HZ (CN0_EST_LPF_SENS_CUTOFF_HZ)
+
+/** Predefined cutoff frequency for C/N0 filters */
+static const float cn0_cutoff_hz[] = {TRACK_CN0_CUTOFF_1MS_HZ,
+                                      TRACK_CN0_CUTOFF_2MS_HZ,
+                                      TRACK_CN0_CUTOFF_4MS_HZ,
+                                      TRACK_CN0_CUTOFF_5MS_HZ,
+                                      TRACK_CN0_CUTOFF_10MS_HZ,
+                                      TRACK_CN0_CUTOFF_20MS_HZ};
+
 /** Predefined integration periods for C/N0 estimators */
 static const u8 cn0_periods_ms[] = {INTEG_PERIOD_1_MS,
                                     INTEG_PERIOD_2_MS,
@@ -76,7 +102,6 @@ typedef struct {
   float nbw;       /**< Noise bandwidth for the platform */
   float scale;     /**< Scale factor for C/N0 estimator */
   float cn0_shift; /**< Shift for C/N0 estimator */
-  float cutoff;    /**< C/N0 LP filter cutoff frequency [Hz] */
   track_cn0_params_t params[INTEG_PERIODS_NUM]; /**< Estimator and filter
                                                  *   parameters */
 } track_cn0_config_t;
@@ -88,7 +113,6 @@ static track_cn0_config_t cn0_config = {
     .alpha = CN0_EST_LPF_ALPHA,
     .scale = PLATFORM_CN0_EST_SCALE,
     .cn0_shift = PLATFORM_CN0_EST_SHIFT,
-    .cutoff = CN0_EST_LPF_CUTOFF_HZ,
 };
 
 /** Pre-compute C/N0 estimator and filter parameters. The parameters are
@@ -105,7 +129,7 @@ void track_cn0_params_init(void) {
                            cn0_config.cn0_shift);
     cn0_config.params[i].est_params.t_int = cn0_periods_ms[i];
     cn0_filter_compute_params(
-        &cn0_config.params[i].filter_params, cn0_config.cutoff, loop_freq);
+        &cn0_config.params[i].filter_params, cn0_cutoff_hz[i], loop_freq);
   }
 }
 
@@ -170,7 +194,7 @@ static const track_cn0_params_t *track_cn0_get_params(u8 cn0_ms,
     p->est_params.t_int = cn0_ms;
 
     cn0_filter_compute_params(
-        &p->filter_params, CN0_EST_LPF_CUTOFF_HZ, loop_freq);
+        &p->filter_params, CN0_EST_LPF_DEFAULT_CUTOFF_HZ, loop_freq);
 
     pparams = p;
   }
