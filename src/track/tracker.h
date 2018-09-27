@@ -372,7 +372,8 @@ typedef struct {
   update_count_t update_count; /**< Number of ms channel has been running */
   tracker_timer_t cn0_below_drop_thres_timer;
 
-  tracker_timer_t locked_unlocked_timer;
+  tracker_timer_t locked_timer;
+  tracker_timer_t unlocked_timer;
   /**< update_count value when pessimistic
        phase detector has changed last time. */
   update_count_t xcorr_change_count;

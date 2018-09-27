@@ -686,13 +686,13 @@ static void drop_channel(tracker_t *tracker, ch_drop_reason_t reason) {
    */
   const u32 flags = tracker->flags;
   me_gnss_signal_t mesid = tracker->mesid;
-  u32 time_in_track_ms = (u32)tracker_timer_ms(&tracker->age_timer);
+  u64 time_in_track_ms = tracker_timer_ms(&tracker->age_timer);
 
   /* Log message with appropriate priority. */
   if ((CH_DROP_REASON_ERROR == reason) ||
       (CH_DROP_REASON_NO_UPDATES == reason)) {
     log_error_mesid(mesid,
-                    "[+%" PRIu32 "ms] nap_channel = %" PRIu8 " %s",
+                    "[+%" PRIu64 "ms] nap_channel = %" PRIu8 " %s",
                     time_in_track_ms,
                     tracker->nap_channel,
                     get_ch_drop_reason_str(reason));
@@ -701,13 +701,13 @@ static void drop_channel(tracker_t *tracker, ch_drop_reason_t reason) {
     /* Unconfirmed tracker messages are always logged at debug level.
        Same is for new tracker mode activation. */
     log_debug_mesid(mesid,
-                    "[+%" PRIu32 "ms] %s",
+                    "[+%" PRIu64 "ms] %s",
                     time_in_track_ms,
                     get_ch_drop_reason_str(reason));
   } else {
     /* Confirmed tracker messages are always logged at info level */
     log_info_mesid(mesid,
-                   "[+%" PRIu32 "ms] %s",
+                   "[+%" PRIu64 "ms] %s",
                    time_in_track_ms,
                    get_ch_drop_reason_str(reason));
   }
@@ -717,11 +717,8 @@ static void drop_channel(tracker_t *tracker, ch_drop_reason_t reason) {
   if (code_requires_direct_acq(mesid.code)) {
     bool had_locks =
         (0 != (flags & (TRACKER_FLAG_HAD_PLOCK | TRACKER_FLAG_HAD_FLOCK)));
-    bool has_locks =
-        (0 != (flags & (TRACKER_FLAG_HAS_PLOCK | TRACKER_FLAG_HAS_FLOCK)));
     bool long_in_track = time_in_track_ms > TRACK_REACQ_MS;
-    u64 unlocked_ms =
-        has_locks ? 0 : tracker_timer_ms(&tracker->locked_unlocked_timer);
+    u64 unlocked_ms = tracker_timer_ms(&tracker->unlocked_timer);
     bool long_unlocked = unlocked_ms > TRACK_REACQ_MS;
     bool was_xcorr = (flags & TRACKER_FLAG_DROP_CHANNEL) &&
                      (CH_DROP_REASON_XCORR == tracker->ch_drop_reason);
@@ -898,17 +895,14 @@ void sanitize_tracker(tracker_t *tracker) {
      observed cases, when tracker could not achieve the pessimistic
      lock state for a long time (minutes?) and yet managed to pass
      CN0 sanity checks.*/
-  bool has_locks =
-      (0 != (flags & (TRACKER_FLAG_HAS_PLOCK | TRACKER_FLAG_HAS_FLOCK)));
-  u64 unlocked_ms =
-      has_locks ? 0 : tracker_timer_ms(&tracker->locked_unlocked_timer);
+  u64 unlocked_ms = tracker_timer_ms(&tracker->unlocked_timer);
   if (unlocked_ms > TRACK_DROP_UNLOCKED_MS) {
     drop_channel(tracker, CH_DROP_REASON_NO_PLOCK);
     return;
   }
 
   /* CN0 below threshold for a while? */
-  u32 cn0_drop_ms = tracker_timer_ms(&tracker->cn0_below_drop_thres_timer);
+  u64 cn0_drop_ms = tracker_timer_ms(&tracker->cn0_below_drop_thres_timer);
   if (cn0_drop_ms > TRACK_DROP_CN0_MS) {
     drop_channel(tracker, CH_DROP_REASON_LOW_CN0);
     return;
