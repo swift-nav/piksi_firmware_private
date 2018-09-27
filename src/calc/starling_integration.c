@@ -560,7 +560,7 @@ static void starling_integration_solution_simulation(
 void starling_integration_simulation_run(const me_msg_obs_t *me_msg) {
   gps_time_t epoch_time = me_msg->obs_time;
   u8 time_qual = get_time_quality();
-  if (!gps_time_valid(&epoch_time) && TIME_PROPAGATED <= get_time_quality()) {
+  if (!gps_time_valid(&epoch_time) && TIME_PROPAGATED <= time_qual) {
     /* observations do not have valid time, but we have a reasonable estimate
      * of current GPS time, so round that to nearest epoch and use it
      */
