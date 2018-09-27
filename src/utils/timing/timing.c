@@ -296,6 +296,30 @@ void timing_setup(void) {
   chMtxUnlock(&clock_mutex);
 }
 
+/** Get current HW time in milliseconds
+ *
+ * \return HW time in milliseconds
+ */
+u64 timing_getms(void) {
+  return (u64)(nap_timing_count() * (RX_DT_NOMINAL * 1000.0));
+}
+
+/** Get current HW time in microseconds
+ *
+ * \return HW time in microseconds
+ */
+u64 timing_getus(void) {
+  return (u64)(nap_timing_count() * (RX_DT_NOMINAL * 1e6));
+}
+
+/** Get current HW time in microseconds
+ *
+ * \return HW time in microseconds
+ */
+u32 timing_getus_32(void) {
+  return (u32)(nap_timing_count_32() * (RX_DT_NOMINAL * 1e6));
+}
+
 /** A convenience wrapper for glo2gps() API. Adds UTC params reading from NDB.
  * \param mesid ME sid for debugging info
  * \param glo_t GLO time

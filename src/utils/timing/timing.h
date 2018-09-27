@@ -52,29 +52,9 @@ time_quality_t get_time_quality(void);
 gps_time_t napcount2gpstime(const double tc);
 u64 gpstime2napcount(const gps_time_t* t);
 
-/** Get current HW time in milliseconds
- *
- * \return HW time in milliseconds
- */
-static inline u64 timing_getms(void) {
-  return (u64)(nap_timing_count() * (RX_DT_NOMINAL * 1000.0));
-}
-
-/** Get current HW time in microseconds
- *
- * \return HW time in microseconds
- */
-static inline u64 timing_getus(void) {
-  return (u64)(nap_timing_count() * (RX_DT_NOMINAL * 1e6));
-}
-
-/** Get current HW time in microseconds
- *
- * \return HW time in microseconds
- */
-static inline u32 timing_getus_32(void) {
-  return (u32)(nap_timing_count_32() * (RX_DT_NOMINAL * 1e6));
-}
+u64 timing_getms(void);
+u64 timing_getus(void);
+u32 timing_getus_32(void);
 
 gps_time_t glo2gps_with_utc_params(me_gnss_signal_t mesid,
                                    const glo_time_t* glo_t);

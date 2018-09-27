@@ -294,3 +294,5 @@ gps_time_t glo2gps_with_utc_params(me_gnss_signal_t mesid,
   (void)mesid;
   return glo2gps(glo_t, /* utc_params = */ NULL);
 }
+
+u64 nap_timing_count(void) { return 0; }

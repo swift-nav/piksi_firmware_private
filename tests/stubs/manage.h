@@ -63,8 +63,6 @@ bool is_galileo_enabled(void);
 void sm_get_glo_visibility_flags(u16 sat, bool *visible, bool *known);
 void sm_get_visibility_flags(gnss_signal_t sid, bool *visible, bool *known);
 void sm_calc_all_glo_visibility_flags(void);
-u64 timing_getms(void);
-u64 timing_getus(void);
 bool sm_lgf_stamp(u64 *lgf_stamp);
 gps_time_t get_current_time(void);
 void dum_get_doppler_wndw(const gnss_signal_t *sid,
