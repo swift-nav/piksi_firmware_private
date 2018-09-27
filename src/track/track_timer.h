@@ -55,12 +55,14 @@ static inline void tracker_timer_arm(tracker_timer_t *tm, s64 deadline_ms) {
 static inline u64 tracker_timer_ms(tracker_timer_t *tm) {
   assert(tm);
   if (tm->deadline_ms) {
-    return tracker_time_now_ms() - tm->armed_at_ms;
+    u64 now_ms = tracker_time_now_ms();
+    assert(now_ms >= tm->armed_at_ms);
+    return now_ms - tm->armed_at_ms;
   }
   return 0;
 }
 
-/** Checks fi time is expired. If timer was not armed, then it is expired. */
+/** Checks if time is expired. If timer was not armed, then it is expired. */
 static inline bool tracker_timer_expired(tracker_timer_t *tm) {
   assert(tm);
   if (tm->deadline_ms < 0) {

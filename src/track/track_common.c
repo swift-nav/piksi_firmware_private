@@ -699,18 +699,12 @@ static void tp_tracker_update_locks(tracker_t *tracker, u32 cycle_flags) {
 
   bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
   if (!outp_prev && outp && confirmed) {
-    u32 unlocked_ms = tracker_timer_ms(&tracker->unlocked_timer);
-    log_debug_mesid(tracker->mesid, "Lock after %" PRIu32 "ms", unlocked_ms);
+    u64 unlocked_ms = tracker_timer_ms(&tracker->locked_unlocked_timer);
+    log_debug_mesid(tracker->mesid, "Lock after %" PRIu64 "ms", unlocked_ms);
   }
 
   if (outp != outp_prev) {
-    if (outp) {
-      tracker_timer_init(&tracker->unlocked_timer);
-      tracker_timer_arm(&tracker->locked_timer, /*deadline_ms=*/-1);
-    } else {
-      tracker_timer_init(&tracker->locked_timer);
-      tracker_timer_arm(&tracker->unlocked_timer, /*deadline_ms=*/-1);
-    }
+    tracker_timer_arm(&tracker->locked_unlocked_timer, /*deadline_ms=*/-1);
   }
   if (outp) {
     tracker->carrier_freq_at_lock = tracker->carrier_freq;

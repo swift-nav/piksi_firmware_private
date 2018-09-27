@@ -189,7 +189,8 @@ void tracker_get_state(u8 id,
   info->xcorr_freq = tracker->xcorr_freq;
 
   if (0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) {
-    time_info->ld_pess_locked_ms = tracker_timer_ms(&tracker->locked_timer);
+    time_info->ld_pess_locked_ms =
+        tracker_timer_ms(&tracker->locked_unlocked_timer);
   } else {
     time_info->ld_pess_locked_ms = 0;
   }
@@ -271,10 +272,8 @@ bool tracker_init(const u8 id,
     /* First profile selection is based on initial CN0 estimate. */
     tracker->cn0 = cn0_init;
 
-    tracker_timer_init(&tracker->locked_timer);
-
-    tracker_timer_init(&tracker->unlocked_timer);
-    tracker_timer_arm(&tracker->unlocked_timer, /*deadline_ms=*/-1);
+    tracker_timer_init(&tracker->locked_unlocked_timer);
+    tracker_timer_arm(&tracker->locked_unlocked_timer, /*deadline_ms=*/-1);
 
     tracker_timer_init(&tracker->cn0_below_drop_thres_timer);
 
