@@ -60,7 +60,7 @@ u8 sbp_get_time_quality_flags(u8 time_qual) {
     case TIME_FINE: /* Intentionally FALLTHROUGH */
     case TIME_FINEST:
       /* Time comes from the measurement engine and if it is
-       * FINE or FINEST then it is GNSS derived (flags=1) */
+       * FINE or FINEST then we call it GNSS derived (flags=1) */
       flags = 1;
       break;
     case TIME_PROPAGATED:
@@ -1186,14 +1186,14 @@ void sbp_alma_reg_cbks(void (*almanac_msg_callback)(u16, u8, u8 *, void *)) {
   }
 }
 
-void sbp_init_gps_time(msg_gps_time_t *gps_time, gps_time_t *t) {
+void sbp_init_gps_time(msg_gps_time_t *gps_time, gps_time_t *t, u8 time_qual) {
   memset(gps_time, 0, sizeof(msg_gps_time_t));
-  sbp_make_gps_time(gps_time, t, 0);
+  sbp_make_gps_time(gps_time, t, time_qual);
 }
 
-void sbp_init_utc_time(msg_utc_time_t *utc_time, gps_time_t *t) {
+void sbp_init_utc_time(msg_utc_time_t *utc_time, gps_time_t *t, u8 time_qual) {
   memset(utc_time, 0, sizeof(msg_utc_time_t));
-  sbp_make_utc_time(utc_time, t, 0);
+  sbp_make_utc_time(utc_time, t, time_qual);
 }
 
 void sbp_init_pos_llh(msg_pos_llh_t *pos_llh, gps_time_t *t) {
