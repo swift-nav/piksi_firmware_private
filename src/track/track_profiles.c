@@ -32,17 +32,9 @@
 #include "track/track_common.h"
 #include "track/track_flags.h"
 
-/* 100ms is a result of experimenting.
-   The threshold is needed to avoid spontaneous transitions
-   to sensitivity profile, when signal is reasonably strong */
-#define TP_WEAK_SIGNAL_THRESHOLD_MS 100
-
 /** DLL Bandwidth addon for handover signals which start from non-init profiles.
     Used for faster DLL loop convergence. */
 #define DLL_BW_ADDON_HZ (5.0f)
-
-/** Unknown delay indicator */
-#define TP_DELAY_UNKNOWN -1
 
 /** Indices of specific entries in gnss_track_profiles[] table below */
 typedef enum {
@@ -884,27 +876,6 @@ static bool low_cn0_profile_switch_requested(tracker_t *tracker) {
     return true;
   }
 
-  bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
-  if (!confirmed) {
-    return false;
-  }
-
-  if (!tracker_timer_expired(&tracker->init_settle_timer)) {
-    return false;
-  }
-
-  if ((tracker->cn0_est.weak_signal_ms > 0) &&
-      (state->filt_cn0 > THRESH_20MS_DBHZ) &&
-      profile_switch_requested(tracker, IDX_SENS, "low cn0: instant")) {
-    /* filt_cn0 reports a reasonably strong signal, but
-       weak_signal_ms derived from raw CN0 says there is no signal.
-       So we expedite the transition to sensitivity profile. */
-    return true;
-  }
-  if ((tracker->cn0_est.weak_signal_ms >= TP_WEAK_SIGNAL_THRESHOLD_MS) &&
-      profile_switch_requested(tracker, IDX_SENS, "low cn0: delay")) {
-    return true;
-  }
   return false;
 }
 
