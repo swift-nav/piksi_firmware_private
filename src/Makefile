@@ -363,7 +363,7 @@ DLIBDIR = $(LIBSBP_BUILDDIR)/src \
           $(BOARDLIBDIR)
 
 # List all default libraries here
-DLIBS = $(BOARDLIBS) -lsbp-static -lswiftnav-private -lswiftnav -lstarling\
+DLIBS = $(BOARDLIBS) -lsbp-static -lstarling -lswiftnav-private -lswiftnav \
         -lm -Wl,--start-group -lstdc++ -lc -Wl,--end-group -lfec -lnosys
 
 #
