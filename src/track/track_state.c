@@ -291,6 +291,7 @@ bool tracker_init(const u8 id,
 
     tracker_timer_init(&tracker->update_timer);
     tracker_timer_arm(&tracker->update_timer, /*deadline_ms=*/-1);
+    tracker->updated_once = false;
 
     tracker_timer_init(&tracker->carrier_freq_age_timer);
     tracker_timer_arm(&tracker->carrier_freq_age_timer, -1);
@@ -499,6 +500,9 @@ void stale_trackers_cleanup(void) {
   for (u8 i = 0; i < nap_track_n_channels; i++) {
     tracker_t *tracker = tracker_get(i);
     if (!tracker->busy) {
+      continue;
+    }
+    if (!tracker->updated_once) {
       continue;
     }
     u64 delay_ms = tracker_timer_ms(&tracker->update_timer);

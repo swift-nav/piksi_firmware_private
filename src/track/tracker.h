@@ -402,6 +402,7 @@ typedef struct {
   float xcorr_freq;                /**< Doppler for cross-correlation [Hz] */
   tracker_timer_t age_timer;       /**< Tracking channel age timer */
   tracker_timer_t update_timer;    /**< Tracking channel last update timer */
+  bool updated_once;               /**< Tracker was updated at least once */
 
   cp_sync_t cp_sync; /**< Half-cycle ambiguity resolution */
 

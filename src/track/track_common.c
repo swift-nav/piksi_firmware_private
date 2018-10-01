@@ -456,12 +456,15 @@ static void tp_tracker_update_correlators(tracker_t *tracker, u32 cycle_flags) {
   /* Current cycle duration */
   int_ms = tp_get_cycle_duration(tracker->tracking_mode, tracker->cycle_no);
 
-  u64 delay_ms = tracker_timer_ms(&tracker->update_timer);
-  if (delay_ms > NAP_CORR_LENGTH_MAX_MS) {
-    log_warn_mesid(mesid,
-                   "Unexpected tracking channel update rate: %" PRIu64 " ms",
-                   delay_ms);
+  if (tracker->updated_once) {
+    u64 delay_ms = tracker_timer_ms(&tracker->update_timer);
+    if (delay_ms > NAP_CORR_LENGTH_MAX_MS) {
+      log_warn_mesid(mesid,
+                     "Unexpected tracking channel update rate: %" PRIu64 " ms",
+                     delay_ms);
+    }
   }
+  tracker->updated_once = true;
   tracker_timer_arm(&tracker->update_timer, /*deadline_ms=*/-1); /*re-arm*/
 
   tracker->sample_count = sample_count;
