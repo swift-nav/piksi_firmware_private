@@ -80,7 +80,7 @@ u64 nap_timing_count(void) {
 
   chMtxLock(&timing_count_mutex);
 
-  u32 count = nap_timing_count_32();
+  u32 count = NAP->TIMING_COUNT;
 
   if (count < prev_count) rollover_count++;
 
