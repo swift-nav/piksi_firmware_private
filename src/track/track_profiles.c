@@ -334,7 +334,7 @@ static const tp_profile_entry_t tracker_profiles_rover[] = {
   { { BW_DYN,      BW_DYN,            1,   TP_CTRL_PLL3,
       TP_TM_5MS_20MS,  TP_TM_5MS_10MS,  TP_TM_2MS_2MS,  TP_TM_5MS_NH20MS,  TP_TM_4MS_SC4 },
       TP_LD_PARAMS_PHASE_5MS, TP_LD_PARAMS_FREQ_5MS,
-      40,          35,          46,
+      40,          38,          48,
       IDX_5MS,    IDX_10MS,     IDX_2MS,
       TP_USE_NEXT | TP_LOW_CN0 | TP_HIGH_CN0},
 
@@ -342,7 +342,7 @@ static const tp_profile_entry_t tracker_profiles_rover[] = {
   { { BW_DYN,      BW_DYN,            1,   TP_CTRL_PLL3,
       TP_TM_10MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS, TP_TM_10MS_NH20MS,  TP_TM_10MS_SC4 },
       TP_LD_PARAMS_PHASE_10MS, TP_LD_PARAMS_FREQ_10MS,
-      40,          32,          38,
+      40,          33,          43,
       IDX_10MS,    IDX_20MS,     IDX_5MS,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
 
@@ -350,7 +350,7 @@ static const tp_profile_entry_t tracker_profiles_rover[] = {
   { { BW_DYN,      BW_DYN,           .5,   TP_CTRL_PLL3,
       TP_TM_20MS_20MS,  TP_TM_20MS_10MS,  TP_TM_2MS_2MS,  TP_TM_20MS_NH20MS,  TP_TM_20MS_SC4 },
       TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
-      40,        THRESH_SENS_DBHZ,   35,
+      40,          28,          38,
       IDX_20MS,   IDX_SENS,     IDX_10MS,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
 
@@ -359,7 +359,7 @@ static const tp_profile_entry_t tracker_profiles_rover[] = {
   { {      0,         1.0,           .5,   TP_CTRL_PLL3,
       TP_TM_200MS_20MS, TP_TM_200MS_10MS, TP_TM_200MS_2MS, TP_TM_200MS_NH20MS, TP_TM_200MS_SC4 },
       TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
-      300,             0,          32,
+      300,             0,          33,
       IDX_SENS,  IDX_NONE,     IDX_20MS,
       TP_HIGH_CN0 | TP_USE_NEXT }
 };
