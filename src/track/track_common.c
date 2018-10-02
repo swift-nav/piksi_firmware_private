@@ -615,14 +615,8 @@ static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
   }
 
   bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
-  /* Mark pll_lock true if PLL is not in use, or we have pll lock. */
-  bool pll_lock = ((0 == (tracker->flags & TRACKER_FLAG_PLL_USE)) ||
-                   (0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)));
-  /* Mark fll_lock true if FLL is not in use, or we have fll lock. */
-  bool fll_lock = ((0 == (tracker->flags & TRACKER_FLAG_FLL_USE)) ||
-                   (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK)));
-  /* Require both locks. */
-  bool inlock = pll_lock && fll_lock;
+  bool inlock = tracker_has_all_locks(tracker);
+
   if (cn0 > cn0_thres.drop_dbhz && !confirmed && inlock &&
       tracker_has_bit_sync(tracker)) {
     tracker->flags |= TRACKER_FLAG_CONFIRMED;
