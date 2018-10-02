@@ -341,8 +341,8 @@ static void drop_gross_outlier(const navigation_measurement_t *nav_meas,
     ndb_ephemeris_erase(nav_meas->sid);
   }
 
-  bool boc_halfchip_outlier =
-      (CODE_GAL_E1B == nav_meas->sid.code) && (pseudorng_error > 100);
+  bool boc_halfchip_outlier = (CODE_GAL_E1B == nav_meas->sid.code) &&
+                              (pseudorng_error > RAIM_DROP_E1B_THRESHOLD_M);
   if (boc_halfchip_outlier) {
     /* mark channel for dropping */
     tracker_set_raim_flag(nav_meas->sid);
@@ -501,6 +501,9 @@ static void me_calc_pvt_thread(void *arg) {
   piksi_systime_get(&next_epoch);
   piksi_systime_inc_us(&next_epoch, SECS_US / soln_freq_setting);
 
+  gnss_sid_set_t previous_sids;
+  sid_set_init(&previous_sids);
+
   while (TRUE) {
     /* read current value of soln_freq into a local variable that does not
      * change during this loop iteration */
@@ -609,12 +612,24 @@ static void me_calc_pvt_thread(void *arg) {
     navigation_measurement_t *p_nav_meas[n_ready];
     const ephemeris_t *p_e_meas[n_ready];
 
-    /* Create arrays of pointers for use in calc_navigation_measurement */
+    bool is_new_signal = false;
+    gnss_sid_set_t current_sids;
+    sid_set_init(&current_sids);
+
     for (u8 i = 0; i < n_ready; i++) {
+      /* Create arrays of pointers for use in calc_navigation_measurement */
       p_meas[i] = &meas[i];
       p_nav_meas[i] = &nav_meas[i];
       p_e_meas[i] = &e_meas[i];
+
+      sid_set_add(&current_sids, meas[i].sid);
+
+      /* Check if the set contains at least one new sid from previous epoch */
+      if (!is_new_signal && !sid_set_contains(&previous_sids, meas[i].sid)) {
+        is_new_signal = true;
+      }
     }
+    previous_sids = current_sids;
 
     /* GPS time is invalid on the first fix, form a coarse estimate from the
      * first pseudorange measurement */
@@ -640,8 +655,8 @@ static void me_calc_pvt_thread(void *arg) {
 
     /* Compute a PVT solution from the measurements to update LGF and clock
      * models. Compute on every epoch until the time quality gets to FINEST,
-     * otherwise at a lower rate */
-    if (TIME_FINEST > time_quality) {
+     * and on every epoch there are new signals, otherwise at a lower rate */
+    if (TIME_FINEST > time_quality || is_new_signal) {
       me_compute_pvt(
           n_ready, nav_meas, current_tc, &current_time, p_e_meas, &lgf);
     } else {
