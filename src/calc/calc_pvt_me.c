@@ -352,7 +352,7 @@ static void drop_gross_outlier(const navigation_measurement_t *nav_meas,
 /* Apply corrections and solve for position from the given navigation
  * measurements, and if succesful update LGF and clock model */
 static s8 me_compute_pvt(u8 n_ready,
-                         const navigation_measurement_t nav_meas_in[],
+                         navigation_measurement_t nav_meas_in[],
                          u64 current_tc,
                          const gps_time_t *current_time,
                          const ephemeris_t *p_e_meas[],
@@ -455,6 +455,7 @@ static s8 me_compute_pvt(u8 n_ready,
         log_debug_sid(nav_meas[i].sid,
                       "RAIM repair, setting observation invalid.");
         nav_meas[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION;
+        nav_meas_in[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION;
         /* Check how large the outlier roughly is, and if it is a gross one,
          * drop the channel and delete the possibly corrupt ephemeris */
         drop_gross_outlier(&nav_meas[i], &current_fix);
