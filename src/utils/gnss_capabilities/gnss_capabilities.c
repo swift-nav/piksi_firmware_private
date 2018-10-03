@@ -34,12 +34,12 @@ bool gps_l2c_active(const me_gnss_signal_t mesid) {
 /** Returns true if Glonass satellite is active.
  * \param mesid   satellite identifier
  */
-bool glo_active(const me_gnss_signal_t mesid) {
-  assert(IS_GLO(mesid));
+bool glo_active(const gnss_signal_t sid) {
+  assert(IS_GLO(sid));
   const gnss_capb_t *gc = ndb_get_gnss_capb();
   assert(gc);
-  u32 capb = gc->gps_active;
-  return (0 != (capb & ((u32)1 << (mesid.sat - GLO_FIRST_PRN))));
+  u32 capb = gc->glo_active;
+  return (0 != (capb & ((u32)1 << (sid.sat - GLO_FIRST_PRN))));
 }
 
 /** Returns true if SBAS satellite is active.
