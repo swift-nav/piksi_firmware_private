@@ -903,7 +903,7 @@ void sanitize_tracker(tracker_t *tracker, u64 now_ms) {
     }
     if (glo_slot_id_is_valid(tracker->glo_orbit_slot)) {
       gnss_signal_t sid = mesid2sid(mesid, tracker->glo_orbit_slot);
-      if (!glonass_valid(sid)) {
+      if (!glo_active(sid)) {
         tracker->flags |= TRACKER_FLAG_GLO_HEALTH_DECODED;
         tracker->health = SV_UNHEALTHY;
         drop_channel(tracker, CH_DROP_REASON_SV_UNHEALTHY);
