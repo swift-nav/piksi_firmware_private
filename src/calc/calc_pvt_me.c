@@ -341,8 +341,8 @@ static void drop_gross_outlier(const navigation_measurement_t *nav_meas,
     ndb_ephemeris_erase(nav_meas->sid);
   }
 
-  bool boc_halfchip_outlier =
-      (CODE_GAL_E1B == nav_meas->sid.code) && (pseudorng_error > 100);
+  bool boc_halfchip_outlier = (CODE_GAL_E1B == nav_meas->sid.code) &&
+                              (pseudorng_error > RAIM_DROP_E1B_THRESHOLD_M);
   if (boc_halfchip_outlier) {
     /* mark channel for dropping */
     tracker_set_raim_flag(nav_meas->sid);
