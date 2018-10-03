@@ -344,8 +344,8 @@ static void drop_gross_outlier(const gnss_signal_t sid,
     ndb_ephemeris_erase(sid);
   }
 
-  bool boc_halfchip_outlier =
-      (CODE_GAL_E1B == sid.code) && (pseudorng_error > 100);
+  bool boc_halfchip_outlier = (CODE_GAL_E1B == sid.code) &&
+                              (pseudorng_error > RAIM_DROP_E1B_THRESHOLD_M);
   if (boc_halfchip_outlier) {
     /* mark channel for dropping */
     tracker_set_raim_flag(sid);
