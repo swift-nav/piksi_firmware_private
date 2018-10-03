@@ -47,7 +47,7 @@ typedef struct _gnss_capabilities_t {
 
 extern gnss_capabilities_t gnss_capab;
 
-bool glo_active(const me_gnss_signal_t mesid);
+bool glo_active(const gnss_signal_t sid);
 
 bool sbas_active(const me_gnss_signal_t mesid);
 
