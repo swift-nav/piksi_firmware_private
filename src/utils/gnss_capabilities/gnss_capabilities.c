@@ -32,7 +32,7 @@ bool gps_l2c_active(const me_gnss_signal_t mesid) {
 }
 
 /** Returns true if Glonass satellite is active.
- * \param mesid   satellite identifier
+ * \param sid   satellite identifier
  */
 bool glo_active(const gnss_signal_t sid) {
   assert(IS_GLO(sid));
