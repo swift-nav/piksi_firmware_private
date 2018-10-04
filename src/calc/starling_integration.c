@@ -697,6 +697,28 @@ static bool set_disable_klobuchar(struct setting *s, const char *val) {
   return ret;
 }
 
+static bool set_lock_time_scale(struct setting *s, const char *val) {
+  float value = 0;
+  bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
+  if (!ret) {
+    return ret;
+  }
+  starling_set_lock_time_scale(value);
+  *(float *)s->addr = value;
+  return ret;
+}
+
+static bool set_lock_time_duration(struct setting *s, const char *val) {
+  float value = 0;
+  bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
+  if (!ret) {
+    return ret;
+  }
+  starling_set_lock_time_duration(value);
+  *(float *)s->addr = value;
+  return ret;
+}
+
 static void reset_filters_callback(u16 sender_id,
                                    u8 len,
                                    u8 msg[],
@@ -765,6 +787,20 @@ static void initialize_starling_settings(void) {
                  disable_klobuchar,
                  TYPE_BOOL,
                  set_disable_klobuchar);
+
+  static float lock_time_scale = 0.0;
+  SETTING_NOTIFY("solution",
+                "lock_time_scale",
+                lock_time_scale,
+                TYPE_FLOAT,
+                set_lock_time_scale);
+
+  static bool lock_time_duration = 0.0;
+  SETTING_NOTIFY("solution",
+                 "lock_time_duration",
+                 lock_time_duration,
+                 TYPE_FLOAT,
+                 set_lock_time_duration);
 
   static const char *const dgnss_soln_mode_enum[] = {
       "Low Latency", "Time Matched", "No DGNSS", NULL};

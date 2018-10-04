@@ -57,6 +57,8 @@ typedef struct StarlingSettings {
   float elevation_mask;
   double solution_frequency;
   dgnss_solution_mode_t solution_output_mode;
+  double lock_time_scale;
+  double lock_time_duration;
 } StarlingSettings;
 
 /* Glonass biases are handled separately from generic settings. */
@@ -80,6 +82,8 @@ typedef struct ReferencePosition {
 #define INIT_ELEVATION_MASK 10.0f
 #define INIT_SOLUTION_FREQUENCY 10.0
 #define INIT_SOLUTION_OUTPUT_MODE STARLING_SOLN_MODE_LOW_LATENCY
+#define INIT_LOCK_TIME_SCALE 2.2f
+#define INIT_LOCK_TIME_DURATION 10.0f
 
 /* Local settings object and mutex protection. */
 static MUTEX_DECL(global_settings_lock);
@@ -92,6 +96,8 @@ static StarlingSettings global_settings = {
     .elevation_mask = INIT_ELEVATION_MASK,
     .solution_frequency = INIT_SOLUTION_FREQUENCY,
     .solution_output_mode = INIT_SOLUTION_OUTPUT_MODE,
+    .lock_time_scale = INIT_LOCK_TIME_SCALE,
+    .lock_time_duration = INIT_LOCK_TIME_DURATION,
 };
 
 /* Glonass biases and mutex protection. */
@@ -156,6 +162,8 @@ static void update_filter_manager_settings(FilterManager *fm) {
   set_pvt_engine_elevation_mask(fm, settings.elevation_mask);
   set_pvt_engine_update_max_sats(
       fm, settings.solution_frequency, settings.solution_output_mode);
+  set_pvt_engine_lock_time_weighting(
+      fm, settings.lock_time_scale, settings.lock_time_duration);
 }
 
 /**
@@ -930,6 +938,20 @@ void starling_set_is_beidou_enabled(bool is_beidou_enabled) {
 void starling_set_is_time_matched_klobuchar_enabled(bool is_klobuchar_enabled) {
   platform_mutex_lock(&global_settings_lock);
   global_settings.is_time_matched_klobuchar_enabled = is_klobuchar_enabled;
+  platform_mutex_unlock(&global_settings_lock);
+}
+
+/* Set lock time scale factor. */
+void starling_set_lock_time_scale(float lock_time_scale) {
+  platform_mutex_lock(&global_settings_lock);
+  global_settings.lock_time_scale = lock_time_scale;
+  platform_mutex_unlock(&global_settings_lock);
+}
+
+/* Set duration of lock time deweighting */
+void starling_set_lock_time_duration(float lock_time_duration) {
+  platform_mutex_lock(&global_settings_lock);
+  global_settings.lock_time_duration = lock_time_duration;
   platform_mutex_unlock(&global_settings_lock);
 }
 
