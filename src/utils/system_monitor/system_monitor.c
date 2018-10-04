@@ -71,7 +71,7 @@ u64 g_ctime = 0;
 u32 check_stack_free(thread_t *tp) {
   u32 *stack = (u32 *)tp->p_stklimit;
   u32 i;
-  for (i = 0; i < 65536 / sizeof(u32); i++) {
+  for (i = 0; i < (1<<23) / sizeof(u32); i++) {
     if (stack[i] != 0x55555555) break;
   }
   return 4 * (i - 1);
