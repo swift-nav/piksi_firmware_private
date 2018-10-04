@@ -30,7 +30,7 @@
 #define TP_CORR_DATAPILOT_DIM (2 * TP_CORR_DIM)
 
 #define THRESH_SENS_DBHZ 25
-#define THRESH_20MS_DBHZ 33
+#define THRESH_INSTANT_DBHZ 34
 
 /**
  * Tracking mode enumeration.
