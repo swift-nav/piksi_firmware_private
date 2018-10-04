@@ -213,7 +213,7 @@ float track_cn0_update(track_cn0_state_t *e, u8 cn0_ms, float I, float Q) {
   float cn0 =
       cn0_filter_update(&e->filter, &pp->filter_params, e->cn0_raw_dbhz);
 
-  if (e->cn0_raw_dbhz > THRESH_20MS_DBHZ) {
+  if (e->cn0_raw_dbhz > THRESH_INSTANT_DBHZ) {
     if (e->strong_signal_ms < SECS_MS) { /* to avoid wrapping to 0 */
       e->strong_signal_ms += cn0_ms;
     }
