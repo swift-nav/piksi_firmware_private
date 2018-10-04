@@ -43,6 +43,7 @@ bool nap_sc_wipeoff(const tracker_t *tracker);
 u8 tracker_bit_length_get(tracker_t *tracker);
 bool tracker_bit_aligned(tracker_t *tracker);
 bool tracker_has_bit_sync(const tracker_t *tracker);
+bool tracker_has_all_locks(const tracker_t *tracker);
 bool tracker_next_bit_aligned(tracker_t *tracker, u32 int_ms);
 void tracker_ambiguity_unknown(tracker_t *tracker);
 bool tracker_ambiguity_resolved(tracker_t *tracker);

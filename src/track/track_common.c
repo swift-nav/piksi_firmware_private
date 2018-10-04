@@ -615,8 +615,8 @@ static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
   }
 
   bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
-  bool inlock = ((0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) ||
-                 (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK)));
+  bool inlock = tracker_has_all_locks(tracker);
+
   if (cn0 > cn0_thres.drop_dbhz && !confirmed && inlock &&
       tracker_has_bit_sync(tracker)) {
     tracker->flags |= TRACKER_FLAG_CONFIRMED;
