@@ -487,6 +487,44 @@ static s8 me_compute_pvt(u8 n_ready,
   return pvt_ret;
 }
 
+/* Check GAL E1B signals against other signals from the same satellite to flag
+ * the ~150 m errors caused by tracking the sidelobe. Sets the
+ * NAV_MEAS_FLAG_RAIM_EXCLUSION flag if pseudoranges do not match or there is no
+ * reference signal to compare to. */
+static void flag_divergent_gal_e1b(u8 n_ready,
+                                   navigation_measurement_t nav_meas[]) {
+  for (u8 i = 0; i < n_ready; i++) {
+    if (CODE_GAL_E1B == nav_meas[i].sid.code) {
+      double e1_pseudorange = nav_meas[i].raw_pseudorange;
+      bool validated = false;
+
+      /* find another measurement from the same GAL satellite */
+      /* note: assume the measurements are sorted with E1 coming before the
+       * other GAL signals */
+      for (u8 j = i + 1; j < n_ready; j++) {
+        if (IS_GAL(nav_meas[j].sid) &&
+            nav_meas[i].sid.sat == nav_meas[j].sid.sat) {
+          double ref_pseudorange = nav_meas[j].raw_pseudorange;
+          if (fabs(e1_pseudorange - ref_pseudorange) <
+              RAIM_DROP_E1B_THRESHOLD_M) {
+            /* clear the RAIM flag */
+            validated = true;
+          } else {
+            log_warn_sid(nav_meas[i].sid,
+                         "Invalidating divergent pseudorange, diff %.1f m",
+                         e1_pseudorange - ref_pseudorange);
+          }
+          break;
+        }
+      }
+      if (!validated) {
+        /* flag the measurement with RAIM */
+        nav_meas[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION;
+      }
+    }
+  }
+}
+
 static void me_calc_pvt_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("me_calc_pvt");
@@ -678,6 +716,8 @@ static void me_calc_pvt_thread(void *arg) {
         remove_clock_offset(
             &nav_meas[i], output_offset, smoothed_drift, current_tc);
       }
+
+      flag_divergent_gal_e1b(n_ready, nav_meas);
 
       /* Send the observations. */
       me_send_all(n_ready, nav_meas, e_meas, &output_time);
