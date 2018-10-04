@@ -59,7 +59,7 @@ gnss_capabilities_t gnss_capab = {.gps_active = 0x0ffffffffULL,
  * \{ */
 
 /** Returns true if Glonass satellite is active.
- * \param mesid   satellite identifier
+ * \param sid   satellite identifier
  */
 bool glo_active(const gnss_signal_t sid) {
   assert(IS_GLO(sid));
