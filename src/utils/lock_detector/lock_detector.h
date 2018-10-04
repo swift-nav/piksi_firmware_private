@@ -40,10 +40,11 @@ typedef struct {
   bool outo, outp;      /**< Optimistic and pessimistic indicator. */
 } lock_detect_t;
 
-void lock_detect_init(lock_detect_t *l, float k1, float k2, u16 lp, u16 lo);
+void pll_lock_detect_init(lock_detect_t *l, float k1, float k2, u16 lp, u16 lo);
+void fll_lock_detect_init(lock_detect_t *l, float k1, float k2, u16 lp, u16 lo);
 void lock_detect_reinit(lock_detect_t *l, float k1, float k2, u16 lp, u16 lo);
-void lock_detect_update(lock_detect_t *l, float I, float Q, float DT);
-void freq_lock_detect_update(lock_detect_t *l, float err);
+void pll_lock_detect_update(lock_detect_t *l, float I, float Q, float DT);
+void fll_lock_detect_update(lock_detect_t *l, float err);
 
 #ifdef __cplusplus
 } /* extern "C" */

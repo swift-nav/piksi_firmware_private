@@ -93,8 +93,10 @@ void tp_tracker_update_lock_detect_parameters(tracker_t *tracker, bool init) {
   const tp_lock_detect_params_t *ldf = &profile->ld_freq_params;
 
   if (init) {
-    lock_detect_init(&tracker->ld_phase, ldp->k1, ldp->k2, ldp->lp, /*lo=*/0);
-    lock_detect_init(&tracker->ld_freq, ldf->k1, ldf->k2, ldf->lp, /*lo=*/0);
+    pll_lock_detect_init(
+        &tracker->ld_phase, ldp->k1, ldp->k2, ldp->lp, /*lo=*/0);
+    fll_lock_detect_init(
+        &tracker->ld_freq, ldf->k1, ldf->k2, ldf->lp, /*lo=*/0);
   } else {
     lock_detect_reinit(&tracker->ld_phase, ldp->k1, ldp->k2, ldp->lp, /*lo=*/0);
     lock_detect_reinit(&tracker->ld_freq, ldf->k1, ldf->k2, ldf->lp, /*lo=*/0);
@@ -657,7 +659,8 @@ static void update_ld_phase(tracker_t *tracker, u32 cycle_flags) {
   bool pll_in_use = (0 != (tracker->flags & TRACKER_FLAG_PLL_USE));
   if (!pll_in_use) {
     const tp_lock_detect_params_t *ldp = &tracker->profile.ld_phase_params;
-    lock_detect_init(&tracker->ld_phase, ldp->k1, ldp->k2, ldp->lp, /*lo=*/0);
+    pll_lock_detect_init(
+        &tracker->ld_phase, ldp->k1, ldp->k2, ldp->lp, /*lo=*/0);
     tracker->flags &= ~TRACKER_FLAG_HAS_PLOCK;
     return;
   }
@@ -671,10 +674,10 @@ static void update_ld_phase(tracker_t *tracker, u32 cycle_flags) {
 
   bool last_outp = tracker->ld_phase.outp;
 
-  lock_detect_update(&tracker->ld_phase,
-                     tracker->corrs.corr_ld.I,
-                     tracker->corrs.corr_ld.Q,
-                     tp_get_ld_ms(tracker->tracking_mode));
+  pll_lock_detect_update(&tracker->ld_phase,
+                         tracker->corrs.corr_ld.I,
+                         tracker->corrs.corr_ld.Q,
+                         tp_get_ld_ms(tracker->tracking_mode));
 
   bool outp = tracker->ld_phase.outp;
 
@@ -690,7 +693,8 @@ static void update_ld_freq(tracker_t *tracker, u32 cycle_flags) {
   bool fll_in_use = (0 != (tracker->flags & TRACKER_FLAG_FLL_USE));
   if (!fll_in_use) {
     const tp_lock_detect_params_t *ldf = &tracker->profile.ld_freq_params;
-    lock_detect_init(&tracker->ld_freq, ldf->k1, ldf->k2, ldf->lp, /*lo=*/0);
+    fll_lock_detect_init(
+        &tracker->ld_freq, ldf->k1, ldf->k2, ldf->lp, /*lo=*/0);
     tracker->flags &= ~TRACKER_FLAG_HAS_FLOCK;
     return;
   }
@@ -706,7 +710,7 @@ static void update_ld_freq(tracker_t *tracker, u32 cycle_flags) {
   float unfiltered_freq_error = tracker->unfiltered_freq_error;
 
   /* Calculate low-pass filtered frequency error */
-  freq_lock_detect_update(&tracker->ld_freq, unfiltered_freq_error);
+  fll_lock_detect_update(&tracker->ld_freq, unfiltered_freq_error);
 
   bool outp = tracker->ld_freq.outp;
 
