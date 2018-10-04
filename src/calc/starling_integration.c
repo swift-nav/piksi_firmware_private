@@ -790,10 +790,10 @@ static void initialize_starling_settings(void) {
 
   static float lock_time_scale = 0.0;
   SETTING_NOTIFY("solution",
-                "lock_time_scale",
-                lock_time_scale,
-                TYPE_FLOAT,
-                set_lock_time_scale);
+                 "lock_time_scale",
+                 lock_time_scale,
+                 TYPE_FLOAT,
+                 set_lock_time_scale);
 
   static bool lock_time_duration = 0.0;
   SETTING_NOTIFY("solution",
