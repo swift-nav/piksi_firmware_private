@@ -63,9 +63,9 @@ int main(void) {
 
   io_support_init();
   sbp_setup();
-  starling_input_bridge_init();
   settings_setup();
 
+  starling_input_bridge_init();
   starling_initialize_api();
 
   log_info("Piksi Starting...");
