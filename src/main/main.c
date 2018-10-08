@@ -25,6 +25,7 @@
 #include "decode.h"
 #include "ephemeris/ephemeris.h"
 #include "ext_events/ext_events.h"
+#include "firmware_starling.h"
 #include "glo_map_setup/glo_map_setup.h"
 #include "init.h"
 #include "io_support.h"
@@ -40,7 +41,6 @@
 #include "signal_db/signal_db.h"
 #include "simulator.h"
 #include "specan/specan_main.h"
-#include "starling_input_bridge.h"
 #include "starling_integration.h"
 #include "system_monitor/system_monitor.h"
 #include "timing/timing.h"
@@ -65,8 +65,7 @@ int main(void) {
   sbp_setup();
   settings_setup();
 
-  starling_input_bridge_init();
-  starling_initialize_api();
+  firmware_starling_init(); 
 
   log_info("Piksi Starting...");
   log_info("pfwp_build_id: " GIT_VERSION "");
@@ -134,7 +133,7 @@ int main(void) {
   system_monitor_setup();
 
   me_calc_pvt_setup();
-  starling_calc_pvt_setup();
+  firmware_starling_run();
   base_obs_setup();
 
   simulator_setup();
