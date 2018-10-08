@@ -19,7 +19,7 @@
 #include <starling/starling.h>
 #include <utils/settings/settings.h>
 
-static bool is_starling_enabled;
+static bool is_starling_enabled = true;
 
 static bool is_starling_enabled_notify(struct setting *s, const char *val) {
   bool res = s->type->from_string(s->type->priv, &is_starling_enabled, s->len, val);
@@ -33,8 +33,8 @@ static bool is_starling_enabled_notify(struct setting *s, const char *val) {
 static void add_starling_enable_setting(void) {
   SETTING_NOTIFY("system",
                  "firmware_starling_enable",
-                 TYPE_BOOL,
                  is_starling_enabled,
+                 TYPE_BOOL,
                  is_starling_enabled_notify);
 }
 
