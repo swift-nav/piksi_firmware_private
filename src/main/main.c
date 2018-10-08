@@ -65,6 +65,7 @@ int main(void) {
   sbp_setup();
   starling_input_bridge_init();
   settings_setup();
+  timing_setup();
 
   starling_initialize_api();
 
@@ -121,7 +122,6 @@ int main(void) {
   nap_auth_check();
 
   frontend_setup();
-  timing_setup();
   me_settings_setup();
 
   ext_event_setup();
