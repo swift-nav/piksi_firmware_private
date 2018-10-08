@@ -19,7 +19,9 @@
 #include <starling/starling.h>
 #include <utils/settings/settings.h>
 
-static bool is_starling_enabled = true;
+/* This must default to false in case other functions are hitting the Starling
+ * API prior to proper initialization. */
+static bool is_starling_enabled = false;
 
 static bool is_starling_enabled_notify(struct setting *s, const char *val) {
   bool res =
@@ -39,12 +41,13 @@ static void add_starling_enable_setting(void) {
                  is_starling_enabled_notify);
 }
 
-void firmware_starling_init(void) {
-  add_starling_enable_setting();
+void firmware_starling_setup(void) {
   starling_input_bridge_init();
   starling_initialize_api();
-}
+  starling_calc_pvt_setup();
 
-void firmware_starling_run(void) { starling_calc_pvt_setup(); }
+  is_starling_enabled = true;
+  add_starling_enable_setting();
+}
 
 bool firmware_starling_is_enabled(void) { return is_starling_enabled; }

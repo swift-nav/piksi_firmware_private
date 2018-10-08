@@ -64,8 +64,6 @@ int main(void) {
   sbp_setup();
   settings_setup();
 
-  firmware_starling_init();
-
   log_info("Piksi Starting...");
   log_info("pfwp_build_id: " GIT_VERSION "");
   log_info("pfwp_build_date: " __DATE__ " " __TIME__ "");
@@ -131,8 +129,8 @@ int main(void) {
   manage_acq_setup();
   system_monitor_setup();
 
+  firmware_starling_setup();
   me_calc_pvt_setup();
-  firmware_starling_run();
   base_obs_setup();
 
   simulator_setup();

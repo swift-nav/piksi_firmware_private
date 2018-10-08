@@ -21,18 +21,7 @@
  * runtime setting.
  */
 
-/**
- * Registers settings for running (or not running)
- * Starling. This should be called as early as possible
- * after the settings system has been initialized.
- */
-void firmware_starling_init(void);
-
-/**
- * Run the Starling engine (or not), depending
- * on the user configurable settings.
- */
-void firmware_starling_run(void);
+void firmware_starling_setup(void);
 
 /**
  * Return true if the firmware Starling engine is currently
