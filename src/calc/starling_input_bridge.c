@@ -250,7 +250,14 @@ int starling_send_imu_data(const imu_data_t *imu_data) {
 /******************************************************************************/
 void starling_wait(void) {
   const unsigned long millis = 1000 * STARLING_INPUT_TIMEOUT_UNTIL_WARN_SEC;
-  int ret = platform_sem_wait_timeout(input_sem, millis);
+  /* If Starling engine is disabled, repeatedly wait on the input semaphore
+   * with no action when it times out. When Starling is enabled, move on to
+   * check result of waiting on the semaphore. */
+  int ret = PLATFORM_SEM_OK;
+  do {
+    ret = platform_sem_wait_timeout(input_sem, millis);
+  } while (!firmware_starling_is_enabled());
+
   if (PLATFORM_SEM_OK == ret) {
     return;
   } else if (PLATFORM_SEM_TIMEOUT == ret) {
