@@ -41,7 +41,6 @@
 #include "signal_db/signal_db.h"
 #include "simulator.h"
 #include "specan/specan_main.h"
-#include "starling_integration.h"
 #include "system_monitor/system_monitor.h"
 #include "timing/timing.h"
 #include "track/track_state.h"
