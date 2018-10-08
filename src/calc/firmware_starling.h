@@ -28,7 +28,6 @@
  */
 void firmware_starling_init(void);
 
-
 /**
  * Run the Starling engine (or not), depending
  * on the user configurable settings.
@@ -36,12 +35,10 @@ void firmware_starling_init(void);
 void firmware_starling_run(void);
 
 /**
- * Return true if the firmware Starling engine is currently 
+ * Return true if the firmware Starling engine is currently
  * enabled. Note that due to the asynchronous nature of this setting,
  * you may get incosistent results from calling this function.
  */
 bool firmware_starling_is_enabled(void);
 
 #endif
-
-

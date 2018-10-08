@@ -22,7 +22,8 @@
 static bool is_starling_enabled = true;
 
 static bool is_starling_enabled_notify(struct setting *s, const char *val) {
-  bool res = s->type->from_string(s->type->priv, &is_starling_enabled, s->len, val);
+  bool res =
+      s->type->from_string(s->type->priv, &is_starling_enabled, s->len, val);
   if (!res) {
     return false;
   }
@@ -44,14 +45,6 @@ void firmware_starling_init(void) {
   starling_initialize_api();
 }
 
-void firmware_starling_run(void) {
-  starling_calc_pvt_setup();
-}
+void firmware_starling_run(void) { starling_calc_pvt_setup(); }
 
-bool firmware_starling_is_enabled(void) {
-  return is_starling_enabled;
-}
-
-
-
-
+bool firmware_starling_is_enabled(void) { return is_starling_enabled; }

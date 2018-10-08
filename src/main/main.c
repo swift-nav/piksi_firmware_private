@@ -64,7 +64,7 @@ int main(void) {
   sbp_setup();
   settings_setup();
 
-  firmware_starling_init(); 
+  firmware_starling_init();
 
   log_info("Piksi Starting...");
   log_info("pfwp_build_id: " GIT_VERSION "");

@@ -26,8 +26,10 @@
 
 /* Convenience macro used to short-circuit out of functions
  * when Starling is disabled. */
-#define RETURN_IF_STARLING_NOT_ENABLED(code) \
-  {if (!firmware_starling_is_enabled()) return code;}
+#define RETURN_IF_STARLING_NOT_ENABLED(code)          \
+  {                                                   \
+    if (!firmware_starling_is_enabled()) return code; \
+  }
 
 static platform_sem_t *input_sem = NULL;
 
