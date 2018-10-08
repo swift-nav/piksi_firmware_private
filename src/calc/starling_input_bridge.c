@@ -11,6 +11,8 @@
  */
 
 #include "calc/starling_input_bridge.h"
+
+#include "calc/firmware_starling.h"
 #include "calc/starling_platform_extra.h"
 
 #include <starling/starling_platform.h>
@@ -21,6 +23,11 @@
 
 /* Warn on lack of input after 10 seconds. */
 #define STARLING_INPUT_TIMEOUT_UNTIL_WARN_SEC 10
+
+/* Convenience macro used to short-circuit out of functions
+ * when Starling is disabled. */
+#define RETURN_IF_STARLING_NOT_ENABLED(code) \
+  {if (!firmware_starling_is_enabled()) return code;}
 
 static platform_sem_t *input_sem = NULL;
 
@@ -69,6 +76,8 @@ void starling_input_bridge_init(void) {
 int starling_send_rover_obs(const gps_time_t *t,
                             const navigation_measurement_t *nm,
                             size_t n) {
+  RETURN_IF_STARLING_NOT_ENABLED(STARLING_SEND_OK);
+
   obs_array_t *obs_array = platform_mailbox_item_alloc(MB_ID_ME_OBS);
   if (NULL == obs_array) {
     log_error("Could not allocate pool for obs!");
@@ -107,6 +116,8 @@ int starling_send_rover_obs(const gps_time_t *t,
 
 /******************************************************************************/
 int starling_send_base_obs(const obs_array_t *obs_array) {
+  RETURN_IF_STARLING_NOT_ENABLED(STARLING_SEND_OK);
+
   /* Before doing anything, try to get new observation to post to. */
   obs_array_t *new_obs_array = platform_mailbox_item_alloc(MB_ID_BASE_OBS);
   if (NULL == new_obs_array) {
@@ -134,6 +145,8 @@ int starling_send_base_obs(const obs_array_t *obs_array) {
 
 /******************************************************************************/
 int starling_send_ephemerides(const ephemeris_t *ephemerides, size_t n) {
+  RETURN_IF_STARLING_NOT_ENABLED(STARLING_SEND_OK);
+
   ephemeris_array_t *eph_array = platform_mailbox_item_alloc(MB_ID_EPHEMERIS);
   if (NULL == eph_array) {
     /* If we can't get allocate an item, fetch the oldest one and use that
@@ -171,6 +184,8 @@ int starling_send_ephemerides(const ephemeris_t *ephemerides, size_t n) {
 
 /******************************************************************************/
 int starling_send_sbas_data(const sbas_raw_data_t *sbas_data) {
+  RETURN_IF_STARLING_NOT_ENABLED(STARLING_SEND_OK);
+
   sbas_raw_data_t *sbas_data_msg = platform_mailbox_item_alloc(MB_ID_SBAS_DATA);
   if (NULL == sbas_data_msg) {
     log_error("platform_mailbox_item_alloc(MB_ID_SBAS_DATA) failed!");
@@ -191,6 +206,8 @@ int starling_send_sbas_data(const sbas_raw_data_t *sbas_data) {
 
 /******************************************************************************/
 int starling_send_imu_data(const imu_data_t *imu_data) {
+  RETURN_IF_STARLING_NOT_ENABLED(STARLING_SEND_OK);
+
   imu_data_t *imu_msg = platform_mailbox_item_alloc(MB_ID_IMU);
   /* For IMU data we simply want it to behave like a FIFO implemented as
    * circular buffer. We overwrite the oldest message if it is full. */
