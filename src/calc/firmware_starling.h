@@ -13,6 +13,8 @@
 #ifndef CALC_FIRMWARE_STARLING_H_
 #define CALC_FIRMWARE_STARLING_H_
 
+#include <stdbool.h>
+
 /**
  * Top level wrapper for the Starling engine. The
  * entire engine may be disabled from running via
@@ -32,6 +34,13 @@ void firmware_starling_init(void);
  * on the user configurable settings.
  */
 void firmware_starling_run(void);
+
+/**
+ * Return true if the firmware Starling engine is currently 
+ * enabled. Note that due to the asynchronous nature of this setting,
+ * you may get incosistent results from calling this function.
+ */
+bool firmware_starling_is_enabled(void);
 
 #endif
 
