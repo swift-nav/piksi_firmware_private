@@ -65,6 +65,7 @@ int main(void) {
   sbp_setup();
   me_obs_msg_setup();
   settings_setup();
+  timing_setup();
 
   /* Must initialize the Starling API prior to any use. */
   starling_initialize_api();
@@ -122,7 +123,6 @@ int main(void) {
   nap_auth_check();
 
   frontend_setup();
-  timing_setup();
   me_settings_setup();
 
   ext_event_setup();
