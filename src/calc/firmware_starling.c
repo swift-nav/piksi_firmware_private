@@ -24,7 +24,6 @@
  * or on Linux. */
 #define STARLING_ON_LINUX_FILENAME "/persistent/flags/starling_on_linux"
 
-
 /**
  * Read from the persistent file to find out if Starling is enabled for Linux
  * or for firmware. If the file exists and contains the character '1', then
