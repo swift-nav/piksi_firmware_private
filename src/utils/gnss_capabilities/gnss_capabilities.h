@@ -24,7 +24,8 @@ extern "C" {
 #endif /* __cplusplus */
 
 bool gps_l2c_active(const me_gnss_signal_t mesid);
-bool glo_active(const me_gnss_signal_t mesid);
+
+bool glo_active(const gnss_signal_t sid);
 
 bool sbas_active(const me_gnss_signal_t mesid);
 

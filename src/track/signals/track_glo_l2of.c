@@ -151,6 +151,14 @@ static void tracker_glo_l2of_update(tracker_t *tracker) {
     return;
   }
 
+  if (glo_slot_id_is_valid(tracker->glo_orbit_slot)) {
+    gnss_signal_t sid = mesid2sid(tracker->mesid, tracker->glo_orbit_slot);
+    if (!glo_active(sid)) {
+      tracker_drop_unhealthy(tracker->mesid);
+      return;
+    }
+  }
+
   bool bit_aligned =
       ((0 != (cflags & TPF_BSYNC_UPD)) && tracker_bit_aligned(tracker));
 
