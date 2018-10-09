@@ -32,8 +32,8 @@ gnss_capabilities_t gnss_capab = {.gps_active = 0x0ffffffffULL,
                                   .gps_l2c = 0x0f7814bf5ULL,
                                   .gps_l5 = 0x0a78003a5ULL,
 
-                                  .glo_active = 0x03ffffff,
-                                  .glo_l2of = 0x03ffffff,
+                                  .glo_active = 0x00fff7df,
+                                  .glo_l2of = 0x00fff7df,
                                   .glo_l3 = 0x00080100,
 
                                   .sbas_active = 0x7ffff,
@@ -59,11 +59,11 @@ gnss_capabilities_t gnss_capab = {.gps_active = 0x0ffffffffULL,
  * \{ */
 
 /** Returns true if Glonass satellite is active.
- * \param mesid   satellite identifier
+ * \param sid   satellite identifier
  */
-bool glo_active(const me_gnss_signal_t mesid) {
-  assert(IS_GLO(mesid));
-  return (0 != (gnss_capab.glo_active & (1 << (mesid.sat - GLO_FIRST_PRN))));
+bool glo_active(const gnss_signal_t sid) {
+  assert(IS_GLO(sid));
+  return (0 != (gnss_capab.glo_active & (1 << (sid.sat - GLO_FIRST_PRN))));
 }
 
 /** Returns true if SBAS satellite is active.

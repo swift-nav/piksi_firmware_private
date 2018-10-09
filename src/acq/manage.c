@@ -579,7 +579,7 @@ static void revert_expired_unhealthiness(acq_timer_t *timer,
     }
 
     timer[i].status->state = ACQ_PRN_ACQUIRING;
-    log_info_mesid(timer[i].status->mesid, "is back to aquisition");
+    log_info_mesid(timer[i].status->mesid, "is back to acquisition");
   }
 }
 
@@ -901,6 +901,16 @@ void sanitize_tracker(tracker_t *tracker, u64 now_ms) {
       drop_channel(tracker, CH_DROP_REASON_SV_UNHEALTHY);
       return;
     }
+    if (glo_slot_id_is_valid(tracker->glo_orbit_slot)) {
+      gnss_signal_t sid = mesid2sid(mesid, tracker->glo_orbit_slot);
+      if (!glo_active(sid)) {
+        tracker->flags |= TRACKER_FLAG_GLO_HEALTH_DECODED;
+        tracker->health = SV_UNHEALTHY;
+        drop_channel(tracker, CH_DROP_REASON_SV_UNHEALTHY);
+        return;
+      }
+    }
+
   } else if (IS_SBAS(mesid)) {
     if (SV_UNHEALTHY == tracker->health) {
       drop_channel(tracker, CH_DROP_REASON_SV_UNHEALTHY);
