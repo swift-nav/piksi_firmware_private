@@ -34,7 +34,7 @@
 
 /* Operational modes for the Starling input bridge. */
 #define STARLING_BRIDGE_MODE_DEFAULT 0
-#define STARLING_BRIDGE_MODE_BYPASS  1
+#define STARLING_BRIDGE_MODE_BYPASS 1
 
 void starling_input_bridge_init(void);
 

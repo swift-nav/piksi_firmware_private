@@ -12,10 +12,9 @@
 
 #include "firmware_starling.h"
 
-
-#include <ch.h>
 #include <calc/starling_input_bridge.h>
 #include <calc/starling_integration.h>
+#include <ch.h>
 #include <sbp/sbp_fileio.h>
 #include <starling/starling.h>
 #include <utils/settings/settings.h>
@@ -26,13 +25,14 @@
 
 /**
  * Read from the persistent file to find out if Starling is enabled for Linux
- * or for firmware. If the file exists and contains the character '1', then 
+ * or for firmware. If the file exists and contains the character '1', then
  * Starling is running on Linux. In all other cases, we will default to running
- * on the firmware. 
+ * on the firmware.
  */
 static bool is_starling_enabled(void) {
   unsigned char value = '0';
-  ssize_t n = sbp_fileio_read(STARLING_ON_LINUX_FILENAME, 0, &value, sizeof(value));
+  ssize_t n =
+      sbp_fileio_read(STARLING_ON_LINUX_FILENAME, 0, &value, sizeof(value));
   if (n == sizeof(value) && value == '1') {
     return false;
   }
@@ -50,4 +50,3 @@ void firmware_starling_setup(void) {
     starling_input_bridge_set_mode(STARLING_BRIDGE_MODE_BYPASS);
   }
 }
-

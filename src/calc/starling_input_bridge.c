@@ -79,13 +79,13 @@ void starling_input_bridge_init(void) {
 
 /******************************************************************************/
 void starling_input_bridge_set_mode(int mode) {
-  switch(mode) {
-    case STARLING_BRIDGE_MODE_BYPASS: 
-      is_bypass_enabled = true; 
+  switch (mode) {
+    case STARLING_BRIDGE_MODE_BYPASS:
+      is_bypass_enabled = true;
       break;
-    case STARLING_BRIDGE_MODE_DEFAULT: 
+    case STARLING_BRIDGE_MODE_DEFAULT:
     default:
-      is_bypass_enabled = false; 
+      is_bypass_enabled = false;
       break;
   }
 }
