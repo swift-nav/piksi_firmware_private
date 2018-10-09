@@ -116,7 +116,7 @@ void _fini(void) { return; }
 /** _exit(2) syscall handler.  Called by (at least) abort() and exit().
  * Calls screaming_death() to repeatedly print an ERROR until WDT reset.
  */
-void _exit(int status) {
+void __wrap__exit(int status) {
   (void)status;
   /* TODO: Perhaps print a backtrace; let's see if this ever actually
      occurs before implementing that. */

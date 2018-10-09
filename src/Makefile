@@ -55,11 +55,12 @@ ifeq ($(USE_LDOPT),)
   USE_LDOPT := $(USE_LDOPT),--wrap=__svfiscanf,--wrap=__svfiscanf_r
   USE_LDOPT := $(USE_LDOPT),--wrap=__ssvfscanf_r
   USE_LDOPT := $(USE_LDOPT),--wrap=__ssvfiscanf_r
+  USE_LDOPT := $(USE_LDOPT),--wrap=_exit
 endif
 
 # Enable this if you want link time optimizations (LTO)
 ifeq ($(USE_LTO),)
-  USE_LTO = no
+  USE_LTO = yes
 endif
 
 # If enabled, this option allows to compile the application in THUMB mode.
