@@ -23,11 +23,4 @@
 
 void firmware_starling_setup(void);
 
-/**
- * Return true if the firmware Starling engine is currently
- * enabled. Note that due to the asynchronous nature of this setting,
- * you may get incosistent results from calling this function.
- */
-bool firmware_starling_is_enabled(void);
-
 #endif

@@ -29,8 +29,9 @@
  * Starling is running on Linux. In all other cases, we will default to running
  * on the firmware.
  */
-static bool is_starling_enabled(void) {
+static bool is_firmware_starling_enabled(void) {
   unsigned char value = '0';
+  return true;
   ssize_t n =
       sbp_fileio_read(STARLING_ON_LINUX_FILENAME, 0, &value, sizeof(value));
   if (n == sizeof(value) && value == '1') {
@@ -41,11 +42,9 @@ static bool is_starling_enabled(void) {
 
 void firmware_starling_setup(void) {
   starling_input_bridge_init();
+  starling_calc_pvt_setup();
 
-  if (is_starling_enabled()) {
-    starling_initialize_api();
-    starling_calc_pvt_setup();
-  } else {
+  if (!is_firmware_starling_enabled()) {
     /* Inform the bridge that it need not waste time buffering inputs. */
     starling_input_bridge_set_mode(STARLING_BRIDGE_MODE_BYPASS);
   }
