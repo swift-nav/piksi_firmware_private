@@ -56,6 +56,7 @@ static uint32_t heartbeat_period_milliseconds = 1000;
 /* Use watchdog timer or not */
 static bool use_wdt = true;
 
+static u32 watchdog_watch_mask = WATCHDOG_NOTIFY_FLAG_ALL;
 static u32 watchdog_notify_flags = 0;
 static u32 frontend_notify_flags = 0;
 static bool frontend_errors = false;
@@ -203,7 +204,7 @@ static void watchdog_thread(void *arg) {
     chThdSleepMilliseconds(WATCHDOG_THREAD_PERIOD_MS);
 
     chSysLock();
-    u32 threads_dead = watchdog_notify_flags ^ WATCHDOG_NOTIFY_FLAG_ALL;
+    u32 threads_dead = watchdog_notify_flags ^ watchdog_watch_mask;
     watchdog_notify_flags = 0;
     chSysUnlock();
 
@@ -246,6 +247,18 @@ void system_monitor_setup(void) {
                     WATCHDOG_THREAD_PRIORITY,
                     watchdog_thread,
                     NULL);
+}
+
+void watchdog_thread_watch(watchdog_notify_t thread_id) {
+  chSysLock();
+  watchdog_watch_mask |= WATCHDOG_NOTIFY_FLAG(thread_id);
+  chSysUnlock();
+}
+
+void watchdog_thread_ignore(watchdog_notify_t thread_id) {
+  chSysLock();
+  watchdog_watch_mask &= ~WATCHDOG_NOTIFY_FLAG(thread_id);
+  chSysUnlock();
 }
 
 /** Called by each important system thread after doing its important
