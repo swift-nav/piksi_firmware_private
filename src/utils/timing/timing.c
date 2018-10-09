@@ -31,8 +31,15 @@
  * \{ */
 
 /** Clock state */
-static volatile clock_est_state_t persistent_clock_state;
-static volatile time_quality_t current_time_quality;
+static volatile clock_est_state_t persistent_clock_state = {
+    .tc = 0,
+    .t_gps = GPS_TIME_UNKNOWN,
+    .t0_gps = GPS_TIME_UNKNOWN,
+    .tick_length_s = 0,
+    .clock_rate = 0,
+    .P = {{0, 0}, {0, 0}},
+};
+static volatile time_quality_t current_time_quality = TIME_UNKNOWN;
 
 /** Mutex for guarding clock state access */
 static MUTEX_DECL(clock_mutex);
