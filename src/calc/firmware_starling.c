@@ -18,6 +18,7 @@
 #include <sbp/sbp_fileio.h>
 #include <starling/starling.h>
 #include <utils/settings/settings.h>
+#include <utils/system_monitor/system_monitor.h>
 
 /* Persistent file indicating whether Starling should run on the firmware
  * or on Linux. */
@@ -47,6 +48,7 @@ void firmware_starling_setup(void) {
   if (!is_firmware_starling_enabled()) {
     /* Inform the bridge that it need not waste time buffering inputs. */
     starling_input_bridge_set_mode(STARLING_BRIDGE_MODE_BYPASS);
+    watchdog_thread_ignore(WD_NOTIFY_STARLING);
     log_info("Firmware Starling off.");
   } else {
     log_info("Firmware Starling on.");
