@@ -14,6 +14,7 @@
 #include <ch.h>
 #include <string.h>
 
+#include <libswiftnav/pvt_engine/vehicle_dynamics_filter.h>
 #include <libswiftnav/coord_system.h>
 #include <libswiftnav/linear_algebra.h>
 #include <libswiftnav/memcpy_s.h>
@@ -92,6 +93,18 @@ static soln_dgnss_stats_t last_dgnss_stats = {.systime = PIKSI_SYSTIME_INIT,
  * in any RTK solutions. */
 static MUTEX_DECL(current_base_sender_id_lock);
 static u8 current_base_sender_id = STARLING_BASE_SENDER_ID_DEFAULT;
+
+/* We are going to keep around several of these, and switch between
+ * them at runtime. */
+static VehicleDynamicsFilter *default_dynamics_filter = NULL;
+static VehicleDynamicsFilter *tractor_dynamics_filter = NULL;
+static VehicleDynamicsFilter *dynamics_filter = NULL;
+/* Settings for the dynamics filters. */
+MUTEX_DECL(dynamics_filter_lock);
+struct DynamicsFilterSettings {
+  double lowpass_constant;
+  double max_acceleration;
+} dynamics_filter_settings = {.lowpass_constant = 3.0, .max_acceleration = 0.5};
 
 /*******************************************************************************
  * Output Callback Helpers
@@ -627,6 +640,47 @@ static bool set_dgnss_soln_mode(struct setting *s, const char *val) {
   return ret;
 }
 
+static bool setting_notify_vehicle_dynamics_filter_mode(struct setting *s,
+                                                        const char *val) {
+  bool ret = s->type->from_string(s->type->priv, s->addr, s->len, val);
+  if (!ret) {
+    return false;
+  }
+  VehicleDynamicsFilter *new_filter = NULL;
+  switch (*(VehicleDynamicsFilterType *)s->addr) {
+    case DYNAMICS_NONE:
+      new_filter = default_dynamics_filter;
+      break;
+    case DYNAMICS_TRACTOR:
+      new_filter = tractor_dynamics_filter;
+      break;
+    case DYNAMICS_DRONE:
+    case DYNAMICS_INTERGALACTIC_VOYAGER:
+    default:
+      break;
+  }
+  if (NULL != new_filter) {
+    /* Reset the new filter whenever it is changed. */
+    chMtxLock(&dynamics_filter_lock);
+    dynamics_filter = new_filter;
+    vehicle_dynamics_filter_reset(dynamics_filter);
+    chMtxUnlock(&dynamics_filter_lock);
+    return true;
+  } else {
+    log_error(
+            "Invalid Vehicle Dynamics Filter mode selection. No change made.");
+    return false;
+  }
+}
+
+static bool setting_notify_vehicle_dynamics_filter_param(struct setting *s,
+                                                         const char *val) {
+  chMtxLock(&dynamics_filter_lock);
+  bool ret = s->type->from_string(s->type->priv, s->addr, s->len, val);
+  chMtxUnlock(&dynamics_filter_lock);
+  return ret;
+}
+
 static bool set_max_age(struct setting *s, const char *val) {
   int value = 0;
   bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
@@ -714,6 +768,47 @@ static void reset_filters_callback(u16 sender_id,
   }
 }
 
+/**
+ * Simply apply whatever the current settings are to the
+ * given dynamics filter.
+ */
+static void update_dynamics_filter_settings(VehicleDynamicsFilter *filter) {
+  vehicle_dynamics_filter_set_param(filter,
+                                    VEHICLE_DYNAMICS_LOWPASS_TIME_CONSTANT_S,
+                                    dynamics_filter_settings.lowpass_constant);
+  vehicle_dynamics_filter_set_param(
+          filter,
+          VEHICLE_DYNAMICS_MAX_LINEAR_ACCELERATION_MS2,
+          dynamics_filter_settings.max_acceleration);
+}
+
+/**
+ * This function behaves in a somewhat unexpected way.
+ * Given two (possibly NULL) solutions, this function chooses
+ * the "better" of the two solutions and feeds it through the
+ * dynamics filter. If they are both null, the output parameter
+ * won't be touched.
+ */
+static void apply_dynamics_filter_to_solutions(
+        const StarlingFilterSolution *spp_solution,
+        const StarlingFilterSolution *rtk_solution,
+        pvt_engine_result_t *output) {
+  pvt_engine_result_t const *input = NULL;
+  if (rtk_solution) {
+    input = &rtk_solution->result;
+  } else if (spp_solution) {
+    input = &spp_solution->result;
+  }
+  if (input && output) {
+    chMtxLock(&dynamics_filter_lock);
+    update_dynamics_filter_settings(dynamics_filter);
+    VehicleDynamicsFilter *current_filter = dynamics_filter;
+    chMtxUnlock(&dynamics_filter_lock);
+
+    vehicle_dynamics_filter_process(current_filter, input, output);
+  }
+}
+
 static void initialize_starling_settings(void) {
   static const char *const dgnss_filter_enum[] = {"Float", "Fixed", NULL};
   static struct setting_type dgnss_filter_setting;
@@ -786,10 +881,43 @@ static void initialize_starling_settings(void) {
                  heading_offset_changed);
 }
 
+static void initialize_vehicle_dynamics_filters(void) {
+  default_dynamics_filter = vehicle_dynamics_filter_create(DYNAMICS_NONE);
+  tractor_dynamics_filter = vehicle_dynamics_filter_create(DYNAMICS_TRACTOR);
+
+  dynamics_filter = default_dynamics_filter;
+
+  /* TODO(kevin) register settings. */
+  static const char *const vehicle_dynamics_filter_mode_enum[] = {
+          "None", "Tractor", NULL};
+  static struct setting_type vehicle_dynamics_filter_mode_setting;
+  int TYPE_VEHICLE_DYNAMICS_FILTER_MODE = settings_type_register_enum(
+          vehicle_dynamics_filter_mode_enum, &vehicle_dynamics_filter_mode_setting);
+  static VehicleDynamicsFilterType vehicle_dynamics_filter_mode = DYNAMICS_NONE;
+  SETTING_NOTIFY("vehicle_dynamics_filter",
+                 "mode",
+                 vehicle_dynamics_filter_mode,
+                 TYPE_VEHICLE_DYNAMICS_FILTER_MODE,
+                 setting_notify_vehicle_dynamics_filter_mode);
+
+  SETTING_NOTIFY("vehicle_dynamics_filter",
+                 "lowpass_time_constant",
+                 dynamics_filter_settings.lowpass_constant,
+                 TYPE_FLOAT,
+                 setting_notify_vehicle_dynamics_filter_param);
+
+  SETTING_NOTIFY("vehicle_dynamics_filter",
+                 "max_acceleration",
+                 dynamics_filter_settings.max_acceleration,
+                 TYPE_FLOAT,
+                 setting_notify_vehicle_dynamics_filter_param);
+}
+
 static THD_FUNCTION(initialize_and_run_starling, arg) {
   (void)arg;
   chRegSetThreadName("starling");
 
+  initialize_vehicle_dynamics_filters();
   initialize_starling_settings();
 
   /* Set time of last differential solution in the past. */
@@ -859,6 +987,13 @@ void send_solution_time_matched(const StarlingFilterSolution *solution,
    * and our current time-matched result occurs after the most recent
    * SPP output. */
   if (spp_timeout(&last_spp, &last_dgnss, starling_get_solution_mode())) {
+    /* Notify the user that the vehicle dynamics filter has no effect in
+    * time-matched mode (if applicable). */
+    if (dynamics_filter != default_dynamics_filter) {
+      log_warn(
+          "Non-default Vehicle Dynamics Filter has no effect in Time-Matched "
+          "mode.");
+    }
     solution_send_pos_messages(&sbp_messages);
   }
 
@@ -884,6 +1019,30 @@ void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
                                const StarlingFilterSolution *rtk_solution,
                                const gps_time_t *solution_epoch_time) {
   assert(solution_epoch_time);
+
+  /* Apply the vehicle dynamics filter when enabled.
+   * We need to make sure to pass through the most accurate solution
+   * available -- RTK is preferred over SPP. */
+  pvt_engine_result_t filtered_pvt_result = {0};
+  apply_dynamics_filter_to_solutions(
+          spp_solution, rtk_solution, &filtered_pvt_result);
+
+  /* (July 2018) We always output SPP velocity, so whatever
+   * the filtered result is, we want to make sure we overwrite
+   * the velocity with the SPP velocity. */
+  if (spp_solution) {
+    filtered_pvt_result.velocity_valid = spp_solution->result.velocity_valid;
+    MEMCPY_S(&filtered_pvt_result.velocity,
+             3 * sizeof(double),
+             &spp_solution->result.velocity,
+             3 * sizeof(double));
+    MEMCPY_S(&filtered_pvt_result.velocity_covariance,
+             9 * sizeof(double),
+             &spp_solution->result.velocity_covariance,
+             9 * sizeof(double));
+  } else {
+    filtered_pvt_result.velocity_valid = false;
+  }
 
   /* Check if observations do not have valid time. We may have locally a
    * reasonable estimate of current GPS time, so we can round that to the
