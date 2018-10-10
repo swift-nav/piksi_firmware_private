@@ -13,7 +13,7 @@
 # but shouldn't modify.
 SWIFTNAV_ROOT := $(shell pwd)/..
 LIB_BUILDFOLDER = build_pm_test
-STARLING_BUILDDIR=$(SWIFTNAV_ROOT)/libswiftnav/$(LIB_BUILDFOLDER)
+STARLING_BUILDDIR=$(SWIFTNAV_ROOT)/starling/$(LIB_BUILDFOLDER)
 LIBSWIFTNAV_BUILDDIR=$(STARLING_BUILDDIR)/third_party/libswiftnav
 STARLING_SEARCHPATH=$(STARLING_BUILDDIR)
 LIBSWIFTNAV_SEARCHPATH=$(LIBSWIFTNAV_BUILDDIR)
@@ -34,13 +34,13 @@ OBJDIR = obj
 TEST_SRC_DIR = src
 STUBS_DIR = stubs
 
-ifndef C_COMPILER 
+ifndef C_COMPILER
   $(info C_COMPILER environment variable is not set,\
     defaulting to gcc-$(shell gcc -dumpversion))
   C_COMPILER = gcc
 endif
 
-ifndef CXX_COMPILER 
+ifndef CXX_COMPILER
   $(info CXX_COMPILER environment variable is not set,\
     defaulting to g++-$(shell g++ -dumpversion))
   CXX_COMPILER = g++
@@ -51,7 +51,7 @@ endif
 # the compiler doesn't generate warnings in Google Test headers.
 CPPFLAGS += -isystem $(GTEST_DIR)/include
 
-# C warnings 
+# C warnings
 CWARN = -Wall -Wextra -Werror -Wimplicit \
 	-Wshadow -Wswitch-default -Wswitch-enum -Wundef \
 	-Wuninitialized -Wstrict-prototypes \
@@ -73,9 +73,9 @@ INCLUDE_DIRS += -I./
 INCLUDE_DIRS += -I$(STUBS_DIR)
 INCLUDE_DIRS += -I$(USER_SRC_DIR)
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/board/v3/
-INCLUDE_DIRS += -I../libswiftnav/include
-INCLUDE_DIRS += -I../libswiftnav/third_party/libswiftnav/include
-INCLUDE_DIRS += -I../libswiftnav/libfec/include
+INCLUDE_DIRS += -I../starling/include
+INCLUDE_DIRS += -I../starling/third_party/libswiftnav/include
+INCLUDE_DIRS += -I../starling/libfec/include
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/utils
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/hal
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/calc
@@ -213,7 +213,7 @@ $(OBJDIR)/%.o: %.cc
 
 OBJS += $(OBJDIR)/gtest_main.a
 
-LIBS = -lswiftnav-private -lswiftnav -lpthread -lfec
+LIBS = -lstarling -lswiftnav -lpthread -lfec
 LIB_PATH = -L$(STARLING_SEARCHPATH)/src
 LIB_PATH += -L$(LIBSWIFTNAV_SEARCHPATH)
 LIB_PATH += -L$(STARLING_FEC_SEARCHPATH)

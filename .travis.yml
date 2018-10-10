@@ -52,7 +52,7 @@ before_install:
   - git fetch --tags --unshallow
 
 install:
-  # If it's a cron build, pull libswiftnav-private master; otherwise
+  # If it's a cron build, pull starling master; otherwise
   # use the committed version.  Travis doesn't have a good way to set
   # a special variable just for this case, so we have to gate only on
   # the event type.

@@ -15,8 +15,8 @@
 #include <stdio.h>
 
 #include <libsbp/sbp.h>
-#include <libswiftnav/observation.h>
-#include <libswiftnav/pvt_engine/firmware_binding.h>
+#include <starling/observation.h>
+#include <starling/pvt_engine/firmware_binding.h>
 #include <starling/starling.h>
 #include <starling/starling_platform.h>
 #include <swiftnav/constants.h>
@@ -434,7 +434,7 @@ static s8 me_compute_pvt(u8 n_ready,
                       gate_covariance(&current_fix))) {
     if (pvt_ret < 0) {
       /* An error occurred with calc_PVT! */
-      /* pvt_err_msg defined in libswiftnav/pvt.c */
+      /* pvt_err_msg defined in starling/pvt.c */
       /* Print out max. once per second */
       DO_EACH_MS(
           SECS_MS,

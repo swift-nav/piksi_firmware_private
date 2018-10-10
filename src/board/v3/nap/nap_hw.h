@@ -13,7 +13,7 @@
 #ifndef SWIFTNAV_NAP_REGS_H
 #define SWIFTNAV_NAP_REGS_H
 
-#include <libswiftnav/config.h>
+#include <starling/config.h>
 
 /* Include register maps */
 #include "swiftnap.h"

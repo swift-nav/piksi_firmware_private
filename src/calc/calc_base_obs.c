@@ -14,7 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <libswiftnav/observation.h>
+#include <starling/observation.h>
 #include <starling/starling.h>
 #include <starling/starling_platform.h>
 #include <swiftnav/constants.h>

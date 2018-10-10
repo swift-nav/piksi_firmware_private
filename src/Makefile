@@ -91,7 +91,7 @@ ifeq ($(LIBSBP_BUILDDIR),)
 endif
 
 ifeq ($(STARLING_BUILDDIR),)
-  STARLING_BUILDDIR=$(SWIFTNAV_ROOT)/libswiftnav/$(LIB_BUILDFOLDER)
+  STARLING_BUILDDIR=$(SWIFTNAV_ROOT)/starling/$(LIB_BUILDFOLDER)
 endif
 
 ifeq ($(LIBSWIFTNAV_BUILDDIR),)
@@ -261,11 +261,11 @@ INCDIR = $(STARTUPINC) $(PORTINC) $(KERNINC) \
          $(HALINC) $(OSALINC) $(PLATFORMINC) $(BOARDINC) \
          $(CHIBIOS)/os/various \
          $(SWIFTNAV_ROOT)/libsbp/c/include \
-         $(SWIFTNAV_ROOT)/libswiftnav/include \
-         $(SWIFTNAV_ROOT)/libswiftnav/third_party/libswiftnav/include \
+         $(SWIFTNAV_ROOT)/starling/include \
+         $(SWIFTNAV_ROOT)/starling/third_party/libswiftnav/include \
          $(SWIFTNAV_ROOT)/src \
          $(SWIFTNAV_ROOT)/src/board \
-         $(SWIFTNAV_ROOT)/libswiftnav/libfec/include \
+         $(SWIFTNAV_ROOT)/starling/libfec/include \
          $(SWIFTNAV_ROOT)/src/utils \
          $(SWIFTNAV_ROOT)/src/simulator \
          $(SWIFTNAV_ROOT)/src/sbp \
@@ -365,7 +365,7 @@ DLIBDIR = $(LIBSBP_BUILDDIR)/src \
           $(BOARDLIBDIR)
 
 # List all default libraries here
-DLIBS = $(BOARDLIBS) -lsbp-static -lswiftnav-private -lswiftnav -lstarling\
+DLIBS = $(BOARDLIBS) -lsbp-static -lstarling -lswiftnav -lstarling-shim\
         -lm -Wl,--start-group -lstdc++ -lc -Wl,--end-group -lfec -lnosys
 
 #
