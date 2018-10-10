@@ -33,12 +33,14 @@
 #define STARLING_SEND_ERROR 1
 
 /* Operational modes for the Starling input bridge. */
-#define STARLING_BRIDGE_MODE_DEFAULT 0
-#define STARLING_BRIDGE_MODE_BYPASS 1
+typedef enum starling_bridge_mode_e {
+  STARLING_BRIDGE_MODE_DEFAULT,
+  STARLING_BRIDGE_MODE_BYPASS,
+} starling_bridge_mode_t;
 
 void starling_input_bridge_init(void);
 
-void starling_input_bridge_set_mode(int mode);
+void starling_input_bridge_set_mode(starling_bridge_mode_t mode);
 
 /*******************************************************************************
  * Client-Facing "Send" Functions

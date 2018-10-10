@@ -27,9 +27,9 @@
 /* Convenience macro used to short-circuit out of functions
  * when Starling is disabled. */
 #define RETURN_IF_STARLING_BYPASS_ENABLED(code) \
-  {                                             \
+  do {                                          \
     if (is_bypass_enabled) return code;         \
-  }
+  } while (0)
 
 static bool is_bypass_enabled = true;
 
@@ -78,7 +78,7 @@ void starling_input_bridge_init(void) {
 }
 
 /******************************************************************************/
-void starling_input_bridge_set_mode(int mode) {
+void starling_input_bridge_set_mode(starling_bridge_mode_t mode) {
   switch (mode) {
     case STARLING_BRIDGE_MODE_BYPASS:
       is_bypass_enabled = true;
@@ -267,7 +267,7 @@ int starling_send_imu_data(const imu_data_t *imu_data) {
 
 /******************************************************************************/
 void starling_wait(void) {
-  const unsigned long millis = 1000 * STARLING_INPUT_TIMEOUT_UNTIL_WARN_SEC;
+  const unsigned long millis = SECS_MS * STARLING_INPUT_TIMEOUT_UNTIL_WARN_SEC;
   /* If Starling engine is disabled, repeatedly wait on the input semaphore
    * with no action when it times out. When Starling is enabled, move on to
    * check result of waiting on the semaphore. */

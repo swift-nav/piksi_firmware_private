@@ -48,8 +48,8 @@ void firmware_starling_setup(void) {
     /* Inform the bridge that it need not waste time buffering inputs. */
     starling_input_bridge_set_mode(STARLING_BRIDGE_MODE_BYPASS);
     watchdog_thread_ignore(WD_NOTIFY_STARLING);
-    log_info("Firmware Starling off.");
+    log_debug("Firmware Starling off.");
   } else {
-    log_info("Firmware Starling on.");
+    log_debug("Firmware Starling on.");
   }
 }
