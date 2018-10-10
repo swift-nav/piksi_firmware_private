@@ -104,7 +104,10 @@ MUTEX_DECL(dynamics_filter_lock);
 struct DynamicsFilterSettings {
   double lowpass_constant;
   double max_acceleration;
-} dynamics_filter_settings = {.lowpass_constant = 3.0, .max_acceleration = 0.5};
+  double acceleration_ratio;
+} dynamics_filter_settings = {.lowpass_constant = 1.0,
+                              .max_acceleration = 4.5,
+                              .acceleration_ratio = 0.01};
 
 /*******************************************************************************
  * Output Callback Helpers
@@ -773,13 +776,18 @@ static void reset_filters_callback(u16 sender_id,
  * given dynamics filter.
  */
 static void update_dynamics_filter_settings(VehicleDynamicsFilter *filter) {
-  vehicle_dynamics_filter_set_param(filter,
-                                    VEHICLE_DYNAMICS_LOWPASS_TIME_CONSTANT_S,
-                                    dynamics_filter_settings.lowpass_constant);
+  vehicle_dynamics_filter_set_param(
+      filter,
+      VEHICLE_DYNAMICS_LOWPASS_TIME_CONSTANT_S,
+      dynamics_filter_settings.lowpass_constant);
   vehicle_dynamics_filter_set_param(
       filter,
       VEHICLE_DYNAMICS_MAX_LINEAR_ACCELERATION_MS2,
       dynamics_filter_settings.max_acceleration);
+  vehicle_dynamics_filter_set_param(
+      filter,
+      VEHICLE_DYNAMICS_VERTICAL_PLANAR_ACCELERATION_RATIO,
+      dynamics_filter_settings.acceleration_ratio);
 }
 
 /**
@@ -909,6 +917,12 @@ static void initialize_vehicle_dynamics_filters(void) {
   SETTING_NOTIFY("vehicle_dynamics_filter",
                  "max_acceleration",
                  dynamics_filter_settings.max_acceleration,
+                 TYPE_FLOAT,
+                 setting_notify_vehicle_dynamics_filter_param);
+
+  SETTING_NOTIFY("vehicle_dynamics_filter",
+                 "acceleration_ratio",
+                 dynamics_filter_settings.acceleration_ratio,
                  TYPE_FLOAT,
                  setting_notify_vehicle_dynamics_filter_param);
 }
