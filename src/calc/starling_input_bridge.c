@@ -11,6 +11,7 @@
  */
 
 #include "calc/starling_input_bridge.h"
+
 #include "calc/starling_platform_extra.h"
 
 #include <starling/starling_platform.h>
@@ -18,9 +19,19 @@
 #include <swiftnav/memcpy_s.h>
 
 #include <assert.h>
+#include <stdbool.h>
 
 /* Warn on lack of input after 10 seconds. */
 #define STARLING_INPUT_TIMEOUT_UNTIL_WARN_SEC 10
+
+/* Convenience macro used to short-circuit out of functions
+ * when Starling is disabled. */
+#define RETURN_IF_STARLING_BYPASS_ENABLED(code) \
+  do {                                          \
+    if (is_bypass_enabled) return code;         \
+  } while (0)
+
+static bool is_bypass_enabled = true;
 
 static platform_sem_t *input_sem = NULL;
 
@@ -63,12 +74,28 @@ void starling_input_bridge_init(void) {
 
   input_sem = platform_sem_create();
   assert(NULL != input_sem);
+  starling_input_bridge_set_mode(STARLING_BRIDGE_MODE_DEFAULT);
+}
+
+/******************************************************************************/
+void starling_input_bridge_set_mode(starling_bridge_mode_t mode) {
+  switch (mode) {
+    case STARLING_BRIDGE_MODE_BYPASS:
+      is_bypass_enabled = true;
+      break;
+    case STARLING_BRIDGE_MODE_DEFAULT:
+    default:
+      is_bypass_enabled = false;
+      break;
+  }
 }
 
 /******************************************************************************/
 int starling_send_rover_obs(const gps_time_t *t,
                             const navigation_measurement_t *nm,
                             size_t n) {
+  RETURN_IF_STARLING_BYPASS_ENABLED(STARLING_SEND_OK);
+
   obs_array_t *obs_array = platform_mailbox_item_alloc(MB_ID_ME_OBS);
   if (NULL == obs_array) {
     log_error("Could not allocate pool for obs!");
@@ -107,6 +134,8 @@ int starling_send_rover_obs(const gps_time_t *t,
 
 /******************************************************************************/
 int starling_send_base_obs(const obs_array_t *obs_array) {
+  RETURN_IF_STARLING_BYPASS_ENABLED(STARLING_SEND_OK);
+
   /* Before doing anything, try to get new observation to post to. */
   obs_array_t *new_obs_array = platform_mailbox_item_alloc(MB_ID_BASE_OBS);
   if (NULL == new_obs_array) {
@@ -134,6 +163,8 @@ int starling_send_base_obs(const obs_array_t *obs_array) {
 
 /******************************************************************************/
 int starling_send_ephemerides(const ephemeris_t *ephemerides, size_t n) {
+  RETURN_IF_STARLING_BYPASS_ENABLED(STARLING_SEND_OK);
+
   ephemeris_array_t *eph_array = platform_mailbox_item_alloc(MB_ID_EPHEMERIS);
   if (NULL == eph_array) {
     /* If we can't get allocate an item, fetch the oldest one and use that
@@ -171,6 +202,8 @@ int starling_send_ephemerides(const ephemeris_t *ephemerides, size_t n) {
 
 /******************************************************************************/
 int starling_send_sbas_data(const sbas_raw_data_t *sbas_data) {
+  RETURN_IF_STARLING_BYPASS_ENABLED(STARLING_SEND_OK);
+
   sbas_raw_data_t *sbas_data_msg = platform_mailbox_item_alloc(MB_ID_SBAS_DATA);
   if (NULL == sbas_data_msg) {
     log_error("platform_mailbox_item_alloc(MB_ID_SBAS_DATA) failed!");
@@ -191,6 +224,8 @@ int starling_send_sbas_data(const sbas_raw_data_t *sbas_data) {
 
 /******************************************************************************/
 int starling_send_imu_data(const imu_data_t *imu_data) {
+  RETURN_IF_STARLING_BYPASS_ENABLED(STARLING_SEND_OK);
+
   imu_data_t *imu_msg = platform_mailbox_item_alloc(MB_ID_IMU);
   /* For IMU data we simply want it to behave like a FIFO implemented as
    * circular buffer. We overwrite the oldest message if it is full. */
@@ -232,8 +267,15 @@ int starling_send_imu_data(const imu_data_t *imu_data) {
 
 /******************************************************************************/
 void starling_wait(void) {
-  const unsigned long millis = 1000 * STARLING_INPUT_TIMEOUT_UNTIL_WARN_SEC;
-  int ret = platform_sem_wait_timeout(input_sem, millis);
+  const unsigned long millis = SECS_MS * STARLING_INPUT_TIMEOUT_UNTIL_WARN_SEC;
+  /* If Starling engine is disabled, repeatedly wait on the input semaphore
+   * with no action when it times out. When Starling is enabled, move on to
+   * check result of waiting on the semaphore. */
+  int ret = PLATFORM_SEM_OK;
+  do {
+    ret = platform_sem_wait_timeout(input_sem, millis);
+  } while (is_bypass_enabled);
+
   if (PLATFORM_SEM_OK == ret) {
     return;
   } else if (PLATFORM_SEM_TIMEOUT == ret) {

@@ -24,16 +24,23 @@
  * Symmetric "read" functions are then provided to the Starling engine
  * so it may go about its business.
  *
- * Make sure to call the "init()" function before any of the main Starling
- * setup occurs, as it will initialize the thread-safe data structures.
+ * The API will operate in bypass mode until the bridge has been
+ * initialized.
  */
 
 /* Values returned by the firmware-facing functions. */
 #define STARLING_SEND_OK 0
 #define STARLING_SEND_ERROR 1
 
-/* Make sure to call this very early on! */
+/* Operational modes for the Starling input bridge. */
+typedef enum starling_bridge_mode_e {
+  STARLING_BRIDGE_MODE_DEFAULT,
+  STARLING_BRIDGE_MODE_BYPASS,
+} starling_bridge_mode_t;
+
 void starling_input_bridge_init(void);
+
+void starling_input_bridge_set_mode(starling_bridge_mode_t mode);
 
 /*******************************************************************************
  * Client-Facing "Send" Functions

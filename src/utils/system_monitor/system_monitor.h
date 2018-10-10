@@ -33,6 +33,13 @@ typedef enum {
   WD_NOTIFY_NUM_THREADS /* Maximum 32 of these! */
 } watchdog_notify_t;
 
+/* Watch the given thread. By default all threads are watched. */
+void watchdog_thread_watch(watchdog_notify_t thread_id);
+
+/* Ignore the given thread. Watchdog will no longer trigger reset in the
+ * absence of notifications from this thread. */
+void watchdog_thread_ignore(watchdog_notify_t thread_id);
+
 void watchdog_notify(watchdog_notify_t thread_id);
 void frontend_error_notify_isr(void);
 void frontend_error_notify_sys(void);
