@@ -668,7 +668,7 @@ static bool setting_notify_vehicle_dynamics_filter_mode(struct setting *s,
     return true;
   } else {
     log_error(
-            "Invalid Vehicle Dynamics Filter mode selection. No change made.");
+        "Invalid Vehicle Dynamics Filter mode selection. No change made.");
     return false;
   }
 }
@@ -777,9 +777,9 @@ static void update_dynamics_filter_settings(VehicleDynamicsFilter *filter) {
                                     VEHICLE_DYNAMICS_LOWPASS_TIME_CONSTANT_S,
                                     dynamics_filter_settings.lowpass_constant);
   vehicle_dynamics_filter_set_param(
-          filter,
-          VEHICLE_DYNAMICS_MAX_LINEAR_ACCELERATION_MS2,
-          dynamics_filter_settings.max_acceleration);
+      filter,
+      VEHICLE_DYNAMICS_MAX_LINEAR_ACCELERATION_MS2,
+      dynamics_filter_settings.max_acceleration);
 }
 
 /**
@@ -790,9 +790,9 @@ static void update_dynamics_filter_settings(VehicleDynamicsFilter *filter) {
  * won't be touched.
  */
 static void apply_dynamics_filter_to_solutions(
-        const StarlingFilterSolution *spp_solution,
-        const StarlingFilterSolution *rtk_solution,
-        pvt_engine_result_t *output) {
+    const StarlingFilterSolution *spp_solution,
+    const StarlingFilterSolution *rtk_solution,
+    pvt_engine_result_t *output) {
   pvt_engine_result_t const *input = NULL;
   if (rtk_solution) {
     input = &rtk_solution->result;
@@ -958,6 +958,7 @@ void send_solution_time_matched(const StarlingFilterSolution *solution,
                                 const obss_t *obss_rover) {
   assert(obss_base);
   assert(obss_rover);
+
   /* Fill in the output messages. We always use the SPP message first.
    * Then if there is a successful time-matched result, we will
    * overwrite the relevant messages. */
@@ -988,7 +989,7 @@ void send_solution_time_matched(const StarlingFilterSolution *solution,
    * SPP output. */
   if (spp_timeout(&last_spp, &last_dgnss, starling_get_solution_mode())) {
     /* Notify the user that the vehicle dynamics filter has no effect in
-    * time-matched mode (if applicable). */
+     * time-matched mode (if applicable). */
     if (dynamics_filter != default_dynamics_filter) {
       log_warn(
           "Non-default Vehicle Dynamics Filter has no effect in Time-Matched "
@@ -1025,7 +1026,7 @@ void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
    * available -- RTK is preferred over SPP. */
   pvt_engine_result_t filtered_pvt_result = {0};
   apply_dynamics_filter_to_solutions(
-          spp_solution, rtk_solution, &filtered_pvt_result);
+      spp_solution, rtk_solution, &filtered_pvt_result);
 
   /* (July 2018) We always output SPP velocity, so whatever
    * the filtered result is, we want to make sure we overwrite
@@ -1071,7 +1072,7 @@ void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
     solution_make_sbp(
         &spp_solution->result, &spp_solution->dops, &sbp_messages, time_qual);
     if (rtk_solution) {
-      solution_make_baseline_sbp(&rtk_solution->result,
+      solution_make_baseline_sbp(&filtered_pvt_result,
                                  spp_solution->result.baseline,
                                  &rtk_solution->dops,
                                  &sbp_messages);
