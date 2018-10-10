@@ -744,10 +744,9 @@ static bool fll_bw_changed(tracker_t *tracker, profile_indices_t index) {
   if (entry->profile.fll_bw >= 0) { /* fixed FLL BW */
     fll_bw = entry->profile.fll_bw;
   } else { /* dynamic FLL BW */
-    float cn0 = tracker->cn0;
     tp_tm_e track_mode = get_track_mode(tracker->mesid, entry);
     u8 fll_t_ms = tp_get_fpll_ms(track_mode);
-    fll_bw = compute_fll_bw(cn0, fll_t_ms);
+    fll_bw = compute_fll_bw(tracker->cn0, fll_t_ms);
   }
 
   /* Simple hysteresis to avoid too often FLL retunes */

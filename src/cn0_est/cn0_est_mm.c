@@ -21,6 +21,8 @@
 
 /** Filter coefficient for M2 an M4. */
 #define CN0_MM_ALPHA (0.5f)
+/** Filter coefficient for Pn. */
+#define CN0_MM_PN_ALPHA (0.005f)
 /** Estimate of noise power Pn. For smoother initial CN0 output. */
 #define CN0_MM_PN_INIT (100000.0f)
 
@@ -96,7 +98,7 @@ float cn0_est_mm_update(cn0_est_mm_state_t *s,
 
   float Pd = sqrtf(tmp);
   float Pn = s->M2 - Pd;
-  s->Pn += (Pn - s->Pn) * p->alpha;
+  s->Pn += (Pn - s->Pn) * CN0_MM_PN_ALPHA;
 
   float snr = m2 / s->Pn;
 

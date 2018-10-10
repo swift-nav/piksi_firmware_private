@@ -181,36 +181,18 @@ static const track_cn0_params_t *track_cn0_get_params(u8 cn0_ms,
 /**
  * Initializes C/N0 estimator and filter
  *
- * \param[in]  mesid    ME signal identifier for logging.
- * \param[in]  cn0_ms   C/N0 estimator update period in ms.
- * \param[out] e        C/N0 estimator state.
- * \param[in]  cn0_0    Initial C/N0 value in dB/Hz.
- * \param[in]  init_est Flag indicating estimator reset.
+ * \param[in]  cn0_ms C/N0 estimator update period in ms.
+ * \param[out] e      C/N0 estimator state.
+ * \param[in]  cn0    Initial C/N0 value in dB/Hz.
  *
  * \return None
  */
-void track_cn0_init(const me_gnss_signal_t mesid,
-                    u8 cn0_ms,
-                    track_cn0_state_t *e,
-                    float cn0_0,
-                    bool init_est) {
+void track_cn0_init(u8 cn0_ms, track_cn0_state_t *e, float cn0) {
   track_cn0_params_t p;
-
-  e->cn0_0 = (u8)cn0_0;
-  e->cn0_ms = cn0_ms;
-
   const track_cn0_params_t *pp = track_cn0_get_params(cn0_ms, &p);
 
-  if (init_est) {
-    init_estimator(e, cn0_0);
-  }
-
-  cn0_filter_init(&e->filter, &pp->filter_params, cn0_0);
-
-  log_debug_mesid(mesid,
-                  "Initializing estimator (%f dB/Hz @ %u ms)",
-                  e->filter.yn,
-                  (unsigned)e->cn0_ms);
+  init_estimator(e, cn0);
+  cn0_filter_init(&e->filter, &pp->filter_params, cn0);
 }
 
 /**
@@ -225,7 +207,7 @@ void track_cn0_init(const me_gnss_signal_t mesid,
  */
 float track_cn0_update(track_cn0_state_t *e, u8 cn0_ms, float I, float Q) {
   track_cn0_params_t p;
-  const track_cn0_params_t *pp = track_cn0_get_params(e->cn0_ms, &p);
+  const track_cn0_params_t *pp = track_cn0_get_params(cn0_ms, &p);
 
   e->cn0_raw_dbhz = update_estimator(e, &pp->est_params, I, Q);
   float cn0 =
