@@ -195,20 +195,8 @@ void nap_track_init(u8 channel,
   s->fcn_freq_hz = mesid_to_carr_fcn_hz(mesid);
   s->mesid = mesid;
 
-  /* Correlator spacing: VE -> E */
-  if (IS_GLO(mesid)) {
-    s->spacing = NAP_VE_E_GLO_SPACING_SAMPLES;
-  } else if (IS_BDS2(mesid)) {
-    s->spacing = NAP_VE_E_BDS2_SPACING_SAMPLES;
-  } else if (CODE_GAL_E1B == mesid.code) {
-    s->spacing = NAP_VE_E_GPS_SPACING_SAMPLES;
-  } else if (CODE_GAL_E7I == mesid.code) {
-    s->spacing = NAP_VE_E_GALE7_SPACING_SAMPLES;
-  } else {
-    s->spacing = NAP_VE_E_GPS_SPACING_SAMPLES;
-  }
-
   /* Set correlator spacing */
+  s->spacing = NAP_EPL_SPACING_SAMPLES - 1;
 
   /* code and carrier frequency */
   double carrier_freq_hz = mesid_to_carr_freq(mesid);
@@ -216,7 +204,7 @@ void nap_track_init(u8 channel,
       (1.0 + doppler_freq_hz / carrier_freq_hz) * code_to_chip_rate(mesid.code);
 
   /* Spacing between VE and P correlators */
-  s16 delta_samples = NAP_EPL_SPACING_SAMPLES + s->spacing;
+  s16 delta_samples = NAP_VEP_SPACING_SAMPLES;
 
   /* MIC_COMMENT: nap_track_update_init() so that nap_track_update()
    * does not have to branch for the special "init" situation */
@@ -468,8 +456,8 @@ void nap_track_read_results(u8 channel,
   corrs[4].Q = (s16)((trk_ch.CORR[4] >> 16) & 0xFFFF);
 
   /* Spacing between VE and P correlators */
-  double prompt_offset = (NAP_EPL_SPACING_SAMPLES + s->spacing) /
-                         calc_samples_per_chip(s->code_phase_rate[1]);
+  double prompt_offset =
+      NAP_VEP_SPACING_SAMPLES / calc_samples_per_chip(s->code_phase_rate[1]);
 
   /* Code and carrier phase reckoning */
   s64 carr_phase_incr = ((s64)s->length[1]) * s->carr_pinc[1];
