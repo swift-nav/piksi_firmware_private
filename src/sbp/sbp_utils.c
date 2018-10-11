@@ -843,8 +843,16 @@ static void unpack_ephemeris_glo(const msg_ephemeris_t *m, ephemeris_t *e) {
   k->d_tau = msg->d_tau;
   k->iod = msg->iod;
   k->fcn = (u16)msg->fcn;
-  glo_map_set_slot_id(construct_mesid(msg->common.sid.code, (u16)msg->fcn),
-                      msg->common.sid.sat);
+
+  if (!glo_slot_id_is_valid(msg->common.sid.sat)) {
+    log_warn("Received GLO ephemeris from peer with invalid slot id %u",
+             msg->common.sid.sat);
+  } else if (!glo_fcn_is_valid((u16)msg->fcn)) {
+    log_warn("Received GLO ephemeris from peer with invalid FCN %u", msg->fcn);
+  } else {
+    glo_map_set_slot_id(construct_mesid(msg->common.sid.code, (u16)msg->fcn),
+                        msg->common.sid.sat);
+  }
 }
 
 static void pack_ephemeris_glo(const ephemeris_t *e, msg_ephemeris_t *m) {
