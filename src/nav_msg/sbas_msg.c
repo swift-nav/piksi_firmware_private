@@ -52,7 +52,7 @@
 /** SBAS message payload length in bits */
 #define SBAS_MSG_DATA_LENGTH (SBAS_MSG_LENGTH - SBAS_MSG_CRC_LENGTH)
 /** SBAS message lock detector threshold */
-#define SBAS_LOCK_MAX_CRC_FAILS (1)
+#define SBAS_LOCK_MAX_CRC_FAILS (0)
 
 /**
  * Computes CRC-24Q from a SBAS message buffer.
@@ -219,7 +219,7 @@ static void sbas_add_symbol(sbas_v27_part_t *part, u8 s) {
     } else if (part->message_lock && !part->crc_ok) {
       /* Increment message lock counter */
       part->n_crc_fail++;
-      if (part->n_crc_fail >= SBAS_LOCK_MAX_CRC_FAILS) {
+      if (part->n_crc_fail > SBAS_LOCK_MAX_CRC_FAILS) {
         /* CRC has failed too many times - drop the lock. */
         part->n_crc_fail = 0;
         part->message_lock = false;
