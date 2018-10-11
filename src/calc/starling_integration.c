@@ -1084,7 +1084,7 @@ void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
    * discrepancy between current time qual and this epoch's time qual */
   if (spp_solution) {
     solution_make_sbp(
-        &spp_solution->result, &spp_solution->dops, &sbp_messages, time_qual);
+        &filtered_pvt_result, &spp_solution->dops, &sbp_messages, time_qual);
     if (rtk_solution) {
       solution_make_baseline_sbp(&filtered_pvt_result,
                                  spp_solution->result.baseline,
