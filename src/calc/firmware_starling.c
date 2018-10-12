@@ -12,11 +12,11 @@
 
 #include "firmware_starling.h"
 
-#include <calc/starling_input_bridge.h>
 #include <calc/starling_integration.h>
 #include <ch.h>
 #include <sbp/sbp_fileio.h>
 #include <starling/starling.h>
+#include <starling/integration/starling_input_bridge.h>
 #include <utils/settings/settings.h>
 #include <utils/system_monitor/system_monitor.h>
 

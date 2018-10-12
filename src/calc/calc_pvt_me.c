@@ -18,7 +18,8 @@
 #include <starling/observation.h>
 #include <starling/pvt_engine/firmware_binding.h>
 #include <starling/starling.h>
-#include <starling/starling_platform.h>
+#include <starling/platform/starling_platform.h>
+#include <starling/integration/starling_input_bridge.h>
 #include <swiftnav/constants.h>
 #include <swiftnav/correct_iono_tropo.h>
 #include <swiftnav/ephemeris.h>
@@ -44,7 +45,6 @@
 #include "settings/settings.h"
 #include "shm/shm.h"
 #include "simulator.h"
-#include "starling_input_bridge.h"
 #include "starling_integration.h"
 #include "system_monitor/system_monitor.h"
 #include "timing/timing.h"

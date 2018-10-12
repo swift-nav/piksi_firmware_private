@@ -16,14 +16,14 @@
 
 #include <starling/pvt_engine/vehicle_dynamics_filter.h>
 #include <starling/starling.h>
-#include <starling/starling_platform.h>
+#include <starling/platform/starling_platform.h>
+#include <starling/integration/starling_input_bridge.h>
 #include <swiftnav/coord_system.h>
 #include <swiftnav/linear_algebra.h>
 #include <swiftnav/memcpy_s.h>
 
 #include "calc/calc_pvt_common.h"
 #include "calc/calc_pvt_me.h"
-#include "calc/starling_input_bridge.h"
 #include "calc/starling_integration.h"
 #include "ndb/ndb.h"
 #include "sbp/sbp.h"

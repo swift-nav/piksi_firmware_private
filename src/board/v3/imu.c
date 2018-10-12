@@ -12,7 +12,6 @@
 
 #include "imu.h"
 
-#include "calc/starling_input_bridge.h"
 #include "settings/settings.h"
 #include "timing/timing.h"
 
@@ -26,6 +25,7 @@
 #include <sbp.h>
 #include <swiftnav/gnss_time.h>
 #include <swiftnav/logging.h>
+#include <starling/integration/starling_input_bridge.h>
 
 #define IMU_THREAD_PRIO (HIGHPRIO - 1)
 #define IMU_THREAD_STACK (2 * 1024)

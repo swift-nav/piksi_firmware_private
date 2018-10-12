@@ -19,7 +19,7 @@
 #include <libsbp/sbp.h>
 #include <starling/observation.h>
 #include <starling/pvt_engine/firmware_binding.h>
-#include <starling/starling_platform.h>
+#include <starling/platform/starling_platform.h>
 #include <swiftnav/constants.h>
 #include <swiftnav/coord_system.h>
 #include <swiftnav/ephemeris.h>
