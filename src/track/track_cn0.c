@@ -181,13 +181,13 @@ static const track_cn0_params_t *track_cn0_get_params(u8 cn0_ms,
 /**
  * Initializes C/N0 estimator and filter
  *
- * \param[in]  cn0_ms C/N0 estimator update period in ms.
  * \param[out] e      C/N0 estimator state.
+ * \param[in]  cn0_ms C/N0 estimator update period in ms.
  * \param[in]  cn0    Initial C/N0 value in dB/Hz.
  *
  * \return None
  */
-void track_cn0_init(u8 cn0_ms, track_cn0_state_t *e, float cn0) {
+void track_cn0_init(track_cn0_state_t *e, u8 cn0_ms, float cn0) {
   track_cn0_params_t p;
   const track_cn0_params_t *pp = track_cn0_get_params(cn0_ms, &p);
 

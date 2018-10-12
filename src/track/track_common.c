@@ -184,8 +184,8 @@ void tp_profile_apply_config(tracker_t *tracker, bool init) {
 
   if (init) {
     /* Initialize C/N0 estimator and filter */
-    track_cn0_init(cn0_ms,            /* C/N0 period in ms */
-                   &tracker->cn0_est, /* C/N0 estimator state */
+    track_cn0_init(&tracker->cn0_est, /* C/N0 estimator state */
+                   cn0_ms,            /* C/N0 period in ms */
                    tracker->cn0);     /* Initial C/N0 value */
 
     log_debug_mesid(mesid, "CN0 init: %f", tracker->cn0);
