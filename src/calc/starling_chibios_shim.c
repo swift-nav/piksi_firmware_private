@@ -17,8 +17,8 @@
 #include <ch.h>
 
 #include <libsbp/sbp.h>
-#include <libswiftnav/observation.h>
-#include <libswiftnav/pvt_engine/firmware_binding.h>
+#include <starling/observation.h>
+#include <starling/pvt_engine/firmware_binding.h>
 #include <starling/starling_platform.h>
 #include <swiftnav/constants.h>
 #include <swiftnav/coord_system.h>

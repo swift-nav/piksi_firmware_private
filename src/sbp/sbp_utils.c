@@ -17,7 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <libswiftnav/pvt_engine/firmware_binding.h>
+#include <starling/pvt_engine/firmware_binding.h>
 #include <swiftnav/constants.h>
 #include <swiftnav/glo_map.h>
 #include <swiftnav/logging.h>

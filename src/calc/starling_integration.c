@@ -14,7 +14,7 @@
 #include <ch.h>
 #include <string.h>
 
-#include <libswiftnav/pvt_engine/vehicle_dynamics_filter.h>
+#include <starling/pvt_engine/vehicle_dynamics_filter.h>
 #include <starling/starling.h>
 #include <starling/starling_platform.h>
 #include <swiftnav/coord_system.h>

@@ -13,7 +13,7 @@ Documentation available online at http://docs.swift-nav.com/piksi_firmware
 Checking Out Submodules
 =========================
 
-ChibiOS, libopencm3, libsbp and libswiftnav are submodules of this git repository.
+ChibiOS, libopencm3, libsbp and starling are submodules of this git repository.
 Check them out using:
 
 	git submodule update --init --recursive
@@ -29,7 +29,7 @@ First install python if you don't have it yet:
 ```bash
 % brew install python
 ```
-This installs Python 3; symlinks for `python` and `pip` are created in `/usr/local/opt/python/libexec/bin` 
+This installs Python 3; symlinks for `python` and `pip` are created in `/usr/local/opt/python/libexec/bin`
 so add this dir to your PATH in ~/.bashrc, ~/.profile, or similar, and restart the shell.
 ```bash
 export PATH="$PATH:/usr/local/opt/python/libexec/bin"

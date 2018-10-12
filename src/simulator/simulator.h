@@ -13,7 +13,7 @@
 #ifndef SWIFTNAV_SIMULATOR_H
 #define SWIFTNAV_SIMULATOR_H
 
-#include <libswiftnav/pvt_engine/firmware_binding.h>
+#include <starling/pvt_engine/firmware_binding.h>
 #include <stdbool.h>
 #include <swiftnav/common.h>
 #include <swiftnav/single_epoch_solver.h>

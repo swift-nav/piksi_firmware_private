@@ -13,7 +13,7 @@
 #include <math.h>
 #include <stdio.h>
 
-#include <libswiftnav/observation.h>
+#include <starling/observation.h>
 #include <swiftnav/ch_meas.h>
 #include <swiftnav/constants.h>
 #include <swiftnav/coord_system.h>

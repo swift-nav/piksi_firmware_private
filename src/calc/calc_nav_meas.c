@@ -18,7 +18,7 @@
 #include "nav_msg/cnav_msg_storage.h"
 #include "track/track_sid_db.h"
 
-#include <libswiftnav/cycle_slip.h>
+#include <starling/cycle_slip.h>
 #include <swiftnav/coord_system.h>
 #include <swiftnav/ionosphere.h>
 #include <swiftnav/linear_algebra.h>

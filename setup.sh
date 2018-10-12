@@ -43,14 +43,14 @@ function log_error () {
 function build () {
     # Pulls down git submodules and builds the project, assuming that
     # all other system, and ARM GCC have been installed.
-    log_info "Initializing Git submodules for ChibiOS, libopencm3, libsbp and libswiftnav..."
+    log_info "Initializing Git submodules for ChibiOS, libopencm3, libsbp and starling..."
     git submodule update --init
     if ! [[ -z $1 ]]
     then
-       pushd libswiftnav
+       pushd starling
        git remote update
        git checkout $1
-       log_info "Checked out version '$1' of libswiftnav"
+       log_info "Checked out version '$1' of starling"
        popd
     fi
     log_info "Building piksi_firmware..."
@@ -196,7 +196,7 @@ function show_help() {
 
 set -e -u
 
-LIBSWIFTNAV_COMMIT=""
+STARLING_COMMIT=""
 
 while getopts ":x:s:" opt; do
     case $opt in
@@ -206,7 +206,7 @@ while getopts ":x:s:" opt; do
                 exit 0
             elif [[ "$OPTARG" == "build" ]]; then
                 log_info "build piksi_firmware."
-                build "$LIBSWIFTNAV_COMMIT"
+                build "$STARLING_COMMIT"
                 exit 0
             elif [[ "$OPTARG" == "info" ]]; then
                 log_info "piksi_firmware development setup script.."
@@ -219,8 +219,8 @@ while getopts ":x:s:" opt; do
             fi
             ;;
         s)
-            LIBSWIFTNAV_COMMIT="$OPTARG"
-            echo "Using libswiftnav commit '$LIBSWIFTNAV_COMMIT'" >&2
+            STARLING_COMMIT="$OPTARG"
+            echo "Using starling commit '$STARLING_COMMIT'" >&2
             ;;
         \?)
             echo "Invalid option: -$OPTARG" >&2

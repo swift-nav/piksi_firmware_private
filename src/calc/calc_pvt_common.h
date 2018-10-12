@@ -17,7 +17,7 @@
 
 #include <libsbp/navigation.h>
 #include <libsbp/system.h>
-#include <libswiftnav/observation.h>
+#include <starling/observation.h>
 #include <stdbool.h>
 #include <swiftnav/common.h>
 #include <swiftnav/gnss_time.h>
