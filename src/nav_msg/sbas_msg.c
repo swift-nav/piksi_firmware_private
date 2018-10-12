@@ -52,7 +52,7 @@
 /** SBAS message payload length in bits */
 #define SBAS_MSG_DATA_LENGTH (SBAS_MSG_LENGTH - SBAS_MSG_CRC_LENGTH)
 /** SBAS message lock detector threshold */
-#define SBAS_LOCK_MAX_CRC_FAILS (1)
+#define SBAS_LOCK_MAX_CRC_FAILS (0)
 
 /**
  * Computes CRC-24Q from a SBAS message buffer.
