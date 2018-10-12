@@ -15,11 +15,11 @@
 #include <stdio.h>
 
 #include <libsbp/sbp.h>
+#include <starling/integration/starling_input_bridge.h>
 #include <starling/observation.h>
+#include <starling/platform/starling_platform.h>
 #include <starling/pvt_engine/firmware_binding.h>
 #include <starling/starling.h>
-#include <starling/platform/starling_platform.h>
-#include <starling/integration/starling_input_bridge.h>
 #include <swiftnav/constants.h>
 #include <swiftnav/correct_iono_tropo.h>
 #include <swiftnav/ephemeris.h>

@@ -14,10 +14,10 @@
 #include <ch.h>
 #include <string.h>
 
+#include <starling/integration/starling_input_bridge.h>
+#include <starling/platform/starling_platform.h>
 #include <starling/pvt_engine/vehicle_dynamics_filter.h>
 #include <starling/starling.h>
-#include <starling/platform/starling_platform.h>
-#include <starling/integration/starling_input_bridge.h>
 #include <swiftnav/coord_system.h>
 #include <swiftnav/linear_algebra.h>
 #include <swiftnav/memcpy_s.h>

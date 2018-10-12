@@ -23,9 +23,9 @@
 #include <libsbp/mag.h>
 #include <math.h>
 #include <sbp.h>
+#include <starling/integration/starling_input_bridge.h>
 #include <swiftnav/gnss_time.h>
 #include <swiftnav/logging.h>
-#include <starling/integration/starling_input_bridge.h>
 
 #define IMU_THREAD_PRIO (HIGHPRIO - 1)
 #define IMU_THREAD_STACK (2 * 1024)
