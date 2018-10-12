@@ -117,11 +117,9 @@ void tp_profile_apply_config(tracker_t *tracker, bool init) {
   tp_profile_t *profile = &tracker->profile;
 
   const tp_loop_params_t *l = &profile->loop_params;
-  u8 prev_cn0_ms = 0;
   bool prev_use_alias_detection = 0;
 
   if (!init) {
-    prev_cn0_ms = tp_get_cn0_ms(tracker->tracking_mode);
     prev_use_alias_detection =
         (0 != (tracker->flags & TRACKER_FLAG_USE_ALIAS_DETECTION));
   }
@@ -184,37 +182,13 @@ void tp_profile_apply_config(tracker_t *tracker, bool init) {
     tracker->flags |= TRACKER_FLAG_FLL_USE;
   }
 
-  if (init || cn0_ms != prev_cn0_ms) {
-    tp_cn0_thres_t cn0_thres;
-    tp_profile_get_cn0_thres(&tracker->profile, &cn0_thres);
-
-    bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
-
-    float cn0_t;
-    float cn0_0;
-
-    if (confirmed) {
-      cn0_t = cn0_0 = tracker->cn0;
-    } else {
-      /* When confirmation is required, set C/N0 near drop threshold and
-       * check that is actually grows to correct range */
-      cn0_0 = cn0_thres.drop_dbhz + TP_TRACKER_CN0_CONFIRM_DELTA;
-      cn0_t = init ? tracker->cn0 : tracker->cn0_est.cn0_0;
-    }
-
+  if (init) {
     /* Initialize C/N0 estimator and filter */
-    track_cn0_init(mesid,             /* ME signal for logging */
+    track_cn0_init(&tracker->cn0_est, /* C/N0 estimator state */
                    cn0_ms,            /* C/N0 period in ms */
-                   &tracker->cn0_est, /* C/N0 estimator state */
-                   cn0_0,             /* Initial C/N0 value */
-                   init);             /* Init estimator */
+                   tracker->cn0);     /* Initial C/N0 value */
 
-    if (!confirmed) {
-      tracker->cn0_est.cn0_0 = cn0_t;
-      tracker->cn0 = cn0_t;
-    }
-    log_debug_mesid(
-        mesid, "CN0 update: CD=%f EST=%f CN0_0=%f", tracker->cn0, cn0_0, cn0_t);
+    log_debug_mesid(mesid, "CN0 init: %f", tracker->cn0);
   }
 
   bool use_alias_detection =
@@ -622,21 +596,10 @@ static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
   if (cn0 > cn0_thres.drop_dbhz && !confirmed && inlock &&
       tracker_has_bit_sync(tracker)) {
     tracker->flags |= TRACKER_FLAG_CONFIRMED;
-    log_debug_mesid(
-        tracker->mesid, "CONFIRMED from %f to %d", cn0, tracker->cn0_est.cn0_0);
-
-    cn0 = tracker->cn0_est.cn0_0;
-    /* Re-initialize C/N0 estimator and filter */
-    track_cn0_init(tracker->mesid,          /* ME signal */
-                   tracker->cn0_est.cn0_ms, /* C/N0 period in ms */
-                   &tracker->cn0_est,       /* C/N0 estimator state */
-                   cn0,                     /* Initial C/N0 value */
-                   false);                  /* Init estimator */
+    log_debug_mesid(tracker->mesid, "CONFIRMED with CN0: %f", cn0);
   }
 
-  if (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED)) {
-    tracker->cn0 = cn0;
-  }
+  tracker->cn0 = cn0;
 
   if (cn0 < cn0_thres.ambiguity_dbhz) {
     /* C/N0 has dropped below threshold, indicate that the carrier phase
@@ -840,11 +803,7 @@ static void tp_tracker_update_loops(tracker_t *tracker, u32 cycle_flags) {
     /* Do tracking report to manager */
     tp_report_t report;
     memset(&report, 0, sizeof(report));
-    if (0 == (tracker->flags & TRACKER_FLAG_CONFIRMED)) {
-      report.cn0 = tracker->cn0_est.cn0_0;
-    } else {
-      report.cn0 = tracker->cn0;
-    }
+    report.cn0 = tracker->cn0;
 
     /* Subtracted from profile stabilization timeout */
     u64 delta_ms = tracker->update_timestamp_ms - tracker->report_last_ms;

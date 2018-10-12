@@ -293,6 +293,7 @@ bool tracker_init(const u8 id,
     tracker->carrier_freq = carrier_freq;
 
     tracker->sample_count = ref_sample_count;
+    /* First profile selection is based on initial CN0 estimate. */
     tracker->cn0 = cn0_init;
     u32 now = timing_getms();
     tracker->init_timestamp_ms = now;
@@ -314,6 +315,10 @@ bool tracker_init(const u8 id,
     bit_sync_init(&tracker->bit_sync, mesid);
 
     tracker_interface_lookup(mesid.code)->init(tracker);
+
+    /* Set CN0 below drop threshold for quick rejection of bad signals. */
+    tracker->cn0 =
+        TP_HARD_CN0_DROP_THRESHOLD_DBHZ - TP_TRACKER_CN0_CONFIRM_DELTA;
 
     /* First profile may have different first integration time depending
        on signal type and CN0. */
