@@ -46,7 +46,7 @@ extern "C" {
 
 void send_observations(u8 n,
                        u32 msg_obs_max_size,
-                       const navigation_measurement_t m[],
+                       const starling_obs_t m[],
                        const gps_time_t *t);
 
 bool gate_covariance(gnss_solution *soln);

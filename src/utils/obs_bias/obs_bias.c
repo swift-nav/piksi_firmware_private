@@ -70,11 +70,11 @@ static const double glo_l2_carrier_phase_bias = 0;
  * Alignment is performed relative to the Septentrio
  * receiver type
  */
-void apply_isc_table(u8 n_channels, navigation_measurement_t *nav_meas[]) {
+void apply_isc_table(u8 n_channels, starling_obs_t *obs[]) {
   for (u8 i = 0; i < n_channels; i++) {
     double pseudorange_corr = 0;
     double carrier_phase_corr = 0;
-    switch ((s8)nav_meas[i]->sid.code) {
+    switch ((s8)obs[i]->sid.code) {
       case CODE_GPS_L1CA:
         break;
 
@@ -84,15 +84,15 @@ void apply_isc_table(u8 n_channels, navigation_measurement_t *nav_meas[]) {
 
       case CODE_GLO_L1OF:
         pseudorange_corr =
-            glo_l1_isc[glo_map_get_fcn(nav_meas[i]->sid) - GLO_MIN_FCN];
-        carrier_phase_corr = (glo_map_get_fcn(nav_meas[i]->sid) - GLO_MIN_FCN) *
+            glo_l1_isc[glo_map_get_fcn(obs[i]->sid) - GLO_MIN_FCN];
+        carrier_phase_corr = (glo_map_get_fcn(obs[i]->sid) - GLO_MIN_FCN) *
                              glo_l1_carrier_phase_bias;
         break;
 
       case CODE_GLO_L2OF:
         pseudorange_corr =
-            glo_l2_isc[glo_map_get_fcn(nav_meas[i]->sid) - GLO_MIN_FCN];
-        carrier_phase_corr = (glo_map_get_fcn(nav_meas[i]->sid) - GLO_MIN_FCN) *
+            glo_l2_isc[glo_map_get_fcn(obs[i]->sid) - GLO_MIN_FCN];
+        carrier_phase_corr = (glo_map_get_fcn(obs[i]->sid) - GLO_MIN_FCN) *
                              glo_l2_carrier_phase_bias;
         break;
 
@@ -122,10 +122,8 @@ void apply_isc_table(u8 n_channels, navigation_measurement_t *nav_meas[]) {
         break;
     }
 
-    nav_meas[i]->pseudorange += pseudorange_corr;
-    nav_meas[i]->raw_pseudorange += pseudorange_corr;
-    nav_meas[i]->carrier_phase += carrier_phase_corr;
-    nav_meas[i]->raw_carrier_phase += carrier_phase_corr;
+    obs[i]->pseudorange += pseudorange_corr;
+    obs[i]->carrier_phase += carrier_phase_corr;
   }
 }
 

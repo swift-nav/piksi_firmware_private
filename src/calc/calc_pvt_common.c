@@ -12,7 +12,7 @@
 
 void send_observations(u8 n,
                        u32 msg_obs_max_size,
-                       const navigation_measurement_t m[],
+                       const starling_obs_t m[],
                        const gps_time_t *t) {
   static u8 buff[256];
 
@@ -46,9 +46,9 @@ void send_observations(u8 n,
         (packed_obs_content_t *)&buff[sizeof(observation_header_t)];
 
     for (u8 i = 0; i < curr_n; i++, obs_i++) {
-      if (pack_obs_content(m[obs_i].raw_pseudorange,
-                           m[obs_i].raw_carrier_phase,
-                           m[obs_i].raw_measured_doppler,
+      if (pack_obs_content(m[obs_i].pseudorange,
+                           m[obs_i].carrier_phase,
+                           m[obs_i].doppler,
                            m[obs_i].cn0,
                            m[obs_i].lock_time,
                            m[obs_i].flags,
