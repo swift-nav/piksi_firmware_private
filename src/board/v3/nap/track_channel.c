@@ -435,25 +435,21 @@ void nap_track_read_results(u8 channel,
 
   *count_snapshot = trk_ch.TIMING_SNAPSHOT;
 
-  /* VE correlator */
-  corrs[3].I = (s16)(trk_ch.CORR[0] & 0xFFFF);
-  corrs[3].Q = (s16)((trk_ch.CORR[0] >> 16) & 0xFFFF);
-
   /* E correlator */
-  corrs[0].I = (s16)(trk_ch.CORR[1] & 0xFFFF);
-  corrs[0].Q = (s16)((trk_ch.CORR[1] >> 16) & 0xFFFF);
+  corrs[0].I = (s16)(trk_ch.CORR[0] & 0xFFFF);
+  corrs[0].Q = (s16)((trk_ch.CORR[0] >> 16) & 0xFFFF);
 
   /* P correlator */
-  corrs[1].I = (s16)(trk_ch.CORR[2] & 0xFFFF);
-  corrs[1].Q = (s16)((trk_ch.CORR[2] >> 16) & 0xFFFF);
+  corrs[1].I = (s16)(trk_ch.CORR[1] & 0xFFFF);
+  corrs[1].Q = (s16)((trk_ch.CORR[1] >> 16) & 0xFFFF);
 
   /* L correlator */
-  corrs[2].I = (s16)(trk_ch.CORR[3] & 0xFFFF);
-  corrs[2].Q = (s16)((trk_ch.CORR[3] >> 16) & 0xFFFF);
+  corrs[2].I = (s16)(trk_ch.CORR[2] & 0xFFFF);
+  corrs[2].Q = (s16)((trk_ch.CORR[2] >> 16) & 0xFFFF);
 
   /* VL correlator */
-  corrs[4].I = (s16)(trk_ch.CORR[4] & 0xFFFF);
-  corrs[4].Q = (s16)((trk_ch.CORR[4] >> 16) & 0xFFFF);
+  corrs[4].I = (s16)(trk_ch.CORR[3] & 0xFFFF);
+  corrs[4].Q = (s16)((trk_ch.CORR[3] >> 16) & 0xFFFF);
 
   /* Spacing between VE and P correlators */
   double prompt_offset =

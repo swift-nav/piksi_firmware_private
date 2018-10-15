@@ -54,7 +54,7 @@
 #define NAP_FIRST_AUX_L1_CHANNEL (73U)
 
 /* Number of readable tracking channel registers */
-#define NAP_NUM_TRACKING_READABLE (7U)
+#define NAP_NUM_TRACKING_READABLE (6U)
 
 /* Number of writeable tracking channel registers */
 #define NAP_NUM_TRACKING_WRITEABLE (3U)
@@ -118,7 +118,7 @@ static const swiftnap_code_t swiftnap_code_map[NAP_NUM_TRACKING_CHANNELS] =
 typedef struct {
   const volatile u32 STATUS;
   const volatile u32 TIMING_SNAPSHOT;
-  const volatile u32 CORR[5];
+  const volatile u32 CORR[4];
 } swiftnap_tracking_rd_t;
 
 /* Tracking channel writeable register structure */
