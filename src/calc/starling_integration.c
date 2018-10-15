@@ -1006,4 +1006,3 @@ soln_dgnss_stats_t solution_last_dgnss_stats_get(void) {
 }
 
 soln_pvt_stats_t solution_last_pvt_stats_get(void) { return last_pvt_stats; }
-
