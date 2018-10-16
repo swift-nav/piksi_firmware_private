@@ -320,6 +320,8 @@ bool tracker_init(const u8 id,
        on signal type and CN0. */
     tp_tm_e tracking_mode = tracker->profile.loop_params.mode;
     u8 first_int_ms = tp_get_cycle_duration(tracking_mode, 0);
+    /* First entry should have short integration time,
+     * so that loop update is quickly applied. */
     assert((1 == first_int_ms) || (2 == first_int_ms));
     if (tp_get_cycle_count(tracking_mode) > 1) {
       /* nap_track_init() expects first 2 integration times be equal */
