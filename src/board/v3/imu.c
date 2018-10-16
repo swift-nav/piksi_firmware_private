@@ -12,7 +12,6 @@
 
 #include "imu.h"
 
-#include "calc/starling_input_bridge.h"
 #include "settings/settings.h"
 #include "timing/timing.h"
 
@@ -24,6 +23,7 @@
 #include <libsbp/mag.h>
 #include <math.h>
 #include <sbp.h>
+#include <starling/integration/starling_input_bridge.h>
 #include <swiftnav/gnss_time.h>
 #include <swiftnav/logging.h>
 

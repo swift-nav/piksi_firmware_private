@@ -50,8 +50,9 @@ MAKEFLAGS += LIBSWIFTNAV_BUILDDIR=$(LIBSWIFTNAV_BUILDDIR)
 MAKEFLAGS += OPENAMP_BUILDDIR=$(OPENAMP_BUILDDIR)
 
 FW_DEPS=$(LIBSBP_BUILDDIR)/src/libsbp-static.a \
-				$(STARLING_BUILDDIR)/src/libstarling-shim.a \
-				$(STARLING_BUILDDIR)/src/libstarling.a
+        $(STARLING_BUILDDIR)/src/libstarling-shim.a \
+        $(STARLING_BUILDDIR)/src/libstarling.a \
+        $(STARLING_BUILDDIR)/src/libstarling-integration.a 
 
 ifeq ($(PIKSI_HW),v3)
   CMAKEFLAGS += -DCMAKE_SYSTEM_PROCESSOR=cortex-a9
@@ -87,6 +88,11 @@ $(STARLING_BUILDDIR)/src/libstarling-shim.a: $(STARLING_BUILDDIR)/Makefile \
                                            $(STARLING_BUILDDIR)/src/libstarling.a
 	@printf "BUILD   libstarling-shim for target $(PIKSI_TARGET)\n"; \
 	$(MAKE) starling-shim -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
+
+$(STARLING_BUILDDIR)/src/libstarling-integration.a: $(STARLING_BUILDDIR)/Makefile \
+                                           $(STARLING_BUILDDIR)/src/libstarling-shim.a
+	@printf "BUILD   libstarling-shim for target $(PIKSI_TARGET)\n"; \
+	$(MAKE) starling-integration -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
 
 $(STARLING_BUILDDIR)/Makefile:
 	@printf "Run cmake for target $(STARLING_BUILDDIR)\n"; \
