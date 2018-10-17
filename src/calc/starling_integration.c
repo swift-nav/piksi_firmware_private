@@ -50,11 +50,7 @@
 /*******************************************************************************
  * Globals
  ******************************************************************************/
-bool enable_glonass = true;
-bool enable_galileo = true;
-bool enable_beidou = true;
 bool send_heading = false;
-double heading_offset = 0.0;
 
 /* TODO(kevin) what to do about this? */
 bool disable_raim = false;
@@ -62,6 +58,11 @@ bool disable_raim = false;
 /*******************************************************************************
  * Locals
  ******************************************************************************/
+static bool enable_glonass = true;
+static bool enable_galileo = true;
+static bool enable_beidou = true;
+
+static double heading_offset = 0.0;
 
 static MUTEX_DECL(last_sbp_lock);
 static gps_time_t last_dgnss;
