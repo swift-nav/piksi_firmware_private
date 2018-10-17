@@ -66,8 +66,8 @@ struct {
 
   tracking_channel_state_t tracking_channel[MAX_CHANNELS];
   measurement_state_t state_meas[MAX_CHANNELS];
-  navigation_measurement_t nav_meas[MAX_CHANNELS];
-  navigation_measurement_t base_nav_meas[MAX_CHANNELS];
+  starling_obs_t obs[MAX_CHANNELS];
+  starling_obs_t base_obs[MAX_CHANNELS];
   dops_t dops;
   pvt_engine_result_t noisy_solution;
 
@@ -81,8 +81,8 @@ struct {
     .num_sats_selected = 0,
     /* .state_meas left uninitialized */
     /* .tracking_channel left uninitialized */
-    /* .nav_meas left uninitialized */
-    /* .base_nav_meas left uninitialized */
+    /* .obs left uninitialized */
+    /* .base_obs left uninitialized */
     .dops =
         {
             .pdop = 1.9, .gdop = 1.8, .tdop = 1.7, .hdop = 1.6, .vdop = 1.5,
@@ -295,23 +295,23 @@ void simulation_step_tracking_and_observations(double elapsed) {
       vector_normalize(3, points_to_sat);
       double base_distance_to_sat = vector_norm(3, base_points_to_sat);
       double sat_vel_mag = vector_dot(3, points_to_sat, simulation_sats_vel[i]);
-      /* Fill out the observation details into the NAV_MEAS structure for this
+      /* Fill out the observation details into the obs structure for this
        * satellite, */
       /* We simulate the pseudorange as a noisy range measurement, and */
       /* the carrier phase as a noisy range in wavelengths + an integer offset.
        */
 
-      populate_nav_meas(&sim_state.nav_meas[num_sats_selected],
-                        distance_to_sat,
-                        el,
-                        sat_vel_mag,
-                        i);
+      populate_obs(&sim_state.obs[num_sats_selected],
+                   distance_to_sat,
+                   el,
+                   sat_vel_mag,
+                   i);
 
-      populate_nav_meas(&sim_state.base_nav_meas[num_sats_selected],
-                        base_distance_to_sat,
-                        el,
-                        sat_vel_mag,
-                        i);
+      populate_obs(&sim_state.base_obs[num_sats_selected],
+                   base_distance_to_sat,
+                   el,
+                   sat_vel_mag,
+                   i);
 
       /* As for tracking, we just set each sat consecutively in each channel. */
       /* This will cause weird jumps when a satellite rises or sets. */
@@ -325,7 +325,7 @@ void simulation_step_tracking_and_observations(double elapsed) {
           0; /* FIXME: do properly */
       sim_state.state_meas[num_sats_selected].mesid.sat = sid.sat;
       sim_state.state_meas[num_sats_selected].mesid.code = sid.code;
-      float fTmpCN0 = sim_state.nav_meas[num_sats_selected].cn0;
+      float fTmpCN0 = sim_state.obs[num_sats_selected].cn0;
       fTmpCN0 = (fTmpCN0 <= 0) ? 0 : fTmpCN0;
       fTmpCN0 = (fTmpCN0 >= 63.75) ? 63.75 : fTmpCN0;
       sim_state.tracking_channel[num_sats_selected].cn0 = rintf(fTmpCN0 * 4.0);
@@ -339,41 +339,40 @@ void simulation_step_tracking_and_observations(double elapsed) {
   sim_state.noisy_solution.num_sigs_used = num_sats_selected;
 }
 
-/** Populate a navigation_measurement_t structure with simulated data for
+/** Populate a starling_obs_t structure with simulated data for
 * the almanac_i satellite, currently dist away from simulated point at given
 * elevation.
 *
 */
-void populate_nav_meas(navigation_measurement_t* nav_meas,
-                       double dist,
-                       double elevation,
-                       double vel,
-                       int almanac_i) {
-  nav_meas->sid = (gnss_signal_t){
+void populate_obs(starling_obs_t* obs,
+                  double dist,
+                  double elevation,
+                  double vel,
+                  int almanac_i) {
+  obs->sid = (gnss_signal_t){
       .code = simulation_almanacs[almanac_i].sid.code,
       .sat = simulation_almanacs[almanac_i].sid.sat + SIM_PRN_OFFSET};
 
-  nav_meas->raw_pseudorange = dist;
-  nav_meas->raw_pseudorange += rand_gaussian(sim_settings.pseudorange_sigma *
-                                             sim_settings.pseudorange_sigma);
+  obs->pseudorange = dist;
+  obs->pseudorange += rand_gaussian(sim_settings.pseudorange_sigma *
+                                    sim_settings.pseudorange_sigma);
 
-  nav_meas->raw_carrier_phase =
+  obs->carrier_phase =
       dist / (GPS_C / sid_to_carr_freq(simulation_almanacs[almanac_i].sid));
-  nav_meas->raw_carrier_phase += simulation_fake_carrier_bias[almanac_i];
-  nav_meas->raw_carrier_phase +=
+  obs->carrier_phase += simulation_fake_carrier_bias[almanac_i];
+  obs->carrier_phase +=
       rand_gaussian(sim_settings.phase_sigma * sim_settings.phase_sigma);
 
-  nav_meas->raw_measured_doppler =
+  obs->doppler =
       vel / GPS_C * sid_to_carr_freq(simulation_almanacs[almanac_i].sid);
-  nav_meas->cn0 =
-      lerp(elevation, 0, M_PI / 2, 35, 45) +
-      rand_gaussian(sim_settings.cn0_sigma * sim_settings.cn0_sigma);
-  nav_meas->flags = 0xffff;
+  obs->cn0 = lerp(elevation, 0, M_PI / 2, 35, 45) +
+             rand_gaussian(sim_settings.cn0_sigma * sim_settings.cn0_sigma);
+  obs->flags = 0xffff;
   /* Assume 5hz solution rate for sim mode */
-  if (nav_meas->lock_time <= 0) {
-    nav_meas->lock_time = 0.2;
+  if (obs->lock_time <= 0) {
+    obs->lock_time = 0.2;
   }
-  nav_meas->lock_time += 0.2;
+  obs->lock_time += 0.2;
 }
 
 /** Returns true if the simulation is at all enabled
@@ -452,19 +451,14 @@ measurement_state_t simulation_measurement_state(u8 channel) {
 
 /** Returns the simulated navigation measurement of our moving position.
 */
-navigation_measurement_t* simulation_current_navigation_measurements(void) {
-  return sim_state.nav_meas;
-}
+starling_obs_t* simulation_current_obs(void) { return sim_state.obs; }
 
 /** Returns the simulated navigation measurement at the base position
 * for the simulation (aka the non-moving point around which the simulation
 * moves).
 * This is useful for testing RTK algorithms in hardware.
 */
-navigation_measurement_t* simulation_current_base_navigation_measurements(
-    void) {
-  return sim_state.base_nav_meas;
-}
+starling_obs_t* simulation_current_base_obs(void) { return sim_state.base_obs; }
 
 /**
 * Do any setup we need for the satellite almanacs.

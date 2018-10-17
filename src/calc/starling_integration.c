@@ -460,7 +460,7 @@ static void starling_integration_solution_simulation(
        * this function will completely go away */
       send_observations(simulation_current_num_sats(),
                         SBP_FRAMING_MAX_PAYLOAD_SIZE,
-                        simulation_current_navigation_measurements(),
+                        simulation_current_obs(),
                         &(soln->time));
     }
   }

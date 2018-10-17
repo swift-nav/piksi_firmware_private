@@ -13,8 +13,10 @@
 #ifndef SWIFTNAV_SIMULATOR_H
 #define SWIFTNAV_SIMULATOR_H
 
-#include <starling/pvt_engine/firmware_binding.h>
 #include <stdbool.h>
+
+#include <starling/pvt_engine/firmware_binding.h>
+#include <starling/starling.h>
 #include <swiftnav/common.h>
 #include <swiftnav/single_epoch_solver.h>
 
@@ -73,11 +75,11 @@ bool simulation_enabled_for(simulation_modes_t mode_mask);
 // Internals of the simulator
 void simulation_step_position_in_circle(double);
 void simulation_step_tracking_and_observations(double);
-void populate_nav_meas(navigation_measurement_t* nav_meas,
-                       double dist,
-                       double elevation,
-                       double vel,
-                       int almanac_i);
+void populate_obs(starling_obs_t* obs,
+                  double dist,
+                  double elevation,
+                  double vel,
+                  int almanac_i);
 
 // Sending simulation settings to the outside world
 void sbp_send_simulation_enabled(void);
@@ -92,7 +94,7 @@ u8 simulation_current_num_sats(void);
 tracking_channel_state_t simulation_current_tracking_state(u8 channel);
 measurement_state_t simulation_measurement_state(u8 channel);
 
-navigation_measurement_t* simulation_current_navigation_measurements(void);
+starling_obs_t* simulation_current_obs(void);
 
 // Initialization:
 void simulator_setup_almanacs(void);
