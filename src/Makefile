@@ -163,10 +163,9 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/calc/calc_pvt_common.o \
         $(SWIFTNAV_ROOT)/src/calc/firmware_starling.o \
         $(SWIFTNAV_ROOT)/src/calc/starling_integration.o \
-        $(SWIFTNAV_ROOT)/src/calc/starling_input_bridge.o \
         $(SWIFTNAV_ROOT)/src/calc/starling_sbp_output.o \
 	$(SWIFTNAV_ROOT)/src/calc/starling_sbp_messages.o \
-        $(SWIFTNAV_ROOT)/src/calc/starling_chibios_shim.o \
+        $(SWIFTNAV_ROOT)/src/calc/starling_platform_chibios.o \
         $(SWIFTNAV_ROOT)/src/calc/starling_platform_extra_chibios.o \
         $(SWIFTNAV_ROOT)/src/calc/calc_pvt_me.o \
         $(SWIFTNAV_ROOT)/src/calc/calc_nav_meas.o \
@@ -368,7 +367,8 @@ DLIBDIR = $(LIBSBP_BUILDDIR)/src \
 
 # List all default libraries here
 DLIBS = $(BOARDLIBS) -lsbp-static -lstarling -lswiftnav -lstarling-shim\
-        -lm -Wl,--start-group -lstdc++ -lc -Wl,--end-group -lfec -lnosys
+		     -lstarling-integration -lm -Wl,--start-group -lstdc++\
+		     -lc -Wl,--end-group -lfec -lnosys
 
 #
 # End of default section

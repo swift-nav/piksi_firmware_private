@@ -10,7 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "starling_platform_extra.h"
+#include <starling/platform/starling_platform_semaphore.h>
 
 #include <ch.h>
 

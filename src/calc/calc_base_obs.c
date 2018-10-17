@@ -14,9 +14,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <starling/integration/starling_input_bridge.h>
 #include <starling/observation.h>
+#include <starling/platform/starling_platform.h>
 #include <starling/starling.h>
-#include <starling/starling_platform.h>
 #include <swiftnav/constants.h>
 #include <swiftnav/coord_system.h>
 #include <swiftnav/correct_iono_tropo.h>
@@ -42,7 +43,6 @@
 #include "shm/shm.h"
 #include "signal_db/signal_db.h"
 #include "simulator.h"
-#include "starling_input_bridge.h"
 #include "timing/timing.h"
 
 /** \defgroup base_obs Base station observation handling
