@@ -25,12 +25,8 @@ typedef struct {
 } cnav_msg_storage_t;
 
 typedef enum {
-  CNAV_MSG_TYPE_IDX_0,
   CNAV_MSG_TYPE_IDX_10,
-  CNAV_MSG_TYPE_IDX_11,
   CNAV_MSG_TYPE_IDX_30,
-  CNAV_MSG_TYPE_IDX_32,
-  CNAV_MSG_TYPE_IDX_33,
   CNAV_MSG_TYPE_NUM
 } cnav_msg_idx_t;
 
@@ -38,18 +34,14 @@ static cnav_msg_storage_t cnav_msg_storage[NUM_SATS_GPS][CNAV_MSG_TYPE_NUM];
 
 static cnav_msg_idx_t cnav_msg_type_to_idx(cnav_msg_type_t t) {
   switch (t) {
-    case CNAV_MSG_TYPE_0:
-      return CNAV_MSG_TYPE_IDX_0;
     case CNAV_MSG_TYPE_10:
       return CNAV_MSG_TYPE_IDX_10;
-    case CNAV_MSG_TYPE_11:
-      return CNAV_MSG_TYPE_IDX_11;
     case CNAV_MSG_TYPE_30:
       return CNAV_MSG_TYPE_IDX_30;
+    case CNAV_MSG_TYPE_0:
+    case CNAV_MSG_TYPE_11:
     case CNAV_MSG_TYPE_32:
-      return CNAV_MSG_TYPE_IDX_32;
     case CNAV_MSG_TYPE_33:
-      return CNAV_MSG_TYPE_IDX_33;
     default:
       assert(!"Unsupported CNAV message type");
   }
@@ -57,13 +49,14 @@ static cnav_msg_idx_t cnav_msg_type_to_idx(cnav_msg_type_t t) {
 
 static bool cnav_msg_type_id_valid(u8 msg_id) {
   switch (msg_id) {
-    case CNAV_MSG_TYPE_0:
     case CNAV_MSG_TYPE_10:
-    case CNAV_MSG_TYPE_11:
     case CNAV_MSG_TYPE_30:
+      return true;
+    case CNAV_MSG_TYPE_0:
+    case CNAV_MSG_TYPE_11:
     case CNAV_MSG_TYPE_32:
     case CNAV_MSG_TYPE_33:
-      return true;
+      return false;
     default:
       assert(!"Unsupported CNAV message type");
   }
