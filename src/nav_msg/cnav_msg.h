@@ -65,7 +65,7 @@ extern "C" {
 /** L2C convolutional encoder constraint length */
 #define GPS_L2C_V27_CONSTRAINT_LENGTH (7)
 
-/** The bit string of “1000000000000” will indicate that the group delay value
+/** The bit string of "1000000000000" will indicate that the group delay value
     is not available. Sign extended to s16*/
 #define INVALID_GROUP_DELAY_VALUE ((s16)0xF000)
 
@@ -73,6 +73,7 @@ extern "C" {
 #define GROUP_DELAY_SCALE C_1_2P35
 
 typedef enum {
+  CNAV_MSG_TYPE_0 = 0,
   CNAV_MSG_TYPE_10 = 10,
   CNAV_MSG_TYPE_11 = 11,
   CNAV_MSG_TYPE_30 = 30,
