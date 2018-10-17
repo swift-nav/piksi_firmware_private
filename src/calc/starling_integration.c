@@ -24,6 +24,7 @@
 #include "calc/calc_pvt_common.h"
 #include "calc/calc_pvt_me.h"
 #include "calc/starling_integration.h"
+#include "calc/starling_sbp_output.h"
 #include "ndb/ndb.h"
 #include "sbp/sbp.h"
 #include "sbp/sbp_utils.h"
@@ -47,37 +48,9 @@
 #define STARLING_BASE_SENDER_ID_DEFAULT 0
 
 /*******************************************************************************
- * Types
- ******************************************************************************/
-
-/* Set of messages sent by the Piksi Multi integration of Starling. */
-typedef struct {
-  msg_gps_time_t gps_time;
-  msg_utc_time_t utc_time;
-  msg_pos_llh_t pos_llh;
-  msg_pos_ecef_t pos_ecef;
-  msg_vel_ned_t vel_ned;
-  msg_vel_ecef_t vel_ecef;
-  msg_dops_t sbp_dops;
-  msg_age_corrections_t age_corrections;
-  msg_dgnss_status_t dgnss_status;
-  msg_baseline_ecef_t baseline_ecef;
-  msg_baseline_ned_t baseline_ned;
-  msg_baseline_heading_t baseline_heading;
-  msg_pos_ecef_cov_t pos_ecef_cov;
-  msg_vel_ecef_cov_t vel_ecef_cov;
-  msg_pos_llh_cov_t pos_llh_cov;
-  msg_vel_ned_cov_t vel_ned_cov;
-} sbp_messages_t;
-
-/*******************************************************************************
  * Globals
  ******************************************************************************/
-bool enable_glonass = true;
-bool enable_galileo = true;
-bool enable_beidou = true;
 bool send_heading = false;
-double heading_offset = 0.0;
 
 /* TODO(kevin) what to do about this? */
 bool disable_raim = false;
@@ -85,6 +58,11 @@ bool disable_raim = false;
 /*******************************************************************************
  * Locals
  ******************************************************************************/
+static bool enable_glonass = true;
+static bool enable_galileo = true;
+static bool enable_beidou = true;
+
+static double heading_offset = 0.0;
 
 static MUTEX_DECL(last_sbp_lock);
 static gps_time_t last_dgnss;
@@ -155,81 +133,6 @@ static bool dgnss_timeout(piksi_systime_t *_last_dgnss,
   return (piksi_systime_elapsed_since_ms(_last_dgnss) > DGNSS_TIMEOUT_MS);
 }
 
-/**
- *
- * @param base_sender_id sender id of base obs
- * @param sbp_messages struct of sbp messages
- * @param n_meas nav_meas len
- * @param nav_meas Valid navigation measurements
- */
-static void solution_send_pos_messages(const sbp_messages_t *sbp_messages) {
-  dgnss_solution_mode_t dgnss_soln_mode = starling_get_solution_mode();
-  if (sbp_messages) {
-    sbp_send_msg(SBP_MSG_GPS_TIME,
-                 sizeof(sbp_messages->gps_time),
-                 (u8 *)&sbp_messages->gps_time);
-    sbp_send_msg(SBP_MSG_UTC_TIME,
-                 sizeof(sbp_messages->utc_time),
-                 (u8 *)&sbp_messages->utc_time);
-    sbp_send_msg(SBP_MSG_POS_LLH,
-                 sizeof(sbp_messages->pos_llh),
-                 (u8 *)&sbp_messages->pos_llh);
-    sbp_send_msg(SBP_MSG_POS_ECEF,
-                 sizeof(sbp_messages->pos_ecef),
-                 (u8 *)&sbp_messages->pos_ecef);
-    sbp_send_msg(SBP_MSG_VEL_NED,
-                 sizeof(sbp_messages->vel_ned),
-                 (u8 *)&sbp_messages->vel_ned);
-    sbp_send_msg(SBP_MSG_VEL_ECEF,
-                 sizeof(sbp_messages->vel_ecef),
-                 (u8 *)&sbp_messages->vel_ecef);
-    sbp_send_msg(SBP_MSG_DOPS,
-                 sizeof(sbp_messages->sbp_dops),
-                 (u8 *)&sbp_messages->sbp_dops);
-    sbp_send_msg(SBP_MSG_POS_ECEF_COV,
-                 sizeof(sbp_messages->pos_ecef_cov),
-                 (u8 *)&sbp_messages->pos_ecef_cov);
-    sbp_send_msg(SBP_MSG_VEL_ECEF_COV,
-                 sizeof(sbp_messages->vel_ecef_cov),
-                 (u8 *)&sbp_messages->vel_ecef_cov);
-    sbp_send_msg(SBP_MSG_POS_LLH_COV,
-                 sizeof(sbp_messages->pos_llh_cov),
-                 (u8 *)&sbp_messages->pos_llh_cov);
-    sbp_send_msg(SBP_MSG_VEL_NED_COV,
-                 sizeof(sbp_messages->vel_ned_cov),
-                 (u8 *)&sbp_messages->vel_ned_cov);
-
-    if (dgnss_soln_mode != STARLING_SOLN_MODE_NO_DGNSS) {
-      sbp_send_msg(SBP_MSG_BASELINE_ECEF,
-                   sizeof(sbp_messages->baseline_ecef),
-                   (u8 *)&sbp_messages->baseline_ecef);
-    }
-
-    if (dgnss_soln_mode != STARLING_SOLN_MODE_NO_DGNSS) {
-      sbp_send_msg(SBP_MSG_BASELINE_NED,
-                   sizeof(sbp_messages->baseline_ned),
-                   (u8 *)&sbp_messages->baseline_ned);
-    }
-
-    if (dgnss_soln_mode != STARLING_SOLN_MODE_NO_DGNSS) {
-      sbp_send_msg(SBP_MSG_AGE_CORRECTIONS,
-                   sizeof(sbp_messages->age_corrections),
-                   (u8 *)&sbp_messages->age_corrections);
-    }
-
-    if (dgnss_soln_mode != STARLING_SOLN_MODE_NO_DGNSS) {
-      sbp_send_msg(SBP_MSG_DGNSS_STATUS,
-                   sizeof(sbp_messages->dgnss_status),
-                   (u8 *)&sbp_messages->dgnss_status);
-    }
-
-    if (send_heading && dgnss_soln_mode != STARLING_SOLN_MODE_NO_DGNSS) {
-      sbp_send_msg(SBP_MSG_BASELINE_HEADING,
-                   sizeof(sbp_messages->baseline_heading),
-                   (u8 *)&sbp_messages->baseline_heading);
-    }
-  }
-}
 
 void starling_integration_sbp_messages_init(sbp_messages_t *sbp_messages,
                                             const gps_time_t *epoch_time,
