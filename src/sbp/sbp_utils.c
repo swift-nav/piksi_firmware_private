@@ -161,65 +161,6 @@ void sbp_make_dops(msg_dops_t *dops_out,
   dops_out->flags = flags;
 }
 
-void sbp_make_baseline_ecef(msg_baseline_ecef_t *baseline_ecef,
-                            const gps_time_t *t,
-                            u8 n_sats,
-                            const double b_ecef[3],
-                            double accuracy,
-                            u8 flags) {
-  baseline_ecef->tow = round_tow_ms(t->tow);
-  baseline_ecef->x = round(1e3 * b_ecef[0]);
-  baseline_ecef->y = round(1e3 * b_ecef[1]);
-  baseline_ecef->z = round(1e3 * b_ecef[2]);
-  baseline_ecef->accuracy = MIN(round(1e3 * accuracy), UINT16_MAX);
-  baseline_ecef->n_sats = n_sats;
-  baseline_ecef->flags = flags;
-}
-
-void sbp_make_baseline_ned(msg_baseline_ned_t *baseline_ned,
-                           const gps_time_t *t,
-                           u8 n_sats,
-                           const double b_ned[3],
-                           double h_accuracy,
-                           double v_accuracy,
-                           u8 flags) {
-  baseline_ned->tow = round_tow_ms(t->tow);
-  baseline_ned->n = round(1e3 * b_ned[0]);
-  baseline_ned->e = round(1e3 * b_ned[1]);
-  baseline_ned->d = round(1e3 * b_ned[2]);
-  baseline_ned->h_accuracy = MIN(round(1e3 * h_accuracy), UINT16_MAX);
-  baseline_ned->v_accuracy = MIN(round(1e3 * v_accuracy), UINT16_MAX);
-  baseline_ned->n_sats = n_sats;
-  baseline_ned->flags = flags;
-}
-
-double constrain_angle(const double heading) {
-  double constrained_heading = fmod(heading, 360.0);
-  if (constrained_heading < 0) {
-    constrained_heading += 360.0;
-  }
-  return constrained_heading;
-}
-
-void sbp_make_heading(msg_baseline_heading_t *baseline_heading,
-                      const gps_time_t *t,
-                      const double heading,
-                      u8 n_sats,
-                      u8 flags) {
-  baseline_heading->tow = round_tow_ms(t->tow);
-  baseline_heading->heading =
-      round(constrain_angle(heading) * MSG_HEADING_SCALE_FACTOR);
-  baseline_heading->n_sats = n_sats;
-  baseline_heading->flags = flags;
-}
-
-void sbp_make_age_corrections(msg_age_corrections_t *age_corrections,
-                              const gps_time_t *t,
-                              double propagation_time) {
-  age_corrections->tow = round_tow_ms(t->tow);
-  age_corrections->age = MIN(round(10 * propagation_time), UINT16_MAX);
-}
-
 void sbp_send_ndb_event(u8 event,
                         u8 obj_type,
                         u8 result,

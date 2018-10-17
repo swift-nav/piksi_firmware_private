@@ -84,15 +84,6 @@ void sbp_init_sbp_dops(msg_dops_t *sbp_dops, gps_time_t *t);
 void sbp_init_age_corrections(msg_age_corrections_t *age_corrections,
                               gps_time_t *t);
 void sbp_init_dgnss_status(msg_dgnss_status_t *dgnss_status);
-void sbp_init_baseline_ecef(msg_baseline_ecef_t *baseline_ecef, gps_time_t *t);
-void sbp_init_baseline_ned(msg_baseline_ned_t *baseline_ned, gps_time_t *t);
-void sbp_init_baseline_heading(msg_baseline_heading_t *baseline_heading,
-                               gps_time_t *t);
-void sbp_init_pos_ecef_cov(msg_pos_ecef_cov_t *pos_ecef_cov, gps_time_t *t);
-void sbp_init_vel_ecef_cov(msg_vel_ecef_cov_t *vel_ecef_cov, gps_time_t *t);
-void sbp_init_pos_llh_cov(msg_pos_llh_cov_t *pos_llh_cov, gps_time_t *t);
-void sbp_init_vel_ned_cov(msg_vel_ned_cov_t *vel_ned_cov, gps_time_t *t);
-
 void sbp_make_gps_time(msg_gps_time_t *t_out,
                        const gps_time_t *t_in,
                        u8 time_qual);
@@ -101,24 +92,6 @@ void sbp_make_dops(msg_dops_t *dops_out,
                    const dops_t *dops_in,
                    u32 tow,
                    u8 flags);
-void sbp_make_baseline_ecef(msg_baseline_ecef_t *baseline_ecef,
-                            const gps_time_t *t,
-                            u8 n_sats,
-                            const double b_ecef[3],
-                            double accuracy,
-                            u8 flags);
-void sbp_make_baseline_ned(msg_baseline_ned_t *baseline_ned,
-                           const gps_time_t *t,
-                           u8 n_sats,
-                           const double b_ned[3],
-                           double h_accuracy,
-                           double v_accuracy,
-                           u8 flags);
-void sbp_make_heading(msg_baseline_heading_t *baseline_heading,
-                      const gps_time_t *t,
-                      const double heading,
-                      u8 n_sats_used,
-                      u8 flags);
 void sbp_make_age_corrections(msg_age_corrections_t *age_corrections,
                               const gps_time_t *t,
                               double propagation_time);
@@ -152,8 +125,6 @@ void sbp_send_ndb_event(u8 event,
 #define MSG_OBS_FLAGS_HALF_CYCLE_KNOWN ((u8)(1 << 2))
 #define MSG_OBS_FLAGS_MEAS_DOPPLER_VALID ((u8)(1 << 3))
 #define MSG_OBS_FLAGS_RAIM_EXCLUSION ((u8)(1 << 7))
-
-#define MSG_HEADING_SCALE_FACTOR 1000.0
 
 #define MSG_FORWARD_SENDER_ID 0
 

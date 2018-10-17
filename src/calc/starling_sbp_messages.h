@@ -36,6 +36,15 @@ void sbp_init_pos_llh(msg_pos_llh_t *pos_llh, gps_time_t *t);
 void sbp_init_pos_ecef(msg_pos_ecef_t *pos_ecef, gps_time_t *t);
 void sbp_init_vel_ned(msg_vel_ned_t *vel_ned, gps_time_t *t);
 void sbp_init_vel_ecef(msg_vel_ecef_t *vel_ecef, gps_time_t *t);
+void sbp_init_pos_ecef_cov(msg_pos_ecef_cov_t *pos_ecef_cov, gps_time_t *t);
+void sbp_init_vel_ecef_cov(msg_vel_ecef_cov_t *vel_ecef_cov, gps_time_t *t);
+void sbp_init_pos_llh_cov(msg_pos_llh_cov_t *pos_llh_cov, gps_time_t *t);
+void sbp_init_vel_ned_cov(msg_vel_ned_cov_t *vel_ned_cov, gps_time_t *t);
+void sbp_init_baseline_ecef(msg_baseline_ecef_t *baseline_ecef, gps_time_t *t);
+void sbp_init_baseline_ned(msg_baseline_ned_t *baseline_ned, gps_time_t *t);
+void sbp_init_baseline_heading(msg_baseline_heading_t *baseline_heading,
+                               gps_time_t *t);
+
 
 void sbp_make_pos_llh_vect(msg_pos_llh_t *pos_llh,
                            const double llh[3],
@@ -87,6 +96,25 @@ void sbp_make_vel_ecef_cov(msg_vel_ecef_cov_t *vel_ecef_cov,
                            const gps_time_t *gps_t,
                            u8 n_sats_used,
                            u8 flags);
+void sbp_make_baseline_ecef(msg_baseline_ecef_t *baseline_ecef,
+                            const gps_time_t *t,
+                            u8 n_sats,
+                            const double b_ecef[3],
+                            double accuracy,
+                            u8 flags);
+void sbp_make_baseline_ned(msg_baseline_ned_t *baseline_ned,
+                           const gps_time_t *t,
+                           u8 n_sats,
+                           const double b_ned[3],
+                           double h_accuracy,
+                           double v_accuracy,
+                           u8 flags);
+void sbp_make_heading(msg_baseline_heading_t *baseline_heading,
+                      const gps_time_t *t,
+                      const double heading,
+                      u8 n_sats_used,
+                      u8 flags);
+
 
 #ifdef __cplusplus
 }
