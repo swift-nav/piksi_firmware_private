@@ -60,7 +60,6 @@ int settings_type_register_enum(const char *const enumnames[],
                                 struct setting_type *type);
 void settings_register(struct setting *s, enum setting_types type);
 bool settings_default_notify(struct setting *setting, const char *val);
-bool uarta_baudrate_notify(struct setting *setting, const char *val);
 bool settings_read_only_notify(struct setting *setting, const char *val);
 
 #endif /* SWIFTNAV_SETTINGS_H */
