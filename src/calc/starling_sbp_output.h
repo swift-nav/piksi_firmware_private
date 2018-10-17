@@ -13,8 +13,7 @@
 #ifndef STARLING_SBP_OUTPUT_H_
 #define STARLING_SBP_OUTPUT_H_
 
-
-#include <sbp/sbp_utils.h>
+#include "starling_sbp_messages.h"
 
 /* Set of messages sent by the Piksi Multi integration of Starling. */
 typedef struct {

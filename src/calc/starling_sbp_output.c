@@ -15,9 +15,12 @@
 /*********************************************************************
  * External Dependencies -- TODO(kevin) remove these.
  ********************************************************************/
-//extern s8 sbp_send_msg(u16 msg, u8 n, u8 *data);
+extern s8 sbp_send_msg(u16 msg, u8 n, u8 *data);
 extern bool send_heading;
 
+/*********************************************************************
+ * Solution Message Generation Helpers  
+ ********************************************************************/
 
 /**
  *
