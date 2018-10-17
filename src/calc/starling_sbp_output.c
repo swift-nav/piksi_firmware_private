@@ -19,7 +19,7 @@ extern s8 sbp_send_msg(u16 msg, u8 n, u8 *data);
 extern bool send_heading;
 
 /*********************************************************************
- * Solution Message Generation Helpers  
+ * Solution Message Generation Helpers
  ********************************************************************/
 
 /**
@@ -97,4 +97,3 @@ void solution_send_pos_messages(const sbp_messages_t *sbp_messages) {
     }
   }
 }
-
