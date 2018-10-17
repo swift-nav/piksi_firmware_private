@@ -13,6 +13,7 @@
 #include <float.h>
 #include <inttypes.h>
 #include <stdio.h>
+#include <string.h>
 
 #include <libsbp/sbp.h>
 #include <starling/integration/starling_input_bridge.h>
@@ -140,8 +141,13 @@ static void me_post_observations(u8 n,
              STARLING_MAX_OBS_COUNT);
     n = STARLING_MAX_OBS_COUNT;
   }
-  meas_to_obs(&obs_array, _t, n, _meas);
-
+  if (n > 0) {
+    MEMCPY_S(&obs_array.observations,
+             sizeof(obs_array.observations),
+             &_meas,
+             n * sizeof(starling_obs_t));
+  }
+  obs_array.n = n;
   ret = starling_send_rover_obs(&obs_array);
   if (STARLING_SEND_OK != ret) {
     log_error("ME: Unable to send observations.");
@@ -364,38 +370,66 @@ static void collect_measurements(u64 rec_tc,
 
 static THD_WORKING_AREA(wa_me_calc_pvt_thread, ME_CALC_PVT_THREAD_STACK);
 
-static void drop_gross_outlier(const starling_obs_t *nav_meas,
+static void drop_gross_outlier(const gnss_signal_t sid,
+                               const double pseudorange,
+                               const double sat_pos[],
                                const gnss_solution *current_fix) {
   /* Check how large the outlier roughly is, and if it is a gross one,
    * drop the channel and delete the possibly corrupt ephemeris */
   double geometric_range[3];
   for (u8 j = 0; j < 3; j++) {
-    geometric_range[j] = nav_meas->sat_pos[j] - current_fix->pos_ecef[j];
+    geometric_range[j] = sat_pos[j] - current_fix->pos_ecef[j];
   }
   double pseudorng_error =
-      fabs(nav_meas->pseudorange - current_fix->clock_offset * GPS_C -
+      fabs(pseudorange - current_fix->clock_offset * GPS_C -
            vector_norm(3, geometric_range));
 
   bool generic_gross_outlier = pseudorng_error > RAIM_DROP_CHANNEL_THRESHOLD_M;
   if (generic_gross_outlier) {
     /* mark channel for dropping */
-    tracker_set_raim_flag(nav_meas->sid);
+    tracker_set_raim_flag(sid);
     /* clear the ephemeris for this signal */
-    ndb_ephemeris_erase(nav_meas->sid);
+    ndb_ephemeris_erase(sid);
   }
 
   bool boc_halfchip_outlier =
-      (CODE_GAL_E1B == nav_meas->sid.code) && (pseudorng_error > 100);
+      (CODE_GAL_E1B == sid.code) && (pseudorng_error > 100);
   if (boc_halfchip_outlier) {
     /* mark channel for dropping */
-    tracker_set_raim_flag(nav_meas->sid);
+    tracker_set_raim_flag(sid);
   }
+}
+
+static void starling_obs_to_nav_meas(const starling_obs_t *obs,
+                                     navigation_measurement_t *nm) {
+  nm->raw_pseudorange = obs->pseudorange;
+  nm->pseudorange = obs->pseudorange;
+  nm->raw_carrier_phase = obs->carrier_phase;
+  nm->carrier_phase = obs->carrier_phase;
+  nm->raw_measured_doppler = obs->doppler;
+  nm->measured_doppler = obs->doppler;
+  nm->raw_computed_doppler = obs->doppler;
+  nm->computed_doppler = obs->doppler;
+  nm->computed_doppler_dt = 0;
+  memset(nm->sat_pos, 0, 3);
+  memset(nm->sat_vel, 0, 3);
+  memset(nm->sat_acc, 0, 3);
+  nm->IODE = 0;
+  nm->sat_clock_err = 0;
+  nm->sat_clock_err_rate = 0;
+  nm->IODC = 0;
+  nm->cn0 = obs->cn0;
+  nm->lock_time = obs->lock_time;
+  nm->elevation = 0;
+  nm->tot = obs->tot;
+  nm->sid = obs->sid;
+  nm->flags = obs->flags;
 }
 
 /* Apply corrections and solve for position from the given navigation
  * measurements, and if succesful update LGF and clock model */
 static s8 me_compute_pvt(u8 n_ready,
-                         const starling_obs_t nav_meas_in[],
+                         const starling_obs_t obs[],
                          u64 current_tc,
                          const gps_time_t *current_time,
                          const ephemeris_t *p_e_meas[],
@@ -403,7 +437,7 @@ static s8 me_compute_pvt(u8 n_ready,
   gnss_sid_set_t codes;
   sid_set_init(&codes);
   for (u8 i = 0; i < n_ready; i++) {
-    sid_set_add(&codes, nav_meas_in[i].sid);
+    sid_set_add(&codes, obs[i].sid);
   }
 
   if (sid_set_get_sat_count(&codes) < MINIMUM_SV_COUNT) {
@@ -413,10 +447,10 @@ static s8 me_compute_pvt(u8 n_ready,
 
   /* Copy navigation measurements to a local array and create array of pointers
    * to it */
-  starling_obs_t nav_meas[n_ready];
-  starling_obs_t *p_nav_meas[n_ready];
+  navigation_measurement_t nav_meas[n_ready];
+  navigation_measurement_t *p_nav_meas[n_ready];
   for (u8 i = 0; i < n_ready; i++) {
-    nav_meas[i] = nav_meas_in[i];
+    starling_obs_to_nav_meas(&obs[i], &nav_meas[i]);
     p_nav_meas[i] = &nav_meas[i];
   }
 
@@ -500,7 +534,10 @@ static s8 me_compute_pvt(u8 n_ready,
         nav_meas[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION;
         /* Check how large the outlier roughly is, and if it is a gross one,
          * drop the channel and delete the possibly corrupt ephemeris */
-        drop_gross_outlier(&nav_meas[i], &current_fix);
+        drop_gross_outlier(nav_meas[i].sid,
+                           nav_meas[i].pseudorange,
+                           nav_meas[i].sat_pos,
+                           &current_fix);
       }
     }
   }

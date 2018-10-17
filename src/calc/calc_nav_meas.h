@@ -31,7 +31,7 @@ s8 calc_navigation_measurement(u8 n_channels,
                                const gps_time_t *rec_time);
 
 void apply_gps_cnav_isc(u8 n_channels,
-                        starling_obs_t *obs[],
+                        navigation_measurement_t *nav_meas[],
                         const ephemeris_t *p_ephe[]);
 
 #ifdef __cplusplus

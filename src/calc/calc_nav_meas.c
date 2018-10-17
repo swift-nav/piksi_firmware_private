@@ -209,20 +209,20 @@ static bool get_isc_corr(const code_t code,
  * applied TGD from the measurements where CNAV is available.
  */
 void apply_gps_cnav_isc(u8 n_channels,
-                        starling_obs_t *obs[],
+                        navigation_measurement_t *nav_meas[],
                         const ephemeris_t *p_ephe[]) {
   u8 i = 0;
   for (i = 0; i < n_channels; i++) {
     double isc;
     cnav_msg_t cnav_msg;
     /* get GPS inter-signal corrections from CNAV messages */
-    if (cnav_msg_get(obs[i]->sid, CNAV_MSG_TYPE_30, &cnav_msg) &&
-        get_isc_corr(obs[i]->sid.code, &cnav_msg.data.type_30, &isc)) {
+    if (cnav_msg_get(nav_meas[i]->sid, CNAV_MSG_TYPE_30, &cnav_msg) &&
+        get_isc_corr(nav_meas[i]->sid.code, &cnav_msg.data.type_30, &isc)) {
       /* remove the already applied TGD correction */
-      isc += get_tgd_correction(p_ephe[i], &obs[i]->sid) * GPS_C;
+      isc += get_tgd_correction(p_ephe[i], &nav_meas[i]->sid) * GPS_C;
       /* apply the new minus old */
-      obs[i]->pseudorange += isc;
-      obs[i]->carrier_phase -= isc / sid_to_lambda(obs[i]->sid);
+      nav_meas[i]->pseudorange += isc;
+      nav_meas[i]->carrier_phase -= isc / sid_to_lambda(nav_meas[i]->sid);
     }
   }
 }
