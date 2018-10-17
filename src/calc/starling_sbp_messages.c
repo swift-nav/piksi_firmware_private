@@ -16,15 +16,26 @@
 
 /*********************************************************************
  * External Dependencies -- TODO(kevin) remove these.
- ********************************************************************/
+ *********************************************************************/
 
 extern u32 round_tow_ms(double tow);
 
 /*********************************************************************
- * SBP Helper Functions
- ********************************************************************/
-#define MSG_HEADING_SCALE_FACTOR 1000.0
+ * Local Helpers  
+ *********************************************************************/
 
+static double constrain_angle(const double heading) {
+  double constrained_heading = fmod(heading, 360.0);
+  if (constrained_heading < 0) {
+    constrained_heading += 360.0;
+  }
+  return constrained_heading;
+}
+
+/*********************************************************************
+ * SBP Message-Packing Functions
+ *********************************************************************/
+#define MSG_HEADING_SCALE_FACTOR 1000.0
 
 void sbp_init_pos_llh(msg_pos_llh_t *pos_llh, gps_time_t *t) {
   memset(pos_llh, 0, sizeof(msg_pos_llh_t));
@@ -119,8 +130,6 @@ void sbp_init_age_corrections(msg_age_corrections_t *age_corrections,
     age_corrections->tow = round_tow_ms(t->tow);
   }
 }
-
-
 
 void sbp_make_pos_llh_vect(msg_pos_llh_t *pos_llh,
     const double llh[3],
@@ -298,14 +307,6 @@ void sbp_make_baseline_ned(msg_baseline_ned_t *baseline_ned,
   baseline_ned->flags = flags;
 }
 
-double constrain_angle(const double heading) {
-  double constrained_heading = fmod(heading, 360.0);
-  if (constrained_heading < 0) {
-    constrained_heading += 360.0;
-  }
-  return constrained_heading;
-}
-
 void sbp_make_heading(msg_baseline_heading_t *baseline_heading,
     const gps_time_t *t,
     const double heading,
@@ -330,8 +331,6 @@ void sbp_make_dops(msg_dops_t *dops_out,
   dops_out->vdop = round(dops_in->vdop * 100);
   dops_out->flags = flags;
 }
-
-
 
 void sbp_make_age_corrections(msg_age_corrections_t *age_corrections,
     const gps_time_t *t,
