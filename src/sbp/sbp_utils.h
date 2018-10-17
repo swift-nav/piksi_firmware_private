@@ -80,21 +80,12 @@ extern "C" {
 
 void sbp_init_gps_time(msg_gps_time_t *gps_time, gps_time_t *t, u8 time_qual);
 void sbp_init_utc_time(msg_utc_time_t *utc_time, gps_time_t *t, u8 time_qual);
-void sbp_init_sbp_dops(msg_dops_t *sbp_dops, gps_time_t *t);
-void sbp_init_age_corrections(msg_age_corrections_t *age_corrections,
-                              gps_time_t *t);
 void sbp_init_dgnss_status(msg_dgnss_status_t *dgnss_status);
 void sbp_make_gps_time(msg_gps_time_t *t_out,
                        const gps_time_t *t_in,
                        u8 time_qual);
 u8 sbp_get_time_quality_flags(u8 time_qual);
-void sbp_make_dops(msg_dops_t *dops_out,
-                   const dops_t *dops_in,
-                   u32 tow,
-                   u8 flags);
-void sbp_make_age_corrections(msg_age_corrections_t *age_corrections,
-                              const gps_time_t *t,
-                              double propagation_time);
+
 void sbp_make_dgnss_status(msg_dgnss_status_t *dgnss_status,
                            u8 num_sats,
                            double obs_latency,

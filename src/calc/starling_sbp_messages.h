@@ -44,7 +44,9 @@ void sbp_init_baseline_ecef(msg_baseline_ecef_t *baseline_ecef, gps_time_t *t);
 void sbp_init_baseline_ned(msg_baseline_ned_t *baseline_ned, gps_time_t *t);
 void sbp_init_baseline_heading(msg_baseline_heading_t *baseline_heading,
                                gps_time_t *t);
-
+void sbp_init_sbp_dops(msg_dops_t *sbp_dops, gps_time_t *t);
+void sbp_init_age_corrections(msg_age_corrections_t *age_corrections,
+                              gps_time_t *t);
 
 void sbp_make_pos_llh_vect(msg_pos_llh_t *pos_llh,
                            const double llh[3],
@@ -115,6 +117,13 @@ void sbp_make_heading(msg_baseline_heading_t *baseline_heading,
                       u8 n_sats_used,
                       u8 flags);
 
+void sbp_make_dops(msg_dops_t *dops_out,
+                   const dops_t *dops_in,
+                   u32 tow,
+                   u8 flags);
+void sbp_make_age_corrections(msg_age_corrections_t *age_corrections,
+                              const gps_time_t *t,
+                              double propagation_time);
 
 #ifdef __cplusplus
 }
