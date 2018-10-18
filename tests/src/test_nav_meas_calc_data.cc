@@ -63,63 +63,60 @@ static const channel_measurement_t l2cm_meas_in = {
     0};
 
 TEST(test_nav_meas_calc_data, first_test) {
-  const channel_measurement_t *input_meas[1];
-  starling_obs_t out_l1ca, out_l2cm;
-  starling_obs_t *p_out_l1ca = &out_l1ca;
-  starling_obs_t *p_out_l2cm = &out_l2cm;
+  obs_array_t obs_array_l1ca, obs_array_l2cm;
+  starling_obs_t* out_l1ca = &obs_array_l1ca.observations[0];
+  starling_obs_t* out_l2cm = &obs_array_l2cm.observations[0];
 
   gps_time_t rec_time = {
       206957.3995198214543052, /* .tow */
       1899                     /* .wn */
   };
 
-  input_meas[0] = &l1ca_meas_in;
-  calc_navigation_measurement(1, input_meas, &p_out_l1ca, &rec_time);
-  // apply_sat_clock_corrections(1, &p_out_l1ca);
+  calc_navigation_measurement(1, &l1ca_meas_in, &obs_array_l1ca, &rec_time);
   log_debug(" ***** L1CA: *****\n");
-  log_debug("pseudorange = %30.20f\n", out_l1ca.pseudorange);
-  log_debug("carrier_phase = %30.20f\n", out_l1ca.carrier_phase);
-  log_debug("measured_doppler = %30.20f\n", out_l1ca.doppler);
-  log_debug("cn0 = %30.20f\n", out_l1ca.cn0);
-  log_debug("lock_time = %30.20f\n", out_l1ca.lock_time);
-  log_debug("tow = %30.20f, wn = %d\n", out_l1ca.tot.tow, out_l1ca.tot.wn);
+  log_debug("pseudorange = %30.20f\n", out_l1ca->pseudorange);
+  log_debug("carrier_phase = %30.20f\n", out_l1ca->carrier_phase);
+  log_debug("measured_doppler = %30.20f\n", out_l1ca->doppler);
+  log_debug("cn0 = %30.20f\n", out_l1ca->cn0);
+  log_debug("lock_time = %30.20f\n", out_l1ca->lock_time);
+  log_debug("tow = %30.20f, wn = %d\n", out_l1ca->tot.tow, out_l1ca->tot.wn);
   log_debug("sat = %u, code = %u\n",
-            (unsigned int)out_l1ca.sid.sat,
-            (unsigned int)out_l1ca.sid.code);
-  log_debug("TOR = %30.20f\n", out_l1ca.tot.tow + out_l1ca.pseudorange / GPS_C);
+            (unsigned int)out_l1ca->sid.sat,
+            (unsigned int)out_l1ca->sid.code);
+  log_debug("TOR = %30.20f\n",
+            out_l1ca->tot.tow + out_l1ca->pseudorange / GPS_C);
 
-  input_meas[0] = &l2cm_meas_in;
-  calc_navigation_measurement(1, input_meas, &p_out_l2cm, &rec_time);
-  // apply_sat_clock_corrections(1, &p_out_l2cm);
+  calc_navigation_measurement(1, &l2cm_meas_in, &obs_array_l2cm, &rec_time);
   log_debug(" \n***** L2CM: *****\n");
-  log_debug("pseudorange = %30.20f\n", out_l2cm.pseudorange);
-  log_debug("carrier_phase = %30.20f\n", out_l2cm.carrier_phase);
-  log_debug("measured_doppler = %30.20f\n", out_l2cm.doppler);
-  log_debug("cn0 = %30.20f\n", out_l2cm.cn0);
-  log_debug("lock_time = %30.20f\n", out_l2cm.lock_time);
-  log_debug("tow = %30.20f, wn = %d\n", out_l2cm.tot.tow, out_l2cm.tot.wn);
+  log_debug("pseudorange = %30.20f\n", out_l2cm->pseudorange);
+  log_debug("carrier_phase = %30.20f\n", out_l2cm->carrier_phase);
+  log_debug("measured_doppler = %30.20f\n", out_l2cm->doppler);
+  log_debug("cn0 = %30.20f\n", out_l2cm->cn0);
+  log_debug("lock_time = %30.20f\n", out_l2cm->lock_time);
+  log_debug("tow = %30.20f, wn = %d\n", out_l2cm->tot.tow, out_l2cm->tot.wn);
   log_debug("sat = %u, code = %u\n",
-            (unsigned int)out_l2cm.sid.sat,
-            (unsigned int)out_l2cm.sid.code);
-  log_debug("TOR = %30.20f\n", out_l2cm.tot.tow + out_l2cm.pseudorange / GPS_C);
+            (unsigned int)out_l2cm->sid.sat,
+            (unsigned int)out_l2cm->sid.code);
+  log_debug("TOR = %30.20f\n",
+            out_l2cm->tot.tow + out_l2cm->pseudorange / GPS_C);
 
   double check_value;
 
   /* L1 and L2 pseudoranges differ some meters because of ionosphere and
    * inter-signal delay */
-  check_value = fabs(out_l1ca.pseudorange - out_l2cm.pseudorange);
+  check_value = fabs(out_l1ca->pseudorange - out_l2cm->pseudorange);
   EXPECT_LT(check_value, 15);
 
   check_value =
-      fabs(out_l1ca.doppler / out_l2cm.doppler - GPS_L1_HZ / GPS_L2_HZ);
+      fabs(out_l1ca->doppler / out_l2cm->doppler - GPS_L1_HZ / GPS_L2_HZ);
   EXPECT_LT(check_value, 0.003);
 
   check_value =
-      fabs(out_l1ca.tot.tow + out_l1ca.pseudorange / GPS_C - rec_time.tow);
+      fabs(out_l1ca->tot.tow + out_l1ca->pseudorange / GPS_C - rec_time.tow);
   EXPECT_LT(check_value, 5e-8);
 
   check_value =
-      fabs(out_l2cm.tot.tow + out_l2cm.pseudorange / GPS_C - rec_time.tow);
+      fabs(out_l2cm->tot.tow + out_l2cm->pseudorange / GPS_C - rec_time.tow);
   EXPECT_LT(check_value, 5e-8);
 }
 
