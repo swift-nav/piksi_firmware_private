@@ -68,7 +68,7 @@
 #define ME_CALC_PVT_THREAD_STACK (10 * 64 * 1024)
 
 /* Limits the sets of possible solution frequencies (in increasing order) */
-static const double valid_soln_freqs_hz[] = {1.0, 2.0, 4.0, 5.0, 10.0};
+static const double valid_soln_freqs_hz[] = {1.0, 2.0, 4.0, 5.0, 10.0, 20.0};
 
 #define SOLN_FREQ_SETTING_MIN (valid_soln_freqs_hz[0])
 #define SOLN_FREQ_SETTING_MAX \
