@@ -30,22 +30,22 @@
 #include <swiftnav/single_epoch_solver.h>
 #include <swiftnav/troposphere.h>
 
+#include "acq/manage.h"
 #include "board/nap/track_channel.h"
 #include "calc_nav_meas.h"
 #include "calc_pvt_common.h"
 #include "calc_pvt_me.h"
-#include "main.h"
-#include "manage.h"
+#include "main/main.h"
 #include "ndb/ndb.h"
 #include "nmea/nmea.h"
 #include "obs_bias/obs_bias.h"
 #include "peripherals/leds.h"
 #include "position/position.h"
-#include "sbp.h"
-#include "sbp_utils.h"
+#include "sbp/sbp.h"
+#include "sbp/sbp_utils.h"
 #include "settings/settings.h"
 #include "shm/shm.h"
-#include "simulator.h"
+#include "simulator/simulator.h"
 #include "starling_integration.h"
 #include "system_monitor/system_monitor.h"
 #include "timing/timing.h"
@@ -85,40 +85,9 @@ s16 msg_obs_max_size = SBP_FRAMING_MAX_PAYLOAD_SIZE;
 
 static soln_stats_t last_stats = {.signals_tracked = 0, .signals_useable = 0};
 
-/* RFT_TODO *
- * check that Klobuchar is used in SPP solver */
-
 /* STATIC FUNCTIONS */
 
 /******************************************************************************/
-static void meas_to_obs(obs_array_t *obs_array,
-                        const gps_time_t *t,
-                        u8 n,
-                        const navigation_measurement_t nm[]) {
-  assert(n <= STARLING_MAX_OBS_COUNT);
-  obs_array->n = n;
-  for (size_t i = 0; i < obs_array->n; ++i) {
-    obs_array->observations[i].sid = nm[i].sid;
-    obs_array->observations[i].pseudorange = nm[i].raw_pseudorange;
-    obs_array->observations[i].carrier_phase = nm[i].raw_carrier_phase;
-    obs_array->observations[i].doppler = nm[i].raw_measured_doppler;
-    obs_array->observations[i].cn0 = nm[i].cn0;
-    obs_array->observations[i].lock_time = nm[i].lock_time;
-    obs_array->observations[i].flags = nm[i].flags;
-
-    /* TOT is special. We want to recompute from the observation time and raw
-     * pseudorange because the navigation measurement tot will have already had
-     * clock corrections applied. */
-    obs_array->observations[i].tot = GPS_TIME_UNKNOWN;
-    if (t) {
-      obs_array->observations[i].tot = *t;
-      obs_array->observations[i].tot.tow -=
-          obs_array->observations[i].pseudorange / GPS_C;
-      normalize_gps_time(&obs_array->observations[i].tot);
-    }
-  }
-}
-
 static void me_post_observations(u8 n,
                                  const starling_obs_t _meas[],
                                  const ephemeris_t _ephem[],
@@ -136,18 +105,18 @@ static void me_post_observations(u8 n,
   }
 
   if (n > STARLING_MAX_OBS_COUNT) {
-    log_warn("ME: Trying to send %zu/%u observations, extra will be discarded.",
+    log_warn("ME: Trying to send %u/%u observations, extra will be discarded.",
              n,
              STARLING_MAX_OBS_COUNT);
     n = STARLING_MAX_OBS_COUNT;
   }
+  obs_array.n = n;
   if (n > 0) {
     MEMCPY_S(&obs_array.observations,
              sizeof(obs_array.observations),
-             &_meas,
+             _meas,
              n * sizeof(starling_obs_t));
   }
-  obs_array.n = n;
   ret = starling_send_rover_obs(&obs_array);
   if (STARLING_SEND_OK != ret) {
     log_error("ME: Unable to send observations.");
@@ -424,6 +393,10 @@ static void starling_obs_to_nav_meas(const starling_obs_t *obs,
   nm->tot = obs->tot;
   nm->sid = obs->sid;
   nm->flags = obs->flags;
+  double el;
+  if (track_sid_db_elevation_degrees_get(nm->sid, &el)) {
+    nm->elevation = el;
+  }
 }
 
 /* Apply corrections and solve for position from the given navigation

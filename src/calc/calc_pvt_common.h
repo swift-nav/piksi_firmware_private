@@ -23,20 +23,20 @@
 #include <swiftnav/gnss_time.h>
 #include <swiftnav/single_epoch_solver.h>
 
+#include "acq/manage.h"
 #include "calc_base_obs.h"
 #include "ephemeris/ephemeris.h"
-#include "main.h"
-#include "manage.h"
+#include "main/main.h"
 #include "nav_msg/cnav_msg_storage.h"
 #include "nmea/nmea.h"
 #include "peripherals/leds.h"
 #include "position/position.h"
-#include "sbp.h"
-#include "sbp_utils.h"
+#include "sbp/sbp.h"
+#include "sbp/sbp_utils.h"
 #include "settings/settings.h"
 #include "shm/shm.h"
 #include "signal_db/signal_db.h"
-#include "simulator.h"
+#include "simulator/simulator.h"
 #include "system_monitor/system_monitor.h"
 #include "timing/timing.h"
 
