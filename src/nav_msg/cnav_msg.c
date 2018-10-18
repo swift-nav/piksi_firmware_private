@@ -351,6 +351,7 @@ static bool _cnav_msg_decode(cnav_v27_part_t *part,
           break;
         case CNAV_MSG_TYPE_11:
         case CNAV_MSG_TYPE_32:
+        case CNAV_MSG_TYPE_0:
           /* No data to decode. This is added to store messages headers that
            * contain alert bit.
            */
