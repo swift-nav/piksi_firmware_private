@@ -15,6 +15,7 @@
 
 #include <stdbool.h>
 
+#include <libsbp/tracking.h>
 #include <starling/pvt_engine/firmware_binding.h>
 #include <starling/starling.h>
 #include <swiftnav/common.h>
@@ -63,16 +64,16 @@ typedef struct __attribute__((packed)) {
   u8 mode_mask;      /** < Current mode of the simulator */
 } simulation_settings_t;
 
-// Math Helpers:
-double rand_gaussian(const double variance);
+/** Math Helpers */
+double rand_gaussian(double variance);
 double lerp(double t, double u, double v, double x, double y);
 
-// Running the Simulation:
+/** Running the Simulation */
 void simulation_step(void);
 bool simulation_enabled(void);
 bool simulation_enabled_for(simulation_modes_t mode_mask);
 
-// Internals of the simulator
+/** Internals of the simulator */
 void simulation_step_position_in_circle(double);
 void simulation_step_tracking_and_observations(double);
 void populate_obs(starling_obs_t* obs,
@@ -81,10 +82,10 @@ void populate_obs(starling_obs_t* obs,
                   double vel,
                   int almanac_i);
 
-// Sending simulation settings to the outside world
+/** Sending simulation settings to the outside world */
 void sbp_send_simulation_enabled(void);
 
-// Getting data from the simulation
+/** Getting data from the simulation */
 pvt_engine_result_t* simulation_current_pvt_engine_result_t(void);
 dops_t* simulation_current_dops_solution(void);
 double* simulation_ref_ecef(void);
@@ -94,9 +95,9 @@ u8 simulation_current_num_sats(void);
 tracking_channel_state_t simulation_current_tracking_state(u8 channel);
 measurement_state_t simulation_measurement_state(u8 channel);
 
-starling_obs_t* simulation_current_obs(void);
+obs_array_t* simulation_current_obs(void);
 
-// Initialization:
+/** Initialization */
 void simulator_setup_almanacs(void);
 void simulator_setup(void);
 

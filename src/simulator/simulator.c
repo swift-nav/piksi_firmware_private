@@ -10,27 +10,27 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "simulator.h"
+
+#include <assert.h>
 #include <float.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include <assert.h>
 #include <swiftnav/almanac.h>
 #include <swiftnav/constants.h>
 #include <swiftnav/coord_system.h>
 #include <swiftnav/gnss_time.h>
 #include <swiftnav/linear_algebra.h>
 
-#include "settings/settings.h"
-
-#include "calc_pvt_me.h"
+#include "calc/calc_pvt_me.h"
+#include "hal/piksi_systime.h"
 #include "peripherals/leds.h"
-#include "piksi_systime.h"
-#include "sbp.h"
-#include "sbp_utils.h"
-#include "simulator.h"
+#include "sbp/sbp.h"
+#include "sbp/sbp_utils.h"
+#include "settings/settings.h"
 
 #include "simulator_data.h"
 
@@ -66,8 +66,8 @@ struct {
 
   tracking_channel_state_t tracking_channel[MAX_CHANNELS];
   measurement_state_t state_meas[MAX_CHANNELS];
-  starling_obs_t obs[MAX_CHANNELS];
-  starling_obs_t base_obs[MAX_CHANNELS];
+  obs_array_t obs_array;
+  obs_array_t base_obs_array;
   dops_t dops;
   pvt_engine_result_t noisy_solution;
 
@@ -81,8 +81,8 @@ struct {
     .num_sats_selected = 0,
     /* .state_meas left uninitialized */
     /* .tracking_channel left uninitialized */
-    /* .obs left uninitialized */
-    /* .base_obs left uninitialized */
+    /* .obs_array left uninitialized */
+    /* .base_obs_array left uninitialized */
     .dops =
         {
             .pdop = 1.9, .gdop = 1.8, .tdop = 1.7, .hdop = 1.6, .vdop = 1.5,
@@ -301,13 +301,13 @@ void simulation_step_tracking_and_observations(double elapsed) {
       /* the carrier phase as a noisy range in wavelengths + an integer offset.
        */
 
-      populate_obs(&sim_state.obs[num_sats_selected],
+      populate_obs(&sim_state.obs_array.observations[num_sats_selected],
                    distance_to_sat,
                    el,
                    sat_vel_mag,
                    i);
 
-      populate_obs(&sim_state.base_obs[num_sats_selected],
+      populate_obs(&sim_state.base_obs_array.observations[num_sats_selected],
                    base_distance_to_sat,
                    el,
                    sat_vel_mag,
@@ -325,7 +325,7 @@ void simulation_step_tracking_and_observations(double elapsed) {
           0; /* FIXME: do properly */
       sim_state.state_meas[num_sats_selected].mesid.sat = sid.sat;
       sim_state.state_meas[num_sats_selected].mesid.code = sid.code;
-      float fTmpCN0 = sim_state.obs[num_sats_selected].cn0;
+      float fTmpCN0 = sim_state.obs_array.observations[num_sats_selected].cn0;
       fTmpCN0 = (fTmpCN0 <= 0) ? 0 : fTmpCN0;
       fTmpCN0 = (fTmpCN0 >= 63.75) ? 63.75 : fTmpCN0;
       sim_state.tracking_channel[num_sats_selected].cn0 = rintf(fTmpCN0 * 4.0);
@@ -334,7 +334,10 @@ void simulation_step_tracking_and_observations(double elapsed) {
       num_sats_selected++;
     }
   }
-
+  sim_state.obs_array.n = num_sats_selected;
+  sim_state.base_obs_array.n = num_sats_selected;
+  sim_state.obs_array.t = t;
+  sim_state.base_obs_array.t = t;
   sim_state.noisy_solution.num_sats_used = num_sats_selected;
   sim_state.noisy_solution.num_sigs_used = num_sats_selected;
 }
@@ -451,14 +454,16 @@ measurement_state_t simulation_measurement_state(u8 channel) {
 
 /** Returns the simulated navigation measurement of our moving position.
 */
-starling_obs_t* simulation_current_obs(void) { return sim_state.obs; }
+obs_array_t* simulation_current_obs(void) { return &sim_state.obs_array; }
 
 /** Returns the simulated navigation measurement at the base position
 * for the simulation (aka the non-moving point around which the simulation
 * moves).
 * This is useful for testing RTK algorithms in hardware.
 */
-starling_obs_t* simulation_current_base_obs(void) { return sim_state.base_obs; }
+obs_array_t* simulation_current_base_obs(void) {
+  return &sim_state.base_obs_array;
+}
 
 /**
 * Do any setup we need for the satellite almanacs.
