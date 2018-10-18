@@ -705,7 +705,7 @@ void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
    */
   gps_time_t epoch_time = *solution_epoch_time;
   u8 time_qual = get_time_quality();
-  if (!gps_time_valid(&epoch_time) && TIME_PROPAGATED <= time_qual) {
+  if (!gps_time_valid(&epoch_time)) {
     epoch_time = get_current_time();
     epoch_time = gps_time_round_to_epoch(&epoch_time, soln_freq_setting);
   }

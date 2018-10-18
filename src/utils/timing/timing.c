@@ -33,8 +33,8 @@
 /** Clock state */
 static volatile clock_est_state_t persistent_clock_state = {
     .tc = 0,
-    .t_gps = GPS_TIME_UNKNOWN,
-    .t0_gps = GPS_TIME_UNKNOWN,
+    .t_gps = GPS_TIME_START,
+    .t0_gps = GPS_TIME_START,
     .tick_length_s = 0,
     .clock_rate = 0,
     .P = {{0, 0}, {0, 0}},
