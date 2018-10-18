@@ -89,6 +89,35 @@ static soln_stats_t last_stats = {.signals_tracked = 0, .signals_useable = 0};
 
 /* STATIC FUNCTIONS */
 
+/******************************************************************************/
+static void meas_to_obs(obs_array_t *obs_array,
+                        const gps_time_t *t,
+                        u8 n,
+                        const navigation_measurement_t nm[]) {
+  assert(n <= STARLING_MAX_OBS_COUNT);
+  obs_array->n = n;
+  for (size_t i = 0; i < obs_array->n; ++i) {
+    obs_array->observations[i].sid = nm[i].sid;
+    obs_array->observations[i].pseudorange = nm[i].raw_pseudorange;
+    obs_array->observations[i].carrier_phase = nm[i].raw_carrier_phase;
+    obs_array->observations[i].doppler = nm[i].raw_measured_doppler;
+    obs_array->observations[i].cn0 = nm[i].cn0;
+    obs_array->observations[i].lock_time = nm[i].lock_time;
+    obs_array->observations[i].flags = nm[i].flags;
+
+    /* TOT is special. We want to recompute from the observation time and raw
+     * pseudorange because the navigation measurement tot will have already had
+     * clock corrections applied. */
+    obs_array->observations[i].tot = GPS_TIME_UNKNOWN;
+    if (t) {
+      obs_array->observations[i].tot = *t;
+      obs_array->observations[i].tot.tow -=
+          obs_array->observations[i].pseudorange / GPS_C;
+      normalize_gps_time(&obs_array->observations[i].tot);
+    }
+  }
+}
+
 static void me_post_observations(u8 n,
                                  const navigation_measurement_t _meas[],
                                  const ephemeris_t _ephem[],
@@ -98,7 +127,22 @@ static void me_post_observations(u8 n,
     log_error("ME: Unable to send ephemeris array.");
   }
 
-  ret = starling_send_rover_obs(_t, _meas, n);
+  obs_array_t obs_array;
+  obs_array.sender = 0;
+  obs_array.t = GPS_TIME_UNKNOWN;
+  if (NULL != _t) {
+    obs_array.t = *_t;
+  }
+
+  if (n > STARLING_MAX_OBS_COUNT) {
+    log_warn("ME: Trying to send %zu/%u observations, extra will be discarded.",
+             n,
+             STARLING_MAX_OBS_COUNT);
+    n = STARLING_MAX_OBS_COUNT;
+  }
+  meas_to_obs(&obs_array, _t, n, _meas);
+
+  ret = starling_send_rover_obs(&obs_array);
   if (STARLING_SEND_OK != ret) {
     log_error("ME: Unable to send observations.");
   }
