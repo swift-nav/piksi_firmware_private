@@ -32,7 +32,7 @@ s8 calc_navigation_measurement(u8 n_channels,
 
 void apply_gps_cnav_isc(u8 n_channels,
                         navigation_measurement_t *nav_meas[],
-                        const ephemeris_t *p_ephe[]);
+                        const ephemeris_t ephe[]);
 
 #ifdef __cplusplus
 } /* extern "C" */

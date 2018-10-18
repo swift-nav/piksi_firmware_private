@@ -410,7 +410,7 @@ static void starling_obs_to_nav_meas(const starling_obs_t *obs,
  * measurements, and if succesful update LGF and clock model */
 static s8 me_compute_pvt(const obs_array_t *obs_array,
                          u64 current_tc,
-                         const ephemeris_t *p_e_meas[],
+                         const ephemeris_t e_meas[],
                          last_good_fix_t *lgf) {
   u8 n_ready = obs_array->n;
   gnss_sid_set_t codes;
@@ -437,7 +437,7 @@ static s8 me_compute_pvt(const obs_array_t *obs_array,
   /* Compute satellite positions, velocities, and satellite clock and
    * clock rate corrections for all measurements*/
   for (u8 i = 0; i < n_ready; i++) {
-    s8 sc_ret = calc_sat_state(p_e_meas[i],
+    s8 sc_ret = calc_sat_state(&e_meas[i],
                                &(p_nav_meas[i]->tot),
                                p_nav_meas[i]->sat_pos,
                                p_nav_meas[i]->sat_vel,
@@ -449,7 +449,7 @@ static s8 me_compute_pvt(const obs_array_t *obs_array,
 
     if (sc_ret != 0) {
       log_error_sid(
-          p_e_meas[i]->sid, "calc_sat_state() returned error %d", sc_ret);
+          e_meas[i].sid, "calc_sat_state() returned error %d", sc_ret);
       return PVT_INSUFFICENT_MEAS; /* TODO define "other error?" */
     }
   }
@@ -458,7 +458,7 @@ static s8 me_compute_pvt(const obs_array_t *obs_array,
   apply_sat_clock_corrections(n_ready, p_nav_meas);
 
   /* apply GPS inter-signal corrections from CNAV messages */
-  apply_gps_cnav_isc(n_ready, p_nav_meas, p_e_meas);
+  apply_gps_cnav_isc(n_ready, p_nav_meas, e_meas);
 
   /* apply iono and tropo corrections if LGF available */
   if (lgf->position_quality >= POSITION_GUESS) {
@@ -671,13 +671,11 @@ static void me_calc_pvt_thread(void *arg) {
 
     const channel_measurement_t *p_meas[n_ready];
     starling_obs_t *p_obs[n_ready];
-    const ephemeris_t *p_e_meas[n_ready];
 
     /* Create arrays of pointers for use in calc_navigation_measurement */
     for (u8 i = 0; i < n_ready; i++) {
       p_meas[i] = &meas[i];
       p_obs[i] = &obs_array.observations[i];
-      p_e_meas[i] = &e_meas[i];
     }
 
     /* GPS time is invalid on the first fix, form a coarse estimate from the
@@ -708,10 +706,10 @@ static void me_calc_pvt_thread(void *arg) {
      * models. Compute on every epoch until the time quality gets to FINEST,
      * otherwise at a lower rate */
     if (TIME_FINEST > time_quality) {
-      me_compute_pvt(&obs_array, current_tc, p_e_meas, &lgf);
+      me_compute_pvt(&obs_array, current_tc, e_meas, &lgf);
     } else {
       DO_EACH_MS(ME_PVT_INTERVAL_S * SECS_MS,
-                 me_compute_pvt(&obs_array, current_tc, p_e_meas, &lgf));
+                 me_compute_pvt(&obs_array, current_tc, e_meas, &lgf));
     }
 
     /* Get the current estimate of GPS time and receiver clock drift */
