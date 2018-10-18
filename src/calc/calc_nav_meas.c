@@ -135,6 +135,11 @@ s8 calc_navigation_measurement(u8 n_channels,
                                const channel_measurement_t meas[],
                                obs_array_t *obs_array,
                                const gps_time_t *rec_time) {
+  /* initialize the obs array */
+  obs_array->sender = 0;
+  obs_array->t = *rec_time;
+  obs_array->n = n_channels;
+
   /* To calculate the pseudorange from the time of transmit we need the local
    * time of reception. */
   if (!gps_time_valid(rec_time)) {
@@ -144,6 +149,7 @@ s8 calc_navigation_measurement(u8 n_channels,
   }
 
   assert(n_channels <= MAX_CHANNELS);
+  assert(n_channels <= STARLING_MAX_OBS_COUNT);
   for (u8 i = 0; i < n_channels; ++i) {
     s8 ret = convert_channel_measurement_to_starling_obs(
         rec_time, &meas[i], &obs_array->observations[i]);
@@ -151,7 +157,7 @@ s8 calc_navigation_measurement(u8 n_channels,
       return ret;
     }
   }
-  obs_array->t = *rec_time;
+
   return 0;
 }
 

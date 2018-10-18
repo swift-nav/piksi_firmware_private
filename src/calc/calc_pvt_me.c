@@ -88,36 +88,15 @@ static soln_stats_t last_stats = {.signals_tracked = 0, .signals_useable = 0};
 /* STATIC FUNCTIONS */
 
 /******************************************************************************/
-static void me_post_observations(u8 n,
-                                 const starling_obs_t _meas[],
-                                 const ephemeris_t _ephem[],
-                                 const gps_time_t *_t) {
-  int ret = starling_send_ephemerides(_ephem, n);
+static void me_post_observations(const obs_array_t *obs_array,
+                                 const ephemeris_t _ephem[]) {
+  assert(NULL != obs_array);
+  int ret = starling_send_ephemerides(_ephem, obs_array->n);
   if (STARLING_SEND_OK != ret) {
     log_error("ME: Unable to send ephemeris array.");
   }
 
-  obs_array_t obs_array;
-  obs_array.sender = 0;
-  obs_array.t = GPS_TIME_UNKNOWN;
-  if (NULL != _t) {
-    obs_array.t = *_t;
-  }
-
-  if (n > STARLING_MAX_OBS_COUNT) {
-    log_warn("ME: Trying to send %u/%u observations, extra will be discarded.",
-             n,
-             STARLING_MAX_OBS_COUNT);
-    n = STARLING_MAX_OBS_COUNT;
-  }
-  obs_array.n = n;
-  if (n > 0) {
-    MEMCPY_S(&obs_array.observations,
-             sizeof(obs_array.observations),
-             _meas,
-             n * sizeof(starling_obs_t));
-  }
-  ret = starling_send_rover_obs(&obs_array);
+  ret = starling_send_rover_obs(obs_array);
   if (STARLING_SEND_OK != ret) {
     log_error("ME: Unable to send observations.");
   }
@@ -132,21 +111,22 @@ static bool decimate_observations(const gps_time_t *_t) {
   return fabs(gpsdifftime(_t, &epoch)) < TIME_MATCH_THRESHOLD;
 }
 
-static void me_send_all(u8 _num_obs,
-                        const starling_obs_t _meas[],
-                        const ephemeris_t _ephem[],
-                        const gps_time_t *_t) {
-  me_post_observations(_num_obs, _meas, _ephem, _t);
+static void me_send_all(const obs_array_t *obs_array,
+                        const ephemeris_t _ephem[]) {
+  me_post_observations(obs_array, _ephem);
   /* Output observations only every obs_output_divisor times, taking
    * care to ensure that the observations are aligned. */
-  if (decimate_observations(_t) && !simulation_enabled()) {
-    send_observations(_num_obs, msg_obs_max_size, _meas, _t);
+  if (decimate_observations(&obs_array->t) && !simulation_enabled()) {
+    send_observations(obs_array, msg_obs_max_size);
   }
   DO_EVERY(biases_message_freq_setting, send_glonass_biases());
 }
 
 static void me_send_emptyobs(void) {
-  me_post_observations(0, NULL, NULL, NULL);
+  obs_array_t obs_array;
+  obs_array.n = 0;
+  obs_array.t = GPS_TIME_UNKNOWN;
+  me_post_observations(&obs_array, NULL);
   /* When we don't have a time solve, we still want to decimate our
    * observation output, we can use the GPS time if we have one,
    * otherwise we'll default to using receiver time. */
@@ -157,7 +137,7 @@ static void me_send_emptyobs(void) {
     current_time = gps_time_round_to_epoch(&current_time, soln_freq_setting);
   }
   if (decimate_observations(&current_time) && !simulation_enabled()) {
-    send_observations(0, msg_obs_max_size, NULL, NULL);
+    send_observations(NULL, msg_obs_max_size);
   }
 }
 
@@ -221,13 +201,11 @@ static void me_send_failed_obs(obs_array_t *obs_array,
     obs_array->observations[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION;
   }
 
-  me_post_observations(
-      obs_array->n, obs_array->observations, _ephem, &obs_array->t);
+  me_post_observations(obs_array, _ephem);
   /* Output observations only every obs_output_divisor times, taking
    * care to ensure that the observations are aligned. */
   if (decimate_observations(&obs_array->t) && !simulation_enabled()) {
-    send_observations(
-        obs_array->n, msg_obs_max_size, obs_array->observations, &obs_array->t);
+    send_observations(obs_array, msg_obs_max_size);
   }
 }
 
@@ -663,11 +641,6 @@ static void me_calc_pvt_thread(void *arg) {
       continue;
     }
 
-    static obs_array_t obs_array;
-    obs_array.sender = 0;
-    obs_array.t = GPS_TIME_UNKNOWN;
-    obs_array.n = n_ready;
-
     /* GPS time is invalid on the first fix, form a coarse estimate from the
      * first pseudorange measurement */
     if (!gps_time_valid(&current_time)) {
@@ -677,7 +650,9 @@ static void me_calc_pvt_thread(void *arg) {
       gps_time_match_weeks(&current_time, &e_meas[0].toe);
     }
 
-    /* Create navigation measurements from the channel measurements */
+    /* Initialize the observation array and create navigation measurements from
+     * the channel measurements */
+    obs_array_t obs_array;
     s8 nm_ret =
         calc_navigation_measurement(n_ready, meas, &obs_array, &current_time);
 
@@ -728,7 +703,7 @@ static void me_calc_pvt_thread(void *arg) {
       remove_clock_offset(&obs_array, &output_time, smoothed_drift, current_tc);
 
       /* Send the observations. */
-      me_send_all(obs_array.n, obs_array.observations, e_meas, &obs_array.t);
+      me_send_all(&obs_array, e_meas);
     } else {
       log_info("clock_offset %.3f s greater than OBS_PROPAGATION_LIMIT",
                output_offset);

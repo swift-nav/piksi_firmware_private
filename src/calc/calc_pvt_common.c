@@ -10,18 +10,16 @@
 /** Max velocity accuracy we allow to output a SPP solution */
 #define MAX_SPP_VEL_ACCURACY_M_PER_S 10.0
 
-void send_observations(u8 n,
-                       u32 msg_obs_max_size,
-                       const starling_obs_t m[],
-                       const gps_time_t *t) {
-  static u8 buff[256];
-
-  if ((0 == n) || (NULL == m) || (NULL == t)) {
+void send_observations(const obs_array_t *obs_array, u32 msg_obs_max_size) {
+  static u8 buff[SBP_FRAMING_MAX_PAYLOAD_SIZE + 1];
+  if ((NULL == obs_array) || (0 == obs_array->n)) {
     gps_time_t t_dummy = GPS_TIME_UNKNOWN;
     pack_obs_header(&t_dummy, 1, 0, (observation_header_t *)buff);
     sbp_send_msg(SBP_MSG_OBS, sizeof(observation_header_t), buff);
     return;
   }
+
+  u8 n = obs_array->n;
 
   /* Upper limit set by SBP framing size, preventing underflow */
   u16 msg_payload_size =
@@ -41,18 +39,19 @@ void send_observations(u8 n,
   u8 obs_i = 0;
   for (u8 count = 0; count < total; count++) {
     u8 curr_n = MIN(n - obs_i, obs_in_msg);
-    pack_obs_header(t, total, count, (observation_header_t *)buff);
+    pack_obs_header(&obs_array->t, total, count, (observation_header_t *)buff);
     packed_obs_content_t *obs =
         (packed_obs_content_t *)&buff[sizeof(observation_header_t)];
 
     for (u8 i = 0; i < curr_n; i++, obs_i++) {
-      if (pack_obs_content(m[obs_i].pseudorange,
-                           m[obs_i].carrier_phase,
-                           m[obs_i].doppler,
-                           m[obs_i].cn0,
-                           m[obs_i].lock_time,
-                           m[obs_i].flags,
-                           m[obs_i].sid,
+      const starling_obs_t *m = &obs_array->observations[obs_i];
+      if (pack_obs_content(m->pseudorange,
+                           m->carrier_phase,
+                           m->doppler,
+                           m->cn0,
+                           m->lock_time,
+                           m->flags,
+                           m->sid,
                            &obs[i]) < 0) {
         /* Error packing this observation, skip it. */
         i--;

@@ -458,10 +458,10 @@ static void starling_integration_solution_simulation(
       /* RFT_TODO *
        * SBP_FRAMING_MAX_PAYLOAD_SIZE replaces the setting for now, but
        * this function will completely go away */
-      send_observations(simulation_current_num_sats(),
-                        SBP_FRAMING_MAX_PAYLOAD_SIZE,
-                        simulation_current_obs(),
-                        &(soln->time));
+      obs_array_t obs_array;
+      obs_array.t = soln->time;
+      obs_array.n = simulation_current_num_sats();
+      send_observations(&obs_array, SBP_FRAMING_MAX_PAYLOAD_SIZE);
     }
   }
 }

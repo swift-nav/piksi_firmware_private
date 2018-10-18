@@ -44,10 +44,7 @@
 extern "C" {
 #endif
 
-void send_observations(u8 n,
-                       u32 msg_obs_max_size,
-                       const starling_obs_t m[],
-                       const gps_time_t *t);
+void send_observations(const obs_array_t *obs_array, u32 msg_obs_max_size);
 
 bool gate_covariance(gnss_solution *soln);
 
