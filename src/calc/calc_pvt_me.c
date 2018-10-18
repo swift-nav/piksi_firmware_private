@@ -226,10 +226,8 @@ static void me_send_failed_obs(obs_array_t *obs_array,
   /* Output observations only every obs_output_divisor times, taking
    * care to ensure that the observations are aligned. */
   if (decimate_observations(&obs_array->t) && !simulation_enabled()) {
-    send_observations(obs_array->n,
-                      msg_obs_max_size,
-                      obs_array->observations,
-                      &obs_array->t);
+    send_observations(
+        obs_array->n, msg_obs_max_size, obs_array->observations, &obs_array->t);
   }
 }
 
@@ -646,6 +644,7 @@ static void me_calc_pvt_thread(void *arg) {
     collect_measurements(
         current_tc, meas, in_view, e_meas, &n_ready, &n_inview, &n_total);
 
+    /* Send GSV messages for all satellites in track */
     nmea_send_gsv(n_inview, in_view);
 
     log_debug("Selected %" PRIu8 " measurement(s) out of %" PRIu8
@@ -669,12 +668,10 @@ static void me_calc_pvt_thread(void *arg) {
     obs_array.t = GPS_TIME_UNKNOWN;
     obs_array.n = n_ready;
 
-    const channel_measurement_t *p_meas[n_ready];
     starling_obs_t *p_obs[n_ready];
 
     /* Create arrays of pointers for use in calc_navigation_measurement */
     for (u8 i = 0; i < n_ready; i++) {
-      p_meas[i] = &meas[i];
       p_obs[i] = &obs_array.observations[i];
     }
 
@@ -687,11 +684,9 @@ static void me_calc_pvt_thread(void *arg) {
       gps_time_match_weeks(&current_time, &e_meas[0].toe);
     }
 
-    obs_array.t = current_time;
-
     /* Create navigation measurements from the channel measurements */
     s8 nm_ret =
-        calc_navigation_measurement(n_ready, p_meas, p_obs, &current_time);
+        calc_navigation_measurement(n_ready, meas, &obs_array, &current_time);
 
     if (nm_ret != 0) {
       log_error("calc_navigation_measurement() returned error %d", nm_ret);

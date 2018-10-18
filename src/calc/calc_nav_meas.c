@@ -126,16 +126,14 @@ static s8 convert_channel_measurement_to_starling_obs(
 /** Calculate observations from tracking channel measurements.
  *
  * \param n_channels Number of tracking channel measurements
- * \param meas Array of pointers to tracking channel measurements, length
- *             `n_channels`
- * \param obs Array of pointers of where to store the output observations,
- *            length `n_channels`
+ * \param meas Array of tracking channel measurements, length `n_channels`
+ * \param obs_array Observation array for storing the observations
  * \param rec_time Pointer to an estimate of the GPS time at reception time
  * \return '0' for success, '-1' for measurement sanity check error
  */
 s8 calc_navigation_measurement(u8 n_channels,
-                               const channel_measurement_t *meas[],
-                               starling_obs_t *obs[],
+                               const channel_measurement_t meas[],
+                               obs_array_t *obs_array,
                                const gps_time_t *rec_time) {
   /* To calculate the pseudorange from the time of transmit we need the local
    * time of reception. */
@@ -147,12 +145,13 @@ s8 calc_navigation_measurement(u8 n_channels,
 
   assert(n_channels <= MAX_CHANNELS);
   for (u8 i = 0; i < n_channels; ++i) {
-    s8 ret =
-        convert_channel_measurement_to_starling_obs(rec_time, meas[i], obs[i]);
+    s8 ret = convert_channel_measurement_to_starling_obs(
+        rec_time, &meas[i], &obs_array->observations[i]);
     if (ret) {
       return ret;
     }
   }
+  obs_array->t = *rec_time;
   return 0;
 }
 
