@@ -18,7 +18,7 @@
 /* Send the glonass bias message every 5 observations message */
 extern const u32 biases_message_freq_setting;
 
-void apply_isc_table(u8 n_channels, starling_obs_t *obs[]);
+void apply_isc_table(obs_array_t *obs_array);
 
 void send_glonass_biases(void);
 

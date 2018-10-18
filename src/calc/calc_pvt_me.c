@@ -668,13 +668,6 @@ static void me_calc_pvt_thread(void *arg) {
     obs_array.t = GPS_TIME_UNKNOWN;
     obs_array.n = n_ready;
 
-    starling_obs_t *p_obs[n_ready];
-
-    /* Create arrays of pointers for use in calc_navigation_measurement */
-    for (u8 i = 0; i < n_ready; i++) {
-      p_obs[i] = &obs_array.observations[i];
-    }
-
     /* GPS time is invalid on the first fix, form a coarse estimate from the
      * first pseudorange measurement */
     if (!gps_time_valid(&current_time)) {
@@ -695,7 +688,7 @@ static void me_calc_pvt_thread(void *arg) {
     }
 
     /* Apply empirical (Piksi Multi specific) inter-signal corrections */
-    apply_isc_table(n_ready, p_obs);
+    apply_isc_table(&obs_array);
 
     /* Compute a PVT solution from the measurements to update LGF and clock
      * models. Compute on every epoch until the time quality gets to FINEST,
