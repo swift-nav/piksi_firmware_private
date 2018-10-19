@@ -133,7 +133,6 @@ static bool dgnss_timeout(piksi_systime_t *_last_dgnss,
   return (piksi_systime_elapsed_since_ms(_last_dgnss) > DGNSS_TIMEOUT_MS);
 }
 
-
 void starling_integration_sbp_messages_init(sbp_messages_t *sbp_messages,
                                             const gps_time_t *epoch_time,
                                             u8 time_qual) {

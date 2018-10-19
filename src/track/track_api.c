@@ -287,8 +287,8 @@ void tracker_bit_sync_update(tracker_t *tracker,
               mesid.sat,
               tracker->corrs.corr_cn0.prompt.I,
               tracker->corrs.corr_cn0.prompt.Q,
-              tracker->corrs.corr_cn0.very_late.I,
-              tracker->corrs.corr_cn0.very_late.Q);
+              tracker->corrs.corr_cn0.dp_prompt.I,
+              tracker->corrs.corr_cn0.dp_prompt.Q);
   }
 
   s8 soft_bit = nav_bit_quantize(bit_integrate);

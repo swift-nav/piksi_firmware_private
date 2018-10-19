@@ -419,14 +419,26 @@ void nap_track_update(u8 channel,
   t->CARR_PINC = carr_pinc;
 }
 
+#define BUILD_BUG_ON(condition) ((void)sizeof(char[1 - 2 * !!(condition)]))
+
+/* see if not enforcing `const volatile` leads to better compiler optimization
+ * below */
+typedef struct {
+  u32 STATUS;
+  u32 TIMING_SNAPSHOT;
+  s16 CORR16[12];
+} tracking_rd_t;
+
 void nap_track_read_results(u8 channel,
                             u32 *count_snapshot,
                             corr_t corrs[],
                             double *code_phase_prompt,
                             double *carrier_phase) {
-  static swiftnap_tracking_rd_t trk_ch;
+  tracking_rd_t trk_ch;
   swiftnap_tracking_rd_t *t = &NAP->TRK_CH_RD[channel];
   struct nap_ch_state *s = &nap_ch_desc[channel];
+
+  BUILD_BUG_ON(sizeof(tracking_rd_t) != sizeof(swiftnap_tracking_rd_t));
 
   /* Read track channel data
    * NOTE: Compiler couldn't optimize MEMCPY_S over AXI so using regular memcpy
@@ -435,21 +447,29 @@ void nap_track_read_results(u8 channel,
 
   *count_snapshot = trk_ch.TIMING_SNAPSHOT;
 
-  /* E correlator */
-  corrs[0].I = (s16)(trk_ch.CORR[0] & 0xFFFF);
-  corrs[0].Q = (s16)((trk_ch.CORR[0] >> 16) & 0xFFFF);
+  /* pilot/data E correlator */
+  corrs[0].I = trk_ch.CORR16[0];
+  corrs[0].Q = trk_ch.CORR16[1];
 
-  /* P correlator */
-  corrs[1].I = (s16)(trk_ch.CORR[1] & 0xFFFF);
-  corrs[1].Q = (s16)((trk_ch.CORR[1] >> 16) & 0xFFFF);
+  /* pilot/data P correlator */
+  corrs[1].I = trk_ch.CORR16[2];
+  corrs[1].Q = trk_ch.CORR16[3];
 
-  /* L correlator */
-  corrs[2].I = (s16)(trk_ch.CORR[2] & 0xFFFF);
-  corrs[2].Q = (s16)((trk_ch.CORR[2] >> 16) & 0xFFFF);
+  /* pilot/data L correlator */
+  corrs[2].I = trk_ch.CORR16[4];
+  corrs[2].Q = trk_ch.CORR16[5];
 
-  /* VL correlator */
-  corrs[4].I = (s16)(trk_ch.CORR[3] & 0xFFFF);
-  corrs[4].Q = (s16)((trk_ch.CORR[3] >> 16) & 0xFFFF);
+  /* data/pilot E correlator */
+  corrs[3].I = trk_ch.CORR16[6];
+  corrs[3].Q = trk_ch.CORR16[7];
+
+  /* data/pilot P correlator */
+  corrs[4].I = trk_ch.CORR16[8];
+  corrs[4].Q = trk_ch.CORR16[9];
+
+  /* data/pilot L correlator */
+  corrs[5].I = trk_ch.CORR16[10];
+  corrs[5].Q = trk_ch.CORR16[11];
 
   /* Spacing between VE and P correlators */
   double prompt_offset =

@@ -10,7 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-/* SwiftNAP v4.7.0 register map */
+/* SwiftNAP v4.8.0 register map */
 
 #ifndef SWIFTNAP_H
 #define SWIFTNAP_H
@@ -18,7 +18,7 @@
 #include <swiftnav/common.h>
 
 /* Version */
-#define NAP_VERSION (0x04070000)
+#define NAP_VERSION (0x04080000)
 
 /* Number of tracking channels */
 #define NAP_NUM_TRACKING_CHANNELS (73U)
@@ -54,7 +54,7 @@
 #define NAP_FIRST_AUX_L1_CHANNEL (73U)
 
 /* Number of readable tracking channel registers */
-#define NAP_NUM_TRACKING_READABLE (6U)
+#define NAP_NUM_TRACKING_READABLE (8U)
 
 /* Number of writeable tracking channel registers */
 #define NAP_NUM_TRACKING_WRITEABLE (3U)
@@ -118,7 +118,7 @@ static const swiftnap_code_t swiftnap_code_map[NAP_NUM_TRACKING_CHANNELS] =
 typedef struct {
   const volatile u32 STATUS;
   const volatile u32 TIMING_SNAPSHOT;
-  const volatile u32 CORR[4];
+  const volatile u32 CORR[6];
 } swiftnap_tracking_rd_t;
 
 /* Tracking channel writeable register structure */
@@ -325,6 +325,17 @@ typedef struct {
 #define SET_NAP_CONTROL_EXT_EVENT_TIMEOUT2(REG, VAL) \
   (((REG) & ~NAP_CONTROL_EXT_EVENT_TIMEOUT2_Msk) |   \
    ((VAL) << NAP_CONTROL_EXT_EVENT_TIMEOUT2_Pos))
+
+#define NAP_CONTROL_CAN_TERM_ENABLE_Pos (13U)
+#define NAP_CONTROL_CAN_TERM_ENABLE_Len (1U)
+#define NAP_CONTROL_CAN_TERM_ENABLE_Rst (0x0U)
+#define NAP_CONTROL_CAN_TERM_ENABLE_Msk \
+  (0x1U << NAP_CONTROL_CAN_TERM_ENABLE_Pos)
+#define GET_NAP_CONTROL_CAN_TERM_ENABLE(REG) \
+  (((REG)&NAP_CONTROL_CAN_TERM_ENABLE_Msk) >> NAP_CONTROL_CAN_TERM_ENABLE_Pos)
+#define SET_NAP_CONTROL_CAN_TERM_ENABLE(REG, VAL) \
+  (((REG) & ~NAP_CONTROL_CAN_TERM_ENABLE_Msk) |   \
+   ((VAL) << NAP_CONTROL_CAN_TERM_ENABLE_Pos))
 
 /* Register: NAP_AUTHENTICATION */
 #define NAP_AUTHENTICATION_OPERATION_Pos (16U)
@@ -3551,4 +3562,4 @@ typedef struct {
   (((REG) & ~NAP_TRK_CH_CODE_PINC_VALUE_Msk) |   \
    ((VAL) << NAP_TRK_CH_CODE_PINC_VALUE_Pos))
 
-#endif
+#endif /* SWIFTNAP_H */
