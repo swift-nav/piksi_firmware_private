@@ -419,6 +419,8 @@ void nap_track_update(u8 channel,
   t->CARR_PINC = carr_pinc;
 }
 
+#define BUILD_BUG_ON(condition) ((void)sizeof(char[1 - 2 * !!(condition)]))
+
 /* see if not enforcing `const volatile` leads to better compiler optimization
  * below */
 typedef struct {
@@ -432,9 +434,11 @@ void nap_track_read_results(u8 channel,
                             corr_t corrs[],
                             double *code_phase_prompt,
                             double *carrier_phase) {
-  static tracking_rd_t trk_ch;
+  tracking_rd_t trk_ch;
   swiftnap_tracking_rd_t *t = &NAP->TRK_CH_RD[channel];
   struct nap_ch_state *s = &nap_ch_desc[channel];
+
+  BUILD_BUG_ON(sizeof(tracking_rd_t) != sizeof(swiftnap_tracking_rd_t));
 
   /* Read track channel data
    * NOTE: Compiler couldn't optimize MEMCPY_S over AXI so using regular memcpy
