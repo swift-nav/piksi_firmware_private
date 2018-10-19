@@ -50,8 +50,8 @@ static inline corr_t corr_inv(const corr_t a) {
 static inline tp_epl_corr_t *corr_epl_add(const tp_epl_corr_t *restrict a,
                                           const tp_epl_corr_t *restrict b,
                                           tp_epl_corr_t *restrict res) {
-  for (unsigned i = 0; i < TP_DLL_PLL_MEAS_DIM; ++i)
-    res->five[i] = corr_add(a->five[i], b->five[i]);
+  for (unsigned i = 0; i < TP_CORR_DATAPILOT_DIM; ++i)
+    res->all[i] = corr_add(a->all[i], b->all[i]);
 
   return res;
 }
@@ -65,8 +65,8 @@ static inline tp_epl_corr_t *corr_epl_add(const tp_epl_corr_t *restrict a,
  */
 static inline tp_epl_corr_t *corr_epl_inv(const tp_epl_corr_t *restrict a,
                                           tp_epl_corr_t *restrict res) {
-  for (u8 i = 0; i < TP_DLL_PLL_MEAS_DIM; ++i)
-    res->five[i] = corr_inv(a->five[i]);
+  for (u8 i = 0; i < TP_CORR_DATAPILOT_DIM; ++i)
+    res->all[i] = corr_inv(a->all[i]);
 
   return res;
 }
@@ -98,10 +98,10 @@ void tp_update_correlators(u32 cycle_flags,
   }
 
   if (0 != (cycle_flags & TPF_EPL_SET))
-    corr_state->corr_all = *cs_straight;
+    corr_state->corr_main = *cs_straight;
   else if (0 != (cycle_flags & TPF_EPL_ADD))
-    corr_state->corr_all =
-        *corr_epl_add(&corr_state->corr_all, cs_straight, &tmp_epl);
+    corr_state->corr_main =
+        *corr_epl_add(&corr_state->corr_main, cs_straight, &tmp_epl);
 
   /* C/N0 estimator accumulators updates */
   if (0 != (cycle_flags & TPF_CN0_SET))
@@ -135,7 +135,7 @@ void tp_update_correlators(u32 cycle_flags,
   }
 
   /* Message payload / bit sync accumulator updates */
-  corr_t bit = (0 != (cycle_flags & TPF_BIT_PILOT)) ? cs_straight->very_late
+  corr_t bit = (0 != (cycle_flags & TPF_BIT_PILOT)) ? cs_straight->dp_prompt
                                                     : cs_straight->prompt;
   if (0 != (cycle_flags & TPF_BSYNC_SET)) {
     corr_state->corr_bit = bit;

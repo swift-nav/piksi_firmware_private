@@ -24,7 +24,8 @@
 #include "track_cn0.h"
 #include "track_loop/trk_loop_common.h"
 
-#define TP_DLL_PLL_MEAS_DIM 5
+#define TP_CORR_DIM 3
+#define TP_CORR_DATAPILOT_DIM (2 * TP_CORR_DIM)
 
 #define THRESH_SENS_DBHZ 25
 #define THRESH_20MS_DBHZ 32
@@ -275,14 +276,14 @@ typedef struct {
  */
 typedef struct {
   union {
-    corr_t
-        five[TP_DLL_PLL_MEAS_DIM]; /**< E|P|L|VE|VL accumulators as a vector */
+    corr_t all[TP_CORR_DATAPILOT_DIM]; /**< E|P|L accumulators as a vector */
     struct {
-      corr_t early;      /**< Early accumulator */
-      corr_t prompt;     /**< Prompt accumulator */
-      corr_t late;       /**< Late accumulator */
-      corr_t very_early; /**< Very Early accumulator */
-      corr_t very_late;  /**< Very Late accumulator */
+      corr_t early;     /**< Early accumulator */
+      corr_t prompt;    /**< Prompt accumulator */
+      corr_t late;      /**< Late accumulator */
+      corr_t dp_early;  /**< Data/Pilot Early accumulator */
+      corr_t dp_prompt; /**< Data/Pilot Prompt accumulator */
+      corr_t dp_late;   /**< Data/Pilot Late accumulator */
     };
   };
 } tp_epl_corr_t;
@@ -299,13 +300,13 @@ typedef struct {
  * - Bit synchronization and message decoding
  */
 typedef struct {
-  tp_epl_corr_t corr_all; /**< EPL correlation results for DLL and PLL
-                           *   in correlation period. */
-  tp_epl_corr_t corr_cn0; /**< C/N0 accumulators */
-  corr_t corr_fll;        /**< FLL accumulator */
-  corr_t corr_ad;         /**< False lock (alias) detector accumulator */
-  corr_t corr_ld;         /**< Lock detector accumulator */
-  corr_t corr_bit;        /**< Bit sync accumulator */
+  tp_epl_corr_t corr_main; /**< EPL correlation results for DLL and PLL
+                            *   in correlation period. */
+  tp_epl_corr_t corr_cn0;  /**< C/N0 accumulators */
+  corr_t corr_fll;         /**< FLL accumulator */
+  corr_t corr_ad;          /**< False lock (alias) detector accumulator */
+  corr_t corr_ld;          /**< Lock detector accumulator */
+  corr_t corr_bit;         /**< Bit sync accumulator */
 } tp_corr_state_t;
 
 /**

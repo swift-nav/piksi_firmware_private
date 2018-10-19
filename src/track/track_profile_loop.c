@@ -169,9 +169,9 @@ void tp_tl_get_config(const tp_loop_params_t *l, tl_config_t *config) {
  */
 void tp_tl_update_fpll(tp_tl_state_t *s, const tp_epl_corr_t *cs, bool costas) {
   correlation_t cs2[3];
-  for (u32 i = 0; i < 3; i++) {
-    cs2[i].I = cs->five[i].I;
-    cs2[i].Q = cs->five[i].Q;
+  for (u8 i = 0; i < 3; i++) {
+    cs2[i].I = cs->all[i].I;
+    cs2[i].Q = cs->all[i].Q;
   }
 
   switch (s->ctrl) {
@@ -241,8 +241,8 @@ float tp_tl_get_fll_error(const tp_tl_state_t *s) {
 void tp_tl_update_dll_discr(tp_tl_state_t *s, const tp_epl_corr_t *cs) {
   correlation_t cs2[3];
   for (u32 i = 0; i < 3; i++) {
-    cs2[i].I = cs->five[i].I;
-    cs2[i].Q = cs->five[i].Q;
+    cs2[i].I = cs->all[i].I;
+    cs2[i].Q = cs->all[i].Q;
   }
 
   switch (s->ctrl) {

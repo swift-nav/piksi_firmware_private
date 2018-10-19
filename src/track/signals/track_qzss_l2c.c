@@ -264,7 +264,7 @@ static void tracker_qzss_l2c_update(tracker_t *tracker) {
   if (in_phase_lock && confirmed && tracker_bit_aligned(tracker) &&
       (0 != (cflags & TPF_BSYNC_UPD))) {
     /* naturally synched as we track */
-    s8 symb_sign = SIGN(tracker->corrs.corr_all.very_late.I);
+    s8 symb_sign = SIGN(tracker->corrs.corr_main.dp_prompt.I);
     s8 pol_sign = SIGN(tracker->cp_sync.polarity);
     log_debug("J%02d L2C %+2d %+3d",
               tracker->mesid.sat - QZS_FIRST_PRN,

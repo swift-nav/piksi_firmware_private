@@ -431,7 +431,7 @@ static void tp_tracker_update_correlators(tracker_t *tracker, u32 cycle_flags) {
 
   /* Read correlations. */
   tracker_correlations_read(tracker->nap_channel,
-                            cs_now.five,
+                            cs_now.all,
                             &sample_count,
                             &code_phase_prompt,
                             &carrier_phase);
@@ -446,9 +446,9 @@ static void tp_tracker_update_correlators(tracker_t *tracker, u32 cycle_flags) {
      * However, as they have the pilot in quadrature,
      * one needs to apply a 90 deg rotation
      * before setting/accumulating the navigation data bit */
-    corr_t temp = cs_now.very_late;
-    cs_now.very_late.I = temp.Q;
-    cs_now.very_late.Q = temp.I;
+    corr_t temp = cs_now.dp_prompt;
+    cs_now.dp_prompt.I = temp.Q;
+    cs_now.dp_prompt.Q = temp.I;
   }
 
   tp_update_correlators(cycle_flags, &cs_now, &tracker->corrs);
@@ -562,18 +562,13 @@ static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
         0 == tracker->corrs.corr_cn0.prompt.Q) {
       log_info_mesid(tracker->mesid,
                      "I/Q: %" PRIi32 "/%" PRIi32 " %" PRIi32 "/%" PRIi32
-                     " %" PRIi32 "/%" PRIi32 " %" PRIi32 "/%" PRIi32 " %" PRIi32
-                     "/%" PRIi32,
-                     tracker->corrs.corr_cn0.very_early.I,
-                     tracker->corrs.corr_cn0.very_early.Q,
+                     " %" PRIi32 "/%" PRIi32,
                      tracker->corrs.corr_cn0.early.I,
                      tracker->corrs.corr_cn0.early.Q,
                      tracker->corrs.corr_cn0.prompt.I,
                      tracker->corrs.corr_cn0.prompt.Q,
                      tracker->corrs.corr_cn0.late.I,
-                     tracker->corrs.corr_cn0.late.Q,
-                     tracker->corrs.corr_cn0.very_late.I,
-                     tracker->corrs.corr_cn0.very_late.Q);
+                     tracker->corrs.corr_cn0.late.Q);
 
     } else {
       /* Update C/N0 estimate */
@@ -758,11 +753,11 @@ static void tp_tracker_update_loops(tracker_t *tracker, u32 cycle_flags) {
   if (0 != (cycle_flags & TPF_EPL_USE)) {
     /* Output I/Q correlations using SBP if enabled for this channel */
     if (tracker->tracking_mode != TP_TM_INITIAL) {
-      tracker_correlations_send(tracker, tracker->corrs.corr_all.five);
+      tracker_correlations_send(tracker, tracker->corrs.corr_main.all);
     }
 
     bool costas = true;
-    tp_epl_corr_t corr_all = tracker->corrs.corr_all;
+    tp_epl_corr_t corr_main = tracker->corrs.corr_main;
 
     bool has_pilot_sync = nap_sc_wipeoff(tracker);
 
@@ -770,7 +765,7 @@ static void tp_tracker_update_loops(tracker_t *tracker, u32 cycle_flags) {
       /* The L2CM and L2CL codes are in phase,
        * copy the VL to P so that the PLL runs
        * on the pilot instead of the data */
-      corr_all.prompt = corr_all.very_late;
+      corr_main.prompt = corr_main.dp_prompt;
       costas = false;
     } else if (has_pilot_sync) {
       /* Once in bit-sync, Galileo pilots
@@ -779,7 +774,7 @@ static void tp_tracker_update_loops(tracker_t *tracker, u32 cycle_flags) {
       costas = false;
     }
 
-    tp_tl_update_dll_discr(&tracker->tl_state, &corr_all);
+    tp_tl_update_dll_discr(&tracker->tl_state, &corr_main);
     tp_tl_update_dll(&tracker->tl_state);
 
     bool run_fpll = (0 != (cycle_flags & TPF_FPLL_RUN));
@@ -788,7 +783,7 @@ static void tp_tracker_update_loops(tracker_t *tracker, u32 cycle_flags) {
       u8 fpll_decim = tp_get_fpll_decim(tracker->tracking_mode);
       run_fpll = !cycle_decimated(tracker->fpll_cycle, fpll_decim);
       if (run_fpll) {
-        tp_tl_update_fpll(&tracker->tl_state, &corr_all, costas);
+        tp_tl_update_fpll(&tracker->tl_state, &corr_main, costas);
         tracker->fpll_cycle = 0;
       }
     }
