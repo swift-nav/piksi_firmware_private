@@ -61,7 +61,4 @@
 /** QZSS L2C symbol length [ms] */
 #define QZS_L2C_SYMBOL_LENGTH_MS 20
 
-/** 2^-32 */
-#define C_1_2P32 2.3283064365387e-010
-
 #endif /* ME_CONSTANTS_H */
