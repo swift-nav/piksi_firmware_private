@@ -92,6 +92,27 @@ void sbp_make_gps_time(msg_gps_time_t *t_out,
   t_out->flags = sbp_get_time_quality_flags(time_qual) & 0x7;
 }
 
+static utc_tm gps2utc_nano(const gps_time_t *t_in,
+                           const utc_params_t *p_utc_params) {
+  /* convert to UTC */
+  utc_tm utc_time;
+  gps2utc(t_in, &utc_time, p_utc_params);
+
+  /* If the nanosecond part of the UTC timestamp rounds up to the next second,
+   * recompute the UTC time structure to roll over all fields properly, also
+   * accounting for possible leap second event */
+  if (round(utc_time.second_frac * 1e9) == 1e9) {
+    gps_time_t t_tmp = *t_in;
+    double dt = 1.0 - utc_time.second_frac;
+    /* round up to the next representable floating point number */
+    t_tmp.tow = nextafter(t_tmp.tow + dt, INFINITY);
+    normalize_gps_time(&t_tmp);
+    /* recompute UTC time for proper rounding */
+    gps2utc(&t_tmp, &utc_time, p_utc_params);
+  }
+  return utc_time;
+}
+
 void sbp_make_utc_time(msg_utc_time_t *t_out,
                        const gps_time_t *t_in,
                        u8 time_qual) {
@@ -118,9 +139,9 @@ void sbp_make_utc_time(msg_utc_time_t *t_out,
 
   flags |= (sbp_get_time_quality_flags(time_qual) & 0x7);
 
-  /* convert to UTC (falls back to a hard-coded table if the pointer is null) */
-  utc_tm utc_time;
-  gps2utc(t_in, &utc_time, p_utc_params);
+  /* convert to UTC with nanosecond precision (falls back to a hard-coded table
+   * if the pointer is null) */
+  utc_tm utc_time = gps2utc_nano(t_in, p_utc_params);
 
   t_out->tow = round_tow_ms(t_in->tow);
   t_out->year = utc_time.year;
@@ -129,10 +150,10 @@ void sbp_make_utc_time(msg_utc_time_t *t_out,
   t_out->hours = utc_time.hour;
   t_out->minutes = utc_time.minute;
   t_out->seconds = utc_time.second_int;
-  assert(utc_time.second_frac >= 0.0);
-  assert(utc_time.second_frac < 1.0);
-  /* round the nanosecond part down to stop it rounding up to the next second */
-  t_out->ns = floor(utc_time.second_frac * 1e9);
+  /* note: utc_time has been rounded above to guarantee that this does not roll
+   * over to the next second */
+  t_out->ns = round(utc_time.second_frac * 1e9);
+  assert(t_out->ns < 1e9);
   t_out->flags = flags;
 }
 
