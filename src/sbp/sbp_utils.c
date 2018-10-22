@@ -282,69 +282,82 @@ s8 pack_obs_content(double P,
                     nav_meas_flags_t flags,
                     gnss_signal_t sid,
                     packed_obs_content_t *msg) {
-  s64 P_fp = llround(P * MSG_OBS_P_MULTIPLIER);
-  if (P < 0 || P_fp > UINT32_MAX) {
-    log_error_sid(sid,
-                  "observation message packing: P integer overflow "
-                  "(%.1f,%.1f,%.1f,%.1f,%.1f,0x%X)",
-                  P,
-                  L,
-                  D,
-                  cn0,
-                  lock_time,
-                  flags);
-    return -1;
+  if (0 != (flags & NAV_MEAS_FLAG_CODE_VALID)) {
+    s64 P_fp = llround(P * MSG_OBS_P_MULTIPLIER);
+    if (P < 0 || P_fp > UINT32_MAX) {
+      log_error_sid(sid,
+                    "observation message packing: P integer overflow "
+                    "(%.1f,%.1f,%.1f,%.1f,%.1f,0x%X)",
+                    P,
+                    L,
+                    D,
+                    cn0,
+                    lock_time,
+                    flags);
+      return -1;
+    }
+    msg->P = P_fp;
+  } else {
+    msg->P = 0;
   }
 
-  msg->P = P_fp;
+  if (0 != (flags & NAV_MEAS_FLAG_PHASE_VALID)) {
+    double Li = floor(L);
+    if (Li < INT32_MIN || Li > INT32_MAX) {
+      log_error_sid(sid,
+                    "observation message packing: L integer overflow "
+                    "(%.1f,%.1f,%.1f,%.1f,%.1f,0x%X)",
+                    P,
+                    L,
+                    D,
+                    cn0,
+                    lock_time,
+                    flags);
+      return -1;
+    }
 
-  double Li = floor(L);
-  if (Li < INT32_MIN || Li > INT32_MAX) {
-    log_error_sid(sid,
-                  "observation message packing: L integer overflow "
-                  "(%.1f,%.1f,%.1f,%.1f,%.1f,0x%X)",
-                  P,
-                  L,
-                  D,
-                  cn0,
-                  lock_time,
-                  flags);
-    return -1;
+    double Lf = L - Li;
+
+    msg->L.i = Li;
+    u16 frac_part_cp = round(Lf * MSG_OBS_LF_MULTIPLIER);
+    if (frac_part_cp >= MSG_OBS_LF_OVERFLOW) {
+      frac_part_cp = 0;
+      msg->L.i += 1;
+    }
+    msg->L.f = frac_part_cp;
+  } else {
+    msg->L.i = 0;
+    msg->L.f = 0;
   }
 
-  double Lf = L - Li;
+  if (0 != (flags & NAV_MEAS_FLAG_MEAS_DOPPLER_VALID)) {
+    double Di = floor(D);
+    if (Di < INT16_MIN || Di > INT16_MAX) {
+      log_error_sid(sid,
+                    "observation message packing: D integer overflow "
+                    "(%.1f,%.1f,%.1f,%.1f,%.1f,0x%X)",
+                    P,
+                    L,
+                    D,
+                    cn0,
+                    lock_time,
+                    flags);
+      return -1;
+    }
 
-  msg->L.i = Li;
-  u16 frac_part_cp = round(Lf * MSG_OBS_LF_MULTIPLIER);
-  if (frac_part_cp >= MSG_OBS_LF_OVERFLOW) {
-    frac_part_cp = 0;
-    msg->L.i += 1;
+    double Df = D - Di;
+
+    msg->D.i = Di;
+    u16 frac_part_d = round(Df * MSG_OBS_DF_MULTIPLIER);
+    if (frac_part_d >= MSG_OBS_DF_OVERFLOW) {
+      frac_part_d = 0;
+      msg->D.i += 1;
+    }
+    msg->D.f = frac_part_d;
+  } else {
+    msg->D.i = 0;
+    msg->D.f = 0;
   }
-  msg->L.f = frac_part_cp;
-
-  double Di = floor(D);
-  if (Di < INT16_MIN || Di > INT16_MAX) {
-    log_error_sid(sid,
-                  "observation message packing: D integer overflow "
-                  "(%.1f,%.1f,%.1f,%.1f,%.1f,0x%X)",
-                  P,
-                  L,
-                  D,
-                  cn0,
-                  lock_time,
-                  flags);
-    return -1;
-  }
-
-  double Df = D - Di;
-
-  msg->D.i = Di;
-  u16 frac_part_d = round(Df * MSG_OBS_DF_MULTIPLIER);
-  if (frac_part_d >= MSG_OBS_DF_OVERFLOW) {
-    frac_part_d = 0;
-    msg->D.i += 1;
-  }
-  msg->D.f = frac_part_d;
 
   if (0 != (flags & NAV_MEAS_FLAG_CN0_VALID)) {
     s32 cn0_fp = lround(cn0 * MSG_OBS_CN0_MULTIPLIER);
