@@ -29,6 +29,7 @@
 #include "track/track_common.h"
 #include "track/track_sid_db.h"
 #include "track/track_state.h"
+#include "track/track_timer.h"
 
 #include <math.h>
 #include <string.h>
@@ -220,6 +221,8 @@ void nap_track_irq_thread(void *arg) {
 
   while (TRUE) {
     piksi_systime_get(&sys_time);
+    u64 ms = piksi_systime_to_ms(&sys_time);
+    tracker_time_set(ms);
 
     handle_nap_track_irq();
 

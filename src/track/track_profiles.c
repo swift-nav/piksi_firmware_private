@@ -26,6 +26,7 @@
 #include "gnss_capabilities/gnss_capabilities.h"
 #include "lock_detector/lock_detector.h"
 #include "signal_db/signal_db.h"
+#include "timing/timing.h"
 #include "track/track_cfg.h"
 #include "track/track_common.h"
 #include "track/track_flags.h"
@@ -813,7 +814,9 @@ static bool profile_switch_requested(tracker_t *tracker,
   }
 
   state->next.index = index;
-  state->lock_time_ms = next->lock_time_ms;
+
+  s64 deadline_ms = (s64)(tracker_time_now_ms() + next->lock_time_ms);
+  tracker_timer_arm(&state->profile_settle_timer, deadline_ms);
 
   log_switch(tracker, reason);
 
@@ -839,8 +842,7 @@ static bool low_cn0_profile_switch_requested(tracker_t *tracker) {
     return false;
   }
 
-  bool settled = (tracker->age_ms >= tracker->settle_time_ms);
-  if (!settled) {
+  if (!tracker_timer_expired(&tracker->init_settle_timer)) {
     return false;
   }
 
@@ -897,7 +899,7 @@ bool tp_profile_has_new_profile(tracker_t *tracker) {
     return profile_switch_requested(tracker, state->cur.index, "wplock");
   }
 
-  if (state->lock_time_ms > 0) {
+  if (!tracker_timer_expired(&state->profile_settle_timer)) {
     return false; /* tracking loop has not settled yet */
   }
 
@@ -1055,13 +1057,6 @@ void tp_profile_get_cn0_thres(const tp_profile_t *profile,
 void tp_profile_report_data(tp_profile_t *profile, const tp_report_t *data) {
   assert(profile);
   assert(data);
-
-  /* Profile lock time count down */
-  if (profile->lock_time_ms > data->time_ms) {
-    profile->lock_time_ms -= data->time_ms;
-  } else {
-    profile->lock_time_ms = 0;
-  }
 
   profile->filt_cn0 = data->cn0;
 }

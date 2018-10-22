@@ -456,17 +456,16 @@ static void tp_tracker_update_correlators(tracker_t *tracker, u32 cycle_flags) {
   /* Current cycle duration */
   int_ms = tp_get_cycle_duration(tracker->tracking_mode, tracker->cycle_no);
 
-  u64 now = timing_getms();
   if (tracker->updated_once) {
-    u64 time_diff_ms = now - tracker->update_timestamp_ms;
-    if (time_diff_ms > NAP_CORR_LENGTH_MAX_MS) {
+    u64 delay_ms = tracker_timer_ms(&tracker->update_timer);
+    if (delay_ms > NAP_CORR_LENGTH_MAX_MS) {
       log_warn_mesid(mesid,
                      "Unexpected tracking channel update rate: %" PRIu64 " ms",
-                     time_diff_ms);
+                     delay_ms);
     }
   }
   tracker->updated_once = true;
-  tracker->update_timestamp_ms = now;
+  tracker_timer_arm(&tracker->update_timer, /*deadline_ms=*/-1); /*re-arm*/
 
   tracker->sample_count = sample_count;
   tracker->code_phase_prompt = code_phase_prompt;
@@ -550,6 +549,7 @@ static void tp_tracker_update_bsync(tracker_t *tracker, u32 cycle_flags) {
  */
 static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
   float cn0 = tracker->cn0_est.filter.yn;
+  float cn0_prev = cn0;
   tp_cn0_thres_t cn0_thres;
   tp_profile_get_cn0_thres(&tracker->profile, &cn0_thres);
 
@@ -580,9 +580,10 @@ static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
     }
   }
 
-  if (cn0 > cn0_thres.drop_dbhz) {
-    /* When C/N0 is above a drop threshold tracking shall continue. */
-    tracker->cn0_above_drop_thres_count = tracker->update_count;
+  if ((cn0 < cn0_thres.drop_dbhz) && (cn0_prev > cn0_thres.drop_dbhz)) {
+    tracker_timer_arm(&tracker->cn0_below_drop_thres_timer, /*deadline_ms=*/-1);
+  } else if (cn0 >= cn0_thres.drop_dbhz) {
+    tracker_timer_init(&tracker->cn0_below_drop_thres_timer);
   }
 
   bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
@@ -696,13 +697,18 @@ static void tp_tracker_update_locks(tracker_t *tracker, u32 cycle_flags) {
 
   bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
   if (!outp_prev && outp && confirmed) {
-    u32 unlocked_ms =
-        update_count_diff(tracker, &tracker->ld_pess_change_count);
-    log_debug_mesid(tracker->mesid, "Lock after %" PRIu32 "ms", unlocked_ms);
+    u64 unlocked_ms = tracker_timer_ms(&tracker->unlocked_timer);
+    log_debug_mesid(tracker->mesid, "Lock after %" PRIu64 "ms", unlocked_ms);
   }
 
   if (outp != outp_prev) {
-    tracker->ld_pess_change_count = tracker->update_count;
+    if (outp) {
+      tracker_timer_init(&tracker->unlocked_timer);
+      tracker_timer_arm(&tracker->locked_timer, /*deadline_ms=*/-1);
+    } else {
+      tracker_timer_init(&tracker->locked_timer);
+      tracker_timer_arm(&tracker->unlocked_timer, /*deadline_ms=*/-1);
+    }
   }
   if (outp) {
     tracker->carrier_freq_at_lock = tracker->carrier_freq;
@@ -800,11 +806,6 @@ static void tp_tracker_update_loops(tracker_t *tracker, u32 cycle_flags) {
     memset(&report, 0, sizeof(report));
     report.cn0 = tracker->cn0;
 
-    /* Subtracted from profile stabilization timeout */
-    u64 delta_ms = tracker->update_timestamp_ms - tracker->report_last_ms;
-    tracker->report_last_ms = tracker->update_timestamp_ms;
-    report.time_ms = (u32)delta_ms;
-
     tp_profile_report_data(&tracker->profile, &report);
   }
 }
@@ -843,7 +844,7 @@ static void tp_tracker_flag_outliers(tracker_t *tracker) {
   static const u32 diff_interval_ms =
       (u32)(SECS_MS * max_freq_diff_hz / max_freq_rate_hz_per_s);
 
-  u32 elapsed_ms = tracker->update_count - tracker->carrier_freq_timestamp_ms;
+  u64 elapsed_ms = tracker_timer_ms(&tracker->carrier_freq_age_timer);
   if (elapsed_ms >= diff_interval_ms) {
     if (!tracker->carrier_freq_prev_valid) {
       tracker->carrier_freq_prev = tracker->carrier_freq;
@@ -864,7 +865,7 @@ static void tp_tracker_flag_outliers(tracker_t *tracker) {
     }
 
     tracker->carrier_freq_prev = tracker->carrier_freq;
-    tracker->carrier_freq_timestamp_ms = tracker->update_count;
+    tracker_timer_arm(&tracker->carrier_freq_age_timer, -1);
   }
 }
 
