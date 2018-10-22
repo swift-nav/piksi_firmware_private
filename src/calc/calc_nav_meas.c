@@ -13,6 +13,7 @@
 #include <assert.h>
 #include <string.h>
 
+#include "calc/starling_integration.h"
 #include "calc_nav_meas.h"
 #include "me_constants.h"
 #include "nav_msg/cnav_msg_storage.h"
