@@ -28,7 +28,6 @@ void log_obs_latency_tick(void);
 
 void sbp_setup(void);
 void sbp_sender_id_set(u16 sender_id);
-u16 sbp_sender_id_get(void);
 void sbp_register_cbk(u16 msg_type,
                       sbp_msg_callback_t cb,
                       sbp_msg_callbacks_node_t *node);
