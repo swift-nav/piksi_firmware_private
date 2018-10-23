@@ -16,7 +16,6 @@
  * External Dependencies -- TODO(kevin) remove these.
  ********************************************************************/
 extern s8 sbp_send_msg(u16 msg, u8 n, u8 *data);
-extern bool send_heading;
 
 /*********************************************************************
  * Solution Message Generation Helpers
@@ -29,7 +28,8 @@ extern bool send_heading;
  * @param n_meas nav_meas len
  * @param nav_meas Valid navigation measurements
  */
-void solution_send_pos_messages(const sbp_messages_t *sbp_messages) {
+void solution_send_pos_messages(const sbp_messages_t *sbp_messages,
+                                const bool is_heading_enabled) {
   dgnss_solution_mode_t dgnss_soln_mode = starling_get_solution_mode();
   if (sbp_messages) {
     sbp_send_msg(SBP_MSG_GPS_TIME,
@@ -90,7 +90,7 @@ void solution_send_pos_messages(const sbp_messages_t *sbp_messages) {
                    (u8 *)&sbp_messages->dgnss_status);
     }
 
-    if (send_heading && dgnss_soln_mode != STARLING_SOLN_MODE_NO_DGNSS) {
+    if (is_heading_enabled && dgnss_soln_mode != STARLING_SOLN_MODE_NO_DGNSS) {
       sbp_send_msg(SBP_MSG_BASELINE_HEADING,
                    sizeof(sbp_messages->baseline_heading),
                    (u8 *)&sbp_messages->baseline_heading);

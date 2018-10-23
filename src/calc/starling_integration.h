@@ -26,7 +26,6 @@
 
 #define STARLING_MAX_OBS_COUNT 150
 
-extern bool send_heading;
 extern bool disable_raim;
 
 typedef struct {

@@ -35,6 +35,7 @@ typedef struct {
   msg_vel_ned_cov_t vel_ned_cov;
 } sbp_messages_t;
 
-void solution_send_pos_messages(const sbp_messages_t *sbp_messages);
+void solution_send_pos_messages(const sbp_messages_t *sbp_messages,
+                                const bool is_heading_enabled);
 
 #endif

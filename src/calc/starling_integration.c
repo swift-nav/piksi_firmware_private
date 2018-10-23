@@ -50,7 +50,7 @@
 /*******************************************************************************
  * Globals
  ******************************************************************************/
-bool send_heading = false;
+static bool send_heading = false;
 
 /* TODO(kevin) what to do about this? */
 bool disable_raim = false;
@@ -173,7 +173,7 @@ static void starling_integration_solution_send_low_latency_output(
   }
 
   if (!wait_for_timeout) {
-    solution_send_pos_messages(sbp_messages);
+    solution_send_pos_messages(sbp_messages, send_heading);
     chMtxLock(&last_sbp_lock);
     last_spp.wn = sbp_messages->gps_time.wn;
     last_spp.tow = sbp_messages->gps_time.tow * 0.001;
@@ -672,7 +672,7 @@ void send_solution_time_matched(const StarlingFilterSolution *solution,
    * and our current time-matched result occurs after the most recent
    * SPP output. */
   if (spp_timeout(&last_spp, &last_dgnss, starling_get_solution_mode())) {
-    solution_send_pos_messages(&sbp_messages);
+    solution_send_pos_messages(&sbp_messages, send_heading);
   }
 
   /* Always keep track of which base station is sending in the
