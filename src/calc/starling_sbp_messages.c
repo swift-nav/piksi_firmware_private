@@ -37,6 +37,15 @@ static double constrain_angle(const double heading) {
  *********************************************************************/
 #define MSG_HEADING_SCALE_FACTOR 1000.0
 
+void sbp_init_gps_time(msg_gps_time_t *gps_time, gps_time_t *t, u8 time_qual) {
+  memset(gps_time, 0, sizeof(msg_gps_time_t));
+  sbp_make_gps_time(gps_time, t, time_qual);
+}
+
+void sbp_init_utc_time(msg_utc_time_t *utc_time, gps_time_t *t, u8 time_qual) {
+  memset(utc_time, 0, sizeof(msg_utc_time_t));
+  sbp_make_utc_time(utc_time, t, time_qual);
+}
 
 void sbp_init_pos_llh(msg_pos_llh_t *pos_llh, gps_time_t *t) {
   memset(pos_llh, 0, sizeof(msg_pos_llh_t));
@@ -364,14 +373,13 @@ void sbp_make_dgnss_status(msg_dgnss_status_t *dgnss_status,
 
 void sbp_messages_init(sbp_messages_t *sbp_messages,
                        const gps_time_t *epoch_time,
-                       u8 time_qual) {
+                       u8 sbp_time_qual) {
   /* Necessary because some of these functions strip the const qualifier. */
   gps_time_t *t = (gps_time_t *)epoch_time;
   /* if there is ANY time known here better than propagated,
    * initialize time_qual as time_propagated for SBP output.
    * If we have a GNSS solution, we will override with the sbp GNSS Solution
    * time quality */
-  u8 sbp_time_qual = (TIME_PROPAGATED <= time_qual) ? TIME_PROPAGATED : 0;
   sbp_init_gps_time(&sbp_messages->gps_time, t, sbp_time_qual);
   sbp_init_utc_time(&sbp_messages->utc_time, t, sbp_time_qual);
   sbp_init_pos_llh(&sbp_messages->pos_llh, t);

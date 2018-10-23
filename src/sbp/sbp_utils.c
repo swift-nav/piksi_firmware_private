@@ -135,19 +135,6 @@ void sbp_make_utc_time(msg_utc_time_t *t_out,
   t_out->flags = flags;
 }
 
-void sbp_make_dgnss_status(msg_dgnss_status_t *dgnss_status,
-                           u8 num_sats,
-                           double obs_latency,
-                           u8 flags) {
-  if (flags > POSITION_MODE_DGNSS) {
-    dgnss_status->flags = 2;
-  } else {
-    dgnss_status->flags = 1;
-  }
-  dgnss_status->latency = MIN(round(10 * obs_latency), UINT16_MAX);
-  dgnss_status->num_signals = num_sats;
-}
-
 void sbp_send_ndb_event(u8 event,
                         u8 obj_type,
                         u8 result,
@@ -973,16 +960,6 @@ void sbp_alma_reg_cbks(void (*almanac_msg_callback)(u16, u8, u8 *, void *)) {
   }
 }
 
-void sbp_init_gps_time(msg_gps_time_t *gps_time, gps_time_t *t, u8 time_qual) {
-  memset(gps_time, 0, sizeof(msg_gps_time_t));
-  sbp_make_gps_time(gps_time, t, time_qual);
-}
-
-void sbp_init_utc_time(msg_utc_time_t *utc_time, gps_time_t *t, u8 time_qual) {
-  memset(utc_time, 0, sizeof(msg_utc_time_t));
-  sbp_make_utc_time(utc_time, t, time_qual);
-}
-
 void sbp_unpack_glonass_biases_content(const msg_glo_biases_t msg,
                                        glo_biases_t *glonass_biases) {
   glonass_biases->mask = ((u8)msg.mask);
@@ -1007,6 +984,10 @@ void sbp_pack_glonass_biases_content(const glo_biases_t glonass_biases,
       (s16)round(glonass_biases.l2of_bias_m * MSG_GLO_BIASES_MULTIPLIER);
   msg->l2p_bias =
       (s16)round(glonass_biases.l2p_bias_m * MSG_GLO_BIASES_MULTIPLIER);
+}
+
+u8 sbp_format_time_qual(u8 piksi_time_qual) {
+  return (TIME_PROPAGATED <= piksi_time_qual) ? TIME_PROPAGATED : 0;
 }
 
 /** \} */

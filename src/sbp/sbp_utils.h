@@ -173,6 +173,8 @@ void sbp_unpack_glonass_biases_content(msg_glo_biases_t msg,
 void sbp_pack_glonass_biases_content(glo_biases_t glonass_biases,
                                      msg_glo_biases_t *msg);
 
+u8 sbp_format_time_qual(u8 piksi_time_qual);
+
 #ifdef __cplusplus
 }
 #endif
