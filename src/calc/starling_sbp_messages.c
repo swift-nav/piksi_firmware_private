@@ -373,13 +373,16 @@ void sbp_make_dgnss_status(msg_dgnss_status_t *dgnss_status,
 
 void sbp_messages_init(sbp_messages_t *sbp_messages,
                        const gps_time_t *epoch_time,
-                       u8 sbp_time_qual) {
+                       const time_quality_t time_qual) {
   /* Necessary because some of these functions strip the const qualifier. */
   gps_time_t *t = (gps_time_t *)epoch_time;
   /* if there is ANY time known here better than propagated,
    * initialize time_qual as time_propagated for SBP output.
    * If we have a GNSS solution, we will override with the sbp GNSS Solution
    * time quality */
+
+  // TODO convert time quality to SBP time qual.
+  
   sbp_init_gps_time(&sbp_messages->gps_time, t, sbp_time_qual);
   sbp_init_utc_time(&sbp_messages->utc_time, t, sbp_time_qual);
   sbp_init_pos_llh(&sbp_messages->pos_llh, t);

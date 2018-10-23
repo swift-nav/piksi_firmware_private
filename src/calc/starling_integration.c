@@ -440,7 +440,7 @@ static void starling_integration_solution_simulation(
 
 void starling_integration_simulation_run(const me_msg_obs_t *me_msg) {
   gps_time_t epoch_time = me_msg->obs_time;
-  u8 time_qual = get_time_quality();
+  time_quality_t time_qual = get_time_quality();
   if (!gps_time_valid(&epoch_time) && TIME_PROPAGATED <= time_qual) {
     /* observations do not have valid time, but we have a reasonable estimate
      * of current GPS time, so round that to nearest epoch and use it
@@ -449,7 +449,7 @@ void starling_integration_simulation_run(const me_msg_obs_t *me_msg) {
     epoch_time = gps_time_round_to_epoch(&epoch_time, soln_freq_setting);
   }
   sbp_messages_t sbp_messages;
-  sbp_messages_init(&sbp_messages, &epoch_time, sbp_format_time_qual(time_qual));
+  sbp_messages_init(&sbp_messages, &epoch_time, time_qual);
   starling_integration_solution_simulation(&sbp_messages);
   starling_integration_solution_send_low_latency_output(&sbp_messages);
 }
@@ -619,9 +619,9 @@ void send_solution_time_matched(const StarlingFilterSolution *solution,
    * Then if there is a successful time-matched result, we will
    * overwrite the relevant messages. */
   sbp_messages_t sbp_messages;
-  u8 time_qual = get_time_quality();
+  time_quality_t time_qual = get_time_quality();
   sbp_messages_init(
-      &sbp_messages, &obss_base->tor, sbp_format_time_qual(time_qual));
+      &sbp_messages, &obss_base->tor, time_qual);
 
   pvt_engine_result_t soln_copy = obss_rover->soln;
 
@@ -675,7 +675,7 @@ void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
    * nearest epoch and use instead if necessary.
    */
   gps_time_t epoch_time = *solution_epoch_time;
-  u8 time_qual = get_time_quality();
+  time_quality_t time_qual = get_time_quality();
   if (!gps_time_valid(&epoch_time) && TIME_PROPAGATED <= time_qual) {
     epoch_time = get_current_time();
     epoch_time = gps_time_round_to_epoch(&epoch_time, soln_freq_setting);
@@ -686,7 +686,7 @@ void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
    * messages with the RTK baseline result. When there are no valid
    * solutions, we simply pass on the set of default messages. */
   sbp_messages_t sbp_messages;
-  sbp_messages_init(&sbp_messages, &epoch_time, sbp_format_time_qual(time_qual));
+  sbp_messages_init(&sbp_messages, &epoch_time, time_qual);
 
   /* TODO: Actually get the timing quality from ME / Starling
    * the time quality could have degraded or improved AFTER this
