@@ -66,7 +66,7 @@
 #define POSITION_FIX_TIMEOUT_S 60
 
 #define ME_CALC_PVT_THREAD_PRIORITY (HIGHPRIO - 3)
-#define ME_CALC_PVT_THREAD_STACK (10 * 64 * 1024)
+#define ME_CALC_PVT_THREAD_STACK (3 * 10 * 1024)
 
 /* Limits the sets of possible solution frequencies (in increasing order) */
 static const double valid_soln_freqs_hz[] = {1.0, 2.0, 4.0, 5.0, 10.0, 20.0};
@@ -403,7 +403,7 @@ static s8 me_compute_pvt(const obs_array_t *obs_array,
 
   /* Copy navigation measurements to a local array and create array of pointers
    * to it */
-  navigation_measurement_t nav_meas[n_ready];
+  static navigation_measurement_t nav_meas[MAX_CHANNELS];
   navigation_measurement_t *p_nav_meas[n_ready];
   for (u8 i = 0; i < n_ready; i++) {
     starling_obs_to_nav_meas(&obs_array->observations[i], &nav_meas[i]);
@@ -614,8 +614,8 @@ static void me_calc_pvt_thread(void *arg) {
     u8 n_ready = 0;
     u8 n_inview = 0;
     u8 n_total = 0;
-    channel_measurement_t meas[MAX_CHANNELS];
-    channel_measurement_t in_view[MAX_CHANNELS];
+    static channel_measurement_t meas[MAX_CHANNELS];
+    static channel_measurement_t in_view[MAX_CHANNELS];
     static ephemeris_t e_meas[MAX_CHANNELS];
 
     /* Collect measurements propagated to the current NAP tick */
@@ -652,7 +652,7 @@ static void me_calc_pvt_thread(void *arg) {
 
     /* Initialize the observation array and create navigation measurements from
      * the channel measurements */
-    obs_array_t obs_array;
+    static obs_array_t obs_array;
     s8 nm_ret =
         calc_navigation_measurement(n_ready, meas, &obs_array, &current_time);
 
