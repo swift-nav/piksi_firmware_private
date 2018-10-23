@@ -80,16 +80,11 @@ extern "C" {
 
 void sbp_init_gps_time(msg_gps_time_t *gps_time, gps_time_t *t, u8 time_qual);
 void sbp_init_utc_time(msg_utc_time_t *utc_time, gps_time_t *t, u8 time_qual);
-void sbp_init_dgnss_status(msg_dgnss_status_t *dgnss_status);
 void sbp_make_gps_time(msg_gps_time_t *t_out,
                        const gps_time_t *t_in,
                        u8 time_qual);
 u8 sbp_get_time_quality_flags(u8 time_qual);
 
-void sbp_make_dgnss_status(msg_dgnss_status_t *dgnss_status,
-                           u8 num_sats,
-                           double obs_latency,
-                           u8 flags);
 void sbp_make_utc_time(msg_utc_time_t *t_out,
                        const gps_time_t *t_in,
                        u8 time_qual);

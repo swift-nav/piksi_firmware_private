@@ -133,34 +133,6 @@ static bool dgnss_timeout(piksi_systime_t *_last_dgnss,
   return (piksi_systime_elapsed_since_ms(_last_dgnss) > DGNSS_TIMEOUT_MS);
 }
 
-void starling_integration_sbp_messages_init(sbp_messages_t *sbp_messages,
-                                            const gps_time_t *epoch_time,
-                                            u8 time_qual) {
-  /* Necessary because some of these functions strip the const qualifier. */
-  gps_time_t *t = (gps_time_t *)epoch_time;
-  /* if there is ANY time known here better than propagated,
-   * initialize time_qual as time_propagated for SBP output.
-   * If we have a GNSS solution, we will override with the sbp GNSS Solution
-   * time quality */
-  u8 sbp_time_qual = (TIME_PROPAGATED <= time_qual) ? TIME_PROPAGATED : 0;
-  sbp_init_gps_time(&sbp_messages->gps_time, t, sbp_time_qual);
-  sbp_init_utc_time(&sbp_messages->utc_time, t, sbp_time_qual);
-  sbp_init_pos_llh(&sbp_messages->pos_llh, t);
-  sbp_init_pos_ecef(&sbp_messages->pos_ecef, t);
-  sbp_init_vel_ned(&sbp_messages->vel_ned, t);
-  sbp_init_vel_ecef(&sbp_messages->vel_ecef, t);
-  sbp_init_sbp_dops(&sbp_messages->sbp_dops, t);
-  sbp_init_age_corrections(&sbp_messages->age_corrections, t);
-  sbp_init_dgnss_status(&sbp_messages->dgnss_status);
-  sbp_init_baseline_ecef(&sbp_messages->baseline_ecef, t);
-  sbp_init_baseline_ned(&sbp_messages->baseline_ned, t);
-  sbp_init_baseline_heading(&sbp_messages->baseline_heading, t);
-  sbp_init_pos_ecef_cov(&sbp_messages->pos_ecef_cov, t);
-  sbp_init_vel_ecef_cov(&sbp_messages->vel_ecef_cov, t);
-  sbp_init_pos_llh_cov(&sbp_messages->pos_llh_cov, t);
-  sbp_init_vel_ned_cov(&sbp_messages->vel_ned_cov, t);
-}
-
 static void starling_integration_solution_send_low_latency_output(
     const sbp_messages_t *sbp_messages) {
   dgnss_solution_mode_t dgnss_soln_mode = starling_get_solution_mode();
@@ -477,7 +449,7 @@ void starling_integration_simulation_run(const me_msg_obs_t *me_msg) {
     epoch_time = gps_time_round_to_epoch(&epoch_time, soln_freq_setting);
   }
   sbp_messages_t sbp_messages;
-  starling_integration_sbp_messages_init(&sbp_messages, &epoch_time, time_qual);
+  sbp_messages_init(&sbp_messages, &epoch_time, time_qual);
   starling_integration_solution_simulation(&sbp_messages);
   starling_integration_solution_send_low_latency_output(&sbp_messages);
 }
@@ -648,7 +620,7 @@ void send_solution_time_matched(const StarlingFilterSolution *solution,
    * overwrite the relevant messages. */
   sbp_messages_t sbp_messages;
   u8 time_qual = get_time_quality();
-  starling_integration_sbp_messages_init(
+  sbp_messages_init(
       &sbp_messages, &obss_base->tor, time_qual);
 
   pvt_engine_result_t soln_copy = obss_rover->soln;
@@ -714,7 +686,7 @@ void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
    * messages with the RTK baseline result. When there are no valid
    * solutions, we simply pass on the set of default messages. */
   sbp_messages_t sbp_messages;
-  starling_integration_sbp_messages_init(&sbp_messages, &epoch_time, time_qual);
+  sbp_messages_init(&sbp_messages, &epoch_time, time_qual);
 
   /* TODO: Actually get the timing quality from ME / Starling
    * the time quality could have degraded or improved AFTER this

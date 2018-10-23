@@ -983,10 +983,6 @@ void sbp_init_utc_time(msg_utc_time_t *utc_time, gps_time_t *t, u8 time_qual) {
   sbp_make_utc_time(utc_time, t, time_qual);
 }
 
-void sbp_init_dgnss_status(msg_dgnss_status_t *dgnss_status) {
-  memset(dgnss_status, 0, sizeof(msg_dgnss_status_t));
-}
-
 void sbp_unpack_glonass_biases_content(const msg_glo_biases_t msg,
                                        glo_biases_t *glonass_biases) {
   glonass_biases->mask = ((u8)msg.mask);
