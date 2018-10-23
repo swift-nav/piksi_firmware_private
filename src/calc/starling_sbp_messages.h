@@ -52,6 +52,8 @@ typedef struct {
   msg_vel_ned_cov_t vel_ned_cov;
 } sbp_messages_t;
 
+void sbp_init_gps_time(msg_gps_time_t *gps_time, gps_time_t *t, u8 time_qual);
+void sbp_init_utc_time(msg_utc_time_t *utc_time, gps_time_t *t, u8 time_qual);
 void sbp_init_pos_llh(msg_pos_llh_t *pos_llh, gps_time_t *t);
 void sbp_init_pos_ecef(msg_pos_ecef_t *pos_ecef, gps_time_t *t);
 void sbp_init_vel_ned(msg_vel_ned_t *vel_ned, gps_time_t *t);
@@ -152,12 +154,18 @@ u8 num_sats,
 double obs_latency,
 u8 flags);
 
+void sbp_make_gps_time(msg_gps_time_t *t_out,
+                       const gps_time_t *t_in,
+                       time_quality_t time_qual);
+void sbp_make_utc_time(msg_utc_time_t *t_out,
+                       const gps_time_t *t_in,
+                       time_quality_t time_qual);
 
 /*******************************************************************************/
 
 void sbp_messages_init(sbp_messages_t *sbp_messages,
                        const gps_time_t *epoch_time,
-                       u8 time_qual); 
+                       time_quality_t time_qual); 
 
 
 #ifdef __cplusplus

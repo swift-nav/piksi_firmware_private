@@ -34,105 +34,12 @@
  * Convert to and from SBP message types and other useful functions.
  * \{ */
 
-u32 round_tow_ms(double tow);
-void round_time_nano(const gps_time_t *t_in, sbp_gps_time_t *t_out);
-
-sbp_gnss_signal_t sid_to_sbp(const gnss_signal_t from) {
-  sbp_gnss_signal_t sbp_sid = {
-      .code = from.code, .sat = from.sat,
-  };
-
-  return sbp_sid;
-}
-
 gnss_signal_t sid_from_sbp(const sbp_gnss_signal_t from) {
   gnss_signal_t sid = {
       .code = from.code, .sat = from.sat,
   };
 
   return sid;
-}
-
-u8 sbp_get_time_quality_flags(u8 time_qual) {
-  /* time_qual is the same as get_time_quality() return in ME API */
-  u8 flags = 0;
-  switch (time_qual) {
-    case TIME_FINE: /* Intentionally FALLTHROUGH */
-    case TIME_FINEST:
-      /* Time comes from the measurement engine and if it is
-       * FINE or FINEST then we call it GNSS derived (flags=1) */
-      flags = 1;
-      break;
-    case TIME_PROPAGATED:
-      /* Time Propagated (flags=2) */
-      flags = 2;
-      break;
-    case TIME_COARSE:  /* Intentionally FALLTHROUGH  */
-    case TIME_UNKNOWN: /* Intentionally FALLTHROUGH  */
-    default:
-      /* Time COARSE or UNKNOWN ->  mark time as invalid    */
-      flags = 0;
-  }
-  return flags;
-}
-
-void sbp_make_gps_time(msg_gps_time_t *t_out,
-                       const gps_time_t *t_in,
-                       u8 time_qual) {
-  if (!gps_time_valid(t_in)) {
-    memset(t_out, 0, sizeof(msg_gps_time_t));
-    return;
-  }
-  /* TODO(Leith): SBP message should reuse the GPSTimeNano struct */
-  sbp_gps_time_t t_nano;
-  round_time_nano(t_in, &t_nano);
-  t_out->wn = t_nano.wn;
-  t_out->tow = t_nano.tow;
-  t_out->ns_residual = t_nano.ns_residual;
-  t_out->flags = sbp_get_time_quality_flags(time_qual) & 0x7;
-}
-
-void sbp_make_utc_time(msg_utc_time_t *t_out,
-                       const gps_time_t *t_in,
-                       u8 time_qual) {
-  if (!gps_time_valid(t_in)) {
-    memset(t_out, 0, sizeof(msg_utc_time_t));
-    return;
-  }
-  u8 flags = 0;
-  utc_params_t utc_params;
-  utc_params_t *p_utc_params = &utc_params;
-  bool is_nv;
-  /* try to read UTC parameters from NDB */
-  if (NDB_ERR_NONE == ndb_utc_params_read(&utc_params, &is_nv)) {
-    if (is_nv) {
-      flags |= (NVM_UTC << 3);
-    } else {
-      flags |= (DECODED_UTC << 3);
-    }
-  } else {
-    p_utc_params = NULL;
-    flags |= (DEFAULT_UTC << 3);
-  }
-
-  flags |= (sbp_get_time_quality_flags(time_qual) & 0x7);
-
-  /* convert to UTC (falls back to a hard-coded table if the pointer is null) */
-  utc_tm utc_time;
-  gps2utc(t_in, &utc_time, p_utc_params);
-
-  t_out->tow = round_tow_ms(t_in->tow);
-  t_out->year = utc_time.year;
-  t_out->month = utc_time.month;
-  t_out->day = utc_time.month_day;
-  t_out->hours = utc_time.hour;
-  t_out->minutes = utc_time.minute;
-  t_out->seconds = utc_time.second_int;
-  assert(utc_time.second_frac >= 0.0);
-  assert(utc_time.second_frac < 1.0);
-  /* round the nanosecond part down to stop it rounding up to the next second */
-  t_out->ns = floor(utc_time.second_frac * 1e9);
-  t_out->flags = flags;
 }
 
 void sbp_send_ndb_event(u8 event,
@@ -826,38 +733,6 @@ void unpack_sbas_raw_data(const msg_sbas_raw_t *m, sbas_raw_data_t *d) {
   MEMCPY_S(d->data, SBAS_RAW_PAYLOAD_LENGTH, m->data, SBAS_RAW_PAYLOAD_LENGTH);
 }
 
-/**
- * Helper function for rounding tow to integer milliseconds, taking care of
- * week roll-over
- * @param[in] tow Time-of-week in seconds
- * @return Time-of-week in milliseconds
- */
-u32 round_tow_ms(double tow) {
-  /* week roll-over */
-  u32 tow_ms = round(tow * 1e3);
-  while (tow_ms >= WEEK_MS) {
-    tow_ms -= WEEK_MS;
-  }
-  return tow_ms;
-}
-
-/**
- * Helper function for converting GPS time to integer milliseconds with
- * nanosecond remainder, taking care of week roll-over
- * @param[in] t_in GPS time
- * @param[out] t_out SBP time
- */
-void round_time_nano(const gps_time_t *t_in, sbp_gps_time_t *t_out) {
-  t_out->wn = t_in->wn;
-  t_out->tow = round(t_in->tow * 1e3);
-  t_out->ns_residual = round((t_in->tow - t_out->tow / 1e3) * 1e9);
-  /* week roll-over */
-  if (t_out->tow >= WEEK_MS) {
-    t_out->wn++;
-    t_out->tow -= WEEK_MS;
-  }
-}
-
 static void pack_almanac_common(const almanac_t *a,
                                 almanac_common_content_t *common) {
   common->toa.tow = round(a->toa.tow);
@@ -984,10 +859,6 @@ void sbp_pack_glonass_biases_content(const glo_biases_t glonass_biases,
       (s16)round(glonass_biases.l2of_bias_m * MSG_GLO_BIASES_MULTIPLIER);
   msg->l2p_bias =
       (s16)round(glonass_biases.l2p_bias_m * MSG_GLO_BIASES_MULTIPLIER);
-}
-
-u8 sbp_format_time_qual(u8 piksi_time_qual) {
-  return (TIME_PROPAGATED <= piksi_time_qual) ? TIME_PROPAGATED : 0;
 }
 
 /** \} */

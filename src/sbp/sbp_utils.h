@@ -78,16 +78,6 @@ typedef enum {
 extern "C" {
 #endif
 
-void sbp_init_gps_time(msg_gps_time_t *gps_time, gps_time_t *t, u8 time_qual);
-void sbp_init_utc_time(msg_utc_time_t *utc_time, gps_time_t *t, u8 time_qual);
-void sbp_make_gps_time(msg_gps_time_t *t_out,
-                       const gps_time_t *t_in,
-                       u8 time_qual);
-u8 sbp_get_time_quality_flags(u8 time_qual);
-
-void sbp_make_utc_time(msg_utc_time_t *t_out,
-                       const gps_time_t *t_in,
-                       u8 time_qual);
 void sbp_send_ndb_event(u8 event,
                         u8 obj_type,
                         u8 result,
@@ -172,8 +162,6 @@ void sbp_unpack_glonass_biases_content(msg_glo_biases_t msg,
                                        glo_biases_t *glonass_biases);
 void sbp_pack_glonass_biases_content(glo_biases_t glonass_biases,
                                      msg_glo_biases_t *msg);
-
-u8 sbp_format_time_qual(u8 piksi_time_qual);
 
 #ifdef __cplusplus
 }

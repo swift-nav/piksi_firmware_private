@@ -12,17 +12,47 @@
 
 #include "starling_sbp_messages.h"
 
+#include <math.h>
 #include <string.h>
 
 /*********************************************************************
  * External Dependencies -- TODO(kevin) remove these.
  *********************************************************************/
 
-extern u32 round_tow_ms(double tow);
-
 /*********************************************************************
  * Local Helpers
  *********************************************************************/
+/**
+ * Helper function for rounding tow to integer milliseconds, taking care of
+ * week roll-over
+ * @param[in] tow Time-of-week in seconds
+ * @return Time-of-week in milliseconds
+ */
+static u32 round_tow_ms(double tow) {
+  /* week roll-over */
+  u32 tow_ms = round(tow * 1e3);
+  while (tow_ms >= WEEK_MS) {
+    tow_ms -= WEEK_MS;
+  }
+  return tow_ms;
+}
+
+/**
+ * Helper function for converting GPS time to integer milliseconds with
+ * nanosecond remainder, taking care of week roll-over
+ * @param[in] t_in GPS time
+ * @param[out] t_out SBP time
+ */
+static void round_time_nano(const gps_time_t *t_in, sbp_gps_time_t *t_out) {
+  t_out->wn = t_in->wn;
+  t_out->tow = round(t_in->tow * 1e3);
+  t_out->ns_residual = round((t_in->tow - t_out->tow / 1e3) * 1e9);
+  /* week roll-over */
+  if (t_out->tow >= WEEK_MS) {
+    t_out->wn++;
+    t_out->tow -= WEEK_MS;
+  }
+}
 
 static double constrain_angle(const double heading) {
   double constrained_heading = fmod(heading, 360.0);
@@ -32,17 +62,39 @@ static double constrain_angle(const double heading) {
   return constrained_heading;
 }
 
+static u8 sbp_get_time_quality_flags(time_quality_t time_qual) {
+  u8 flags = 0;
+  switch (time_qual) {
+    case TIME_FINE: /* Intentionally FALLTHROUGH */
+    case TIME_FINEST:
+      /* Time comes from the measurement engine and if it is
+       * FINE or FINEST then we call it GNSS derived (flags=1) */
+      flags = 1;
+      break;
+    case TIME_PROPAGATED:
+      /* Time Propagated (flags=2) */
+      flags = 2;
+      break;
+    case TIME_COARSE:  /* Intentionally FALLTHROUGH  */
+    case TIME_UNKNOWN: /* Intentionally FALLTHROUGH  */
+    default:
+      /* Time COARSE or UNKNOWN ->  mark time as invalid    */
+      flags = 0;
+  }
+  return flags;
+}
+
 /*********************************************************************
  * SBP Message-Packing Functions
  *********************************************************************/
 #define MSG_HEADING_SCALE_FACTOR 1000.0
 
-void sbp_init_gps_time(msg_gps_time_t *gps_time, gps_time_t *t, u8 time_qual) {
+void sbp_init_gps_time(msg_gps_time_t *gps_time, gps_time_t *t, time_quality_t time_qual) {
   memset(gps_time, 0, sizeof(msg_gps_time_t));
   sbp_make_gps_time(gps_time, t, time_qual);
 }
 
-void sbp_init_utc_time(msg_utc_time_t *utc_time, gps_time_t *t, u8 time_qual) {
+void sbp_init_utc_time(msg_utc_time_t *utc_time, gps_time_t *t, time_quality_t time_qual) {
   memset(utc_time, 0, sizeof(msg_utc_time_t));
   sbp_make_utc_time(utc_time, t, time_qual);
 }
@@ -366,6 +418,64 @@ void sbp_make_dgnss_status(msg_dgnss_status_t *dgnss_status,
   dgnss_status->num_signals = num_sats;
 }
 
+void sbp_make_gps_time(msg_gps_time_t *t_out,
+                       const gps_time_t *t_in,
+                       time_quality_t time_qual) {
+  if (!gps_time_valid(t_in)) {
+    memset(t_out, 0, sizeof(msg_gps_time_t));
+    return;
+  }
+  /* TODO(Leith): SBP message should reuse the GPSTimeNano struct */
+  sbp_gps_time_t t_nano;
+  round_time_nano(t_in, &t_nano);
+  t_out->wn = t_nano.wn;
+  t_out->tow = t_nano.tow;
+  t_out->ns_residual = t_nano.ns_residual;
+  t_out->flags = sbp_get_time_quality_flags(time_qual) & 0x7;
+}
+
+void sbp_make_utc_time(msg_utc_time_t *t_out,
+                       const gps_time_t *t_in,
+                       time_quality_t time_qual) {
+  if (!gps_time_valid(t_in)) {
+    memset(t_out, 0, sizeof(msg_utc_time_t));
+    return;
+  }
+  u8 flags = 0;
+  utc_params_t utc_params;
+  utc_params_t *p_utc_params = &utc_params;
+  bool is_nv;
+  /* try to read UTC parameters from NDB */
+  if (NDB_ERR_NONE == ndb_utc_params_read(&utc_params, &is_nv)) {
+    if (is_nv) {
+      flags |= (NVM_UTC << 3);
+    } else {
+      flags |= (DECODED_UTC << 3);
+    }
+  } else {
+    p_utc_params = NULL;
+    flags |= (DEFAULT_UTC << 3);
+  }
+
+  flags |= (sbp_get_time_quality_flags(time_qual) & 0x7);
+
+  /* convert to UTC (falls back to a hard-coded table if the pointer is null) */
+  utc_tm utc_time;
+  gps2utc(t_in, &utc_time, p_utc_params);
+
+  t_out->tow = round_tow_ms(t_in->tow);
+  t_out->year = utc_time.year;
+  t_out->month = utc_time.month;
+  t_out->day = utc_time.month_day;
+  t_out->hours = utc_time.hour;
+  t_out->minutes = utc_time.minute;
+  t_out->seconds = utc_time.second_int;
+  assert(utc_time.second_frac >= 0.0);
+  assert(utc_time.second_frac < 1.0);
+  /* round the nanosecond part down to stop it rounding up to the next second */
+  t_out->ns = floor(utc_time.second_frac * 1e9);
+  t_out->flags = flags;
+}
 
 /*********************************************************************
  * High Level SBP Messages API 
@@ -373,18 +483,18 @@ void sbp_make_dgnss_status(msg_dgnss_status_t *dgnss_status,
 
 void sbp_messages_init(sbp_messages_t *sbp_messages,
                        const gps_time_t *epoch_time,
-                       const time_quality_t time_qual) {
+                       time_quality_t time_qual) {
   /* Necessary because some of these functions strip the const qualifier. */
   gps_time_t *t = (gps_time_t *)epoch_time;
   /* if there is ANY time known here better than propagated,
    * initialize time_qual as time_propagated for SBP output.
    * If we have a GNSS solution, we will override with the sbp GNSS Solution
    * time quality */
-
-  // TODO convert time quality to SBP time qual.
-  
-  sbp_init_gps_time(&sbp_messages->gps_time, t, sbp_time_qual);
-  sbp_init_utc_time(&sbp_messages->utc_time, t, sbp_time_qual);
+  if (TIME_PROPAGATED <= time_qual) {
+    time_qual = TIME_PROPAGATED;
+  }
+  sbp_init_gps_time(&sbp_messages->gps_time, t, time_qual);
+  sbp_init_utc_time(&sbp_messages->utc_time, t, time_qual);
   sbp_init_pos_llh(&sbp_messages->pos_llh, t);
   sbp_init_pos_ecef(&sbp_messages->pos_ecef, t);
   sbp_init_vel_ned(&sbp_messages->vel_ned, t);
