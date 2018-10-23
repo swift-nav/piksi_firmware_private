@@ -204,18 +204,18 @@ typedef enum {
  * Generic tracking channel information for external use.
  */
 typedef struct {
-  u8 id;                   /**< Channel identifier */
-  me_gnss_signal_t mesid;  /**< ME signal identifier */
-  u16 glo_orbit_slot;      /**< GLO orbital slot */
-  u32 flags;               /**< Tracker flags TRACKER_FLAG_... */
-  s32 tow_ms;              /**< ToW [ms] or TOW_UNKNOWN */
-  s32 tow_residual_ns;     /**< Residual to tow_ms [ns] */
-  float cn0;               /**< C/N0 [dB/Hz] */
-  u32 sample_count;        /**< Last measurement sample counter */
-  u16 lock_counter;        /**< Lock state counter */
-  float xcorr_freq;        /**< Cross-correlation doppler [hz] */
-  u16 xcorr_count;         /**< Cross-correlation counter */
-  bool xcorr_wl;           /**< Is signal xcorr whitelisted? */
+  u8 id;                  /**< Channel identifier */
+  me_gnss_signal_t mesid; /**< ME signal identifier */
+  u16 glo_orbit_slot;     /**< GLO orbital slot */
+  u32 flags;              /**< Tracker flags TRACKER_FLAG_... */
+  s32 tow_ms;             /**< ToW [ms] or TOW_UNKNOWN */
+  s32 tow_residual_ns;    /**< Residual to tow_ms [ns] */
+  float cn0;              /**< C/N0 [dB/Hz] */
+  u32 sample_count;       /**< Last measurement sample counter */
+  u16 lock_counter;       /**< Lock state counter */
+  float xcorr_freq;       /**< Cross-correlation doppler [hz] */
+  u16 xcorr_count;        /**< Cross-correlation counter */
+  bool xcorr_wl;          /**< Is signal xcorr whitelisted? */
 } tracker_info_t;
 
 /**
