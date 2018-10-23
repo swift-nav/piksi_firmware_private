@@ -12,9 +12,11 @@
 
 void send_observations(const obs_array_t *obs_array, u32 msg_obs_max_size) {
   static u8 buff[SBP_FRAMING_MAX_PAYLOAD_SIZE + 1];
+  msg_obs_t *msg = (msg_obs_t *)&buff;
+
   if ((NULL == obs_array) || (0 == obs_array->n)) {
     gps_time_t t_dummy = GPS_TIME_UNKNOWN;
-    pack_obs_header(&t_dummy, 1, 0, (observation_header_t *)buff);
+    pack_obs_header(&t_dummy, 1, 0, &msg->header);
     sbp_send_msg(SBP_MSG_OBS, sizeof(observation_header_t), buff);
     return;
   }
@@ -39,9 +41,7 @@ void send_observations(const obs_array_t *obs_array, u32 msg_obs_max_size) {
   u8 obs_i = 0;
   for (u8 count = 0; count < total; count++) {
     u8 curr_n = MIN(n - obs_i, obs_in_msg);
-    pack_obs_header(&obs_array->t, total, count, (observation_header_t *)buff);
-    packed_obs_content_t *obs =
-        (packed_obs_content_t *)&buff[sizeof(observation_header_t)];
+    pack_obs_header(&obs_array->t, total, count, &msg->header);
 
     for (u8 i = 0; i < curr_n; i++, obs_i++) {
       const starling_obs_t *m = &obs_array->observations[obs_i];
@@ -52,7 +52,7 @@ void send_observations(const obs_array_t *obs_array, u32 msg_obs_max_size) {
                            m->lock_time,
                            m->flags,
                            m->sid,
-                           &obs[i]) < 0) {
+                           &msg->obs[i]) < 0) {
         /* Error packing this observation, skip it. */
         i--;
         curr_n--;

@@ -323,7 +323,7 @@ static void collect_measurements(u64 rec_tc,
 static THD_WORKING_AREA(wa_me_calc_pvt_thread, ME_CALC_PVT_THREAD_STACK);
 
 static void drop_gross_outlier(const gnss_signal_t sid,
-                               const double pseudorange,
+                               const double pseudorange_m,
                                const double sat_pos[],
                                const gnss_solution *current_fix) {
   /* Check how large the outlier roughly is, and if it is a gross one,
@@ -333,7 +333,7 @@ static void drop_gross_outlier(const gnss_signal_t sid,
     geometric_range[j] = sat_pos[j] - current_fix->pos_ecef[j];
   }
   double pseudorng_error =
-      fabs(pseudorange - current_fix->clock_offset * GPS_C -
+      fabs(pseudorange_m - current_fix->clock_offset * GPS_C -
            vector_norm(3, geometric_range));
 
   bool generic_gross_outlier = pseudorng_error > RAIM_DROP_CHANNEL_THRESHOLD_M;
