@@ -14,6 +14,8 @@
 #include <libsbp/navigation.h>
 #include <swiftnav/logging.h>
 
+#include "calc/starling_sbp_messages.h"
+
 #include "board/nap/nap_common.h"
 #include "ext_events.h"
 #include "sbp.h"

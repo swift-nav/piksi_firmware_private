@@ -27,12 +27,15 @@
 #include "sbp_utils.h"
 #include "timing/timing.h"
 
-/** \addtogroup sbp
- * \{ */
+extern void round_time_nano(const gps_time_t *t_in, sbp_gps_time_t *t_out);
 
-/** \defgroup sbp_utils SBP Utils
- * Convert to and from SBP message types and other useful functions.
- * \{ */
+sbp_gnss_signal_t sid_to_sbp(const gnss_signal_t from) {
+  sbp_gnss_signal_t sbp_sid = {
+      .code = from.code, .sat = from.sat,
+  };
+
+  return sbp_sid;
+}
 
 gnss_signal_t sid_from_sbp(const sbp_gnss_signal_t from) {
   gnss_signal_t sid = {

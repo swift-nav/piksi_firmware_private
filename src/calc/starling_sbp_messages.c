@@ -12,12 +12,15 @@
 
 #include "starling_sbp_messages.h"
 
+#include <assert.h>
 #include <math.h>
 #include <string.h>
 
 /*********************************************************************
  * External Dependencies -- TODO(kevin) remove these.
  *********************************************************************/
+#define NDB_ERR_NONE 0
+u32 ndb_utc_params_read(utc_params_t *p, bool *is_nv);
 
 /*********************************************************************
  * Local Helpers
@@ -43,7 +46,7 @@ static u32 round_tow_ms(double tow) {
  * @param[in] t_in GPS time
  * @param[out] t_out SBP time
  */
-static void round_time_nano(const gps_time_t *t_in, sbp_gps_time_t *t_out) {
+void round_time_nano(const gps_time_t *t_in, sbp_gps_time_t *t_out) {
   t_out->wn = t_in->wn;
   t_out->tow = round(t_in->tow * 1e3);
   t_out->ns_residual = round((t_in->tow - t_out->tow / 1e3) * 1e9);
