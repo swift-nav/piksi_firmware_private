@@ -104,7 +104,8 @@ void sbp_make_utc_time(msg_utc_time_t *t_out,
   utc_params_t *p_utc_params = &utc_params;
   bool is_nv;
   /* try to read UTC parameters from NDB */
-  if (NDB_ERR_NONE == ndb_utc_params_read(&utc_params, &is_nv)) {
+  if (TIME_UNKNOWN != time_qual &&
+      NDB_ERR_NONE == ndb_utc_params_read(&utc_params, &is_nv)) {
     if (is_nv) {
       flags |= (NVM_UTC << 3);
     } else {
