@@ -71,12 +71,14 @@ void tracker_retune(tracker_t *tracker, u32 chips_to_correlate) {
   double doppler_freq_hz = tracker->carrier_freq;
   double code_phase_rate = tracker->code_phase_rate;
   bool nap_sc_wipe = nap_sc_wipeoff(tracker);
+  bool settled = tracker_timer_expired(&tracker->init_settle_timer);
   /* Write NAP UPDATE register. */
   nap_track_update(tracker->nap_channel,
                    doppler_freq_hz,
                    code_phase_rate,
                    chips_to_correlate,
-                   nap_sc_wipe);
+                   nap_sc_wipe,
+                   settled);
 }
 
 /** Adjust TOW for FIFO delay.

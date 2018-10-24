@@ -196,7 +196,7 @@ void nap_track_init(u8 channel,
   s->mesid = mesid;
 
   /* Set correlator spacing */
-  s->spacing = NAP_EPL_SPACING_SAMPLES - 1;
+  s->spacing = NAP_EPL_SPACING_INIT_SAMPLES - 1;
 
   /* code and carrier frequency */
   double carrier_freq_hz = mesid_to_carr_freq(mesid);
@@ -367,7 +367,8 @@ void nap_track_update(u8 channel,
                       double doppler_freq_hz,
                       double chip_rate,
                       u32 chips_to_correlate,
-                      bool has_pilot_sync) {
+                      bool has_pilot_sync,
+                      bool settled) {
   swiftnap_tracking_wr_t *t = &NAP->TRK_CH_WR[channel];
   struct nap_ch_state *s = &nap_ch_desc[channel];
 
@@ -390,6 +391,9 @@ void nap_track_update(u8 channel,
   s->length_adjust = 0;
   s->length[1] = s->length[0];
   s->length[0] = length;
+
+  s->spacing = settled ? (NAP_EPL_SPACING_SAMPLES - 1)
+                       : (NAP_EPL_SPACING_INIT_SAMPLES - 1);
 
   t->CORR_SET =
       ((u32)has_pilot_sync << NAP_TRK_CH_CORR_SET_SEC_CODE_ENABLE_Pos) |
