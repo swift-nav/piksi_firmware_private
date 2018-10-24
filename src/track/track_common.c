@@ -539,6 +539,45 @@ static void tp_tracker_update_bsync(tracker_t *tracker, u32 cycle_flags) {
   }
 }
 
+/* In base station mode we combine pilot and data ELP. In rover mode we
+   only combine EL. In rover mode we do not want to "borrow" from the phase
+   using the data bit polarity as it might be flaky. */
+static void add_pilot_to_data_iq(tracker_t *tracker, tp_epl_corr_t *corr) {
+  if (CODE_GPS_L2CM != tracker->mesid.code) {
+    return;
+  }
+
+  corr_t *l2cm[3] = {&corr->early, &corr->late, &corr->prompt};
+  corr_t *l2cl[3] = {&corr->dp_early, &corr->dp_late, &corr->dp_prompt};
+
+  /* non-normalized dot product using data and pilot prompt IQ data */
+  float dot = (float)l2cm[2]->I * l2cl[2]->I + (float)l2cm[2]->Q * l2cl[2]->Q;
+  bool rotate180 = (dot < 0);
+  int len = 3;
+  if (tp_is_base_station_mode()) {
+    len = 2;
+    corr->prompt = corr->dp_prompt; /* L2C tracks dataless pilot */
+  }
+
+  corr_t **data = l2cm;
+  corr_t **pilot = l2cl;
+
+  if (rotate180) {
+    /* data and pilot are 180 degrees apart.
+       Rotate data 180 degrees to compensate for the data bit flip. */
+    for (int i = 0; i < len; i++) {
+      data[i]->I = pilot[i]->I - data[i]->I;
+      data[i]->Q = pilot[i]->Q - data[i]->Q;
+    }
+    return;
+  }
+
+  for (int i = 0; i < len; i++) {
+    data[i]->I += pilot[i]->I;
+    data[i]->Q += pilot[i]->Q;
+  }
+}
+
 /**
  * Updates C/N0 estimators.
  *
@@ -573,6 +612,7 @@ static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
     } else {
       /* Update C/N0 estimate */
       u8 cn0_ms = tp_get_cn0_ms(tracker->tracking_mode);
+      add_pilot_to_data_iq(tracker, &tracker->corrs.corr_cn0);
       cn0 = track_cn0_update(&tracker->cn0_est,
                              cn0_ms,
                              tracker->corrs.corr_cn0.prompt.I,
@@ -767,11 +807,12 @@ static void tp_tracker_update_loops(tracker_t *tracker, u32 cycle_flags) {
 
     bool has_pilot_sync = nap_sc_wipeoff(tracker);
 
+    add_pilot_to_data_iq(tracker, &corr_main);
+
     if ((CODE_GPS_L2CM == tracker->mesid.code)) {
       /* The L2CM and L2CL codes are in phase,
-       * copy the VL to P so that the PLL runs
-       * on the pilot instead of the data */
-      corr_main.prompt = corr_main.dp_prompt;
+       * pilot was added to data with data bit flip compensated so that
+         the PLL runs on dataless IQ in prompt correlator */
       costas = false;
     } else if (has_pilot_sync) {
       /* Once in bit-sync, Galileo pilots
