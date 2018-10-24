@@ -56,7 +56,7 @@ typedef struct {
  * decision making.
  */
 typedef struct {
-  float cn0;   /**< Computed C/N0 (filtered) in dB/Hz */
+  float cn0; /**< Computed C/N0 (filtered) in dB/Hz */
 } tp_report_t;
 
 void tp_profile_init(tracker_t *tracker, const tp_report_t *data);

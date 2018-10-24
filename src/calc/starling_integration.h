@@ -19,12 +19,11 @@
  * variables). Ultimately, this should be the only header including the
  * starling_threads.h.
  */
+#include <starling/config.h>
 #include <starling/starling.h>
 #include <stdbool.h>
 
 #include "hal/piksi_systime.h"
-
-#define STARLING_MAX_OBS_COUNT 150
 
 extern bool send_heading;
 extern bool disable_raim;
