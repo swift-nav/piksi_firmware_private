@@ -57,7 +57,6 @@
 /** Internal tracking channel state */
 static struct nap_ch_state {
   me_gnss_signal_t mesid;     /**< Channel ME sid */
-  u8 spacing;                 /**< Correlator spacing in samples */
   u32 length[2];              /**< Correlation length in samples of Fs */
   s32 carr_pinc[2];           /**< Carrier phase increment */
   u32 code_pinc[2];           /**< Code phase increment */
@@ -194,9 +193,6 @@ void nap_track_init(u8 channel,
   s->fcn_freq_hz = mesid_to_carr_fcn_hz(mesid);
   s->mesid = mesid;
 
-  /* Set correlator spacing */
-  s->spacing = NAP_EPL_SPACING_SAMPLES - 1;
-
   /* code and carrier frequency */
   double carrier_freq_hz = mesid_to_carr_freq(mesid);
   double chip_rate =
@@ -225,8 +221,10 @@ void nap_track_init(u8 channel,
                     length,
                     chip_rate);
   }
-  t->CORR_SET = ((u32)(s->spacing) << NAP_TRK_CH_CORR_SET_SPACING_Pos) |
-                SET_NAP_CORR_LEN(length);
+  /* Set correlator spacing */
+  u32 spacing = code_to_init_spacing(mesid.code);
+  t->CORR_SET =
+      (spacing << NAP_TRK_CH_CORR_SET_SPACING_Pos) | SET_NAP_CORR_LEN(length);
   s->length_adjust = delta_samples;
   /* Carrier phase rate */
   double carrier_dopp_hz = -(s->fcn_freq_hz + doppler_freq_hz);
@@ -362,7 +360,8 @@ void nap_track_update(u8 channel,
                       double doppler_freq_hz,
                       double chip_rate,
                       u32 chips_to_correlate,
-                      bool has_pilot_sync) {
+                      bool has_pilot_sync,
+                      bool confirmed) {
   swiftnap_tracking_wr_t *t = &NAP->TRK_CH_WR[channel];
   struct nap_ch_state *s = &nap_ch_desc[channel];
 
@@ -386,10 +385,11 @@ void nap_track_update(u8 channel,
   s->length[1] = s->length[0];
   s->length[0] = length;
 
+  u32 spacing = confirmed ? 0 : code_to_init_spacing(s->mesid.code);
+
   t->CORR_SET =
       ((u32)has_pilot_sync << NAP_TRK_CH_CORR_SET_SEC_CODE_ENABLE_Pos) |
-      ((u32)(s->spacing) << NAP_TRK_CH_CORR_SET_SPACING_Pos) |
-      SET_NAP_CORR_LEN(length);
+      (spacing << NAP_TRK_CH_CORR_SET_SPACING_Pos) | SET_NAP_CORR_LEN(length);
 
   if ((length < NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MIN_MS)) ||
       (length > NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MAX_MS))) {
