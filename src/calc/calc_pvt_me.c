@@ -387,7 +387,9 @@ static void starling_obs_to_nav_meas(const starling_obs_t *obs,
 static s8 me_compute_pvt(const obs_array_t *obs_array,
                          u64 current_tc,
                          const ephemeris_t e_meas[],
-                         last_good_fix_t *lgf) {
+                         last_good_fix_t *lgf,
+                         gnss_sid_set_t *raim_sids,
+                         gnss_sid_set_t *raim_removed_sids) {
   u8 n_ready = obs_array->n;
   gnss_sid_set_t codes;
   sid_set_init(&codes);
@@ -449,7 +451,7 @@ static s8 me_compute_pvt(const obs_array_t *obs_array,
 
   dops_t dops;
   gnss_solution current_fix;
-  gnss_sid_set_t raim_removed_sids;
+  sid_set_init(raim_removed_sids);
 
   /* Calculate the SPP position
    * disable_raim controlled by external setting. Defaults to false. */
@@ -461,7 +463,7 @@ static s8 me_compute_pvt(const obs_array_t *obs_array,
                         GPS_L1CA_WHEN_POSSIBLE,
                         &current_fix,
                         &dops,
-                        &raim_removed_sids);
+                        raim_removed_sids);
 
   if (pvt_ret < 0 || (lgf->position_quality == POSITION_FIX &&
                       gate_covariance(&current_fix))) {
@@ -480,14 +482,14 @@ static s8 me_compute_pvt(const obs_array_t *obs_array,
     }
   }
 
-  /* If we have a success RAIM repair, mark the removed observations as
-   invalid, and ask tracker to drop the channels (if needed). */
+  /* If we have a successful RAIM repair, mark the passed observations as valid,
+   * and check if the failed observations as gross enough to have their channel
+   * dropped */
   if (pvt_ret == PVT_CONVERGED_RAIM_REPAIR) {
+    /* all signals have gone through RAIM */
+    *raim_sids = codes;
     for (u8 i = 0; i < n_ready; i++) {
-      if (sid_set_contains(&raim_removed_sids, nav_meas[i].sid)) {
-        log_debug_sid(nav_meas[i].sid,
-                      "RAIM repair, setting observation invalid.");
-        nav_meas[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION;
+      if (sid_set_contains(raim_removed_sids, nav_meas[i].sid)) {
         /* Check how large the outlier roughly is, and if it is a gross one,
          * drop the channel and delete the possibly corrupt ephemeris */
         drop_gross_outlier(nav_meas[i].sid,
@@ -496,6 +498,11 @@ static s8 me_compute_pvt(const obs_array_t *obs_array,
                            &current_fix);
       }
     }
+  } else if (pvt_ret == PVT_CONVERGED_RAIM_OK) {
+    /* all signals have gone through RAIM */
+    *raim_sids = codes;
+  } else {
+    sid_set_init(raim_sids);
   }
 
   if (pvt_ret >= 0) {
@@ -549,6 +556,11 @@ static void me_calc_pvt_thread(void *arg) {
   piksi_systime_t next_epoch;
   piksi_systime_get(&next_epoch);
   piksi_systime_inc_us(&next_epoch, SECS_US / soln_freq_setting);
+
+  gnss_sid_set_t raim_sids;
+  gnss_sid_set_t raim_failed_sids;
+  sid_set_init(&raim_sids);
+  sid_set_init(&raim_failed_sids);
 
   while (TRUE) {
     /* read current value of soln_freq into a local variable that does not
@@ -648,6 +660,7 @@ static void me_calc_pvt_thread(void *arg) {
 
     if (n_ready == 0) {
       me_send_emptyobs();
+      sid_set_init(&raim_sids);
       continue;
     }
 
@@ -671,6 +684,7 @@ static void me_calc_pvt_thread(void *arg) {
     if (nm_ret != 0) {
       log_error("calc_navigation_measurement() returned error %d", nm_ret);
       me_send_emptyobs();
+      sid_set_init(&raim_sids);
       continue;
     }
 
@@ -681,10 +695,16 @@ static void me_calc_pvt_thread(void *arg) {
      * models. Compute on every epoch until the time quality gets to FINEST,
      * otherwise at a lower rate */
     if (TIME_FINEST > time_quality) {
-      me_compute_pvt(&obs_array, current_tc, e_meas, &lgf);
+      me_compute_pvt(
+          &obs_array, current_tc, e_meas, &lgf, &raim_sids, &raim_failed_sids);
     } else {
       DO_EACH_MS(ME_PVT_INTERVAL_S * SECS_MS,
-                 me_compute_pvt(&obs_array, current_tc, e_meas, &lgf));
+                 me_compute_pvt(&obs_array,
+                                current_tc,
+                                e_meas,
+                                &lgf,
+                                &raim_sids,
+                                &raim_failed_sids));
     }
 
     /* Get the current estimate of GPS time and receiver clock drift */
@@ -707,8 +727,28 @@ static void me_calc_pvt_thread(void *arg) {
       /* Propagate the measurements to the output epoch */
       remove_clock_offset(&obs_array, &output_time, smoothed_drift, current_tc);
 
+      static obs_array_t send_obs_array;
+      send_obs_array.n = 0;
+      send_obs_array.t = obs_array.t;
+
+      for (u8 i = 0; i < obs_array.n; i++) {
+        /* If RAIM is enabled, send out only signals that went through the last
+         * RAIM round */
+        gnss_signal_t sid = obs_array.observations[i].sid;
+        if (disable_raim || sid_set_contains(&raim_sids, sid)) {
+          if (sid_set_contains(&raim_failed_sids, sid)) {
+            /* Flag signals that failed the last RAIM */
+            obs_array.observations[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION;
+          }
+          /* Copy the measurement to be sent out */
+          send_obs_array.observations[send_obs_array.n] =
+              obs_array.observations[i];
+          send_obs_array.n++;
+        }
+      }
+
       /* Send the observations. */
-      me_send_all(&obs_array, e_meas);
+      me_send_all(&send_obs_array, e_meas);
     } else {
       if (TIME_UNKNOWN != time_quality) {
         log_info("Observations suppressed because time jumps %.2f seconds",
