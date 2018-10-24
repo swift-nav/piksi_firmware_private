@@ -24,22 +24,6 @@
 extern "C" {
 #endif /* __cplusplus */
 
-/** \addtogroup timing Timing
- * \{ */
-
-typedef enum {
-  TIME_UNKNOWN = 0, /**< GPS time is completely unknown, estimate invalid. */
-  TIME_COARSE,      /**< GPS time is known roughly, within 10 ms. */
-  TIME_PROPAGATED, /**< GPS time was known but is now propagated, accurate to at
-                      least a microsecond. */
-  TIME_FINE,       /**< GPS time is known precisely with reference to the local
-                      SwiftNAP timer, accurate within 100 ns. */
-  TIME_FINEST      /**< GPS time is known precisely with reference to the local
-                      SwiftNAP timer, accurate within 10 ns. */
-} time_quality_t;
-
-/** \} */
-
 #define RX_DT_NOMINAL (1.0 / NAP_FRONTEND_SAMPLE_RATE_Hz)
 #define SEC2TICK(x) ((x)*NAP_FRONTEND_SAMPLE_RATE_Hz)
 
