@@ -620,8 +620,7 @@ void send_solution_time_matched(const StarlingFilterSolution *solution,
    * overwrite the relevant messages. */
   sbp_messages_t sbp_messages;
   time_quality_t time_qual = get_time_quality();
-  sbp_messages_init(
-      &sbp_messages, &obss_base->tor, time_qual);
+  sbp_messages_init(&sbp_messages, &obss_base->tor, time_qual);
 
   pvt_engine_result_t soln_copy = obss_rover->soln;
 

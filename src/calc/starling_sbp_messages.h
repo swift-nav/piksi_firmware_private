@@ -150,9 +150,9 @@ void sbp_make_age_corrections(msg_age_corrections_t *age_corrections,
                               double propagation_time);
 
 void sbp_make_dgnss_status(msg_dgnss_status_t *dgnss_status,
-u8 num_sats,
-double obs_latency,
-u8 flags);
+                           u8 num_sats,
+                           double obs_latency,
+                           u8 flags);
 
 void sbp_make_gps_time(msg_gps_time_t *t_out,
                        const gps_time_t *t_in,
@@ -165,8 +165,7 @@ void sbp_make_utc_time(msg_utc_time_t *t_out,
 
 void sbp_messages_init(sbp_messages_t *sbp_messages,
                        const gps_time_t *epoch_time,
-                       time_quality_t time_qual); 
-
+                       time_quality_t time_qual);
 
 #ifdef __cplusplus
 }

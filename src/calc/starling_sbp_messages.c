@@ -92,12 +92,16 @@ static u8 sbp_get_time_quality_flags(time_quality_t time_qual) {
  *********************************************************************/
 #define MSG_HEADING_SCALE_FACTOR 1000.0
 
-void sbp_init_gps_time(msg_gps_time_t *gps_time, gps_time_t *t, time_quality_t time_qual) {
+void sbp_init_gps_time(msg_gps_time_t *gps_time,
+                       gps_time_t *t,
+                       time_quality_t time_qual) {
   memset(gps_time, 0, sizeof(msg_gps_time_t));
   sbp_make_gps_time(gps_time, t, time_qual);
 }
 
-void sbp_init_utc_time(msg_utc_time_t *utc_time, gps_time_t *t, time_quality_t time_qual) {
+void sbp_init_utc_time(msg_utc_time_t *utc_time,
+                       gps_time_t *t,
+                       time_quality_t time_qual) {
   memset(utc_time, 0, sizeof(msg_utc_time_t));
   sbp_make_utc_time(utc_time, t, time_qual);
 }
@@ -409,9 +413,9 @@ void sbp_make_age_corrections(msg_age_corrections_t *age_corrections,
 }
 
 void sbp_make_dgnss_status(msg_dgnss_status_t *dgnss_status,
-    u8 num_sats,
-    double obs_latency,
-    u8 flags) {
+                           u8 num_sats,
+                           double obs_latency,
+                           u8 flags) {
   if (flags > POSITION_MODE_DGNSS) {
     dgnss_status->flags = 2;
   } else {
@@ -481,7 +485,7 @@ void sbp_make_utc_time(msg_utc_time_t *t_out,
 }
 
 /*********************************************************************
- * High Level SBP Messages API 
+ * High Level SBP Messages API
  *********************************************************************/
 
 void sbp_messages_init(sbp_messages_t *sbp_messages,
@@ -513,4 +517,3 @@ void sbp_messages_init(sbp_messages_t *sbp_messages,
   sbp_init_pos_llh_cov(&sbp_messages->pos_llh_cov, t);
   sbp_init_vel_ned_cov(&sbp_messages->vel_ned_cov, t);
 }
-
