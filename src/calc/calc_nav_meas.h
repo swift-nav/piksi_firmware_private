@@ -26,20 +26,13 @@ extern "C" {
 #endif /* __cplusplus */
 
 s8 calc_navigation_measurement(u8 n_channels,
-                               const channel_measurement_t *meas[],
-                               navigation_measurement_t *nav_meas[],
+                               const channel_measurement_t meas[],
+                               obs_array_t *obs_array,
                                const gps_time_t *rec_time);
 
 void apply_gps_cnav_isc(u8 n_channels,
                         navigation_measurement_t *nav_meas[],
-                        const ephemeris_t *p_ephe[]);
-
-u8 tdcp_doppler(u8 n_new,
-                navigation_measurement_t *m_new,
-                u8 n_old,
-                navigation_measurement_t *m_old,
-                navigation_measurement_t *m_corrected,
-                double dt);
+                        const ephemeris_t ephe[]);
 
 #ifdef __cplusplus
 } /* extern "C" */

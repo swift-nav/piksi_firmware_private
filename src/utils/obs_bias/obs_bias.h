@@ -9,16 +9,17 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
-#ifndef OBSERVATION_BIASES_CALIBRATION_H
-#define OBSERVATION_BIASES_CALIBRATION_H
+#ifndef SWIFTNAV_OBSERVATION_BIASES_CALIBRATION_H
+#define SWIFTNAV_OBSERVATION_BIASES_CALIBRATION_H
 
+#include <starling/starling.h>
 #include <swiftnav/nav_meas.h>
 
 /* Send the glonass bias message every 5 observations message */
 extern const u32 biases_message_freq_setting;
 
-void apply_isc_table(u8 n_channels, navigation_measurement_t *nav_meas[]);
+void apply_isc_table(obs_array_t *obs_array);
 
 void send_glonass_biases(void);
 
-#endif  // PIKSI_FIRMWARE_PRIVATE_OBSERVATION_BIASES_CALIBRATION_H
+#endif /* SWIFTNAV_OBSERVATION_BIASES_CALIBRATION_H */

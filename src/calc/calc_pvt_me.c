@@ -13,6 +13,7 @@
 #include <float.h>
 #include <inttypes.h>
 #include <stdio.h>
+#include <string.h>
 
 #include <libsbp/sbp.h>
 #include <starling/integration/starling_input_bridge.h>
@@ -29,22 +30,22 @@
 #include <swiftnav/single_epoch_solver.h>
 #include <swiftnav/troposphere.h>
 
+#include "acq/manage.h"
 #include "board/nap/track_channel.h"
 #include "calc_nav_meas.h"
 #include "calc_pvt_common.h"
 #include "calc_pvt_me.h"
-#include "main.h"
-#include "manage.h"
+#include "main/main.h"
 #include "ndb/ndb.h"
 #include "nmea/nmea.h"
 #include "obs_bias/obs_bias.h"
 #include "peripherals/leds.h"
 #include "position/position.h"
-#include "sbp.h"
-#include "sbp_utils.h"
+#include "sbp/sbp.h"
+#include "sbp/sbp_utils.h"
 #include "settings/settings.h"
 #include "shm/shm.h"
-#include "simulator.h"
+#include "simulator/simulator.h"
 #include "starling_integration.h"
 #include "system_monitor/system_monitor.h"
 #include "timing/timing.h"
@@ -65,7 +66,7 @@
 #define POSITION_FIX_TIMEOUT_S 60
 
 #define ME_CALC_PVT_THREAD_PRIORITY (HIGHPRIO - 3)
-#define ME_CALC_PVT_THREAD_STACK (10 * 64 * 1024)
+#define ME_CALC_PVT_THREAD_STACK (3 * 10 * 1024)
 
 /* Limits the sets of possible solution frequencies (in increasing order) */
 static const double valid_soln_freqs_hz[] = {1.0, 2.0, 4.0, 5.0, 10.0, 20.0};
@@ -84,65 +85,18 @@ s16 msg_obs_max_size = SBP_FRAMING_MAX_PAYLOAD_SIZE;
 
 static soln_stats_t last_stats = {.signals_tracked = 0, .signals_useable = 0};
 
-/* RFT_TODO *
- * check that Klobuchar is used in SPP solver */
-
 /* STATIC FUNCTIONS */
 
 /******************************************************************************/
-static void meas_to_obs(obs_array_t *obs_array,
-                        const gps_time_t *t,
-                        u8 n,
-                        const navigation_measurement_t nm[]) {
-  assert(n <= STARLING_MAX_OBS_COUNT);
-  obs_array->n = n;
-  for (size_t i = 0; i < obs_array->n; ++i) {
-    obs_array->observations[i].sid = nm[i].sid;
-    obs_array->observations[i].pseudorange = nm[i].raw_pseudorange;
-    obs_array->observations[i].carrier_phase = nm[i].raw_carrier_phase;
-    obs_array->observations[i].doppler = nm[i].raw_measured_doppler;
-    obs_array->observations[i].cn0 = nm[i].cn0;
-    obs_array->observations[i].lock_time = nm[i].lock_time;
-    obs_array->observations[i].flags = nm[i].flags;
-
-    /* TOT is special. We want to recompute from the observation time and raw
-     * pseudorange because the navigation measurement tot will have already had
-     * clock corrections applied. */
-    obs_array->observations[i].tot = GPS_TIME_UNKNOWN;
-    if (t) {
-      obs_array->observations[i].tot = *t;
-      obs_array->observations[i].tot.tow -=
-          obs_array->observations[i].pseudorange / GPS_C;
-      normalize_gps_time(&obs_array->observations[i].tot);
-    }
-  }
-}
-
-static void me_post_observations(u8 n,
-                                 const navigation_measurement_t _meas[],
-                                 const ephemeris_t _ephem[],
-                                 const gps_time_t *_t) {
-  int ret = starling_send_ephemerides(_ephem, n);
+static void me_post_observations(const obs_array_t *obs_array,
+                                 const ephemeris_t _ephem[]) {
+  assert(NULL != obs_array);
+  int ret = starling_send_ephemerides(_ephem, obs_array->n);
   if (STARLING_SEND_OK != ret) {
     log_error("ME: Unable to send ephemeris array.");
   }
 
-  obs_array_t obs_array;
-  obs_array.sender = 0;
-  obs_array.t = GPS_TIME_UNKNOWN;
-  if (NULL != _t) {
-    obs_array.t = *_t;
-  }
-
-  if (n > STARLING_MAX_OBS_COUNT) {
-    log_warn("ME: Trying to send %zu/%u observations, extra will be discarded.",
-             n,
-             STARLING_MAX_OBS_COUNT);
-    n = STARLING_MAX_OBS_COUNT;
-  }
-  meas_to_obs(&obs_array, _t, n, _meas);
-
-  ret = starling_send_rover_obs(&obs_array);
+  ret = starling_send_rover_obs(obs_array);
   if (STARLING_SEND_OK != ret) {
     log_error("ME: Unable to send observations.");
   }
@@ -157,21 +111,22 @@ static bool decimate_observations(const gps_time_t *_t) {
   return fabs(gpsdifftime(_t, &epoch)) < TIME_MATCH_THRESHOLD;
 }
 
-static void me_send_all(u8 _num_obs,
-                        const navigation_measurement_t _meas[],
-                        const ephemeris_t _ephem[],
-                        const gps_time_t *_t) {
-  me_post_observations(_num_obs, _meas, _ephem, _t);
+static void me_send_all(const obs_array_t *obs_array,
+                        const ephemeris_t _ephem[]) {
+  me_post_observations(obs_array, _ephem);
   /* Output observations only every obs_output_divisor times, taking
    * care to ensure that the observations are aligned. */
-  if (decimate_observations(_t) && !simulation_enabled()) {
-    send_observations(_num_obs, msg_obs_max_size, _meas, _t);
+  if (decimate_observations(&obs_array->t) && !simulation_enabled()) {
+    send_observations(obs_array, msg_obs_max_size);
   }
   DO_EVERY(biases_message_freq_setting, send_glonass_biases());
 }
 
 static void me_send_emptyobs(void) {
-  me_post_observations(0, NULL, NULL, NULL);
+  obs_array_t obs_array;
+  obs_array.n = 0;
+  obs_array.t = GPS_TIME_UNKNOWN;
+  me_post_observations(&obs_array, NULL);
   /* When we don't have a time solve, we still want to decimate our
    * observation output, we can use the GPS time if we have one,
    * otherwise we'll default to using receiver time. */
@@ -182,73 +137,75 @@ static void me_send_emptyobs(void) {
     current_time = gps_time_round_to_epoch(&current_time, soln_freq_setting);
   }
   if (decimate_observations(&current_time) && !simulation_enabled()) {
-    send_observations(0, msg_obs_max_size, NULL, NULL);
+    send_observations(NULL, msg_obs_max_size);
   }
 }
 
 /* remove the effect of local clock offset and drift from measurements */
-static void remove_clock_offset(navigation_measurement_t *nm,
-                                double clock_offset,
+static void remove_clock_offset(obs_array_t *obs_array,
+                                const gps_time_t *output_time,
                                 double clock_drift,
                                 u64 current_tc) {
-  assert(0 != (nm->flags & NAV_MEAS_FLAG_MEAS_DOPPLER_VALID));
+  /* amount of clock offset to remove */
+  double clock_offset = gpsdifftime(output_time, &obs_array->t);
 
-  /* Adjust Doppler with smoothed oscillator drift. */
-  nm->raw_measured_doppler += clock_drift * GPS_C / sid_to_lambda(nm->sid);
-  nm->raw_computed_doppler = nm->raw_measured_doppler;
+  for (u8 i = 0; i < obs_array->n; i++) {
+    starling_obs_t *obs = &obs_array->observations[i];
+    assert(0 != (obs->flags & NAV_MEAS_FLAG_MEAS_DOPPLER_VALID));
 
-  /* Range correction caused by clock offset */
-  double corr_cycles = clock_offset * nm->raw_measured_doppler;
-  nm->raw_pseudorange -= corr_cycles * sid_to_lambda(nm->sid);
-  nm->raw_carrier_phase -= corr_cycles;
+    /* Adjust measured Doppler with smoothed oscillator drift. */
+    obs->doppler += clock_drift * GPS_C / sid_to_lambda(obs->sid);
 
-  /* Compensate for NAP counter drift since cpo computation */
-  double cpo_drift = subsecond_cpo_correction(current_tc);
-  nm->raw_carrier_phase += cpo_drift * sid_to_carr_freq(nm->sid);
+    /* Range correction caused by clock offset */
+    double corr_cycles = clock_offset * obs->doppler;
+    obs->pseudorange -= corr_cycles * sid_to_lambda(obs->sid);
+    obs->carrier_phase -= corr_cycles;
 
-  /* Also apply the time correction to the time of transmission so the
-   * satellite positions can be calculated for the correct time. */
-  nm->tot.tow += clock_offset;
-  normalize_gps_time(&(nm->tot));
+    /* Compensate for NAP counter drift since cpo computation */
+    double cpo_drift = subsecond_cpo_correction(current_tc);
+    obs->carrier_phase += cpo_drift * sid_to_carr_freq(obs->sid);
+
+    /* Also apply the time correction to the time of transmission so the
+     * satellite positions can be calculated for the correct time. */
+    obs->tot.tow += clock_offset;
+    normalize_gps_time(&(obs->tot));
+  }
+  /* update TOR of the observation set */
+  obs_array->t = *output_time;
 }
 
 /** Roughly propagate and send the observations when PVT solution failed or is
  * not available. Flag all with RAIM exclusion so they do not get used
  * downstream. */
-static void me_send_failed_obs(u8 _num_obs,
-                               navigation_measurement_t _meas[],
-                               const ephemeris_t _ephem[],
-                               const gps_time_t *_t) {
+static void me_send_failed_obs(obs_array_t *obs_array,
+                               const ephemeris_t _ephem[]) {
   /* require at least some timing quality */
-  if (TIME_PROPAGATED > get_time_quality() || !gps_time_valid(_t) ||
-      _num_obs == 0) {
+  if (TIME_PROPAGATED > get_time_quality() || !gps_time_valid(&obs_array->t) ||
+      obs_array->n == 0) {
     me_send_emptyobs();
     return;
   }
 
-  /* offset assumed steered to zero */
-  double clock_offset = 0;
-
-  u64 ref_tc = gpstime2napcount(_t);
+  u64 ref_tc = gpstime2napcount(&obs_array->t);
 
   /* get the estimated clock drift value */
   double clock_drift = get_clock_drift();
 
-  for (u8 i = 0; i < _num_obs; i++) {
+  /* remove just the smoothed drift from observations */
+  remove_clock_offset(obs_array, &obs_array->t, clock_drift, ref_tc);
+
+  for (u8 i = 0; i < obs_array->n; i++) {
     /* mark the measurement unusable to be on the safe side */
     /* TODO: could relax this in order to send also under-determined measurement
      * sets to Starling */
-    _meas[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION;
-
-    /* propagate the measurements with the smoothed drift value */
-    remove_clock_offset(&_meas[i], clock_offset, clock_drift, ref_tc);
+    obs_array->observations[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION;
   }
 
-  me_post_observations(_num_obs, _meas, _ephem, _t);
+  me_post_observations(obs_array, _ephem);
   /* Output observations only every obs_output_divisor times, taking
    * care to ensure that the observations are aligned. */
-  if (decimate_observations(_t) && !simulation_enabled()) {
-    send_observations(_num_obs, msg_obs_max_size, _meas, _t);
+  if (decimate_observations(&obs_array->t) && !simulation_enabled()) {
+    send_observations(obs_array, msg_obs_max_size);
   }
 }
 
@@ -365,66 +322,98 @@ static void collect_measurements(u64 rec_tc,
 
 static THD_WORKING_AREA(wa_me_calc_pvt_thread, ME_CALC_PVT_THREAD_STACK);
 
-static void drop_gross_outlier(const navigation_measurement_t *nav_meas,
+static void drop_gross_outlier(const gnss_signal_t sid,
+                               const double pseudorange_m,
+                               const double sat_pos[],
                                const gnss_solution *current_fix) {
   /* Check how large the outlier roughly is, and if it is a gross one,
    * drop the channel and delete the possibly corrupt ephemeris */
   double geometric_range[3];
   for (u8 j = 0; j < 3; j++) {
-    geometric_range[j] = nav_meas->sat_pos[j] - current_fix->pos_ecef[j];
+    geometric_range[j] = sat_pos[j] - current_fix->pos_ecef[j];
   }
   double pseudorng_error =
-      fabs(nav_meas->pseudorange - current_fix->clock_offset * GPS_C -
+      fabs(pseudorange_m - current_fix->clock_offset * GPS_C -
            vector_norm(3, geometric_range));
 
   bool generic_gross_outlier = pseudorng_error > RAIM_DROP_CHANNEL_THRESHOLD_M;
   if (generic_gross_outlier) {
     /* mark channel for dropping */
-    tracker_set_raim_flag(nav_meas->sid);
+    tracker_set_raim_flag(sid);
     /* clear the ephemeris for this signal */
-    ndb_ephemeris_erase(nav_meas->sid);
+    ndb_ephemeris_erase(sid);
   }
 
   bool boc_halfchip_outlier =
-      (CODE_GAL_E1B == nav_meas->sid.code) && (pseudorng_error > 100);
+      (CODE_GAL_E1B == sid.code) && (pseudorng_error > 100);
   if (boc_halfchip_outlier) {
     /* mark channel for dropping */
-    tracker_set_raim_flag(nav_meas->sid);
+    tracker_set_raim_flag(sid);
+  }
+}
+
+static void starling_obs_to_nav_meas(const starling_obs_t *obs,
+                                     navigation_measurement_t *nm) {
+  nm->raw_pseudorange = obs->pseudorange;
+  nm->pseudorange = obs->pseudorange;
+  nm->raw_carrier_phase = obs->carrier_phase;
+  nm->carrier_phase = obs->carrier_phase;
+  nm->raw_measured_doppler = obs->doppler;
+  nm->measured_doppler = obs->doppler;
+  nm->raw_computed_doppler = obs->doppler;
+  nm->computed_doppler = obs->doppler;
+  nm->computed_doppler_dt = 0;
+  memset(nm->sat_pos, 0, 3);
+  memset(nm->sat_vel, 0, 3);
+  memset(nm->sat_acc, 0, 3);
+  nm->IODE = 0;
+  nm->sat_clock_err = 0;
+  nm->sat_clock_err_rate = 0;
+  nm->IODC = 0;
+  nm->cn0 = obs->cn0;
+  nm->lock_time = obs->lock_time;
+  nm->elevation = 0;
+  nm->tot = obs->tot;
+  nm->sid = obs->sid;
+  nm->flags = obs->flags;
+  double el;
+  if (track_sid_db_elevation_degrees_get(nm->sid, &el)) {
+    nm->elevation = el;
   }
 }
 
 /* Apply corrections and solve for position from the given navigation
  * measurements, and if succesful update LGF and clock model */
-static s8 me_compute_pvt(u8 n_ready,
-                         const navigation_measurement_t nav_meas_in[],
+static s8 me_compute_pvt(const obs_array_t *obs_array,
                          u64 current_tc,
-                         const gps_time_t *current_time,
-                         const ephemeris_t *p_e_meas[],
+                         const ephemeris_t e_meas[],
                          last_good_fix_t *lgf) {
+  u8 n_ready = obs_array->n;
   gnss_sid_set_t codes;
   sid_set_init(&codes);
   for (u8 i = 0; i < n_ready; i++) {
-    sid_set_add(&codes, nav_meas_in[i].sid);
+    sid_set_add(&codes, obs_array->observations[i].sid);
   }
 
-  if (sid_set_get_sat_count(&codes) < MINIMUM_SV_COUNT) {
+  if (n_ready < MINIMUM_SV_COUNT ||
+      sid_set_get_sat_count(&codes) < MINIMUM_SV_COUNT) {
     /* Not enough sats to even try PVT */
     return PVT_INSUFFICENT_MEAS;
   }
 
   /* Copy navigation measurements to a local array and create array of pointers
    * to it */
-  navigation_measurement_t nav_meas[n_ready];
+  static navigation_measurement_t nav_meas[MAX_CHANNELS];
   navigation_measurement_t *p_nav_meas[n_ready];
   for (u8 i = 0; i < n_ready; i++) {
-    nav_meas[i] = nav_meas_in[i];
+    starling_obs_to_nav_meas(&obs_array->observations[i], &nav_meas[i]);
     p_nav_meas[i] = &nav_meas[i];
   }
 
   /* Compute satellite positions, velocities, and satellite clock and
    * clock rate corrections for all measurements*/
   for (u8 i = 0; i < n_ready; i++) {
-    s8 sc_ret = calc_sat_state(p_e_meas[i],
+    s8 sc_ret = calc_sat_state(&e_meas[i],
                                &(p_nav_meas[i]->tot),
                                p_nav_meas[i]->sat_pos,
                                p_nav_meas[i]->sat_vel,
@@ -436,7 +425,7 @@ static s8 me_compute_pvt(u8 n_ready,
 
     if (sc_ret != 0) {
       log_error_sid(
-          p_e_meas[i]->sid, "calc_sat_state() returned error %d", sc_ret);
+          e_meas[i].sid, "calc_sat_state() returned error %d", sc_ret);
       return PVT_INSUFFICENT_MEAS; /* TODO define "other error?" */
     }
   }
@@ -445,7 +434,7 @@ static s8 me_compute_pvt(u8 n_ready,
   apply_sat_clock_corrections(n_ready, p_nav_meas);
 
   /* apply GPS inter-signal corrections from CNAV messages */
-  apply_gps_cnav_isc(n_ready, p_nav_meas, p_e_meas);
+  apply_gps_cnav_isc(n_ready, p_nav_meas, e_meas);
 
   /* apply iono and tropo corrections if LGF available */
   if (lgf->position_quality >= POSITION_GUESS) {
@@ -466,7 +455,7 @@ static s8 me_compute_pvt(u8 n_ready,
    * disable_raim controlled by external setting. Defaults to false. */
   s8 pvt_ret = calc_PVT(n_ready,
                         nav_meas,
-                        current_time,
+                        &obs_array->t,
                         disable_raim,
                         /*disable_velocity = */ false,
                         GPS_L1CA_WHEN_POSSIBLE,
@@ -501,7 +490,10 @@ static s8 me_compute_pvt(u8 n_ready,
         nav_meas[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION;
         /* Check how large the outlier roughly is, and if it is a gross one,
          * drop the channel and delete the possibly corrupt ephemeris */
-        drop_gross_outlier(&nav_meas[i], &current_fix);
+        drop_gross_outlier(nav_meas[i].sid,
+                           nav_meas[i].pseudorange,
+                           nav_meas[i].sat_pos,
+                           &current_fix);
       }
     }
   }
@@ -622,14 +614,15 @@ static void me_calc_pvt_thread(void *arg) {
     u8 n_ready = 0;
     u8 n_inview = 0;
     u8 n_total = 0;
-    channel_measurement_t meas[MAX_CHANNELS];
-    channel_measurement_t in_view[MAX_CHANNELS];
+    static channel_measurement_t meas[MAX_CHANNELS];
+    static channel_measurement_t in_view[MAX_CHANNELS];
     static ephemeris_t e_meas[MAX_CHANNELS];
 
     /* Collect measurements propagated to the current NAP tick */
     collect_measurements(
         current_tc, meas, in_view, e_meas, &n_ready, &n_inview, &n_total);
 
+    /* Send GSV messages for all satellites in track */
     nmea_send_gsv(n_inview, in_view);
 
     log_debug("Selected %" PRIu8 " measurement(s) out of %" PRIu8
@@ -648,18 +641,6 @@ static void me_calc_pvt_thread(void *arg) {
       continue;
     }
 
-    static navigation_measurement_t nav_meas[MAX_CHANNELS];
-    const channel_measurement_t *p_meas[n_ready];
-    navigation_measurement_t *p_nav_meas[n_ready];
-    const ephemeris_t *p_e_meas[n_ready];
-
-    /* Create arrays of pointers for use in calc_navigation_measurement */
-    for (u8 i = 0; i < n_ready; i++) {
-      p_meas[i] = &meas[i];
-      p_nav_meas[i] = &nav_meas[i];
-      p_e_meas[i] = &e_meas[i];
-    }
-
     /* GPS time is invalid on the first fix, form a coarse estimate from the
      * first pseudorange measurement */
     if (!gps_time_valid(&current_time)) {
@@ -669,9 +650,11 @@ static void me_calc_pvt_thread(void *arg) {
       gps_time_match_weeks(&current_time, &e_meas[0].toe);
     }
 
-    /* Create navigation measurements from the channel measurements */
+    /* Initialize the observation array and create navigation measurements from
+     * the channel measurements */
+    static obs_array_t obs_array;
     s8 nm_ret =
-        calc_navigation_measurement(n_ready, p_meas, p_nav_meas, &current_time);
+        calc_navigation_measurement(n_ready, meas, &obs_array, &current_time);
 
     if (nm_ret != 0) {
       log_error("calc_navigation_measurement() returned error %d", nm_ret);
@@ -680,34 +663,34 @@ static void me_calc_pvt_thread(void *arg) {
     }
 
     /* Apply empirical (Piksi Multi specific) inter-signal corrections */
-    apply_isc_table(n_ready, p_nav_meas);
+    apply_isc_table(&obs_array);
 
     /* Compute a PVT solution from the measurements to update LGF and clock
      * models. Compute on every epoch until the time quality gets to FINEST,
      * otherwise at a lower rate */
     if (TIME_FINEST > time_quality) {
-      me_compute_pvt(
-          n_ready, nav_meas, current_tc, &current_time, p_e_meas, &lgf);
+      me_compute_pvt(&obs_array, current_tc, e_meas, &lgf);
     } else {
-      DO_EACH_MS(
-          ME_PVT_INTERVAL_S * SECS_MS,
-          me_compute_pvt(
-              n_ready, nav_meas, current_tc, &current_time, p_e_meas, &lgf));
+      DO_EACH_MS(ME_PVT_INTERVAL_S * SECS_MS,
+                 me_compute_pvt(&obs_array, current_tc, e_meas, &lgf));
     }
 
     /* Get the current estimate of GPS time and receiver clock drift */
     gps_time_t smoothed_time = napcount2gpstime(current_tc);
     double smoothed_drift = get_clock_drift();
 
+    /* update the time of reception to the better estimate */
+    obs_array.t = smoothed_time;
+
     /* If desired output epoch is not set (e.g. on the first fix or after a long
      * blackout), send unpropagated measurements */
     if (!gps_time_valid(&output_time)) {
-      me_send_failed_obs(n_ready, nav_meas, e_meas, &current_time);
+      me_send_failed_obs(&obs_array, e_meas);
       continue;
     }
 
     /* Get the offset of measurement time from the desired output time */
-    double output_offset = gpsdifftime(&output_time, &smoothed_time);
+    double output_offset = gpsdifftime(&output_time, &obs_array.t);
 
     /* Only send observations that are closely aligned with the desired
      * solution epoch to ensure they haven't been propagated too far. */
@@ -717,18 +700,15 @@ static void me_calc_pvt_thread(void *arg) {
                 smoothed_drift);
 
       /* Propagate the measurements to the output epoch */
-      for (u8 i = 0; i < n_ready; i++) {
-        remove_clock_offset(
-            &nav_meas[i], output_offset, smoothed_drift, current_tc);
-      }
+      remove_clock_offset(&obs_array, &output_time, smoothed_drift, current_tc);
 
       /* Send the observations. */
-      me_send_all(n_ready, nav_meas, e_meas, &output_time);
+      me_send_all(&obs_array, e_meas);
     } else {
       log_info("clock_offset %.3f s greater than OBS_PROPAGATION_LIMIT",
                output_offset);
       /* Send the observations, but marked unusable */
-      me_send_failed_obs(n_ready, nav_meas, e_meas, &current_time);
+      me_send_failed_obs(&obs_array, e_meas);
     }
   }
 }
