@@ -13,13 +13,13 @@
 #include <assert.h>
 #include <string.h>
 
-#include "calc/starling_integration.h"
 #include "calc_nav_meas.h"
 #include "me_constants.h"
 #include "nav_msg/cnav_msg_storage.h"
 #include "track/track_sid_db.h"
 
 #include <starling/cycle_slip.h>
+#include <starling/starling.h>
 #include <swiftnav/coord_system.h>
 #include <swiftnav/ionosphere.h>
 #include <swiftnav/linear_algebra.h>
@@ -150,7 +150,6 @@ s8 calc_navigation_measurement(u8 n_channels,
   }
 
   assert(n_channels <= MAX_CHANNELS);
-  assert(n_channels <= STARLING_MAX_OBS_COUNT);
   for (u8 i = 0; i < n_channels; ++i) {
     s8 ret = convert_channel_measurement_to_starling_obs(
         rec_time, &meas[i], &obs_array->observations[i]);
