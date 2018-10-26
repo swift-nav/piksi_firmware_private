@@ -142,8 +142,9 @@ void update_time(u64 tc, const gnss_solution *sol) {
   update_clock_state(&clock_state, sol);
 
   /* match week number to the solution time */
-  normalize_gps_time(&clock_state.t_gps);
+  unsafe_normalize_gps_time(&clock_state.t_gps);
   gps_time_match_weeks(&clock_state.t_gps, &sol->time);
+  assert(gps_time_valid(&clock_state.t_gps));
 
   /* write the values back into the persistent clock_state */
   chMtxLock(&clock_mutex);
