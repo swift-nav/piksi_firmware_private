@@ -107,6 +107,7 @@ struct profile_vars {
   u8 index;
   float pll_bw;
   float fll_bw;
+  float dll_bw;
 };
 
 /**
@@ -154,6 +155,10 @@ typedef struct {
 
   u32 dll_init : 1; /**< DLL init required */
   u32 use_alias_detection : 1;
+
+  /* To ensure an adequate settle time for trackers DLL at start and
+     when recovering from sensitivity mode */
+  tracker_timer_t dll_recovery_timer;
 
   struct profile_vars cur;  /**< Current profile variables */
   struct profile_vars next; /**< Next profile variables */
