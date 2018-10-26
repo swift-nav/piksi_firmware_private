@@ -130,6 +130,8 @@ int main(void) {
   manage_acq_setup();
   system_monitor_setup();
 
+  nmea_setup();
+
   firmware_starling_setup();
   me_calc_pvt_setup();
   base_obs_setup();
@@ -170,8 +172,6 @@ int main(void) {
   gnss_capb_send_over_sbp();
 
   SpecanStart();
-
-  nmea_setup();
 
   while (1) {
     chThdSleepSeconds(60);
