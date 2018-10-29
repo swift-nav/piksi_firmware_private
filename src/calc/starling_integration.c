@@ -1089,7 +1089,10 @@ void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
       double true_pos_ecef[3];
       vector_add(3, filtered_pvt_result_spp.baseline, filtered_pvt_result
               .known_reference_pos, true_pos_ecef);
-      filtered_pvt_result_spp.baseline = true_pos_ecef;
+      MEMCPY_S(&filtered_pvt_result_spp.baseline,
+               3 * sizeof(double),
+               &true_pos_ecef,
+               3 * sizeof(double));
     }
 
     solution_make_sbp(
