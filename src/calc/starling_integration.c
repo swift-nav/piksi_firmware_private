@@ -1083,8 +1083,17 @@ void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
    * true but is good enough.  The plumbing exercise remains to remove
    * discrepancy between current time qual and this epoch's time qual */
   if (spp_solution) {
+    pvt_engine_result_t filtered_pvt_result_spp = filtered_pvt_result;
+
+    if (rtk_solution && filtered_pvt_result.has_known_reference_pos) {
+      double true_pos_ecef[3];
+      vector_add(3, filtered_pvt_result_spp.baseline, filtered_pvt_result
+              .known_reference_pos, true_pos_ecef);
+      filtered_pvt_result_spp.baseline = true_pos_ecef;
+    }
+
     solution_make_sbp(
-        &filtered_pvt_result, &spp_solution->dops, &sbp_messages, time_qual);
+        &filtered_pvt_result_spp, &spp_solution->dops, &sbp_messages, time_qual);
     if (rtk_solution) {
       solution_make_baseline_sbp(&filtered_pvt_result,
                                  spp_solution->result.baseline,
