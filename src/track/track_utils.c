@@ -109,9 +109,7 @@ double tracker_get_lock_time(const tracker_time_info_t *time_info,
   if (0 != misc_info->carrier_phase_offset.value) {
     u64 now_ms = timing_getms();
     assert(now_ms >= misc_info->carrier_phase_offset.timestamp_ms);
-    u64 cpo_age_ms = now_ms - misc_info->carrier_phase_offset.timestamp_ms;
-
-    lock_time_ms = MIN(lock_time_ms, cpo_age_ms);
+    lock_time_ms = now_ms - misc_info->carrier_phase_offset.timestamp_ms;
   }
   lock_time_ms = MIN(lock_time_ms, time_info->ld_pess_locked_ms);
 
