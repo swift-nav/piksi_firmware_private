@@ -710,8 +710,10 @@ static void me_calc_pvt_thread(void *arg) {
       /* Send the observations. */
       me_send_all(&obs_array, e_meas);
     } else {
-      log_info("Observations suppressed because time jumps %.2f seconds",
-               output_offset);
+      if (TIME_UNKNOWN != time_quality) {
+        log_info("Observations suppressed because time jumps %.2f seconds",
+                 output_offset);
+      }
       /* Send the observations, but marked unusable */
       me_send_failed_obs(&obs_array, e_meas);
     }
