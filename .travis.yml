@@ -40,7 +40,7 @@ matrix:
             - clang-format-4.0
       env: TESTENV=lint
     - os: osx
-      osx_image: xcode8
+      osx_image: xcode10
       env: C_COMPILER=gcc-6 CXX_COMPILER=g++-6
 
 before_install:
