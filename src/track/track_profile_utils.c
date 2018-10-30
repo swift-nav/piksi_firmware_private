@@ -442,32 +442,36 @@ static const state_table_t mode_4ms_sc4 = {
   .cn0_ms = 10,
   .lockdet_ms = 4,
   .alias_ms = 0, /* not used as equal to flld_ms */
-  .flld_ms = 4,
+  .flld_ms = 2,
   .fpll_ms = 4,
   .fpll_decim = 1,
   .dll_ms = 4,
   .bit_ms = 4,
   .ent_cnt = 10,
   .entries = {
-    {2, TPF_EPL_SET  | TPF_CN0_SET | TPF_DATAPILOT_SET | TPF_PLD_SET | TPF_FLL_SET},
-    {2, TPF_EPL_ADD  | TPF_CN0_ADD | TPF_DATAPILOT_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
-        TPF_EPL_USE  |               TPF_DATAPILOT_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN},
-
-    {2, TPF_EPL_SET  | TPF_CN0_ADD | TPF_DATAPILOT_SET | TPF_PLD_SET | TPF_FLL_SET},
-    {2, TPF_EPL_ADD  | TPF_CN0_ADD | TPF_DATAPILOT_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
+    {2, TPF_EPL_SET  | TPF_CN0_SET | TPF_DATAPILOT_SET | TPF_PLD_SET | TPF_FLL_SET |
+                                                                       TPF_FLL_USE},
+    {2, TPF_EPL_ADD  | TPF_CN0_ADD | TPF_DATAPILOT_ADD | TPF_PLD_ADD | TPF_FLL_SET |
         TPF_EPL_USE  |               TPF_DATAPILOT_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN},
 
     {2, TPF_EPL_SET  | TPF_CN0_ADD | TPF_DATAPILOT_SET | TPF_PLD_SET | TPF_FLL_SET |
-                       TPF_CN0_USE },
-    {2, TPF_EPL_ADD  | TPF_CN0_SET | TPF_DATAPILOT_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
+                                                                       TPF_FLL_USE},
+    {2, TPF_EPL_ADD  | TPF_CN0_ADD | TPF_DATAPILOT_ADD | TPF_PLD_ADD | TPF_FLL_SET |
         TPF_EPL_USE  |               TPF_DATAPILOT_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN},
 
-    {2, TPF_EPL_SET  | TPF_CN0_ADD | TPF_DATAPILOT_SET | TPF_PLD_SET | TPF_FLL_SET},
-    {2, TPF_EPL_ADD  | TPF_CN0_ADD | TPF_DATAPILOT_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
+    {2, TPF_EPL_SET  | TPF_CN0_ADD | TPF_DATAPILOT_SET | TPF_PLD_SET | TPF_FLL_SET |
+                       TPF_CN0_USE |                                   TPF_FLL_USE},
+    {2, TPF_EPL_ADD  | TPF_CN0_SET | TPF_DATAPILOT_ADD | TPF_PLD_ADD | TPF_FLL_SET |
         TPF_EPL_USE  |               TPF_DATAPILOT_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN},
 
-    {2, TPF_EPL_SET  | TPF_CN0_ADD | TPF_DATAPILOT_SET | TPF_PLD_SET | TPF_FLL_SET},
-    {2, TPF_EPL_ADD  | TPF_CN0_ADD | TPF_DATAPILOT_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
+    {2, TPF_EPL_SET  | TPF_CN0_ADD | TPF_DATAPILOT_SET | TPF_PLD_SET | TPF_FLL_SET |
+                                                                       TPF_FLL_USE},
+    {2, TPF_EPL_ADD  | TPF_CN0_ADD | TPF_DATAPILOT_ADD | TPF_PLD_ADD | TPF_FLL_SET |
+        TPF_EPL_USE  |               TPF_DATAPILOT_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN},
+
+    {2, TPF_EPL_SET  | TPF_CN0_ADD | TPF_DATAPILOT_SET | TPF_PLD_SET | TPF_FLL_SET |
+                                                                       TPF_FLL_USE},
+    {2, TPF_EPL_ADD  | TPF_CN0_ADD | TPF_DATAPILOT_ADD | TPF_PLD_ADD | TPF_FLL_SET |
         TPF_EPL_USE  | TPF_CN0_USE | TPF_DATAPILOT_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN},
   }
 };
@@ -545,37 +549,44 @@ static const state_table_t mode_5ms_nh20ms = {
   .cn0_ms = 10,
   .lockdet_ms = 5,
   .alias_ms = 0, /* not used in this profile as equal to flld_ms */
-  .flld_ms = 5,
+  .flld_ms = 2.5,
   .fpll_ms = 5,
   .fpll_decim = 1,
   .dll_ms = 5,
   .bit_ms = 20,
-  .ent_cnt = 14,
+  .ent_cnt = 16,
   .entries = {
     {1, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET},
-    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
-    {3, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
-        TPF_EPL_USE |                               TPF_PLD_USE | TPF_FLL_USE |
-                                                                  TPF_FLL_HALFQ | TPF_FPLL_RUN},
+    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
+                                                                  TPF_FLL_USE |
+                                                                  TPF_FLL_HALFQ},
+    {3, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET |
+        TPF_EPL_USE |                               TPF_PLD_USE | TPF_FLL_USE   | TPF_FPLL_RUN},
     {1, TPF_EPL_INV |
         TPF_EPL_SET | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_SET | TPF_FLL_SET},
-    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
+    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
+                                                                  TPF_FLL_USE },
+    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET},
     {2, TPF_EPL_INV |
         TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD   |
         TPF_EPL_USE | TPF_CN0_USE |                 TPF_PLD_USE | TPF_FLL_USE   | TPF_FPLL_RUN},
 
     {1, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_ADD | TPF_PLD_SET | TPF_FLL_SET},
     {1, TPF_EPL_INV |
-        TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
-    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
+        TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
+                                                                  TPF_FLL_USE },
+    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET},
     {1, TPF_EPL_INV |
         TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
     {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD   |
         TPF_EPL_USE |                               TPF_PLD_USE | TPF_FLL_USE   | TPF_FPLL_RUN},
 
     {1, TPF_EPL_SET | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_SET | TPF_FLL_SET},
-    {3, TPF_EPL_INV |
-        TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
+    {1, TPF_EPL_INV |
+        TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
+                                                                  TPF_FLL_USE },
+    {2, TPF_EPL_INV |
+        TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET},
     {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD   |
         TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE   | TPF_FPLL_RUN}
   }
@@ -827,41 +838,41 @@ static const state_table_t mode_200ms_10ms = {
 static const state_table_t mode_10ms_nh20ms = {
   .cn0_ms = 10,
   .lockdet_ms = 10,
-  .alias_ms = 5,
-  .flld_ms = 10,
+  .alias_ms = 5, /* not used in this profile as replaced by FLL */
+  .flld_ms = 5,
   .fpll_ms = 10,
   .fpll_decim = 1,
   .dll_ms = 10,
   .bit_ms = 20,
   .ent_cnt = 14,
   .entries = {
-    {1, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET | TPF_ALIAS_SET},
-    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | TPF_ALIAS_ADD},
-    {3, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | TPF_ALIAS_ADD |
-                                                                                TPF_ALIAS_1ST},
+    {1, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET},
+    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
+    {3, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
+                                                                  TPF_FLL_USE |
+                                                                  TPF_FLL_HALFQ},
 
     {1, TPF_EPL_INV |
-        TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | TPF_ALIAS_ADD},
-    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | TPF_ALIAS_ADD},
+        TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET},
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
     {2, TPF_EPL_INV |
-        TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | TPF_ALIAS_ADD |
-        TPF_EPL_USE | TPF_CN0_USE |                 TPF_PLD_USE | TPF_FLL_USE | TPF_ALIAS_2ND |
-                                                                  TPF_FLL_HALFQ               | TPF_FPLL_RUN},
+        TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
+        TPF_EPL_USE | TPF_CN0_USE |                 TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN},
 
-    {1, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_ADD | TPF_PLD_SET | TPF_FLL_SET | TPF_ALIAS_SET},
+    {1, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_ADD | TPF_PLD_SET | TPF_FLL_SET},
     {1, TPF_EPL_INV |
-        TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | TPF_ALIAS_ADD},
-    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | TPF_ALIAS_ADD},
+        TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
+    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
     {1, TPF_EPL_INV |
-        TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | TPF_ALIAS_ADD},
-    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | TPF_ALIAS_ADD |
-                                                                                TPF_ALIAS_1ST},
+        TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
+    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
+                                                                  TPF_FLL_USE},
 
-    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | TPF_ALIAS_ADD},
+    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET},
     {3, TPF_EPL_INV |
-        TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | TPF_ALIAS_ADD},
-    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | TPF_ALIAS_ADD |
-        TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_ALIAS_2ND | TPF_FPLL_RUN}
+        TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
+    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
+        TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN}
   }
 };
 
