@@ -346,17 +346,17 @@ bool tracker_has_bit_sync(const tracker_t *tracker) {
  * Phase lock detector is not used in sensitivity profiles.
  * Frequency lock detector is not used in base station profiles.
  *
- * \param[in] tracker Tracker channel data
+ * \param[in] flags Tracker channel status flags
  * \retval true  Channel has all available locks
  * \retval false Otherwise
  */
-bool tracker_has_all_locks(const tracker_t *tracker) {
+bool tracker_has_all_locks(u32 flags) {
   /* Mark pll_lock true if PLL is not in use, or we have pll lock. */
-  bool pll_lock = ((0 == (tracker->flags & TRACKER_FLAG_PLL_USE)) ||
-                   (0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)));
+  bool pll_lock = ((0 == (flags & TRACKER_FLAG_PLL_USE)) ||
+                   (0 != (flags & TRACKER_FLAG_HAS_PLOCK)));
   /* Mark fll_lock true if FLL is not in use, or we have fll lock. */
-  bool fll_lock = ((0 == (tracker->flags & TRACKER_FLAG_FLL_USE)) ||
-                   (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK)));
+  bool fll_lock = ((0 == (flags & TRACKER_FLAG_FLL_USE)) ||
+                   (0 != (flags & TRACKER_FLAG_HAS_FLOCK)));
   /* Check both locks. */
   return (pll_lock && fll_lock);
 }

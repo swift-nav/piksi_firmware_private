@@ -971,8 +971,7 @@ static chan_meas_flags_t compute_meas_flags(u32 flags,
     log_warn_mesid(mesid, "Half cycle known, but no phase lock!");
   }
 
-  if ((0 != (flags & TRACKER_FLAG_HAS_PLOCK)) ||
-      (0 != (flags & TRACKER_FLAG_HAS_FLOCK))) {
+  if (tracker_has_all_locks(flags)) {
     meas_flags |= CHAN_MEAS_FLAG_CODE_VALID;
     meas_flags |= CHAN_MEAS_FLAG_MEAS_DOPPLER_VALID;
   }
