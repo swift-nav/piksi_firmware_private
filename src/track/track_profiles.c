@@ -573,8 +573,8 @@ static struct profile_vars get_start_profile_vars(const me_gnss_signal_t mesid,
   struct profile_vars vars = {0};
   vars.index = index;
 
-  bool handover = !code_requires_direct_acq(mesid.code);
-  if (handover) {
+  bool recovery = !is_gal(mesid.code) && !code_requires_direct_acq(mesid.code);
+  if (recovery) {
     /* to compensate for carrier freq estimation errors */
     vars.fll_bw = HANDOVER_RECOVERY_FLL_BW_HZ;
     vars.pll_bw = HANDOVER_RECOVERY_PLL_BW_HZ;
@@ -735,8 +735,9 @@ static void log_switch(tracker_t *tracker, const char *reason) {
 
 static bool pll_bw_changed(tracker_t *tracker, profile_indices_t index) {
   tp_profile_t *state = &tracker->profile;
-  bool handover = !code_requires_direct_acq(tracker->mesid.code);
-  if (handover && !tracker_timer_expired(&state->handover_recovery_timer)) {
+  bool recovery = !is_gal(tracker->mesid.code) &&
+                  !code_requires_direct_acq(tracker->mesid.code);
+  if (recovery && !tracker_timer_expired(&state->handover_recovery_timer)) {
     /* Handover signal has not settled yet. */
     return false;
   }
@@ -764,8 +765,9 @@ static bool pll_bw_changed(tracker_t *tracker, profile_indices_t index) {
 
 static bool fll_bw_changed(tracker_t *tracker, profile_indices_t index) {
   tp_profile_t *state = &tracker->profile;
-  bool handover = !code_requires_direct_acq(tracker->mesid.code);
-  if (handover && !tracker_timer_expired(&state->handover_recovery_timer)) {
+  bool recovery = !is_gal(tracker->mesid.code) &&
+                  !code_requires_direct_acq(tracker->mesid.code);
+  if (recovery && !tracker_timer_expired(&state->handover_recovery_timer)) {
     /* Handover signal has not settled yet. */
     return false;
   }
@@ -793,8 +795,9 @@ static bool fll_bw_changed(tracker_t *tracker, profile_indices_t index) {
 
 static bool dll_bw_changed(tracker_t *tracker, profile_indices_t index) {
   tp_profile_t *state = &tracker->profile;
-  bool handover = !code_requires_direct_acq(tracker->mesid.code);
-  if (handover && !tracker_timer_expired(&state->handover_recovery_timer)) {
+  bool recovery = !is_gal(tracker->mesid.code) &&
+                  !code_requires_direct_acq(tracker->mesid.code);
+  if (recovery && !tracker_timer_expired(&state->handover_recovery_timer)) {
     /* Handover signal has not settled yet. */
     return false;
   }
@@ -817,6 +820,7 @@ static bool dll_bw_changed(tracker_t *tracker, profile_indices_t index) {
     }
   }
   state->next.dll_bw = dll_bw;
+
   return true;
 }
 
@@ -971,6 +975,11 @@ bool tp_profile_has_new_profile(tracker_t *tracker) {
     return true;
   }
 
+  if (tracker_timer_expired(&state->handover_recovery_timer) &&
+      profile_switch_requested(tracker, state->cur.index, "recovery")) {
+    return true;
+  }
+
   if (0 != (flags & TP_USE_NEXT)) {
     assert(cur_profile->next != IDX_NONE);
     return profile_switch_requested(tracker, cur_profile->next, "next");
@@ -978,6 +987,15 @@ bool tp_profile_has_new_profile(tracker_t *tracker) {
     return profile_switch_requested(tracker, state->cur.index + 1, "next");
   }
 
+  return false;
+}
+
+bool tp_profile_recovery(tracker_t *tracker) {
+  tp_profile_t *state = &tracker->profile;
+  if (tracker_timer_expired(&state->handover_recovery_timer) &&
+      profile_switch_requested(tracker, state->cur.index, "recovery")) {
+    return true;
+  }
   return false;
 }
 

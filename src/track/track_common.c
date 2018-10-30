@@ -319,8 +319,11 @@ static u32 tp_tracker_compute_rollover_count(tracker_t *tracker) {
  * \return None
  */
 static void mode_change_init(tracker_t *tracker) {
+  tp_profile_t *state = &tracker->profile;
+  bool recovery = !is_gal(tracker->mesid.code) &&
+                  !code_requires_direct_acq(tracker->mesid.code);
   bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
-  if (!confirmed) {
+  if (!confirmed && !recovery) {
     return;
   }
 
@@ -339,7 +342,13 @@ static void mode_change_init(tracker_t *tracker) {
   if (tracker_next_bit_aligned(tracker, bit_ms)) {
     /* When the bit sync is available and the next integration interval is the
      * last one in the bit, check if the profile switch is required. */
-    tracker->has_next_params = tp_profile_has_new_profile(tracker);
+    if (confirmed) {
+      tracker->has_next_params = tp_profile_has_new_profile(tracker);
+      return;
+    }
+    if (tracker_timer_expired(&state->handover_recovery_timer)) {
+      tracker->has_next_params = tp_profile_recovery(tracker);
+    }
   }
 }
 
