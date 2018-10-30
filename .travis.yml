@@ -46,7 +46,6 @@ matrix:
 before_install:
   - ./scripts/ci/check_for_s3_cred.sh || travis_terminate 1
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install gcc@6 --enable-cxx; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install doxygen graphviz; fi
   - pip install --user --upgrade awscli
   - git fetch --tags --unshallow
