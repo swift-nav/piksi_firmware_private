@@ -102,17 +102,14 @@ bool tracker_calc_pseudorange(u64 ref_tc,
  */
 double tracker_get_lock_time(const tracker_time_info_t *time_info,
                              const tracker_misc_info_t *misc_info) {
-  u64 cpo_age_ms = 0;
+  u64 lock_time_ms = UINT64_MAX;
+
   if (0 != misc_info->carrier_phase_offset.value) {
     u64 now_ms = timing_getms();
     assert(now_ms >= misc_info->carrier_phase_offset.timestamp_ms);
-    cpo_age_ms = now_ms - misc_info->carrier_phase_offset.timestamp_ms;
+    lock_time_ms = now_ms - misc_info->carrier_phase_offset.timestamp_ms;
   }
-
-  u64 lock_time_ms = UINT64_MAX;
-
   lock_time_ms = MIN(lock_time_ms, time_info->ld_pess_locked_ms);
-  lock_time_ms = MIN(lock_time_ms, cpo_age_ms);
 
   return (double)lock_time_ms / SECS_MS;
 }
