@@ -50,7 +50,8 @@ typedef enum {
   IDX_5MS,
   IDX_10MS,
   IDX_20MS,
-  IDX_SENS
+  IDX_SENS,
+  IDX_RECOVERY
 } profile_indices_t;
 
 typedef enum {
@@ -360,9 +361,17 @@ static const tp_profile_entry_t tracker_profiles_rover[] = {
   { {      0,         1.0,           .5,   TP_CTRL_PLL3,
       TP_TM_200MS_20MS, TP_TM_200MS_10MS, TP_TM_200MS_2MS, TP_TM_200MS_NH20MS, TP_TM_200MS_SC4 },
       TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
-      300,             0,          32,
-      IDX_SENS,  IDX_NONE,     IDX_20MS,
-      TP_HIGH_CN0 | TP_USE_NEXT }
+      200,             0,          30,
+      IDX_SENS,  IDX_NONE,     IDX_RECOVERY,
+      TP_HIGH_CN0 | TP_USE_NEXT },
+
+  [IDX_RECOVERY] =
+  { {   10.0,         3.0,           0.5,   TP_CTRL_PLL3,
+      TP_TM_10MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS,  TP_TM_10MS_NH20MS,  TP_TM_10MS_SC4 },
+      TP_LD_PARAMS_PHASE_10MS, TP_LD_PARAMS_FREQ_10MS,
+      100,        THRESH_SENS_DBHZ,   0,
+      IDX_20MS,   IDX_SENS,     IDX_NONE,
+      TP_USE_NEXT | TP_LOW_CN0 },
 };
 
 /**
