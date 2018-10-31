@@ -43,6 +43,8 @@ typedef struct {
 /* If the residual in a pseudorange excluded by RAIM is larger than this, then
  * drop the channel and the corresponding ephemeris */
 #define RAIM_DROP_CHANNEL_THRESHOLD_M 1000
+/* Tighter drop limit for GAL E1B */
+#define RAIM_DROP_E1B_THRESHOLD_M 100
 
 extern u32 obs_output_divisor;
 extern double soln_freq_setting;
