@@ -101,7 +101,7 @@ static utc_tm gps2utc_nano(const gps_time_t *t_in,
   /* If the nanosecond part of the UTC timestamp rounds up to the next second,
    * recompute the UTC time structure to roll over all fields properly, also
    * accounting for possible leap second event */
-  if (round(utc_time.second_frac * 1e9) == 1e9) {
+  if (round(utc_time.second_frac * SECS_NS) == SECS_NS) {
     gps_time_t t_tmp = *t_in;
     double dt = 1.0 - utc_time.second_frac;
     /* round up to the next representable floating point number */
@@ -152,8 +152,8 @@ void sbp_make_utc_time(msg_utc_time_t *t_out,
   t_out->seconds = utc_time.second_int;
   /* note: utc_time has been rounded above to guarantee that this does not roll
    * over to the next second */
-  t_out->ns = round(utc_time.second_frac * 1e9);
-  assert(t_out->ns < 1e9);
+  t_out->ns = round(utc_time.second_frac * SECS_NS);
+  assert(t_out->ns < SECS_NS);
   t_out->flags = flags;
 }
 
@@ -210,7 +210,8 @@ void unpack_obs_header(const observation_header_t *msg,
                        u8 *count) {
   if (sbp_gps_time_valid(&msg->t)) {
     t->wn = msg->t.wn;
-    t->tow = ((double)msg->t.tow) / 1e3 + ((double)msg->t.ns_residual) / 1e9;
+    t->tow =
+        ((double)msg->t.tow) / SECS_MS + ((double)msg->t.ns_residual) / SECS_NS;
     normalize_gps_time(t);
   } else {
     *t = GPS_TIME_UNKNOWN;
@@ -891,7 +892,7 @@ void unpack_sbas_raw_data(const msg_sbas_raw_t *m, sbas_raw_data_t *d) {
  */
 u32 round_tow_ms(double tow) {
   /* week roll-over */
-  u32 tow_ms = round(tow * 1e3);
+  u32 tow_ms = round(tow * SECS_MS);
   while (tow_ms >= WEEK_MS) {
     tow_ms -= WEEK_MS;
   }
@@ -906,8 +907,8 @@ u32 round_tow_ms(double tow) {
  */
 void round_time_nano(const gps_time_t *t_in, sbp_gps_time_t *t_out) {
   t_out->wn = t_in->wn;
-  t_out->tow = round(t_in->tow * 1e3);
-  t_out->ns_residual = round((t_in->tow - t_out->tow / 1e3) * 1e9);
+  t_out->tow = round(t_in->tow * SECS_MS);
+  t_out->ns_residual = round((t_in->tow - t_out->tow / SECS_MS) * SECS_NS);
   /* week roll-over */
   if (t_out->tow >= WEEK_MS) {
     t_out->wn++;

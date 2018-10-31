@@ -135,7 +135,8 @@ double nap_count_to_ms(u64 delta_time) {
  * \return Time interval in nanoseconds.
  */
 double nap_count_to_ns(u64 delta_time) {
-  double time_delta = (double)delta_time * (1e9 / NAP_FRONTEND_SAMPLE_RATE_Hz);
+  double time_delta =
+      (double)delta_time * (SECS_NS / NAP_FRONTEND_SAMPLE_RATE_Hz);
   return time_delta;
 }
 

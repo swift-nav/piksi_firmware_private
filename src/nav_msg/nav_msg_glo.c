@@ -646,7 +646,7 @@ static bool extract_string_5_components(nav_msg_glo_t *n) {
     return false;
   }
   /* convert to [ns] */
-  n->tau_gps_ns = (s32)(tau_gps_s * 1e9 + .5); /* 0.5 is for rounding */
+  n->tau_gps_ns = (s32)(tau_gps_s * SECS_NS + 0.5); /* 0.5 is for rounding */
   sign = extract_word_glo(n, 31, 1);
   if (sign) {
     n->tau_gps_ns *= -1;
