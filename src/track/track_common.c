@@ -487,6 +487,15 @@ static void tp_tracker_update_correlators(tracker_t *tracker, u32 cycle_flags) {
     corr_t temp = cs_now.dp_prompt;
     cs_now.dp_prompt.I = temp.Q;
     cs_now.dp_prompt.Q = temp.I;
+
+    /* Do the rotation for early and late for DLL discriminator */
+    temp = cs_now.dp_early;
+    cs_now.dp_early.I = temp.Q;
+    cs_now.dp_early.Q = temp.I;
+
+    temp = cs_now.dp_late;
+    cs_now.dp_late.I = temp.Q;
+    cs_now.dp_late.Q = temp.I;
   }
 
   bool has_pilot_sync = nap_sc_wipeoff(tracker);
