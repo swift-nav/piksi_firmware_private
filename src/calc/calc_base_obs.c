@@ -204,6 +204,11 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
   /* Relay observations using sender_id = 0. */
   sbp_send_msg_(SBP_MSG_OBS, len, msg, MSG_FORWARD_SENDER_ID);
 
+  /* No use processing base observations if receiver time is still unknown */
+  if (TIME_UNKNOWN == get_time_quality()) {
+    return;
+  }
+
   /* GPS time of observation. */
   gps_time_t tor = GPS_TIME_UNKNOWN;
   /* Total number of messages in the observation set / sequence. */

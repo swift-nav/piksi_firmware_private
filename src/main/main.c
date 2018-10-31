@@ -14,6 +14,7 @@
 #include <string.h>
 
 #include <libsbp/system.h>
+#include <swiftnav/gnss_time.h>
 #include <swiftnav/logging.h>
 
 #include <hal.h>
@@ -83,6 +84,10 @@ int main(void) {
   /* We only need 16 bits for sender ID for sbp */
 
   sbp_sender_id_set(sender_id);
+
+  /* Initialize receiver time to the Jan 1980 with large enough uncertainty */
+  gps_time_t t0 = {.tow = 0, .wn = 0};
+  set_time(nap_timing_count(), &t0, 2e9);
 
   ndb_setup();
   ephemeris_setup();

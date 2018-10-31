@@ -522,6 +522,19 @@ static s8 me_compute_pvt(const obs_array_t *obs_array,
   return pvt_ret;
 }
 
+/* Generate a reference time using the TOW field from tracking channel and
+ * time-of-ephemeris. This will be accurate to couple of milliseconds */
+static gps_time_t reference_time_from_meas(channel_measurement_t *meas,
+                                           ephemeris_t *ephe) {
+  gps_time_t ref_time = GPS_TIME_UNKNOWN;
+  ref_time.tow =
+      (double)meas->time_of_week_ms / SECS_MS + GPS_NOMINAL_RANGE / GPS_C;
+  normalize_gps_time(&ref_time);
+  gps_time_match_weeks(&ref_time, &ephe->toe);
+
+  return ref_time;
+}
+
 static void me_calc_pvt_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("me_calc_pvt");
@@ -591,11 +604,8 @@ static void me_calc_pvt_thread(void *arg) {
         continue;
       }
 
-      /* get NAP count at the desired output time */
-      u64 output_tc = gpstime2napcount(&output_time);
-
-      /* time difference of current NAP count from the output epoch */
-      double dt = ((s64)output_tc - (s64)current_tc) * RX_DT_NOMINAL;
+      /* time difference of current time from the output epoch */
+      double dt = gpsdifftime(&output_time, &current_time);
 
       if (fabs(dt) < OBS_PROPAGATION_LIMIT) {
         /* dampen small adjustments to get stabler corrections */
@@ -641,13 +651,15 @@ static void me_calc_pvt_thread(void *arg) {
       continue;
     }
 
-    /* GPS time is invalid on the first fix, form a coarse estimate from the
-     * first pseudorange measurement */
-    if (!gps_time_valid(&current_time)) {
-      current_time.tow =
-          (double)meas[0].time_of_week_ms / SECS_MS + GPS_NOMINAL_RANGE / GPS_C;
-      normalize_gps_time(&current_time);
-      gps_time_match_weeks(&current_time, &e_meas[0].toe);
+    /* If quality of current_time is not known, do not use it but instead
+     * form a reference time from the first channels' TOW */
+    if (TIME_UNKNOWN == time_quality) {
+      current_time = reference_time_from_meas(&meas[0], &e_meas[0]);
+      output_time = gps_time_round_to_epoch(&current_time, soln_freq);
+      /* adjust the next sleep */
+      piksi_systime_add_us(
+          &next_epoch,
+          round(gpsdifftime(&output_time, &current_time) * SECS_US));
     }
 
     /* Initialize the observation array and create navigation measurements from
@@ -682,13 +694,6 @@ static void me_calc_pvt_thread(void *arg) {
     /* update the time of reception to the better estimate */
     obs_array.t = smoothed_time;
 
-    /* If desired output epoch is not set (e.g. on the first fix or after a long
-     * blackout), send unpropagated measurements */
-    if (!gps_time_valid(&output_time)) {
-      me_send_failed_obs(&obs_array, e_meas);
-      continue;
-    }
-
     /* Get the offset of measurement time from the desired output time */
     double output_offset = gpsdifftime(&output_time, &obs_array.t);
 
@@ -705,8 +710,10 @@ static void me_calc_pvt_thread(void *arg) {
       /* Send the observations. */
       me_send_all(&obs_array, e_meas);
     } else {
-      log_info("clock_offset %.3f s greater than OBS_PROPAGATION_LIMIT",
-               output_offset);
+      if (TIME_UNKNOWN != time_quality) {
+        log_info("Observations suppressed because time jumps %.2f seconds",
+                 output_offset);
+      }
       /* Send the observations, but marked unusable */
       me_send_failed_obs(&obs_array, e_meas);
     }

@@ -104,7 +104,8 @@ void sbp_make_utc_time(msg_utc_time_t *t_out,
   utc_params_t *p_utc_params = &utc_params;
   bool is_nv;
   /* try to read UTC parameters from NDB */
-  if (NDB_ERR_NONE == ndb_utc_params_read(&utc_params, &is_nv)) {
+  if (TIME_UNKNOWN != time_qual &&
+      NDB_ERR_NONE == ndb_utc_params_read(&utc_params, &is_nv)) {
     if (is_nv) {
       flags |= (NVM_UTC << 3);
     } else {
@@ -177,13 +178,22 @@ void sbp_send_ndb_event(u8 event,
   sbp_send_msg(SBP_MSG_NDB_EVENT, sizeof(msg), (u8 *)&msg);
 }
 
+static bool sbp_gps_time_valid(const sbp_gps_time_t *t) {
+  /* all-zero time struct is invalid */
+  return (t->wn != 0 || t->tow != 0 || t->ns_residual != 0);
+}
+
 void unpack_obs_header(const observation_header_t *msg,
                        gps_time_t *t,
                        u8 *total,
                        u8 *count) {
-  t->wn = msg->t.wn;
-  t->tow = ((double)msg->t.tow) / 1e3 + ((double)msg->t.ns_residual) / 1e9;
-  normalize_gps_time(t);
+  if (sbp_gps_time_valid(&msg->t)) {
+    t->wn = msg->t.wn;
+    t->tow = ((double)msg->t.tow) / 1e3 + ((double)msg->t.ns_residual) / 1e9;
+    normalize_gps_time(t);
+  } else {
+    *t = GPS_TIME_UNKNOWN;
+  }
   *total = (msg->n_obs >> MSG_OBS_HEADER_SEQ_SHIFT);
   *count = (msg->n_obs & MSG_OBS_HEADER_SEQ_MASK);
 }
