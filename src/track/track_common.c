@@ -432,8 +432,8 @@ static void add_pilot_and_data_iq(tracker_t *tracker, tp_epl_corr_t *cs_now) {
      using the data bit polarity as it might be flaky. */
 
   /* early */
-  data[0].I = pilot[0].I = ABS(data[0].I) + ABS(pilot[0].I);
-  data[0].Q = pilot[0].Q = ABS(data[0].Q) + ABS(pilot[0].Q);
+  pilot[0].I = ABS(data[0].I) + ABS(pilot[0].I);
+  pilot[0].Q = ABS(data[0].Q) + ABS(pilot[0].Q);
 
   /* prompt */
   if (tp_is_base_station_mode()) {
@@ -448,8 +448,8 @@ static void add_pilot_and_data_iq(tracker_t *tracker, tp_epl_corr_t *cs_now) {
   }
 
   /* late */
-  data[2].I = pilot[2].I = ABS(data[2].I) + ABS(pilot[2].I);
-  data[2].Q = pilot[2].Q = ABS(data[2].Q) + ABS(pilot[2].Q);
+  pilot[2].I = ABS(data[2].I) + ABS(pilot[2].I);
+  pilot[2].Q = ABS(data[2].Q) + ABS(pilot[2].Q);
 }
 
 /**
