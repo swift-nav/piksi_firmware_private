@@ -416,7 +416,7 @@ static void add_pilot_and_data_iq(tracker_t *tracker, tp_epl_corr_t *cs_now) {
   corr_t *data;
   corr_t *pilot;
   corr_t *all = cs_now->all;
-  /* we use pilot for GAL E1 and E7 and GPS L2C tracking */
+  /* we use pilot for GAL E1, GAL E7 and GPS L2C tracking */
   if ((CODE_GPS_L2CM == tracker->mesid.code)) {
     data = &all[0];
     pilot = &all[3];
@@ -427,38 +427,29 @@ static void add_pilot_and_data_iq(tracker_t *tracker, tp_epl_corr_t *cs_now) {
     return;
   }
 
-  /* non-normalized dot product using data and pilot prompt IQ data */
-  float dot = (float)data[1].I * pilot[1].I + (float)data[1].Q * pilot[1].Q;
-  int rotate180 = SIGN(dot);
-
   /* In base station mode we combine pilot and data ELP. In rover mode we
      only combine EL. In rover mode we do not want to "borrow" from the phase
-     using the data bit polarity as it might be flaky.
-
-     Compensate for data bit flip, if needed */
+     using the data bit polarity as it might be flaky. */
 
   /* early */
-  corr_t tmp = data[0];
-  data[0].I += pilot[0].I * rotate180;
-  data[0].Q += pilot[0].Q * rotate180;
-  pilot[0].I += tmp.I * rotate180;
-  pilot[0].Q += tmp.Q * rotate180;
+  data[0].I = pilot[0].I = ABS(data[0].I) + ABS(pilot[0].I);
+  data[0].Q = pilot[0].Q = ABS(data[0].Q) + ABS(pilot[0].Q);
 
   /* prompt */
   if (tp_is_base_station_mode()) {
-    tmp = data[1];
-    data[1].I += pilot[1].I * rotate180;
+    /* non-normalized dot product using data and pilot prompt IQ data */
+    float dot = (float)data[1].I * pilot[1].I + (float)data[1].Q * pilot[1].Q;
+    int rotate180 = SIGN(dot); /* Compensate for data bit flip, if needed */
+    corr_t tmp = data[1];
+    data[1].I += pilot[1].I * rotate180; /* preserve data bit polarity */
     data[1].Q += pilot[1].Q * rotate180;
-    pilot[1].I += tmp.I * rotate180;
+    pilot[1].I += tmp.I * rotate180; /* wipe-off data bits */
     pilot[1].Q += tmp.Q * rotate180;
   }
 
   /* late */
-  tmp = data[2];
-  data[2].I += pilot[2].I * rotate180;
-  data[2].Q += pilot[2].Q * rotate180;
-  pilot[2].I += tmp.I * rotate180;
-  pilot[2].Q += tmp.Q * rotate180;
+  data[2].I = pilot[2].I = ABS(data[2].I) + ABS(pilot[2].I);
+  data[2].Q = pilot[2].Q = ABS(data[2].Q) + ABS(pilot[2].Q);
 }
 
 /**
