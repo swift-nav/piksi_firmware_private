@@ -34,7 +34,7 @@ static ndb_file_t utc_params_file = {.name = UTC_PARAMS_FILE_NAME,
                                      .block_count = 1};
 
 void ndb_utc_params_init(void) {
-  static bool erase_utc_params = true;
+  static bool erase_utc_params = false;
   SETTING("ndb", "erase_utc_params", erase_utc_params, TYPE_BOOL);
 
   ndb_load_data(&utc_params_file, erase_utc_params || !NDB_USE_NV_UTC);
