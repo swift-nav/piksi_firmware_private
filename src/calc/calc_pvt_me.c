@@ -542,6 +542,30 @@ static gps_time_t reference_time_from_meas(channel_measurement_t *meas,
   return ref_time;
 }
 
+/* Copy out the signals that went through the last RAIM round and flag the
+ * failed signals */
+static void copy_raimed_obs(const obs_array_t *obs_array,
+                            const gnss_sid_set_t *raim_sids,
+                            const gnss_sid_set_t *raim_failed_sids,
+                            obs_array_t *send_obs_array) {
+  send_obs_array->n = 0;
+  send_obs_array->t = obs_array->t;
+  for (u8 i = 0; i < obs_array->n; i++) {
+    gnss_signal_t sid = obs_array->observations[i].sid;
+    if (sid_set_contains(raim_sids, sid)) {
+      /* Copy the measurement to be sent out */
+      send_obs_array->observations[send_obs_array->n] =
+          obs_array->observations[i];
+      if (sid_set_contains(raim_failed_sids, sid)) {
+        /* Flag signals that failed the last RAIM */
+        send_obs_array->observations[send_obs_array->n].flags |=
+            NAV_MEAS_FLAG_RAIM_EXCLUSION;
+      }
+      send_obs_array->n++;
+    }
+  }
+}
+
 static void me_calc_pvt_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("me_calc_pvt");
@@ -694,18 +718,15 @@ static void me_calc_pvt_thread(void *arg) {
     /* Compute a PVT solution from the measurements to update LGF and clock
      * models. Compute on every epoch until the time quality gets to FINEST,
      * otherwise at a lower rate */
-    if (TIME_FINEST > time_quality) {
-      me_compute_pvt(
-          &obs_array, current_tc, e_meas, &lgf, &raim_sids, &raim_failed_sids);
-    } else {
-      DO_EACH_MS(ME_PVT_INTERVAL_S * SECS_MS,
-                 me_compute_pvt(&obs_array,
-                                current_tc,
-                                e_meas,
-                                &lgf,
-                                &raim_sids,
-                                &raim_failed_sids));
-    }
+    u32 interval_ms =
+        (TIME_FINEST > time_quality) ? 0 : ME_PVT_INTERVAL_S * SECS_MS;
+    DO_EACH_MS(interval_ms,
+               me_compute_pvt(&obs_array,
+                              current_tc,
+                              e_meas,
+                              &lgf,
+                              &raim_sids,
+                              &raim_failed_sids));
 
     /* Get the current estimate of GPS time and receiver clock drift */
     gps_time_t smoothed_time = napcount2gpstime(current_tc);
@@ -727,28 +748,16 @@ static void me_calc_pvt_thread(void *arg) {
       /* Propagate the measurements to the output epoch */
       remove_clock_offset(&obs_array, &output_time, smoothed_drift, current_tc);
 
-      static obs_array_t send_obs_array;
-      send_obs_array.n = 0;
-      send_obs_array.t = obs_array.t;
-
-      for (u8 i = 0; i < obs_array.n; i++) {
-        /* If RAIM is enabled, send out only signals that went through the last
-         * RAIM round */
-        gnss_signal_t sid = obs_array.observations[i].sid;
-        if (disable_raim || sid_set_contains(&raim_sids, sid)) {
-          if (sid_set_contains(&raim_failed_sids, sid)) {
-            /* Flag signals that failed the last RAIM */
-            obs_array.observations[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION;
-          }
-          /* Copy the measurement to be sent out */
-          send_obs_array.observations[send_obs_array.n] =
-              obs_array.observations[i];
-          send_obs_array.n++;
-        }
+      if (disable_raim) {
+        /* Send all observations. */
+        me_send_all(&obs_array, e_meas);
+      } else {
+        /* Send only the observations that have gone through RAIM. */
+        static obs_array_t send_obs_array;
+        copy_raimed_obs(
+            &obs_array, &raim_sids, &raim_failed_sids, &send_obs_array);
+        me_send_all(&send_obs_array, e_meas);
       }
-
-      /* Send the observations. */
-      me_send_all(&send_obs_array, e_meas);
     } else {
       if (TIME_UNKNOWN != time_quality) {
         log_info("Observations suppressed because time jumps %.2f seconds",
