@@ -22,7 +22,7 @@
 
 /* Persistent file indicating whether Starling should run on the firmware
  * or on Linux. */
-#define STARLING_ON_LINUX_FILENAME "/persistent/flags/starling_on_linux"
+#define STARLING_ON_LINUX_FILENAME "/etc/flags/starling_on_linux"
 
 /**
  * Read from the persistent file to find out if Starling is enabled for Linux
