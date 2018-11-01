@@ -535,7 +535,7 @@ static bool set_dgnss_soln_mode(struct setting *s, const char *val) {
 
 static bool set_max_age(struct setting *s, const char *val) {
   int value = 0;
-  bool ret = s->type->from_string(s->type->priv, s->addr, s->len, val);
+  bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
   if (!ret) {
     return ret;
   }
