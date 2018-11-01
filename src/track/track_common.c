@@ -437,14 +437,20 @@ static void add_pilot_and_data_iq(tracker_t *tracker, tp_epl_corr_t *cs_now) {
 
   /* prompt */
   if (tp_is_base_station_mode()) {
-    /* non-normalized dot product using data and pilot prompt IQ data */
-    float dot = (float)data[1].I * pilot[1].I + (float)data[1].Q * pilot[1].Q;
-    int rotate180 = SIGN(dot); /* Compensate for data bit flip, if needed */
     corr_t tmp = data[1];
-    data[1].I += pilot[1].I * rotate180; /* preserve data bit polarity */
-    data[1].Q += pilot[1].Q * rotate180;
-    pilot[1].I += tmp.I * rotate180; /* wipe-off data bits */
-    pilot[1].Q += tmp.Q * rotate180;
+    /* non-normalized dot product using data and pilot prompt IQ data */
+    if ((data[1].I * pilot[1].I + data[1].Q * pilot[1].Q) > 0) {
+      data[1].I += pilot[1].I; /* preserve data bit polarity */
+      data[1].Q += pilot[1].Q;
+      pilot[1].I += tmp.I; /* wipe-off data bits */
+      pilot[1].Q += tmp.Q;
+    } else {
+      /* bit flip */
+      data[1].I -= pilot[1].I; /* preserve data bit polarity */
+      data[1].Q -= pilot[1].Q;
+      pilot[1].I -= tmp.I; /* wipe-off data bits */
+      pilot[1].Q -= tmp.Q;
+    }
   }
 
   /* late */
