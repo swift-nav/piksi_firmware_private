@@ -694,9 +694,12 @@ static void me_calc_pvt_thread(void *arg) {
       current_time = reference_time_from_meas(&meas[0], &e_meas[0]);
       output_time = gps_time_round_to_epoch(&current_time, soln_freq);
       /* adjust the next sleep */
-      piksi_systime_add_us(
-          &next_epoch,
-          round(gpsdifftime(&output_time, &current_time) * SECS_US));
+      double dt = gpsdifftime(&output_time, &current_time);
+      /* make sure the first sleep lasts at least one epoch */
+      if (dt < 0) {
+        dt += 1 / soln_freq;
+      }
+      piksi_systime_add_us(&next_epoch, round(dt * SECS_US));
     }
 
     /* Initialize the observation array and create navigation measurements from
