@@ -78,11 +78,9 @@ void solution_send_pos_messages(const sbp_messages_t *sbp_messages) {
                    (u8 *)&sbp_messages->baseline_ned);
     }
 
-    if (dgnss_soln_mode != STARLING_SOLN_MODE_NO_DGNSS) {
-      sbp_send_msg(SBP_MSG_AGE_CORRECTIONS,
-                   sizeof(sbp_messages->age_corrections),
-                   (u8 *)&sbp_messages->age_corrections);
-    }
+    sbp_send_msg(SBP_MSG_AGE_CORRECTIONS,
+                 sizeof(sbp_messages->age_corrections),
+                 (u8 *)&sbp_messages->age_corrections);
 
     if (dgnss_soln_mode != STARLING_SOLN_MODE_NO_DGNSS) {
       sbp_send_msg(SBP_MSG_DGNSS_STATUS,
