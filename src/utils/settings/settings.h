@@ -14,52 +14,62 @@
 #define SWIFTNAV_SETTINGS_H
 
 #include <stdbool.h>
+
+#include <libsettings/settings_register.h>
+
 #include <swiftnav/common.h>
-
-enum setting_types {
-  TYPE_INT,
-  TYPE_FLOAT,
-  TYPE_STRING,
-};
-extern int TYPE_BOOL;
-
-struct setting_type {
-  int (*to_string)(
-      const void *priv, char *str, int slen, const void *blob, int blen);
-  bool (*from_string)(const void *priv, void *blob, int len, const char *str);
-  int (*format_type)(const void *priv, char *str, int len);
-  const void *priv;
-  struct setting_type *next;
-};
 
 struct setting {
   const char *section;
   const char *name;
   void *addr;
   int len;
-  bool (*notify)(struct setting *setting, const char *val);
-  struct setting *next;
-  const struct setting_type *type;
+  settings_notify_fn notify;
+  void *notify_ctx;
 };
+
+#define SETTING_WATCH(section, name, var, type, notify)                \
+  do {                                                                 \
+    static struct setting setting = {                                  \
+        (section), (name), &(var), sizeof(var), (notify), (NULL)};     \
+    settings_watch(&(setting), (type));                                \
+  } while (0)
+
+#define SETTING_NOTIFY_CTX(section, name, var, type, notify, ctx)      \
+  do {                                                                 \
+    static struct setting setting = {                                  \
+        (section), (name), &(var), sizeof(var), (notify), (ctx)};      \
+    settings_register(&(setting), (type));                             \
+  } while (0)
 
 #define SETTING_NOTIFY(section, name, var, type, notify)               \
   do {                                                                 \
     static struct setting setting = {                                  \
-        (section), (name), &(var), sizeof(var), (notify), NULL, NULL}; \
+        (section), (name), &(var), sizeof(var), (notify), (NULL)};     \
     settings_register(&(setting), (type));                             \
   } while (0)
 
-#define SETTING(section, name, var, type) \
-  SETTING_NOTIFY(section, name, var, type, settings_default_notify)
+#define SETTING(section, name, var, type)                              \
+  do {                                                                 \
+    static struct setting setting = {                                  \
+        (section), (name), &(var), sizeof(var), (NULL), (NULL)};       \
+    settings_register(&(setting), (type));                             \
+  } while (0)
 
-#define READ_ONLY_PARAMETER(section, name, var, type) \
-  SETTING_NOTIFY(section, name, var, type, settings_read_only_notify)
+#define READ_ONLY_PARAMETER(section, name, var, type)                  \
+  do {                                                                 \
+    static struct setting setting = {                                  \
+        (section), (name), &(var), sizeof(var), (NULL), (NULL)};       \
+    settings_register_readonly(&(setting), type);                      \
+  } while (0)
 
 void settings_setup(void);
+
 int settings_type_register_enum(const char *const enumnames[],
-                                struct setting_type *type);
-void settings_register(struct setting *s, enum setting_types type);
-bool settings_default_notify(struct setting *setting, const char *val);
-bool settings_read_only_notify(struct setting *setting, const char *val);
+                                settings_type_t *type);
+
+int settings_register(struct setting *s, settings_type_t type);
+int settings_register_readonly(struct setting *s, settings_type_t type);
+int settings_watch(struct setting *s, settings_type_t type);
 
 #endif /* SWIFTNAV_SETTINGS_H */

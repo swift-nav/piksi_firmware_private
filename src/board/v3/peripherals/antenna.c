@@ -61,13 +61,12 @@ static void antenna_configure(antenna_mode_t mode, bool bias) {
   }
 }
 
-static bool antenna_config_notify(struct setting *s, const char *val) {
-  if (!s->type->from_string(s->type->priv, s->addr, s->len, val)) {
-    return false;
-  }
+static int antenna_config_notify(void *ctx) {
+  (void)ctx;
 
   antenna_configure(antenna_mode, antenna_bias);
-  return true;
+  
+  return SBP_SETTINGS_WRITE_STATUS_OK;
 }
 
 void antenna_init(void) {
@@ -92,22 +91,20 @@ void antenna_init(void) {
   palSetLine(ANT_IN_SEL_1_GPIO_LINE);
   palSetLine(ANT_IN_SEL_2_GPIO_LINE);
 
-  static struct setting_type antenna_mode_setting;
-  int TYPE_ANTENNA_MODE =
-      settings_type_register_enum(antenna_mode_strings, &antenna_mode_setting);
+  settings_type_t antenna_mode_setting;
+  settings_type_register_enum(antenna_mode_strings, &antenna_mode_setting);
+
   SETTING_NOTIFY("frontend",
                  "antenna_selection",
                  antenna_mode,
-                 TYPE_ANTENNA_MODE,
+                 antenna_mode_setting,
                  antenna_config_notify);
 
   SETTING_NOTIFY("frontend",
                  "antenna_bias",
                  antenna_bias,
-                 TYPE_BOOL,
+                 SETTINGS_TYPE_BOOL,
                  antenna_config_notify);
-
-  antenna_configure(antenna_mode, antenna_bias);
 }
 
 bool antenna_present(void) {

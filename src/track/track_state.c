@@ -44,27 +44,26 @@ static tracker_t trackers[NUM_TRACKER_CHANNELS];
 static u16 iq_output_mask = 0;
 
 /** Parse the IQ output enable bitfield. */
-static bool track_iq_output_notify(struct setting *s, const char *val) {
-  if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
-    for (int i = 0; i < NUM_TRACKER_CHANNELS; i++) {
-      tracker_t *tracker = tracker_get(i);
-      tracker->output_iq = (iq_output_mask & (1 << i)) != 0;
-    }
-    return true;
+static int track_iq_output_notify(void *ctx) {
+  (void)ctx;
+
+  for (int i = 0; i < NUM_TRACKER_CHANNELS; i++) {
+    tracker_t *tracker = tracker_get(i);
+    tracker->output_iq = (iq_output_mask & (1 << i)) != 0;
   }
-  return false;
+
+  return SBP_SETTINGS_WRITE_STATUS_OK;
 }
 
 static const char *const tracker_mode_enum[] = {"rover", "base station", NULL};
 
-static bool set_tracker_mode(struct setting *s, const char *val) {
-  int value = 0;
-  bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
-  if (!ret) {
-    return false;
-  }
-  enum tracker_mode mode = value;
-  switch (mode) {
+/* define and apply the default tracking mode */
+static int tracker_mode = TRACKER_MODE_ROVER;
+
+static int set_tracker_mode(void *ctx) {
+  (void)ctx;
+
+  switch (tracker_mode) {
     case TRACKER_MODE_BASE:
       tp_set_base_station_mode();
       break;
@@ -73,8 +72,8 @@ static bool set_tracker_mode(struct setting *s, const char *val) {
       tp_set_rover_mode();
       break;
   }
-  *(enum tracker_mode *)s->addr = mode;
-  return ret;
+
+  return SBP_SETTINGS_WRITE_STATUS_OK;
 }
 
 /** Set up the tracking module. */
@@ -82,19 +81,14 @@ void track_setup(void) {
   SETTING_NOTIFY("track",
                  "iq_output_mask",
                  iq_output_mask,
-                 TYPE_INT,
+                 SETTINGS_TYPE_INT,
                  track_iq_output_notify);
 
-  static struct setting_type tracker_mode_setting = {0};
-
-  int TYPE_TRACKER_MODE =
-      settings_type_register_enum(tracker_mode_enum, &tracker_mode_setting);
-
-  /* define and apply the default tracking mode */
-  static enum tracker_mode tracker_mode = TRACKER_MODE_ROVER;
+  settings_type_t settings_type_mode;
+  settings_type_register_enum(tracker_mode_enum, &settings_type_mode);
 
   SETTING_NOTIFY(
-      "track", "mode", tracker_mode, TYPE_TRACKER_MODE, set_tracker_mode);
+      "track", "mode", tracker_mode, settings_type_mode, set_tracker_mode);
 
   track_internal_setup();
 

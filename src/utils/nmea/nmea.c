@@ -144,7 +144,7 @@ static void nmea_output(char *s, size_t size) {
 }
 
 void nmea_setup(void) {
-  SETTING("nmea", "gpgsv_msg_rate", gpgsv_msg_rate, TYPE_INT);
+  SETTING("nmea", "gpgsv_msg_rate", gpgsv_msg_rate, SETTINGS_TYPE_INT);
 }
 
 /** Calculate and append the checksum of an NMEA sentence.

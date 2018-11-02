@@ -321,10 +321,8 @@ static void imu_thread(void *arg) {
   }
 }
 
-static bool imu_rate_changed(struct setting *s, const char *val) {
-  if (!s->type->from_string(s->type->priv, s->addr, s->len, val)) {
-    return false;
-  }
+static int imu_rate_changed(void *ctx) {
+  (void)ctx;
   /* Convert between the setting value, which is an integer corresponding to
    * the index of the selected setting in the list of strings, and the relevant
    * enum values */
@@ -344,23 +342,23 @@ static bool imu_rate_changed(struct setting *s, const char *val) {
       break;
     default:
       log_error("Unexpected imu rate setting: %u", imu_rate);
-      return false;
+      return SBP_SETTINGS_WRITE_STATUS_VALUE_REJECTED;
   }
-  return true;
+
+  return SBP_SETTINGS_WRITE_STATUS_OK;
 }
 
-static bool raw_imu_output_changed(struct setting *s, const char *val) {
-  if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
-    bmi160_imu_set_enabled(raw_imu_output);
-    return true;
-  }
-  return false;
+static int raw_imu_output_changed(void *ctx) {
+  (void)ctx;
+
+  bmi160_imu_set_enabled(raw_imu_output);
+
+  return SBP_SETTINGS_WRITE_STATUS_OK;
 }
 
-static bool mag_rate_changed(struct setting *s, const char *val) {
-  if (!s->type->from_string(s->type->priv, s->addr, s->len, val)) {
-    return false;
-  }
+static int mag_rate_changed(void *ctx) {
+  (void)ctx;
+
   /* Convert between the setting value, which is an integer corresponding to
    * the index of the selected setting in the list of strings, and the relevant
    * enum values */
@@ -376,23 +374,22 @@ static bool mag_rate_changed(struct setting *s, const char *val) {
       break;
     default:
       log_error("Unexpected magnetometer rate setting: %u", mag_rate);
-      return false;
+      return SBP_SETTINGS_WRITE_STATUS_VALUE_REJECTED;
   }
-  return true;
+
+  return SBP_SETTINGS_WRITE_STATUS_OK;
 }
 
-static bool raw_mag_output_changed(struct setting *s, const char *val) {
-  if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
-    bmi160_mag_set_enabled(raw_mag_output);
-    return true;
-  }
-  return false;
+static int raw_mag_output_changed(void *ctx) {
+  (void)ctx;
+
+  bmi160_mag_set_enabled(raw_mag_output);
+
+  return SBP_SETTINGS_WRITE_STATUS_OK;
 }
 
-static bool acc_range_changed(struct setting *s, const char *val) {
-  if (!s->type->from_string(s->type->priv, s->addr, s->len, val)) {
-    return false;
-  }
+static int acc_range_changed(void *ctx) {
+  (void)ctx;
 
   u8 output = raw_imu_output;
   raw_imu_output = false;
@@ -423,26 +420,24 @@ static bool acc_range_changed(struct setting *s, const char *val) {
     raw_imu_output = true;
   }
 
-  return true;
+  return SBP_SETTINGS_WRITE_STATUS_OK;
 }
 
-static bool gyr_range_changed(struct setting *s, const char *val) {
-  if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
-    u8 output = raw_imu_output;
-    raw_imu_output = false;
+static int gyr_range_changed(void *ctx) {
+  (void)ctx;
+  u8 output = raw_imu_output;
+  raw_imu_output = false;
 
-    /* The settings values and the enum values correspond numerically so no
-     * need to convert between them. */
-    bmi160_set_gyr_range(gyr_range);
+  /* The settings values and the enum values correspond numerically so no
+    * need to convert between them. */
+  bmi160_set_gyr_range(gyr_range);
 
-    if (output) {
-      imu_aux_send();
-      raw_imu_output = true;
-    }
-
-    return true;
+  if (output) {
+    imu_aux_send();
+    raw_imu_output = true;
   }
-  return false;
+
+  return SBP_SETTINGS_WRITE_STATUS_OK;
 }
 
 void imu_init(void) {
@@ -451,45 +446,42 @@ void imu_init(void) {
   SETTING_NOTIFY("imu",
                  "imu_raw_output",
                  raw_imu_output,
-                 TYPE_BOOL,
+                 SETTINGS_TYPE_BOOL,
                  raw_imu_output_changed);
 
   static const char *const imu_rate_enum[] =
       /* TODO: 400 Hz mode disabled for now as at that speed there is a timing
        * issue resulting in messages with duplicate timestamps. */
       {"25", "50", "100", "200", /* "400",*/ NULL};
-  static struct setting_type imu_rate_setting;
-  int TYPE_IMU_RATE =
-      settings_type_register_enum(imu_rate_enum, &imu_rate_setting);
-  SETTING_NOTIFY("imu", "imu_rate", imu_rate, TYPE_IMU_RATE, imu_rate_changed);
+  settings_type_t imu_rate_setting;
+  settings_type_register_enum(imu_rate_enum, &imu_rate_setting);
+  SETTING_NOTIFY("imu", "imu_rate", imu_rate, imu_rate_setting, imu_rate_changed);
 
   static const char *const acc_range_enum[] = {"2g", "4g", "8g", "16g", NULL};
-  static struct setting_type acc_range_setting;
-  int TYPE_ACC_RANGE =
-      settings_type_register_enum(acc_range_enum, &acc_range_setting);
+  settings_type_t acc_range_setting;
+  settings_type_register_enum(acc_range_enum, &acc_range_setting);
   SETTING_NOTIFY(
-      "imu", "acc_range", acc_range, TYPE_ACC_RANGE, acc_range_changed);
+      "imu", "acc_range", acc_range, acc_range_setting, acc_range_changed);
 
   static const char *const gyr_range_enum[] = {
       "2000", "1000", "500", "250", "125", NULL};
-  static struct setting_type gyr_range_setting;
-  int TYPE_GYR_RANGE =
-      settings_type_register_enum(gyr_range_enum, &gyr_range_setting);
+  settings_type_t gyr_range_setting;
+  settings_type_register_enum(gyr_range_enum, &gyr_range_setting);
   SETTING_NOTIFY(
-      "imu", "gyro_range", gyr_range, TYPE_GYR_RANGE, gyr_range_changed);
+      "imu", "gyro_range", gyr_range, gyr_range_setting, gyr_range_changed);
 
   SETTING_NOTIFY("imu",
                  "mag_raw_output",
                  raw_mag_output,
-                 TYPE_BOOL,
+                 SETTINGS_TYPE_BOOL,
                  raw_mag_output_changed);
+
   static const char *const mag_rate_enum[] =
       /* Rates up to 100Hz possible, but not recomended */
       {"6.25", "12.5", "25", NULL};
-  static struct setting_type mag_rate_setting;
-  int TYPE_MAG_RATE =
-      settings_type_register_enum(mag_rate_enum, &mag_rate_setting);
-  SETTING_NOTIFY("imu", "mag_rate", mag_rate, TYPE_MAG_RATE, mag_rate_changed);
+  settings_type_t mag_rate_setting;
+  settings_type_register_enum(mag_rate_enum, &mag_rate_setting);
+  SETTING_NOTIFY("imu", "mag_rate", mag_rate, mag_rate_setting, mag_rate_changed);
 
   chThdCreateStatic(
       wa_imu_thread, sizeof(wa_imu_thread), IMU_THREAD_PRIO, imu_thread, NULL);

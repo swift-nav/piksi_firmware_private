@@ -13,3 +13,6 @@
 [submodule "third_party/googletest"]
   path = third_party/googletest
   url = git@github.com:google/googletest
+[submodule "libsettings"]
+	path = libsettings
+	url = /mnt/users/pasi/swiftnav/libsettings/

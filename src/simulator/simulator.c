@@ -495,22 +495,22 @@ void simulator_setup(void) {
 
   simulator_setup_almanacs();
 
-  SETTING("simulator", "enabled", sim_enabled, TYPE_BOOL);
-  SETTING("simulator", "base_ecef_x", sim_settings.base_ecef[0], TYPE_FLOAT);
-  SETTING("simulator", "base_ecef_y", sim_settings.base_ecef[1], TYPE_FLOAT);
-  SETTING("simulator", "base_ecef_z", sim_settings.base_ecef[2], TYPE_FLOAT);
-  SETTING("simulator", "speed", sim_settings.speed, TYPE_FLOAT);
-  SETTING("simulator", "radius", sim_settings.radius, TYPE_FLOAT);
-  SETTING("simulator", "pos_sigma", sim_settings.pos_sigma, TYPE_FLOAT);
-  SETTING("simulator", "speed_sigma", sim_settings.speed_sigma, TYPE_FLOAT);
-  SETTING("simulator", "cn0_sigma", sim_settings.cn0_sigma, TYPE_FLOAT);
+  SETTING("simulator", "enabled", sim_enabled, SETTINGS_TYPE_BOOL);
+  SETTING("simulator", "base_ecef_x", sim_settings.base_ecef[0], SETTINGS_TYPE_FLOAT);
+  SETTING("simulator", "base_ecef_y", sim_settings.base_ecef[1], SETTINGS_TYPE_FLOAT);
+  SETTING("simulator", "base_ecef_z", sim_settings.base_ecef[2], SETTINGS_TYPE_FLOAT);
+  SETTING("simulator", "speed", sim_settings.speed, SETTINGS_TYPE_FLOAT);
+  SETTING("simulator", "radius", sim_settings.radius, SETTINGS_TYPE_FLOAT);
+  SETTING("simulator", "pos_sigma", sim_settings.pos_sigma, SETTINGS_TYPE_FLOAT);
+  SETTING("simulator", "speed_sigma", sim_settings.speed_sigma, SETTINGS_TYPE_FLOAT);
+  SETTING("simulator", "cn0_sigma", sim_settings.cn0_sigma, SETTINGS_TYPE_FLOAT);
   SETTING("simulator",
           "pseudorange_sigma",
           sim_settings.pseudorange_sigma,
-          TYPE_FLOAT);
-  SETTING("simulator", "phase_sigma", sim_settings.phase_sigma, TYPE_FLOAT);
-  SETTING("simulator", "num_sats", sim_settings.num_sats, TYPE_INT);
-  SETTING("simulator", "mode_mask", sim_settings.mode_mask, TYPE_INT);
+          SETTINGS_TYPE_FLOAT);
+  SETTING("simulator", "phase_sigma", sim_settings.phase_sigma, SETTINGS_TYPE_FLOAT);
+  SETTING("simulator", "num_sats", sim_settings.num_sats, SETTINGS_TYPE_INT);
+  SETTING("simulator", "mode_mask", sim_settings.mode_mask, SETTINGS_TYPE_INT);
 }
 
 /** \} */

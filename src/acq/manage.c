@@ -122,16 +122,58 @@ static float solution_elevation_mask = 10.0;
 
 /** Flag if almanacs can be used in acq */
 static bool almanacs_enabled = false;
-/** Flag if GLONASS enabled */
-static bool glo_enabled = CODE_GLO_L1OF_SUPPORT || CODE_GLO_L2OF_SUPPORT;
-/** Flag if SBAS enabled */
-static bool sbas_enabled = CODE_SBAS_L1CA_SUPPORT;
-/** Flag if BEIDOU2 enabled */
-static bool bds2_enabled = CODE_BDS2_B1_SUPPORT || CODE_BDS2_B2_SUPPORT;
-/** Flag if QZSS enabled */
-static bool qzss_enabled = CODE_QZSS_L1CA_SUPPORT || CODE_QZSS_L2C_SUPPORT;
-/** Flag if Galileo enabled */
-static bool galileo_enabled = CODE_GAL_E1_SUPPORT || CODE_GAL_E7_SUPPORT;
+
+typedef struct cons_cfg_s {
+  char *name;
+  bool enabled;
+  bool supported;
+  bool (*filter)(const code_t code);
+  bool (*sid_active)(const me_gnss_signal_t mesid);
+} cons_cfg_t;
+
+static cons_cfg_t cons_cfg[CONSTELLATION_COUNT] = {
+  [CONSTELLATION_GPS] = {
+                          .name = "GPS",
+                          .enabled = true,
+                          .filter = NULL,
+                          .sid_active = NULL,
+                        },
+  [CONSTELLATION_SBAS] = {
+                          .name = "SBAS",
+                          .enabled = CODE_SBAS_L1CA_SUPPORT,
+                          .supported = CODE_SBAS_L1CA_SUPPORT,
+                          .filter = is_sbas,
+                          .sid_active = sbas_active,
+                         },
+  [CONSTELLATION_GLO] = {
+                          .name = "GLONASS",
+                          .enabled = (CODE_GLO_L1OF_SUPPORT || CODE_GLO_L2OF_SUPPORT),
+                          .supported = (CODE_GLO_L1OF_SUPPORT || CODE_GLO_L2OF_SUPPORT),
+                          .filter = is_glo,
+                          .sid_active = NULL,
+                         },
+  [CONSTELLATION_BDS] = {
+                          .name = "BeiDou",
+                          .enabled = (CODE_BDS2_B1_SUPPORT || CODE_BDS2_B2_SUPPORT),
+                          .supported = (CODE_BDS2_B1_SUPPORT || CODE_BDS2_B2_SUPPORT),
+                          .filter = is_bds2,
+                          .sid_active = bds_active,
+                         },
+  [CONSTELLATION_QZS] = {
+                          .name = "QZSS",
+                          .enabled = (CODE_QZSS_L1CA_SUPPORT || CODE_QZSS_L2C_SUPPORT),
+                          .supported = (CODE_QZSS_L1CA_SUPPORT || CODE_QZSS_L2C_SUPPORT),
+                          .filter = is_qzss,
+                          .sid_active = qzss_active,
+                         },
+  [CONSTELLATION_GAL] = {
+                          .name = "Galileo",
+                          .enabled = (CODE_GAL_E1_SUPPORT || CODE_GAL_E7_SUPPORT),
+                          .supported = (CODE_GAL_E1_SUPPORT || CODE_GAL_E7_SUPPORT),
+                          .filter = is_gal,
+                          .sid_active = gal_active,
+                         },
+};
 
 typedef struct {
   piksi_systime_t tick; /**< Time when SV was detected as unhealthy */
@@ -239,176 +281,54 @@ static void manage_acq_thread(void *arg) {
   }
 }
 
-/* The function masks/unmasks all GLO satellite,
- * NOTE: this function does not check if GLO SV is already masked or not */
-static bool glo_enable_notify(struct setting *s, const char *val) {
-  bool res = s->type->from_string(s->type->priv, s->addr, s->len, val);
-  if (!res) {
-    return false;
-  }
-  log_debug("GLONASS status (1 - on, 0 - off): %u", glo_enabled);
-  if (glo_enabled && !(CODE_GLO_L1OF_SUPPORT || CODE_GLO_L2OF_SUPPORT)) {
-    /* user tries enable GLONASS on the platform that does not support it */
-    log_error("The platform does not support GLONASS");
-    glo_enabled = false;
-    return false;
-  }
-  for (u16 i = 0; i < ARRAY_SIZE(acq_status); i++) {
-    if (IS_GLO(acq_status[i].mesid)) {
-      acq_status[i].masked = !glo_enabled;
-    }
-  }
-  return true;
-}
+/* The function masks/unmasks all <constellation> satellites,
+ * NOTE: this function does not check if SV is already masked or not */
+static int cons_enable_notify(void *ctx) {
+  cons_cfg_t *cfg = (cons_cfg_t *)ctx;
 
-/* The function masks/unmasks all SBAS satellites,
- * NOTE: this function does not check if SBAS SV is already masked or not */
-static bool sbas_enable_notify(struct setting *s, const char *val) {
-  bool res = s->type->from_string(s->type->priv, s->addr, s->len, val);
-  if (!res) {
-    return false;
-  }
-  log_debug("SBAS status (1 - on, 0 - off): %u", sbas_enabled);
-  if (sbas_enabled && !(CODE_SBAS_L1CA_SUPPORT)) {
-    /* user tries enable SBAS on the platform that does not support it */
-    log_error("The platform does not support SBAS");
-    sbas_enabled = false;
-    return false;
-  }
-  for (u16 i = 0; i < ARRAY_SIZE(acq_status); i++) {
-    if (IS_SBAS(acq_status[i].mesid)) {
-      acq_status[i].masked = !sbas_enabled || !sbas_active(acq_status[i].mesid);
-    }
-  }
-  return true;
-}
+  log_debug("%s status (1 - on, 0 - off): %u", cfg->name, cfg->enabled);
 
-/* The function masks/unmasks all Beidou satellites,
- * NOTE: this function does not check if BDS2 SV is already masked or not */
-static bool bds2_enable_notify(struct setting *s, const char *val) {
-  bool res = s->type->from_string(s->type->priv, s->addr, s->len, val);
-  if (!res) {
-    return false;
+  if (cfg->enabled && !cfg->supported) {
+    /* user tries enable constellation on the platform that does not support it */
+    log_error("The platform does not support %s", cfg->name);
+    cfg->enabled = false;
+    return SBP_SETTINGS_WRITE_STATUS_VALUE_REJECTED;
   }
-  log_debug("BEIDOU status (1 - on, 0 - off): %u", bds2_enabled);
-  if (bds2_enabled && !(CODE_BDS2_B1_SUPPORT || CODE_BDS2_B2_SUPPORT)) {
-    /* user tries enable Beidou2 on the platform that does not support it */
-    log_error("The platform does not support BDS2");
-    bds2_enabled = false;
-    return false;
-  }
-  for (u16 i = 0; i < ARRAY_SIZE(acq_status); i++) {
-    if (IS_BDS2(acq_status[i].mesid)) {
-      acq_status[i].masked = !bds2_enabled || !bds_active(acq_status[i].mesid);
-    }
-  }
-  return true;
-}
 
-/* The function masks/unmasks all QZSS satellites,
- * NOTE: this function does not check if QZSS SV is already masked or not */
-static bool qzss_enable_notify(struct setting *s, const char *val) {
-  bool res = s->type->from_string(s->type->priv, s->addr, s->len, val);
-  if (!res) {
-    return false;
-  }
-  log_debug("QZSS status (1 - on, 0 - off): %u", qzss_enabled);
-  if (qzss_enabled && !(CODE_QZSS_L1CA_SUPPORT || CODE_QZSS_L2C_SUPPORT)) {
-    /* user tries enable QZSS on the platform that does not support it */
-    log_error("The platform does not support QZSS");
-    qzss_enabled = false;
-    return false;
-  }
   for (u16 i = 0; i < ARRAY_SIZE(acq_status); i++) {
-    if (IS_QZSS(acq_status[i].mesid)) {
-      acq_status[i].masked = !qzss_enabled || !qzss_active(acq_status[i].mesid);
+    if (cfg->filter(acq_status[i].mesid.code)) {
+      continue;
     }
-  }
-  return true;
-}
 
-/* The function masks/unmasks all Galileo satellites,
- * NOTE: this function does not check if Galileo SV is already masked or not */
-static bool galileo_enable_notify(struct setting *s, const char *val) {
-  bool res = s->type->from_string(s->type->priv, s->addr, s->len, val);
-  if (!res) {
-    return false;
-  }
-  log_debug("Galileo status (1 - on, 0 - off): %u", galileo_enabled);
-  if (galileo_enabled && !(CODE_GAL_E1_SUPPORT || CODE_GAL_E7_SUPPORT)) {
-    /* user tries enable Galileo on the platform that does not support it */
-    log_error("The platform does not support Galileo");
-    galileo_enabled = false;
-    return false;
-  }
-  for (u16 i = 0; i < ARRAY_SIZE(acq_status); i++) {
-    if (IS_GAL(acq_status[i].mesid)) {
-      acq_status[i].masked =
-          !galileo_enabled || !gal_active(acq_status[i].mesid);
+    if (!cfg->enabled) {
+      acq_status[i].masked = true;
+      continue;
+    }
+
+    if (NULL != cfg->sid_active && !cfg->sid_active(acq_status[i].mesid)) {
+      acq_status[i].masked = true;
+      continue;
     }
   }
-  return true;
+
+  return SBP_SETTINGS_WRITE_STATUS_OK;
 }
 
 /* Update the solution elevation mask used by the ME and by Starling. */
-static bool solution_elevation_mask_notify(struct setting *s, const char *val) {
-  bool res = s->type->from_string(s->type->priv, s->addr, s->len, val);
-  if (!res) {
-    return false;
-  }
+static int solution_elevation_mask_notify(void *ctx) {
+  (void)ctx;
+
   log_debug("Solution elevation mask: %f", solution_elevation_mask);
+
   starling_set_elevation_mask(solution_elevation_mask);
-  return true;
+
+  return SBP_SETTINGS_WRITE_STATUS_OK;
 }
 
 void manage_acq_setup() {
-  SETTING("acquisition", "almanacs_enabled", almanacs_enabled, TYPE_BOOL);
-  SETTING_NOTIFY("acquisition",
-                 "glonass_acquisition_enabled",
-                 glo_enabled,
-                 TYPE_BOOL,
-                 glo_enable_notify);
-  SETTING_NOTIFY("acquisition",
-                 "sbas_acquisition_enabled",
-                 sbas_enabled,
-                 TYPE_BOOL,
-                 sbas_enable_notify);
-  SETTING_NOTIFY("acquisition",
-                 "bds2_acquisition_enabled",
-                 bds2_enabled,
-                 TYPE_BOOL,
-                 bds2_enable_notify);
-  SETTING_NOTIFY("acquisition",
-                 "qzss_acquisition_enabled",
-                 qzss_enabled,
-                 TYPE_BOOL,
-                 qzss_enable_notify);
-  SETTING_NOTIFY("acquisition",
-                 "galileo_acquisition_enabled",
-                 galileo_enabled,
-                 TYPE_BOOL,
-                 galileo_enable_notify);
-
-  tracking_startup_fifo_init(&tracking_startup_fifo);
-
   for (u32 i = 0; i < ARRAY_SIZE(acq_status); i++) {
     me_gnss_signal_t mesid = mesid_from_global_index(i);
     acq_status[i].state = ACQ_PRN_ACQUIRING;
-    if (IS_GLO(mesid)) {
-      acq_status[i].masked = !glo_enabled;
-    }
-    if (IS_SBAS(mesid)) {
-      acq_status[i].masked = !sbas_enabled || !sbas_active(mesid);
-    }
-    if (IS_BDS2(mesid)) {
-      acq_status[i].masked = !bds2_enabled || !bds_active(mesid);
-    }
-    if (IS_QZSS(mesid)) {
-      acq_status[i].masked = !qzss_enabled || !qzss_active(mesid);
-    }
-    if (IS_GAL(mesid)) {
-      acq_status[i].masked = !galileo_enabled || !gal_active(mesid);
-    }
 
     if (code_requires_direct_acq(mesid.code)) {
       acq_status[i].dopp_hint_low = code_to_sv_doppler_min(mesid.code) +
@@ -420,6 +340,40 @@ void manage_acq_setup() {
 
     track_mask[i] = false;
   }
+
+  SETTING("acquisition", "almanacs_enabled", almanacs_enabled, SETTINGS_TYPE_BOOL);
+  SETTING_NOTIFY_CTX("acquisition",
+                 "glonass_acquisition_enabled",
+                 cons_cfg[CONSTELLATION_GLO].enabled,
+                 SETTINGS_TYPE_BOOL,
+                 cons_enable_notify,
+                 &cons_cfg[CONSTELLATION_GLO]);
+  SETTING_NOTIFY_CTX("acquisition",
+                 "sbas_acquisition_enabled",
+                 cons_cfg[CONSTELLATION_SBAS].enabled,
+                 SETTINGS_TYPE_BOOL,
+                 cons_enable_notify,
+                 &cons_cfg[CONSTELLATION_SBAS]);
+  SETTING_NOTIFY_CTX("acquisition",
+                 "bds2_acquisition_enabled",
+                 cons_cfg[CONSTELLATION_BDS].enabled,
+                 SETTINGS_TYPE_BOOL,
+                 cons_enable_notify,
+                 &cons_cfg[CONSTELLATION_BDS]);
+  SETTING_NOTIFY_CTX("acquisition",
+                 "qzss_acquisition_enabled",
+                 cons_cfg[CONSTELLATION_QZS].enabled,
+                 SETTINGS_TYPE_BOOL,
+                 cons_enable_notify,
+                 &cons_cfg[CONSTELLATION_QZS]);
+  SETTING_NOTIFY_CTX("acquisition",
+                 "galileo_acquisition_enabled",
+                 cons_cfg[CONSTELLATION_GAL].enabled,
+                 SETTINGS_TYPE_BOOL,
+                 cons_enable_notify,
+                 &cons_cfg[CONSTELLATION_GAL]);
+
+  tracking_startup_fifo_init(&tracking_startup_fifo);
 
   sbp_register_cbk(SBP_MSG_ALMANAC, &almanac_callback, &almanac_callback_node);
 
@@ -604,11 +558,11 @@ void check_clear_unhealthy(void) {
 }
 
 void me_settings_setup(void) {
-  SETTING("track", "elevation_mask", tracking_elevation_mask, TYPE_FLOAT);
+  SETTING("track", "elevation_mask", tracking_elevation_mask, SETTINGS_TYPE_FLOAT);
   SETTING_NOTIFY("solution",
                  "elevation_mask",
                  solution_elevation_mask,
-                 TYPE_FLOAT,
+                 SETTINGS_TYPE_FLOAT,
                  solution_elevation_mask_notify);
 }
 
@@ -1373,31 +1327,31 @@ bool mesid_is_tracked(const me_gnss_signal_t mesid) {
  *
  * @return true if GLONASS enabled, otherwise false
  */
-bool is_glo_enabled(void) { return glo_enabled; }
+bool is_glo_enabled(void) { return cons_cfg[CONSTELLATION_GLO].enabled; }
 
 /** Checks if SBAS enabled
  *
  * @return true if SBAS enabled, otherwise false
  */
-bool is_sbas_enabled(void) { return sbas_enabled; }
+bool is_sbas_enabled(void) { return cons_cfg[CONSTELLATION_SBAS].enabled; }
 
 /** Checks if BDS2 enabled
  *
  * @return true if BDS2 enabled, otherwise false
  */
-bool is_bds2_enabled(void) { return bds2_enabled; }
+bool is_bds2_enabled(void) { return cons_cfg[CONSTELLATION_BDS].enabled; }
 
 /** Checks if QZSS enabled
  *
  * @return true if QZSS enabled, otherwise false
  */
-bool is_qzss_enabled(void) { return qzss_enabled; }
+bool is_qzss_enabled(void) { return cons_cfg[CONSTELLATION_QZS].enabled; }
 
 /** Checks if GAL enabled
  *
  * @return true if GAL enabled, otherwise false
  */
-bool is_galileo_enabled(void) { return galileo_enabled; }
+bool is_galileo_enabled(void) { return cons_cfg[CONSTELLATION_GAL].enabled; }
 
 /**
  * The function retrieves the GLO orbit slot, if the mapping to a FCN exists

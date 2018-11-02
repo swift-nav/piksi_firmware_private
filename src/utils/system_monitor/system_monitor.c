@@ -228,14 +228,14 @@ void system_monitor_setup(void) {
   SETTING("system_monitor",
           "heartbeat_period_milliseconds",
           heartbeat_period_milliseconds,
-          TYPE_INT);
-  SETTING("system_monitor", "watchdog", use_wdt, TYPE_BOOL);
+          SETTINGS_TYPE_INT);
+  SETTING("system_monitor", "watchdog", use_wdt, SETTINGS_TYPE_BOOL);
 
   SETTING(
-      "surveyed_position", "broadcast", broadcast_surveyed_position, TYPE_BOOL);
-  SETTING("surveyed_position", "surveyed_lat", base_llh[0], TYPE_FLOAT);
-  SETTING("surveyed_position", "surveyed_lon", base_llh[1], TYPE_FLOAT);
-  SETTING("surveyed_position", "surveyed_alt", base_llh[2], TYPE_FLOAT);
+      "surveyed_position", "broadcast", broadcast_surveyed_position, SETTINGS_TYPE_BOOL);
+  SETTING("surveyed_position", "surveyed_lat", base_llh[0], SETTINGS_TYPE_FLOAT);
+  SETTING("surveyed_position", "surveyed_lon", base_llh[1], SETTINGS_TYPE_FLOAT);
+  SETTING("surveyed_position", "surveyed_alt", base_llh[2], SETTINGS_TYPE_FLOAT);
 
   chThdCreateStatic(wa_system_monitor_thread,
                     sizeof(wa_system_monitor_thread),

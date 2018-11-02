@@ -65,7 +65,15 @@ static bool enable_glonass = true;
 static bool enable_galileo = true;
 static bool enable_beidou = true;
 
+static bool skylark_enabled = false;
+static bool orion_enabled = false;
+
+static dgnss_filter_t dgnss_filter_mode = FILTER_FIXED;
+static dgnss_solution_mode_t dgnss_soln_mode = STARLING_SOLN_MODE_LOW_LATENCY;
+
 static double heading_offset = 0.0;
+static u32 max_age_of_differential = 30;
+static float glonass_downweight_factor = 4.0;
 
 static u32 corr_age_max = DFLT_CORRECTION_AGE_MAX_S;
 
@@ -168,12 +176,12 @@ void starling_integration_sbp_messages_init(sbp_messages_t *sbp_messages,
 
 static void starling_integration_solution_send_low_latency_output(
     const sbp_messages_t *sbp_messages) {
-  dgnss_solution_mode_t dgnss_soln_mode = starling_get_solution_mode();
+  dgnss_solution_mode_t mode = starling_get_solution_mode();
   /* Work out if we need to wait for a certain period of no time matched
    * positions before we output a SBP position */
   bool wait_for_timeout = false;
-  if (!(dgnss_timeout(&last_dgnss_stats.systime, dgnss_soln_mode)) &&
-      STARLING_SOLN_MODE_TIME_MATCHED == dgnss_soln_mode) {
+  if (!(dgnss_timeout(&last_dgnss_stats.systime, mode)) &&
+      STARLING_SOLN_MODE_TIME_MATCHED == mode) {
     wait_for_timeout = true;
   }
 
@@ -343,10 +351,10 @@ static void solution_make_baseline_sbp(const pvt_engine_result_t *result,
                         result->propagation_time,
                         result->flags.position_mode);
 
-  dgnss_solution_mode_t dgnss_soln_mode = starling_get_solution_mode();
+  dgnss_solution_mode_t mode = starling_get_solution_mode();
 
   if (result->flags.position_mode == POSITION_MODE_FIXED &&
-      dgnss_soln_mode == STARLING_SOLN_MODE_TIME_MATCHED) {
+      mode == STARLING_SOLN_MODE_TIME_MATCHED) {
     double heading = calc_heading(b_ned);
     sbp_make_heading(&sbp_messages->baseline_heading,
                      &result->time,
@@ -496,129 +504,90 @@ bool starling_integration_simulation_enabled(void) {
  ******************************************************************************/
 
 /* Check that -180.0 <= new heading_offset setting value <= 180.0. */
-static bool heading_offset_changed(struct setting *s, const char *val) {
-  double offset = 0;
-  bool ret = s->type->from_string(s->type->priv, &offset, s->len, val);
-  if (!ret) {
-    return ret;
-  }
+static int heading_offset_changed(void *ctx) {
+  (void)ctx;
 
-  if (fabs(offset) > 180.0) {
+  if (fabs(heading_offset) > 180.0) {
     log_error(
-        "Invalid heading offset setting of %3.1f, max is %3.1f, min is %3.1f, "
-        "leaving heading offset at %3.1f",
-        offset,
+        "Invalid heading offset setting of %3.1f, max is %3.1f, min is %3.1f",
+        heading_offset,
         180.0,
-        -180.0,
-        heading_offset);
-    ret = false;
+        -180.0);
+    return SBP_SETTINGS_WRITE_STATUS_VALUE_REJECTED;
   }
-  *(double *)s->addr = offset;
-  return ret;
+
+  return SBP_SETTINGS_WRITE_STATUS_OK;
 }
 
-static bool enable_fix_mode(struct setting *s, const char *val) {
-  int value = 0;
-  bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
-  if (!ret) {
-    return ret;
-  }
-  bool is_fix_enabled = (value != 0);
-  starling_set_is_fix_enabled(is_fix_enabled);
-  *(dgnss_filter_t *)s->addr = value;
-  return ret;
+static int enable_fix_mode(void *ctx) {
+  (void)ctx;
+
+  starling_set_is_fix_enabled(FILTER_FIXED == dgnss_filter_mode);
+
+  return SBP_SETTINGS_WRITE_STATUS_OK;
 }
 
-static bool set_dgnss_soln_mode(struct setting *s, const char *val) {
-  int value = 0;
-  bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
-  if (!ret) {
-    return ret;
-  }
-  dgnss_solution_mode_t dgnss_soln_mode = value;
+static int set_dgnss_soln_mode(void *ctx) {
+  (void)ctx;
+
   starling_set_solution_mode(dgnss_soln_mode);
-  *(dgnss_solution_mode_t *)s->addr = dgnss_soln_mode;
-  return ret;
+
+  return SBP_SETTINGS_WRITE_STATUS_OK;
 }
 
-static bool set_max_age(struct setting *s, const char *val) {
-  int value = 0;
-  bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
-  if (!ret) {
-    return ret;
-  }
+static int set_max_age(void *ctx) {
+  (void)ctx;
 
-  if (0 >= value) {
+  if (0 >= corr_age_max) {
     log_error("Trying to set invalid correction age max value %d", value);
-    return false;
+    return SETTINGS_WR_SETTING_REJECTED;
   }
 
-  /* Save to file scope variable */
-  corr_age_max = value;
+  starling_set_max_correction_age(corr_age_max);
 
-  /* Forward to starling */
-  starling_set_max_correction_age(value);
-  *(int *)s->addr = value;
-  return ret;
+  return SBP_SETTINGS_WRITE_STATUS_OK;
 }
 
-static bool set_is_glonass_enabled(struct setting *s, const char *val) {
-  int value = 0;
-  bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
-  if (!ret) {
-    return ret;
-  }
-  bool is_glonass_enabled = (value != 0);
-  starling_set_is_glonass_enabled(is_glonass_enabled);
-  *(bool *)s->addr = is_glonass_enabled;
-  return ret;
+static int set_is_glonass_enabled(void *ctx) {
+  (void)ctx;
+
+  starling_set_is_glonass_enabled(enable_glonass);
+
+  return SBP_SETTINGS_WRITE_STATUS_OK;
 }
 
-static bool set_is_galileo_enabled(struct setting *s, const char *val) {
-  int value = 0;
-  bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
-  if (!ret) {
-    return ret;
-  }
-  bool is_galileo_enabled = (value != 0);
-  starling_set_is_galileo_enabled(is_galileo_enabled);
-  *(bool *)s->addr = is_galileo_enabled;
-  return ret;
+static int set_is_galileo_enabled(void *ctx) {
+  (void)ctx;
+
+  starling_set_is_galileo_enabled(enable_galileo);
+
+  return SBP_SETTINGS_WRITE_STATUS_OK;
 }
 
-static bool set_is_beidou_enabled(struct setting *s, const char *val) {
-  int value = 0;
-  bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
-  if (!ret) {
-    return ret;
-  }
-  bool is_beidou_enabled = (value != 0);
-  starling_set_is_beidou_enabled(is_beidou_enabled);
-  *(bool *)s->addr = is_beidou_enabled;
-  return ret;
+static int set_is_beidou_enabled(void *ctx) {
+  (void)ctx;
+
+  starling_set_is_beidou_enabled(enable_beidou);
+
+  return SBP_SETTINGS_WRITE_STATUS_OK;
 }
 
-static bool set_glonass_downweight_factor(struct setting *s, const char *val) {
-  float value = 0;
-  bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
-  if (!ret) {
-    return ret;
-  }
-  starling_set_glonass_downweight_factor(value);
-  *(float *)s->addr = value;
-  return ret;
+static int set_glonass_downweight_factor(void *ctx) {
+  (void)ctx;
+
+  starling_set_glonass_downweight_factor(glonass_downweight_factor);
+
+  return SBP_SETTINGS_WRITE_STATUS_OK;
 }
 
-static bool set_disable_klobuchar(struct setting *s, const char *val) {
-  int value = 0;
-  bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
-  if (!ret) {
-    return ret;
-  }
-  bool disable_klobuchar = (value != 0);
-  starling_set_is_time_matched_klobuchar_enabled(!disable_klobuchar);
-  *(bool *)s->addr = disable_klobuchar;
-  return ret;
+static int klobuchar_notify(void *ctx) {
+  (void)ctx;
+
+  bool klobuchar_enabled = (!skylark_enabled && !orion_enabled);
+
+  starling_set_is_time_matched_klobuchar_enabled(klobuchar_enabled);
+
+  return SBP_SETTINGS_WRITE_STATUS_OK;
 }
 
 static void reset_filters_callback(u16 sender_id,
@@ -755,18 +724,16 @@ void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
 
 static void initialize_starling_settings(void) {
   static const char *const dgnss_filter_enum[] = {"Float", "Fixed", NULL};
-  static struct setting_type dgnss_filter_setting;
-  static dgnss_filter_t dgnss_filter_mode = FILTER_FIXED;
-  int TYPE_GNSS_FILTER =
-      settings_type_register_enum(dgnss_filter_enum, &dgnss_filter_setting);
+  settings_type_t dgnss_filter_setting;
+  settings_type_register_enum(dgnss_filter_enum, &dgnss_filter_setting);
 
   /* The base obs can optionally enable RAIM exclusion algorithm. */
-  SETTING("solution", "disable_raim", disable_raim, TYPE_BOOL);
+  SETTING("solution", "disable_raim", disable_raim, SETTINGS_TYPE_BOOL);
 
   SETTING_NOTIFY("solution",
                  "dgnss_filter",
                  dgnss_filter_mode,
-                 TYPE_GNSS_FILTER,
+                 dgnss_filter_setting,
                  enable_fix_mode);
 
   SETTING_NOTIFY(
@@ -775,60 +742,47 @@ static void initialize_starling_settings(void) {
   SETTING_NOTIFY("solution",
                  "enable_glonass",
                  enable_glonass,
-                 TYPE_BOOL,
+                 SETTINGS_TYPE_BOOL,
                  set_is_glonass_enabled);
 
   SETTING_NOTIFY("solution",
                  "enable_galileo",
                  enable_galileo,
-                 TYPE_BOOL,
+                 SETTINGS_TYPE_BOOL,
                  set_is_galileo_enabled);
 
   SETTING_NOTIFY("solution",
                  "enable_beidou",
                  enable_beidou,
-                 TYPE_BOOL,
+                 SETTINGS_TYPE_BOOL,
                  set_is_beidou_enabled);
 
-  static float glonass_downweight_factor = 4.0;
   SETTING_NOTIFY("solution",
                  "glonass_measurement_std_downweight_factor",
                  glonass_downweight_factor,
-                 TYPE_FLOAT,
+                 SETTINGS_TYPE_FLOAT,
                  set_glonass_downweight_factor);
 
-  static bool disable_klobuchar = false;
-  /* When Skylark or Orion are enabled, klobuchar corrections shall be disabled.
-   * Note that
-   * this setting is originally from piksi_system_daemon but since PFWP settings
-   * module doesn't support setting_add_watch functionality, setting
-   * registration was moved here and original registration in
-   * piksi_system_daemon was replaced with watch trigger registration. If the
-   * setting infrastructure is reworked so that watch trigger registration is
-   * possible also from PFWP, the actual registration can be moved back to
-   * piksi_system_daemon. */
-  SETTING_NOTIFY(
-      "skylark", "enable", disable_klobuchar, TYPE_BOOL, set_disable_klobuchar);
-  SETTING_NOTIFY(
-      "orion", "enable", disable_klobuchar, TYPE_BOOL, set_disable_klobuchar);
+  SETTING_WATCH(
+      "skylark", "enable", skylark_enabled, SETTINGS_TYPE_BOOL, klobuchar_notify);
+  SETTING_WATCH(
+      "orion", "enable", orion_enabled, SETTINGS_TYPE_BOOL, klobuchar_notify);
 
   static const char *const dgnss_soln_mode_enum[] = {
       "Low Latency", "Time Matched", "No DGNSS", NULL};
-  static struct setting_type dgnss_soln_mode_setting;
-  int TYPE_GNSS_SOLN_MODE = settings_type_register_enum(
-      dgnss_soln_mode_enum, &dgnss_soln_mode_setting);
-  static dgnss_solution_mode_t dgnss_soln_mode = STARLING_SOLN_MODE_LOW_LATENCY;
+  settings_type_t dgnss_soln_mode_setting;
+  settings_type_register_enum(dgnss_soln_mode_enum, &dgnss_soln_mode_setting);
   SETTING_NOTIFY("solution",
                  "dgnss_solution_mode",
                  dgnss_soln_mode,
-                 TYPE_GNSS_SOLN_MODE,
+                 dgnss_soln_mode_setting,
                  set_dgnss_soln_mode);
 
-  SETTING("solution", "send_heading", send_heading, TYPE_BOOL);
+  SETTING("solution", "send_heading", send_heading, SETTINGS_TYPE_BOOL);
   SETTING_NOTIFY("solution",
                  "heading_offset",
                  heading_offset,
-                 TYPE_FLOAT,
+                 SETTINGS_TYPE_FLOAT,
                  heading_offset_changed);
 }
 

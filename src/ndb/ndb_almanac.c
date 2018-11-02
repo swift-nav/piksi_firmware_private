@@ -697,8 +697,8 @@ static void ndb_alma_wn_update_alma_file(u32 toa, u16 wn) {
 void ndb_almanac_init(void) {
   static bool erase_almanac = false;
   static bool erase_almanac_wn = false;
-  SETTING("ndb", "erase_almanac", erase_almanac, TYPE_BOOL);
-  SETTING("ndb", "erase_almanac_wn", erase_almanac_wn, TYPE_BOOL);
+  SETTING("ndb", "erase_almanac", erase_almanac, SETTINGS_TYPE_BOOL);
+  SETTING("ndb", "erase_almanac_wn", erase_almanac_wn, SETTINGS_TYPE_BOOL);
 
   ndb_load_data(&ndb_alma_file, erase_almanac || !NDB_USE_NV_ALMANAC);
   ndb_load_data(&ndb_alma_wn_file, erase_almanac_wn || !NDB_USE_NV_ALMANAC);
