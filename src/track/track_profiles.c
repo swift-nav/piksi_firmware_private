@@ -348,7 +348,7 @@ static const tp_profile_entry_t tracker_profiles_rover[] = {
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
 
   [IDX_20MS] =
-  { { BW_DYN,      BW_DYN,           .5,   TP_CTRL_PLL3,
+  { {      5,           2,           .5,   TP_CTRL_PLL3,
       TP_TM_20MS_20MS,  TP_TM_20MS_10MS,  TP_TM_2MS_2MS,  TP_TM_20MS_NH20MS,  TP_TM_20MS_SC4 },
       TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
       40,        THRESH_SENS_DBHZ,   35,
