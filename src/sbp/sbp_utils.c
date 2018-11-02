@@ -908,7 +908,8 @@ u32 round_tow_ms(double tow) {
 void round_time_nano(const gps_time_t *t_in, sbp_gps_time_t *t_out) {
   t_out->wn = t_in->wn;
   t_out->tow = round(t_in->tow * SECS_MS);
-  t_out->ns_residual = round((t_in->tow - t_out->tow / SECS_MS) * SECS_NS);
+  t_out->ns_residual =
+      round((t_in->tow - (double)t_out->tow / SECS_MS) * SECS_NS);
   /* week roll-over */
   if (t_out->tow >= WEEK_MS) {
     t_out->wn++;
