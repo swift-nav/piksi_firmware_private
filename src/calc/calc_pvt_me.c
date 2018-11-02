@@ -697,7 +697,7 @@ static void me_calc_pvt_thread(void *arg) {
       double dt = gpsdifftime(&output_time, &current_time);
       /* make sure the first sleep lasts at least one epoch */
       if (dt < 0) {
-        dt += 1 / soln_freq;
+        dt += 1.0 / soln_freq;
       }
       piksi_systime_add_us(&next_epoch, round(dt * SECS_US));
     }
