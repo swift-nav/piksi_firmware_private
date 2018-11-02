@@ -92,6 +92,27 @@ void sbp_make_gps_time(msg_gps_time_t *t_out,
   t_out->flags = sbp_get_time_quality_flags(time_qual) & 0x7;
 }
 
+static utc_tm gps2utc_nano(const gps_time_t *t_in,
+                           const utc_params_t *p_utc_params) {
+  /* convert to UTC */
+  utc_tm utc_time;
+  gps2utc(t_in, &utc_time, p_utc_params);
+
+  /* If the nanosecond part of the UTC timestamp rounds up to the next second,
+   * recompute the UTC time structure to roll over all fields properly, also
+   * accounting for possible leap second event */
+  if (round(utc_time.second_frac * SECS_NS) == SECS_NS) {
+    gps_time_t t_tmp = *t_in;
+    double dt = 1.0 - utc_time.second_frac;
+    /* round up to the next representable floating point number */
+    t_tmp.tow = nextafter(t_tmp.tow + dt, INFINITY);
+    normalize_gps_time(&t_tmp);
+    /* recompute UTC time for proper rounding */
+    gps2utc(&t_tmp, &utc_time, p_utc_params);
+  }
+  return utc_time;
+}
+
 void sbp_make_utc_time(msg_utc_time_t *t_out,
                        const gps_time_t *t_in,
                        u8 time_qual) {
@@ -118,9 +139,9 @@ void sbp_make_utc_time(msg_utc_time_t *t_out,
 
   flags |= (sbp_get_time_quality_flags(time_qual) & 0x7);
 
-  /* convert to UTC (falls back to a hard-coded table if the pointer is null) */
-  utc_tm utc_time;
-  gps2utc(t_in, &utc_time, p_utc_params);
+  /* convert to UTC with nanosecond precision (falls back to a hard-coded table
+   * if the pointer is null) */
+  utc_tm utc_time = gps2utc_nano(t_in, p_utc_params);
 
   t_out->tow = round_tow_ms(t_in->tow);
   t_out->year = utc_time.year;
@@ -129,10 +150,10 @@ void sbp_make_utc_time(msg_utc_time_t *t_out,
   t_out->hours = utc_time.hour;
   t_out->minutes = utc_time.minute;
   t_out->seconds = utc_time.second_int;
-  assert(utc_time.second_frac >= 0.0);
-  assert(utc_time.second_frac < 1.0);
-  /* round the nanosecond part down to stop it rounding up to the next second */
-  t_out->ns = floor(utc_time.second_frac * 1e9);
+  /* note: utc_time has been rounded above to guarantee that this does not roll
+   * over to the next second */
+  t_out->ns = round(utc_time.second_frac * SECS_NS);
+  assert(t_out->ns < SECS_NS);
   t_out->flags = flags;
 }
 
@@ -189,7 +210,8 @@ void unpack_obs_header(const observation_header_t *msg,
                        u8 *count) {
   if (sbp_gps_time_valid(&msg->t)) {
     t->wn = msg->t.wn;
-    t->tow = ((double)msg->t.tow) / 1e3 + ((double)msg->t.ns_residual) / 1e9;
+    t->tow =
+        ((double)msg->t.tow) / SECS_MS + ((double)msg->t.ns_residual) / SECS_NS;
     normalize_gps_time(t);
   } else {
     *t = GPS_TIME_UNKNOWN;
@@ -870,7 +892,7 @@ void unpack_sbas_raw_data(const msg_sbas_raw_t *m, sbas_raw_data_t *d) {
  */
 u32 round_tow_ms(double tow) {
   /* week roll-over */
-  u32 tow_ms = round(tow * 1e3);
+  u32 tow_ms = round(tow * SECS_MS);
   while (tow_ms >= WEEK_MS) {
     tow_ms -= WEEK_MS;
   }
@@ -885,8 +907,9 @@ u32 round_tow_ms(double tow) {
  */
 void round_time_nano(const gps_time_t *t_in, sbp_gps_time_t *t_out) {
   t_out->wn = t_in->wn;
-  t_out->tow = round(t_in->tow * 1e3);
-  t_out->ns_residual = round((t_in->tow - t_out->tow / 1e3) * 1e9);
+  t_out->tow = round(t_in->tow * SECS_MS);
+  t_out->ns_residual =
+      round((t_in->tow - (double)t_out->tow / SECS_MS) * SECS_NS);
   /* week roll-over */
   if (t_out->tow >= WEEK_MS) {
     t_out->wn++;
