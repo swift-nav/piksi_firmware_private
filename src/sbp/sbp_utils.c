@@ -279,7 +279,7 @@ void unpack_obs_content(const packed_obs_content_t *msg, starling_obs_t *obs) {
       (((double)msg->L.i) + (((double)msg->L.f) / MSG_OBS_LF_MULTIPLIER));
   obs->doppler =
       (((double)msg->D.i) + (((double)msg->D.f) / MSG_OBS_DF_MULTIPLIER));
-  obs->cn0 = ((double)msg->cn0) / MSG_OBS_CN0_MULTIPLIER;
+  obs->cn0 = ((float)msg->cn0) / MSG_OBS_CN0_MULTIPLIER;
   obs->lock_time = decode_lock_time(msg->lock);
   obs->flags = nm_flags_from_sbp(msg->flags);
   if (msg->cn0 != 0) {
