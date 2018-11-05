@@ -96,13 +96,6 @@ void tp_update_correlators(u32 cycle_flags,
     corr_add(&corr_state->corr_cn0, &straight.prompt);
   }
 
-  /* False lock (alias) detector accumulator updates */
-  if (0 != (cycle_flags & TPF_ALIAS_SET)) {
-    corr_state->corr_ad = straight.prompt;
-  } else if (0 != (cycle_flags & TPF_ALIAS_ADD)) {
-    corr_add(&corr_state->corr_ad, &straight.prompt);
-  }
-
   /* Lock detector accumulator updates */
   if (0 != (cycle_flags & TPF_PLD_SET)) {
     corr_state->corr_ld = straight.prompt;

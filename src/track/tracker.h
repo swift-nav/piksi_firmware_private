@@ -13,7 +13,6 @@
 #ifndef SWIFTNAV_TRACKER_H
 #define SWIFTNAV_TRACKER_H
 
-#include "alias_detector/alias_detector.h"
 #include "bit_sync/bit_sync.h"
 #include "board/nap/nap_common.h"
 #include "hal/piksi_systime.h"
@@ -149,7 +148,6 @@ typedef struct {
   float filt_cn0;   /**< C/N0 value for decision logic */
 
   u32 dll_init : 1; /**< DLL init required */
-  u32 use_alias_detection : 1;
 
   struct profile_vars cur;  /**< Current profile variables */
   struct profile_vars next; /**< Next profile variables */
@@ -288,7 +286,6 @@ typedef struct {
  * - DLL and PLL
  * - C/N0 estimator
  * - FLL tracker
- * - Alias (false lock) detector
  * - Lock detector
  * - Bit synchronization and message decoding
  */
@@ -297,7 +294,6 @@ typedef struct {
                             *   in correlation period. */
   corr_t corr_cn0;         /**< C/N0 accumulators */
   corr_t corr_fll;         /**< FLL accumulator */
-  corr_t corr_ad;          /**< False lock (alias) detector accumulator */
   corr_t corr_ld;          /**< Lock detector accumulator */
   corr_t corr_bit;         /**< Bit sync accumulator */
 } tp_corr_state_t;
@@ -409,18 +405,17 @@ typedef struct {
 
   u16 bit_cnt; /**< navbit counter */
 
-  tp_tl_state_t tl_state;      /**< Tracking loop filter state. */
-  tp_corr_state_t corrs;       /**< Correlations */
-  track_cn0_state_t cn0_est;   /**< C/N0 estimator state. */
-  alias_detect_t alias_detect; /**< Alias lock detector. */
-  lock_detect_t ld_phase;      /**< Phase lock detector state. */
-  lock_detect_t ld_freq;       /**< Frequency lock detector state. */
-  lp1_filter_t xcorr_filter;   /**< Low-pass SV POV doppler filter */
-  tp_tm_e tracking_mode;       /**< Tracking mode */
-  u16 cycle_no;                /**< Cycle index inside current
-                                *   integration mode. */
-  u16 has_next_params : 1;     /**< Flag if stage transition is in
-                                *   progress */
+  tp_tl_state_t tl_state;    /**< Tracking loop filter state. */
+  tp_corr_state_t corrs;     /**< Correlations */
+  track_cn0_state_t cn0_est; /**< C/N0 estimator state. */
+  lock_detect_t ld_phase;    /**< Phase lock detector state. */
+  lock_detect_t ld_freq;     /**< Frequency lock detector state. */
+  lp1_filter_t xcorr_filter; /**< Low-pass SV POV doppler filter */
+  tp_tm_e tracking_mode;     /**< Tracking mode */
+  u16 cycle_no;              /**< Cycle index inside current
+                              *   integration mode. */
+  u16 has_next_params : 1;   /**< Flag if stage transition is in
+                              *   progress */
 
   /* Constellation specific data */
   union {
