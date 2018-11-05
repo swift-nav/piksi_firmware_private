@@ -644,9 +644,6 @@ void tp_profile_update_config(tracker_t *tracker) {
     tracker->flags |= TRACKER_FLAG_SENSITIVITY_MODE;
   }
 
-  const tp_tm_e mode = profile->loop_params.mode;
-  profile->use_alias_detection =
-      (TP_TM_10MS_10MS == mode) || (TP_TM_20MS_20MS == mode);
   tp_profile_get_cn0_thres(profile, &profile->cn0_thres);
 }
 

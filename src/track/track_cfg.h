@@ -34,12 +34,6 @@
 #define TPF_EPL_ADD ((u32)1 << 15)
 #define TPF_EPL_USE ((u32)1 << 16)
 
-/* False lock detector control */
-#define TPF_ALIAS_SET ((u32)1 << 18)
-#define TPF_ALIAS_ADD ((u32)1 << 19)
-#define TPF_ALIAS_1ST ((u32)1 << 20)
-#define TPF_ALIAS_2ND ((u32)1 << 21)
-
 /* Phase lock detector control */
 #define TPF_PLD_SET ((u32)1 << 22)
 #define TPF_PLD_ADD ((u32)1 << 23)
@@ -69,8 +63,6 @@
 /** handover should occur when code phase is near zero [chips] */
 #define HANDOVER_CODE_PHASE_THRESHOLD 0.5
 
-/** False lock detector filter interval in ms. */
-#define TP_TRACKER_ALIAS_DURATION_MS (3000)
 /** Initial C/N0 for confirmation [dB/Hz] */
 #define TP_TRACKER_CN0_CONFIRM_DELTA (2.f)
 
@@ -85,11 +77,6 @@
 
 /* The outliers are likely due to genuine acceleration if CN0 > 35.f */
 #define TP_OUTLIERS_CN0_THRES_DBHZ 35.f
-
-/** Correct the false lock if the absolute detected freq error is more than
-    this value in [Hz]. In practice, observed alias frequencies were
-    above 12Hz, so 10Hz is deemed a reasonable threshold. */
-#define TRACK_ALIAS_THRESHOLD_HZ 10.f
 
 /** C/N0 threshold when we can't say if we are still tracking */
 #define TP_HARD_CN0_DROP_THRESHOLD_DBHZ (18.f)
