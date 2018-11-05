@@ -420,41 +420,6 @@ static const state_table_t mode_2ms_nh20ms = {
   }
 };
 
-
-
-/**
- * 4 ms tracking mode for Galileo I/NAV
- */
-static const state_table_t mode_4ms_sc4 = {
-  .cn0_ms = 10,
-  .lockdet_ms = 4,
-  .flld_ms = 4,
-  .fpll_ms = 4,
-  .fpll_decim = 1,
-  .dll_ms = 4,
-  .bit_ms = 4,
-  .ent_cnt = 7,
-  .entries = {
-    {2, TPF_EPL_SET  | TPF_CN0_SET | TPF_DATAPILOT_SET | TPF_PLD_SET | TPF_FLL_SET},
-    {2, TPF_EPL_ADD  | TPF_CN0_ADD | TPF_DATAPILOT_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
-        TPF_EPL_USE  |               TPF_DATAPILOT_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN},
-
-    {4, TPF_EPL_SET  | TPF_CN0_ADD | TPF_DATAPILOT_SET | TPF_PLD_SET | TPF_FLL_SET |
-        TPF_EPL_USE  |               TPF_DATAPILOT_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN},
-
-    {2, TPF_EPL_SET  | TPF_CN0_ADD | TPF_DATAPILOT_SET | TPF_PLD_SET | TPF_FLL_SET |
-                       TPF_CN0_USE},
-    {2, TPF_EPL_ADD  | TPF_CN0_SET | TPF_DATAPILOT_ADD | TPF_PLD_ADD | TPF_FLL_SET |
-        TPF_EPL_USE  |               TPF_DATAPILOT_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN},
-
-    {4, TPF_EPL_SET  | TPF_CN0_ADD | TPF_DATAPILOT_SET | TPF_PLD_SET | TPF_FLL_SET |
-        TPF_EPL_USE  |               TPF_DATAPILOT_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN},
-
-    {4, TPF_EPL_SET  | TPF_CN0_ADD | TPF_DATAPILOT_SET | TPF_PLD_SET | TPF_FLL_SET |
-        TPF_EPL_USE  | TPF_CN0_USE | TPF_DATAPILOT_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN},
-  }
-};
-
 /**
  * 5 ms integrations for most GPS and QZSS
  */
@@ -510,6 +475,39 @@ static const state_table_t mode_5ms_10ms = {
 };
 
 /**
+ * 4 ms tracking mode for Galileo I/NAV
+ */
+static const state_table_t mode_4ms_sc4 = {
+  .cn0_ms = 10,
+  .lockdet_ms = 4,
+  .flld_ms = 4,
+  .fpll_ms = 4,
+  .fpll_decim = 1,
+  .dll_ms = 4,
+  .bit_ms = 4,
+  .ent_cnt = 7,
+  .entries = {
+    {2, TPF_EPL_SET  | TPF_CN0_SET | TPF_DATAPILOT_SET | TPF_PLD_SET | TPF_FLL_SET},
+    {2, TPF_EPL_ADD  | TPF_CN0_ADD | TPF_DATAPILOT_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
+        TPF_EPL_USE  |               TPF_DATAPILOT_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN},
+
+    {4, TPF_EPL_SET  | TPF_CN0_ADD | TPF_DATAPILOT_SET | TPF_PLD_SET | TPF_FLL_SET |
+        TPF_EPL_USE  |               TPF_DATAPILOT_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN},
+
+    {2, TPF_EPL_SET  | TPF_CN0_ADD | TPF_DATAPILOT_SET | TPF_PLD_SET | TPF_FLL_SET |
+                       TPF_CN0_USE},
+    {2, TPF_EPL_ADD  | TPF_CN0_SET | TPF_DATAPILOT_ADD | TPF_PLD_ADD | TPF_FLL_SET |
+        TPF_EPL_USE  |               TPF_DATAPILOT_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN},
+
+    {4, TPF_EPL_SET  | TPF_CN0_ADD | TPF_DATAPILOT_SET | TPF_PLD_SET | TPF_FLL_SET |
+        TPF_EPL_USE  |               TPF_DATAPILOT_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN},
+
+    {4, TPF_EPL_SET  | TPF_CN0_ADD | TPF_DATAPILOT_SET | TPF_PLD_SET | TPF_FLL_SET |
+        TPF_EPL_USE  | TPF_CN0_USE | TPF_DATAPILOT_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN},
+  }
+};
+
+/**
  * 5 ms integrations for Beidou with D1 nav and GPS L5
  */
 static const state_table_t mode_5ms_nh20ms = {
@@ -550,39 +548,6 @@ static const state_table_t mode_5ms_nh20ms = {
         TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE   | TPF_FPLL_RUN}
   }
 };
-
-
-/**
- * 10 ms tracking mode for Galileo I/NAV
- */
-static const state_table_t mode_10ms_sc4 = {
-  .cn0_ms = 10,
-  .lockdet_ms = 10,
-  .flld_ms = 5,
-  .fpll_ms = 10,
-  .fpll_decim = 1,
-  .dll_ms = 10,
-  .bit_ms = 4,
-  .ent_cnt = 7,
-  .entries = {
-    {2, TPF_EPL_SET  | TPF_CN0_SET | TPF_DATAPILOT_SET | TPF_PLD_SET | TPF_FLL_SET},
-    {2, TPF_EPL_ADD  | TPF_CN0_ADD | TPF_DATAPILOT_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
-                                     TPF_DATAPILOT_UPD               | TPF_FLL_USE},
-    {4, TPF_EPL_ADD  | TPF_CN0_ADD | TPF_DATAPILOT_SET | TPF_PLD_ADD | TPF_FLL_SET |
-                                     TPF_DATAPILOT_UPD },
-
-    {2, TPF_EPL_ADD  | TPF_CN0_ADD | TPF_DATAPILOT_SET | TPF_PLD_ADD | TPF_FLL_ADD |
-        TPF_EPL_USE  | TPF_CN0_USE |                     TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN},
-    {2, TPF_EPL_SET  | TPF_CN0_SET | TPF_DATAPILOT_ADD | TPF_PLD_SET | TPF_FLL_SET |
-                                     TPF_DATAPILOT_UPD},
-    {4, TPF_EPL_ADD  | TPF_CN0_ADD | TPF_DATAPILOT_SET | TPF_PLD_ADD | TPF_FLL_ADD |
-                                     TPF_DATAPILOT_UPD |               TPF_FLL_USE},
-
-    {4, TPF_EPL_ADD  | TPF_CN0_ADD | TPF_DATAPILOT_SET | TPF_PLD_ADD | TPF_FLL_SET |
-        TPF_EPL_USE  | TPF_CN0_USE | TPF_DATAPILOT_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN},
-  }
-};
-
 
 /**
  * 10 ms integrations for most GPS and QZSS
@@ -635,6 +600,107 @@ static const state_table_t mode_10ms_10ms = {
 
     {5, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET |
         TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN},
+  }
+};
+
+/**
+ * 10 ms tracking mode for Galileo I/NAV
+ */
+static const state_table_t mode_10ms_sc4 = {
+  .cn0_ms = 10,
+  .lockdet_ms = 10,
+  .flld_ms = 5,
+  .fpll_ms = 10,
+  .fpll_decim = 1,
+  .dll_ms = 10,
+  .bit_ms = 4,
+  .ent_cnt = 7,
+  .entries = {
+    {2, TPF_EPL_SET  | TPF_CN0_SET | TPF_DATAPILOT_SET | TPF_PLD_SET | TPF_FLL_SET},
+    {2, TPF_EPL_ADD  | TPF_CN0_ADD | TPF_DATAPILOT_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
+                                     TPF_DATAPILOT_UPD               | TPF_FLL_USE},
+    {4, TPF_EPL_ADD  | TPF_CN0_ADD | TPF_DATAPILOT_SET | TPF_PLD_ADD | TPF_FLL_SET |
+                                     TPF_DATAPILOT_UPD },
+
+    {2, TPF_EPL_ADD  | TPF_CN0_ADD | TPF_DATAPILOT_SET | TPF_PLD_ADD | TPF_FLL_ADD |
+        TPF_EPL_USE  | TPF_CN0_USE |                     TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN},
+    {2, TPF_EPL_SET  | TPF_CN0_SET | TPF_DATAPILOT_ADD | TPF_PLD_SET | TPF_FLL_SET |
+                                     TPF_DATAPILOT_UPD},
+    {4, TPF_EPL_ADD  | TPF_CN0_ADD | TPF_DATAPILOT_SET | TPF_PLD_ADD | TPF_FLL_ADD |
+                                     TPF_DATAPILOT_UPD |               TPF_FLL_USE},
+
+    {4, TPF_EPL_ADD  | TPF_CN0_ADD | TPF_DATAPILOT_SET | TPF_PLD_ADD | TPF_FLL_SET |
+        TPF_EPL_USE  | TPF_CN0_USE | TPF_DATAPILOT_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN},
+  }
+};
+
+/**
+ * 10 ms integrations for Beidou with D1 nav and GPS L5
+ */
+static const state_table_t mode_10ms_nh20ms = {
+  .cn0_ms = 10,
+  .lockdet_ms = 10,
+  .flld_ms = 5,
+  .fpll_ms = 10,
+  .fpll_decim = 1,
+  .dll_ms = 10,
+  .bit_ms = 20,
+  .ent_cnt = 14,
+  .entries = {
+    {2, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET},
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
+    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
+                                                                  TPF_FLL_USE |
+                                                                  TPF_FLL_HALFQ},
+
+    {1, TPF_EPL_INV |
+        TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET},
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
+    {2, TPF_EPL_INV |
+        TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
+        TPF_EPL_USE | TPF_CN0_USE |                 TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN},
+
+    {1, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_ADD | TPF_PLD_SET | TPF_FLL_SET},
+    {1, TPF_EPL_INV |
+        TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
+    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
+    {1, TPF_EPL_INV |
+        TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
+    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
+                                                                  TPF_FLL_USE},
+
+    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET},
+    {3, TPF_EPL_INV |
+        TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
+    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
+        TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN}
+  }
+};
+
+/**
+ * 20 ms integrations for most GPS and QZSS
+ */
+static const state_table_t mode_20ms_20ms = {
+  .cn0_ms = 10,
+  .lockdet_ms = 20,
+  .flld_ms = 10,
+  .fpll_ms = 20,
+  .fpll_decim = 1,
+  .dll_ms = 20,
+  .bit_ms = 20,
+  .ent_cnt = 5,
+  .entries = {
+    {2, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET},
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
+
+    {6, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
+                      TPF_CN0_USE |                               TPF_FLL_USE |
+                                                                  TPF_FLL_HALFQ},
+
+    {5, TPF_EPL_ADD | TPF_CN0_SET | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET},
+
+    {5, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
+        TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN}
   }
 };
 
@@ -698,111 +764,6 @@ static const state_table_t mode_20ms_10ms = {
 };
 
 /**
- * 20 ms integrations for GLO
- */
-static const state_table_t mode_20ms_10ms_base = {
-  .cn0_ms = 10,
-  .lockdet_ms = 20,
-  .flld_ms = 10,
-  .fpll_ms = 20,
-  .fpll_decim = 1,
-  .dll_ms = 20,
-  .bit_ms = 10,
-  .ent_cnt = GLO_FSM_20MS_NUM * 5, /* 500 */
-  .entries = {
-#define FSM_GLO_20_MS(odd, even)                                                                  \
-    {2, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET | GLO_FLAGS(odd)},  \
-    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | GLO_FLAGS(odd)},  \
-                                                                                                  \
-    {6, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | GLO_FLAGS(odd) |  \
-                      TPF_CN0_USE | TPF_BSYNC_UPD |               TPF_FLL_USE |                   \
-                                                                  TPF_FLL_HALFQ},                 \
-                                                                                                  \
-    {5, TPF_EPL_ADD | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_ADD | TPF_FLL_SET | GLO_FLAGS(even)}, \
-                                                                                                  \
-    {5, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | GLO_FLAGS(even) | \
-        TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN}
-
-    FSM_GLO_2000_MS
-#undef FSM_GLO_20_MS
-  }
-};
-
-/**
- * 200 ms integrations for GLO
- */
-static const state_table_t mode_200ms_10ms = {
-  .cn0_ms = 20,
-  .lockdet_ms = 0, /* not used in FLL only mode */
-  .flld_ms = 10,
-  .fpll_ms = 20,
-  .fpll_decim = 10,
-  .dll_ms = 20,
-  .bit_ms = 10,
-  .ent_cnt = GLO_FSM_20MS_NUM * 5, /* 500 */
-  .entries = {
-
-#define FSM_GLO_20_MS(odd, even)                                                    \
-    {2, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_FLL_SET | GLO_FLAGS(odd)},  \
-    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_ADD | GLO_FLAGS(odd)},  \
-    {6, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_ADD | GLO_FLAGS(odd) |  \
-                                    TPF_BSYNC_UPD | TPF_FLL_USE |                   \
-                                                    TPF_FLL_HALFQ},                 \
-                                                                                    \
-    {5, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_FLL_SET | GLO_FLAGS(even)}, \
-    {5, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_ADD | GLO_FLAGS(even) | \
-        TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_FLL_USE | TPF_FPLL_RUN}
-
-    FSM_GLO_2000_MS
-#undef FSM_GLO_20_MS
-  }
-};
-
-/**
- * 10 ms integrations for Beidou with D1 nav and GPS L5
- */
-static const state_table_t mode_10ms_nh20ms = {
-  .cn0_ms = 10,
-  .lockdet_ms = 10,
-  .flld_ms = 5,
-  .fpll_ms = 10,
-  .fpll_decim = 1,
-  .dll_ms = 10,
-  .bit_ms = 20,
-  .ent_cnt = 14,
-  .entries = {
-    {2, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET},
-    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
-    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
-                                                                  TPF_FLL_USE |
-                                                                  TPF_FLL_HALFQ},
-
-    {1, TPF_EPL_INV |
-        TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET},
-    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
-    {2, TPF_EPL_INV |
-        TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
-        TPF_EPL_USE | TPF_CN0_USE |                 TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN},
-
-    {1, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_ADD | TPF_PLD_SET | TPF_FLL_SET},
-    {1, TPF_EPL_INV |
-        TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
-    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
-    {1, TPF_EPL_INV |
-        TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
-    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
-                                                                  TPF_FLL_USE},
-
-    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET},
-    {3, TPF_EPL_INV |
-        TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
-    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
-        TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN}
-  }
-};
-
-
-/**
  * 20 ms integrations for Galileo I/NAV
  */
 static const state_table_t mode_20ms_sc4 = {
@@ -828,146 +789,6 @@ static const state_table_t mode_20ms_sc4 = {
                                     TPF_DATAPILOT_UPD},
     {4, TPF_EPL_ADD | TPF_CN0_ADD | TPF_DATAPILOT_SET | TPF_PLD_ADD | TPF_FLL_ADD |
         TPF_EPL_USE | TPF_CN0_USE | TPF_DATAPILOT_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN}
-  }
-};
-
-/**
- * 20 ms integrations for Galileo I/NAV  (base station profile)
- */
-static const state_table_t mode_20ms_sc4_base = {
-  .cn0_ms = 10,
-  .lockdet_ms = 20,
-  .flld_ms = 10,
-  .fpll_ms = 20,
-  .fpll_decim = 1,
-  .dll_ms = 20,
-  .bit_ms = 4,
-  .ent_cnt = 7,
-  .entries = {
-    {2, TPF_EPL_SET | TPF_CN0_SET | TPF_DATAPILOT_SET | TPF_PLD_SET | TPF_FLL_SET},
-    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_DATAPILOT_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
-                                    TPF_DATAPILOT_UPD},
-
-    {4, TPF_EPL_ADD | TPF_CN0_ADD | TPF_DATAPILOT_SET | TPF_PLD_ADD | TPF_FLL_ADD |
-                                    TPF_DATAPILOT_UPD},
-
-    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_DATAPILOT_SET | TPF_PLD_ADD | TPF_FLL_ADD |
-                      TPF_CN0_USE |                                   TPF_FLL_USE },
-    {2, TPF_EPL_ADD | TPF_CN0_SET | TPF_DATAPILOT_ADD | TPF_PLD_ADD | TPF_FLL_SET |
-                                    TPF_DATAPILOT_UPD },
-
-    {4, TPF_EPL_ADD | TPF_CN0_ADD | TPF_DATAPILOT_SET | TPF_PLD_ADD | TPF_FLL_ADD |
-                                    TPF_DATAPILOT_UPD },
-
-    {4, TPF_EPL_ADD | TPF_CN0_ADD | TPF_DATAPILOT_SET | TPF_PLD_ADD | TPF_FLL_ADD |
-        TPF_EPL_USE | TPF_CN0_USE | TPF_DATAPILOT_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN}
-  }
-};
-
-/**
- * 200 ms integrations for Galileo I/NAV
- */
-static const state_table_t mode_200ms_sc4 = {
-  .cn0_ms = 20,
-  .lockdet_ms = 0, /* not used in FLL only mode */
-  .flld_ms = 10,
-  .fpll_ms = 20,
-  .fpll_decim = 10,
-  .dll_ms = 20,
-  .bit_ms = 4,
-  .ent_cnt = 7,
-  .entries = {
-    {2, TPF_EPL_SET | TPF_CN0_SET | TPF_DATAPILOT_SET | TPF_FLL_SET},
-    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_DATAPILOT_ADD | TPF_FLL_ADD |
-                                    TPF_DATAPILOT_UPD},
-    {4, TPF_EPL_ADD | TPF_CN0_ADD | TPF_DATAPILOT_SET | TPF_FLL_ADD |
-                                    TPF_DATAPILOT_UPD},
-    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_DATAPILOT_SET | TPF_FLL_ADD |
-                                                        TPF_FLL_USE },
-    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_DATAPILOT_ADD | TPF_FLL_SET |
-                                    TPF_DATAPILOT_UPD},
-    {4, TPF_EPL_ADD | TPF_CN0_ADD | TPF_DATAPILOT_SET | TPF_FLL_ADD |
-                                    TPF_DATAPILOT_UPD},
-    {4, TPF_EPL_ADD | TPF_CN0_ADD | TPF_DATAPILOT_SET | TPF_FLL_ADD |
-        TPF_EPL_USE | TPF_CN0_USE | TPF_DATAPILOT_UPD | TPF_FLL_USE | TPF_FPLL_RUN}
-  }
-};
-
-
-/**
- * 20 ms integrations for most GPS and QZSS
- */
-static const state_table_t mode_20ms_20ms = {
-  .cn0_ms = 10,
-  .lockdet_ms = 20,
-  .flld_ms = 10,
-  .fpll_ms = 20,
-  .fpll_decim = 1,
-  .dll_ms = 20,
-  .bit_ms = 20,
-  .ent_cnt = 5,
-  .entries = {
-    {2, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET},
-    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
-
-    {6, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
-                      TPF_CN0_USE |                               TPF_FLL_USE |
-                                                                  TPF_FLL_HALFQ},
-
-    {5, TPF_EPL_ADD | TPF_CN0_SET | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET},
-
-    {5, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
-        TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN}
-  }
-};
-
-
-/**
- * 20 ms integrations for most GPS and QZSS (base station profile)
- */
-static const state_table_t mode_20ms_20ms_base = {
-  .cn0_ms = 10,
-  .lockdet_ms = 20,
-  .flld_ms = 10,
-  .fpll_ms = 20,
-  .fpll_decim = 1,
-  .dll_ms = 20,
-  .bit_ms = 20,
-  .ent_cnt = 5,
-  .entries = {
-    {2, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET},
-    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
-
-    {6, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
-                      TPF_CN0_USE |                               TPF_FLL_USE |
-                                                                  TPF_FLL_HALFQ},
-
-    {5, TPF_EPL_ADD | TPF_CN0_SET | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET },
-
-    {5, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
-        TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN}
-  }
-};
-
-static const state_table_t mode_200ms_20ms = {
-  .cn0_ms = 20,
-  .lockdet_ms = 0, /* not used in FLL only mode */
-  .flld_ms = 10,
-  .fpll_ms = 20,
-  .fpll_decim = 10,
-  .dll_ms = 20,
-  .bit_ms = 20,
-  .ent_cnt = 5,
-  .entries = {
-    {2, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_FLL_SET},
-    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_ADD},
-    {6, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_ADD |
-                                                    TPF_FLL_USE |
-                                                    TPF_FLL_HALFQ},
-
-    {5, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_SET},
-    {5, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_ADD |
-        TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_FLL_USE | TPF_FPLL_RUN}
   }
 };
 
@@ -1008,6 +829,181 @@ static const state_table_t mode_20ms_nh20ms = {
         TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
     {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
         TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN}
+  }
+};
+
+/**
+ * 20 ms integrations for most GPS and QZSS (base station profile)
+ */
+static const state_table_t mode_20ms_20ms_base = {
+  .cn0_ms = 10,
+  .lockdet_ms = 20,
+  .flld_ms = 10,
+  .fpll_ms = 20,
+  .fpll_decim = 1,
+  .dll_ms = 20,
+  .bit_ms = 20,
+  .ent_cnt = 5,
+  .entries = {
+    {2, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET},
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
+
+    {6, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
+                      TPF_CN0_USE |                               TPF_FLL_USE |
+                                                                  TPF_FLL_HALFQ},
+
+    {5, TPF_EPL_ADD | TPF_CN0_SET | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET },
+
+    {5, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
+        TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN}
+  }
+};
+
+/**
+ * 20 ms integrations for GLO
+ */
+static const state_table_t mode_20ms_10ms_base = {
+  .cn0_ms = 10,
+  .lockdet_ms = 20,
+  .flld_ms = 10,
+  .fpll_ms = 20,
+  .fpll_decim = 1,
+  .dll_ms = 20,
+  .bit_ms = 10,
+  .ent_cnt = GLO_FSM_20MS_NUM * 5, /* 500 */
+  .entries = {
+#define FSM_GLO_20_MS(odd, even)                                                                  \
+    {2, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET | GLO_FLAGS(odd)},  \
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | GLO_FLAGS(odd)},  \
+                                                                                                  \
+    {6, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | GLO_FLAGS(odd) |  \
+                      TPF_CN0_USE | TPF_BSYNC_UPD |               TPF_FLL_USE |                   \
+                                                                  TPF_FLL_HALFQ},                 \
+                                                                                                  \
+    {5, TPF_EPL_ADD | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_ADD | TPF_FLL_SET | GLO_FLAGS(even)}, \
+                                                                                                  \
+    {5, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | GLO_FLAGS(even) | \
+        TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN}
+
+    FSM_GLO_2000_MS
+#undef FSM_GLO_20_MS
+  }
+};
+
+/**
+ * 20 ms integrations for Galileo I/NAV  (base station profile)
+ */
+static const state_table_t mode_20ms_sc4_base = {
+  .cn0_ms = 10,
+  .lockdet_ms = 20,
+  .flld_ms = 10,
+  .fpll_ms = 20,
+  .fpll_decim = 1,
+  .dll_ms = 20,
+  .bit_ms = 4,
+  .ent_cnt = 7,
+  .entries = {
+    {2, TPF_EPL_SET | TPF_CN0_SET | TPF_DATAPILOT_SET | TPF_PLD_SET | TPF_FLL_SET},
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_DATAPILOT_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
+                                    TPF_DATAPILOT_UPD},
+
+    {4, TPF_EPL_ADD | TPF_CN0_ADD | TPF_DATAPILOT_SET | TPF_PLD_ADD | TPF_FLL_ADD |
+                                    TPF_DATAPILOT_UPD},
+
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_DATAPILOT_SET | TPF_PLD_ADD | TPF_FLL_ADD |
+                      TPF_CN0_USE |                                   TPF_FLL_USE },
+    {2, TPF_EPL_ADD | TPF_CN0_SET | TPF_DATAPILOT_ADD | TPF_PLD_ADD | TPF_FLL_SET |
+                                    TPF_DATAPILOT_UPD },
+
+    {4, TPF_EPL_ADD | TPF_CN0_ADD | TPF_DATAPILOT_SET | TPF_PLD_ADD | TPF_FLL_ADD |
+                                    TPF_DATAPILOT_UPD },
+
+    {4, TPF_EPL_ADD | TPF_CN0_ADD | TPF_DATAPILOT_SET | TPF_PLD_ADD | TPF_FLL_ADD |
+        TPF_EPL_USE | TPF_CN0_USE | TPF_DATAPILOT_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN}
+  }
+};
+
+/**
+ * 200 ms integrations for GPS and QZSS
+ */
+static const state_table_t mode_200ms_20ms = {
+  .cn0_ms = 20,
+  .lockdet_ms = 0, /* not used in FLL only mode */
+  .flld_ms = 10,
+  .fpll_ms = 20,
+  .fpll_decim = 10,
+  .dll_ms = 20,
+  .bit_ms = 20,
+  .ent_cnt = 5,
+  .entries = {
+    {2, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_FLL_SET},
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_ADD},
+    {6, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_ADD |
+                                                    TPF_FLL_USE |
+                                                    TPF_FLL_HALFQ},
+
+    {5, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_SET},
+    {5, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_ADD |
+        TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_FLL_USE | TPF_FPLL_RUN}
+  }
+};
+
+/**
+ * 200 ms integrations for GLO
+ */
+static const state_table_t mode_200ms_10ms = {
+  .cn0_ms = 20,
+  .lockdet_ms = 0, /* not used in FLL only mode */
+  .flld_ms = 10,
+  .fpll_ms = 20,
+  .fpll_decim = 10,
+  .dll_ms = 20,
+  .bit_ms = 10,
+  .ent_cnt = GLO_FSM_20MS_NUM * 5, /* 500 */
+  .entries = {
+
+#define FSM_GLO_20_MS(odd, even)                                                    \
+    {2, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_FLL_SET | GLO_FLAGS(odd)},  \
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_ADD | GLO_FLAGS(odd)},  \
+    {6, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_ADD | GLO_FLAGS(odd) |  \
+                                    TPF_BSYNC_UPD | TPF_FLL_USE |                   \
+                                                    TPF_FLL_HALFQ},                 \
+                                                                                    \
+    {5, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_FLL_SET | GLO_FLAGS(even)}, \
+    {5, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_ADD | GLO_FLAGS(even) | \
+        TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_FLL_USE | TPF_FPLL_RUN}
+
+    FSM_GLO_2000_MS
+#undef FSM_GLO_20_MS
+  }
+};
+
+/**
+ * 200 ms integrations for Galileo I/NAV
+ */
+static const state_table_t mode_200ms_sc4 = {
+  .cn0_ms = 20,
+  .lockdet_ms = 0, /* not used in FLL only mode */
+  .flld_ms = 10,
+  .fpll_ms = 20,
+  .fpll_decim = 10,
+  .dll_ms = 20,
+  .bit_ms = 4,
+  .ent_cnt = 7,
+  .entries = {
+    {2, TPF_EPL_SET | TPF_CN0_SET | TPF_DATAPILOT_SET | TPF_FLL_SET},
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_DATAPILOT_ADD | TPF_FLL_ADD |
+                                    TPF_DATAPILOT_UPD},
+    {4, TPF_EPL_ADD | TPF_CN0_ADD | TPF_DATAPILOT_SET | TPF_FLL_ADD |
+                                    TPF_DATAPILOT_UPD},
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_DATAPILOT_SET | TPF_FLL_ADD |
+                                                        TPF_FLL_USE },
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_DATAPILOT_ADD | TPF_FLL_SET |
+                                    TPF_DATAPILOT_UPD},
+    {4, TPF_EPL_ADD | TPF_CN0_ADD | TPF_DATAPILOT_SET | TPF_FLL_ADD |
+                                    TPF_DATAPILOT_UPD},
+    {4, TPF_EPL_ADD | TPF_CN0_ADD | TPF_DATAPILOT_SET | TPF_FLL_ADD |
+        TPF_EPL_USE | TPF_CN0_USE | TPF_DATAPILOT_UPD | TPF_FLL_USE | TPF_FPLL_RUN}
   }
 };
 
