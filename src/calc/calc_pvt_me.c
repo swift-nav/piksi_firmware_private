@@ -65,7 +65,7 @@
 /* Maximum time to maintain POSITION_FIX after last successful solution */
 #define POSITION_FIX_TIMEOUT_S 60
 
-#define ME_CALC_PVT_THREAD_PRIORITY (HIGHPRIO - 3)
+#define ME_CALC_PVT_THREAD_PRIORITY (HIGHPRIO - 4)
 #define ME_CALC_PVT_THREAD_STACK (3 * 10 * 1024)
 
 /* Limits the sets of possible solution frequencies (in increasing order) */
