@@ -343,7 +343,7 @@ static const tp_profile_entry_t tracker_profiles_rover[] = {
   { { BW_DYN,      BW_DYN,            1,   TP_CTRL_PLL3,
       TP_TM_10MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS, TP_TM_10MS_NH20MS,  TP_TM_10MS_SC4 },
       TP_LD_PARAMS_PHASE_10MS, TP_LD_PARAMS_FREQ_10MS,
-      40,          30,          40,
+      40,          32,          38,
       IDX_10MS,    IDX_20MS,     IDX_5MS,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
 
