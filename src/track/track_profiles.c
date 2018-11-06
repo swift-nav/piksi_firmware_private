@@ -1017,6 +1017,14 @@ void tp_profile_switch(tracker_t *tracker) {
 
   if (profile->cur.index != profile->next.index) {
     tracker->fpll_cycle = 0;
+
+    /* Initialize C/N0 if we enter sensitivity profile from non 20ms profile.
+     * This is possible through the instant sensitivity profile switch logic. */
+    if (IDX_SENS == profile->next.index && IDX_20MS != profile->cur.index) {
+      track_cn0_init(&tracker->cn0_est,              /* C/N0 estimator state */
+                     20,                             /* C/N0 period in ms */
+                     tracker->cn0_est.cn0_raw_dbhz); /* Initial C/N0 value */
+    }
   }
 
   profile->cur = profile->next;
