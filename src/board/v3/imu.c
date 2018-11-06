@@ -429,7 +429,7 @@ static int gyr_range_changed(void *ctx) {
   raw_imu_output = false;
 
   /* The settings values and the enum values correspond numerically so no
-    * need to convert between them. */
+   * need to convert between them. */
   bmi160_set_gyr_range(gyr_range);
 
   if (output) {
@@ -455,7 +455,8 @@ void imu_init(void) {
       {"25", "50", "100", "200", /* "400",*/ NULL};
   settings_type_t imu_rate_setting;
   settings_type_register_enum(imu_rate_enum, &imu_rate_setting);
-  SETTING_NOTIFY("imu", "imu_rate", imu_rate, imu_rate_setting, imu_rate_changed);
+  SETTING_NOTIFY(
+      "imu", "imu_rate", imu_rate, imu_rate_setting, imu_rate_changed);
 
   static const char *const acc_range_enum[] = {"2g", "4g", "8g", "16g", NULL};
   settings_type_t acc_range_setting;
@@ -481,7 +482,8 @@ void imu_init(void) {
       {"6.25", "12.5", "25", NULL};
   settings_type_t mag_rate_setting;
   settings_type_register_enum(mag_rate_enum, &mag_rate_setting);
-  SETTING_NOTIFY("imu", "mag_rate", mag_rate, mag_rate_setting, mag_rate_changed);
+  SETTING_NOTIFY(
+      "imu", "mag_rate", mag_rate, mag_rate_setting, mag_rate_changed);
 
   chThdCreateStatic(
       wa_imu_thread, sizeof(wa_imu_thread), IMU_THREAD_PRIO, imu_thread, NULL);

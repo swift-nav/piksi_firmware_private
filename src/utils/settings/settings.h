@@ -28,39 +28,39 @@ struct setting {
   void *notify_ctx;
 };
 
-#define SETTING_WATCH(section, name, var, type, notify)                \
-  do {                                                                 \
-    static struct setting setting = {                                  \
-        (section), (name), &(var), sizeof(var), (notify), (NULL)};     \
-    settings_watch(&(setting), (type));                                \
+#define SETTING_WATCH(section, name, var, type, notify)            \
+  do {                                                             \
+    static struct setting setting = {                              \
+        (section), (name), &(var), sizeof(var), (notify), (NULL)}; \
+    settings_watch(&(setting), (type));                            \
   } while (0)
 
-#define SETTING_NOTIFY_CTX(section, name, var, type, notify, ctx)      \
-  do {                                                                 \
-    static struct setting setting = {                                  \
-        (section), (name), &(var), sizeof(var), (notify), (ctx)};      \
-    settings_register(&(setting), (type));                             \
+#define SETTING_NOTIFY_CTX(section, name, var, type, notify, ctx) \
+  do {                                                            \
+    static struct setting setting = {                             \
+        (section), (name), &(var), sizeof(var), (notify), (ctx)}; \
+    settings_register(&(setting), (type));                        \
   } while (0)
 
-#define SETTING_NOTIFY(section, name, var, type, notify)               \
-  do {                                                                 \
-    static struct setting setting = {                                  \
-        (section), (name), &(var), sizeof(var), (notify), (NULL)};     \
-    settings_register(&(setting), (type));                             \
+#define SETTING_NOTIFY(section, name, var, type, notify)           \
+  do {                                                             \
+    static struct setting setting = {                              \
+        (section), (name), &(var), sizeof(var), (notify), (NULL)}; \
+    settings_register(&(setting), (type));                         \
   } while (0)
 
-#define SETTING(section, name, var, type)                              \
-  do {                                                                 \
-    static struct setting setting = {                                  \
-        (section), (name), &(var), sizeof(var), (NULL), (NULL)};       \
-    settings_register(&(setting), (type));                             \
+#define SETTING(section, name, var, type)                        \
+  do {                                                           \
+    static struct setting setting = {                            \
+        (section), (name), &(var), sizeof(var), (NULL), (NULL)}; \
+    settings_register(&(setting), (type));                       \
   } while (0)
 
-#define READ_ONLY_PARAMETER(section, name, var, type)                  \
-  do {                                                                 \
-    static struct setting setting = {                                  \
-        (section), (name), &(var), sizeof(var), (NULL), (NULL)};       \
-    settings_register_readonly(&(setting), type);                      \
+#define READ_ONLY_PARAMETER(section, name, var, type)            \
+  do {                                                           \
+    static struct setting setting = {                            \
+        (section), (name), &(var), sizeof(var), (NULL), (NULL)}; \
+    settings_register_readonly(&(setting), type);                \
   } while (0)
 
 void settings_setup(void);

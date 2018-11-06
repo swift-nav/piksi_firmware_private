@@ -132,47 +132,53 @@ typedef struct cons_cfg_s {
 } cons_cfg_t;
 
 static cons_cfg_t cons_cfg[CONSTELLATION_COUNT] = {
-  [CONSTELLATION_GPS] = {
-                          .name = "GPS",
-                          .enabled = true,
-                          .filter = NULL,
-                          .sid_active = NULL,
-                        },
-  [CONSTELLATION_SBAS] = {
-                          .name = "SBAS",
-                          .enabled = CODE_SBAS_L1CA_SUPPORT,
-                          .supported = CODE_SBAS_L1CA_SUPPORT,
-                          .filter = is_sbas,
-                          .sid_active = sbas_active,
-                         },
-  [CONSTELLATION_GLO] = {
-                          .name = "GLONASS",
-                          .enabled = (CODE_GLO_L1OF_SUPPORT || CODE_GLO_L2OF_SUPPORT),
-                          .supported = (CODE_GLO_L1OF_SUPPORT || CODE_GLO_L2OF_SUPPORT),
-                          .filter = is_glo,
-                          .sid_active = NULL,
-                         },
-  [CONSTELLATION_BDS] = {
-                          .name = "BeiDou",
-                          .enabled = (CODE_BDS2_B1_SUPPORT || CODE_BDS2_B2_SUPPORT),
-                          .supported = (CODE_BDS2_B1_SUPPORT || CODE_BDS2_B2_SUPPORT),
-                          .filter = is_bds2,
-                          .sid_active = bds_active,
-                         },
-  [CONSTELLATION_QZS] = {
-                          .name = "QZSS",
-                          .enabled = (CODE_QZSS_L1CA_SUPPORT || CODE_QZSS_L2C_SUPPORT),
-                          .supported = (CODE_QZSS_L1CA_SUPPORT || CODE_QZSS_L2C_SUPPORT),
-                          .filter = is_qzss,
-                          .sid_active = qzss_active,
-                         },
-  [CONSTELLATION_GAL] = {
-                          .name = "Galileo",
-                          .enabled = (CODE_GAL_E1_SUPPORT || CODE_GAL_E7_SUPPORT),
-                          .supported = (CODE_GAL_E1_SUPPORT || CODE_GAL_E7_SUPPORT),
-                          .filter = is_gal,
-                          .sid_active = gal_active,
-                         },
+    [CONSTELLATION_GPS] =
+        {
+            .name = "GPS",
+            .enabled = true,
+            .filter = NULL,
+            .sid_active = NULL,
+        },
+    [CONSTELLATION_SBAS] =
+        {
+            .name = "SBAS",
+            .enabled = CODE_SBAS_L1CA_SUPPORT,
+            .supported = CODE_SBAS_L1CA_SUPPORT,
+            .filter = is_sbas,
+            .sid_active = sbas_active,
+        },
+    [CONSTELLATION_GLO] =
+        {
+            .name = "GLONASS",
+            .enabled = (CODE_GLO_L1OF_SUPPORT || CODE_GLO_L2OF_SUPPORT),
+            .supported = (CODE_GLO_L1OF_SUPPORT || CODE_GLO_L2OF_SUPPORT),
+            .filter = is_glo,
+            .sid_active = NULL,
+        },
+    [CONSTELLATION_BDS] =
+        {
+            .name = "BeiDou",
+            .enabled = (CODE_BDS2_B1_SUPPORT || CODE_BDS2_B2_SUPPORT),
+            .supported = (CODE_BDS2_B1_SUPPORT || CODE_BDS2_B2_SUPPORT),
+            .filter = is_bds2,
+            .sid_active = bds_active,
+        },
+    [CONSTELLATION_QZS] =
+        {
+            .name = "QZSS",
+            .enabled = (CODE_QZSS_L1CA_SUPPORT || CODE_QZSS_L2C_SUPPORT),
+            .supported = (CODE_QZSS_L1CA_SUPPORT || CODE_QZSS_L2C_SUPPORT),
+            .filter = is_qzss,
+            .sid_active = qzss_active,
+        },
+    [CONSTELLATION_GAL] =
+        {
+            .name = "Galileo",
+            .enabled = (CODE_GAL_E1_SUPPORT || CODE_GAL_E7_SUPPORT),
+            .supported = (CODE_GAL_E1_SUPPORT || CODE_GAL_E7_SUPPORT),
+            .filter = is_gal,
+            .sid_active = gal_active,
+        },
 };
 
 typedef struct {
@@ -289,7 +295,8 @@ static int cons_enable_notify(void *ctx) {
   log_debug("%s status (1 - on, 0 - off): %u", cfg->name, cfg->enabled);
 
   if (cfg->enabled && !cfg->supported) {
-    /* user tries enable constellation on the platform that does not support it */
+    /* user tries enable constellation on the platform that does not support it
+     */
     log_error("The platform does not support %s", cfg->name);
     cfg->enabled = false;
     return SBP_SETTINGS_WRITE_STATUS_VALUE_REJECTED;
@@ -341,37 +348,38 @@ void manage_acq_setup() {
     track_mask[i] = false;
   }
 
-  SETTING("acquisition", "almanacs_enabled", almanacs_enabled, SETTINGS_TYPE_BOOL);
+  SETTING(
+      "acquisition", "almanacs_enabled", almanacs_enabled, SETTINGS_TYPE_BOOL);
   SETTING_NOTIFY_CTX("acquisition",
-                 "glonass_acquisition_enabled",
-                 cons_cfg[CONSTELLATION_GLO].enabled,
-                 SETTINGS_TYPE_BOOL,
-                 cons_enable_notify,
-                 &cons_cfg[CONSTELLATION_GLO]);
+                     "glonass_acquisition_enabled",
+                     cons_cfg[CONSTELLATION_GLO].enabled,
+                     SETTINGS_TYPE_BOOL,
+                     cons_enable_notify,
+                     &cons_cfg[CONSTELLATION_GLO]);
   SETTING_NOTIFY_CTX("acquisition",
-                 "sbas_acquisition_enabled",
-                 cons_cfg[CONSTELLATION_SBAS].enabled,
-                 SETTINGS_TYPE_BOOL,
-                 cons_enable_notify,
-                 &cons_cfg[CONSTELLATION_SBAS]);
+                     "sbas_acquisition_enabled",
+                     cons_cfg[CONSTELLATION_SBAS].enabled,
+                     SETTINGS_TYPE_BOOL,
+                     cons_enable_notify,
+                     &cons_cfg[CONSTELLATION_SBAS]);
   SETTING_NOTIFY_CTX("acquisition",
-                 "bds2_acquisition_enabled",
-                 cons_cfg[CONSTELLATION_BDS].enabled,
-                 SETTINGS_TYPE_BOOL,
-                 cons_enable_notify,
-                 &cons_cfg[CONSTELLATION_BDS]);
+                     "bds2_acquisition_enabled",
+                     cons_cfg[CONSTELLATION_BDS].enabled,
+                     SETTINGS_TYPE_BOOL,
+                     cons_enable_notify,
+                     &cons_cfg[CONSTELLATION_BDS]);
   SETTING_NOTIFY_CTX("acquisition",
-                 "qzss_acquisition_enabled",
-                 cons_cfg[CONSTELLATION_QZS].enabled,
-                 SETTINGS_TYPE_BOOL,
-                 cons_enable_notify,
-                 &cons_cfg[CONSTELLATION_QZS]);
+                     "qzss_acquisition_enabled",
+                     cons_cfg[CONSTELLATION_QZS].enabled,
+                     SETTINGS_TYPE_BOOL,
+                     cons_enable_notify,
+                     &cons_cfg[CONSTELLATION_QZS]);
   SETTING_NOTIFY_CTX("acquisition",
-                 "galileo_acquisition_enabled",
-                 cons_cfg[CONSTELLATION_GAL].enabled,
-                 SETTINGS_TYPE_BOOL,
-                 cons_enable_notify,
-                 &cons_cfg[CONSTELLATION_GAL]);
+                     "galileo_acquisition_enabled",
+                     cons_cfg[CONSTELLATION_GAL].enabled,
+                     SETTINGS_TYPE_BOOL,
+                     cons_enable_notify,
+                     &cons_cfg[CONSTELLATION_GAL]);
 
   tracking_startup_fifo_init(&tracking_startup_fifo);
 
@@ -558,7 +566,8 @@ void check_clear_unhealthy(void) {
 }
 
 void me_settings_setup(void) {
-  SETTING("track", "elevation_mask", tracking_elevation_mask, SETTINGS_TYPE_FLOAT);
+  SETTING(
+      "track", "elevation_mask", tracking_elevation_mask, SETTINGS_TYPE_FLOAT);
   SETTING_NOTIFY("solution",
                  "elevation_mask",
                  solution_elevation_mask,

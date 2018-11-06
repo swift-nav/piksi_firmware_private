@@ -596,7 +596,8 @@ static int klobuchar_notify(void *ctx) {
   if (notified_state != klobuchar_enabled) {
     /* Klobuchar state changed */
     klobuchar_enabled = notified_state;
-    log_info("%s Klobuchar corrections", klobuchar_enabled ? "Enabling" : "Disabling");
+    log_info("%s Klobuchar corrections",
+             klobuchar_enabled ? "Enabling" : "Disabling");
     starling_set_is_time_matched_klobuchar_enabled(klobuchar_enabled);
   }
 
@@ -776,8 +777,11 @@ static void initialize_starling_settings(void) {
                  SETTINGS_TYPE_FLOAT,
                  set_glonass_downweight_factor);
 
-  SETTING_WATCH(
-      "skylark", "enable", skylark_enabled, SETTINGS_TYPE_BOOL, klobuchar_notify);
+  SETTING_WATCH("skylark",
+                "enable",
+                skylark_enabled,
+                SETTINGS_TYPE_BOOL,
+                klobuchar_notify);
   SETTING_WATCH(
       "orion", "enable", orion_enabled, SETTINGS_TYPE_BOOL, klobuchar_notify);
 

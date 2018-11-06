@@ -151,9 +151,12 @@ int main(void) {
       "system_info", "sbp_sender_id", sender_id_str, SETTINGS_TYPE_STRING);
   READ_ONLY_PARAMETER(
       "system_info", "serial_number", mfg_id_string, SETTINGS_TYPE_STRING);
-  READ_ONLY_PARAMETER("system_info", "pfwp_build_id", GIT_VERSION, SETTINGS_TYPE_STRING);
   READ_ONLY_PARAMETER(
-      "system_info", "pfwp_build_date", __DATE__ " " __TIME__, SETTINGS_TYPE_STRING);
+      "system_info", "pfwp_build_id", GIT_VERSION, SETTINGS_TYPE_STRING);
+  READ_ONLY_PARAMETER("system_info",
+                      "pfwp_build_date",
+                      __DATE__ " " __TIME__,
+                      SETTINGS_TYPE_STRING);
   READ_ONLY_PARAMETER(
       "system_info", "nap_build_id", nap_version_string, SETTINGS_TYPE_STRING);
   READ_ONLY_PARAMETER(

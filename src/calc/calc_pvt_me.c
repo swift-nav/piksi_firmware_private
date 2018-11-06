@@ -818,7 +818,8 @@ void me_calc_pvt_setup() {
                  soln_freq_setting,
                  SETTINGS_TYPE_FLOAT,
                  soln_freq_setting_notify);
-  SETTING("solution", "output_every_n_obs", obs_output_divisor, SETTINGS_TYPE_INT);
+  SETTING(
+      "solution", "output_every_n_obs", obs_output_divisor, SETTINGS_TYPE_INT);
   SETTING("sbp", "obs_msg_max_size", msg_obs_max_size, SETTINGS_TYPE_INT);
 
   /* Start solution thread */

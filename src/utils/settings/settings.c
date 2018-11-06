@@ -11,7 +11,7 @@
  */
 
 #include <assert.h>
-#include <stdlib.h> 
+#include <stdlib.h>
 #include <string.h>
 
 #include <ch.h>
@@ -30,20 +30,24 @@ typedef struct settings_ctx_s {
 
 static settings_ctx_t settings_api_ctx = {0};
 
-static int send_wrap(void *ctx, uint16_t msg_type, uint8_t len, uint8_t *payload)
-{
+static int send_wrap(void *ctx,
+                     uint16_t msg_type,
+                     uint8_t len,
+                     uint8_t *payload) {
   (void)ctx;
   return sbp_send_msg(msg_type, len, payload);
 }
 
-static int send_from_wrap(void *ctx, uint16_t msg_type, uint8_t len, uint8_t *payload, uint16_t sbp_sender_id)
-{
+static int send_from_wrap(void *ctx,
+                          uint16_t msg_type,
+                          uint8_t len,
+                          uint8_t *payload,
+                          uint16_t sbp_sender_id) {
   (void)ctx;
   return sbp_send_msg_(msg_type, len, payload, sbp_sender_id);
 }
 
-static int wait_init_wrap(void *ctx)
-{
+static int wait_init_wrap(void *ctx) {
   settings_ctx_t *settings_ctx = (settings_ctx_t *)ctx;
 
   /* Take semaphore */
@@ -52,8 +56,7 @@ static int wait_init_wrap(void *ctx)
   return 0;
 }
 
-static int wait_wrap(void *ctx, int timeout_ms)
-{
+static int wait_wrap(void *ctx, int timeout_ms) {
   settings_ctx_t *settings_ctx = (settings_ctx_t *)ctx;
 
   int ret = 0;
@@ -65,8 +68,7 @@ static int wait_wrap(void *ctx, int timeout_ms)
   return ret;
 }
 
-static int wait_deinit_wrap(void *ctx)
-{
+static int wait_deinit_wrap(void *ctx) {
   settings_ctx_t *settings_ctx = (settings_ctx_t *)ctx;
 
   /* Give semaphore */
@@ -75,8 +77,7 @@ static int wait_deinit_wrap(void *ctx)
   return 0;
 }
 
-static void signal_wrap(void *ctx)
-{
+static void signal_wrap(void *ctx) {
   settings_ctx_t *settings_ctx = (settings_ctx_t *)ctx;
   chBSemSignal(&settings_ctx->sem);
 }
@@ -85,8 +86,7 @@ static int reg_cb_wrap(void *ctx,
                        uint16_t msg_type,
                        sbp_msg_callback_t cb,
                        void *cb_context,
-                       sbp_msg_callbacks_node_t **node)
-{
+                       sbp_msg_callbacks_node_t **node) {
   (void)ctx;
   assert(NULL != cb);
   assert(NULL != node);
@@ -104,8 +104,7 @@ static int reg_cb_wrap(void *ctx,
   return 0;
 }
 
-static int unreg_cb_wrap(void *ctx, sbp_msg_callbacks_node_t **node)
-{
+static int unreg_cb_wrap(void *ctx, sbp_msg_callbacks_node_t **node) {
   (void)ctx;
   assert(NULL != node);
   assert(NULL != *node);
@@ -153,14 +152,15 @@ static int settings_default_notify(void *ctx) {
 }
 
 int settings_register(struct setting *setting, settings_type_t type) {
-  return setreg_add_setting(setreg,
-                            setting->section,
-                            setting->name,
-                            setting->addr,
-                            setting->len,
-                            type,
-                            (NULL == setting->notify) ? settings_default_notify : setting->notify,
-                            setting->notify_ctx);
+  return setreg_add_setting(
+      setreg,
+      setting->section,
+      setting->name,
+      setting->addr,
+      setting->len,
+      type,
+      (NULL == setting->notify) ? settings_default_notify : setting->notify,
+      setting->notify_ctx);
 }
 
 int settings_register_readonly(struct setting *setting, settings_type_t type) {
@@ -173,12 +173,13 @@ int settings_register_readonly(struct setting *setting, settings_type_t type) {
 }
 
 int settings_watch(struct setting *setting, settings_type_t type) {
-  return setreg_add_watch(setreg,
-                          setting->section,
-                          setting->name,
-                          setting->addr,
-                          setting->len,
-                          type,
-                          (NULL == setting->notify) ? settings_default_notify : setting->notify,
-                          setting->notify_ctx);
+  return setreg_add_watch(
+      setreg,
+      setting->section,
+      setting->name,
+      setting->addr,
+      setting->len,
+      type,
+      (NULL == setting->notify) ? settings_default_notify : setting->notify,
+      setting->notify_ctx);
 }

@@ -138,12 +138,16 @@ void pps_setup(void) {
   SETTING_NOTIFY(
       "pps", "width", pps_width_us, SETTINGS_TYPE_INT, pps_config_changed);
 
-  SETTING_NOTIFY("pps", "polarity", pps_polarity, SETTINGS_TYPE_INT, pps_config_changed);
+  SETTING_NOTIFY(
+      "pps", "polarity", pps_polarity, SETTINGS_TYPE_INT, pps_config_changed);
 
   SETTING("pps", "offset", pps_offset_us, SETTINGS_TYPE_INT);
 
-  SETTING_NOTIFY(
-      "pps", "frequency", pps_frequency_hz, SETTINGS_TYPE_FLOAT, pps_frequency_changed);
+  SETTING_NOTIFY("pps",
+                 "frequency",
+                 pps_frequency_hz,
+                 SETTINGS_TYPE_FLOAT,
+                 pps_frequency_changed);
 
   chThdCreateStatic(wa_pps_thread,
                     sizeof(wa_pps_thread),

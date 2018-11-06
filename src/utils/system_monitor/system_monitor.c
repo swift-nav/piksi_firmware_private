@@ -231,11 +231,16 @@ void system_monitor_setup(void) {
           SETTINGS_TYPE_INT);
   SETTING("system_monitor", "watchdog", use_wdt, SETTINGS_TYPE_BOOL);
 
+  SETTING("surveyed_position",
+          "broadcast",
+          broadcast_surveyed_position,
+          SETTINGS_TYPE_BOOL);
   SETTING(
-      "surveyed_position", "broadcast", broadcast_surveyed_position, SETTINGS_TYPE_BOOL);
-  SETTING("surveyed_position", "surveyed_lat", base_llh[0], SETTINGS_TYPE_FLOAT);
-  SETTING("surveyed_position", "surveyed_lon", base_llh[1], SETTINGS_TYPE_FLOAT);
-  SETTING("surveyed_position", "surveyed_alt", base_llh[2], SETTINGS_TYPE_FLOAT);
+      "surveyed_position", "surveyed_lat", base_llh[0], SETTINGS_TYPE_FLOAT);
+  SETTING(
+      "surveyed_position", "surveyed_lon", base_llh[1], SETTINGS_TYPE_FLOAT);
+  SETTING(
+      "surveyed_position", "surveyed_alt", base_llh[2], SETTINGS_TYPE_FLOAT);
 
   chThdCreateStatic(wa_system_monitor_thread,
                     sizeof(wa_system_monitor_thread),

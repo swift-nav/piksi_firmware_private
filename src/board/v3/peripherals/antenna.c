@@ -65,7 +65,7 @@ static int antenna_config_notify(void *ctx) {
   (void)ctx;
 
   antenna_configure(antenna_mode, antenna_bias);
-  
+
   return SBP_SETTINGS_WRITE_STATUS_OK;
 }
 

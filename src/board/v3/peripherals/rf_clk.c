@@ -47,8 +47,11 @@ void rf_clk_init(bool allow_ext_clk) {
   palSetLineMode(CLK_SEL_GPIO_LINE, PAL_MODE_OUTPUT);
 
   if (allow_ext_clk) {
-    SETTING_NOTIFY(
-        "frontend", "use_ext_clk", rf_clk_ext, SETTINGS_TYPE_BOOL, rf_clk_config_notify);
+    SETTING_NOTIFY("frontend",
+                   "use_ext_clk",
+                   rf_clk_ext,
+                   SETTINGS_TYPE_BOOL,
+                   rf_clk_config_notify);
   } else {
     antenna_configure(rf_clk_ext);
   }
