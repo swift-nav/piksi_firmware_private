@@ -781,17 +781,20 @@ static void tp_tracker_update_loops(tracker_t *tracker, u32 cycle_flags) {
     }
 
     tp_tl_update_dll_discr(&tracker->tl_state, &corr_main);
-    tp_tl_update_dll(&tracker->tl_state);
 
     bool run_fpll = (0 != (cycle_flags & TPF_FPLL_RUN));
     if (run_fpll) {
       tracker->fpll_cycle++;
       u8 fpll_decim = tp_get_fpll_decim(tracker->tracking_mode);
       run_fpll = !cycle_decimated(tracker->fpll_cycle, fpll_decim);
-      if (run_fpll) {
-        tp_tl_update_fpll(&tracker->tl_state, &corr_main, costas);
-        tracker->fpll_cycle = 0;
-      }
+    }
+
+    if (run_fpll) {
+      tp_tl_update_dll(&tracker->tl_state, /*use_discr=*/true);
+      tp_tl_update_fpll(&tracker->tl_state, &corr_main, costas);
+      tracker->fpll_cycle = 0;
+    } else {
+      tp_tl_update_dll(&tracker->tl_state, /*use_discr=*/false);
     }
 
     tl_rates_t rates = {0};
