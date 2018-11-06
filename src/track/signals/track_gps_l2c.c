@@ -340,31 +340,7 @@ static void tracker_gps_l2c_update(tracker_t *tracker) {
 
   if (in_phase_lock && confirmed) {
     /* naturally synched as we track */
-    s8 symb_sign = SIGN(tracker->corrs.corr_main.dp_prompt.I);
-    s8 pol_sign = SIGN(tracker->cp_sync.polarity);
-    log_debug("G%02d L2C %+2d %+3d",
-              tracker->mesid.sat,
-              symb_sign,
-              tracker->cp_sync.polarity);
-    if (symb_sign != pol_sign) {
-      tracker->cp_sync.polarity = symb_sign;
-      tracker->cp_sync.synced = false;
-    } else {
-      tracker->cp_sync.polarity += symb_sign;
-      if (NUM_COH_L2C_20MS_SYMB == ABS(tracker->cp_sync.polarity)) {
-        tracker->cp_sync.synced = true;
-        tracker->cp_sync.polarity -= symb_sign; /* saturate */
-      } else {
-        tracker->cp_sync.synced = false;
-      }
-    }
-    if (tracker->cp_sync.synced) {
-      tracker->bit_polarity = ((tracker->cp_sync.polarity) < 0)
-                                  ? BIT_POLARITY_NORMAL
-                                  : BIT_POLARITY_INVERTED;
-    } else {
-      tracker->bit_polarity = BIT_POLARITY_UNKNOWN;
-    }
+    tracker->bit_polarity = BIT_POLARITY_INVERTED;
     tracker_update_bit_polarity_flags(tracker);
   }
 }
