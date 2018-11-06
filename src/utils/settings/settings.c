@@ -11,6 +11,7 @@
  */
 
 #include <assert.h>
+#include <stdlib.h> 
 #include <string.h>
 
 #include <ch.h>
@@ -20,11 +21,6 @@
 
 #include "sbp.h"
 #include "settings/settings.h"
-
-#define SETTINGS_FILE "config"
-
-#define SETTINGS_REGISTER_TIMEOUT 5000
-#define SETTINGS_REGISTER_TRIES 5
 
 static setreg_t *setreg = NULL;
 
@@ -46,13 +42,37 @@ static int send_from_wrap(void *ctx, uint16_t msg_type, uint8_t len, uint8_t *pa
   return sbp_send_msg_(msg_type, len, payload, sbp_sender_id);
 }
 
-static void wait_wrap(void *ctx, int timeout_ms)
+static int wait_init_wrap(void *ctx)
 {
   settings_ctx_t *settings_ctx = (settings_ctx_t *)ctx;
-  
-  if (chBSemWaitTimeout(&settings_ctx->sem, timeout_ms) != MSG_OK) {
-    log_warn("Settings wait timeout");
+
+  /* Take semaphore */
+  chBSemReset(&settings_ctx->sem, true);
+
+  return 0;
+}
+
+static int wait_wrap(void *ctx, int timeout_ms)
+{
+  settings_ctx_t *settings_ctx = (settings_ctx_t *)ctx;
+
+  int ret = 0;
+
+  if (chBSemWaitTimeout(&settings_ctx->sem, MS2ST(timeout_ms)) != MSG_OK) {
+    ret = 1;
   }
+
+  return ret;
+}
+
+static int wait_deinit_wrap(void *ctx)
+{
+  settings_ctx_t *settings_ctx = (settings_ctx_t *)ctx;
+
+  /* Give semaphore */
+  chBSemReset(&settings_ctx->sem, false);
+
+  return 0;
 }
 
 static void signal_wrap(void *ctx)
@@ -68,27 +88,49 @@ static int reg_cb_wrap(void *ctx,
                        sbp_msg_callbacks_node_t **node)
 {
   (void)ctx;
-  (void)cb_context;
-  sbp_register_cbk(msg_type, cb, *node);
+  assert(NULL != cb);
+  assert(NULL != node);
+
+  sbp_msg_callbacks_node_t *n = (sbp_msg_callbacks_node_t *)malloc(sizeof(*n));
+  if (NULL == n) {
+    log_error("error allocating callback node");
+    return -1;
+  }
+
+  *node = n;
+
+  sbp_register_cbk_with_closure(msg_type, cb, *node, cb_context);
+
   return 0;
 }
 
 static int unreg_cb_wrap(void *ctx, sbp_msg_callbacks_node_t **node)
 {
   (void)ctx;
+  assert(NULL != node);
+  assert(NULL != *node);
+
   sbp_remove_cbk(*node);
+
+  free(*node);
+  *node = NULL;
+
   return 0;
 }
 
 void settings_setup(void) {
+  chBSemObjectInit(&settings_api_ctx.sem, false);
+
   setreg = setreg_create();
 
   setreg_api_t api = {0};
   api.ctx = (void *)&settings_api_ctx;
   api.send = send_wrap;
   api.send_from = send_from_wrap;
-  api.wait_resp = wait_wrap;
-  api.signal_resp = signal_wrap;
+  api.wait_init = wait_init_wrap;
+  api.wait = wait_wrap;
+  api.wait_deinit = wait_deinit_wrap;
+  api.signal = signal_wrap;
   api.register_cb = reg_cb_wrap;
   api.unregister_cb = unreg_cb_wrap;
   api.log = log_;

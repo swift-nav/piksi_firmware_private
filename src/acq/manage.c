@@ -296,7 +296,7 @@ static int cons_enable_notify(void *ctx) {
   }
 
   for (u16 i = 0; i < ARRAY_SIZE(acq_status); i++) {
-    if (cfg->filter(acq_status[i].mesid.code)) {
+    if (!cfg->filter(acq_status[i].mesid.code)) {
       continue;
     }
 

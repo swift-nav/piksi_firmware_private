@@ -583,9 +583,22 @@ static int set_glonass_downweight_factor(void *ctx) {
 static int klobuchar_notify(void *ctx) {
   (void)ctx;
 
-  bool klobuchar_enabled = (!skylark_enabled && !orion_enabled);
+  typedef enum klobu_corr_state_e {
+    KLOBUCHAR_CORR_DISABLED = false,
+    KLOBUCHAR_CORR_ENABLED = true,
+    KLOBUCHAR_CORR_UNINIT,
+  } klobu_corr_state_t;
 
-  starling_set_is_time_matched_klobuchar_enabled(klobuchar_enabled);
+  static klobu_corr_state_t klobuchar_enabled = KLOBUCHAR_CORR_UNINIT;
+
+  klobu_corr_state_t notified_state = (!skylark_enabled && !orion_enabled);
+
+  if (notified_state != klobuchar_enabled) {
+    /* Klobuchar state changed */
+    klobuchar_enabled = notified_state;
+    log_info("%s Klobuchar corrections", klobuchar_enabled ? "Enabling" : "Disabling");
+    starling_set_is_time_matched_klobuchar_enabled(klobuchar_enabled);
+  }
 
   return SBP_SETTINGS_WRITE_STATUS_OK;
 }
@@ -853,8 +866,8 @@ static THD_FUNCTION(initialize_and_run_starling, arg) {
   /* Never get here. */
   log_error("Starling Engine has unexpectedly terminated.");
   assert(0);
-  for (;;) {
-  }
+
+  __builtin_unreachable();
 }
 
 /*******************************************************************************

@@ -49,5 +49,7 @@ void rf_clk_init(bool allow_ext_clk) {
   if (allow_ext_clk) {
     SETTING_NOTIFY(
         "frontend", "use_ext_clk", rf_clk_ext, SETTINGS_TYPE_BOOL, rf_clk_config_notify);
+  } else {
+    antenna_configure(rf_clk_ext);
   }
 }
