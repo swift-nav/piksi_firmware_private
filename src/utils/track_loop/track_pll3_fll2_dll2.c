@@ -45,6 +45,12 @@ static void update_params(tl_pll3_state_t *s, const tl_config_t *config) {
     s->freq_c2 = 0;
   }
 
+  s->fll_discr_sum_hz = 0.f;
+  s->fll_discr_cnt = 0;
+
+  s->dll_discr_sum_hz = 0.f;
+  s->dll_discr_cnt = 0;
+
   /* PLL constants */
   float omega_0 = config->pll_bw / 0.7845f;
   float omega_0_2 = omega_0 * omega_0;
