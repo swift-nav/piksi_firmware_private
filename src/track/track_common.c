@@ -441,7 +441,7 @@ static void tp_tracker_update_correlators(tracker_t *tracker, u32 cycle_flags) {
       (CODE_GAL_E7Q == mesid.code) || (CODE_GAL_E7X == mesid.code)) {
     /* for Galileo E5a and E5b all tracking happens on the pilot
      * and when sync is achieved on the SC100 (Prompt)
-     * the data can be extracted on the Very Late correlator.
+     * the data can be extracted on the 5th correlator.
      * This is taken care by the flag TPF_BIT_PILOT.
      * However, as they have the pilot in quadrature,
      * one needs to apply a 90 deg rotation
@@ -449,6 +449,11 @@ static void tp_tracker_update_correlators(tracker_t *tracker, u32 cycle_flags) {
     corr_t temp = cs_now.dp_prompt;
     cs_now.dp_prompt.I = temp.Q;
     cs_now.dp_prompt.Q = temp.I;
+  }
+
+  if (CODE_GPS_L2CM == mesid.code) {
+    /* For L2CM, the data is also on the 5th correlator */
+    cycle_flags |= TPF_BIT_PILOT;
   }
 
   tp_update_correlators(cycle_flags, &cs_now, &tracker->corrs);
@@ -767,16 +772,11 @@ static void tp_tracker_update_loops(tracker_t *tracker, u32 cycle_flags) {
 
     bool has_pilot_sync = nap_sc_wipeoff(tracker);
 
-    if ((CODE_GPS_L2CM == tracker->mesid.code)) {
-      /* The L2CM and L2CL codes are in phase,
-       * copy the VL to P so that the PLL runs
-       * on the pilot instead of the data */
-      corr_main.prompt = corr_main.dp_prompt;
-      costas = false;
-    } else if (has_pilot_sync) {
-      /* Once in bit-sync, Galileo pilots
-       * are completely free of transitions
-       * so no need for a Costas loop*/
+    if ((CODE_GPS_L2CM == tracker->mesid.code) || has_pilot_sync) {
+      /* The L2CM and L2CL codes are in phase, copy the VL to P so that the PLL
+       * runs on the pilot instead of the data */
+      /* Once in bit-sync, Galileo pilots are completely free of transitions so
+       * no need for a Costas loop*/
       costas = false;
     }
 
