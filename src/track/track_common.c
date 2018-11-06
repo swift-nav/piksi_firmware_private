@@ -412,20 +412,10 @@ static void process_alias_error(tracker_t *tracker, float I, float Q) {
   tp_tl_adjust(&tracker->tl_state, err_hz);
 }
 
-static void add_pilot_and_data_iq(tracker_t *tracker, tp_epl_corr_t *cs_now) {
-  corr_t *data;
-  corr_t *pilot;
+static void add_pilot_and_data_iq(tp_epl_corr_t *cs_now) {
   corr_t *all = cs_now->all;
-  /* we use pilot for GAL E1, GAL E7 and GPS L2C tracking */
-  if ((CODE_GPS_L2CM == tracker->mesid.code)) {
-    data = &all[0];
-    pilot = &all[3];
-  } else if (/*has_pilot_sync=*/nap_sc_wipeoff(tracker)) {
-    data = &all[3];
-    pilot = &all[0];
-  } else {
-    return;
-  }
+  corr_t *data = &all[3];
+  corr_t *pilot = &all[0];
 
   /* In base station mode we combine pilot and data ELP. In rover mode we
      only combine EL. In rover mode we do not want to "borrow" from the phase
@@ -508,9 +498,9 @@ static void tp_tracker_update_correlators(tracker_t *tracker, u32 cycle_flags) {
   if ((CODE_GPS_L2CM == mesid.code) || has_pilot_sync) {
     /* For L2CM, the data is also on the 5th correlator */
     cycle_flags |= TPF_BIT_PILOT;
+    add_pilot_and_data_iq(&cs_now);
   }
 
-  add_pilot_and_data_iq(tracker, &cs_now);
   tp_update_correlators(cycle_flags, &cs_now, &tracker->corrs);
 
   /* Current cycle duration */
