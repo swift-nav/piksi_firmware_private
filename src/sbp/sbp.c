@@ -218,7 +218,7 @@ int _write(int file, char *ptr, int len) {
 }
 
 /** Directs log_ output to the SBP log message */
-void log_(u8 level, const char *msg, ...) {
+void log_(int level, const char *msg, ...) {
   msg_log_t *log;
   va_list ap;
   char buf[SBP_FRAMING_MAX_PAYLOAD_SIZE];
@@ -236,7 +236,7 @@ void log_(u8 level, const char *msg, ...) {
   sbp_send_msg(SBP_MSG_LOG, n + sizeof(msg_log_t), (u8 *)buf);
 }
 
-void detailed_log_(u8 level,
+void detailed_log_(int level,
                    const char *file_path,
                    const int line_number,
                    const char *msg,
