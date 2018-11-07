@@ -48,7 +48,7 @@ static int send_from_wrap(void *ctx,
 }
 
 static int wait_init_wrap(void *ctx) {
-  settings_ctx_t *settings_ctx = (settings_ctx_t *)ctx;
+  settings_ctx_t *settings_ctx = ctx;
 
   /* Take semaphore */
   chBSemReset(&settings_ctx->sem, true);
@@ -57,7 +57,7 @@ static int wait_init_wrap(void *ctx) {
 }
 
 static int wait_wrap(void *ctx, int timeout_ms) {
-  settings_ctx_t *settings_ctx = (settings_ctx_t *)ctx;
+  settings_ctx_t *settings_ctx = ctx;
 
   int ret = 0;
 
@@ -69,7 +69,7 @@ static int wait_wrap(void *ctx, int timeout_ms) {
 }
 
 static int wait_deinit_wrap(void *ctx) {
-  settings_ctx_t *settings_ctx = (settings_ctx_t *)ctx;
+  settings_ctx_t *settings_ctx = ctx;
 
   /* Give semaphore */
   chBSemReset(&settings_ctx->sem, false);
@@ -78,7 +78,7 @@ static int wait_deinit_wrap(void *ctx) {
 }
 
 static void signal_wrap(void *ctx) {
-  settings_ctx_t *settings_ctx = (settings_ctx_t *)ctx;
+  settings_ctx_t *settings_ctx = ctx;
   chBSemSignal(&settings_ctx->sem);
 }
 
@@ -91,7 +91,7 @@ static int reg_cb_wrap(void *ctx,
   assert(NULL != cb);
   assert(NULL != node);
 
-  sbp_msg_callbacks_node_t *n = (sbp_msg_callbacks_node_t *)malloc(sizeof(*n));
+  sbp_msg_callbacks_node_t *n = malloc(sizeof(*n));
   if (NULL == n) {
     log_error("error allocating callback node");
     return -1;
@@ -123,7 +123,7 @@ void settings_setup(void) {
   setreg = setreg_create();
 
   setreg_api_t api = {0};
-  api.ctx = (void *)&settings_api_ctx;
+  api.ctx = &settings_api_ctx;
   api.send = send_wrap;
   api.send_from = send_from_wrap;
   api.wait_init = wait_init_wrap;

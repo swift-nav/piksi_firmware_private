@@ -28,20 +28,20 @@
 typedef struct event_config_s {
   u8 pin;
   ext_event_trigger_t trigger;
-  u32 timeout_microseconds;
+  u32 timeout_us;
 } event_config_t;
 
 static event_config_t event_config[3] = {
-    [0] = {.pin = 0, .trigger = 0, .timeout_microseconds = 0},
-    [1] = {.pin = 1, .trigger = 0, .timeout_microseconds = 0},
-    [2] = {.pin = 2, .trigger = 0, .timeout_microseconds = 0},
+    [0] = {.pin = 0, .trigger = 0, .timeout_us = 0},
+    [1] = {.pin = 1, .trigger = 0, .timeout_us = 0},
+    [2] = {.pin = 2, .trigger = 0, .timeout_us = 0},
 };
 
 /** Settings callback to inform NAP which trigger mode and timeout is desired */
 static int event0_changed(void *ctx) {
-  event_config_t *cfg = (event_config_t *)ctx;
+  event_config_t *cfg = ctx;
 
-  nap_set_ext_event(cfg->pin, cfg->trigger, cfg->timeout_microseconds);
+  nap_set_ext_event(cfg->pin, cfg->trigger, cfg->timeout_us);
 
   return SBP_SETTINGS_WRITE_STATUS_OK;
 }
@@ -67,7 +67,7 @@ void ext_event_setup(void) {
                      &event_config[0]);
   SETTING_NOTIFY_CTX("ext_event_a",
                      "sensitivity",
-                     event_config[0].timeout_microseconds,
+                     event_config[0].timeout_us,
                      SETTINGS_TYPE_INT,
                      event0_changed,
                      &event_config[0]);
@@ -80,7 +80,7 @@ void ext_event_setup(void) {
                      &event_config[1]);
   SETTING_NOTIFY_CTX("ext_event_b",
                      "sensitivity",
-                     event_config[1].timeout_microseconds,
+                     event_config[1].timeout_us,
                      SETTINGS_TYPE_INT,
                      event0_changed,
                      &event_config[1]);
@@ -93,7 +93,7 @@ void ext_event_setup(void) {
                      &event_config[2]);
   SETTING_NOTIFY_CTX("ext_event_c",
                      "sensitivity",
-                     event_config[2].timeout_microseconds,
+                     event_config[2].timeout_us,
                      SETTINGS_TYPE_INT,
                      event0_changed,
                      &event_config[2]);

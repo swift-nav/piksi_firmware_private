@@ -126,8 +126,8 @@ static bool almanacs_enabled = false;
 typedef struct cons_cfg_s {
   char *name;
   bool enabled;
-  bool supported;
-  bool (*filter)(const code_t code);
+  const bool supported;
+  bool (*is_applicable)(const code_t code);
   bool (*sid_active)(const me_gnss_signal_t mesid);
 } cons_cfg_t;
 
@@ -136,7 +136,8 @@ static cons_cfg_t cons_cfg[CONSTELLATION_COUNT] = {
         {
             .name = "GPS",
             .enabled = true,
-            .filter = NULL,
+            .supported = true,
+            .is_applicable = NULL,
             .sid_active = NULL,
         },
     [CONSTELLATION_SBAS] =
@@ -144,7 +145,7 @@ static cons_cfg_t cons_cfg[CONSTELLATION_COUNT] = {
             .name = "SBAS",
             .enabled = CODE_SBAS_L1CA_SUPPORT,
             .supported = CODE_SBAS_L1CA_SUPPORT,
-            .filter = is_sbas,
+            .is_applicable = is_sbas,
             .sid_active = sbas_active,
         },
     [CONSTELLATION_GLO] =
@@ -152,7 +153,7 @@ static cons_cfg_t cons_cfg[CONSTELLATION_COUNT] = {
             .name = "GLONASS",
             .enabled = (CODE_GLO_L1OF_SUPPORT || CODE_GLO_L2OF_SUPPORT),
             .supported = (CODE_GLO_L1OF_SUPPORT || CODE_GLO_L2OF_SUPPORT),
-            .filter = is_glo,
+            .is_applicable = is_glo,
             .sid_active = NULL,
         },
     [CONSTELLATION_BDS] =
@@ -160,7 +161,7 @@ static cons_cfg_t cons_cfg[CONSTELLATION_COUNT] = {
             .name = "BeiDou",
             .enabled = (CODE_BDS2_B1_SUPPORT || CODE_BDS2_B2_SUPPORT),
             .supported = (CODE_BDS2_B1_SUPPORT || CODE_BDS2_B2_SUPPORT),
-            .filter = is_bds2,
+            .is_applicable = is_bds2,
             .sid_active = bds_active,
         },
     [CONSTELLATION_QZS] =
@@ -168,7 +169,7 @@ static cons_cfg_t cons_cfg[CONSTELLATION_COUNT] = {
             .name = "QZSS",
             .enabled = (CODE_QZSS_L1CA_SUPPORT || CODE_QZSS_L2C_SUPPORT),
             .supported = (CODE_QZSS_L1CA_SUPPORT || CODE_QZSS_L2C_SUPPORT),
-            .filter = is_qzss,
+            .is_applicable = is_qzss,
             .sid_active = qzss_active,
         },
     [CONSTELLATION_GAL] =
@@ -176,7 +177,7 @@ static cons_cfg_t cons_cfg[CONSTELLATION_COUNT] = {
             .name = "Galileo",
             .enabled = (CODE_GAL_E1_SUPPORT || CODE_GAL_E7_SUPPORT),
             .supported = (CODE_GAL_E1_SUPPORT || CODE_GAL_E7_SUPPORT),
-            .filter = is_gal,
+            .is_applicable = is_gal,
             .sid_active = gal_active,
         },
 };
@@ -290,7 +291,7 @@ static void manage_acq_thread(void *arg) {
 /* The function masks/unmasks all <constellation> satellites,
  * NOTE: this function does not check if SV is already masked or not */
 static int cons_enable_notify(void *ctx) {
-  cons_cfg_t *cfg = (cons_cfg_t *)ctx;
+  cons_cfg_t *cfg = ctx;
 
   log_debug("%s status (1 - on, 0 - off): %u", cfg->name, cfg->enabled);
 
@@ -303,7 +304,7 @@ static int cons_enable_notify(void *ctx) {
   }
 
   for (u16 i = 0; i < ARRAY_SIZE(acq_status); i++) {
-    if (!cfg->filter(acq_status[i].mesid.code)) {
+    if (!cfg->is_applicable(acq_status[i].mesid.code)) {
       continue;
     }
 
