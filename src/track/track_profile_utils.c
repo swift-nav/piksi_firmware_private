@@ -833,6 +833,31 @@ static const state_table_t mode_200ms_10ms = {
 };
 
 /**
+ * 200 ms integrations for GLO without meander sync
+ */
+static const state_table_t mode_200ms_10ms_nm = {
+    .cn0_ms = 10,
+    .lockdet_ms = 0, /* not used in FLL only mode */
+    .alias_ms = 0, /* not used */
+    .flld_ms = 5,
+    .fpll_ms = 10,
+    .fpll_decim = 20,
+    .dll_ms = 10,
+    .bit_ms = 10,
+    .ent_cnt = 4,
+    .entries = {
+      {2, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_FLL_SET},
+      {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_ADD},
+      {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_ADD |
+                                                      TPF_FLL_USE |
+                                                      TPF_FLL_HALFQ},
+
+      {5, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_SET |
+          TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_FLL_USE | TPF_FPLL_RUN}
+  }
+};
+
+/**
  * 10 ms integrations for Beidou with D1 nav and GPS L5
  */
 static const state_table_t mode_10ms_nh20ms = {
@@ -1167,6 +1192,7 @@ static const state_table_t *tracking_table_lut[TP_TM_COUNT] =
      [TP_TM_20MS_10MS] = &mode_20ms_10ms,
      [TP_TM_20MS_10MS_BASE] = &mode_20ms_10ms_base,
      [TP_TM_200MS_10MS] = &mode_200ms_10ms,
+     [TP_TM_200MS_10MS_NM] = &mode_200ms_10ms_nm,
 
      [TP_TM_1MS_20MS] = &mode_1ms_20ms,
      [TP_TM_2MS_20MS] = &mode_2ms_20ms,
@@ -1454,6 +1480,7 @@ static const char *tracking_table_str_lut[TP_TM_COUNT] =
      [TP_TM_20MS_10MS] = "TM 20/10 MS",
      [TP_TM_20MS_10MS_BASE] = "TM 20/10 MS BASE",
      [TP_TM_200MS_10MS] = "TM 200/10 MS",
+     [TP_TM_200MS_10MS_NM] = "TM 200/10 MS NM",
 
      [TP_TM_1MS_20MS] = "TM 1/20 MS",
      [TP_TM_2MS_20MS] = "TM 2/20 MS",

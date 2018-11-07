@@ -69,11 +69,12 @@ typedef enum {
   TP_TM_20MS_SC4,       /**< 20 ms */
   TP_TM_20MS_SC4_BASE,  /**< 20 ms */
 
-  TP_TM_200MS_20MS,   /**< 200 ms */
-  TP_TM_200MS_10MS,   /**< 200 ms */
-  TP_TM_200MS_2MS,    /**< 200 ms */
-  TP_TM_200MS_NH20MS, /**< 200 ms */
-  TP_TM_200MS_SC4,    /**< 200 ms */
+  TP_TM_200MS_20MS,    /**< 200 ms */
+  TP_TM_200MS_10MS,    /**< 200 ms */
+  TP_TM_200MS_10MS_NM, /**< 200 ms GLO No Meander */
+  TP_TM_200MS_2MS,     /**< 200 ms */
+  TP_TM_200MS_NH20MS,  /**< 200 ms */
+  TP_TM_200MS_SC4,     /**< 200 ms */
   TP_TM_COUNT
 } tp_tm_e;
 
