@@ -225,10 +225,9 @@ s32 tracker_tow_update(tracker_t *tracker,
        derive it from system time */
 
     /* Get GLO string sync from existing TOW */
-    u16 ms = current_TOW_ms % GLO_STRING_LENGTH_MS;
     bool string_sync = (0 != (tracker->flags & TRACKER_FLAG_GLO_STRING_SYNC));
-
     if (!string_sync) {
+      u16 ms = current_TOW_ms % GLO_STRING_LENGTH_MS;
       tracker->glo_into_string_ms = ms;
       tracker->flags |= TRACKER_FLAG_GLO_STRING_SYNC;
     }
