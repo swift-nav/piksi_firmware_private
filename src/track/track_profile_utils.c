@@ -482,20 +482,23 @@ static const state_table_t mode_10ms_20ms = {
 static const state_table_t mode_10ms_10ms = {
   .cn0_ms = 10,
   .lockdet_ms = 10,
-  .flld_ms = 5,
+  .flld_ms = 2.5,
   .fpll_ms = 10,
   .fpll_decim = 1,
   .dll_ms = 10,
   .bit_ms = 10,
-  .ent_cnt = 4,
+  .ent_cnt = 5,
   .entries = {
-    {2, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET},
-    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
-    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
+    {2, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET |
                                                                   TPF_FLL_USE |
                                                                   TPF_FLL_HALFQ},
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET},
+    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
+                                                                  TPF_FLL_USE},
 
-    {5, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET |
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET |
+                                                                  TPF_FLL_USE},
+    {3, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET |
         TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN},
   }
 };
@@ -534,25 +537,34 @@ static const state_table_t mode_10ms_10ms = {
 static const state_table_t mode_20ms_10ms = {
   .cn0_ms = 10,
   .lockdet_ms = 20,
-  .flld_ms = 10,
+  .flld_ms = 2.5,
   .fpll_ms = 20,
   .fpll_decim = 1,
   .dll_ms = 20,
   .bit_ms = 10,
-  .ent_cnt = GLO_FSM_20MS_NUM * 6, /* 600 */
+  .ent_cnt = GLO_FSM_20MS_NUM * 9, /* 900 */
   .entries = {
 #define FSM_GLO_20_MS(odd, even)                                                                  \
-    {2, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET | GLO_FLAGS(odd)},  \
-    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | GLO_FLAGS(odd)},  \
-    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | GLO_FLAGS(odd)},  \
-                                                                                                  \
-    {5, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | GLO_FLAGS(odd) |  \
-                      TPF_CN0_USE | TPF_BSYNC_UPD |               TPF_FLL_USE |                   \
+    {2, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET | GLO_FLAGS(odd) |  \
+                                                                  TPF_FLL_USE |                   \
                                                                   TPF_FLL_HALFQ},                 \
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET | GLO_FLAGS(odd)},  \
+    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | GLO_FLAGS(odd) |  \
+                                                                  TPF_FLL_USE},                   \
                                                                                                   \
-    {5, TPF_EPL_ADD | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_ADD | TPF_FLL_SET | GLO_FLAGS(even)}, \
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET | GLO_FLAGS(odd) |  \
+                                                                  TPF_FLL_USE},                   \
+    {3, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET | GLO_FLAGS(odd) |  \
+                      TPF_CN0_USE | TPF_BSYNC_UPD |               TPF_FLL_USE},                   \
                                                                                                   \
-    {5, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | GLO_FLAGS(even) | \
+    {2, TPF_EPL_ADD | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_ADD | TPF_FLL_SET | GLO_FLAGS(even) | \
+                                                                  TPF_FLL_USE},                   \
+    {3, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET | GLO_FLAGS(even) | \
+                                                                  TPF_FLL_USE},                   \
+                                                                                                  \
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET | GLO_FLAGS(even) | \
+                                                                  TPF_FLL_USE},                   \
+    {3, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET | GLO_FLAGS(even) | \
         TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN}
 
     FSM_GLO_2000_MS
@@ -599,24 +611,33 @@ static const state_table_t mode_20ms_10ms_base = {
 static const state_table_t mode_200ms_10ms = {
   .cn0_ms = 20,
   .lockdet_ms = 0, /* not used in FLL only mode */
-  .flld_ms = 10,
+  .flld_ms = 2.5,
   .fpll_ms = 20,
   .fpll_decim = 10,
   .dll_ms = 20,
   .bit_ms = 10,
-  .ent_cnt = GLO_FSM_20MS_NUM * 6, /* 600 */
+  .ent_cnt = GLO_FSM_20MS_NUM * 9, /* 900 */
   .entries = {
 
 #define FSM_GLO_20_MS(odd, even)                                                    \
-    {2, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_FLL_SET | GLO_FLAGS(odd)},  \
-    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_ADD | GLO_FLAGS(odd)},  \
-    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_ADD | GLO_FLAGS(odd)},  \
-    {5, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_ADD | GLO_FLAGS(odd) |  \
-                                    TPF_BSYNC_UPD | TPF_FLL_USE |                   \
+    {2, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_FLL_SET | GLO_FLAGS(odd) |  \
+                                                    TPF_FLL_USE |                   \
                                                     TPF_FLL_HALFQ},                 \
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_SET | GLO_FLAGS(odd)},  \
+    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_ADD | GLO_FLAGS(odd) |  \
+                                                    TPF_FLL_USE},                   \
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_SET | GLO_FLAGS(odd) |  \
+                                                    TPF_FLL_USE},                   \
+    {3, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_SET | GLO_FLAGS(odd) |  \
+                                    TPF_BSYNC_UPD | TPF_FLL_USE},                   \
                                                                                     \
-    {5, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_FLL_SET | GLO_FLAGS(even)}, \
-    {5, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_ADD | GLO_FLAGS(even) | \
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_FLL_SET | GLO_FLAGS(even) | \
+                                                    TPF_FLL_USE},                   \
+    {3, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_SET | GLO_FLAGS(even) | \
+                                                    TPF_FLL_USE},                   \
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_SET | GLO_FLAGS(even) | \
+                                                    TPF_FLL_USE},                   \
+    {3, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_SET | GLO_FLAGS(even) | \
         TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_FLL_USE | TPF_FPLL_RUN}
 
     FSM_GLO_2000_MS
