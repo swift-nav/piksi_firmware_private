@@ -675,7 +675,7 @@ static const state_table_t mode_200ms_10ms_nm = {
 static const state_table_t mode_20ms_sc4 = {
   .cn0_ms = 10,
   .lockdet_ms = 20,
-  .flld_ms = 10,
+  .flld_ms = 4,
   .fpll_ms = 20,
   .fpll_decim = 1,
   .dll_ms = 20,
@@ -684,16 +684,16 @@ static const state_table_t mode_20ms_sc4 = {
   .entries = {
     {2, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET},
     {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
-                                    TPF_BSYNC_UPD},
-    {4, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_PLD_ADD | TPF_FLL_ADD |
-                                    TPF_BSYNC_UPD},
-    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_PLD_ADD | TPF_FLL_ADD |
-                      TPF_CN0_USE |                               TPF_FLL_USE },
-    {2, TPF_EPL_ADD | TPF_CN0_SET | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET |
-                                    TPF_BSYNC_UPD},
-    {4, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_PLD_ADD | TPF_FLL_ADD |
-                                    TPF_BSYNC_UPD},
-    {4, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_PLD_ADD | TPF_FLL_ADD |
+                                    TPF_BSYNC_UPD |               TPF_FLL_USE},
+    {4, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_PLD_ADD | TPF_FLL_SET |
+                                    TPF_BSYNC_UPD |               TPF_FLL_USE},
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_PLD_ADD | TPF_FLL_SET |
+                      TPF_CN0_USE},
+    {2, TPF_EPL_ADD | TPF_CN0_SET | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
+                                    TPF_BSYNC_UPD |               TPF_FLL_USE},
+    {4, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_PLD_ADD | TPF_FLL_SET |
+                                    TPF_BSYNC_UPD |               TPF_FLL_USE},
+    {4, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_PLD_ADD | TPF_FLL_SET |
         TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN}
   }
 };
@@ -737,7 +737,7 @@ static const state_table_t mode_20ms_sc4_base = {
 static const state_table_t mode_200ms_sc4 = {
   .cn0_ms = 20,
   .lockdet_ms = 0, /* not used in FLL only mode */
-  .flld_ms = 10,
+  .flld_ms = 4,
   .fpll_ms = 20,
   .fpll_decim = 10,
   .dll_ms = 20,
@@ -746,16 +746,15 @@ static const state_table_t mode_200ms_sc4 = {
   .entries = {
     {2, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_FLL_SET},
     {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_ADD |
-                                    TPF_BSYNC_UPD},
-    {4, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_FLL_ADD |
-                                    TPF_BSYNC_UPD},
-    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_FLL_ADD |
-                                                    TPF_FLL_USE },
-    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_SET |
-                                    TPF_BSYNC_UPD},
-    {4, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_FLL_ADD |
-                                    TPF_BSYNC_UPD},
-    {4, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_FLL_ADD |
+                                    TPF_BSYNC_UPD | TPF_FLL_USE},
+    {4, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_FLL_SET |
+                                    TPF_BSYNC_UPD | TPF_FLL_USE},
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_FLL_SET},
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_ADD |
+                                    TPF_BSYNC_UPD | TPF_FLL_USE},
+    {4, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_FLL_SET |
+                                    TPF_BSYNC_UPD | TPF_FLL_USE},
+    {4, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_FLL_SET |
         TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_FLL_USE | TPF_FPLL_RUN}
   }
 };
