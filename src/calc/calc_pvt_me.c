@@ -392,15 +392,15 @@ static s8 me_compute_pvt(const obs_array_t *obs_array,
                          gnss_sid_set_t *raim_sids,
                          gnss_sid_set_t *raim_removed_sids) {
   u8 n_ready = obs_array->n;
-  gnss_sid_set_t codes;
-  sid_set_init(&codes);
+  sid_set_init(raim_sids);
   for (u8 i = 0; i < n_ready; i++) {
-    sid_set_add(&codes, obs_array->observations[i].sid);
+    sid_set_add(raim_sids, obs_array->observations[i].sid);
   }
 
   if (n_ready < MINIMUM_SV_COUNT ||
-      sid_set_get_sat_count(&codes) < MINIMUM_SV_COUNT) {
-    /* Not enough sats to even try PVT */
+      sid_set_get_sat_count(raim_sids) < MINIMUM_SV_COUNT) {
+    /* Not enough sats to even try PVT, mark all measurements as bad */
+    *raim_removed_sids = *raim_sids;
     return PVT_INSUFFICENT_MEAS;
   }
 
@@ -466,29 +466,30 @@ static s8 me_compute_pvt(const obs_array_t *obs_array,
                         &dops,
                         raim_removed_sids);
 
-  if (pvt_ret < 0 || (lgf->position_quality == POSITION_FIX &&
-                      gate_covariance(&current_fix))) {
-    if (pvt_ret < 0) {
-      /* An error occurred with calc_PVT! */
-      /* pvt_err_msg defined in starling/pvt.c */
-      /* Print out max. once per second */
-      DO_EACH_MS(
-          SECS_MS,
-          log_warn(
-              "PVT solver: %s (code %d)", pvt_err_msg[-pvt_ret - 1], pvt_ret));
-    }
+  if (pvt_ret < 0) {
+    /* An error occurred with calc_PVT! */
+    /* pvt_err_msg defined in starling/pvt.c */
+    /* Print out max. once per second */
+    DO_EACH_MS(
+        SECS_MS,
+        log_warn(
+            "PVT solver: %s (code %d)", pvt_err_msg[-pvt_ret - 1], pvt_ret));
+
     /* If we already had a good fix, degrade its quality to STATIC */
     if (lgf->position_quality > POSITION_STATIC) {
       lgf->position_quality = POSITION_STATIC;
     }
+    /* Mark all measurements bad */
+    *raim_removed_sids = *raim_sids;
+    return pvt_ret;
   }
 
-  /* If we have a successful RAIM repair, mark the passed observations as valid,
-   * and check if the failed observations as gross enough to have their channel
-   * dropped */
-  if (pvt_ret == PVT_CONVERGED_RAIM_REPAIR) {
-    /* all signals have gone through RAIM */
-    *raim_sids = codes;
+  if (pvt_ret == PVT_CONVERGED_NO_RAIM) {
+    /* no signals went through RAIM */
+    sid_set_init(raim_sids);
+  } else if (pvt_ret == PVT_CONVERGED_RAIM_REPAIR) {
+    /* If we have a successful RAIM repair, check if the failed observations are
+       * gross enough to have their channel dropped */
     for (u8 i = 0; i < n_ready; i++) {
       if (sid_set_contains(raim_removed_sids, nav_meas[i].sid)) {
         /* Check how large the outlier roughly is, and if it is a gross one,
@@ -499,33 +500,25 @@ static s8 me_compute_pvt(const obs_array_t *obs_array,
                            &current_fix);
       }
     }
-  } else if (pvt_ret == PVT_CONVERGED_RAIM_OK) {
-    /* all signals have gone through RAIM */
-    *raim_sids = codes;
-  } else {
-    sid_set_init(raim_sids);
   }
 
-  if (pvt_ret >= 0) {
-    if (lgf->position_quality <= POSITION_GUESS) {
-      /* Notify of the first fix */
-      log_info("first fix clk_offset %.3e clk_drift %.3e",
-               current_fix.clock_offset,
-               current_fix.clock_drift);
-    }
-
-    /* PVT succeeded, update the relationship between the solved GPS time
-     * and NAP count */
-    update_time(current_tc, &current_fix);
-
-    /* Update global position solution state. */
-    lgf->position_solution = current_fix;
-    lgf->position_quality = POSITION_FIX;
-    /* Store the smoothed clock solution into lgf */
-    lgf->position_solution.time = napcount2gpstime(current_tc);
-    lgf->position_solution.clock_drift = get_clock_drift();
-    ndb_lgf_store(&*lgf);
+  if (lgf->position_quality <= POSITION_GUESS) {
+    /* Notify of the first fix */
+    log_info("first fix clk_offset %.3e clk_drift %.3e",
+             current_fix.clock_offset,
+             current_fix.clock_drift);
   }
+
+  /* Update the relationship between the solved GPS time and NAP count */
+  update_time(current_tc, &current_fix);
+
+  /* Update global position solution state. */
+  lgf->position_solution = current_fix;
+  lgf->position_quality = POSITION_FIX;
+  /* Store the smoothed clock solution into lgf */
+  lgf->position_solution.time = napcount2gpstime(current_tc);
+  lgf->position_solution.clock_drift = get_clock_drift();
+  ndb_lgf_store(&*lgf);
 
   return pvt_ret;
 }
