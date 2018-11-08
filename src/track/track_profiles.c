@@ -50,7 +50,8 @@ typedef enum {
   IDX_5MS,
   IDX_10MS,
   IDX_20MS,
-  IDX_SENS
+  IDX_SENS,
+  IDX_SENS_NM
 } profile_indices_t;
 
 typedef enum {
@@ -362,7 +363,16 @@ static const tp_profile_entry_t tracker_profiles_rover[] = {
       TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
       300,             0,          32,
       IDX_SENS,  IDX_NONE,     IDX_20MS,
-      TP_HIGH_CN0 | TP_USE_NEXT }
+      TP_HIGH_CN0 | TP_USE_NEXT },
+
+  /* sensitivity profile for GLO without meander sync */
+  [IDX_SENS_NM] =
+  { {      0,         1.0,           .5,   TP_CTRL_PLL3,
+      TP_TM_200MS_20MS, TP_TM_200MS_10MS_NM, TP_TM_200MS_2MS, TP_TM_200MS_NH20MS, TP_TM_200MS_SC4 },
+      TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
+      300,             0,          32,
+      IDX_SENS,  IDX_NONE,     IDX_10MS,
+      TP_HIGH_CN0 | TP_USE_NEXT },
 };
 
 /**
@@ -782,7 +792,7 @@ static bool profile_switch_requested(tracker_t *tracker,
   if ((index > IDX_10MS) && IS_GLO(tracker->mesid)) {
     /* GLO meander wipe-off prerequisites check-up */
     if (0 == (tracker->flags & TRACKER_FLAG_GLO_STRING_SYNC)) {
-      index = IDX_10MS; /* no meander wipe-off without GLO string sync */
+      index = IDX_SENS_NM; /* no meander wipe-off without GLO string sync */
     } else {
       /* for a switch we must be 20ms aligned by the end of the current cycle */
       tp_tm_e mode = tracker->tracking_mode;
