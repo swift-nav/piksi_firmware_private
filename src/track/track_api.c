@@ -223,6 +223,14 @@ s32 tracker_tow_update(tracker_t *tracker,
     current_TOW_ms = normalize_tow(current_TOW_ms);
     /* TODO: maybe keep track of week number in channel state, or
        derive it from system time */
+
+    /* Get GLO string sync from existing TOW */
+    bool string_sync = (0 != (tracker->flags & TRACKER_FLAG_GLO_STRING_SYNC));
+    if (!string_sync) {
+      u16 ms = current_TOW_ms % GLO_STRING_LENGTH_MS;
+      tracker->glo_into_string_ms = ms;
+      tracker->flags |= TRACKER_FLAG_GLO_STRING_SYNC;
+    }
   }
 
   return current_TOW_ms;
