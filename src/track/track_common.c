@@ -824,6 +824,21 @@ static void tp_tracker_update_loops(tracker_t *tracker, u32 cycle_flags) {
       costas = false;
     }
 
+    if (CODE_GAL_E7I == tracker->mesid.code) {
+      const corr_t *data[3] = {&corr_main.early, &corr_main.prompt, &corr_main.late};
+      const corr_t *dp_data[3] = {&corr_main.dp_early, &corr_main.dp_prompt, &corr_main.dp_late};
+
+      DO_EVERY(10,
+      log_info("D:%d,%d,%d,%d,%d,%d P:%d,%d,%d,%d,%d,%d",
+               (int)data[0]->I, (int)data[0]->Q,
+               (int)data[1]->I, (int)data[1]->Q,
+               (int)data[2]->I, (int)data[2]->Q,
+
+               (int)dp_data[0]->I, (int)dp_data[0]->Q,
+               (int)dp_data[1]->I, (int)dp_data[1]->Q,
+               (int)dp_data[2]->I, (int)dp_data[2]->Q););
+    }
+
     tp_tl_update_dll_discr(&tracker->tl_state, &corr_main);
     tp_tl_update_dll(&tracker->tl_state);
 
