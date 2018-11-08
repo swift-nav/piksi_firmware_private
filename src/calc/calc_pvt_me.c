@@ -51,14 +51,8 @@
 #include "timing/timing.h"
 #include "track/track_sid_db.h"
 #include "track/track_utils.h"
+#include "utils/signal_db/signal_db.h"
 
-/** Mandatory flags filter for measurements */
-#define MANAGE_TRACK_FLAGS_FILTER                               \
-  (MANAGE_TRACK_FLAG_ACTIVE | MANAGE_TRACK_FLAG_NO_ERROR |      \
-   MANAGE_TRACK_FLAG_CONFIRMED | MANAGE_TRACK_FLAG_CN0_SHORT |  \
-   MANAGE_TRACK_FLAG_ELEVATION | MANAGE_TRACK_FLAG_HAS_EPHE |   \
-   MANAGE_TRACK_FLAG_HEALTHY | MANAGE_TRACK_FLAG_NAV_SUITABLE | \
-   MANAGE_TRACK_FLAG_TOW)
 /** Minimum number of satellites to use with PVT */
 #define MINIMUM_SV_COUNT 5
 
