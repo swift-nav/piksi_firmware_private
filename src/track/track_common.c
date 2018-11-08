@@ -422,11 +422,11 @@ static void add_pilot_and_data_iq(tp_epl_corr_t *cs_now) {
      using the data bit polarity as it might be flaky. */
 
   /* early */
-  pilot[0].I = ABS(data[0].I) + ABS(pilot[0].I);
-  pilot[0].Q = ABS(data[0].Q) + ABS(pilot[0].Q);
+  /* pilot[0].I = ABS(data[0].I) + ABS(pilot[0].I); */
+  /* pilot[0].Q = ABS(data[0].Q) + ABS(pilot[0].Q); */
 
   /* prompt */
-  if (tp_is_base_station_mode()) {
+  /* if (tp_is_base_station_mode()) { */
     corr_t tmp = data[1];
     /* non-normalized dot product using data and pilot prompt IQ data */
     if ((data[1].I * pilot[1].I + data[1].Q * pilot[1].Q) > 0) {
@@ -441,11 +441,11 @@ static void add_pilot_and_data_iq(tp_epl_corr_t *cs_now) {
       pilot[1].I -= tmp.I; /* wipe-off data bits */
       pilot[1].Q -= tmp.Q;
     }
-  }
+  /* } */
 
   /* late */
-  pilot[2].I = ABS(data[2].I) + ABS(pilot[2].I);
-  pilot[2].Q = ABS(data[2].Q) + ABS(pilot[2].Q);
+  /* pilot[2].I = ABS(data[2].I) + ABS(pilot[2].I); */
+  /* pilot[2].Q = ABS(data[2].Q) + ABS(pilot[2].Q); */
 }
 
 /**
