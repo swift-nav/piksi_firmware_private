@@ -62,18 +62,22 @@ void tp_tl_init(tp_tl_state_t *s,
  * \param[in,out] s      Tracker state to reconfigure.
  * \param[in]     ctrl   Type of new controller.
  * \param[in]     config Tracking loop configuration parameters
+ * \param[in]     aid    Carrier aiding scale factor
  *
  * \return None.
  */
-void tp_tl_retune(tp_tl_state_t *s, tp_ctrl_e ctrl, const tl_config_t *config) {
+void tp_tl_retune(tp_tl_state_t *s,
+                  tp_ctrl_e ctrl,
+                  const tl_config_t *config,
+                  float aid) {
   if (ctrl == s->ctrl) {
     switch (ctrl) {
       case TP_CTRL_PLL2:
-        tl_pll2_retune(&s->pll2, config);
+        tl_pll2_retune(&s->pll2, config, aid);
         break;
 
       case TP_CTRL_PLL3:
-        tl_pll3_retune(&s->pll3, config);
+        tl_pll3_retune(&s->pll3, config, aid);
         break;
 
       default:

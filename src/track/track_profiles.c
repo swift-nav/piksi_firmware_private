@@ -816,11 +816,16 @@ static bool profile_switch_requested(tracker_t *tracker,
     return false;
   }
 
-  state->dll_init = false;
   const tp_profile_entry_t *cur = &state->profiles[state->cur.index];
-  if ((0 != (cur->flags & TP_UNAIDED)) && (0 == (next->flags & TP_UNAIDED))) {
-    /* Unaided DLL velocity causes instability when switching to aided DLL */
-    state->dll_init = true;
+  bool aiding_activated =
+      (0 != (cur->flags & TP_UNAIDED)) && (0 == (next->flags & TP_UNAIDED));
+  bool aiding_deactivated =
+      (0 == (cur->flags & TP_UNAIDED)) && (0 != (next->flags & TP_UNAIDED));
+  state->dll_aid_sign = 0;
+  if (aiding_activated) {
+    state->dll_aid_sign = -1;
+  } else if (aiding_deactivated) {
+    state->dll_aid_sign = 1;
   }
 
   state->next.index = index;

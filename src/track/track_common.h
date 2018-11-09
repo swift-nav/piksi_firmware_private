@@ -98,7 +98,10 @@ void tp_tl_init(tp_tl_state_t *s,
                 const tl_rates_t *rates,
                 const tl_config_t *config);
 
-void tp_tl_retune(tp_tl_state_t *s, tp_ctrl_e ctrl, const tl_config_t *config);
+void tp_tl_retune(tp_tl_state_t *s,
+                  tp_ctrl_e ctrl,
+                  const tl_config_t *config,
+                  float aid);
 
 void tp_tl_adjust(tp_tl_state_t *s, float err);
 void tp_tl_get_rates(const tp_tl_state_t *s, tl_rates_t *rates);

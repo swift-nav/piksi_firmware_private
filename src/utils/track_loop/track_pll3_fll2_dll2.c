@@ -106,10 +106,13 @@ void tl_pll3_init(tl_pll3_state_t *s,
  *
  * \param[in,out] s      Filter configuration object
  * \param[in]     config Tracking loop configuration parameters
+ * \param[in]     aid    Carrier aiding scale factor
  *
  * \return None
  */
-void tl_pll3_retune(tl_pll3_state_t *s, const tl_config_t *config) {
+void tl_pll3_retune(tl_pll3_state_t *s, const tl_config_t *config, float aid) {
+  s->code_freq += s->carr_freq * aid;
+  s->code_vel += s->carr_freq * aid;
   update_params(s, config);
 }
 
