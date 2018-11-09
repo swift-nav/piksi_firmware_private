@@ -100,7 +100,7 @@ TEST(tracking_loop_test, test_aided) {
   EXPECT_LT(fabsf(rates.code_freq), carr_freq * 1. / carr_to_code);
   EXPECT_LT(fabsf(rates.acceleration - acceleration), LOW_TOL);
 
-  tl_pll3_retune(&stl_f2p3, &config);
+  tl_pll3_retune(&stl_f2p3, &config, 0);
   EXPECT_LT(fabsf(stl_f2p3.T_CARR - carr_loop_period_s), LOW_TOL);
   EXPECT_LT(fabsf(stl_f2p3.T_CODE - code_loop_period_s), LOW_TOL);
   EXPECT_LT(fabsf(stl_f2p3.freq_c1 - 92.452835f), HIGH_TOL);
