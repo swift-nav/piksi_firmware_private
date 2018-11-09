@@ -427,19 +427,14 @@ static void add_pilot_and_data_iq(tp_epl_corr_t *cs_now) {
 
   /* prompt */
   /* if (tp_is_base_station_mode()) { */
-    corr_t tmp = data[1];
     /* non-normalized dot product using data and pilot prompt IQ data */
     if ((data[1].I * pilot[1].I + data[1].Q * pilot[1].Q) > 0) {
-      data[1].I += pilot[1].I; /* preserve data bit polarity */
-      data[1].Q += pilot[1].Q;
-      pilot[1].I += tmp.I; /* wipe-off data bits */
-      pilot[1].Q += tmp.Q;
+      pilot[1].I += data[1].I; /* wipe-off data bits */
+      pilot[1].Q += data[1].Q;
     } else {
       /* bit flip */
-      data[1].I -= pilot[1].I; /* preserve data bit polarity */
-      data[1].Q -= pilot[1].Q;
-      pilot[1].I -= tmp.I; /* wipe-off data bits */
-      pilot[1].Q -= tmp.Q;
+      pilot[1].I -= data[1].I; /* wipe-off data bits */
+      pilot[1].Q -= data[1].Q;
     }
   /* } */
 
@@ -481,22 +476,22 @@ static void tp_tracker_update_correlators(tracker_t *tracker, u32 cycle_flags) {
      * one needs to apply a 90 deg rotation
      * before setting/accumulating the navigation data bit */
     corr_t temp = cs_now.dp_prompt;
-    cs_now.dp_prompt.I = temp.Q;
+    cs_now.dp_prompt.I = -temp.Q;
     cs_now.dp_prompt.Q = temp.I;
 
     /* Do the rotation for early and late for DLL discriminator */
     temp = cs_now.dp_early;
-    cs_now.dp_early.I = temp.Q;
+    cs_now.dp_early.I = -temp.Q;
     cs_now.dp_early.Q = temp.I;
 
     temp = cs_now.dp_late;
-    cs_now.dp_late.I = temp.Q;
+    cs_now.dp_late.I = -temp.Q;
     cs_now.dp_late.Q = temp.I;
   }
 
+  /* Signals with pilot codes have data on the 5th correlator */
   bool has_pilot_sync = nap_sc_wipeoff(tracker);
   if ((CODE_GPS_L2CM == mesid.code) || has_pilot_sync) {
-    /* For L2CM, the data is also on the 5th correlator */
     cycle_flags |= TPF_BIT_PILOT;
     add_pilot_and_data_iq(&cs_now);
   }
@@ -825,18 +820,16 @@ static void tp_tracker_update_loops(tracker_t *tracker, u32 cycle_flags) {
     }
 
     if (CODE_GAL_E7I == tracker->mesid.code) {
-      const corr_t *data[3] = {&corr_main.early, &corr_main.prompt, &corr_main.late};
-      const corr_t *dp_data[3] = {&corr_main.dp_early, &corr_main.dp_prompt, &corr_main.dp_late};
+      const corr_t *c = corr_main.all;
 
       DO_EVERY(10,
-      log_info("D:%d,%d,%d,%d,%d,%d P:%d,%d,%d,%d,%d,%d",
-               (int)data[0]->I, (int)data[0]->Q,
-               (int)data[1]->I, (int)data[1]->Q,
-               (int)data[2]->I, (int)data[2]->Q,
-
-               (int)dp_data[0]->I, (int)dp_data[0]->Q,
-               (int)dp_data[1]->I, (int)dp_data[1]->Q,
-               (int)dp_data[2]->I, (int)dp_data[2]->Q););
+      log_info("CORR: %d,%d,%d,%d,%d,%d, %d,%d,%d,%d,%d,%d",
+               (int)c[0].I, (int)c[0].Q,
+               (int)c[1].I, (int)c[1].Q,
+               (int)c[2].I, (int)c[2].Q,
+               (int)c[3].I, (int)c[3].Q,
+               (int)c[4].I, (int)c[4].Q,
+               (int)c[5].I, (int)c[5].Q););
     }
 
     tp_tl_update_dll_discr(&tracker->tl_state, &corr_main);
