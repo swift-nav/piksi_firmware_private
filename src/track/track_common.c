@@ -822,7 +822,7 @@ static void tp_tracker_update_loops(tracker_t *tracker, u32 cycle_flags) {
     if (CODE_GAL_E7I == tracker->mesid.code) {
       const corr_t *c = corr_main.all;
 
-      DO_EVERY(10,
+      DO_EVERY(2048,
       log_info("CORR: %d,%d,%d,%d,%d,%d, %d,%d,%d,%d,%d,%d",
                (int)c[0].I, (int)c[0].Q,
                (int)c[1].I, (int)c[1].Q,
