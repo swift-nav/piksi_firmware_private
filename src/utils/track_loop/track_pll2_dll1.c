@@ -73,8 +73,10 @@ void tl_pll2_init(tl_pll2_state_t *s,
  *
  * \param[in,out] s      Filter configuration object
  * \param[in]     config Tracking loop configuration parameters
+ * \param[in]     aid    Carrier aiding scale factor
  */
-void tl_pll2_retune(tl_pll2_state_t *s, const tl_config_t *config) {
+void tl_pll2_retune(tl_pll2_state_t *s, const tl_config_t *config, float aid) {
+  s->code_freq_hz += s->carr_freq_hz * aid;
   update_params(s, config);
 }
 

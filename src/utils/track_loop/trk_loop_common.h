@@ -149,7 +149,7 @@ float dll_discriminator(const correlation_t cs[3]);
 void tl_pll3_init(tl_pll3_state_t *s,
                   const tl_rates_t *rates,
                   const tl_config_t *config);
-void tl_pll3_retune(tl_pll3_state_t *s, const tl_config_t *config);
+void tl_pll3_retune(tl_pll3_state_t *s, const tl_config_t *config, float aid);
 
 void tl_pll3_update_dll_discr(tl_pll3_state_t *s, const correlation_t cs[3]);
 void tl_pll3_update_dll(tl_pll3_state_t *s);
@@ -167,7 +167,7 @@ float tl_pll3_get_freq_error(const tl_pll3_state_t *s);
 void tl_pll2_init(tl_pll2_state_t *s,
                   const tl_rates_t *rates,
                   const tl_config_t *config);
-void tl_pll2_retune(tl_pll2_state_t *s, const tl_config_t *config);
+void tl_pll2_retune(tl_pll2_state_t *s, const tl_config_t *config, float aid);
 void tl_pll2_update_dll(tl_pll2_state_t *s);
 void tl_pll2_update_dll_discr(tl_pll2_state_t *s, const correlation_t cs[3]);
 void tl_pll2_update_pll(tl_pll2_state_t *s,
