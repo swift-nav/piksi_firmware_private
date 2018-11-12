@@ -513,10 +513,10 @@ static int heading_offset_changed(void *ctx) {
         heading_offset,
         180.0,
         -180.0);
-    return SBP_SETTINGS_WRITE_STATUS_VALUE_REJECTED;
+    return SETTINGS_WR_VALUE_REJECTED;
   }
 
-  return SBP_SETTINGS_WRITE_STATUS_OK;
+  return SETTINGS_WR_OK;
 }
 
 static int enable_fix_mode(void *ctx) {
@@ -524,7 +524,7 @@ static int enable_fix_mode(void *ctx) {
 
   starling_set_is_fix_enabled(FILTER_FIXED == dgnss_filter_mode);
 
-  return SBP_SETTINGS_WRITE_STATUS_OK;
+  return SETTINGS_WR_OK;
 }
 
 static int set_dgnss_soln_mode(void *ctx) {
@@ -532,7 +532,7 @@ static int set_dgnss_soln_mode(void *ctx) {
 
   starling_set_solution_mode(dgnss_soln_mode);
 
-  return SBP_SETTINGS_WRITE_STATUS_OK;
+  return SETTINGS_WR_OK;
 }
 
 static int set_max_age(void *ctx) {
@@ -545,7 +545,7 @@ static int set_max_age(void *ctx) {
 
   starling_set_max_correction_age(corr_age_max);
 
-  return SBP_SETTINGS_WRITE_STATUS_OK;
+  return SETTINGS_WR_OK;
 }
 
 static int set_is_glonass_enabled(void *ctx) {
@@ -553,7 +553,7 @@ static int set_is_glonass_enabled(void *ctx) {
 
   starling_set_is_glonass_enabled(enable_glonass);
 
-  return SBP_SETTINGS_WRITE_STATUS_OK;
+  return SETTINGS_WR_OK;
 }
 
 static int set_is_galileo_enabled(void *ctx) {
@@ -561,7 +561,7 @@ static int set_is_galileo_enabled(void *ctx) {
 
   starling_set_is_galileo_enabled(enable_galileo);
 
-  return SBP_SETTINGS_WRITE_STATUS_OK;
+  return SETTINGS_WR_OK;
 }
 
 static int set_is_beidou_enabled(void *ctx) {
@@ -569,7 +569,7 @@ static int set_is_beidou_enabled(void *ctx) {
 
   starling_set_is_beidou_enabled(enable_beidou);
 
-  return SBP_SETTINGS_WRITE_STATUS_OK;
+  return SETTINGS_WR_OK;
 }
 
 static int set_glonass_downweight_factor(void *ctx) {
@@ -577,7 +577,7 @@ static int set_glonass_downweight_factor(void *ctx) {
 
   starling_set_glonass_downweight_factor(glonass_downweight_factor);
 
-  return SBP_SETTINGS_WRITE_STATUS_OK;
+  return SETTINGS_WR_OK;
 }
 
 static int klobuchar_notify(void *ctx) {
@@ -601,7 +601,7 @@ static int klobuchar_notify(void *ctx) {
     starling_set_is_time_matched_klobuchar_enabled(klobuchar_enabled);
   }
 
-  return SBP_SETTINGS_WRITE_STATUS_OK;
+  return SETTINGS_WR_OK;
 }
 
 static void reset_filters_callback(u16 sender_id,
@@ -739,7 +739,7 @@ void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
 static void initialize_starling_settings(void) {
   static const char *const dgnss_filter_enum[] = {"Float", "Fixed", NULL};
   settings_type_t dgnss_filter_setting;
-  settings_type_register_enum(dgnss_filter_enum, &dgnss_filter_setting);
+  settings_api_register_enum(dgnss_filter_enum, &dgnss_filter_setting);
 
   /* The base obs can optionally enable RAIM exclusion algorithm. */
   SETTING("solution", "disable_raim", disable_raim, SETTINGS_TYPE_BOOL);
@@ -788,7 +788,7 @@ static void initialize_starling_settings(void) {
   static const char *const dgnss_soln_mode_enum[] = {
       "Low Latency", "Time Matched", "No DGNSS", NULL};
   settings_type_t dgnss_soln_mode_setting;
-  settings_type_register_enum(dgnss_soln_mode_enum, &dgnss_soln_mode_setting);
+  settings_api_register_enum(dgnss_soln_mode_enum, &dgnss_soln_mode_setting);
   SETTING_NOTIFY("solution",
                  "dgnss_solution_mode",
                  dgnss_soln_mode,

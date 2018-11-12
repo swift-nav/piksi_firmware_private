@@ -66,7 +66,7 @@ int main(void) {
 
   nap_init();
 
-  settings_setup();
+  settings_api_setup();
   timing_setup();
 
   log_info("Piksi Starting...");
@@ -86,7 +86,6 @@ int main(void) {
   }
   /* We only need 16 bits for sender ID for sbp */
 
-  settings_sender_id_set(sender_id);
   sbp_sender_id_set(sender_id);
 
   /* Initialize receiver time to the Jan 1980 with large enough uncertainty */

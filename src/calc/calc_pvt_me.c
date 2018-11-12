@@ -804,12 +804,12 @@ static int soln_freq_setting_notify(void *ctx) {
         "Solution frequency setting outside acceptable range: [%.2f, %.2f] Hz.",
         SOLN_FREQ_SETTING_MIN,
         SOLN_FREQ_SETTING_MAX);
-    return SBP_SETTINGS_WRITE_STATUS_VALUE_REJECTED;
+    return SETTINGS_WR_VALUE_REJECTED;
   }
 
   soln_freq_setting = validate_soln_freq(soln_freq_setting);
   starling_set_solution_frequency(soln_freq_setting);
-  return SBP_SETTINGS_WRITE_STATUS_OK;
+  return SETTINGS_WR_OK;
 }
 
 void me_calc_pvt_setup() {

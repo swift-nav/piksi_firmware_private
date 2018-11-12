@@ -300,7 +300,7 @@ static int cons_enable_notify(void *ctx) {
      */
     log_error("The platform does not support %s", cfg->name);
     cfg->enabled = false;
-    return SBP_SETTINGS_WRITE_STATUS_VALUE_REJECTED;
+    return SETTINGS_WR_VALUE_REJECTED;
   }
 
   for (u16 i = 0; i < ARRAY_SIZE(acq_status); i++) {
@@ -319,7 +319,7 @@ static int cons_enable_notify(void *ctx) {
     }
   }
 
-  return SBP_SETTINGS_WRITE_STATUS_OK;
+  return SETTINGS_WR_OK;
 }
 
 /* Update the solution elevation mask used by the ME and by Starling. */
@@ -330,7 +330,7 @@ static int solution_elevation_mask_notify(void *ctx) {
 
   starling_set_elevation_mask(solution_elevation_mask);
 
-  return SBP_SETTINGS_WRITE_STATUS_OK;
+  return SETTINGS_WR_OK;
 }
 
 void manage_acq_setup() {

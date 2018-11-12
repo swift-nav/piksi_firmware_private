@@ -95,10 +95,10 @@ static int pps_config_changed(void *ctx) {
   (void)ctx;
 
   if (!pps_config(pps_width_us, pps_polarity)) {
-    return SBP_SETTINGS_WRITE_STATUS_VALUE_REJECTED;
+    return SETTINGS_WR_VALUE_REJECTED;
   }
 
-  return SBP_SETTINGS_WRITE_STATUS_OK;
+  return SETTINGS_WR_OK;
 }
 
 /** Settings callback for PPS frequency.
@@ -113,19 +113,19 @@ static int pps_frequency_changed(void *ctx) {
 
   if (pps_frequency_hz > 20.0) {
     log_info("Invalid PPS frequency. Maximum: 20 Hz\n");
-    return SBP_SETTINGS_WRITE_STATUS_VALUE_REJECTED;
+    return SETTINGS_WR_VALUE_REJECTED;
   }
 
   double pps_period_cand = 1.0 / pps_frequency_hz;
 
   if (pps_width_us >= pps_period_cand * 1.0e6) {
     log_info("PPS width needs to be smaller than PPS period.\n");
-    return SBP_SETTINGS_WRITE_STATUS_VALUE_REJECTED;
+    return SETTINGS_WR_VALUE_REJECTED;
   }
 
   pps_period = pps_period_cand;
 
-  return SBP_SETTINGS_WRITE_STATUS_OK;
+  return SETTINGS_WR_OK;
 }
 
 /** Set up PPS generation.

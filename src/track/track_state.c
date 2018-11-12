@@ -52,7 +52,7 @@ static int track_iq_output_notify(void *ctx) {
     tracker->output_iq = (iq_output_mask & (1 << i)) != 0;
   }
 
-  return SBP_SETTINGS_WRITE_STATUS_OK;
+  return SETTINGS_WR_OK;
 }
 
 static const char *const tracker_mode_enum[] = {"rover", "base station", NULL};
@@ -73,7 +73,7 @@ static int set_tracker_mode(void *ctx) {
       break;
   }
 
-  return SBP_SETTINGS_WRITE_STATUS_OK;
+  return SETTINGS_WR_OK;
 }
 
 /** Set up the tracking module. */
@@ -85,7 +85,7 @@ void track_setup(void) {
                  track_iq_output_notify);
 
   settings_type_t settings_type_mode;
-  settings_type_register_enum(tracker_mode_enum, &settings_type_mode);
+  settings_api_register_enum(tracker_mode_enum, &settings_type_mode);
 
   SETTING_NOTIFY(
       "track", "mode", tracker_mode, settings_type_mode, set_tracker_mode);

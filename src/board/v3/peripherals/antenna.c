@@ -66,7 +66,7 @@ static int antenna_config_notify(void *ctx) {
 
   antenna_configure(antenna_mode, antenna_bias);
 
-  return SBP_SETTINGS_WRITE_STATUS_OK;
+  return SETTINGS_WR_OK;
 }
 
 void antenna_init(void) {
@@ -92,7 +92,7 @@ void antenna_init(void) {
   palSetLine(ANT_IN_SEL_2_GPIO_LINE);
 
   settings_type_t antenna_mode_setting;
-  settings_type_register_enum(antenna_mode_strings, &antenna_mode_setting);
+  settings_api_register_enum(antenna_mode_strings, &antenna_mode_setting);
 
   SETTING_NOTIFY("frontend",
                  "antenna_selection",

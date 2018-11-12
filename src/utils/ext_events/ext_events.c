@@ -43,7 +43,7 @@ static int event0_changed(void *ctx) {
 
   nap_set_ext_event(cfg->pin, cfg->trigger, cfg->timeout_us);
 
-  return SBP_SETTINGS_WRITE_STATUS_OK;
+  return SETTINGS_WR_OK;
 }
 
 /** Set up the external event detection system
@@ -57,7 +57,7 @@ void ext_event_setup(void) {
   static const char *const trigger_enum[] = {
       "None", "Rising", "Falling", "Both", NULL};
   settings_type_t trigger_setting;
-  settings_type_register_enum(trigger_enum, &trigger_setting);
+  settings_api_register_enum(trigger_enum, &trigger_setting);
 
   SETTING_NOTIFY_CTX("ext_event_a",
                      "edge_trigger",

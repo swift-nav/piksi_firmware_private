@@ -19,10 +19,11 @@
 #include <libsbp/settings.h>
 #include <swiftnav/logging.h>
 
+#include "init.h"
 #include "sbp.h"
 #include "settings/settings.h"
 
-static setreg_t *setreg = NULL;
+static settings_t *settings = NULL;
 
 typedef struct settings_ctx_s {
   binary_semaphore_t sem;
@@ -117,54 +118,53 @@ static int unreg_cb_wrap(void *ctx, sbp_msg_callbacks_node_t **node) {
   return 0;
 }
 
-void settings_setup(void) {
+void settings_api_setup(void) {
   chBSemObjectInit(&settings_api_ctx.sem, false);
 
-  setreg = setreg_create();
+  settings_api_t api = {
+    api.ctx = &settings_api_ctx,
+    api.send = send_wrap,
+    api.send_from = send_from_wrap,
+    api.wait_init = wait_init_wrap,
+    api.wait = wait_wrap,
+    api.wait_deinit = wait_deinit_wrap,
+    api.signal = signal_wrap,
+    api.register_cb = reg_cb_wrap,
+    api.unregister_cb = unreg_cb_wrap,
+    api.log = log_,
+  };
 
-  setreg_api_t api = {0};
-  api.ctx = &settings_api_ctx;
-  api.send = send_wrap;
-  api.send_from = send_from_wrap;
-  api.wait_init = wait_init_wrap;
-  api.wait = wait_wrap;
-  api.wait_deinit = wait_deinit_wrap;
-  api.signal = signal_wrap;
-  api.register_cb = reg_cb_wrap;
-  api.unregister_cb = unreg_cb_wrap;
-  api.log = log_;
-
-  setreg_api_init(&api);
+  settings = settings_create(sender_id_get(), &api);
 }
 
-int settings_type_register_enum(const char *const enum_names[],
+int settings_api_register_enum(const char *const enum_names[],
                                 settings_type_t *type) {
-  assert(setreg != NULL);
+  assert(settings != NULL);
   assert(enum_names != NULL);
   assert(type != NULL);
 
-  return setreg_add_enum(setreg, enum_names, type);
+  return settings_register_enum(settings, enum_names, type);
 }
 
-static int settings_default_notify(void *ctx) {
+static int settings_api_default_notify(void *ctx) {
   (void)ctx;
-  return SBP_SETTINGS_WRITE_STATUS_OK;
+  return SETTINGS_WR_OK;
 }
 
-int settings_register(struct setting *setting, settings_type_t type) {
-  return setreg_add_setting(
-      setreg,
+int settings_api_register(struct setting *setting, settings_type_t type) {
+  return settings_register_setting(
+      settings,
       setting->section,
       setting->name,
       setting->addr,
       setting->len,
       type,
-      (NULL == setting->notify) ? settings_default_notify : setting->notify,
+      (NULL == setting->notify) ? settings_api_default_notify : setting->notify,
       setting->notify_ctx);
 }
 
-int settings_register_readonly(struct setting *setting, settings_type_t type) {
-  return setreg_add_readonly(setreg,
+int settings_api_register_readonly(struct setting *setting, settings_type_t type) {
+  return settings_register_readonly(settings,
                              setting->section,
                              setting->name,
                              setting->addr,
@@ -172,14 +172,14 @@ int settings_register_readonly(struct setting *setting, settings_type_t type) {
                              type);
 }
 
-int settings_watch(struct setting *setting, settings_type_t type) {
-  return setreg_add_watch(
-      setreg,
+int settings_api_watch(struct setting *setting, settings_type_t type) {
+  return settings_register_watch(
+      settings,
       setting->section,
       setting->name,
       setting->addr,
       setting->len,
       type,
-      (NULL == setting->notify) ? settings_default_notify : setting->notify,
+      (NULL == setting->notify) ? settings_api_default_notify : setting->notify,
       setting->notify_ctx);
 }

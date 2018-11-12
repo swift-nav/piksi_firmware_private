@@ -37,7 +37,7 @@ static int rf_clk_config_notify(void *ctx) {
 
   antenna_configure(rf_clk_ext);
 
-  return SBP_SETTINGS_WRITE_STATUS_OK;
+  return SETTINGS_WR_OK;
 }
 
 void rf_clk_init(bool allow_ext_clk) {

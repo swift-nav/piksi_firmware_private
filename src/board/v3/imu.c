@@ -342,10 +342,10 @@ static int imu_rate_changed(void *ctx) {
       break;
     default:
       log_error("Unexpected imu rate setting: %u", imu_rate);
-      return SBP_SETTINGS_WRITE_STATUS_VALUE_REJECTED;
+      return SETTINGS_WR_VALUE_REJECTED;
   }
 
-  return SBP_SETTINGS_WRITE_STATUS_OK;
+  return SETTINGS_WR_OK;
 }
 
 static int raw_imu_output_changed(void *ctx) {
@@ -353,7 +353,7 @@ static int raw_imu_output_changed(void *ctx) {
 
   bmi160_imu_set_enabled(raw_imu_output);
 
-  return SBP_SETTINGS_WRITE_STATUS_OK;
+  return SETTINGS_WR_OK;
 }
 
 static int mag_rate_changed(void *ctx) {
@@ -374,10 +374,10 @@ static int mag_rate_changed(void *ctx) {
       break;
     default:
       log_error("Unexpected magnetometer rate setting: %u", mag_rate);
-      return SBP_SETTINGS_WRITE_STATUS_VALUE_REJECTED;
+      return SETTINGS_WR_VALUE_REJECTED;
   }
 
-  return SBP_SETTINGS_WRITE_STATUS_OK;
+  return SETTINGS_WR_OK;
 }
 
 static int raw_mag_output_changed(void *ctx) {
@@ -385,7 +385,7 @@ static int raw_mag_output_changed(void *ctx) {
 
   bmi160_mag_set_enabled(raw_mag_output);
 
-  return SBP_SETTINGS_WRITE_STATUS_OK;
+  return SETTINGS_WR_OK;
 }
 
 static int acc_range_changed(void *ctx) {
@@ -420,7 +420,7 @@ static int acc_range_changed(void *ctx) {
     raw_imu_output = true;
   }
 
-  return SBP_SETTINGS_WRITE_STATUS_OK;
+  return SETTINGS_WR_OK;
 }
 
 static int gyr_range_changed(void *ctx) {
@@ -437,7 +437,7 @@ static int gyr_range_changed(void *ctx) {
     raw_imu_output = true;
   }
 
-  return SBP_SETTINGS_WRITE_STATUS_OK;
+  return SETTINGS_WR_OK;
 }
 
 void imu_init(void) {
@@ -454,20 +454,20 @@ void imu_init(void) {
        * issue resulting in messages with duplicate timestamps. */
       {"25", "50", "100", "200", /* "400",*/ NULL};
   settings_type_t imu_rate_setting;
-  settings_type_register_enum(imu_rate_enum, &imu_rate_setting);
+  settings_api_register_enum(imu_rate_enum, &imu_rate_setting);
   SETTING_NOTIFY(
       "imu", "imu_rate", imu_rate, imu_rate_setting, imu_rate_changed);
 
   static const char *const acc_range_enum[] = {"2g", "4g", "8g", "16g", NULL};
   settings_type_t acc_range_setting;
-  settings_type_register_enum(acc_range_enum, &acc_range_setting);
+  settings_api_register_enum(acc_range_enum, &acc_range_setting);
   SETTING_NOTIFY(
       "imu", "acc_range", acc_range, acc_range_setting, acc_range_changed);
 
   static const char *const gyr_range_enum[] = {
       "2000", "1000", "500", "250", "125", NULL};
   settings_type_t gyr_range_setting;
-  settings_type_register_enum(gyr_range_enum, &gyr_range_setting);
+  settings_api_register_enum(gyr_range_enum, &gyr_range_setting);
   SETTING_NOTIFY(
       "imu", "gyro_range", gyr_range, gyr_range_setting, gyr_range_changed);
 
@@ -481,7 +481,7 @@ void imu_init(void) {
       /* Rates up to 100Hz possible, but not recomended */
       {"6.25", "12.5", "25", NULL};
   settings_type_t mag_rate_setting;
-  settings_type_register_enum(mag_rate_enum, &mag_rate_setting);
+  settings_api_register_enum(mag_rate_enum, &mag_rate_setting);
   SETTING_NOTIFY(
       "imu", "mag_rate", mag_rate, mag_rate_setting, mag_rate_changed);
 
