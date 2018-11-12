@@ -46,7 +46,7 @@ TEST(test_ephemeris_sbp, sbp_roundtrip) {
   gps_time_t t = t_start;
 
   // check the positions every second during the ephemeris fix interval
-  while (gpsdifftime(&t, &e_in.toe) < (double)e_in.fit_interval) {
+  while (gpsdifftime(&t, &e_in.toe) < (double)e_in.fit_interval / 2) {
     t.tow += 1.0;
     normalize_gps_time(&t);
     double _[3];
