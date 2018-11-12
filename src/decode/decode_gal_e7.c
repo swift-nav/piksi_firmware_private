@@ -72,7 +72,6 @@ static void decoder_gal_e7_process(const decoder_channel_info_t *channel_info,
   u8 channel = channel_info->tracking_channel;
 
   while (tracker_nav_bit_received(channel, &nav_bit)) {
-    nav_bit.data = -nav_bit.data;
     gal_decode_status_t status = gal_data_decoding(data, &nav_bit);
     /* Sync tracker with decoder data */
     nav_data_sync_t from_decoder = construct_gal_data_sync(data, status);
