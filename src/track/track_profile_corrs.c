@@ -13,62 +13,52 @@
 #include "track_common.h"
 
 /**
- * Sums up two correlations and return a result.
+ * In-place sum of two correlations: A = A + B
+ * Note, no check is done for overflow.
  *
- * \param[in] a First correlation
- * \param[in] b Second correlation
+ * \param a     First correlation (source and destination)
+ * \param[in] b Second correlation (source)
  *
- * \return Correlation, where I and Q are sums of I and Q of arguments.
  */
-static inline corr_t corr_add(const corr_t a, const corr_t b) {
-  corr_t res = {.I = a.I + b.I, .Q = a.Q + b.Q};
-
-  return res;
+static void corr_add(corr_t *a, const corr_t *b) {
+  a->I += b->I;
+  a->Q += b->Q;
 }
 
 /**
- * Inverts correlation
+ * In-place inverts correlation value
  *
- * \param[in] a Correlation
+ * \param a Correlation (source and destination)
  *
- * \return Correlation, where I and Q are inverted.
  */
-static inline corr_t corr_inv(const corr_t a) {
-  corr_t res = {.I = -a.I, .Q = -a.Q};
-
-  return res;
+static void corr_inv(corr_t *a) {
+  a->I = -a->I;
+  a->Q = -a->Q;
 }
-/**
- * Sums up two correlations and return a result.
- *
- * \param[in] a First correlation
- * \param[in] b Second correlation
- * \param[out] res Resulting accumulator
- *
- * \return Resulting accumulator
- */
-static inline tp_epl_corr_t *corr_epl_add(const tp_epl_corr_t *restrict a,
-                                          const tp_epl_corr_t *restrict b,
-                                          tp_epl_corr_t *restrict res) {
-  for (unsigned i = 0; i < TP_CORR_DATAPILOT_DIM; ++i)
-    res->all[i] = corr_add(a->all[i], b->all[i]);
 
-  return res;
+/**
+ * In place sums up of correlation array.
+ *
+ * \param a First correlation (source and destination)
+ * \param[in] b Second correlation (source)
+ *
+ */
+static void corr_epl_add(tp_epl_corr_t *a, const tp_epl_corr_t *b) {
+  for (u8 i = 0; i < TP_CORR_DATAPILOT_DIM; i++) {
+    corr_add(a->all + i, b->all + i);
+  }
 }
-/**
- * Flips EPL accumulator sign.
- *
- * \param[in]  a   Input accumulator
- * \param[out] res Resulting accumulator
- *
- * \return Pointer to resulting accumulator
- */
-static inline tp_epl_corr_t *corr_epl_inv(const tp_epl_corr_t *restrict a,
-                                          tp_epl_corr_t *restrict res) {
-  for (u8 i = 0; i < TP_CORR_DATAPILOT_DIM; ++i)
-    res->all[i] = corr_inv(a->all[i]);
 
-  return res;
+/**
+ * In-place inverts correlation array
+ *
+ * \param  a  Correlation array (source and destination)
+ *
+ */
+static void corr_epl_inv(tp_epl_corr_t *a) {
+  for (u8 i = 0; i < TP_CORR_DATAPILOT_DIM; i++) {
+    corr_inv(a->all + i);
+  }
 }
 
 /**
@@ -84,62 +74,61 @@ static inline tp_epl_corr_t *corr_epl_inv(const tp_epl_corr_t *restrict a,
  * \return None
  */
 void tp_update_correlators(u32 cycle_flags,
-                           const tp_epl_corr_t *restrict cs_now,
-                           tp_corr_state_t *restrict corr_state) {
-  tp_epl_corr_t tmp_epl;
-  tp_epl_corr_t straight;
-  tp_epl_corr_t *cs_straight = (tp_epl_corr_t *)&straight;
+                           const tp_epl_corr_t *cs_now,
+                           tp_corr_state_t *corr_state) {
+  tp_epl_corr_t straight = (*cs_now);
 
   /* Correlator accumulators update */
   if (0 != (cycle_flags & TPF_EPL_INV)) {
-    corr_epl_inv(cs_now, cs_straight);
-  } else {
-    *cs_straight = *cs_now;
+    corr_epl_inv(&straight);
   }
 
-  if (0 != (cycle_flags & TPF_EPL_SET))
-    corr_state->corr_main = *cs_straight;
-  else if (0 != (cycle_flags & TPF_EPL_ADD))
-    corr_state->corr_main =
-        *corr_epl_add(&corr_state->corr_main, cs_straight, &tmp_epl);
+  if (0 != (cycle_flags & TPF_EPL_SET)) {
+    corr_state->corr_main = straight;
+  } else if (0 != (cycle_flags & TPF_EPL_ADD)) {
+    corr_epl_add(&corr_state->corr_main, &straight);
+  }
 
   /* C/N0 estimator accumulators updates */
-  if (0 != (cycle_flags & TPF_CN0_SET))
-    corr_state->corr_cn0 = *cs_straight;
-  else if (0 != (cycle_flags & TPF_CN0_ADD))
-    corr_state->corr_cn0 =
-        *corr_epl_add(&corr_state->corr_cn0, cs_straight, &tmp_epl);
+  if (0 != (cycle_flags & TPF_CN0_SET)) {
+    corr_state->corr_cn0 = straight.prompt;
+  } else if (0 != (cycle_flags & TPF_CN0_ADD)) {
+    corr_add(&corr_state->corr_cn0, &straight.prompt);
+  }
 
   /* False lock (alias) detector accumulator updates */
-  if (0 != (cycle_flags & TPF_ALIAS_SET))
-    corr_state->corr_ad = cs_straight->prompt;
-  else if (0 != (cycle_flags & TPF_ALIAS_ADD))
-    corr_state->corr_ad = corr_add(corr_state->corr_ad, cs_straight->prompt);
+  if (0 != (cycle_flags & TPF_ALIAS_SET)) {
+    corr_state->corr_ad = straight.prompt;
+  } else if (0 != (cycle_flags & TPF_ALIAS_ADD)) {
+    corr_add(&corr_state->corr_ad, &straight.prompt);
+  }
 
   /* Lock detector accumulator updates */
-  if (0 != (cycle_flags & TPF_PLD_SET))
-    corr_state->corr_ld = cs_straight->prompt;
-  else if (0 != (cycle_flags & TPF_PLD_ADD))
-    corr_state->corr_ld = corr_add(corr_state->corr_ld, cs_straight->prompt);
+  if (0 != (cycle_flags & TPF_PLD_SET)) {
+    corr_state->corr_ld = straight.prompt;
+  } else if (0 != (cycle_flags & TPF_PLD_ADD)) {
+    corr_add(&corr_state->corr_ld, &straight.prompt);
+  }
 
   /* FLL accumulator updates */
-  if (0 != (cycle_flags & TPF_FLL_SET))
-    corr_state->corr_fll = cs_straight->prompt;
-  else if (0 != (cycle_flags & TPF_FLL_ADD))
-    corr_state->corr_fll = corr_add(corr_state->corr_fll, cs_straight->prompt);
+  if (0 != (cycle_flags & TPF_FLL_SET)) {
+    corr_state->corr_fll = straight.prompt;
+  } else if (0 != (cycle_flags & TPF_FLL_ADD)) {
+    corr_add(&corr_state->corr_fll, &straight.prompt);
+  }
 
   if (0 != (cycle_flags & TPF_BSYNC_INV)) {
     /* GLO decoder is driven by 10ms meander affected data */
     assert(0 != (cycle_flags & TPF_EPL_INV));
-    *cs_straight = *cs_now;
+    straight = (*cs_now);
   }
 
   /* Message payload / bit sync accumulator updates */
-  corr_t bit = (0 != (cycle_flags & TPF_BIT_PILOT)) ? cs_straight->dp_prompt
-                                                    : cs_straight->prompt;
+  corr_t bit = (0 != (cycle_flags & TPF_BIT_PILOT)) ? straight.dp_prompt
+                                                    : straight.prompt;
   if (0 != (cycle_flags & TPF_BSYNC_SET)) {
     corr_state->corr_bit = bit;
   } else if (0 != (cycle_flags & TPF_BSYNC_ADD)) {
-    corr_state->corr_bit = corr_add(corr_state->corr_bit, bit);
+    corr_add(&corr_state->corr_bit, &bit);
   }
 }

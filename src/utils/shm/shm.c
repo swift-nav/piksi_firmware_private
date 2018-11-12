@@ -223,11 +223,7 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
       return CODE_NAV_STATE_UNKNOWN;
 
     case CODE_GAL_E1B:
-    case CODE_GAL_E1C:
-    case CODE_GAL_E1X:
     case CODE_GAL_E7I:
-    case CODE_GAL_E7Q:
-    case CODE_GAL_E7X:
       if (shi_gal.shi_set && (SV_UNHEALTHY == shi_gal.shi)) {
         return CODE_NAV_STATE_INVALID;
       } else if (shi_gal.shi_set && (SV_HEALTHY == shi_gal.shi)) {

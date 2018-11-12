@@ -436,9 +436,7 @@ static void tp_tracker_update_correlators(tracker_t *tracker, u32 cycle_flags) {
                             &code_phase_prompt,
                             &carrier_phase);
 
-  if ((CODE_GAL_E5I == mesid.code) || (CODE_GAL_E5Q == mesid.code) ||
-      (CODE_GAL_E5X == mesid.code) || (CODE_GAL_E7I == mesid.code) ||
-      (CODE_GAL_E7Q == mesid.code) || (CODE_GAL_E7X == mesid.code)) {
+  if ((CODE_GAL_E5I == mesid.code) || (CODE_GAL_E7I == mesid.code)) {
     /* for Galileo E5a and E5b all tracking happens on the pilot
      * and when sync is achieved on the SC100 (Prompt)
      * the data can be extracted on the 5th correlator.
@@ -451,7 +449,8 @@ static void tp_tracker_update_correlators(tracker_t *tracker, u32 cycle_flags) {
     cs_now.dp_prompt.Q = temp.I;
   }
 
-  if (CODE_GPS_L2CM == mesid.code) {
+  bool has_pilot_sync = nap_sc_wipeoff(tracker);
+  if ((CODE_GPS_L2CM == mesid.code) || has_pilot_sync) {
     /* For L2CM, the data is also on the 5th correlator */
     cycle_flags |= TPF_BIT_PILOT;
   }
@@ -563,25 +562,24 @@ static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
      * https://github.com/swift-nav/piksi_v3_bug_tracking/issues/475
      * don't update c/n0 if correlators data are 0 use
      * last post-filter sample instead */
-    if (0 == tracker->corrs.corr_cn0.prompt.I &&
-        0 == tracker->corrs.corr_cn0.prompt.Q) {
+    if (0 == tracker->corrs.corr_cn0.I && 0 == tracker->corrs.corr_cn0.Q) {
       log_info_mesid(tracker->mesid,
                      "I/Q: %" PRIi32 "/%" PRIi32 " %" PRIi32 "/%" PRIi32
                      " %" PRIi32 "/%" PRIi32,
-                     tracker->corrs.corr_cn0.early.I,
-                     tracker->corrs.corr_cn0.early.Q,
-                     tracker->corrs.corr_cn0.prompt.I,
-                     tracker->corrs.corr_cn0.prompt.Q,
-                     tracker->corrs.corr_cn0.late.I,
-                     tracker->corrs.corr_cn0.late.Q);
+                     tracker->corrs.corr_main.early.I,
+                     tracker->corrs.corr_main.early.Q,
+                     tracker->corrs.corr_main.prompt.I,
+                     tracker->corrs.corr_main.prompt.Q,
+                     tracker->corrs.corr_main.late.I,
+                     tracker->corrs.corr_main.late.Q);
 
     } else {
       /* Update C/N0 estimate */
       u8 cn0_ms = tp_get_cn0_ms(tracker->tracking_mode);
       cn0 = track_cn0_update(&tracker->cn0_est,
                              cn0_ms,
-                             tracker->corrs.corr_cn0.prompt.I,
-                             tracker->corrs.corr_cn0.prompt.Q);
+                             tracker->corrs.corr_cn0.I,
+                             tracker->corrs.corr_cn0.Q);
     }
   }
 
@@ -762,16 +760,15 @@ static void tp_tracker_update_loops(tracker_t *tracker, u32 cycle_flags) {
   }
 
   if (0 != (cycle_flags & TPF_EPL_USE)) {
+    tp_epl_corr_t corr_main = tracker->corrs.corr_main;
+
     /* Output I/Q correlations using SBP if enabled for this channel */
     if (tracker->tracking_mode != TP_TM_INITIAL) {
-      tracker_correlations_send(tracker, tracker->corrs.corr_main.all);
+      tracker_correlations_send(tracker, corr_main.all);
     }
 
     bool costas = true;
-    tp_epl_corr_t corr_main = tracker->corrs.corr_main;
-
     bool has_pilot_sync = nap_sc_wipeoff(tracker);
-
     if ((CODE_GPS_L2CM == tracker->mesid.code) || has_pilot_sync) {
       /* The L2CM and L2CL codes are in phase, copy the VL to P so that the PLL
        * runs on the pilot instead of the data */

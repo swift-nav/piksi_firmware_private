@@ -53,14 +53,8 @@ void sv_visibility_status_get(const sv_vis_config_t *config,
     case CODE_BDS2_B1:
     case CODE_BDS2_B2:
     case CODE_GAL_E1B:
-    case CODE_GAL_E1C:
-    case CODE_GAL_E1X:
     case CODE_GAL_E7I:
-    case CODE_GAL_E7Q:
-    case CODE_GAL_E7X:
     case CODE_GAL_E5I:
-    case CODE_GAL_E5Q:
-    case CODE_GAL_E5X:
       sv_max_vis_angle_deg = SV_VIS_MAX_ANGLE_FROM_LGF_GPS_DEG;
       break;
     case CODE_GLO_L1OF:

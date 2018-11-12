@@ -76,14 +76,10 @@ void bit_sync_init(bit_sync_t *b, const me_gnss_signal_t mesid) {
   switch ((s8)mesid.code) {
     case CODE_GPS_L1CA:
     case CODE_GPS_L2CM:
-    case CODE_GPS_L2CL:
     case CODE_GPS_L5I:
-    case CODE_GPS_L5Q:
     case CODE_QZS_L1CA:
     case CODE_QZS_L2CM:
-    case CODE_QZS_L2CL:
     case CODE_QZS_L5I:
-    case CODE_QZS_L5Q:
       bit_length = GPS_L1CA_SYMBOL_LENGTH_MS;
       break;
 
@@ -106,8 +102,6 @@ void bit_sync_init(bit_sync_t *b, const me_gnss_signal_t mesid) {
       break;
 
     case CODE_GAL_E1B:
-    case CODE_GAL_E1C:
-    case CODE_GAL_E1X:
       bit_length = 4;
       /* TODO: add GAL_CS100_MS to constants.h in LSNP, or me_constants.h */
       prev_chip = getbitu(gal_e1c_sec25, GAL_CS25_LEN - 1, 1);
@@ -123,8 +117,6 @@ void bit_sync_init(bit_sync_t *b, const me_gnss_signal_t mesid) {
       break;
 
     case CODE_GAL_E5I:
-    case CODE_GAL_E5Q:
-    case CODE_GAL_E5X:
       bit_length = 20;
       /* TODO: add GAL_CS100_MS to constants.h in LSNP, or me_constants.h */
       prev_chip = getbitu(gal_e5q_sec_codes[sat], GAL_CS100_MS - 1, 1);
@@ -136,8 +128,6 @@ void bit_sync_init(bit_sync_t *b, const me_gnss_signal_t mesid) {
       break;
 
     case CODE_GAL_E7I:
-    case CODE_GAL_E7Q:
-    case CODE_GAL_E7X:
       bit_length = 4;
       /* TODO: add GAL_CS100_MS to constants.h in LSNP, or me_constants.h */
       prev_chip = getbitu(gal_e7q_sec_codes[sat], GAL_CS100_MS - 1, 1);
