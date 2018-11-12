@@ -146,26 +146,26 @@ int main(void) {
   ext_setup();
   pps_setup();
 
-  READ_ONLY_PARAMETER(
+  SETTING_READONLY(
       "system_info", "sbp_sender_id", sender_id_str, SETTINGS_TYPE_STRING);
-  READ_ONLY_PARAMETER(
+  SETTING_READONLY(
       "system_info", "serial_number", mfg_id_string, SETTINGS_TYPE_STRING);
-  READ_ONLY_PARAMETER(
+  SETTING_READONLY(
       "system_info", "pfwp_build_id", GIT_VERSION, SETTINGS_TYPE_STRING);
-  READ_ONLY_PARAMETER("system_info",
-                      "pfwp_build_date",
-                      __DATE__ " " __TIME__,
-                      SETTINGS_TYPE_STRING);
-  READ_ONLY_PARAMETER(
+  SETTING_READONLY("system_info",
+                   "pfwp_build_date",
+                   __DATE__ " " __TIME__,
+                   SETTINGS_TYPE_STRING);
+  SETTING_READONLY(
       "system_info", "nap_build_id", nap_version_string, SETTINGS_TYPE_STRING);
-  READ_ONLY_PARAMETER(
+  SETTING_READONLY(
       "system_info", "nap_build_date", nap_date_string, SETTINGS_TYPE_STRING);
-  READ_ONLY_PARAMETER(
+  SETTING_READONLY(
       "system_info", "nap_channels", nap_track_n_channels, SETTINGS_TYPE_INT);
 
-  READ_ONLY_PARAMETER(
+  SETTING_READONLY(
       "system_info", "mac_address", mac_address_string, SETTINGS_TYPE_STRING);
-  READ_ONLY_PARAMETER("system_info", "uuid", uuid_string, SETTINGS_TYPE_STRING);
+  SETTING_READONLY("system_info", "uuid", uuid_string, SETTINGS_TYPE_STRING);
 
   /* Send message to inform host we are up and running. */
   u32 startup_flags = 0;

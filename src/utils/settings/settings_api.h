@@ -56,7 +56,7 @@ struct setting {
     settings_api_register(&(setting), (type));                   \
   } while (0)
 
-#define READ_ONLY_PARAMETER(section, name, var, type)            \
+#define SETTING_READONLY(section, name, var, type)               \
   do {                                                           \
     static struct setting setting = {                            \
         (section), (name), &(var), sizeof(var), (NULL), (NULL)}; \
