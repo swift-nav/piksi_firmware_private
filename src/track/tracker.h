@@ -38,34 +38,29 @@
 typedef enum {
   TP_TM_INITIAL = 0, /**< Initial tracking mode */
 
-  TP_TM_1MS_20MS,   /**< 1 ms */
-  TP_TM_1MS_10MS,   /**< 1 ms */
-  TP_TM_1MS_2MS,    /**< 1 ms */
-  TP_TM_1MS_NH20MS, /**< 1 ms */
-  TP_TM_1MS_SC4,    /**< 1 ms */
+  TP_TM_1MS_20MS, /**< 1 ms */
+  TP_TM_1MS_10MS, /**< 1 ms */
+  TP_TM_1MS_2MS,  /**< 1 ms */
+  TP_TM_1MS_SC4,  /**< 1 ms */
 
-  TP_TM_2MS_20MS,   /**< 2 ms */
-  TP_TM_2MS_10MS,   /**< 2 ms */
-  TP_TM_2MS_2MS,    /**< 2 ms */
-  TP_TM_2MS_NH20MS, /**< 2 ms */
-  TP_TM_2MS_SC4,    /**< 2 ms */
+  TP_TM_2MS_20MS, /**< 2 ms */
+  TP_TM_2MS_10MS, /**< 2 ms */
+  TP_TM_2MS_2MS,  /**< 2 ms */
+  TP_TM_2MS_SC4,  /**< 2 ms */
 
   TP_TM_4MS_SC4, /**< 4 ms */
 
-  TP_TM_5MS_20MS,   /**< 5 ms */
-  TP_TM_5MS_10MS,   /**< 5 ms */
-  TP_TM_5MS_NH20MS, /**< 5 ms */
+  TP_TM_5MS_20MS, /**< 5 ms */
+  TP_TM_5MS_10MS, /**< 5 ms */
 
-  TP_TM_10MS_20MS,   /**< 10 ms */
-  TP_TM_10MS_10MS,   /**< 10 ms */
-  TP_TM_10MS_NH20MS, /**< 10 ms */
-  TP_TM_10MS_SC4,    /**< 10 ms */
+  TP_TM_10MS_20MS, /**< 10 ms */
+  TP_TM_10MS_10MS, /**< 10 ms */
+  TP_TM_10MS_SC4,  /**< 10 ms */
 
   TP_TM_20MS_20MS,      /**< 20 ms */
   TP_TM_20MS_20MS_BASE, /**< 20 ms */
   TP_TM_20MS_10MS,      /**< 20 ms */
   TP_TM_20MS_10MS_BASE, /**< 10 ms */
-  TP_TM_20MS_NH20MS,    /**< 20 ms */
   TP_TM_20MS_SC4,       /**< 20 ms */
   TP_TM_20MS_SC4_BASE,  /**< 20 ms */
 
@@ -73,8 +68,8 @@ typedef enum {
   TP_TM_200MS_10MS,    /**< 200 ms */
   TP_TM_200MS_10MS_NM, /**< 200 ms GLO No Meander */
   TP_TM_200MS_2MS,     /**< 200 ms */
-  TP_TM_200MS_NH20MS,  /**< 200 ms */
   TP_TM_200MS_SC4,     /**< 200 ms */
+
   TP_TM_COUNT
 } tp_tm_e;
 

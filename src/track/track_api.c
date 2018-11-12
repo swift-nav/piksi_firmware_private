@@ -59,7 +59,7 @@ void tracker_correlations_read(u8 nap_channel,
 bool nap_sc_wipeoff(const tracker_t *tracker) {
   const code_t code = tracker->mesid.code;
 
-  return is_gal(code) && tracker_has_bit_sync(tracker);
+  return (is_gal(code) || is_bds2(code)) && tracker_has_bit_sync(tracker);
 }
 
 /** Write the NAP update register for a tracker channel.

@@ -236,7 +236,7 @@ static void histogram_update(bit_sync_t *b,
     }
     if (sum >= 8 * SYMBOL_LENGTH_NH20_MS) {
       /* We are synchronized! */
-      b->bit_phase_ref = b->bit_phase;
+      b->bit_phase_ref = (b->bit_phase) % b->bit_length;
     }
 
   } else if (CODE_GAL_E7I == b->mesid.code) {
