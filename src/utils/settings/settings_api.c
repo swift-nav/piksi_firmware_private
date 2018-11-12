@@ -122,23 +122,23 @@ void settings_api_setup(void) {
   chBSemObjectInit(&settings_api_ctx.sem, false);
 
   settings_api_t api = {
-    api.ctx = &settings_api_ctx,
-    api.send = send_wrap,
-    api.send_from = send_from_wrap,
-    api.wait_init = wait_init_wrap,
-    api.wait = wait_wrap,
-    api.wait_deinit = wait_deinit_wrap,
-    api.signal = signal_wrap,
-    api.register_cb = reg_cb_wrap,
-    api.unregister_cb = unreg_cb_wrap,
-    api.log = log_,
+      api.ctx = &settings_api_ctx,
+      api.send = send_wrap,
+      api.send_from = send_from_wrap,
+      api.wait_init = wait_init_wrap,
+      api.wait = wait_wrap,
+      api.wait_deinit = wait_deinit_wrap,
+      api.signal = signal_wrap,
+      api.register_cb = reg_cb_wrap,
+      api.unregister_cb = unreg_cb_wrap,
+      api.log = log_,
   };
 
   settings = settings_create(sender_id_get(), &api);
 }
 
 int settings_api_register_enum(const char *const enum_names[],
-                                settings_type_t *type) {
+                               settings_type_t *type) {
   assert(settings != NULL);
   assert(enum_names != NULL);
   assert(type != NULL);
@@ -163,13 +163,14 @@ int settings_api_register(struct setting *setting, settings_type_t type) {
       setting->notify_ctx);
 }
 
-int settings_api_register_readonly(struct setting *setting, settings_type_t type) {
+int settings_api_register_readonly(struct setting *setting,
+                                   settings_type_t type) {
   return settings_register_readonly(settings,
-                             setting->section,
-                             setting->name,
-                             setting->addr,
-                             setting->len,
-                             type);
+                                    setting->section,
+                                    setting->name,
+                                    setting->addr,
+                                    setting->len,
+                                    type);
 }
 
 int settings_api_watch(struct setting *setting, settings_type_t type) {
