@@ -1039,11 +1039,8 @@ u32 get_tracking_channel_meas(u8 i,
       meas->carrier_phase += 0.5;
     }
 
-    if (CODE_GAL_E1B == meas->sid.code) {
-      meas->carrier_phase += 0.5;
-    } else if (CODE_GAL_E7I == meas->sid.code) {
-      meas->carrier_phase -= 0.25;
-    }
+    float phase_alignment_cycles = code_to_phase_alignment(meas->sid.code);
+    meas->carrier_phase += phase_alignment_cycles;
 
     /* Adjust carrier phase initial integer offset to be approximately equal to
      * pseudorange.
