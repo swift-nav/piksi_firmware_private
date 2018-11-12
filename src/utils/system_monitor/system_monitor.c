@@ -32,7 +32,7 @@
 #include "piksi_systime.h"
 #include "position/position.h"
 #include "sbp.h"
-#include "settings/settings.h"
+#include "settings/settings_api.h"
 #include "simulator.h"
 #include "system_monitor.h"
 

@@ -21,7 +21,7 @@
 
 #include "init.h"
 #include "sbp.h"
-#include "settings/settings.h"
+#include "settings/settings_api.h"
 
 static settings_t *settings = NULL;
 

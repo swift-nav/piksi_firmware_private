@@ -16,7 +16,7 @@
 #include <hal.h>
 #include <swiftnav/logging.h>
 
-#include "settings/settings.h"
+#include "settings/settings_api.h"
 
 #include <assert.h>
 #include <string.h>

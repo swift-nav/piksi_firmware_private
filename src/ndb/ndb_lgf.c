@@ -18,7 +18,7 @@
 #include "ndb_fs_access.h"
 #include "ndb_internal.h"
 #include "sbp_utils.h"
-#include "settings/settings.h"
+#include "settings/settings_api.h"
 
 /** Default NDB LGF interval update threshold [s] */
 #define NDB_LGF_UPDATE_INTERVAL_S (30 * MINUTE_SECS)

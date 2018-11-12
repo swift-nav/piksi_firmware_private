@@ -39,7 +39,7 @@
 #include "position/position.h"
 #include "sbp/sbp.h"
 #include "sbp/sbp_utils.h"
-#include "settings/settings.h"
+#include "settings/settings_api.h"
 #include "shm/shm.h"
 #include "signal_db/signal_db.h"
 #include "simulator.h"

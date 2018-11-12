@@ -19,7 +19,7 @@
 #include <sbp.h>
 #include "board/v3/nap/grabber.h"
 #include "board/v3/nap/nap_constants.h"
-#include "settings/settings.h"
+#include "settings/settings_api.h"
 #include "system_monitor/system_monitor.h"
 #include "timing/timing.h"
 

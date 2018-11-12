@@ -18,7 +18,7 @@
 #include "ndb_internal.h"
 #include "sbp.h"
 #include "sbp_utils.h"
-#include "settings/settings.h"
+#include "settings/settings_api.h"
 
 /* one can use a simple Matlab script to generate these:
 PRNS_PRESENT = [11 12 19  26 24 30 ...

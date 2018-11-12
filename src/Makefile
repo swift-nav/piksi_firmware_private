@@ -161,7 +161,7 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/nav_msg/nav_msg_gal.o \
         $(SWIFTNAV_ROOT)/src/utils/glo_map_setup/glo_map_setup.o \
         $(SWIFTNAV_ROOT)/src/acq/manage.o \
-        $(SWIFTNAV_ROOT)/src/utils/settings/settings.o \
+        $(SWIFTNAV_ROOT)/src/utils/settings/settings_api.o \
         $(SWIFTNAV_ROOT)/src/utils/timing/timing.o \
         $(SWIFTNAV_ROOT)/src/utils/clock_filter/clock_filter.o \
         $(SWIFTNAV_ROOT)/src/utils/ext_events/ext_events.o \

@@ -18,7 +18,7 @@
 #include "ext_events.h"
 #include "sbp.h"
 #include "sbp_utils.h"
-#include "settings/settings.h"
+#include "settings/settings_api.h"
 #include "timing/timing.h"
 
 /** \defgroup ext_events External Events

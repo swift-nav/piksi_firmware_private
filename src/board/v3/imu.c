@@ -12,7 +12,7 @@
 
 #include "imu.h"
 
-#include "settings/settings.h"
+#include "settings/settings_api.h"
 #include "timing/timing.h"
 
 #include <board/nap/nap_common.h>

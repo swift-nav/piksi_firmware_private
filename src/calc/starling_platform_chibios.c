@@ -44,7 +44,6 @@
 #include "sbas_select/sbas_select.h"
 #include "sbp.h"
 #include "sbp_utils.h"
-#include "settings/settings.h"
 #include "shm/shm.h"
 #include "signal_db/signal_db.h"
 #include "simulator.h"

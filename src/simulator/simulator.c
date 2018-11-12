@@ -30,8 +30,8 @@
 #include "peripherals/leds.h"
 #include "sbp/sbp.h"
 #include "sbp/sbp_utils.h"
-#include "settings/settings.h"
 #include "track/track_sid_db.h"
+#include "settings/settings_api.h"
 
 #include "simulator_data.h"
 
