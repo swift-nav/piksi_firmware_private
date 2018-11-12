@@ -1234,11 +1234,6 @@ static void manage_tracking_startup(void) {
       }
     }
 
-    if ((CODE_GAL_E1B == startup_params.mesid.code) &&
-        (code_track_count(CODE_GAL_E1B) >= 1)) {
-      continue;
-    }
-
     /* Make sure a tracking channel and a decoder channel are available */
     u8 chan = manage_track_new_acq(startup_params.mesid);
 

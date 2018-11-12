@@ -422,11 +422,11 @@ static void add_pilot_and_data_iq(tp_epl_corr_t *cs_now) {
      using the data bit polarity as it might be flaky. */
 
   /* early */
-  /* pilot[0].I = ABS(data[0].I) + ABS(pilot[0].I); */
-  /* pilot[0].Q = ABS(data[0].Q) + ABS(pilot[0].Q); */
+  pilot[0].I = ABS(data[0].I) + ABS(pilot[0].I);
+  pilot[0].Q = ABS(data[0].Q) + ABS(pilot[0].Q);
 
   /* prompt */
-  /* if (tp_is_base_station_mode()) { */
+  if (tp_is_base_station_mode()) {
     /* non-normalized dot product using data and pilot prompt IQ data */
     if ((data[1].I * pilot[1].I + data[1].Q * pilot[1].Q) > 0) {
       pilot[1].I += data[1].I; /* wipe-off data bits */
@@ -436,11 +436,11 @@ static void add_pilot_and_data_iq(tp_epl_corr_t *cs_now) {
       pilot[1].I -= data[1].I; /* wipe-off data bits */
       pilot[1].Q -= data[1].Q;
     }
-  /* } */
+  }
 
   /* late */
-  /* pilot[2].I = ABS(data[2].I) + ABS(pilot[2].I); */
-  /* pilot[2].Q = ABS(data[2].Q) + ABS(pilot[2].Q); */
+  pilot[2].I = ABS(data[2].I) + ABS(pilot[2].I);
+  pilot[2].Q = ABS(data[2].Q) + ABS(pilot[2].Q);
 }
 
 /**
@@ -817,19 +817,6 @@ static void tp_tracker_update_loops(tracker_t *tracker, u32 cycle_flags) {
       /* Once in bit-sync, Galileo pilots are completely free of transitions so
        * no need for a Costas loop*/
       costas = false;
-    }
-
-    if (CODE_GAL_E7I == tracker->mesid.code) {
-      const corr_t *c = corr_main.all;
-
-      DO_EVERY(2048,
-      log_info("CORR: %d,%d,%d,%d,%d,%d, %d,%d,%d,%d,%d,%d",
-               (int)c[0].I, (int)c[0].Q,
-               (int)c[1].I, (int)c[1].Q,
-               (int)c[2].I, (int)c[2].Q,
-               (int)c[3].I, (int)c[3].Q,
-               (int)c[4].I, (int)c[4].Q,
-               (int)c[5].I, (int)c[5].Q););
     }
 
     tp_tl_update_dll_discr(&tracker->tl_state, &corr_main);
