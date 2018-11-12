@@ -321,11 +321,6 @@ static u32 tp_tracker_compute_rollover_count(tracker_t *tracker) {
  * \return None
  */
 static void mode_change_init(tracker_t *tracker) {
-  bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
-  if (!confirmed) {
-    return;
-  }
-
   /* Compute time of the currently integrated period */
   u16 next_cycle = tp_wrap_cycle(tracker->tracking_mode, tracker->cycle_no + 1);
   u32 next_cycle_flags = tp_get_cycle_flags(tracker, next_cycle);
