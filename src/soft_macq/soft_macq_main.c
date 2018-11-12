@@ -262,8 +262,6 @@ static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
       break;
 
     case CODE_GAL_E7I:
-    case CODE_GAL_E7Q:
-    case CODE_GAL_E7X:
       nco_step = CirclesToUint32(GAL_E7_HZ / (double)FAU_RAW_FS);
 
       for (k = 0, carr_nco = 0; k < FAU_SAMPLE_GRABBER_LENGTH; k++) {
@@ -405,8 +403,6 @@ static bool SoftMacqMdbzp(const me_gnss_signal_t mesid,
       break;
 
     case CODE_GAL_E7I:
-    case CODE_GAL_E7Q:
-    case CODE_GAL_E7X:
       fau_conf.iNumCodeSlices = FAU_MDBZP_MS_SLICES * GAL_E7Q_PRN_PERIOD_MS;
       fau_conf.iCodeTimeMs = GAL_E7Q_PRN_PERIOD_MS;
       fau_conf.iCohCodes = FAU_GALE7_COHE;

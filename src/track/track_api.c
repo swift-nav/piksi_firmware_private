@@ -70,13 +70,13 @@ bool nap_sc_wipeoff(const tracker_t *tracker) {
 void tracker_retune(tracker_t *tracker, u32 chips_to_correlate) {
   double doppler_freq_hz = tracker->carrier_freq;
   double code_phase_rate = tracker->code_phase_rate;
-  bool nap_sc_wipe = nap_sc_wipeoff(tracker);
+  bool has_pilot_sync = nap_sc_wipeoff(tracker);
   /* Write NAP UPDATE register. */
   nap_track_update(tracker->nap_channel,
                    doppler_freq_hz,
                    code_phase_rate,
                    chips_to_correlate,
-                   nap_sc_wipe);
+                   has_pilot_sync);
 }
 
 /** Adjust TOW for FIFO delay.
@@ -288,15 +288,11 @@ void tracker_bit_sync_update(tracker_t *tracker,
     return;
   }
 
-  if ((CODE_GAL_E7I == mesid.code) || (CODE_GAL_E7Q == mesid.code) ||
-      (CODE_GAL_E7X == mesid.code)) {
-    log_debug("E%02" PRIu8 " energy %+4" PRIi32 " %+4" PRIi32 "  %+4" PRIi32
-              " %+4" PRIi32,
+  if (CODE_GAL_E7I == mesid.code) {
+    log_debug("E%02" PRIu8 " energy %+4" PRIi32 " %+4" PRIi32,
               mesid.sat,
-              tracker->corrs.corr_cn0.prompt.I,
-              tracker->corrs.corr_cn0.prompt.Q,
-              tracker->corrs.corr_cn0.dp_prompt.I,
-              tracker->corrs.corr_cn0.dp_prompt.Q);
+              tracker->corrs.corr_cn0.I,
+              tracker->corrs.corr_cn0.Q);
   }
 
   s8 soft_bit = nav_bit_quantize(bit_integrate);

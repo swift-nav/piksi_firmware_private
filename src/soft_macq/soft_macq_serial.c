@@ -95,9 +95,7 @@ bool soft_acq_search(const sc16_t *_cSignal,
   double chip_rate = code_to_chip_rate(mesid.code);
   memset(code_resamp, 0, sizeof(s8) * INTFFT_MAXSIZE);
   if ((CODE_SBAS_L1CA == mesid.code) || (CODE_BDS2_B1 == mesid.code) ||
-      (CODE_GAL_E7I == mesid.code) || (CODE_GAL_E7Q == mesid.code) ||
-      (CODE_GAL_E7X == mesid.code) || (CODE_GAL_E5I == mesid.code) ||
-      (CODE_GAL_E5Q == mesid.code) || (CODE_GAL_E5X == mesid.code)) {
+      (CODE_GAL_E7I == mesid.code) || (CODE_GAL_E5I == mesid.code)) {
     /* For constellations with frequent symbol transitions, do 1x4 CxNC */
     code_resample(local_code,
                   code_length,
@@ -106,8 +104,7 @@ bool soft_acq_search(const sc16_t *_cSignal,
                   CODE_SPMS,
                   FAU_SAMPLE_RATE_Hz,
                   BPSK);
-  } else if ((CODE_GAL_E1B == mesid.code) || (CODE_GAL_E1C == mesid.code) ||
-             (CODE_GAL_E1X == mesid.code)) {
+  } else if (CODE_GAL_E1B == mesid.code) {
     code_resample(local_code,
                   code_length,
                   chip_rate,

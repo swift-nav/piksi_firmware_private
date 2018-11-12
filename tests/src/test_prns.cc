@@ -12,24 +12,16 @@ TEST(test_prns_sid_to_init_g1, init) {
   me_gnss_signal_t mesid;
 
   mesid = construct_mesid(CODE_GPS_L2CM, 25);
-  g1 = mesid_to_lfsr0_init(mesid, 0);
+  g1 = mesid_to_lfsr0_init(mesid);
   EXPECT_EQ(0700274134, g1);
 
   mesid = construct_mesid(CODE_GPS_L2CM, 32);
-  g1 = mesid_to_lfsr0_init(mesid, 0);
+  g1 = mesid_to_lfsr0_init(mesid);
   EXPECT_EQ(0050172213, g1);
 
   mesid = construct_mesid(CODE_GPS_L1CA, 25);
-  g1 = mesid_to_lfsr0_init(mesid, 0);
+  g1 = mesid_to_lfsr0_init(mesid);
   EXPECT_EQ(0x3ff, g1);
-
-  mesid = construct_mesid(CODE_GPS_L2CL, 1);
-  g1 = mesid_to_lfsr0_init(mesid, 0);
-  EXPECT_EQ(0624145772, g1);
-
-  mesid = construct_mesid(CODE_GPS_L2CL, 2);
-  g1 = mesid_to_lfsr0_init(mesid, 1);
-  EXPECT_EQ(0243255237, g1);
 }
 
 TEST(test_prns_ca_code, code) {

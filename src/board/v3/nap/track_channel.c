@@ -293,10 +293,8 @@ void nap_track_init(u8 channel,
       tc_codestart + (u64)floor(0.5 + (double)num_codes * code_samples);
 
   u8 index = 0;
-  me_gnss_signal_t mesid1 = mesid;
   if (mesid.code == CODE_GPS_L2CM) {
     index = (num_codes % GPS_L2CL_PRN_START_POINTS);
-    mesid1.code = CODE_GPS_L2CL;
   }
 
 #if defined CODE_GAL_E1_SUPPORT && CODE_GAL_E1_SUPPORT > 0
@@ -314,23 +312,21 @@ void nap_track_init(u8 channel,
     }
   } else {
 #endif /* CODE_GAL_E1_SUPPORT */
-    NAP->TRK_CODE_LFSR0_INIT = mesid_to_lfsr0_init(mesid, 0);
-    NAP->TRK_CODE_LFSR0_RESET = mesid_to_lfsr0_init(mesid, 0);
+    NAP->TRK_CODE_LFSR0_INIT = mesid_to_lfsr0_init(mesid);
+    NAP->TRK_CODE_LFSR0_RESET = mesid_to_lfsr0_init(mesid);
     NAP->TRK_CODE_LFSR0_LAST = mesid_to_lfsr0_last(mesid);
 
-    NAP->TRK_CODE_LFSR1_INIT = mesid_to_lfsr1_init(mesid1, index);
-    NAP->TRK_CODE_LFSR1_RESET = mesid_to_lfsr1_init(mesid1, 0);
-    NAP->TRK_CODE_LFSR1_LAST = mesid_to_lfsr1_last(mesid1);
+    NAP->TRK_CODE_LFSR1_INIT = mesid_to_lfsr1_init(mesid, index);
+    NAP->TRK_CODE_LFSR1_RESET = mesid_to_lfsr1_init(mesid, 0);
+    NAP->TRK_CODE_LFSR1_LAST = mesid_to_lfsr1_last(mesid);
 
-    if ((mesid.code == CODE_GAL_E5I) || (mesid.code == CODE_GAL_E5Q) ||
-        (mesid.code == CODE_GAL_E5X)) {
+    if (mesid.code == CODE_GAL_E5I) {
       index = mesid.sat - 1;
       NAP->TRK_SEC_CODE[3] = getbitu(gal_e5q_sec_codes[index], 0, 4);
       NAP->TRK_SEC_CODE[2] = getbitu(gal_e5q_sec_codes[index], 4, 32);
       NAP->TRK_SEC_CODE[1] = getbitu(gal_e5q_sec_codes[index], 36, 32);
       NAP->TRK_SEC_CODE[0] = getbitu(gal_e5q_sec_codes[index], 68, 32);
-    } else if ((mesid.code == CODE_GAL_E7I) || (mesid.code == CODE_GAL_E7Q) ||
-               (mesid.code == CODE_GAL_E7X)) {
+    } else if (mesid.code == CODE_GAL_E7I) {
       index = mesid.sat - 1;
       NAP->TRK_SEC_CODE[3] = getbitu(gal_e7q_sec_codes[index], 0, 4);
       NAP->TRK_SEC_CODE[2] = getbitu(gal_e7q_sec_codes[index], 4, 32);
@@ -501,21 +497,6 @@ void nap_track_read_results(u8 channel,
   *carrier_phase = (s->reckoned_carr_phase);
 
 #ifndef PIKSI_RELEASE
-  /* Useful for debugging correlators */
-
-  if ((s->mesid.code == CODE_GAL_E7I) || (s->mesid.code == CODE_GAL_E7Q) ||
-      (s->mesid.code == CODE_GAL_E7X)) {
-    log_debug("EPL %02" PRIu8 "   %+3" PRIi32 " %+3" PRIi32 "   %+3" PRIi32
-              " %+3" PRIi32 "   %+3" PRIi32 " %+3" PRIi32,
-              s->mesid.sat,
-              corrs[3].I >> 6,
-              corrs[3].Q >> 6,
-              corrs[1].I >> 6,
-              corrs[1].Q >> 6,
-              corrs[4].I >> 6,
-              corrs[4].Q >> 6);
-  }
-
   if (GET_NAP_TRK_CH_STATUS_CORR_OVERFLOW(trk_ch.STATUS)) {
     log_warn_mesid(s->mesid,
                    "Tracking correlator overflow VE:[%+7" PRIi32 ":%+7" PRIi32

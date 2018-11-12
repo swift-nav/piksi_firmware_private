@@ -300,7 +300,7 @@ typedef struct {
 typedef struct {
   tp_epl_corr_t corr_main; /**< EPL correlation results for DLL and PLL
                             *   in correlation period. */
-  tp_epl_corr_t corr_cn0;  /**< C/N0 accumulators */
+  corr_t corr_cn0;         /**< C/N0 accumulators */
   corr_t corr_fll;         /**< FLL accumulator */
   corr_t corr_ad;          /**< False lock (alias) detector accumulator */
   corr_t corr_ld;          /**< Lock detector accumulator */
