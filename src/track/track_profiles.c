@@ -817,14 +817,12 @@ static bool profile_switch_requested(tracker_t *tracker,
   }
 
   const tp_profile_entry_t *cur = &state->profiles[state->cur.index];
-  bool aiding_activated =
-      (0 != (cur->flags & TP_UNAIDED)) && (0 == (next->flags & TP_UNAIDED));
-  bool aiding_deactivated =
-      (0 == (cur->flags & TP_UNAIDED)) && (0 != (next->flags & TP_UNAIDED));
+  bool cur_aided = (0 == (cur->flags & TP_UNAIDED));
+  bool next_aided = (0 == (next->flags & TP_UNAIDED));
   state->dll_aid_sign = 0;
-  if (aiding_activated) {
+  if (!cur_aided && next_aided) {
     state->dll_aid_sign = -1;
-  } else if (aiding_deactivated) {
+  } else if (cur_aided && !next_aided) {
     state->dll_aid_sign = 1;
   }
 
