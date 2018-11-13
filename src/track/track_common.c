@@ -319,11 +319,6 @@ static u32 tp_tracker_compute_rollover_count(tracker_t *tracker) {
  * \return None
  */
 static void mode_change_init(tracker_t *tracker) {
-  bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
-  if (!confirmed) {
-    return;
-  }
-
   /* Compute time of the currently integrated period */
   u16 next_cycle = tp_wrap_cycle(tracker->tracking_mode, tracker->cycle_no + 1);
   u32 next_cycle_flags = tp_get_cycle_flags(tracker, next_cycle);
@@ -489,14 +484,44 @@ static void tp_tracker_update_correlators(tracker_t *tracker, u32 cycle_flags) {
     cs_now.dp_late.Q = -temp.I;
   }
 
-  bool has_pilot_sync = nap_sc_wipeoff(tracker);
-  if ((CODE_GPS_L2CM == mesid.code) || has_pilot_sync) {
-    /* For L2CM, the data is also on the 5th correlator */
+  const code_t code = mesid.code;
+  bool gal_pilot_sync = is_gal(code) && tracker_has_bit_sync(tracker);
+  if ((CODE_GPS_L2CM == code) || gal_pilot_sync) {
+    /* Galileo and GPS L2CM have data on the 5th correlator */
     cycle_flags |= TPF_BIT_PILOT;
     add_pilot_and_data_iq(&cs_now);
   }
 
   tp_update_correlators(cycle_flags, &cs_now, &tracker->corrs);
+
+  /* debug profile */
+  if (0 && IS_BDS2(mesid) && (TP_TM_INITIAL != tracker->tracking_mode)) {
+    u8 cycle_no = tp_wrap_cycle(tracker->tracking_mode, tracker->cycle_no);
+    tracker->correlators[cycle_no].I += (cs_now.prompt.I >> 16);
+    tracker->correlators[cycle_no].Q += (cs_now.prompt.Q >> 16);
+    bool overflow = false;
+    for (u8 k=0; k<20; k++) {
+      if ((ABS(tracker->correlators[k].I) > 80) || (ABS(tracker->correlators[k].Q) > 80)) {
+        overflow = true;
+      }
+    }
+    if (overflow) {
+      for (u8 k=0; k<20; k++) {
+        tracker->correlators[k].I /= 2;
+        tracker->correlators[k].Q /= 2;
+      }
+    }
+    char tmp[32];
+    char msg[256];
+    sprintf(msg, "CHIST %d : ", tracker->tracking_mode);
+    for (u8 k=0; k<20; k++) {
+      sprintf(tmp, "%+3" PRId32 " %+3" PRId32 " ", tracker->correlators[k].I, tracker->correlators[k].Q);
+      strcat(msg, tmp);
+    }
+    DO_EVERY(2000,
+      log_info_mesid(mesid, "%s", msg);
+      );
+  }
 
   /* Current cycle duration */
   int_ms = tp_get_cycle_duration(tracker->tracking_mode, tracker->cycle_no);
@@ -816,8 +841,9 @@ static void tp_tracker_update_loops(tracker_t *tracker, u32 cycle_flags) {
     }
 
     bool costas = true;
-    bool has_pilot_sync = nap_sc_wipeoff(tracker);
-    if ((CODE_GPS_L2CM == tracker->mesid.code) || has_pilot_sync) {
+    const code_t code = tracker->mesid.code;
+    bool gal_pilot_sync = is_gal(code) && tracker_has_bit_sync(tracker);
+    if ((CODE_GPS_L2CM == code) || gal_pilot_sync) {
       /* The L2CM and L2CL codes are in phase,
        * copy the dp_prompt to prompt so that the PLL
        * runs on the pilot instead of the data */

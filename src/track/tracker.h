@@ -430,6 +430,8 @@ typedef struct {
 
   u16 fpll_cycle; /**< FPLL run cycle within current profile */
 
+  corr_t correlators[20];
+
   tracker_timer_t init_settle_timer;
 } tracker_t;
 

@@ -361,10 +361,10 @@ bool bds_nav_msg_update(nav_msg_bds_t *n, bool bit_val) {
     }
     /* check if it repeats (including polarity) on second TLM */
     if (pream_candidate_prev != pream_candidate_last) {
-      log_debug_mesid(n->mesid,
-                      "prev %" PRIx32 " last %" PRIx32,
-                      pream_candidate_prev,
-                      pream_candidate_last);
+      log_info_mesid(n->mesid,
+                    "prev %" PRIx32 " last %" PRIx32,
+                    pream_candidate_prev,
+                    pream_candidate_last);
       return false;
     }
     /* check that there are no bit errors */
