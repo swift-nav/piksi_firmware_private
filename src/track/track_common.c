@@ -412,6 +412,37 @@ static void process_alias_error(tracker_t *tracker, float I, float Q) {
   tp_tl_adjust(&tracker->tl_state, err_hz);
 }
 
+static void add_pilot_and_data_iq(tp_epl_corr_t *cs_now) {
+  corr_t *all = cs_now->all;
+  corr_t *data = &all[3];
+  corr_t *pilot = &all[0];
+
+  /* In base station mode we combine pilot and data ELP. In rover mode we
+     only combine EL. In rover mode we do not want to "borrow" from the phase
+     using the data bit polarity as it might be flaky. */
+
+  /* early */
+  pilot[0].I = ABS(data[0].I) + ABS(pilot[0].I);
+  pilot[0].Q = ABS(data[0].Q) + ABS(pilot[0].Q);
+
+  /* prompt */
+  if (tp_is_base_station_mode()) {
+    /* non-normalized dot product using data and pilot prompt IQ data */
+    if ((data[1].I * pilot[1].I + data[1].Q * pilot[1].Q) > 0) {
+      pilot[1].I += data[1].I; /* wipe-off data bits */
+      pilot[1].Q += data[1].Q;
+    } else {
+      /* bit flip */
+      pilot[1].I -= data[1].I; /* wipe-off data bits */
+      pilot[1].Q -= data[1].Q;
+    }
+  }
+
+  /* late */
+  pilot[2].I = ABS(data[2].I) + ABS(pilot[2].I);
+  pilot[2].Q = ABS(data[2].Q) + ABS(pilot[2].Q);
+}
+
 /**
  * Updates tracker correlators.
  *
@@ -446,13 +477,23 @@ static void tp_tracker_update_correlators(tracker_t *tracker, u32 cycle_flags) {
      * before setting/accumulating the navigation data bit */
     corr_t temp = cs_now.dp_prompt;
     cs_now.dp_prompt.I = temp.Q;
-    cs_now.dp_prompt.Q = temp.I;
+    cs_now.dp_prompt.Q = -temp.I;
+
+    /* Do the rotation for early and late for DLL discriminator */
+    temp = cs_now.dp_early;
+    cs_now.dp_early.I = temp.Q;
+    cs_now.dp_early.Q = -temp.I;
+
+    temp = cs_now.dp_late;
+    cs_now.dp_late.I = temp.Q;
+    cs_now.dp_late.Q = -temp.I;
   }
 
   bool has_pilot_sync = nap_sc_wipeoff(tracker);
   if ((CODE_GPS_L2CM == mesid.code) || has_pilot_sync) {
     /* For L2CM, the data is also on the 5th correlator */
     cycle_flags |= TPF_BIT_PILOT;
+    add_pilot_and_data_iq(&cs_now);
   }
 
   tp_update_correlators(cycle_flags, &cs_now, &tracker->corrs);
@@ -777,7 +818,8 @@ static void tp_tracker_update_loops(tracker_t *tracker, u32 cycle_flags) {
     bool costas = true;
     bool has_pilot_sync = nap_sc_wipeoff(tracker);
     if ((CODE_GPS_L2CM == tracker->mesid.code) || has_pilot_sync) {
-      /* The L2CM and L2CL codes are in phase, copy the VL to P so that the PLL
+      /* The L2CM and L2CL codes are in phase,
+       * copy the dp_prompt to prompt so that the PLL
        * runs on the pilot instead of the data */
       /* Once in bit-sync, Galileo pilots are completely free of transitions so
        * no need for a Costas loop*/
