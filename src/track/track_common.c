@@ -489,9 +489,9 @@ static void tp_tracker_update_correlators(tracker_t *tracker, u32 cycle_flags) {
     cs_now.dp_late.Q = -temp.I;
   }
 
-  /* Signals with pilot codes have data on the 5th correlator */
   bool has_pilot_sync = nap_sc_wipeoff(tracker);
   if ((CODE_GPS_L2CM == mesid.code) || has_pilot_sync) {
+    /* For L2CM, the data is also on the 5th correlator */
     cycle_flags |= TPF_BIT_PILOT;
     add_pilot_and_data_iq(&cs_now);
   }

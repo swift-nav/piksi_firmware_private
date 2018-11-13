@@ -346,7 +346,7 @@ static const tp_profile_entry_t tracker_profiles_rover[] = {
       TP_LD_PARAMS_PHASE_10MS, TP_LD_PARAMS_FREQ_10MS,
       40,          32,          38,
       IDX_10MS,    IDX_20MS,     IDX_5MS,
-      TP_LOW_CN0 | TP_HIGH_CN0 |TP_USE_NEXT },
+      TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
 
   [IDX_20MS] =
   { { BW_DYN,      BW_DYN,           .5,   TP_CTRL_PLL3,
@@ -354,7 +354,7 @@ static const tp_profile_entry_t tracker_profiles_rover[] = {
       TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
       40,        THRESH_SENS_DBHZ,   35,
       IDX_20MS,   IDX_SENS,     IDX_10MS,
-      TP_LOW_CN0 | TP_HIGH_CN0 |TP_USE_NEXT },
+      TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
 
   /* sensitivity profile */
   [IDX_SENS] =
