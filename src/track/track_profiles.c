@@ -314,12 +314,12 @@ static const tp_profile_entry_t tracker_profiles_rover[] = {
         TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
        100,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
-      TP_WAIT_BSYNC | TP_WAIT_PLOCK | TP_UNAIDED },
+      TP_WAIT_BSYNC | TP_UNAIDED },
 
   [IDX_INIT_2] =
   { { BW_DYN,      BW_DYN,            5,   TP_CTRL_PLL3,
       TP_TM_1MS_20MS,  TP_TM_1MS_10MS,  TP_TM_1MS_2MS,  TP_TM_1MS_NH20MS,  TP_TM_1MS_SC4 },
-      TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
+      TP_LD_PARAMS_PHASE_1MS, TP_LD_PARAMS_FREQ_1MS,
       100,             0,            0,
       IDX_NONE, IDX_NONE,     IDX_NONE,
       TP_WAIT_PLOCK },
