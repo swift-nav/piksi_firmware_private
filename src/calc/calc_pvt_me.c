@@ -364,9 +364,9 @@ static void starling_obs_to_nav_meas(const starling_obs_t *obs,
   nm->raw_computed_doppler = obs->doppler;
   nm->computed_doppler = obs->doppler;
   nm->computed_doppler_dt = 0;
-  memset(nm->sat_pos, 0, 3);
-  memset(nm->sat_vel, 0, 3);
-  memset(nm->sat_acc, 0, 3);
+  memset(nm->sat_pos, 0, sizeof(nm->sat_pos));
+  memset(nm->sat_vel, 0, sizeof(nm->sat_vel));
+  memset(nm->sat_acc, 0, sizeof(nm->sat_acc));
   nm->IODE = 0;
   nm->sat_clock_err = 0;
   nm->sat_clock_err_rate = 0;
