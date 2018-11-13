@@ -19,6 +19,9 @@ branches:
 matrix:
   include:
     - os: linux
+      compiler:
+        - gcc-6
+        - g++-6
       addons:
         apt:
           sources:
@@ -29,8 +32,6 @@ matrix:
             - g++-6
             - doxygen
             - graphviz
-      env:
-        - C_COMPILER=gcc-6 CXX_COMPILER=g++-6
     - os: linux
       addons:
         apt:
@@ -40,8 +41,10 @@ matrix:
             - clang-format-4.0
       env: TESTENV=lint
     - os: osx
+      compiler:
+        - gcc-6
+        - g++-6
       osx_image: xcode10
-      env: C_COMPILER=gcc-6 CXX_COMPILER=g++-6
 
 before_install:
   - ./scripts/ci/check_for_s3_cred.sh || travis_terminate 1
