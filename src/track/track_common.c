@@ -760,6 +760,13 @@ static void tp_tracker_update_loops(tracker_t *tracker, u32 cycle_flags) {
   }
 
   if (0 != (cycle_flags & TPF_EPL_USE)) {
+    /* Next entry after loop update should have short integration time,
+     * so that loop update is quickly applied. */
+    u16 next_cycle_no =
+        tp_wrap_cycle(tracker->tracking_mode, tracker->cycle_no + 1);
+    u8 next_ms = tp_get_cycle_duration(tracker->tracking_mode, next_cycle_no);
+    assert((1 == next_ms) || (2 == next_ms));
+
     tp_epl_corr_t corr_main = tracker->corrs.corr_main;
 
     /* Output I/Q correlations using SBP if enabled for this channel */
