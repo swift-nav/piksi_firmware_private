@@ -89,8 +89,11 @@ int main(void) {
   gps_time_t t0 = {.tow = 0, .wn = 0};
   set_time(nap_timing_count(), &t0, 2e9);
 
+  log_info("starting ndb");
   ndb_setup();
+  log_info("finished ndb");
   ephemeris_setup();
+  log_info("finished ephemeris");
 
   static char sender_id_str[5];
   sprintf(sender_id_str, "%04X", sender_id);
@@ -121,30 +124,48 @@ int main(void) {
   log_info("hw_version: %s", hw_version_string);
 
   nap_auth_setup();
+  log_info("hello 1");
   nap_auth_check();
+  log_info("hello 2");
 
   frontend_setup();
+  log_info("hello 3");
   me_settings_setup();
+  log_info("hello 4");
 
   ext_event_setup();
+  log_info("hello 5");
   position_setup();
+  log_info("hello 6");
   glo_map_setup();
+  log_info("hello 7");
   track_setup();
+  log_info("hello 8");
   decode_setup();
+  log_info("hello 9");
 
   manage_acq_setup();
+  log_info("hello 10");
   system_monitor_setup();
+  log_info("hello 11");
 
   nmea_setup();
+  log_info("hello 12");
 
   firmware_starling_setup();
+  log_info("hello 13");
   me_calc_pvt_setup();
+  log_info("hello 14");
   base_obs_setup();
+  log_info("hello 15");
 
   simulator_setup();
+  log_info("hello 16");
 
   ext_setup();
+  log_info("hello 17");
   pps_setup();
+  log_info("hello 18");
 
   READ_ONLY_PARAMETER(
       "system_info", "sbp_sender_id", sender_id_str, TYPE_STRING);
@@ -166,6 +187,7 @@ int main(void) {
 
   /* Send message to inform host we are up and running. */
   u32 startup_flags = 0;
+  log_info("sending start msg");
   sbp_send_msg(SBP_MSG_STARTUP, sizeof(startup_flags), (u8*)&startup_flags);
 
   /* send Iono correction, L2C capabilities if valid */
