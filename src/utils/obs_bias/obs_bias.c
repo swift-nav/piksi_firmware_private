@@ -56,8 +56,8 @@ static const double glo_l2_isc[] = {[0] = -5.3,
 static const double gps_l2_isc = 1.9;
 static const double bds2_b11_isc = -12.7;
 static const double bds2_b2_isc = -6.1;
-static const double gal_e1b_isc = -1.8;
-static const double gal_e7i_isc = 6.3;
+static const double gal_e1b_isc = -1.3;
+static const double gal_e7i_isc = 5.2;
 
 /* These biases are to align the GLONASS carrier phase to the Septentrio
  * receivers carrier phase These biases are in cycles and are proportional to
