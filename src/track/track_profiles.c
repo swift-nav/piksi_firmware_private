@@ -654,6 +654,11 @@ void tp_profile_update_config(tracker_t *tracker) {
     tracker->flags |= TRACKER_FLAG_SENSITIVITY_MODE;
   }
 
+  tracker->flags &= ~TRACKER_FLAG_RECOVERY_MODE;
+  if (profile->cur.index < IDX_2MS || profile->cur.index > IDX_20MS) {
+    tracker->flags |= TRACKER_FLAG_RECOVERY_MODE;
+  }
+
   const tp_tm_e mode = profile->loop_params.mode;
   profile->use_alias_detection =
       (TP_TM_10MS_10MS == mode) || (TP_TM_20MS_20MS == mode);
