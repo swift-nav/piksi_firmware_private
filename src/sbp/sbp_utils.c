@@ -39,7 +39,8 @@ void round_time_nano(const gps_time_t *t_in, sbp_gps_time_t *t_out);
 
 sbp_gnss_signal_t sid_to_sbp(const gnss_signal_t from) {
   sbp_gnss_signal_t sbp_sid = {
-      .code = from.code, .sat = from.sat,
+      .code = from.code,
+      .sat = from.sat,
   };
 
   return sbp_sid;
@@ -47,7 +48,8 @@ sbp_gnss_signal_t sid_to_sbp(const gnss_signal_t from) {
 
 gnss_signal_t sid_from_sbp(const sbp_gnss_signal_t from) {
   gnss_signal_t sid = {
-      .code = from.code, .sat = from.sat,
+      .code = from.code,
+      .sat = from.sat,
   };
 
   return sid;
@@ -718,40 +720,36 @@ typedef struct {
 
 static ephe_type_table_element_t ephe_type_table[CONSTELLATION_COUNT] = {
 
-        /* GPS */
-        [CONSTELLATION_GPS] = {{SBP_MSG_EPHEMERIS_GPS,
-                                sizeof(msg_ephemeris_gps_t)},
-                               pack_ephemeris_gps,
-                               unpack_ephemeris_gps,
-                               {0}},
+    /* GPS */
+    [CONSTELLATION_GPS] = {{SBP_MSG_EPHEMERIS_GPS, sizeof(msg_ephemeris_gps_t)},
+                           pack_ephemeris_gps,
+                           unpack_ephemeris_gps,
+                           {0}},
 
-        /* SBAS */
-        [CONSTELLATION_SBAS] = {{SBP_MSG_EPHEMERIS_SBAS,
-                                 sizeof(msg_ephemeris_sbas_t)},
-                                pack_ephemeris_sbas,
-                                unpack_ephemeris_sbas,
-                                {0}},
+    /* SBAS */
+    [CONSTELLATION_SBAS] = {{SBP_MSG_EPHEMERIS_SBAS,
+                             sizeof(msg_ephemeris_sbas_t)},
+                            pack_ephemeris_sbas,
+                            unpack_ephemeris_sbas,
+                            {0}},
 
-        /* GLO */
-        [CONSTELLATION_GLO] = {{SBP_MSG_EPHEMERIS_GLO,
-                                sizeof(msg_ephemeris_glo_t)},
-                               pack_ephemeris_glo,
-                               unpack_ephemeris_glo,
-                               {0}},
+    /* GLO */
+    [CONSTELLATION_GLO] = {{SBP_MSG_EPHEMERIS_GLO, sizeof(msg_ephemeris_glo_t)},
+                           pack_ephemeris_glo,
+                           unpack_ephemeris_glo,
+                           {0}},
 
-        /* BDS */
-        [CONSTELLATION_BDS] = {{SBP_MSG_EPHEMERIS_BDS,
-                                sizeof(msg_ephemeris_bds_t)},
-                               pack_ephemeris_bds,
-                               unpack_ephemeris_bds,
-                               {0}},
+    /* BDS */
+    [CONSTELLATION_BDS] = {{SBP_MSG_EPHEMERIS_BDS, sizeof(msg_ephemeris_bds_t)},
+                           pack_ephemeris_bds,
+                           unpack_ephemeris_bds,
+                           {0}},
 
-        /* GAL */
-        [CONSTELLATION_GAL] = {{SBP_MSG_EPHEMERIS_GAL,
-                                sizeof(msg_ephemeris_gal_t)},
-                               pack_ephemeris_gal,
-                               unpack_ephemeris_gal,
-                               {0}},
+    /* GAL */
+    [CONSTELLATION_GAL] = {{SBP_MSG_EPHEMERIS_GAL, sizeof(msg_ephemeris_gal_t)},
+                           pack_ephemeris_gal,
+                           unpack_ephemeris_gal,
+                           {0}},
 };
 
 void unpack_ephemeris(const msg_ephemeris_t *msg, ephemeris_t *e) {
@@ -796,20 +794,19 @@ void sbp_ephe_reg_cbks(void (*ephemeris_msg_callback)(u16, u8, u8 *, void *)) {
  * @param[in] iono pointer to Iono parameters
  */
 void sbp_send_iono(const ionosphere_t *iono) {
-  msg_iono_t msg_iono = {
-      .t_nmct =
-          {/* TODO: set this as 0 for now, beccause functionality
-            * decodes tnmct is not available */
-           .tow = 0,
-           .wn = 0},
-      .a0 = iono->a0,
-      .a1 = iono->a1,
-      .a2 = iono->a2,
-      .a3 = iono->a3,
-      .b0 = iono->b0,
-      .b1 = iono->b1,
-      .b2 = iono->b2,
-      .b3 = iono->b3};
+  msg_iono_t msg_iono = {.t_nmct =
+                             {/* TODO: set this as 0 for now, beccause
+                               * functionality decodes tnmct is not available */
+                              .tow = 0,
+                              .wn = 0},
+                         .a0 = iono->a0,
+                         .a1 = iono->a1,
+                         .a2 = iono->a2,
+                         .a3 = iono->a3,
+                         .b0 = iono->b0,
+                         .b1 = iono->b1,
+                         .b2 = iono->b2,
+                         .b3 = iono->b3};
 
   /* send data over sbp */
   sbp_send_msg(SBP_MSG_IONO, sizeof(msg_iono_t), (u8 *)&msg_iono);

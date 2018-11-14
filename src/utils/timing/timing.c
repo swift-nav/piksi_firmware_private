@@ -45,7 +45,11 @@ static volatile time_quality_t current_time_quality = TIME_UNKNOWN;
 static MUTEX_DECL(clock_mutex);
 
 static const char *time_quality_names[] = {
-    "Unknown", "Coarse", "Propagated", "Fine", "Finest",
+    "Unknown",
+    "Coarse",
+    "Propagated",
+    "Fine",
+    "Finest",
 };
 
 /* The thresholds for time qualities */

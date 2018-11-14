@@ -128,21 +128,21 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
     case CODE_GPS_L1CA:
     case CODE_GPS_L1P: {
       /*
-      * Return SV_NAV_STATE_INVALID if either of the following:
-      * - shi_ephemeris_set is available and indicates L1CA/L1P unhealthy
-      * - shi_lnav_how_alert is available and negative
-      * - cnav_msg10 is available and indicates L1 unhealthy
-      * - almanac health bits are available and indicate L1CA/L1P unhealthy
-      *
-      * Return CODE_NAV_STATE_VALID all conditions below are true:
-      * - shi_ephemeris_set is available and indicates L1CA/L1P healthy
-      * - shi_lnav_how_alert is available and positive
-      * - One of the following:
-      *     - cnav_msg10 is unavailable
-      *     - cnav_msg10 is available and indicates L1 healthy
-      *
-      * Otherwise return CODE_NAV_STATE_UNKNOWN
-      */
+       * Return SV_NAV_STATE_INVALID if either of the following:
+       * - shi_ephemeris_set is available and indicates L1CA/L1P unhealthy
+       * - shi_lnav_how_alert is available and negative
+       * - cnav_msg10 is available and indicates L1 unhealthy
+       * - almanac health bits are available and indicate L1CA/L1P unhealthy
+       *
+       * Return CODE_NAV_STATE_VALID all conditions below are true:
+       * - shi_ephemeris_set is available and indicates L1CA/L1P healthy
+       * - shi_lnav_how_alert is available and positive
+       * - One of the following:
+       *     - cnav_msg10 is unavailable
+       *     - cnav_msg10 is available and indicates L1 healthy
+       *
+       * Otherwise return CODE_NAV_STATE_UNKNOWN
+       */
       if (shis.shi_lnav_how_alert_set && !shis.shi_lnav_how_alert) {
         return CODE_NAV_STATE_INVALID;
       }

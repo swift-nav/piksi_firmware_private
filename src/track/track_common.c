@@ -494,35 +494,6 @@ static void tp_tracker_update_correlators(tracker_t *tracker, u32 cycle_flags) {
 
   tp_update_correlators(cycle_flags, &cs_now, &tracker->corrs);
 
-  /* debug profile */
-  if (0 && IS_BDS2(mesid) && (TP_TM_INITIAL != tracker->tracking_mode)) {
-    u8 cycle_no = tp_wrap_cycle(tracker->tracking_mode, tracker->cycle_no);
-    tracker->correlators[cycle_no].I += (cs_now.prompt.I >> 16);
-    tracker->correlators[cycle_no].Q += (cs_now.prompt.Q >> 16);
-    bool overflow = false;
-    for (u8 k=0; k<20; k++) {
-      if ((ABS(tracker->correlators[k].I) > 80) || (ABS(tracker->correlators[k].Q) > 80)) {
-        overflow = true;
-      }
-    }
-    if (overflow) {
-      for (u8 k=0; k<20; k++) {
-        tracker->correlators[k].I /= 2;
-        tracker->correlators[k].Q /= 2;
-      }
-    }
-    char tmp[32];
-    char msg[256];
-    sprintf(msg, "CHIST %d : ", tracker->tracking_mode);
-    for (u8 k=0; k<20; k++) {
-      sprintf(tmp, "%+3" PRId32 " %+3" PRId32 " ", tracker->correlators[k].I, tracker->correlators[k].Q);
-      strcat(msg, tmp);
-    }
-    DO_EVERY(2000,
-      log_info_mesid(mesid, "%s", msg);
-      );
-  }
-
   /* Current cycle duration */
   int_ms = tp_get_cycle_duration(tracker->tracking_mode, tracker->cycle_no);
 

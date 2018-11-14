@@ -308,10 +308,10 @@ typedef struct {
 typedef struct {
   u16 xcorr_counts[NUM_SATS_GPS]; /**< L1 Cross-correlation interval counters */
   u16 xcorr_count_l2;             /**< L2 Cross-correlation interval counter */
-  u16 xcorr_whitelist_counts
-      [NUM_SATS_GPS]; /**< L1 whitelist interval counters */
-  bool xcorr_whitelist
-      [NUM_SATS_GPS];      /**< L1 Cross-correlation whitelist status */
+  u16 xcorr_whitelist_counts[NUM_SATS_GPS]; /**< L1 whitelist interval counters
+                                             */
+  bool xcorr_whitelist[NUM_SATS_GPS]; /**< L1 Cross-correlation whitelist status
+                                       */
   bool xcorr_whitelist_l2; /**< L2 Cross-correlation whitelist status */
   u8 xcorr_flag : 1;       /**< Cross-correlation flag */
 } gps_l1ca_tracker_data_t;

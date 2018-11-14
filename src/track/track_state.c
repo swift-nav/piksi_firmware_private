@@ -446,7 +446,8 @@ static void tracking_send_state_85(void) {
     }
     for (u8 i = num_sats; i < nap_track_n_channels; i++) {
       meas_states[i].mesid = (sbp_gnss_signal_t){
-          .sat = 0, .code = 0,
+          .sat = 0,
+          .code = 0,
       };
       meas_states[i].cn0 = 0;
     }
@@ -462,7 +463,8 @@ static void tracking_send_state_85(void) {
 
       if (!running || !confirmed) {
         meas_states[i].mesid = (sbp_gnss_signal_t){
-            .sat = 0, .code = 0,
+            .sat = 0,
+            .code = 0,
         };
         meas_states[i].cn0 = 0;
         continue;

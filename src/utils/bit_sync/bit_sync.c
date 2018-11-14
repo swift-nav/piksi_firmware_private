@@ -234,15 +234,7 @@ static void histogram_update(bit_sync_t *b,
     for (u8 i = 2; i < SYMBOL_LENGTH_NH20_MS; i++) {
       sum += b->histogram[i] * (nh20_xans[i - 2]);
     }
-    if (sum >= 10 * SYMBOL_LENGTH_NH20_MS) {
-      /* clang-format off */
-      log_info_mesid(b->mesid, "[%+d %+d %+d %+d %+d %+d %+d %+d %+d %+d %+d %+d %+d %+d %+d %+d %+d %+d %+d %+d]",
-            b->histogram[0], b->histogram[1], b->histogram[2], b->histogram[3],
-            b->histogram[4], b->histogram[5], b->histogram[6], b->histogram[7],
-            b->histogram[8], b->histogram[9], b->histogram[10], b->histogram[11],
-            b->histogram[12], b->histogram[13], b->histogram[14], b->histogram[15],
-            b->histogram[16], b->histogram[17], b->histogram[18], b->histogram[19]);
-      /* clang-format on */
+    if (sum >= 9 * SYMBOL_LENGTH_NH20_MS) {
       /* We are synchronized! */
       b->bit_phase_ref = (b->bit_phase + 2) % b->bit_length;
     }
@@ -310,7 +302,7 @@ static void histogram_update(bit_sync_t *b,
     s32 sum = 0;
     /* cross-correlate transitions at the current symbol */
     /* transitions on the first element do count: it's a pure pilot channel
-    */
+     */
     for (u8 i = 0; i < GAL_CS25_MS; i++) {
       sum += b->histogram[i] * (e1c_xans[(i - 2 + GAL_CS25_MS) % GAL_CS25_MS]);
     }

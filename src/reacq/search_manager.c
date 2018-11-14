@@ -145,7 +145,7 @@ void sm_init(acq_jobs_state_t *data) {
       for (i = 0; i < num_sv; i++) {
         if (CONSTELLATION_GLO == gnss) {
           /* NOTE: GLO MESID is initialized evenly with all FCNs, so that
-             * blind searches are immediately done with whole range of FCNs */
+           * blind searches are immediately done with whole range of FCNs */
           job[i].mesid = construct_mesid(code, first_prn + (i % GLO_MAX_FCN));
         } else {
           job[i].mesid = construct_mesid(code, first_prn + i);

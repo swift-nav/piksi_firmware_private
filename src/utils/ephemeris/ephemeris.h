@@ -29,7 +29,9 @@ typedef enum {
 /**
  * Earth-centered earth-fixed position
  */
-typedef struct { double xyz[3]; } pos_ecef_t;
+typedef struct {
+  double xyz[3];
+} pos_ecef_t;
 
 /**
  * SV positions computed for cross-correlation checks.
