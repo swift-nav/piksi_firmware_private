@@ -63,9 +63,16 @@ static void tracker_qzss_l1ca_init(tracker_t *tracker) {
 static void tracker_qzss_l1ca_update(tracker_t *tracker) {
   u32 cflags = tp_tracker_update(tracker, &qzss_l1ca_config);
 
+  /* If QZSS SV is marked unhealthy from L1CA, also drop L2C tracker */
+  if (0 != (tracker->flags & TRACKER_FLAG_UNHEALTHY)) {
+    me_gnss_signal_t mesid_drop;
+    mesid_drop = construct_mesid(CODE_QZS_L2CM, tracker->mesid.sat);
+    tracker_drop_unhealthy(mesid_drop);
+    return;
+  }
+
   bool bit_aligned =
       ((0 != (cflags & TPF_BSYNC_UPD)) && tracker_bit_aligned(tracker));
-
   if (!bit_aligned) {
     return;
   }
