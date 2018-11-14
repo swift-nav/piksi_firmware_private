@@ -314,7 +314,7 @@ static const tp_profile_entry_t tracker_profiles_rover[] = {
         TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
        100,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
-      TP_WAIT_BSYNC | TP_WAIT_PLOCK | TP_UNAIDED },
+      TP_WAIT_BSYNC | TP_WAIT_PLOCK | TP_WAIT_FLOCK | TP_UNAIDED },
 
   [IDX_INIT_2] =
   { { BW_DYN,      BW_DYN,            5,   TP_CTRL_PLL3,
@@ -322,7 +322,7 @@ static const tp_profile_entry_t tracker_profiles_rover[] = {
       TP_LD_PARAMS_PHASE_1MS, TP_LD_PARAMS_FREQ_1MS,
       100,             0,            0,
       IDX_NONE, IDX_NONE,     IDX_NONE,
-      TP_WAIT_PLOCK },
+      TP_WAIT_FLOCK | TP_WAIT_PLOCK },
 
   [IDX_2MS] =
   { { BW_DYN,      BW_DYN,            2,   TP_CTRL_PLL3,
@@ -408,7 +408,7 @@ static const tp_profile_entry_t tracker_profiles_base[] = {
         TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
        100,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
-      TP_WAIT_BSYNC | TP_WAIT_PLOCK | TP_UNAIDED },
+      TP_WAIT_BSYNC | TP_WAIT_PLOCK | TP_WAIT_FLOCK | TP_UNAIDED },
 
   [IDX_INIT_2] =
   { { BW_DYN,           1,            5,   TP_CTRL_PLL3,
@@ -416,7 +416,7 @@ static const tp_profile_entry_t tracker_profiles_base[] = {
       TP_LD_PARAMS_PHASE_1MS, TP_LD_PARAMS_FREQ_1MS,
        100,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
-      TP_WAIT_PLOCK },
+      TP_WAIT_FLOCK | TP_WAIT_PLOCK },
 
   [IDX_2MS] =
   { { BW_DYN,           0,            2,   TP_CTRL_PLL2,
