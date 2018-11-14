@@ -151,6 +151,7 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/nav_msg/cnav_msg.o \
         $(SWIFTNAV_ROOT)/src/nav_msg/sbas_msg.o \
         $(SWIFTNAV_ROOT)/src/nav_msg/cnav_msg_storage.o \
+        $(SWIFTNAV_ROOT)/src/nav_msg/cons_time_storage.o \
         $(SWIFTNAV_ROOT)/src/nav_msg/nav_msg_bds.o \
         $(SWIFTNAV_ROOT)/src/nav_msg/nav_msg_glo.o \
         $(SWIFTNAV_ROOT)/src/nav_msg/nav_msg_gal.o \

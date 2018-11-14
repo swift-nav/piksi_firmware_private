@@ -12,6 +12,7 @@
 
 #include "ephemeris/ephemeris.h"
 #include "manage.h"
+#include "nav_msg/cons_time_storage.h"
 #include "sbp/sbp.h"
 
 #define MAX_ACQUIRED_SV_INDEX 15
@@ -280,6 +281,18 @@ bool track_sid_db_elevation_degrees_get(const gnss_signal_t sid,
   (void)sid;
   (void)result;
   return false;
+}
+
+bool get_cons_time_params(gnss_signal_t sid, cons_time_params_t *params) {
+  (void)sid;
+  (void)params;
+  return false;
+}
+
+void store_cons_time_params(gnss_signal_t sid,
+                            const cons_time_params_t *params) {
+  (void)sid;
+  (void)params;
 }
 
 /*** EPHEMERIS UNIT TESTS STUBS ***/

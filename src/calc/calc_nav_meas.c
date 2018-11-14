@@ -16,6 +16,7 @@
 #include "calc_nav_meas.h"
 #include "me_constants.h"
 #include "nav_msg/cnav_msg_storage.h"
+#include "nav_msg/cons_time_storage.h"
 #include "track/track_sid_db.h"
 
 #include <starling/cycle_slip.h>
@@ -230,6 +231,25 @@ void apply_gps_cnav_isc(u8 n_channels,
       /* apply the new minus old */
       nav_meas[i]->pseudorange += isc;
       nav_meas[i]->carrier_phase -= isc / sid_to_lambda(nav_meas[i]->sid);
+    }
+  }
+}
+
+/** Apply constellation time offset corrections
+ * This function corrects the non-GPS measurements for system time offsets
+ */
+void apply_cons_time_offsets(const u8 n_channels,
+                             navigation_measurement_t *nav_meas[]) {
+  u8 i = 0;
+  for (i = 0; i < n_channels; i++) {
+    cons_time_params_t params;
+    /* get system time offset from static store */
+    if (!IS_GPS(nav_meas[i]->sid) &&
+        get_cons_time_params(nav_meas[i]->sid, &params)) {
+      double dt = gpsdifftime(&nav_meas[i]->tot, &params.t);
+      double corr_m = GPS_C * (dt * params.a1 + params.a0);
+      nav_meas[i]->pseudorange += corr_m;
+      nav_meas[i]->carrier_phase += corr_m / sid_to_lambda(nav_meas[i]->sid);
     }
   }
 }
