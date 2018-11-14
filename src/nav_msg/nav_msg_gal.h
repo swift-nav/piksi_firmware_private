@@ -19,6 +19,7 @@
 #include <swiftnav/ephemeris.h>
 #include <swiftnav/ionosphere.h>
 
+#include "cons_time_storage.h"
 #include "nav_data_sync/nav_data_sync.h"
 
 #ifdef __cplusplus
@@ -153,6 +154,9 @@ typedef struct _gal_inav_decoded_t {
 
   utc_params_t utc;
   bool utc_params_upd_flag;
+
+  cons_time_params_t cons_time_params;
+  bool cons_time_upd_flag;
 
   almanac_t alm[3];
 } gal_inav_decoded_t;

@@ -20,6 +20,7 @@
 #include "ephemeris/ephemeris.h"
 #include "nav_msg/nav_msg.h"
 #include "nav_msg/nav_msg_gal.h"
+#include "utils/timing/timing.h"
 
 #define GAL_INAV_PREAMBLE_MASK 0x03ff
 #define GAL_INAV_PREAMBLE 0x0160
@@ -65,7 +66,7 @@ static float sisa_map(u8 sisa);
 static void parse_inav_eph(const nav_msg_gal_inav_t *nav_msg,
                            gal_inav_decoded_t *dd,
                            const gps_time_t *t_dec);
-static void parse_inav_alm3(nav_msg_gal_inav_t *nav_msg,
+static void parse_inav_alm3(const nav_msg_gal_inav_t *nav_msg,
                             gal_inav_decoded_t *dd);
 static u32 parse_inav_utc(const u8 content[GAL_INAV_CONTENT_BYTE],
                           gal_inav_decoded_t *dd);
@@ -631,10 +632,47 @@ static void parse_inav_eph(const nav_msg_gal_inav_t *nav_msg,
   gps_time_match_weeks(&kep->toc, t_dec);
 }
 
-static void parse_inav_alm3(nav_msg_gal_inav_t *nav_msg,
+static void parse_inav_gst_gps(const nav_msg_gal_inav_t *nav_msg,
+                               gal_inav_decoded_t *dd) {
+  u32 A0G = getbitu(nav_msg->raw_alm[3], 86, 16);
+  u32 A1G = getbitu(nav_msg->raw_alm[3], 102, 12);
+  u32 t0G = getbitu(nav_msg->raw_alm[3], 114, 8);
+  u32 WN0G = getbitu(nav_msg->raw_alm[3], 122, 6);
+
+  if (A0G == 0xFFFF && A1G == 0xFFF && t0G == 0xFF && WN0G == 0x3F) {
+    /* parameters marked not valid */
+    return;
+  }
+
+  /* current time used to fix the week number ambiguity */
+  gps_time_t now = get_current_time();
+
+  cons_time_params_t *params = &(dd->cons_time_params);
+  params->a0 = BITS_SIGN_EXTEND_32(16, A0G) * C_1_2P35;
+  params->a1 = BITS_SIGN_EXTEND_32(12, A1G) * C_1_2P51;
+  params->t.tow = t0G * 3600;
+  /* combine MSBs from current week number with the decoded 6 LSBs */
+  params->t.wn = (now.wn & 0xFFC0) + (WN0G & 0x3F);
+  if (params->t.wn - now.wn < -31) {
+    params->t.wn += 64;
+  } else if (params->t.wn - now.wn > 31) {
+    params->t.wn -= 64;
+  }
+
+  log_debug("Parsed INAV almanac: a0=%g, a1=%g, t = (%d,%.0f)",
+            params->a0,
+            params->a1,
+            params->t.wn,
+            params->t.tow);
+
+  dd->cons_time_upd_flag = true;
+  gnss_signal_t sid = mesid2sid(nav_msg->mesid, GLO_ORBIT_SLOT_UNKNOWN);
+  store_cons_time_params(sid, params);
+}
+
+static void parse_inav_alm3(const nav_msg_gal_inav_t *nav_msg,
                             gal_inav_decoded_t *dd) {
-  (void)nav_msg;
-  (void)dd;
+  parse_inav_gst_gps(nav_msg, dd);
 }
 
 /* copies the oldest `size` received symbols starting from `offset`
