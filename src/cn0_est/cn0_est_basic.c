@@ -18,11 +18,11 @@
 #include "cn0_est_common.h"
 
 /**
-  * The function returns signal power
-  * \param I In-phase component
-  * \param Q Quadrature component
-  * \return Signal power
-  */
+ * The function returns signal power
+ * \param I In-phase component
+ * \param Q Quadrature component
+ * \return Signal power
+ */
 static float c_pwr(float I, float Q) { return I * I + Q * Q; }
 
 /**

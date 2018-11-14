@@ -796,20 +796,19 @@ void sbp_ephe_reg_cbks(void (*ephemeris_msg_callback)(u16, u8, u8 *, void *)) {
  * @param[in] iono pointer to Iono parameters
  */
 void sbp_send_iono(const ionosphere_t *iono) {
-  msg_iono_t msg_iono = {
-      .t_nmct =
-          {/* TODO: set this as 0 for now, beccause functionality
-            * decodes tnmct is not available */
-           .tow = 0,
-           .wn = 0},
-      .a0 = iono->a0,
-      .a1 = iono->a1,
-      .a2 = iono->a2,
-      .a3 = iono->a3,
-      .b0 = iono->b0,
-      .b1 = iono->b1,
-      .b2 = iono->b2,
-      .b3 = iono->b3};
+  msg_iono_t msg_iono = {.t_nmct =
+                             {/* TODO: set this as 0 for now, beccause
+                               * functionality decodes tnmct is not available */
+                              .tow = 0,
+                              .wn = 0},
+                         .a0 = iono->a0,
+                         .a1 = iono->a1,
+                         .a2 = iono->a2,
+                         .a3 = iono->a3,
+                         .b0 = iono->b0,
+                         .b1 = iono->b1,
+                         .b2 = iono->b2,
+                         .b3 = iono->b3};
 
   /* send data over sbp */
   sbp_send_msg(SBP_MSG_IONO, sizeof(msg_iono_t), (u8 *)&msg_iono);

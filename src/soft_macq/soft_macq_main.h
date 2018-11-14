@@ -6,11 +6,11 @@
 #include <swiftnav/signal.h>
 
 /** Acquisition CN0 threshold to determine if
-  * handover to tracking should be initiated. */
+ * handover to tracking should be initiated. */
 #define ACQ_THRESHOLD 38.0 /* dBHz */
 
 /** Acquisition CN0 threshold to determine if a strong peak has been found.
-  * High CN0 triggers early exit from acquisition frequency sweep */
+ * High CN0 triggers early exit from acquisition frequency sweep */
 #define ACQ_EARLY_THRESHOLD 39.0 /* dBHz */
 
 /** If handover to tracking fails,

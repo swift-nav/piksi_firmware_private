@@ -59,7 +59,7 @@ void tracker_correlations_read(u8 nap_channel,
 bool nap_sc_wipeoff(const tracker_t *tracker) {
   const code_t code = tracker->mesid.code;
 
-  return is_gal(code) && tracker_has_bit_sync(tracker);
+  return (is_gal(code) || is_bds2(code)) && tracker_has_bit_sync(tracker);
 }
 
 /** Write the NAP update register for a tracker channel.
@@ -70,13 +70,13 @@ bool nap_sc_wipeoff(const tracker_t *tracker) {
 void tracker_retune(tracker_t *tracker, u32 chips_to_correlate) {
   double doppler_freq_hz = tracker->carrier_freq;
   double code_phase_rate = tracker->code_phase_rate;
-  bool has_pilot_sync = nap_sc_wipeoff(tracker);
+  bool nap_strip_sc = nap_sc_wipeoff(tracker);
   /* Write NAP UPDATE register. */
   nap_track_update(tracker->nap_channel,
                    doppler_freq_hz,
                    code_phase_rate,
                    chips_to_correlate,
-                   has_pilot_sync);
+                   nap_strip_sc);
 }
 
 /** Adjust TOW for FIFO delay.

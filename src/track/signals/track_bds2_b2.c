@@ -53,7 +53,7 @@ static const tracker_interface_t tracker_interface_bds2_b2 = {
 static void tracker_bds2_b2_init(tracker_t *tracker) {
   tp_tracker_init(tracker, &bds2_b2_config);
 
-  tracker_bit_sync_set(tracker, /* bit_phase_ref = */ 0);
+  /* tracker_bit_sync_set(tracker, 0); */
 }
 
 static void tracker_bds2_b2_update(tracker_t *tracker) {

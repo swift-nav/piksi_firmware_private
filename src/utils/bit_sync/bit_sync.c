@@ -231,12 +231,12 @@ static void histogram_update(bit_sync_t *b,
     s32 sum = 0;
     /* cross-correlate transitions at the current symbol */
     /* transitions on the first element shouldn't count: it's data */
-    for (u8 i = 1; i < SYMBOL_LENGTH_NH20_MS; i++) {
-      sum += b->histogram[i] * (nh20_xans[i]);
+    for (u8 i = 2; i < SYMBOL_LENGTH_NH20_MS; i++) {
+      sum += b->histogram[i] * (nh20_xans[i - 2]);
     }
-    if (sum >= 8 * SYMBOL_LENGTH_NH20_MS) {
+    if (sum >= 9 * SYMBOL_LENGTH_NH20_MS) {
       /* We are synchronized! */
-      b->bit_phase_ref = b->bit_phase;
+      b->bit_phase_ref = (b->bit_phase + 2) % b->bit_length;
     }
 
   } else if (CODE_GAL_E7I == b->mesid.code) {
@@ -302,7 +302,7 @@ static void histogram_update(bit_sync_t *b,
     s32 sum = 0;
     /* cross-correlate transitions at the current symbol */
     /* transitions on the first element do count: it's a pure pilot channel
-    */
+     */
     for (u8 i = 0; i < GAL_CS25_MS; i++) {
       sum += b->histogram[i] * (e1c_xans[(i - 2 + GAL_CS25_MS) % GAL_CS25_MS]);
     }

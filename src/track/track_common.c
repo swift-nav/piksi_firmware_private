@@ -489,9 +489,10 @@ static void tp_tracker_update_correlators(tracker_t *tracker, u32 cycle_flags) {
     cs_now.dp_late.Q = -temp.I;
   }
 
-  bool has_pilot_sync = nap_sc_wipeoff(tracker);
-  if ((CODE_GPS_L2CM == mesid.code) || has_pilot_sync) {
-    /* For L2CM, the data is also on the 5th correlator */
+  const code_t code = mesid.code;
+  bool gal_pilot_sync = is_gal(code) && tracker_has_bit_sync(tracker);
+  if ((CODE_GPS_L2CM == code) || gal_pilot_sync) {
+    /* Galileo and GPS L2CM have data on the 5th correlator */
     cycle_flags |= TPF_BIT_PILOT;
     add_pilot_and_data_iq(&cs_now);
   }
@@ -816,8 +817,9 @@ static void tp_tracker_update_loops(tracker_t *tracker, u32 cycle_flags) {
     }
 
     bool costas = true;
-    bool has_pilot_sync = nap_sc_wipeoff(tracker);
-    if ((CODE_GPS_L2CM == tracker->mesid.code) || has_pilot_sync) {
+    const code_t code = tracker->mesid.code;
+    bool gal_pilot_sync = is_gal(code) && tracker_has_bit_sync(tracker);
+    if ((CODE_GPS_L2CM == code) || gal_pilot_sync) {
       /* The L2CM and L2CL codes are in phase,
        * copy the dp_prompt to prompt so that the PLL
        * runs on the pilot instead of the data */

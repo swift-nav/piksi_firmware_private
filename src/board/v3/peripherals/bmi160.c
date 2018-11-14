@@ -413,7 +413,7 @@ static s16 bmm150_compensate_Z(const bmm150_trim_t* trim_param,
 /** Read the sensor data from the BMI160 and BMM150.
  * If parameter mag==NULL skip the mag data (reading mag when not ready causes
  * errors)
-*/
+ */
 void bmi160_get_data(s16 acc[static 3],
                      s16 gyro[static 3],
                      s16* mag,

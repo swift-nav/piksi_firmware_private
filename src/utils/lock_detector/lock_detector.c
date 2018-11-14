@@ -19,13 +19,13 @@
  * error can grow fast.
  * When the signal comes back, the saturation threshold helps the filter to
  * converge quickly below error threshold.
-*/
+ */
 #define TP_FLL_SATURATION_THRESHOLD_HZ (20.f)
 
 /* FLL error threshold in [Hz]. Used to assess FLL frequency lock.
  * The threshold should be less than the expected aliased frequency, < 25 Hz.
  * Another factor is to avoid false positives from high dynamics.
-*/
+ */
 #define TP_FLL_ERR_THRESHOLD_HZ (10.f)
 
 /** Initialise the PLL lock detector state.

@@ -99,7 +99,6 @@ typedef struct tp_profile_entry {
     tp_tm_e tm_20ms;           /**< typical GPS and QZSS Tracking mode */
     tp_tm_e tm_10ms;           /**< typical GLO Tracking mode */
     tp_tm_e tm_2ms;            /**< typical SBAS Tracking mode */
-    tp_tm_e tm_nh20ms;         /**< typical BDS and GPS L5 Tracking mode */
     tp_tm_e tm_sc4;            /**< E7 tracking mode */
   } profile;
 
@@ -293,7 +292,7 @@ static const tp_profile_entry_t tracker_profiles_rover[] = {
   These are the short names of the numbers & parameters listed
   in the same order below.
   { { pll_bw,      fll_bw,       dll_bw,     controller,
-      tm_20ms, tm_10ms, tm2ms, tm_nh20ms, tm_sc4 },
+      tm_20ms, tm_10ms, tm2ms, tm_sc4 },
       ld_phase_params,   ld_freq_params,
     time_ms,   cn0_low_thr,   cn0_high_thr,
        next,       cn0_low,       cn0_high,
@@ -302,31 +301,31 @@ static const tp_profile_entry_t tracker_profiles_rover[] = {
 
   [IDX_INIT_0] =
   { {   10,           7,             20,   TP_CTRL_PLL3,
-        TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL},
-        TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
+         TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL },
+         TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
        100,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
       TP_UNAIDED | TP_WAIT_FLOCK},
 
   [IDX_INIT_1] =
   { { BW_DYN,      BW_DYN,           20,   TP_CTRL_PLL3,
-        TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL },
-        TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
+         TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL },
+         TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
        100,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
-      TP_WAIT_BSYNC | TP_WAIT_PLOCK | TP_UNAIDED },
+      TP_UNAIDED | TP_WAIT_BSYNC },
 
   [IDX_INIT_2] =
-  { { BW_DYN,      BW_DYN,            5,   TP_CTRL_PLL3,
-      TP_TM_1MS_20MS,  TP_TM_1MS_10MS,  TP_TM_1MS_2MS,  TP_TM_1MS_NH20MS,  TP_TM_1MS_SC4 },
-      TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
+  { { BW_DYN,     BW_DYN,            5,   TP_CTRL_PLL3,
+        TP_TM_1MS_20MS,  TP_TM_1MS_10MS,  TP_TM_1MS_2MS,  TP_TM_1MS_SC4 },
+        TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
       100,             0,            0,
       IDX_NONE, IDX_NONE,     IDX_NONE,
       TP_WAIT_PLOCK },
 
   [IDX_2MS] =
   { { BW_DYN,      BW_DYN,            2,   TP_CTRL_PLL3,
-      TP_TM_2MS_20MS,  TP_TM_2MS_10MS,  TP_TM_2MS_2MS,  TP_TM_2MS_NH20MS,  TP_TM_2MS_SC4 },
+      TP_TM_2MS_20MS,  TP_TM_2MS_10MS,  TP_TM_2MS_2MS,  TP_TM_2MS_SC4 },
       TP_LD_PARAMS_PHASE_2MS, TP_LD_PARAMS_FREQ_2MS,
         40,          43,          0,
       IDX_2MS,     IDX_5MS,     IDX_NONE,
@@ -334,7 +333,7 @@ static const tp_profile_entry_t tracker_profiles_rover[] = {
 
   [IDX_5MS] =
   { { BW_DYN,      BW_DYN,            1,   TP_CTRL_PLL3,
-      TP_TM_5MS_20MS,  TP_TM_5MS_10MS,  TP_TM_2MS_2MS,  TP_TM_5MS_NH20MS,  TP_TM_4MS_SC4 },
+      TP_TM_5MS_20MS,  TP_TM_5MS_10MS,  TP_TM_2MS_2MS,  TP_TM_4MS_SC4 },
       TP_LD_PARAMS_PHASE_5MS, TP_LD_PARAMS_FREQ_5MS,
       40,          35,          46,
       IDX_5MS,    IDX_10MS,     IDX_2MS,
@@ -342,7 +341,7 @@ static const tp_profile_entry_t tracker_profiles_rover[] = {
 
   [IDX_10MS] =
   { { BW_DYN,      BW_DYN,            1,   TP_CTRL_PLL3,
-      TP_TM_10MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS, TP_TM_10MS_NH20MS,  TP_TM_10MS_SC4 },
+      TP_TM_10MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS, TP_TM_10MS_SC4 },
       TP_LD_PARAMS_PHASE_10MS, TP_LD_PARAMS_FREQ_10MS,
       40,          32,          38,
       IDX_10MS,    IDX_20MS,     IDX_5MS,
@@ -350,7 +349,7 @@ static const tp_profile_entry_t tracker_profiles_rover[] = {
 
   [IDX_20MS] =
   { { BW_DYN,      BW_DYN,           .5,   TP_CTRL_PLL3,
-      TP_TM_20MS_20MS,  TP_TM_20MS_10MS,  TP_TM_2MS_2MS,  TP_TM_20MS_NH20MS,  TP_TM_20MS_SC4 },
+      TP_TM_20MS_20MS,  TP_TM_20MS_10MS,  TP_TM_2MS_2MS,  TP_TM_20MS_SC4 },
       TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
       40,        THRESH_SENS_DBHZ,   35,
       IDX_20MS,   IDX_SENS,     IDX_10MS,
@@ -359,7 +358,7 @@ static const tp_profile_entry_t tracker_profiles_rover[] = {
   /* sensitivity profile */
   [IDX_SENS] =
   { {      0,         1.0,           .5,   TP_CTRL_PLL3,
-      TP_TM_200MS_20MS, TP_TM_200MS_10MS, TP_TM_200MS_2MS, TP_TM_200MS_NH20MS, TP_TM_200MS_SC4 },
+      TP_TM_200MS_20MS, TP_TM_200MS_10MS, TP_TM_200MS_2MS, TP_TM_200MS_SC4 },
       TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
       300,             0,          32,
       IDX_SENS,  IDX_NONE,     IDX_20MS,
@@ -368,7 +367,7 @@ static const tp_profile_entry_t tracker_profiles_rover[] = {
   /* sensitivity profile for GLO without meander sync */
   [IDX_SENS_NM] =
   { {      0,         1.0,           .5,   TP_CTRL_PLL3,
-      TP_TM_200MS_20MS, TP_TM_200MS_10MS_NM, TP_TM_200MS_2MS, TP_TM_200MS_NH20MS, TP_TM_200MS_SC4 },
+      TP_TM_200MS_20MS, TP_TM_200MS_10MS_NM, TP_TM_200MS_2MS, TP_TM_200MS_SC4 },
       TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
       300,             0,          32,
       IDX_SENS,  IDX_NONE,     IDX_10MS,
@@ -387,7 +386,7 @@ static const tp_profile_entry_t tracker_profiles_base[] = {
   These are the short names of the numbers & parameters listed
   in the same order below.
   { { pll_bw,      fll_bw,       dll_bw,     controller,
-      tm_20ms, tm_10ms, tm2ms, tm_nh20ms, tm_sc4 },
+      tm_20ms, tm_10ms, tm2ms, tm_sc4 },
       ld_phase_params,   ld_freq_params,
     time_ms,   cn0_low_thr,   cn0_high_thr,
        next,       cn0_low,       cn0_high,
@@ -396,7 +395,7 @@ static const tp_profile_entry_t tracker_profiles_base[] = {
 
   [IDX_INIT_0] =
   { {   10,             7,           20,   TP_CTRL_PLL3,
-        TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL},
+        TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL},
         TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
        100,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
@@ -404,7 +403,7 @@ static const tp_profile_entry_t tracker_profiles_base[] = {
 
   [IDX_INIT_1] =
   { { BW_DYN,           3,           20,   TP_CTRL_PLL3,
-        TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL },
+        TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL },
         TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
        100,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
@@ -412,7 +411,7 @@ static const tp_profile_entry_t tracker_profiles_base[] = {
 
   [IDX_INIT_2] =
   { { BW_DYN,           1,            5,   TP_CTRL_PLL3,
-      TP_TM_1MS_20MS,  TP_TM_1MS_10MS,  TP_TM_1MS_2MS,  TP_TM_1MS_NH20MS,  TP_TM_1MS_SC4 },
+      TP_TM_1MS_20MS,  TP_TM_1MS_10MS,  TP_TM_1MS_2MS,  TP_TM_1MS_SC4 },
       TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
        100,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
@@ -420,7 +419,7 @@ static const tp_profile_entry_t tracker_profiles_base[] = {
 
   [IDX_2MS] =
   { { BW_DYN,           0,            2,   TP_CTRL_PLL2,
-      TP_TM_2MS_20MS,  TP_TM_2MS_10MS,  TP_TM_2MS_2MS,  TP_TM_2MS_NH20MS,  TP_TM_2MS_SC4 },
+      TP_TM_2MS_20MS,  TP_TM_2MS_10MS,  TP_TM_2MS_2MS,  TP_TM_2MS_SC4 },
       TP_LD_PARAMS_PHASE_2MS, TP_LD_PARAMS_FREQ_2MS,
         40,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
@@ -428,7 +427,7 @@ static const tp_profile_entry_t tracker_profiles_base[] = {
 
   [IDX_5MS] =
   { { BW_DYN,           0,            1,   TP_CTRL_PLL2,
-      TP_TM_5MS_20MS,  TP_TM_5MS_10MS,  TP_TM_2MS_2MS,  TP_TM_5MS_NH20MS,  TP_TM_4MS_SC4 },
+      TP_TM_5MS_20MS,  TP_TM_5MS_10MS,  TP_TM_2MS_2MS,  TP_TM_4MS_SC4 },
       TP_LD_PARAMS_PHASE_5MS, TP_LD_PARAMS_FREQ_5MS,
         40,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
@@ -436,7 +435,7 @@ static const tp_profile_entry_t tracker_profiles_base[] = {
 
   [IDX_10MS] =
   { { BW_DYN,           0,           .5,   TP_CTRL_PLL2,
-      TP_TM_10MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS, TP_TM_10MS_NH20MS,  TP_TM_10MS_SC4 },
+      TP_TM_10MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS, TP_TM_10MS_SC4 },
       TP_LD_PARAMS_PHASE_10MS, TP_LD_PARAMS_FREQ_10MS,
         40,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
@@ -444,7 +443,7 @@ static const tp_profile_entry_t tracker_profiles_base[] = {
 
   [IDX_20MS] =
   { {    8,             0,           .25,   TP_CTRL_PLL2,
-      TP_TM_20MS_20MS_BASE,  TP_TM_20MS_10MS_BASE,  TP_TM_2MS_2MS,  TP_TM_20MS_NH20MS,  TP_TM_20MS_SC4_BASE },
+      TP_TM_20MS_20MS_BASE,  TP_TM_20MS_10MS_BASE,  TP_TM_2MS_2MS,  TP_TM_20MS_SC4_BASE },
       TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
         40,             0,            0,
       IDX_20MS,  IDX_NONE,     IDX_NONE,
@@ -470,12 +469,7 @@ static tp_tm_e get_track_mode(me_gnss_signal_t mesid,
   tp_tm_e track_mode = TP_TM_INITIAL;
 
   if (IS_GPS(mesid) || IS_QZSS(mesid)) {
-    if ((CODE_GPS_L5I == mesid.code) || (CODE_GPS_L5Q == mesid.code) ||
-        (CODE_QZS_L5I == mesid.code) || (CODE_QZS_L5Q == mesid.code)) {
-      track_mode = entry->profile.tm_nh20ms;
-    } else {
-      track_mode = entry->profile.tm_20ms;
-    }
+    track_mode = entry->profile.tm_20ms;
   } else if (IS_GLO(mesid)) {
     track_mode = entry->profile.tm_10ms;
   } else if (IS_SBAS(mesid)) {
@@ -484,7 +478,7 @@ static tp_tm_e get_track_mode(me_gnss_signal_t mesid,
     if (bds_d2nav(mesid)) {
       track_mode = entry->profile.tm_2ms;
     } else {
-      track_mode = entry->profile.tm_nh20ms;
+      track_mode = entry->profile.tm_20ms;
     }
   } else if (IS_GAL(mesid)) {
     if ((CODE_GAL_E1B == mesid.code) || (CODE_GAL_E7I == mesid.code)) {
@@ -543,7 +537,7 @@ static u8 get_profile_index(code_t code,
                             const tp_profile_entry_t *profiles,
                             size_t num_profiles,
                             float cn0) {
-  if (code_requires_direct_acq(code) || is_gal(code)) {
+  if (code_requires_direct_acq(code) || is_gal(code) || is_bds2(code)) {
     /* signals from ACQ always go through init profiles,
      * and also if they are Galileo as right now
      * the NAP secondary code stripping still has problems with FW */

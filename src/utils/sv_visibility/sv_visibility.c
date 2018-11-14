@@ -48,7 +48,6 @@ void sv_visibility_status_get(const sv_vis_config_t *config,
       construct_mesid(config->e->sid.code, config->e->sid.sat);
   switch ((s8)mesid.code) {
     case CODE_GPS_L1CA:
-    case CODE_GPS_L2CL:
     case CODE_GPS_L2CM:
     case CODE_BDS2_B1:
     case CODE_BDS2_B2:
