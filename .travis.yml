@@ -1,7 +1,7 @@
 dist: trusty
 sudo: required
 
-language: c
+language: cpp
 notifications:
   slack:
     rooms:
@@ -29,8 +29,7 @@ matrix:
             - g++-6
             - doxygen
             - graphviz
-      env:
-        - C_COMPILER=gcc-6 CXX_COMPILER=g++-6
+      env: GCCVER=6
     - os: linux
       addons:
         apt:
@@ -41,13 +40,25 @@ matrix:
       env: TESTENV=lint
     - os: osx
       osx_image: xcode10
-      env: C_COMPILER=gcc-6 CXX_COMPILER=g++-6
+      env: GCCVER=6
 
 before_install:
+  - test -n $CC && unset CC
+  - test -n $CXX && unset CXX
   - ./scripts/ci/check_for_s3_cred.sh || travis_terminate 1
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install gcc@6; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install doxygen graphviz; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+      brew update;
+      brew install gcc@$GCCVER;
+      brew install doxygen graphviz;
+    fi
+  - if [[ "$TESTENV" != "lint" ]]; then
+      export CC=gcc-$GCCVER;
+      export CXX=g++-$GCCVER;
+      export C_COMPILER=$CC;
+      export CXX_COMPILER=$CXX;
+      $CC --version;
+      $CXX --version;
+    fi
   - pip install --user --upgrade awscli
   - git fetch --tags --unshallow
 
