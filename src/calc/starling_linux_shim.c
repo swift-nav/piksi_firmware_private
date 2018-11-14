@@ -200,22 +200,25 @@ typedef struct mailbox_info_s {
   size_t item_size;
 } mailbox_info_t;
 
-static mailbox_info_t mailbox_info[MB_ID_COUNT] = {
-    [MB_ID_TIME_MATCHED_OBS] = {0,
-                                TMO_QUEUE_NAME,
-                                STARLING_OBS_N_BUFF,
-                                sizeof(obss_t)},
-    [MB_ID_BASE_OBS] = {0, BO_QUEUE_NAME, BASE_OBS_N_BUFF, sizeof(obs_array_t)},
-    [MB_ID_ME_OBS] = {0,
-                      MEO_QUEUE_NAME,
-                      ME_OBS_MSG_N_BUFF,
-                      sizeof(obs_array_t)},
-    [MB_ID_SBAS_DATA] = {0,
-                         SBAS_DATA_QUEUE_NAME,
-                         SBAS_DATA_N_BUFF,
-                         sizeof(sbas_raw_data_t)},
-    [MB_ID_EPHEMERIS] = {
-        0, EPH_QUEUE_NAME, EPH_N_BUFF, sizeof(ephemeris_array_t)}};
+static mailbox_info_t mailbox_info[MB_ID_COUNT] =
+    {[MB_ID_TIME_MATCHED_OBS] = {0,
+                                 TMO_QUEUE_NAME,
+                                 STARLING_OBS_N_BUFF,
+                                 sizeof(obss_t)},
+     [MB_ID_BASE_OBS] = {0,
+                         BO_QUEUE_NAME,
+                         BASE_OBS_N_BUFF,
+                         sizeof(obs_array_t)},
+     [MB_ID_ME_OBS] = {0,
+                       MEO_QUEUE_NAME,
+                       ME_OBS_MSG_N_BUFF,
+                       sizeof(obs_array_t)},
+     [MB_ID_SBAS_DATA] = {0,
+                          SBAS_DATA_QUEUE_NAME,
+                          SBAS_DATA_N_BUFF,
+                          sizeof(sbas_raw_data_t)},
+     [MB_ID_EPHEMERIS] = {
+         0, EPH_QUEUE_NAME, EPH_N_BUFF, sizeof(ephemeris_array_t)}};
 
 void platform_mailbox_init(mailbox_id_t id) {
   struct mq_attr attr;

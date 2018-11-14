@@ -36,9 +36,9 @@
 #define RPMSG_THD_PERIOD_ms 10
 
 static const u32 endpoint_addr_config[RPMSG_ENDPOINT__COUNT] = {
-    [RPMSG_ENDPOINT_A] = 100,
-    [RPMSG_ENDPOINT_B] = 101,
-    [RPMSG_ENDPOINT_C] = 102,
+        [RPMSG_ENDPOINT_A] = 100,
+        [RPMSG_ENDPOINT_B] = 101,
+        [RPMSG_ENDPOINT_C] = 102,
 };
 
 typedef struct {

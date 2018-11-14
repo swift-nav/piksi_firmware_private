@@ -133,8 +133,9 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
    * - if the carrier frequency of the last searched `sid` does not match the
    * current one
    *  */
-  if ((tmp_timetag) || !double_approx_eq(mesid_to_carr_freq(mesid_last),
-                                         mesid_to_carr_freq(mesid))) {
+  if ((tmp_timetag) ||
+      !double_approx_eq(mesid_to_carr_freq(mesid_last),
+                        mesid_to_carr_freq(mesid))) {
     /** perform baseband down-conversion + decimation depending on mesid */
     BbMixAndDecimate(mesid);
   }

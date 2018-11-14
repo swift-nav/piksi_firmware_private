@@ -27,12 +27,14 @@ static const u8 glo_ca_codes[PRN_GLO_CODE_LENGTH_BYTES];
 
 /* Table of arrays of PRN codes indexed by code type */
 typedef const u8 (*prn_array_t)[PRN_CODE_LENGTH_BYTES];
-static const prn_array_t prn_array_table[CODE_COUNT] = {
-    [CODE_GPS_L1CA] = gps_l1ca_codes,
-    [CODE_GPS_L2CM] = NULL,
-    [CODE_GPS_L2CL] = NULL,
-    [CODE_SBAS_L1CA] = sbas_l1ca_codes,
-    [CODE_QZS_L1CA] = qzs_l1ca_codes};
+static const prn_array_t prn_array_table[CODE_COUNT] = {[CODE_GPS_L1CA] =
+                                                            gps_l1ca_codes,
+                                                        [CODE_GPS_L2CM] = NULL,
+                                                        [CODE_GPS_L2CL] = NULL,
+                                                        [CODE_SBAS_L1CA] =
+                                                            sbas_l1ca_codes,
+                                                        [CODE_QZS_L1CA] =
+                                                            qzs_l1ca_codes};
 
 /** \defgroup prns Spreading Codes
  *

@@ -85,11 +85,7 @@ struct {
     /* .base_obs_array left uninitialized */
     .dops =
         {
-            .pdop = 1.9,
-            .gdop = 1.8,
-            .tdop = 1.7,
-            .hdop = 1.6,
-            .vdop = 1.5,
+            .pdop = 1.9, .gdop = 1.8, .tdop = 1.7, .hdop = 1.6, .vdop = 1.5,
         },
     /* .noisy_solution left uninitialized */
 

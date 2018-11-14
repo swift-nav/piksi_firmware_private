@@ -22,9 +22,7 @@
 #include "track/track_decode.h"
 
 /** BDS B2 decoder data */
-typedef struct {
-  nav_msg_bds_t nav_msg;
-} bds_b2_decoder_data_t;
+typedef struct { nav_msg_bds_t nav_msg; } bds_b2_decoder_data_t;
 
 static decoder_t bds_b2_decoders[NUM_BDS2_B2_DECODERS];
 

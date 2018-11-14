@@ -27,9 +27,7 @@
 #include "track/track_decode.h"
 
 /** GLO L1CA decoder data */
-typedef struct {
-  nav_msg_glo_t nav_msg;
-} glo_l1of_decoder_data_t;
+typedef struct { nav_msg_glo_t nav_msg; } glo_l1of_decoder_data_t;
 
 static decoder_t glo_l1of_decoders[NUM_GLO_L1OF_DECODERS];
 static glo_l1of_decoder_data_t

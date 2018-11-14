@@ -56,8 +56,7 @@ typedef struct {
  *  we use rectangular definition covering the iono correction grid plus
  *  some margin and rounded to closest 10 deg. */
 static point_coord_t waas_range[] = {
-    {90, -180},
-    {0, -50},
+    {90, -180}, {0, -50},
 };
 
 /** EGNOS coverage area based on
@@ -65,8 +64,7 @@ static point_coord_t waas_range[] = {
  *  we use rectangular definition covering the iono correction grid plus
  *  some margin and rounded to closest 10 deg. */
 static point_coord_t egnos_range[] = {
-    {90, -50},
-    {0, 40},
+    {90, -50}, {0, 40},
 };
 
 /** GAGAN coverage area based on
@@ -74,8 +72,7 @@ static point_coord_t egnos_range[] = {
  *  we use rectangular definition covering the iono correction grid plus
  *  some margin and rounded to closest 10 deg. */
 static point_coord_t gagan_range[] = {
-    {50, 40},
-    {-20, 100},
+    {50, 40}, {-20, 100},
 };
 
 /** MSAS coverage area based on
@@ -83,8 +80,7 @@ static point_coord_t gagan_range[] = {
  *  we use rectangular definition covering the iono correction grid plus
  *  some margin and rounded to closest 10 deg. */
 static point_coord_t msas_range[] = {
-    {60, 100},
-    {20, 160},
+    {60, 100}, {20, 160},
 };
 
 static const sbas_coverage_t sbas_coverage[] = {

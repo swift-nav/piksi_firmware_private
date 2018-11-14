@@ -180,27 +180,15 @@ int enum_format_type(const void *priv, char *str, int len) {
 }
 
 static struct setting_type type_string = {
-    str_to_string,
-    str_from_string,
-    NULL,
-    NULL,
-    NULL,
+    str_to_string, str_from_string, NULL, NULL, NULL,
 };
 
 static struct setting_type type_float = {
-    float_to_string,
-    float_from_string,
-    NULL,
-    NULL,
-    &type_string,
+    float_to_string, float_from_string, NULL, NULL, &type_string,
 };
 
 static const struct setting_type type_int = {
-    int_to_string,
-    int_from_string,
-    NULL,
-    NULL,
-    &type_float,
+    int_to_string, int_from_string, NULL, NULL, &type_float,
 };
 
 static void settings_write_callback(u16 sender_id,
