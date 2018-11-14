@@ -792,7 +792,8 @@ static bool profile_switch_requested(tracker_t *tracker,
   if ((index > IDX_10MS) && IS_GLO(tracker->mesid)) {
     /* GLO meander wipe-off prerequisites check-up */
     if (0 == (tracker->flags & TRACKER_FLAG_GLO_STRING_SYNC)) {
-      index = IDX_SENS_NM; /* no meander wipe-off without GLO string sync */
+      /* no meander wipe-off without GLO string sync */
+      index = tp_is_base_station_mode() ? IDX_10MS : IDX_SENS_NM;
     } else {
       /* for a switch we must be 20ms aligned by the end of the current cycle */
       tp_tm_e mode = tracker->tracking_mode;
