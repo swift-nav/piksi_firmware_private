@@ -120,7 +120,7 @@ TEST(tracking_loop_test, test_aided) {
 
   tl_pll3_update_dll_discr(&stl_f2p3, cs);
   tl_pll3_update_fpll(&stl_f2p3, cs, true);
-  tl_pll3_update_dll(&stl_f2p3);
+  tl_pll3_update_dll(&stl_f2p3, /*use_discr=*/true);
 
   EXPECT_LT(fabsf(stl_f2p3.carr_freq - carr_freq), LOW_TOL);
   EXPECT_LT(fabsf(stl_f2p3.carr_vel - carr_freq), LOW_TOL);

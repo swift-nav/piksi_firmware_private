@@ -105,7 +105,7 @@ void tp_tl_get_rates(const tp_tl_state_t *s, tl_rates_t *rates);
 void tp_tl_get_config(const tp_loop_params_t *l, tl_config_t *config);
 
 void tp_tl_update_dll_discr(tp_tl_state_t *s, const tp_epl_corr_t *cs);
-void tp_tl_update_dll(tp_tl_state_t *s);
+void tp_tl_update_dll(tp_tl_state_t *s, bool use_discr);
 
 void tp_tl_update_fll_discr(tp_tl_state_t *s, corr_t cs, bool halfq);
 void tp_tl_update_fpll(tp_tl_state_t *s, const tp_epl_corr_t *cs, bool costas);

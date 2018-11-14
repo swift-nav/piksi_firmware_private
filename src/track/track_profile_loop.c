@@ -192,13 +192,13 @@ void tp_tl_update_fpll(tp_tl_state_t *s, const tp_epl_corr_t *cs, bool costas) {
  * DLL update.
  * \param s Tracker state.
  */
-void tp_tl_update_dll(tp_tl_state_t *s) {
+void tp_tl_update_dll(tp_tl_state_t *s, bool use_discr) {
   switch (s->ctrl) {
     case TP_CTRL_PLL2:
-      tl_pll2_update_dll(&s->pll2);
+      tl_pll2_update_dll(&s->pll2, use_discr);
       break;
     case TP_CTRL_PLL3:
-      tl_pll3_update_dll(&s->pll3);
+      tl_pll3_update_dll(&s->pll3, use_discr);
       break;
 
     default:

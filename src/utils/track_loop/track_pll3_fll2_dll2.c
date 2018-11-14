@@ -131,14 +131,16 @@ void tl_pll3_update_dll_discr(tl_pll3_state_t *s, const correlation_t cs[3]) {
  * Updates dll filter state
  * \param s Loop state
  */
-void tl_pll3_update_dll(tl_pll3_state_t *s) {
+void tl_pll3_update_dll(tl_pll3_state_t *s, bool use_discr) {
   /* Code loop */
   float code_error = 0;
-  if (s->dll_discr_cnt > 0) {
-    code_error = s->dll_discr_sum_hz / s->dll_discr_cnt;
+  if (use_discr) {
+    if (s->dll_discr_cnt > 0) {
+      code_error = s->dll_discr_sum_hz / s->dll_discr_cnt;
+    }
+    s->dll_discr_cnt = 0;
+    s->dll_discr_sum_hz = 0;
   }
-  s->dll_discr_cnt = 0;
-  s->dll_discr_sum_hz = 0;
   s->code_freq =
       s->code_c1 * code_error +
       0.5f * (2.0f * s->code_vel + s->code_c2 * s->T_CODE * code_error);

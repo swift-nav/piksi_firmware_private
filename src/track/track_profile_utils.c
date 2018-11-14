@@ -636,9 +636,9 @@ static const state_table_t mode_200ms_10ms = {
   .lockdet_ms = 0, /* not used in FLL only mode */
   .alias_ms = 2.5,
   .flld_ms = 10,
-  .fpll_ms = 20,
+  .fpll_ms = 200,
   .fpll_decim = 10,
-  .dll_ms = 20,
+  .dll_ms = 200,
   .bit_ms = 10,
   .ent_cnt = GLO_FSM_20MS_NUM * 9, /* 900 */
   .entries = {
@@ -677,9 +677,9 @@ static const state_table_t mode_200ms_10ms_nm = {
     .lockdet_ms = 0, /* not used in FLL only mode */
     .alias_ms = 0, /* not used */
     .flld_ms = 5,
-    .fpll_ms = 10,
+    .fpll_ms = 200,
     .fpll_decim = 20,
-    .dll_ms = 10,
+    .dll_ms = 200,
     .bit_ms = 10,
     .ent_cnt = 4,
     .entries = {
@@ -766,9 +766,9 @@ static const state_table_t mode_200ms_sc4 = {
   .lockdet_ms = 0, /* not used in FLL only mode */
   .alias_ms = 4,
   .flld_ms = 10,
-  .fpll_ms = 20,
+  .fpll_ms = 200,
   .fpll_decim = 10,
-  .dll_ms = 20,
+  .dll_ms = 200,
   .bit_ms = 4,
   .ent_cnt = 7,
   .entries = {
@@ -862,9 +862,9 @@ static const state_table_t mode_200ms_20ms = {
   .lockdet_ms = 0, /* not used in FLL only mode */
   .alias_ms = 0, /* not used */
   .flld_ms = 10,
-  .fpll_ms = 20,
+  .fpll_ms = 200,
   .fpll_decim = 10,
-  .dll_ms = 20,
+  .dll_ms = 200,
   .bit_ms = 20,
   .ent_cnt = 6,
   .entries = {
@@ -1005,6 +1005,8 @@ u16 tp_calc_init_cycle_no(const tracker_t *tracker,
     cycle_no = (ms / GLO_MEANDER_WIPEOFF_ALIGN_MS) * cycles_in_20ms;
     cycle_no = tp_wrap_cycle(mode, cycle_no);
     assert(cycle_no < tbl->ent_cnt);
+  } else if ((tbl == &mode_200ms_10ms_nm)) {
+    /* no meander removal is attempted in this case */;
   } else if (IS_GLO(tracker->mesid) && (tbl->dll_ms > 10)) {
     /* GLO meander removal is attempted without proper init cycle calculation */
     assert(0);
