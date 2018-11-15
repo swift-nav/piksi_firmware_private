@@ -868,8 +868,6 @@ static THD_FUNCTION(initialize_and_run_starling, arg) {
   (void)arg;
   chRegSetThreadName("starling");
 
-  initialize_starling_settings();
-
   /* Set time of last differential solution in the past. */
   last_dgnss = GPS_TIME_UNKNOWN;
   last_spp = GPS_TIME_UNKNOWN;
@@ -909,6 +907,10 @@ static THD_FUNCTION(initialize_and_run_starling, arg) {
  ******************************************************************************/
 
 void starling_calc_pvt_setup() {
+
+  /* Init settings here in the main thread to avoid thread safety issues */
+  initialize_starling_settings();
+
   /* Start main starling thread. */
   platform_thread_create(THREAD_ID_STARLING, initialize_and_run_starling);
 }
