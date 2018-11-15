@@ -905,7 +905,9 @@ string_decode_status_t process_string_glo(nav_msg_glo_t *n, u32 time_tag_ms) {
   /* Extract string number */
   u32 m = extract_word_glo(n, 81, 4);
   /* Decode string specific data, we are interested only in strings 1-5 */
-  if (m > GLO_STRINGS_TO_COLLECT) {
+  /* According to ICD L1,L2 GLONASS edition 5.1 2008 Table 4.5 the valid
+     range of m is [0..15] */
+  if ((0 == m) || (m > GLO_STRINGS_TO_COLLECT)) {
     return GLO_STRING_DECODE_STRING;
   }
   /* Check that time tag is valid.
