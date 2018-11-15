@@ -168,22 +168,18 @@ void nap_auth_check(void) {
   char dna[NAP_DNA_LENGTH * 2 + 1];
   char key[NAP_KEY_LENGTH * 2 + 1];
 
-  char *pnt = dna;
-  for (int i = NAP_DNA_LENGTH - 1; i >= 0; i--) {
-    pnt += sprintf(pnt, "%02x", nap_dna[i]);
-  }
-  dna[NAP_DNA_LENGTH * 2] = '\0';
-  pnt = key;
-  for (int i = NAP_KEY_LENGTH - 1; i >= 0; i--) {
-    pnt += sprintf(pnt, "%02x", factory_params.nap_key[i]);
-  }
-  key[NAP_KEY_LENGTH * 2] = '\0';
-  log_error("NAP Verification Failed: DNA=%s, Key=%s", dna, key);
-  nap_unlock(factory_params.nap_key);
-  chThdSleepMilliseconds(100);
-
   if (nap_locked()) {
-    log_error("NAP Unlock Retries Exceeded. Triggering Reset");
+    char *pnt = dna;
+    for (int i = NAP_DNA_LENGTH - 1; i >= 0; i--) {
+      pnt += sprintf(pnt, "%02x", nap_dna[i]);
+    }
+    dna[NAP_DNA_LENGTH * 2] = '\0';
+    pnt = key;
+    for (int i = NAP_KEY_LENGTH - 1; i >= 0; i--) {
+      pnt += sprintf(pnt, "%02x", factory_params.nap_key[i]);
+    }
+    key[NAP_KEY_LENGTH * 2] = '\0';
+    log_error("NAP Verification Failed: DNA=%s, Key=%s", dna, key);
     hard_reset();
   }
 }
