@@ -937,8 +937,9 @@ ndb_op_code_t ndb_check_age(const gps_time_t *t, double age_limit) {
  *  necessary to prevent outputting the same ephemeris for different codes
  *  of the same satellite.
  *  */
-static u32 get_next_idx_to_send(gnss_signal_t *sid, s32 prev_idx) {
-  u32 i = prev_idx != NDB_SBP_UPDATE_SIG_IDX_INIT ? prev_idx + 1 : 0;
+static s32 get_next_idx_to_send(gnss_signal_t *sid, s32 prev_idx) {
+  s32 i = prev_idx != NDB_SBP_UPDATE_SIG_IDX_INIT ? prev_idx + 1 : 0;
+  assert(i >= 0);
 
   while (i < PLATFORM_SIGNAL_COUNT) {
     *sid = sid_from_global_index(i);
