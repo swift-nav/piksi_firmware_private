@@ -74,7 +74,6 @@ u8 nap_conf_rd_date_string(char date_string[]) {
   u32 ctrl = (NAP->CONTROL & ~((u32)NAP_CONTROL_VERSION_ADDR_Msk));
   NAP->CONTROL = SET_NAP_CONTROL_VERSION_ADDR(ctrl, NAP_BUILD_TIME_OFFSET);
   reg = NAP->VERSION;
-  chSysUnlock();
 
   u8 hrs = (reg & 0x00FF0000) >> 16;
   u8 min = (reg & 0x0000FF00) >> 8;
@@ -85,6 +84,7 @@ u8 nap_conf_rd_date_string(char date_string[]) {
   u16 yrs = (reg & 0xFFFF0000) >> 16;
   u8 mon = (reg & 0x0000FF00) >> 8;
   u8 day = (reg & 0x000000FF);
+  chSysUnlock();
 
   sprintf(date_string,
           "%04X-%02X-%02X %02X:%02X:%02X UTC",
