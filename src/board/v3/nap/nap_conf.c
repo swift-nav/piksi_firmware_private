@@ -50,17 +50,18 @@ u32 nap_conf_rd_version(void) {
 u8 nap_conf_rd_version_string(char version_string[]) {
   u8 i = 0;
   u32 reg = 0;
+
+  chSysLock();
   u32 ctrl = (NAP->CONTROL & ~((u32)NAP_CONTROL_VERSION_ADDR_Msk));
 
   do {
-    chSysLock();
     NAP->CONTROL = SET_NAP_CONTROL_VERSION_ADDR(
         ctrl, (i + NAP_VERSION_STRING_OFFSET) / sizeof(reg));
     reg = NAP->VERSION;
-    chSysUnlock();
     memcpy(&version_string[i], &reg, sizeof(reg));
     i += sizeof(reg);
   } while (reg && i < NAP_VERSION_STRING_LENGTH);
+  chSysUnlock();
   version_string[i] = 0;
 
   return strlen(version_string);
@@ -68,12 +69,13 @@ u8 nap_conf_rd_version_string(char version_string[]) {
 
 u8 nap_conf_rd_date_string(char date_string[]) {
   u32 reg;
-  u32 ctrl = (NAP->CONTROL & ~((u32)NAP_CONTROL_VERSION_ADDR_Msk));
 
   chSysLock();
+  u32 ctrl = (NAP->CONTROL & ~((u32)NAP_CONTROL_VERSION_ADDR_Msk));
   NAP->CONTROL = SET_NAP_CONTROL_VERSION_ADDR(ctrl, NAP_BUILD_TIME_OFFSET);
   reg = NAP->VERSION;
   chSysUnlock();
+
   u8 hrs = (reg & 0x00FF0000) >> 16;
   u8 min = (reg & 0x0000FF00) >> 8;
   u8 sec = (reg & 0x000000FF);
@@ -98,16 +100,17 @@ u8 nap_conf_rd_date_string(char date_string[]) {
 
 void nap_rd_dna(u8 dna[]) {
   u32 reg = 0;
+
+  chSysLock();
   u32 ctrl = (NAP->CONTROL & ~((u32)NAP_CONTROL_VERSION_ADDR_Msk));
 
   for (u8 i = 0; i < NAP_DNA_LENGTH; i += sizeof(reg)) {
-    chSysLock();
     NAP->CONTROL =
         SET_NAP_CONTROL_VERSION_ADDR(ctrl, (i + NAP_DNA_OFFSET) / sizeof(reg));
     reg = NAP->VERSION;
-    chSysUnlock();
     memcpy(&dna[i], &reg, sizeof(reg));
   }
+  chSysUnlock();
 }
 
 bool nap_locked(void) {

@@ -180,6 +180,7 @@ void nap_auth_check(void) {
     }
     key[NAP_KEY_LENGTH * 2] = '\0';
     log_error("NAP Verification Failed: DNA=%s, Key=%s", dna, key);
+    chThdSleepSeconds(1);
     hard_reset();
   }
 }
