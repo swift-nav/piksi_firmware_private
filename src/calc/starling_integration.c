@@ -47,6 +47,8 @@
 
 #define STARLING_BASE_SENDER_ID_DEFAULT 0
 
+#define DFLT_CORRECTION_AGE_MAX_S 30
+
 /*******************************************************************************
  * Globals
  ******************************************************************************/
@@ -63,6 +65,8 @@ static bool enable_galileo = true;
 static bool enable_beidou = true;
 
 static double heading_offset = 0.0;
+
+static u32 corr_age_max = DFLT_CORRECTION_AGE_MAX_S;
 
 static MUTEX_DECL(last_sbp_lock);
 static gps_time_t last_dgnss;
@@ -539,6 +543,16 @@ static bool set_max_age(struct setting *s, const char *val) {
   if (!ret) {
     return ret;
   }
+
+  if (0 <= value) {
+    log_error("Trying to set invalid differential max age value %d", value);
+    return false;
+  }
+
+  /* Save to file scope variable */
+  corr_age_max = value;
+
+  /* Forward to starling */
   starling_set_max_correction_age(value);
   *(int *)s->addr = value;
   return ret;
@@ -751,10 +765,9 @@ static void initialize_starling_settings(void) {
                  TYPE_GNSS_FILTER,
                  enable_fix_mode);
 
-  static u32 max_age_of_differential = 30;
   SETTING_NOTIFY("solution",
                  "correction_age_max",
-                 max_age_of_differential,
+                 corr_age_max,
                  TYPE_INT,
                  set_max_age);
 
