@@ -544,7 +544,7 @@ static bool set_max_age(struct setting *s, const char *val) {
     return ret;
   }
 
-  if (0 <= value) {
+  if (0 >= value) {
     log_error("Trying to set invalid differential max age value %d", value);
     return false;
   }
