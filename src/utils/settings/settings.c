@@ -10,6 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include <assert.h>
 #include <string.h>
 
 #include <ch.h>
@@ -204,6 +205,7 @@ int settings_type_register_enum(const char *const enumnames[],
   type->from_string = enum_from_string;
   type->format_type = enum_format_type;
   type->priv = enumnames;
+  type->next = NULL;
   for (i = 0, t = (struct setting_type *)&type_int; t->next; t = t->next, i++) {
     ; /* Do nothing */
   }
@@ -247,7 +249,7 @@ void settings_register(struct setting *setting, enum setting_types type) {
   for (u32 i = 0; t && (i < type); i++, t = t->next) {
     ; /* Do nothing */
   }
-  /* FIXME Abort if type is NULL */
+  assert(t != NULL);
   setting->type = t;
 
   if (!settings_head) {
