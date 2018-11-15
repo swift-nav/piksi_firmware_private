@@ -63,11 +63,7 @@ static void update_params(tl_pll3_state_t *s, const tl_config_t *config) {
   s->carr_c3 = omega_0_3 / config->carr_k;
 
   /* DLL constants */
-  calc_loop_gains2(config->code_bw,
-                   config->code_zeta,
-                   config->code_k,
-                   &s->code_c1,
-                   &s->code_c2);
+  s->code_c1 = 4.0f * config->code_bw;
 
   s->carr_to_code = config->carr_to_code > 0 ? 1.f / config->carr_to_code : 0.f;
 }
@@ -139,10 +135,8 @@ void tl_pll3_update_dll(tl_pll3_state_t *s) {
   }
   s->dll_discr_cnt = 0;
   s->dll_discr_sum_hz = 0;
-  s->code_freq =
-      s->code_c1 * code_error +
-      0.5f * (2.0f * s->code_vel + s->code_c2 * s->T_CODE * code_error);
-  s->code_vel += s->code_c2 * s->T_CODE * code_error;
+
+  s->code_freq = s->code_c1 * code_error;
 }
 
 void tl_pll3_update_fpll(tl_pll3_state_t *s,
