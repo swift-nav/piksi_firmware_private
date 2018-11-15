@@ -422,7 +422,6 @@ static void tracker_gps_l1ca_update(tracker_t *tracker) {
 
   bool bit_aligned =
       ((0 != (cflags & TPF_BSYNC_UPD)) && tracker_bit_aligned(tracker));
-
   if (!bit_aligned) {
     return;
   }

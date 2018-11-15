@@ -34,7 +34,10 @@
 static u16 tracking_lock_counters[PLATFORM_ACQ_TRACK_COUNT];
 
 static s32 normalize_tow(s32 tow) {
-  assert(tow >= 0);
+  if (tow < 0) {
+    log_error("tow %" PRId32, tow);
+    assert(0);
+  }
   return tow % GPS_WEEK_LENGTH_ms;
 }
 
@@ -96,6 +99,11 @@ static s32 adjust_tow_by_bit_fifo_delay(tracker_t *tracker,
 
   /* Add full bit times + fractional bit time to the specified TOW */
   TOW_ms = to_tracker->TOW_ms + fifo_time_diff_ms + tracker->nav_bit_offset_ms;
+
+  if (0 > TOW_ms) {
+    log_error("to_tracker->TOW_ms %" PRId32 " fifo_time_diff_ms %" PRId32 " tracker->nav_bit_offset_ms %" PRId32,
+      to_tracker->TOW_ms, fifo_time_diff_ms, tracker->nav_bit_offset_ms);
+  }
 
   TOW_ms = normalize_tow(TOW_ms);
 
@@ -162,7 +170,7 @@ static void update_eph(tracker_t *tracker, const nav_data_sync_t *data_sync) {
     log_warn_mesid(mesid, "Unexpected GLO orbit slot change");
   }
   tracker->glo_orbit_slot = data_sync->glo_orbit_slot;
-  if (!IS_GPS(mesid) && SV_UNHEALTHY == data_sync->health) {
+  if (!(IS_GPS(mesid) || IS_QZSS(mesid)) && SV_UNHEALTHY == data_sync->health) {
     tracker->flags |= TRACKER_FLAG_UNHEALTHY;
     tracker_flag_drop(tracker, CH_DROP_REASON_SV_UNHEALTHY);
   }

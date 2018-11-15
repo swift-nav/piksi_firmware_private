@@ -120,6 +120,7 @@ BOARDSRC := \
         $(SWIFTNAV_ROOT)/src/decode/decode_glo_l2of.o \
         $(SWIFTNAV_ROOT)/src/decode/decode_sbas_l1.o \
         $(SWIFTNAV_ROOT)/src/decode/decode_qzss_l1ca.o \
+        $(SWIFTNAV_ROOT)/src/decode/decode_qzss_l2c.o \
         $(SWIFTNAV_ROOT)/src/decode/decode_bds_b1.o \
         $(SWIFTNAV_ROOT)/src/decode/decode_bds_b2.o \
         $(SWIFTNAV_ROOT)/src/decode/decode_gal_e1.o \
