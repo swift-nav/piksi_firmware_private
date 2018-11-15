@@ -95,8 +95,6 @@ int main(void) {
   static char sender_id_str[5];
   sprintf(sender_id_str, "%04X", sender_id);
 
-  chSysLock();
-
   static char hw_revision_string[64] = {0};
   hw_revision_string_get(hw_revision_string);
   log_info("hw_revision: %s", hw_revision_string);
@@ -124,8 +122,6 @@ int main(void) {
 
   nap_auth_setup();
   nap_auth_check();
-
-  chSysUnlock();
 
   frontend_setup();
   me_settings_setup();
