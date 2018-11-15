@@ -18,7 +18,7 @@
 #include "platform_signal.h"
 #include "position/position.h"
 #include "sbp_utils.h"
-#include "settings/settings_api.h"
+#include "settings/settings_client.h"
 #include "signal_db/signal_db.h"
 #include "simulator/simulator.h"
 #include "timing/timing.h"

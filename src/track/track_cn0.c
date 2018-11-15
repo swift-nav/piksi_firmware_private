@@ -10,7 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 #include "track_cn0.h"
-#include "settings/settings_api.h"
+#include "settings/settings_client.h"
 #include "track/tracker.h"
 
 #include <assert.h>

@@ -10,8 +10,8 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ifndef SWIFTNAV_SETTINGS_H
-#define SWIFTNAV_SETTINGS_H
+#ifndef SWIFTNAV_SETTINGS_CLIENT_H
+#define SWIFTNAV_SETTINGS_CLIENT_H
 
 #include <stdbool.h>
 
@@ -72,4 +72,4 @@ int settings_api_register(struct setting *s, settings_type_t type);
 int settings_api_register_readonly(struct setting *s, settings_type_t type);
 int settings_api_watch(struct setting *s, settings_type_t type);
 
-#endif /* SWIFTNAV_SETTINGS_H */
+#endif /* SWIFTNAV_SETTINGS_CLIENT_H */

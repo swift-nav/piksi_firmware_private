@@ -24,7 +24,7 @@
 #include "ndb.h"
 #include "ndb_fs_access.h"
 #include "ndb_internal.h"
-#include "settings/settings_api.h"
+#include "settings/settings_client.h"
 #include "signal_db/signal_db.h"
 #include "timing/timing.h"
 

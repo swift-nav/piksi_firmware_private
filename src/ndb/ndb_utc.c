@@ -17,7 +17,7 @@
 #include "ndb_internal.h"
 #include "sbp.h"
 #include "sbp_utils.h"
-#include "settings/settings_api.h"
+#include "settings/settings_client.h"
 #include "utils/timing/timing.h"
 
 #define UTC_PARAMS_FILE_NAME "persistent/ndb/utc_params"

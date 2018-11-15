@@ -43,7 +43,7 @@
 #include "position/position.h"
 #include "sbp/sbp.h"
 #include "sbp/sbp_utils.h"
-#include "settings/settings_api.h"
+#include "settings/settings_client.h"
 #include "shm/shm.h"
 #include "simulator/simulator.h"
 #include "starling_integration.h"

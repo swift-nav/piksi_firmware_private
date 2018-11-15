@@ -28,7 +28,7 @@
 #include "ndb/ndb.h"
 #include "sbp/sbp.h"
 #include "sbp/sbp_utils.h"
-#include "settings/settings_api.h"
+#include "settings/settings_client.h"
 #include "simulator/simulator.h"
 #include "utils/nmea/nmea.h"
 #include "utils/timing/timing.h"
