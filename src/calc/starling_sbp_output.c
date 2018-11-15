@@ -23,11 +23,7 @@ extern bool send_heading;
  ********************************************************************/
 
 /**
- *
- * @param base_sender_id sender id of base obs
  * @param sbp_messages struct of sbp messages
- * @param n_meas nav_meas len
- * @param nav_meas Valid navigation measurements
  */
 void solution_send_pos_messages(const sbp_messages_t *sbp_messages) {
   dgnss_solution_mode_t dgnss_soln_mode = starling_get_solution_mode();

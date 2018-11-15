@@ -19,7 +19,8 @@
  */
 static u8 code_to_nav_bit_fifo_size(const code_t code) {
   if ((CODE_GPS_L1CA == code) || (CODE_GPS_L2CM == code) ||
-      (CODE_GPS_L5I == code)) {
+      (CODE_GPS_L5I == code) || (CODE_QZS_L1CA == code) ||
+      (CODE_QZS_L2CM == code) || (CODE_QZS_L5I == code)) {
     return 20;
   } else if ((CODE_GLO_L1OF == code) || (CODE_GLO_L2OF == code)) {
     return 40;

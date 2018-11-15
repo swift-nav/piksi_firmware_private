@@ -218,7 +218,6 @@ tracker_t *tracker_get_by_mesid(const me_gnss_signal_t mesid) {
  * \return None
  */
 void tracker_drop_unhealthy(const me_gnss_signal_t mesid) {
-  assert(IS_GLO(mesid) || IS_BDS2(mesid) || IS_GAL(mesid));
   tracker_t *tracker = tracker_get_by_mesid(mesid);
   if (tracker == NULL) {
     return;

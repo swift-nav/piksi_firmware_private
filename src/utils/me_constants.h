@@ -61,4 +61,7 @@
 /** QZSS L2C symbol length [ms] */
 #define QZS_L2C_SYMBOL_LENGTH_MS 20
 
+/** QZSS L2C CNAV message length [bits] */
+#define QZS_CNAV_MSG_LENGTH 300
+
 #endif /* ME_CONSTANTS_H */

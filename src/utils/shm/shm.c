@@ -33,6 +33,8 @@ static gps_sat_health_indicators_t gps_shis[NUM_SATS_GPS];
 static glo_sat_health_indicators_t glo_shis[NUM_SATS_GLO];
 static bds_sat_health_indicators_t bds_shis[NUM_SATS_BDS];
 static gal_sat_health_indicators_t gal_shis[NUM_SATS_GAL];
+static gps_sat_health_indicators_t qzs_shis[NUM_SATS_QZS];
+
 
 static void bool_shi_2_str(bool set, bool shi, char* str) {
   str[0] = set ? (shi ? 'Y' : 'N') : '?';
@@ -92,16 +94,17 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
 
   /* Retrieve SHI data */
   chMtxLock(&shm_data_access);
-  gps_sat_health_indicators_t shis = gps_shis[sid.sat - GPS_FIRST_PRN];
-  glo_sat_health_indicators_t shi = glo_shis[sid.sat - GLO_FIRST_PRN];
+  gps_sat_health_indicators_t shi_gps = gps_shis[sid.sat - GPS_FIRST_PRN];
+  glo_sat_health_indicators_t shi_glo = glo_shis[sid.sat - GLO_FIRST_PRN];
   bds_sat_health_indicators_t shi_bds = bds_shis[sid.sat - BDS_FIRST_PRN];
   gal_sat_health_indicators_t shi_gal = gal_shis[sid.sat - GAL_FIRST_PRN];
+  gps_sat_health_indicators_t shi_qzs = qzs_shis[sid.sat - QZS_FIRST_PRN];
   chMtxUnlock(&shm_data_access);
 
   /* Check common GPS */
   if (IS_GPS(sid)) {
-    if (shis.shi_ephemeris_set &&
-        !check_6bit_health_word(shis.shi_ephemeris, sid.code)) {
+    if (shi_gps.shi_ephemeris_set &&
+        !check_6bit_health_word(shi_gps.shi_ephemeris, sid.code)) {
       return CODE_NAV_STATE_INVALID;
     }
 
@@ -110,9 +113,9 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
      * - shi_page25_set has not aged and
      * - shi_page25_set indicates unhealthy
      */
-    if (shis.shi_page25_set &&
-        !shm_alma_page25_health_aged(shis.shi_page25_timetag_s) &&
-        !check_alma_page25_health_word(shis.shi_page25, sid.code)) {
+    if (shi_gps.shi_page25_set &&
+        !shm_alma_page25_health_aged(shi_gps.shi_page25_timetag_s) &&
+        !check_alma_page25_health_word(shi_gps.shi_page25, sid.code)) {
       return CODE_NAV_STATE_INVALID;
     }
 
@@ -143,7 +146,7 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
        *
        * Otherwise return CODE_NAV_STATE_UNKNOWN
        */
-      if (shis.shi_lnav_how_alert_set && !shis.shi_lnav_how_alert) {
+      if (shi_gps.shi_lnav_how_alert_set && !shi_gps.shi_lnav_how_alert) {
         return CODE_NAV_STATE_INVALID;
       }
 
@@ -153,9 +156,9 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
         return CODE_NAV_STATE_INVALID;
       }
 
-      if ((shis.shi_ephemeris_set &&
-           check_6bit_health_word(shis.shi_ephemeris, sid.code)) &&
-          (shis.shi_lnav_how_alert_set && shis.shi_lnav_how_alert) &&
+      if ((shi_gps.shi_ephemeris_set &&
+           check_6bit_health_word(shi_gps.shi_ephemeris, sid.code)) &&
+          (shi_gps.shi_lnav_how_alert_set && shi_gps.shi_lnav_how_alert) &&
           ((!msg10_available) ||
            (msg10_available && cnav_msg10.data.type_10.l1_health))) {
         return CODE_NAV_STATE_VALID;
@@ -182,7 +185,7 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
        *
        * Otherwise return CODE_NAV_STATE_UNKNOWN
        */
-      if (shis.shi_cnav_alert_set && !shis.shi_cnav_alert) {
+      if (shi_gps.shi_cnav_alert_set && !shi_gps.shi_cnav_alert) {
         return CODE_NAV_STATE_INVALID;
       }
 
@@ -192,9 +195,9 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
         return CODE_NAV_STATE_INVALID;
       }
 
-      if ((shis.shi_ephemeris_set &&
-           check_6bit_health_word(shis.shi_ephemeris, sid.code)) &&
-          (shis.shi_cnav_alert_set && shis.shi_cnav_alert)) {
+      if ((shi_gps.shi_ephemeris_set &&
+           check_6bit_health_word(shi_gps.shi_ephemeris, sid.code)) &&
+          (shi_gps.shi_cnav_alert_set && shi_gps.shi_cnav_alert)) {
         return CODE_NAV_STATE_VALID;
       }
 
@@ -203,9 +206,9 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
 
     case CODE_GLO_L1OF:
     case CODE_GLO_L2OF:
-      if (shi.shi_set && (SV_UNHEALTHY == shi.shi)) {
+      if (shi_glo.shi_set && (SV_UNHEALTHY == shi_glo.shi)) {
         return CODE_NAV_STATE_INVALID;
-      } else if (shi.shi_set && (SV_HEALTHY == shi.shi)) {
+      } else if (shi_glo.shi_set && (SV_HEALTHY == shi_glo.shi)) {
         return CODE_NAV_STATE_VALID;
       }
       return CODE_NAV_STATE_UNKNOWN;
@@ -230,6 +233,21 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
         return CODE_NAV_STATE_VALID;
       }
       return CODE_NAV_STATE_UNKNOWN;
+
+    case CODE_QZS_L1CA:
+    case CODE_QZS_L2CM: {
+      if (shi_qzs.shi_lnav_how_alert_set && !shi_qzs.shi_lnav_how_alert) {
+        return CODE_NAV_STATE_INVALID;
+      }
+
+      if ((shi_qzs.shi_ephemeris_set &&
+           check_6bit_health_word(shi_qzs.shi_ephemeris, sid.code)) &&
+          (shi_qzs.shi_lnav_how_alert_set && shi_qzs.shi_lnav_how_alert) ) {
+        return CODE_NAV_STATE_VALID;
+      }
+
+      return CODE_NAV_STATE_UNKNOWN;
+    }
 
     case CODE_INVALID:
     case CODE_COUNT:
@@ -262,14 +280,14 @@ void shm_log_sat_state(const char* shi_name, u16 sat) {
     char shi_ephemeris_str[4], shi_lnav_how_alert_str[2], shi_cnav_alert_str[2];
     char shi5_l1_str[2], shi5_l2_str[2], shi5_l5_str[2];
     chMtxLock(&shm_data_access);
-    gps_sat_health_indicators_t shis = gps_shis[sat - GPS_FIRST_PRN];
+    gps_sat_health_indicators_t shi_gps = gps_shis[sat - GPS_FIRST_PRN];
     chMtxUnlock(&shm_data_access);
-    int_shi_2_str(shis.shi_ephemeris_set,
-                  shis.shi_ephemeris,
+    int_shi_2_str(shi_gps.shi_ephemeris_set,
+                  shi_gps.shi_ephemeris,
                   shi_ephemeris_str,
                   sizeof(shi_ephemeris_str));
-    bool_shi_2_str(shis.shi_lnav_how_alert_set,
-                   shis.shi_lnav_how_alert,
+    bool_shi_2_str(shi_gps.shi_lnav_how_alert_set,
+                   shi_gps.shi_lnav_how_alert,
                    shi_lnav_how_alert_str);
     cnav_msg_t cnav_msg10;
     bool shi5_set = cnav_msg_get(l2_sid, CNAV_MSG_TYPE_10, &cnav_msg10);
@@ -278,7 +296,7 @@ void shm_log_sat_state(const char* shi_name, u16 sat) {
     bool_shi_2_str(shi5_set, m10.l2_health, shi5_l2_str);
     bool_shi_2_str(shi5_set, m10.l5_health, shi5_l5_str);
     bool_shi_2_str(
-        shis.shi_cnav_alert_set, shis.shi_cnav_alert, shi_cnav_alert_str);
+        shi_gps.shi_cnav_alert_set, shi_gps.shi_cnav_alert, shi_cnav_alert_str);
     log_debug(
         "GPS SV %02d %s update. State {L1:%s, L2:%s} "
         "SHI[1:%s, 4:%s, 5:{%s,%s,%s}, 6:%s]",
@@ -310,6 +328,20 @@ void shm_gps_set_shi_ephemeris(u16 sat, u8 new_value) {
   shm_log_sat_state("shi_ephemeris", sat);
 }
 
+/** Update shi_ephemeris for QZSS satellite.
+ *  Refer to swiftnav/shm.h for details of SHIs.
+ *
+ * \param sat QZSS satellite ID
+ * \param new_value value to set shi_ephemeris to
+ */
+void shm_qzss_set_shi_ephemeris(u16 sat, u8 new_value) {
+  assert(sat >= QZS_FIRST_PRN && sat < QZS_FIRST_PRN + NUM_SATS_GPS);
+  chMtxLock(&shm_data_access);
+  qzs_shis[sat - QZS_FIRST_PRN].shi_ephemeris = new_value;
+  qzs_shis[sat - QZS_FIRST_PRN].shi_ephemeris_set = true;
+  chMtxUnlock(&shm_data_access);
+}
+
 /** Update shi_page25 for GPS satellite.
  *  Refer to swiftnav/shm.h for details of SHIs.
  *
@@ -331,6 +363,27 @@ void shm_gps_set_shi_page25(u16 sat, u8 new_value) {
   chMtxUnlock(&shm_data_access);
 }
 
+/** Update shi_page25 for QZSS satellite.
+ *  Refer to swiftnav/shm.h for details of SHIs.
+ *
+ * \param sat QZSS satellite ID
+ * \param new_value value to set shi_page25 to
+ */
+void shm_qzss_set_shi_page25(u16 sat, u8 new_value) {
+  assert(sat >= QZS_FIRST_PRN && sat < QZS_FIRST_PRN + NUM_SATS_QZS);
+  if (0 == new_value) {
+    return;
+  }
+  piksi_systime_t now;
+  piksi_systime_get(&now);
+  u32 timetag_s = piksi_systime_to_s(&now);
+  chMtxLock(&shm_data_access);
+  qzs_shis[sat - QZS_FIRST_PRN].shi_page25 = new_value;
+  qzs_shis[sat - QZS_FIRST_PRN].shi_page25_set = true;
+  qzs_shis[sat - QZS_FIRST_PRN].shi_page25_timetag_s = timetag_s;
+  chMtxUnlock(&shm_data_access);
+}
+
 /** Update shi_lnav_how_alert for GPS satellite.
  *  Refer to swiftnav/shm.h for details of SHIs.
  *
@@ -346,6 +399,20 @@ void shm_gps_set_shi_lnav_how_alert(u16 sat, bool new_value) {
   shm_log_sat_state("shi_lnav_how_alert", sat);
 }
 
+/** Update shi_lnav_how_alert for QZSS satellite.
+ *  Refer to swiftnav/shm.h for details of SHIs.
+ *
+ * \param sat QZSS satellite ID
+ * \param new_value value to set shi_lnav_how_alert to
+ */
+void shm_qzss_set_shi_lnav_how_alert(u16 sat, bool new_value) {
+  assert(sat >= QZS_FIRST_PRN && sat < QZS_FIRST_PRN + NUM_SATS_QZS);
+  chMtxLock(&shm_data_access);
+  qzs_shis[sat - QZS_FIRST_PRN].shi_lnav_how_alert = new_value;
+  qzs_shis[sat - QZS_FIRST_PRN].shi_lnav_how_alert_set = true;
+  chMtxUnlock(&shm_data_access);
+}
+
 /** Update shi_cnav_alert for GPS satellite.
  *  Refer to swiftnav/shm.h for details of SHIs.
  *
@@ -359,6 +426,20 @@ void shm_gps_set_shi_cnav_alert(u16 sat, bool new_value) {
   gps_shis[sat - GPS_FIRST_PRN].shi_cnav_alert_set = true;
   chMtxUnlock(&shm_data_access);
   shm_log_sat_state("shi_cnav_alert", sat);
+}
+
+/** Update shi_cnav_alert for QZSS satellite.
+ *  Refer to swiftnav/shm.h for details of SHIs.
+ *
+ * \param sat QZSS satellite ID
+ * \param new_value value to set shi_cnav_alert to
+ */
+void shm_qzss_set_shi_cnav_alert(u16 sat, bool new_value) {
+  assert(sat >= QZS_FIRST_PRN && sat < QZS_FIRST_PRN + NUM_SATS_QZS);
+  chMtxLock(&shm_data_access);
+  qzs_shis[sat - QZS_FIRST_PRN].shi_cnav_alert = new_value;
+  qzs_shis[sat - QZS_FIRST_PRN].shi_cnav_alert_set = true;
+  chMtxUnlock(&shm_data_access);
 }
 
 /** Update SHI for GLO satellite.
