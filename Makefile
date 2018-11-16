@@ -56,7 +56,6 @@ FW_DEPS=$(LIBSBP_BUILDDIR)/src/libsbp-static.a \
 
 ifeq ($(PIKSI_HW),v3)
   CMAKEFLAGS += -DCMAKE_SYSTEM_PROCESSOR=cortex-a9
-  CMAKEFLAGS += -DMAX_CHANNELS=73
   CMAKEFLAGS += -DCMAKE_C_COMPILER:INTERNAL=arm-none-eabi-gcc
   CMAKEFLAGS += -DCMAKE_CXX_COMPILER:INTERNAL=arm-none-eabi-g++
   CMAKEFLAGS += -DCMAKE_C_COMPILER_ID:INTERNAL=GNU
@@ -103,6 +102,7 @@ $(STARLING_BUILDDIR)/Makefile:
     mkdir -p $(STARLING_BUILDDIR); cd $(STARLING_BUILDDIR); \
     cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
           -DCMAKE_TOOLCHAIN_FILE=../cmake/Toolchain-gcc-arm-embedded.cmake \
+          -DMAX_CHANNELS=73 \
           $(CMAKEFLAGS) ../
 
 $(OPENAMP_BUILDDIR)/lib/libopen-amp.a:
