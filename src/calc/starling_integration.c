@@ -30,6 +30,7 @@
 #include "sbp/sbp_utils.h"
 #include "settings/settings.h"
 #include "simulator/simulator.h"
+#include "utils/nmea/nmea.h"
 #include "utils/timing/timing.h"
 
 #include "board/v3/nap/nap_hw.h"
@@ -410,6 +411,9 @@ static void solution_make_baseline_sbp(const pvt_engine_result_t *result,
 static void starling_integration_solution_simulation(
     sbp_messages_t *sbp_messages) {
   simulation_step();
+
+  /* Send GSV messages for all satellites in track */
+  nmea_send_gsv(simulation_current_num_sats(), simulation_current_in_view());
 
   /* TODO: The simulator's handling of time is a bit crazy. This is a hack
    * for now but the simulator should be refactored so that it can give the
