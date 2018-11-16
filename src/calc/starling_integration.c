@@ -765,11 +765,8 @@ static void initialize_starling_settings(void) {
                  TYPE_GNSS_FILTER,
                  enable_fix_mode);
 
-  SETTING_NOTIFY("solution",
-                 "correction_age_max",
-                 corr_age_max,
-                 TYPE_INT,
-                 set_max_age);
+  SETTING_NOTIFY(
+      "solution", "correction_age_max", corr_age_max, TYPE_INT, set_max_age);
 
   SETTING_NOTIFY("solution",
                  "enable_glonass",
@@ -907,7 +904,6 @@ static THD_FUNCTION(initialize_and_run_starling, arg) {
  ******************************************************************************/
 
 void starling_calc_pvt_setup() {
-
   /* Init settings here in the main thread to avoid thread safety issues */
   initialize_starling_settings();
 
