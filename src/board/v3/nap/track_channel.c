@@ -432,7 +432,6 @@ void nap_track_read_results(u8 channel,
   tracking_rd_t trk_ch;
   swiftnap_tracking_rd_t *t = &NAP->TRK_CH_RD[channel];
   struct nap_ch_state *s = &nap_ch_desc[channel];
-  volatile u32 corr_val = 0;
 
   trk_ch.STATUS = t->STATUS;
 
@@ -440,6 +439,7 @@ void nap_track_read_results(u8 channel,
   *count_snapshot = trk_ch.TIMING_SNAPSHOT;
 
   /* pilot/data correlator values in sequence E-P-L-E-P-L */
+  volatile u32 corr_val = 0;
   for (u8 i = 0; i < 6; i++) {
     corr_val = t->CORR;
     corrs[i].I = (s16)(corr_val & 0xFFFF);
