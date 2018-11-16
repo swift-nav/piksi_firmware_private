@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2016 - 2017 Swift Navigation Inc.
  * Contact: Adel Mamin <adel.mamin@exafore.com>
- * Contact: Michele Bavaro <michele@swift-nav.com>
+ * Contact: Eric Senant <eric.senanat@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
