@@ -165,11 +165,10 @@ void nap_auth_setup(void) { nap_unlock(factory_params.nap_key); }
  * be sent and received (it can't go in init() or nap_setup()).
  */
 void nap_auth_check(void) {
-  const int NAP_AUTH_RETRIES = 3;
   char dna[NAP_DNA_LENGTH * 2 + 1];
   char key[NAP_KEY_LENGTH * 2 + 1];
 
-  for (int k = 0; k < NAP_AUTH_RETRIES && nap_locked(); k++) {
+  if (nap_locked()) {
     char *pnt = dna;
     for (int i = NAP_DNA_LENGTH - 1; i >= 0; i--) {
       pnt += sprintf(pnt, "%02x", nap_dna[i]);
@@ -181,11 +180,7 @@ void nap_auth_check(void) {
     }
     key[NAP_KEY_LENGTH * 2] = '\0';
     log_error("NAP Verification Failed: DNA=%s, Key=%s", dna, key);
-    nap_unlock(factory_params.nap_key);
     chThdSleepSeconds(1);
-  }
-  if (nap_locked()) {
-    log_error("NAP Unlock Retries Exceeded. Triggering Reset");
     hard_reset();
   }
 }
