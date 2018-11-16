@@ -81,6 +81,7 @@ static decoder_interface_list_element_t list_element_gps_l1ca = {
 static void check_almanac_xcorr(gnss_signal_t sid) {
   xcorr_positions_t alm_pos; /* Almanac's positions for sid */
   alm_pos.time_s = 0;
+  alm_pos.interval_s = 0;
 
   for (u8 sv_idx = 0; sv_idx < NUM_SATS_GPS; ++sv_idx) {
     gnss_signal_t sid1 = construct_sid(CODE_GPS_L1CA, sv_idx + GPS_FIRST_PRN);
