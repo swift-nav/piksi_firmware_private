@@ -225,12 +225,16 @@ static void decode_thread(void *arg) {
         case DECODER_CHANNEL_STATE_ENABLED: {
           const decoder_interface_t *interface =
               decoder_interface_get(d->info.mesid);
+          assert(interface);
+          assert(interface->process);
           interface_function(d, interface->process);
         } break;
 
         case DECODER_CHANNEL_STATE_DISABLE_REQUESTED: {
           const decoder_interface_t *interface =
               decoder_interface_get(d->info.mesid);
+          assert(interface);
+          assert(interface->disable);
           interface_function(d, interface->disable);
           event(d, EVENT_DISABLE);
         } break;
