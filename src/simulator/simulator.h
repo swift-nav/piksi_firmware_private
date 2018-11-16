@@ -34,8 +34,6 @@
  *
  * \{ */
 
-#define SIM_PRN_OFFSET 200
-
 typedef uint8_t simulation_mode_t; /* Force uint8_t size for simulation_mode */
 
 typedef enum {
@@ -92,6 +90,7 @@ double* simulation_ref_ecef(void);
 double* simulation_current_baseline_ecef(void);
 double* simulation_current_covariance_ecef(void);
 u8 simulation_current_num_sats(void);
+channel_measurement_t* simulation_current_in_view(void);
 tracking_channel_state_t simulation_current_tracking_state(u8 channel);
 measurement_state_t simulation_measurement_state(u8 channel);
 
