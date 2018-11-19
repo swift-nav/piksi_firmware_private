@@ -16,6 +16,7 @@
 #include <swiftnav/constants.h>
 #include <swiftnav/gnss_time.h>
 
+#include "board/nap/track_channel.h"
 #include "lock_detector/lock_detector.h"
 #include "manage.h"
 #include "signal_db/signal_db.h"
@@ -49,11 +50,19 @@ static u32 tp_convert_ms_to_chips(me_gnss_signal_t mesid,
                                   u8 ms,
                                   double code_phase,
                                   bool plock) {
-  /* First, select the appropriate chip rate in chips/ms. */
-  u32 chip_rate = (u32)code_to_chip_rate(mesid.code) / 1000;
+
+  (void) plock;
+  /* No adjustment for signals that have no lock.
+   * These are mainly the unconfirmed signals. */
+//  if (!plock) {
+//    return rint(ms * code_to_chip_rate(mesid.code) / 1000);
+//  }
 
   /* Round the current code_phase towards nearest integer. */
   u32 current_chip = rint(code_phase);
+
+  /* First, select the appropriate chip rate in chips/ms. */
+  u32 chip_rate = rint(code_to_chip_rate(mesid.code) / 1000);
 
   /* Take modulo of the code phase. Nominally this should be close to zero,
    * or close to chip_rate. */
@@ -66,16 +75,10 @@ static u32 tp_convert_ms_to_chips(me_gnss_signal_t mesid,
     offset = current_chip - chip_rate;
   }
 
-  /* No adjustment for signals that have no lock.
-   * These are mainly the unconfirmed signals. */
-  if (!plock) {
-    offset = 0;
-  }
-
   /* Log warning if an offset is applied (and we have a pessimistic lock). */
-  if (0 != offset) {
-    log_warn_mesid(mesid, "Applying code phase offset: %" PRIi32 "", offset);
-  }
+//  if (0 != offset) {
+//    log_warn_mesid(mesid, "Applying code phase offset: %" PRIi32 "", offset);
+//  }
 
   return ms * chip_rate - offset;
 }
@@ -283,7 +286,7 @@ void tp_tracker_disable(tracker_t *tracker) {
  * \return Computed number of chips.
  */
 static u32 tp_tracker_compute_rollover_count(tracker_t *tracker) {
-  u8 result_ms;
+  u8 result_ms = 0;
   tp_tm_e mode_cur = tracker->tracking_mode;
   if (tracker->has_next_params) {
     tp_profile_t *profile = &tracker->profile;
@@ -456,11 +459,11 @@ static void tp_tracker_update_correlators(tracker_t *tracker, u32 cycle_flags) {
   u8 int_ms = 0;            /**< Current cycle duration in ms */
 
   /* Read correlations. */
-  tracker_correlations_read(tracker->nap_channel,
-                            cs_now.all,
-                            &sample_count,
-                            &code_phase_prompt,
-                            &carrier_phase);
+  nap_track_read_results(tracker->nap_channel,
+                         &sample_count,
+                         cs_now.all,
+                         &code_phase_prompt,
+                         &carrier_phase);
 
   if ((CODE_GAL_E5I == mesid.code) || (CODE_GAL_E7I == mesid.code)) {
     /* for Galileo E5a and E5b all tracking happens on the pilot

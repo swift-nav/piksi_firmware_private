@@ -416,27 +416,16 @@ void nap_track_update(u8 channel,
 
 #define BUILD_BUG_ON(condition) ((void)sizeof(char[1 - 2 * !!(condition)]))
 
-/* see if not enforcing `const volatile` leads to better compiler optimization
- * below */
-typedef struct {
-  u32 STATUS;
-  u32 TIMING_SNAPSHOT;
-  s16 CORR16[12];
-} tracking_rd_t;
-
 void nap_track_read_results(u8 channel,
                             u32 *count_snapshot,
                             corr_t corrs[],
                             double *code_phase_prompt,
                             double *carrier_phase) {
-  tracking_rd_t trk_ch;
   swiftnap_tracking_rd_t *t = &NAP->TRK_CH_RD[channel];
   struct nap_ch_state *s = &nap_ch_desc[channel];
 
-  trk_ch.STATUS = t->STATUS;
-
-  trk_ch.TIMING_SNAPSHOT = t->TIMING_SNAPSHOT;
-  *count_snapshot = trk_ch.TIMING_SNAPSHOT;
+  u32 nap_status = t->STATUS;
+  (*count_snapshot) = t->TIMING_SNAPSHOT;
 
   /* pilot/data correlator values in sequence E-P-L-E-P-L */
   volatile u32 corr_val = 0;
@@ -445,10 +434,6 @@ void nap_track_read_results(u8 channel,
     corrs[i].I = (s16)(corr_val & 0xFFFF);
     corrs[i].Q = (s16)((corr_val >> 16) & 0xFFFF);
   }
-
-  /* Spacing between VE and P correlators */
-  double prompt_offset =
-      NAP_VEP_SPACING_SAMPLES / calc_samples_per_chip(s->code_phase_rate[1]);
 
   /* Code and carrier phase reckoning */
   s64 carr_phase_incr = ((s64)s->length[1]) * s->carr_pinc[1];
@@ -461,9 +446,8 @@ void nap_track_read_results(u8 channel,
       ((s->sw_code_phase >> 32) % code_to_chip_count(s->mesid.code) << 32) |
       (s->sw_code_phase & 0xFFFFFFFF);
 
-  *code_phase_prompt =
-      ((double)s->sw_code_phase) / NAP_TRACK_CODE_PHASE_UNITS_PER_CHIP -
-      prompt_offset;
+  (*code_phase_prompt) =
+      ((double)s->sw_code_phase) / NAP_TRACK_CODE_PHASE_UNITS_PER_CHIP;
 
   if (*code_phase_prompt < 0) {
     *code_phase_prompt += code_to_chip_count(s->mesid.code);
@@ -473,32 +457,27 @@ void nap_track_read_results(u8 channel,
       ((double)carr_phase_incr) / NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE +
       s->fcn_freq_hz * (s->length[1] / NAP_TRACK_SAMPLE_RATE_Hz);
 
-  *carrier_phase = (s->reckoned_carr_phase);
+  (*carrier_phase) = (s->reckoned_carr_phase);
 
 #ifndef PIKSI_RELEASE
-  if (GET_NAP_TRK_CH_STATUS_CORR_OVERFLOW(trk_ch.STATUS)) {
+  if (GET_NAP_TRK_CH_STATUS_CORR_OVERFLOW(nap_status)) {
     log_warn_mesid(s->mesid,
-                   "Tracking correlator overflow VE:[%+7" PRIi32 ":%+7" PRIi32
-                   "] E:[%+7" PRIi32 ":%+7" PRIi32 "] P:[%+7" PRIi32
-                   ":%+7" PRIi32 "] L:[%+7" PRIi32 ":%+7" PRIi32
-                   "] VL:[%+7" PRIi32 ":%+7" PRIi32 "]",
-                   corrs[3].I,
-                   corrs[3].Q,
+                   "Tracking correlator overflow E:[%+7" PRIi32 ":%+7"
+                   PRIi32 "] P:[%+7" PRIi32 ":%+7" PRIi32 "] L:[%+7"
+                   PRIi32 ":%+7" PRIi32 "]",
                    corrs[0].I,
                    corrs[0].Q,
                    corrs[1].I,
                    corrs[1].Q,
                    corrs[2].I,
-                   corrs[2].Q,
-                   corrs[4].I,
-                   corrs[4].Q);
+                   corrs[2].Q);
   }
 
   /* Check carrier phase reckoning */
   u8 sw_carr_phase = (s->sw_carr_phase >> 29) & 0x3F;
-  u8 hw_carr_phase = GET_NAP_TRK_CH_STATUS_CARR_PHASE_INT(trk_ch.STATUS)
+  u8 hw_carr_phase = GET_NAP_TRK_CH_STATUS_CARR_PHASE_INT(nap_status)
                          << NAP_TRK_CH_STATUS_CARR_PHASE_FRAC_Len |
-                     GET_NAP_TRK_CH_STATUS_CARR_PHASE_FRAC(trk_ch.STATUS);
+                     GET_NAP_TRK_CH_STATUS_CARR_PHASE_FRAC(nap_status);
   if (sw_carr_phase != hw_carr_phase) {
     log_error_mesid(s->mesid,
                     "Carrier reckoning: SW=%" PRIu8 ".%" PRIu8 ", HW=%" PRIu8
@@ -511,9 +490,9 @@ void nap_track_read_results(u8 channel,
 
   /* Check code phase reckoning */
   u8 sw_code_phase = (s->sw_code_phase >> 29) & 0x3F;
-  u8 hw_code_phase = GET_NAP_TRK_CH_STATUS_CODE_PHASE_INT(trk_ch.STATUS)
+  u8 hw_code_phase = GET_NAP_TRK_CH_STATUS_CODE_PHASE_INT(nap_status)
                          << NAP_TRK_CH_STATUS_CODE_PHASE_FRAC_Len |
-                     GET_NAP_TRK_CH_STATUS_CODE_PHASE_FRAC(trk_ch.STATUS);
+                     GET_NAP_TRK_CH_STATUS_CODE_PHASE_FRAC(nap_status);
   if (sw_code_phase != hw_code_phase) {
     log_error_mesid(s->mesid,
                     "Code reckoning: SW=%" PRIu8 ".%" PRIu8 ", HW=%" PRIu8

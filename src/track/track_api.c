@@ -38,24 +38,6 @@ static s32 normalize_tow(s32 tow) {
   return tow % GPS_WEEK_LENGTH_ms;
 }
 
-/** Read correlations from the NAP for a tracker channel.
- *
- * \param nap_channel     NAP tracking channel.
- * \param cs              Output array of correlations.
- * \param sample_count    Output sample count.
- * \param code_phase      Output code phase (chips).
- * \param carrier_phase   Output carrier phase (cycles).
- */
-void tracker_correlations_read(u8 nap_channel,
-                               corr_t *cs,
-                               u32 *sample_count,
-                               double *code_phase,
-                               double *carrier_phase) {
-  /* Read NAP CORR register */
-  nap_track_read_results(
-      nap_channel, sample_count, cs, code_phase, carrier_phase);
-}
-
 bool nap_sc_wipeoff(const tracker_t *tracker) {
   const code_t code = tracker->mesid.code;
 
