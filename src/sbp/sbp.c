@@ -137,7 +137,7 @@ void sbp_remove_cbk(sbp_msg_callbacks_node_t *node) {
 
 static void sbp_buffer_reset(void) { sbp_buffer_length = 0; }
 
-static u32 sbp_buffer_write(u8 *buff, u32 n, void *context) {
+static s32 sbp_buffer_write(u8 *buff, u32 n, void *context) {
   (void)context;
   u32 len = MIN(sizeof(sbp_buffer) - sbp_buffer_length, n);
   MEMCPY_S(&sbp_buffer[sbp_buffer_length],
@@ -178,7 +178,7 @@ s8 sbp_send_msg_(u16 msg_type, u8 len, u8 buff[], u16 sender_id) {
   return ret;
 }
 
-static u32 sbp_read(u8 *buff, u32 n, void *context) {
+static s32 sbp_read(u8 *buff, u32 n, void *context) {
   (void)context;
   return io_support_read_timeout(SD_SBP, buff, n, TIME_IMMEDIATE);
 }
