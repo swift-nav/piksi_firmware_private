@@ -34,16 +34,18 @@ OBJDIR = obj
 TEST_SRC_DIR = src
 STUBS_DIR = stubs
 
-ifndef C_COMPILER
-  $(info C_COMPILER environment variable is not set,\
-    defaulting to gcc-$(shell gcc -dumpversion))
-  C_COMPILER = gcc
-endif
+ifneq ("$(MAKECMDGOALS)", "clean")
+  ifndef C_COMPILER
+    $(info C_COMPILER environment variable is not set,\
+      defaulting to gcc-$(shell gcc -dumpversion))
+    C_COMPILER = gcc
+  endif
 
-ifndef CXX_COMPILER
-  $(info CXX_COMPILER environment variable is not set,\
-    defaulting to g++-$(shell g++ -dumpversion))
-  CXX_COMPILER = g++
+  ifndef CXX_COMPILER
+    $(info CXX_COMPILER environment variable is not set,\
+      defaulting to g++-$(shell g++ -dumpversion))
+    CXX_COMPILER = g++
+  endif
 endif
 
 # Flags passed to the preprocessor.

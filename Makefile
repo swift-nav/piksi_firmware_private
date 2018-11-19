@@ -49,14 +49,17 @@ MAKEFLAGS += STARLING_BUILDDIR=$(STARLING_BUILDDIR)
 MAKEFLAGS += LIBSWIFTNAV_BUILDDIR=$(LIBSWIFTNAV_BUILDDIR)
 MAKEFLAGS += OPENAMP_BUILDDIR=$(OPENAMP_BUILDDIR)
 
-FW_DEPS=$(LIBSBP_BUILDDIR)/src/libsbp-static.a \
+FW_DEPS=$(LIBSBP_BUILDDIR)/src/libsbp.a \
         $(STARLING_BUILDDIR)/src/libstarling-shim.a \
         $(STARLING_BUILDDIR)/src/libstarling.a \
         $(STARLING_BUILDDIR)/src/libstarling-integration.a 
 
 ifeq ($(PIKSI_HW),v3)
   CMAKEFLAGS += -DCMAKE_SYSTEM_PROCESSOR=cortex-a9
-  CMAKEFLAGS += -DMAX_CHANNELS=73
+  CMAKEFLAGS += -DCMAKE_C_COMPILER:INTERNAL=arm-none-eabi-gcc
+  CMAKEFLAGS += -DCMAKE_CXX_COMPILER:INTERNAL=arm-none-eabi-g++
+  CMAKEFLAGS += -DCMAKE_C_COMPILER_ID:INTERNAL=GNU
+  CMAKEFLAGS += -DCMAKE_CXX_COMPILER_ID:INTERNAL=GNU
   FW_DEPS += $(OPENAMP_BUILDDIR)/lib/libopen-amp.a
 endif
 
@@ -69,7 +72,7 @@ firmware: $(FW_DEPS)
 	@printf "BUILD   src for target $(PIKSI_TARGET)\n"; \
 	$(MAKE) -r -C src $(MAKEFLAGS)
 
-$(LIBSBP_BUILDDIR)/src/libsbp-static.a:
+$(LIBSBP_BUILDDIR)/src/libsbp.a:
 	@printf "BUILD   libsbp for target $(PIKSI_TARGET)\n"; \
 	mkdir -p $(LIBSBP_BUILDDIR); cd $(LIBSBP_BUILDDIR); \
 	cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
@@ -99,6 +102,7 @@ $(STARLING_BUILDDIR)/Makefile:
     mkdir -p $(STARLING_BUILDDIR); cd $(STARLING_BUILDDIR); \
     cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
           -DCMAKE_TOOLCHAIN_FILE=../cmake/Toolchain-gcc-arm-embedded.cmake \
+          -DMAX_CHANNELS=73 \
           $(CMAKEFLAGS) ../
 
 $(OPENAMP_BUILDDIR)/lib/libopen-amp.a:
