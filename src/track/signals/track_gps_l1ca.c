@@ -446,11 +446,12 @@ static void tracker_gps_l1ca_update(tracker_t *tracker) {
 
   if (inlock && confirmed && tow_valid && cn0_high) {
     /* Start L2C tracker if not running */
-    do_l1ca_to_l2c_handover(tracker->sample_count,
+    /*do_l1ca_to_l2c_handover(tracker->sample_count,
                             tracker->mesid.sat,
                             tracker->code_phase_prompt,
                             tracker->carrier_freq,
                             tracker->cn0,
                             tracker->TOW_ms);
+    */
   }
 }

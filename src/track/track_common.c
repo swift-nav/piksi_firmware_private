@@ -52,35 +52,34 @@ static u32 tp_convert_ms_to_chips(me_gnss_signal_t mesid,
                                   bool plock) {
 
   (void) plock;
-  /* No adjustment for signals that have no lock.
-   * These are mainly the unconfirmed signals. */
-//  if (!plock) {
-//    return rint(ms * code_to_chip_rate(mesid.code) / 1000);
-//  }
+  if (0. >= code_phase) {
+    detailed_log_error_mesid(mesid, "code_phase is %.6f", code_phase);
+    assert(0);
+  }
 
   /* Round the current code_phase towards nearest integer. */
   u32 current_chip = rint(code_phase);
 
   /* First, select the appropriate chip rate in chips/ms. */
-  u32 chip_rate = rint(code_to_chip_rate(mesid.code) / 1000);
+  u32 code_chip_ms = rint(code_to_chip_rate(mesid.code) / 1000);
 
   /* Take modulo of the code phase. Nominally this should be close to zero,
    * or close to chip_rate. */
-  current_chip %= chip_rate;
+  current_chip %= code_chip_ms;
 
   s32 offset = current_chip;
   /* If current_chip is close to chip_rate, the code hasn't rolled over yet,
    * and thus next integration period should be longer than nominally. */
-  if (current_chip > chip_rate / 2) {
-    offset = current_chip - chip_rate;
+  if (current_chip > code_chip_ms / 2) {
+    offset = current_chip - code_chip_ms;
   }
 
-  /* Log warning if an offset is applied (and we have a pessimistic lock). */
-//  if (0 != offset) {
-//    log_warn_mesid(mesid, "Applying code phase offset: %" PRIi32 "", offset);
-//  }
+  /* Log info if an offset is applied. */
+  if (0 != offset) {
+    log_info_mesid(mesid, "Applying code phase offset: %" PRIi32 "", offset);
+  }
 
-  return ms * chip_rate - offset;
+  return ms * code_chip_ms - offset;
 }
 
 /**
