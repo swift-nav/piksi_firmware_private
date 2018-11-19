@@ -15,4 +15,4 @@
   url = git@github.com:google/googletest
 [submodule "libsettings"]
 	path = libsettings
-	url = /mnt/users/pasi/swiftnav/libsettings/
+	url = git@github.com:swift-nav/libsettings.git
