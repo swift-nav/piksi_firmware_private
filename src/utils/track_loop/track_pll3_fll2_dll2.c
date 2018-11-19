@@ -63,10 +63,16 @@ static void update_params(tl_pll3_state_t *s, const tl_config_t *config) {
   s->carr_c3 = omega_0_3 / config->carr_k;
 
   /* DLL constants */
-  float omega_n = 8.f * config->code_zeta * config->code_bw /
-                  (4.f * config->code_zeta * config->code_zeta + 1.f);
-  s->code_c1 = 2.0f * omega_n;
-  s->code_c2 = 2.0f * omega_n * omega_n;
+  bool aiding = (config->carr_to_code > 0);
+  if (aiding) {
+    float omega_n = 8.f * config->code_zeta * config->code_bw /
+                    (4.f * config->code_zeta * config->code_zeta + 1.f);
+    s->code_c1 = 2.0f * omega_n;
+    s->code_c2 = 2.0f * omega_n * omega_n;
+  } else {
+    s->code_c1 = 4.0f * config->code_bw;
+    s->code_c2 = 0.0f;
+  }
 
   s->carr_to_code = config->carr_to_code > 0 ? 1.f / config->carr_to_code : 0.f;
 }
