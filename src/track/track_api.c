@@ -23,6 +23,7 @@
 #include "sbp_utils.h"
 #include "signal_db/signal_db.h"
 #include "track_api.h"
+#include "track_common.h"
 #include "track_flags.h"
 
 #define GPS_WEEK_LENGTH_ms (1000 * WEEK_SECS)
@@ -71,14 +72,14 @@ void tracker_retune(tracker_t *tracker, u32 chips_to_correlate) {
   double doppler_freq_hz = tracker->carrier_freq;
   double code_phase_rate = tracker->code_phase_rate;
   bool nap_strip_sc = nap_sc_wipeoff(tracker);
-  bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
+  bool wide_space = tp_unaided(tracker);
   /* Write NAP UPDATE register. */
   nap_track_update(tracker->nap_channel,
                    doppler_freq_hz,
                    code_phase_rate,
                    chips_to_correlate,
                    nap_strip_sc,
-                   confirmed);
+                   wide_space);
 }
 
 /** Adjust TOW for FIFO delay.

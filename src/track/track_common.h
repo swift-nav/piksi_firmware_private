@@ -119,6 +119,7 @@ u32 tp_tracker_update(tracker_t *tracker, const tp_tracker_config_t *config);
 
 tp_tm_e tp_profile_get_next_track_mode(const tp_profile_t *profile,
                                        me_gnss_signal_t mesid);
+bool tp_unaided(tracker_t *tracker);
 
 void tp_set_base_station_mode(void);
 void tp_set_rover_mode(void);
