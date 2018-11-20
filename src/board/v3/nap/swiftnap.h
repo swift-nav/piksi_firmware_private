@@ -10,7 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-/* SwiftNAP v4.9.0 register map */
+/* SwiftNAP v4.10.0 register map */
 
 #ifndef SWIFTNAP_H
 #define SWIFTNAP_H
@@ -18,7 +18,7 @@
 #include <swiftnav/common.h>
 
 /* Version */
-#define NAP_VERSION (0x04090000)
+#define NAP_VERSION (0x040a0000)
 
 /* Number of tracking channels */
 #define NAP_NUM_TRACKING_CHANNELS (73U)
@@ -54,7 +54,7 @@
 #define NAP_FIRST_AUX_L1_CHANNEL (73U)
 
 /* Number of readable tracking channel registers */
-#define NAP_NUM_TRACKING_READABLE (8U)
+#define NAP_NUM_TRACKING_READABLE (3U)
 
 /* Number of writeable tracking channel registers */
 #define NAP_NUM_TRACKING_WRITEABLE (3U)
@@ -118,7 +118,7 @@ static const swiftnap_code_t swiftnap_code_map[NAP_NUM_TRACKING_CHANNELS] =
 typedef struct {
   const volatile u32 STATUS;
   const volatile u32 TIMING_SNAPSHOT;
-  const volatile u32 CORR[6];
+  const volatile u32 CORR;
 } swiftnap_tracking_rd_t;
 
 /* Tracking channel writeable register structure */
@@ -3499,7 +3499,7 @@ typedef struct {
   (((REG)&NAP_TRK_CH_TIMING_SNAPSHOT_VALUE_Msk) >> \
    NAP_TRK_CH_TIMING_SNAPSHOT_VALUE_Pos)
 
-/* Register: NAP_TRK_CH_CORR[N] */
+/* Register: NAP_TRK_CH_CORR */
 #define NAP_TRK_CH_CORR_I_Pos (0U)
 #define NAP_TRK_CH_CORR_I_Len (16U)
 #define NAP_TRK_CH_CORR_I_Rst (0x0U)

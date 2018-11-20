@@ -438,38 +438,18 @@ void nap_track_read_results(u8 channel,
   swiftnap_tracking_rd_t *t = &NAP->TRK_CH_RD[channel];
   struct nap_ch_state *s = &nap_ch_desc[channel];
 
-  BUILD_BUG_ON(sizeof(tracking_rd_t) != sizeof(swiftnap_tracking_rd_t));
+  trk_ch.STATUS = t->STATUS;
 
-  /* Read track channel data
-   * NOTE: Compiler couldn't optimize MEMCPY_S over AXI so using regular memcpy
-   */
-  memcpy(&trk_ch, t, NAP_NUM_TRACKING_READABLE * sizeof(u32));
-
+  trk_ch.TIMING_SNAPSHOT = t->TIMING_SNAPSHOT;
   *count_snapshot = trk_ch.TIMING_SNAPSHOT;
 
-  /* pilot/data E correlator */
-  corrs[0].I = trk_ch.CORR16[0];
-  corrs[0].Q = trk_ch.CORR16[1];
-
-  /* pilot/data P correlator */
-  corrs[1].I = trk_ch.CORR16[2];
-  corrs[1].Q = trk_ch.CORR16[3];
-
-  /* pilot/data L correlator */
-  corrs[2].I = trk_ch.CORR16[4];
-  corrs[2].Q = trk_ch.CORR16[5];
-
-  /* data/pilot E correlator */
-  corrs[3].I = trk_ch.CORR16[6];
-  corrs[3].Q = trk_ch.CORR16[7];
-
-  /* data/pilot P correlator */
-  corrs[4].I = trk_ch.CORR16[8];
-  corrs[4].Q = trk_ch.CORR16[9];
-
-  /* data/pilot L correlator */
-  corrs[5].I = trk_ch.CORR16[10];
-  corrs[5].Q = trk_ch.CORR16[11];
+  /* pilot/data correlator values in sequence E-P-L-E-P-L */
+  volatile u32 corr_val = 0;
+  for (u8 i = 0; i < 6; i++) {
+    corr_val = t->CORR;
+    corrs[i].I = (s16)(corr_val & 0xFFFF);
+    corrs[i].Q = (s16)((corr_val >> 16) & 0xFFFF);
+  }
 
   /* Spacing between VE and P correlators */
   double prompt_offset =
