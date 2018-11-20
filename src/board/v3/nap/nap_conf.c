@@ -118,11 +118,13 @@ bool nap_locked(void) {
 }
 
 void nap_unlock(const u8 key[]) {
+  chSysLock();
   for (u32 i = 0; i < NAP_KEY_LENGTH; ++i) {
     NAP->AUTHENTICATION = SET_NAP_AUTHENTICATION_OPERATION(0, 0) |
                           SET_NAP_AUTHENTICATION_ADDR(0, i) |
                           SET_NAP_AUTHENTICATION_BYTE(0, (u32)key[i]);
   }
+  chSysUnlock();
 }
 
 /** \} */
