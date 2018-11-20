@@ -169,6 +169,7 @@ void nap_auth_check(void) {
   char dna[NAP_DNA_LENGTH * 2 + 1];
   char key[NAP_KEY_LENGTH * 2 + 1];
 
+  chThdSleepMilliseconds(500);
   for (int k = 0; k < NAP_AUTH_RETRIES && nap_locked(); k++) {
     /* Create strings for log_error */
     char *pnt = dna;
