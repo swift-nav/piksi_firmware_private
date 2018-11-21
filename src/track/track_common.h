@@ -81,7 +81,6 @@ u16 tp_wrap_cycle(tp_tm_e tracking_mode, u16 cycle_no);
 
 u8 tp_get_cn0_ms(tp_tm_e tracking_mode);
 u8 tp_get_ld_ms(tp_tm_e tracking_mode);
-float tp_get_alias_ms(tp_tm_e tracking_mode);
 float tp_get_flld_ms(tp_tm_e tracking_mode);
 u8 tp_get_fpll_ms(tp_tm_e tracking_mode);
 u8 tp_get_bit_ms(tp_tm_e tracking_mode);

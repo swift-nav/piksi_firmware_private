@@ -12,7 +12,6 @@
 
 /* Local headers */
 #include "track_glo_l1of.h"
-#include "alias_detector/alias_detector.h"
 #include "signal_db/signal_db.h"
 #include "track/track_api.h"
 #include "track/track_common.h"

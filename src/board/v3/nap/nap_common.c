@@ -10,11 +10,9 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "alias_detector/alias_detector.h"
-
+#include "nap/nap_common.h"
 #include "board.h"
 #include "ext_events/ext_events.h"
-#include "nap/nap_common.h"
 #include "nap/track_channel.h"
 #include "piksi_systime.h"
 #include "sbp.h"
