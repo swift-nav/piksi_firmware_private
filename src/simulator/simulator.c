@@ -31,6 +31,7 @@
 #include "sbp/sbp.h"
 #include "sbp/sbp_utils.h"
 #include "settings/settings.h"
+#include "track/track_sid_db.h"
 
 #include "simulator_data.h"
 
@@ -66,6 +67,7 @@ struct {
 
   tracking_channel_state_t tracking_channel[MAX_CHANNELS];
   measurement_state_t state_meas[MAX_CHANNELS];
+  channel_measurement_t ch_meas[MAX_CHANNELS];
   obs_array_t obs_array;
   obs_array_t base_obs_array;
   dops_t dops;
@@ -80,6 +82,7 @@ struct {
     .covariance = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
     .num_sats_selected = 0,
     /* .state_meas left uninitialized */
+    /* .ch_meas left uninitialized */
     /* .tracking_channel left uninitialized */
     /* .obs_array left uninitialized */
     /* .base_obs_array left uninitialized */
@@ -277,8 +280,10 @@ void simulation_step_tracking_and_observations(double elapsed) {
   for (u8 i = 0; i < simulation_num_almanacs; i++) {
     s8 r = calc_sat_az_el_almanac(
         &simulation_almanacs[i], &t, sim_state.pos, &az, &el);
-
     assert(r == 0);
+    track_sid_db_azel_degrees_set(
+        simulation_almanacs[i].sid, az * R2D, el * R2D, nap_timing_count());
+
     if (el > 0 && num_sats_selected < sim_settings.num_sats &&
         num_sats_selected < MAX_CHANNELS) {
       /* Generate a code measurement which is just the pseudorange: */
@@ -316,9 +321,7 @@ void simulation_step_tracking_and_observations(double elapsed) {
       /* As for tracking, we just set each sat consecutively in each channel. */
       /* This will cause weird jumps when a satellite rises or sets. */
       /** FIXME: do we really need the offset? */
-      gnss_signal_t sid = {
-          .code = simulation_almanacs[i].sid.code,
-          .sat = simulation_almanacs[i].sid.sat + SIM_PRN_OFFSET};
+      gnss_signal_t sid = simulation_almanacs[i].sid;
       sim_state.tracking_channel[num_sats_selected].sid.sat = sid.sat;
       sim_state.tracking_channel[num_sats_selected].sid.code = sid.code;
       sim_state.tracking_channel[num_sats_selected].fcn =
@@ -330,6 +333,10 @@ void simulation_step_tracking_and_observations(double elapsed) {
       fTmpCN0 = (fTmpCN0 >= 63.75) ? 63.75 : fTmpCN0;
       sim_state.tracking_channel[num_sats_selected].cn0 = rintf(fTmpCN0 * 4.0);
       sim_state.state_meas[num_sats_selected].cn0 = rintf(fTmpCN0 * 4.0);
+
+      sim_state.ch_meas[num_sats_selected].sid = sid;
+      sim_state.ch_meas[num_sats_selected].cn0 =
+          sim_state.obs_array.observations[num_sats_selected].cn0;
 
       num_sats_selected++;
     }
@@ -352,9 +359,7 @@ void populate_obs(starling_obs_t* obs,
                   double elevation,
                   double vel,
                   int almanac_i) {
-  obs->sid = (gnss_signal_t){
-      .code = simulation_almanacs[almanac_i].sid.code,
-      .sat = simulation_almanacs[almanac_i].sid.sat + SIM_PRN_OFFSET};
+  obs->sid = simulation_almanacs[almanac_i].sid;
 
   obs->pseudorange = dist;
   obs->pseudorange += rand_gaussian(sim_settings.pseudorange_sigma *
@@ -424,6 +429,12 @@ inline double* simulation_current_covariance_ecef(void) {
 */
 u8 simulation_current_num_sats(void) {
   return sim_state.noisy_solution.num_sats_used;
+}
+
+/** Returns the number of satellites being simulated.
+*/
+channel_measurement_t* simulation_current_in_view(void) {
+  return sim_state.ch_meas;
 }
 
 /** Returns the current simulated tracking loops state simulated.
