@@ -483,7 +483,7 @@ static s8 me_compute_pvt(const obs_array_t *obs_array,
     sid_set_init(raim_sids);
   } else if (pvt_ret == PVT_CONVERGED_RAIM_REPAIR) {
     /* If we have a successful RAIM repair, check if the failed observations are
-       * gross enough to have their channel dropped */
+     * gross enough to have their channel dropped */
     for (u8 i = 0; i < n_ready; i++) {
       if (sid_set_contains(raim_removed_sids, nav_meas[i].sid)) {
         /* Check how large the outlier roughly is, and if it is a gross one,
@@ -512,7 +512,7 @@ static s8 me_compute_pvt(const obs_array_t *obs_array,
   /* Store the smoothed clock solution into lgf */
   lgf->position_solution.time = napcount2gpstime(current_tc);
   lgf->position_solution.clock_drift = get_clock_drift();
-  ndb_lgf_store(&*lgf);
+  ndb_lgf_store(lgf);
 
   return pvt_ret;
 }
