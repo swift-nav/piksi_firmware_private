@@ -169,7 +169,14 @@ void nap_auth_check(void) {
   char dna[NAP_DNA_LENGTH * 2 + 1];
   char key[NAP_KEY_LENGTH * 2 + 1];
 
-  chThdSleepMilliseconds(500);
+  // chThdSleepMilliseconds(500);
+
+  // This should at least tell us that Linux interfered here
+  volatile u16 count = 0;
+  while (GET_NAP_STATUS_AUTH_BUSY(NAP->STATUS)) {
+    count++;
+  }
+
   for (int k = 0; k < NAP_AUTH_RETRIES && nap_locked(); k++) {
     /* Create strings for log_error */
     char *pnt = dna;
@@ -182,7 +189,8 @@ void nap_auth_check(void) {
       pnt += sprintf(pnt, "%02x", factory_params.nap_key[i]);
     }
     key[NAP_KEY_LENGTH * 2] = '\0';
-    log_error("NAP Verification Failed: DNA=%s, Key=%s", dna, key);
+    log_error(
+        "NAP Verification Failed: DNA=%s, Key=%s, Poll=%i", dna, key, count);
 
     /* Retry */
     factory_params_read();
