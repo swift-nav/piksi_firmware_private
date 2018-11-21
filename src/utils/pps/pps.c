@@ -27,7 +27,10 @@
 #define PPS_THREAD_STACK (2 * 1024)
 #define PPS_THREAD_PRIORITY (NORMALPRIO + 15)
 
-#define PPS_FW_OFFSET_S 570e-9
+#define PPS_FW_OFFSET_S 620e-9
+
+extern double soln_freq_setting;  // used to drive logic on whether our time
+                                  // estimate is from a current solution
 
 /** \defgroup pps Pulse-per-second (PPS)
  * Generate a pulse-per-second in alignment with GPS time.
@@ -37,11 +40,46 @@
 static u32 pps_width_us = 200000;
 /** Logic level on output pin when the PPS is active */
 static u8 pps_polarity = 1;
-/** Offset in microseconds between GPS time and the PPS */
-static s32 pps_offset_us = 0;
+/** Offset in nanoseconds between GPS time and the PPS */
+static s32 pps_offset_ns = 0;
 /** Generate a pulse with the given frequency */
 static double pps_frequency_hz = 1.0;
 static double pps_period = 1.0;
+
+pps_propagation_mode_t pps_propagation_mode = PPS_PROP_MODE_TIMEOUT;
+
+static float pps_propagation_timeout = 5.0;
+
+/** Determines whether PPS should be sent.
+ *
+ * \return Returns true if out settings and state say PPS should come out.
+ */
+static bool output_pps(gps_time_t *in_time) {
+  switch (pps_propagation_mode) {
+    case PPS_PROP_MODE_NONE:
+      /* if time update within 1 time solve solution interval
+       * it means we have had a soln or have had one very recently,
+       * therfore we return True */
+      if (time_updated_within(in_time, 1 / soln_freq_setting)) {
+        return true;
+      }
+      break;
+    case PPS_PROP_MODE_TIMEOUT:
+      /* it we are within timeout duration, return True*/
+      if (time_updated_within(in_time, pps_propagation_timeout)) {
+        return true;
+      }
+      break;
+    case PPS_PROP_MODE_UNLIMITED:
+      /* if set to unlimited, return True */
+      return true;
+      break;
+    /* TODO implement: accuracy threshold */
+    default:
+      return false;
+  }
+  return false;
+}
 
 static THD_WORKING_AREA(wa_pps_thread, PPS_THREAD_STACK);
 static void pps_thread(void *arg) {
@@ -51,12 +89,13 @@ static void pps_thread(void *arg) {
   while (TRUE) {
     if (get_time_quality() >= TIME_PROPAGATED && !nap_pps_armed()) {
       gps_time_t t = get_current_time();
+      if (output_pps(&t)) {
+        t.tow = (t.tow - fmod(t.tow, pps_period)) + pps_period +
+                ((double)pps_offset_ns / 1.0e9) + PPS_FW_OFFSET_S;
 
-      t.tow = (t.tow - fmod(t.tow, pps_period)) + pps_period +
-              ((double)pps_offset_us / 1.0e6) + PPS_FW_OFFSET_S;
-
-      u64 next = gpstime2napcount(&t);
-      nap_pps((u32)next);
+        u64 next = gpstime2napcount(&t);
+        nap_pps((u32)next);
+      }
     }
     chThdSleepMilliseconds(PPS_THREAD_INTERVAL_MS);
   }
@@ -134,6 +173,15 @@ static int pps_frequency_changed(void *ctx) {
  */
 void pps_setup(void) {
   pps_config(pps_width_us, pps_polarity);
+  static const char const *pps_propagation_mode_enum[] = {
+      "None", "Time Limited", "Unlimited", NULL};
+
+  settings_type_t pps_propagation_setting;
+  settings_api_register_enum(pps_propagation_mode_enum, &pps_propagation_setting);
+  SETTING("pps",
+          "propagation_mode",
+          pps_propagation_mode,
+          pps_propagation_setting);
 
   SETTING_NOTIFY(
       "pps", "width", pps_width_us, SETTINGS_TYPE_INT, pps_config_changed);
@@ -141,13 +189,15 @@ void pps_setup(void) {
   SETTING_NOTIFY(
       "pps", "polarity", pps_polarity, SETTINGS_TYPE_INT, pps_config_changed);
 
-  SETTING("pps", "offset", pps_offset_us, SETTINGS_TYPE_INT);
+  SETTING("pps", "offset", pps_offset_ns, SETTINGS_TYPE_INT);
 
   SETTING_NOTIFY("pps",
                  "frequency",
                  pps_frequency_hz,
                  SETTINGS_TYPE_FLOAT,
                  pps_frequency_changed);
+
+  SETTING("pps", "propagation_timeout", pps_propagation_timeout, SETTINGS_TYPE_FLOAT);
 
   chThdCreateStatic(wa_pps_thread,
                     sizeof(wa_pps_thread),

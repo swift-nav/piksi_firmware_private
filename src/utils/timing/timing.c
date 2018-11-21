@@ -23,7 +23,6 @@
 #include "ndb/ndb_utc.h"
 #include "sbp.h"
 #include "timing.h"
-
 /** \defgroup timing Timing
  * Maintains the time state of the receiver and provides time related
  * functions. The timing module tries to establish a relationship between GPS
@@ -83,6 +82,25 @@ static void log_time_quality(time_quality_t new_quality) {
              time_quality_names[old_quality],
              time_quality_names[new_quality]);
   }
+}
+
+/** Determine if last time estimate update from ME within a window.
+ *
+ */
+bool time_updated_within(gps_time_t *current_time, float timeout) {
+  chMtxLock(&clock_mutex);
+  gps_time_t last_gnss = persistent_clock_state.t_gps;
+  chMtxUnlock(&clock_mutex);
+  /* Is the clock state initialized? */
+  /* No week number is required for valid PPS output */
+  if (isfinite(last_gnss.tow) && last_gnss.tow >= 0 &&
+      isfinite(current_time->tow) && current_time->tow >= 0) {
+    /* t_gps is updated each time we check the time_quality or get the time */
+    if (gpsdifftime(current_time, &last_gnss) < timeout) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /** Update GPS time estimate.
