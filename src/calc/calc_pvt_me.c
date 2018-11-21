@@ -670,7 +670,9 @@ static void me_calc_pvt_thread(void *arg) {
         current_tc, meas, in_view, e_meas, &n_ready, &n_inview, &n_total);
 
     /* Send GSV messages for all satellites in track */
-    nmea_send_gsv(n_inview, in_view);
+    if (!simulation_enabled()) {
+      nmea_send_gsv(n_inview, in_view);
+    }
 
     log_debug("Selected %" PRIu8 " measurement(s) out of %" PRIu8
               " in view "
