@@ -79,11 +79,11 @@ static void log_time_quality(time_quality_t new_quality) {
 
 /** Check that clock model has been updated recently
  *
- *  This function determines wthether our clock state has
+ *  This function determines whether our clock state has
  *  been updated within timeout of current_time for PPS.
  *
  */
-bool time_updated_within(gps_time_t *current_time, float timeout) {
+bool time_updated_within(const gps_time_t *current_time, float timeout) {
   chMtxLock(&clock_mutex);
   gps_time_t last_gnss = persistent_clock_state.t_gps;
   chMtxUnlock(&clock_mutex);

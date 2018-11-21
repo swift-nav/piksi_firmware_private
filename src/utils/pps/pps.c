@@ -53,18 +53,18 @@ static float pps_propagation_timeout = 5.0;
  *
  * \return Returns true if out settings and state say PPS should come out.
  */
-static bool output_pps(gps_time_t *in_time) {
+static bool output_pps(const gps_time_t *in_time) {
   switch (pps_propagation_mode) {
     case PPS_PROP_MODE_NONE:
       /* if time update within 1 time solve solution interval
        * it means we have had a soln or have had one very recently,
-       * therfore we return True */
+       * therefore we return True */
       if (time_updated_within(in_time, 1 / soln_freq_setting)) {
         return true;
       }
       break;
     case PPS_PROP_MODE_TIMEOUT:
-      /* it we are within timeout duration, return True*/
+      /* if we are within timeout duration, return True*/
       if (time_updated_within(in_time, pps_propagation_timeout)) {
         return true;
       }
