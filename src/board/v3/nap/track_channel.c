@@ -202,7 +202,7 @@ void nap_track_init(u8 channel,
       (1.0 + doppler_freq_hz / carrier_freq_hz) * code_to_chip_rate(mesid.code);
 
   /* Spacing between VE and P correlators */
-  s16 delta_samples = NAP_VEP_SPACING_SAMPLES;
+  s16 delta_samples = code_requires_direct_acq(mesid.code) ? NAP_VEP_SPACING_SAMPLES : 0;
 
   /* MIC_COMMENT: nap_track_update_init() so that nap_track_update()
    * does not have to branch for the special "init" situation */

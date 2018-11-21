@@ -98,7 +98,7 @@ void do_l1ca_to_l2c_handover(u32 sample_count,
 
   if (!handover_valid(code_phase, GPS_L1CA_CHIPS_NUM)) {
     log_warn_mesid(
-        mesid, "Unexpected L1CA to L2C hand-over code phase: %f", code_phase);
+        mesid, "Unexpected L1CA to L2C hand-over code phase: %.3f", code_phase);
     return;
   }
 
