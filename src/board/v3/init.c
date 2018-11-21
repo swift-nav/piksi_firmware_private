@@ -76,6 +76,8 @@ struct uuid {
 static void nap_conf_check(void);
 static bool nap_version_ok(u32 version);
 static void nap_version_check(void);
+static void nap_auth_setup(void);
+static void nap_auth_check(void);
 static bool factory_params_read(void);
 static void uuid_unpack(const uint8_t *in, struct uuid *uu);
 
@@ -90,16 +92,24 @@ static void random_init(void) {
   srand(seed);
 }
 
-void init(void) {
-  fault_handling_setup();
+void nap_init(void) {
   factory_params_read();
 
   /* Make sure FPGA is configured - required for EMIO usage */
   nap_conf_check();
 
   nap_version_check();
+
+  /* Unlock NAP */
+  nap_auth_setup();
+  nap_auth_check();
+
   nap_dna_callback_register();
   nap_setup();
+}
+
+void init(void) {
+  fault_handling_setup();
 
   /* Only boards after we started tracking HW version have working clk mux */
   bool allow_ext_clk = factory_params.hardware_version > 0;
@@ -157,21 +167,27 @@ static void nap_version_check(void) {
   }
 }
 
-void nap_auth_setup(void) { nap_unlock(factory_params.nap_key); }
+static void nap_auth_setup(void) { nap_unlock(factory_params.nap_key); }
 
 /* Check NAP authentication status. Block and print error message
  * if authentication has failed. This must be done after the NAP,
  * USARTs, and SBP subsystems are set up, so that SBP messages and
  * be sent and received (it can't go in init() or nap_setup()).
  */
-void nap_auth_check(void) {
+static void nap_auth_check(void) {
   const int NAP_AUTH_RETRIES = 3;
   char dna[NAP_DNA_LENGTH * 2 + 1];
   char key[NAP_KEY_LENGTH * 2 + 1];
 
-  // chThdSleepMilliseconds(500);
-
-  // This should at least tell us that Linux interfered here
+  /* Linux has access to the NAP->AUTHENTICATE register as well.
+   * It can potentially access it, while nap_unlock() is writing the key,
+   * because both CPUs share 1 AXI bus arbiter, that can interrupt at any
+   * 'random' time.
+   * In the case Linux was interrupting and working with the register, the
+   * RSA core would assert the status-busy flag.
+   * This polling would then at least give us information that Linux
+   * interfered here.
+   */
   volatile u16 count = 0;
   while (GET_NAP_STATUS_AUTH_BUSY(NAP->STATUS)) {
     count++;
