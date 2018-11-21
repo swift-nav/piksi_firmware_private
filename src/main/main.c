@@ -49,7 +49,11 @@
 
 extern void ext_setup(void);
 
-void* __dso_handle(void) { return (void*)0; };
+/* References:
+   https://wiki.osdev.org/C++#GCC
+   https://lists.debian.org/debian-gcc/2003/07/msg00057.html
+   https://stackoverflow.com/questions/34308720/where-is-dso-handle-defined */
+void *__dso_handle = NULL;
 
 int main(void) {
   halInit();
