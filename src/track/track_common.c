@@ -40,44 +40,18 @@
  *
  * \param[in] mesid       ME signal identifier.
  * \param[in] ms          Interval duration in ms.
- * \param[in] code_phase  Current code phase in chips.
- * \param[in] plock       Flag indicating pessimistic lock.
  *
  * \return Computed number of chips.
  */
-static u32 tp_convert_ms_to_chips(me_gnss_signal_t mesid,
-                                  u8 ms,
-                                  double code_phase,
-                                  bool plock) {
+static double tp_convert_ms_to_chips(me_gnss_signal_t mesid,
+                                     u8 ms,
+                                     double doppler) {
   /* First, select the appropriate chip rate in chips/ms. */
-  u32 chip_rate = (u32)code_to_chip_rate(mesid.code) / 1000;
+  double carr = mesid_to_carr_freq(mesid);
+  double chip_rate =
+      (1.0 + doppler / carr) * code_to_chip_rate(mesid.code) / 1000.0;
 
-  /* Round the current code_phase towards nearest integer. */
-  u32 current_chip = rint(code_phase);
-
-  /* Take modulo of the code phase. Nominally this should be close to zero,
-   * or close to chip_rate. */
-  current_chip %= chip_rate;
-
-  s32 offset = current_chip;
-  /* If current_chip is close to chip_rate, the code hasn't rolled over yet,
-   * and thus next integration period should be longer than nominally. */
-  if (current_chip > chip_rate / 2) {
-    offset = current_chip - chip_rate;
-  }
-
-  /* No adjustment for signals that have no lock.
-   * These are mainly the unconfirmed signals. */
-  if (!plock) {
-    offset = 0;
-  }
-
-  /* Log warning if an offset is applied (and we have a pessimistic lock). */
-  if (0 != offset) {
-    log_warn_mesid(mesid, "Applying code phase offset: %" PRIi32 "", offset);
-  }
-
-  return ms * chip_rate - offset;
+  return ms * chip_rate;
 }
 
 /**
@@ -254,7 +228,7 @@ void tp_tracker_disable(tracker_t *tracker) {
  *
  * \return Computed number of chips.
  */
-static u32 tp_tracker_compute_rollover_count(tracker_t *tracker) {
+static double tp_tracker_compute_rollover_count(tracker_t *tracker) {
   u8 result_ms;
   tp_tm_e mode_cur = tracker->tracking_mode;
   if (tracker->has_next_params) {
@@ -270,12 +244,8 @@ static u32 tp_tracker_compute_rollover_count(tracker_t *tracker) {
   }
   assert(result_ms);
 
-  double code_phase_chips = tracker->code_phase_prompt;
-  bool plock = ((0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) ||
-                (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK)));
-
   return tp_convert_ms_to_chips(
-      tracker->mesid, result_ms, code_phase_chips, plock);
+      tracker->mesid, result_ms, tracker->carrier_freq);
 }
 
 /**
@@ -914,7 +884,7 @@ u32 tp_tracker_update(tracker_t *tracker, const tp_tracker_config_t *config) {
   tp_tracker_filter_doppler(tracker, cflags, config);
   tp_tracker_update_mode(tracker);
 
-  u32 chips_to_correlate = tp_tracker_compute_rollover_count(tracker);
+  double chips_to_correlate = tp_tracker_compute_rollover_count(tracker);
   tracker_retune(tracker, chips_to_correlate);
 
   tp_tracker_update_cycle_counter(tracker);

@@ -75,10 +75,11 @@ static struct nap_ch_state {
  * \param cp_rate_units Code phase rate.
  * \return The correlation length in NAP units
  */
-static u32 calc_length_samples(u32 chips_to_correlate,
+static u32 calc_length_samples(double chips_to_correlate,
                                u32 cp_start_frac_units,
                                u32 cp_rate_units) {
-  u64 cp_end_units = chips_to_correlate * NAP_TRACK_CODE_PHASE_UNITS_PER_CHIP;
+  u64 cp_end_units =
+      (u64)(chips_to_correlate * NAP_TRACK_CODE_PHASE_UNITS_PER_CHIP);
   u64 cp_units = cp_end_units - (s32)cp_start_frac_units;
   u32 samples = round(cp_units / (double)cp_rate_units);
   return samples;
@@ -361,7 +362,7 @@ void nap_track_init(u8 channel,
 void nap_track_update(u8 channel,
                       double doppler_freq_hz,
                       double chip_rate,
-                      u32 chips_to_correlate,
+                      double chips_to_correlate,
                       bool has_pilot_sync) {
   swiftnap_tracking_wr_t *t = &NAP->TRK_CH_WR[channel];
   struct nap_ch_state *s = &nap_ch_desc[channel];
@@ -395,7 +396,7 @@ void nap_track_update(u8 channel,
       (length > NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MAX_MS))) {
     log_warn_mesid(s->mesid,
                    "Wrong NAP correlation length: "
-                   "(%" PRIu32 " %" PRIu32 " %" PRIu32 " %" PRIu32 " %lf)",
+                   "(%lf %" PRIu32 " %" PRIu32 " %" PRIu32 " %lf)",
                    chips_to_correlate,
                    code_phase_frac,
                    code_units,
