@@ -15,4 +15,10 @@
 
 void pps_setup(void);
 
+typedef enum {
+  PPS_PROP_MODE_NONE,
+  PPS_PROP_MODE_TIMEOUT,
+  PPS_PROP_MODE_UNLIMITED
+} pps_propagation_mode_t;
+
 #endif

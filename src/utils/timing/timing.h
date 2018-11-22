@@ -28,6 +28,7 @@ extern "C" {
 #define SEC2TICK(x) ((x)*NAP_FRONTEND_SAMPLE_RATE_Hz)
 
 void timing_setup(void);
+bool time_updated_within(const gps_time_t* current_time, float timeout);
 gps_time_t get_current_time(void);
 void set_time(u64 tc, const gps_time_t* t, double accuracy);
 void update_time(u64 tc, const gnss_solution* sol);
