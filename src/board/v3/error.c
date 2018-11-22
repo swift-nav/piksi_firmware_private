@@ -94,24 +94,24 @@ void __assert_func(const char *_file,
                    int _line,
                    const char *_func,
                    const char *_expr) {
-  char pos[255] = {'\0'};
-  char msg[255] = {'\0'};
-
   thread_t *thread = chThdGetSelfX();
   const char *name = NULL;
+
   if (thread) {
     name = chRegGetThreadNameX(thread);
   }
+
   if (NULL == name) {
     name = "unknown";
   }
-  snprintf(pos, 254, "%s:%s:%s():%d", name, _file, _func, _line);
-  snprintf(msg, 254, "assertion '%s' failed", _expr);
-  log_error("%s %s", pos, msg);
+
+  log_error(
+      "%s:%s:%s():%d assertion '%s' failed", name, _file, _func, _line, _expr);
 
   piksi_systime_sleep_ms(3000);
 
-  _screaming_death(pos, msg);
+  _screaming_death(
+      "%s:%s:%s():%d assertion '%s' failed", name, _file, _func, _line, _expr);
 }
 
 /** Required by exit() which is (hopefully not) called from BLAS/LAPACK. */
