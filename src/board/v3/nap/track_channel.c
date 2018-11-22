@@ -64,7 +64,6 @@ static struct nap_ch_state {
   u64 sw_code_phase;          /**< Reckoned code phase */
   s64 sw_carr_phase;          /**< Reckoned carrier phase */
   double reckoned_carr_phase; /**< Reckoned carrier phase */
-  double code_phase_rate[2];  /**< Code phase rates */
   double fcn_freq_hz;         /**< GLO FCN frequency shift (0 for GPS) */
 } nap_ch_desc[MAX_CHANNELS];
 
@@ -201,13 +200,7 @@ void nap_track_init(u8 channel,
   double chip_rate =
       (1.0 + doppler_freq_hz / carrier_freq_hz) * code_to_chip_rate(mesid.code);
 
-  /* Spacing between VE and P correlators */
-  s16 delta_samples = code_requires_direct_acq(mesid.code) ? NAP_VEP_SPACING_SAMPLES : 0;
-
-  /* MIC_COMMENT: nap_track_update_init() so that nap_track_update()
-   * does not have to branch for the special "init" situation */
   /* Chip rate */
-  s->code_phase_rate[1] = s->code_phase_rate[0] = chip_rate;
   u32 cp_rate_units = round(chip_rate * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ);
   s->code_pinc[1] = s->code_pinc[0] = cp_rate_units;
   t->CODE_PINC = cp_rate_units;
@@ -233,8 +226,12 @@ void nap_track_init(u8 channel,
   t->CARR_PINC = carr_pinc;
 
   /* get the code rollover point in samples */
+  /* Spacing between VE and P correlators.
+   * Note that for tracking hand-overs we don't want this adjustment */
+  u64 delta_samples = code_requires_direct_acq(mesid.code) ? NAP_VEP_SPACING_SAMPLES : 0;
+  assert(code_phase >= 0.0);
   u64 tc_codestart = ref_timing_count - delta_samples -
-                     (s32)round(code_phase * calc_samples_per_chip(chip_rate));
+                     (u64)round(code_phase * calc_samples_per_chip(chip_rate));
 
   nap_track_enable(channel);
 
@@ -264,9 +261,11 @@ void nap_track_init(u8 channel,
     } else if (is_gal(mesid.code)) {
       /* default num_codes = 1 */
     } else {
+      log_error_mesid(mesid, " has symbol_synced but is not handled");
       assert(0);
     }
   }
+  assert(num_codes);
 
   chSysLock();
 
@@ -279,9 +278,10 @@ void nap_track_init(u8 channel,
   }
 
   u32 samples_diff = tc_min_propag - tc_codestart;
-  u32 tmp = (u32)floor((double)samples_diff / code_samples);
-  assert(num_codes);
-  num_codes *= (1 + (tmp / num_codes));
+  /* get how many codes there are in the interval between code start and min deadline */
+  u32 min_codes = (u32)floor((double)samples_diff / code_samples);
+  /* start channel after min_codes but aligned with num_codes */
+  num_codes *= (1 + (min_codes / num_codes));
 
   u64 tc_next_rollover =
       tc_codestart + (u64)rint((double)num_codes * code_samples);
@@ -358,9 +358,6 @@ void nap_track_update(u8 channel,
   struct nap_ch_state *s = &nap_ch_desc[channel];
 
   /* CHIP RATE --------------------------------------------------------- */
-  s->code_phase_rate[1] = s->code_phase_rate[0];
-  s->code_phase_rate[0] = chip_rate;
-
   u32 code_phase_frac = (u32)s->sw_code_phase + s->code_pinc[0] * s->length[0];
   u32 code_units = round(chip_rate * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ);
   s->code_pinc[1] = s->code_pinc[0];
@@ -430,9 +427,11 @@ void nap_track_read_results(u8 channel,
   s->sw_carr_phase += carr_phase_incr;
   s->sw_code_phase += code_phase_incr;
 
+  u64 sw_code_phase_hi = (s->sw_code_phase >> 32) & 0xFFFFFFFF;
+  u64 sw_code_phase_lo = (s->sw_code_phase      ) & 0xFFFFFFFF;
   s->sw_code_phase =
-      ((s->sw_code_phase >> 32) % code_to_chip_count(s->mesid.code) << 32) |
-      (s->sw_code_phase & 0xFFFFFFFF);
+      ((sw_code_phase_hi % code_to_chip_count(s->mesid.code)) << 32) |
+      sw_code_phase_lo;
 
   (*code_phase_prompt) =
       ((double)s->sw_code_phase) / NAP_TRACK_CODE_PHASE_UNITS_PER_CHIP;

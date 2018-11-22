@@ -48,35 +48,34 @@
  */
 static u32 tp_convert_ms_to_chips(me_gnss_signal_t mesid,
                                   u8 ms,
-                                  double code_phase,
+                                  double code_phase_chip,
                                   bool plock) {
 
   (void) plock;
-  if (0. >= code_phase) {
-    detailed_log_error_mesid(mesid, "code_phase is %.6f", code_phase);
+  if (0. > code_phase_chip) {
+    detailed_log_error_mesid(mesid, "code_phase is %.6f", code_phase_chip);
     assert(0);
   }
 
   /* Round the current code_phase towards nearest integer. */
-  u32 current_chip = rint(code_phase);
+  s32 offset = rint(code_phase_chip);
 
   /* First, select the appropriate chip rate in chips/ms. */
-  u32 code_chip_ms = rint(code_to_chip_rate(mesid.code) / 1000);
+  s32 code_chip_ms = rint(code_to_chip_rate(mesid.code) / 1000);
 
   /* Take modulo of the code phase. Nominally this should be close to zero,
    * or close to chip_rate. */
-  current_chip %= code_chip_ms;
+  offset %= code_chip_ms;
 
-  s32 offset = current_chip;
   /* If current_chip is close to chip_rate, the code hasn't rolled over yet,
    * and thus next integration period should be longer than nominally. */
-  if (current_chip > code_chip_ms / 2) {
-    offset = current_chip - code_chip_ms;
+  if (offset > code_chip_ms / 2) {
+    offset = offset - code_chip_ms;
   }
 
   /* Log info if an offset is applied. */
   if (0 != offset) {
-    log_info_mesid(mesid, "Applying code phase offset: %" PRIi32 "", offset);
+    log_warn_mesid(mesid, "Applying samples offset: %" PRIi32 "", offset);
   }
 
   return ms * code_chip_ms - offset;
@@ -817,11 +816,8 @@ static void tp_tracker_update_loops(tracker_t *tracker, u32 cycle_flags) {
     const code_t code = tracker->mesid.code;
     bool gal_pilot_sync = is_gal(code) && tracker_has_bit_sync(tracker);
     if ((CODE_GPS_L2CM == code) || gal_pilot_sync) {
-      /* The L2CM and L2CL codes are in phase,
-       * copy the dp_prompt to prompt so that the PLL
-       * runs on the pilot instead of the data */
-      /* Once in bit-sync, Galileo pilots are completely free of transitions so
-       * no need for a Costas loop*/
+      /* Once in bit-sync, GPS/QZSS L2CL and L5Q and Galileo E5Q and E7Q are completely
+       * free of transitions so no need for a Costas loop*/
       costas = false;
     }
 

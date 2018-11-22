@@ -246,7 +246,6 @@ typedef struct {
  */
 typedef struct {
   double code_phase_chips; /**< The code-phase in chips at `receiver_time`. */
-  double code_phase_rate;  /**< Code phase rate in chips/s. */
   double carrier_phase;    /**< Carrier phase in cycles. */
   double carrier_freq;     /**< Carrier frequency in Hz. */
   double

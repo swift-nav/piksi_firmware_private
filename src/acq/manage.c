@@ -1043,6 +1043,8 @@ u32 get_tracking_channel_meas(u8 i,
       meas->carrier_phase += 0.5;
     } else if (CODE_GAL_E7I == meas->sid.code) {
       meas->carrier_phase -= 0.25;
+    } else if (CODE_GPS_L2CM == meas->sid.code) {
+      meas->carrier_phase -= 0.25;
     }
 
     /* Adjust carrier phase initial integer offset to be approximately equal to
