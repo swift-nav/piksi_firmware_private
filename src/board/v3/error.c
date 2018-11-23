@@ -65,11 +65,14 @@ void _screaming_death(const char *fmt, ...) {
 
   va_list args;
   va_start(args, fmt);
-  vsnprintf(err_msg + strlen(err_msg), SPEAKING_MSG_N - 9, fmt, args);
+  size_t len = strlen(err_msg);
+  /* Accommodate newline and null chars (-1 - 1) */
+  vsnprintf(err_msg + len, sizeof(err_msg) - len - 1 - 1, fmt, args);
   va_end(args);
+  /* Accommodate null char (-1) */
   strncat(err_msg, "\n", SPEAKING_MSG_N - strlen(err_msg) - 1);
 
-  u8 len = strlen(err_msg);
+  len = strlen(err_msg);
   err_msg[0] = LOG_ERROR;
 
   static sbp_state_t sbp_state;
