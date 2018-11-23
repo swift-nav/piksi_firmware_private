@@ -652,6 +652,11 @@ void tp_profile_update_config(tracker_t *tracker) {
   profile->loop_params.pll_bw = profile->cur.pll_bw;
   profile->loop_params.fll_bw = profile->cur.fll_bw;
   profile->loop_params.code_bw = cur_profile->profile.dll_bw;
+  bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
+  bool handover = !code_requires_direct_acq(mesid.code);
+  if (!confirmed && handover && !is_gal(mesid.code) && !is_bds2(mesid.code)) {
+    profile->loop_params.code_bw += 10.0f;
+  }
   profile->loop_params.mode = get_track_mode(mesid, cur_profile);
   profile->loop_params.ctrl = cur_profile->profile.controller_type;
 
@@ -820,12 +825,16 @@ static bool profile_switch_requested(tracker_t *tracker,
 
   bool pll_changed = pll_bw_changed(tracker, index);
   bool fll_changed = fll_bw_changed(tracker, index);
+  bool dll_init_bw = (0 != (tracker->flags & TRACKER_FLAG_DLL_BW_ADDON));
 
-  if ((index == state->cur.index) && !pll_changed && !fll_changed) {
+  if ((index == state->cur.index) && !pll_changed && !fll_changed &&
+      !dll_init_bw) {
     return false;
   }
 
   state->dll_init = false;
+  tracker->flags &= ~TRACKER_FLAG_DLL_BW_ADDON;
+
   const tp_profile_entry_t *cur = &state->profiles[state->cur.index];
   if ((0 != (cur->flags & TP_UNAIDED)) && (0 == (next->flags & TP_UNAIDED))) {
     /* Unaided DLL velocity causes instability when switching to aided DLL */
@@ -898,6 +907,10 @@ bool tp_profile_has_new_profile(tracker_t *tracker) {
 
   const tp_profile_entry_t *cur_profile = &state->profiles[state->cur.index];
   u16 flags = cur_profile->flags;
+
+  if (0 != (tracker->flags & TRACKER_FLAG_DLL_BW_ADDON)) {
+    return profile_switch_requested(tracker, state->cur.index, "dll_init_bw");
+  }
 
   if (0 != (flags & TP_LOW_CN0) && low_cn0_profile_switch_requested(tracker)) {
     return true;
