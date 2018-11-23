@@ -13,8 +13,7 @@
 #ifndef SWIFTNAV_ERROR_H
 #define SWIFTNAV_ERROR_H
 
-#define screaming_death(...) \
-  _screaming_death(__VA_ARGS__)
+#define screaming_death(...) _screaming_death(__VA_ARGS__)
 __attribute__((noreturn)) void _screaming_death(const char *fmt, ...);
 
 void fault_handling_setup(void);
