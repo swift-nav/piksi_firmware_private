@@ -59,12 +59,11 @@ static const double bds2_b2_isc = -6.1;
 static const double gal_e1b_isc = -1.8;
 static const double gal_e7i_isc = 6.3;
 
-/* These biases are to align the GLONASS carrier phase to the Septentrio
- * receivers carrier phase These biases are in cycles and are proportional to
- * the frequency number
+/* These biases are to align the GLONASS carrier phase to Skydel truth
+ * The biases are in cycles and are proportional to the frequency number
  * */
-static const double glo_l1_carrier_phase_bias = -0.07 / 8;
-static const double glo_l2_carrier_phase_bias = 0;
+static const double glo_l1_carrier_phase_bias = -0.03125;
+static const double glo_l2_carrier_phase_bias = -0.0175;
 
 /** Apply ISC corrections from hard-coded table
  * Alignment is performed relative to the Septentrio
