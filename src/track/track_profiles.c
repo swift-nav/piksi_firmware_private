@@ -50,8 +50,9 @@ typedef enum {
   IDX_5MS,
   IDX_10MS,
   IDX_20MS,
-  IDX_SENS,
-  IDX_SENS_NM
+  IDX_RECOVERY,
+  IDX_SENS_NM,
+  IDX_SENS
 } profile_indices_t;
 
 typedef enum {
@@ -355,22 +356,31 @@ static const tp_profile_entry_t tracker_profiles_rover[] = {
       IDX_20MS,   IDX_SENS,     IDX_10MS,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
 
-  /* sensitivity profile */
-  [IDX_SENS] =
-  { {      0,      BW_DYN,           .5,   TP_CTRL_PLL3,
-      TP_TM_200MS_20MS, TP_TM_200MS_10MS, TP_TM_200MS_2MS, TP_TM_200MS_SC4 },
-      TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
-      300,             0,          32,
-      IDX_SENS,  IDX_NONE,     IDX_20MS,
-      TP_HIGH_CN0 | TP_USE_NEXT },
+  /* recover profile for pulling signal back after sensitivity mode */
+  [IDX_RECOVERY] =
+  { { BW_DYN,         BW_DYN,          5,   TP_CTRL_PLL3,
+      TP_TM_10MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS,  TP_TM_10MS_SC4 },
+      TP_LD_PARAMS_PHASE_10MS, TP_LD_PARAMS_FREQ_10MS,
+      100,        THRESH_SENS_DBHZ,   0,
+      IDX_10MS,   IDX_SENS,     IDX_NONE,
+      TP_USE_NEXT | TP_LOW_CN0 | TP_WAIT_PLOCK | TP_WAIT_FLOCK },
 
   /* sensitivity profile for GLO without meander sync */
   [IDX_SENS_NM] =
   { {      0,      BW_DYN,           .5,   TP_CTRL_PLL3,
       TP_TM_200MS_20MS, TP_TM_200MS_10MS_NM, TP_TM_200MS_2MS, TP_TM_200MS_SC4 },
       TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
-      300,             0,          32,
-      IDX_SENS,  IDX_NONE,     IDX_10MS,
+      200,             0,          32,
+      IDX_SENS,  IDX_NONE,     IDX_RECOVERY,
+      TP_HIGH_CN0 | TP_USE_NEXT },
+
+  /* sensitivity profile */
+  [IDX_SENS] =
+  { {      0,      BW_DYN,           .5,   TP_CTRL_PLL3,
+      TP_TM_200MS_20MS, TP_TM_200MS_10MS, TP_TM_200MS_2MS, TP_TM_200MS_SC4 },
+      TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
+      200,             0,          32,
+      IDX_SENS,  IDX_NONE,     IDX_RECOVERY,
       TP_HIGH_CN0 | TP_USE_NEXT },
 };
 
@@ -546,9 +556,11 @@ static u8 get_profile_index(code_t code,
 
   /* the bit/symbol sync is known so we can start with non-init profiles */
   for (size_t i = 0; i < num_profiles; i++) {
-    if (profiles[i].cn0_low_threshold <= 0) {
+    if ((profiles[i].cn0_low_threshold <= 0) ||
+        (tp_is_rover_mode() && (IDX_RECOVERY == i))) {
       continue;
     }
+
     if (cn0 > profiles[i].cn0_low_threshold) {
       return i;
     }
