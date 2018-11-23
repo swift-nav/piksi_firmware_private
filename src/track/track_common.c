@@ -565,7 +565,7 @@ static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
 
   if (cn0 > cn0_thres.drop_dbhz && !confirmed && inlock &&
       tracker_has_bit_sync(tracker)) {
-    tracker->flags |= TRACKER_FLAG_CONFIRMED;
+    tracker->flags |= (TRACKER_FLAG_CONFIRMED | TRACKER_FLAG_DLL_BW_ADDON);
     log_debug_mesid(tracker->mesid, "CONFIRMED with CN0: %f", cn0);
   }
 
