@@ -434,14 +434,11 @@ void nap_track_read_results(u8 channel,
                             corr_t corrs[],
                             double *code_phase_prompt,
                             double *carrier_phase) {
-  tracking_rd_t trk_ch;
   swiftnap_tracking_rd_t *t = &NAP->TRK_CH_RD[channel];
   struct nap_ch_state *s = &nap_ch_desc[channel];
 
-  trk_ch.STATUS = t->STATUS;
-
-  trk_ch.TIMING_SNAPSHOT = t->TIMING_SNAPSHOT;
-  *count_snapshot = trk_ch.TIMING_SNAPSHOT;
+  /*u32 nap_status = t->STATUS;*/
+  *count_snapshot = t->TIMING_SNAPSHOT;
 
   /* pilot/data correlator values in sequence E-P-L-E-P-L */
   volatile u32 corr_val = 0;
@@ -479,71 +476,6 @@ void nap_track_read_results(u8 channel,
       s->fcn_freq_hz * (s->length[1] / NAP_TRACK_SAMPLE_RATE_Hz);
 
   *carrier_phase = (s->reckoned_carr_phase);
-
-#ifndef PIKSI_RELEASE
-  /* Useful for debugging correlators */
-
-  if ((s->mesid.code == CODE_GAL_E7I) || (s->mesid.code == CODE_GAL_E7Q) ||
-      (s->mesid.code == CODE_GAL_E7X)) {
-    log_debug("EPL %02" PRIu8 "   %+3" PRIi32 " %+3" PRIi32 "   %+3" PRIi32
-              " %+3" PRIi32 "   %+3" PRIi32 " %+3" PRIi32,
-              s->mesid.sat,
-              corrs[3].I >> 6,
-              corrs[3].Q >> 6,
-              corrs[1].I >> 6,
-              corrs[1].Q >> 6,
-              corrs[4].I >> 6,
-              corrs[4].Q >> 6);
-  }
-
-  if (GET_NAP_TRK_CH_STATUS_CORR_OVERFLOW(trk_ch.STATUS)) {
-    log_warn_mesid(s->mesid,
-                   "Tracking correlator overflow VE:[%+7" PRIi32 ":%+7" PRIi32
-                   "] E:[%+7" PRIi32 ":%+7" PRIi32 "] P:[%+7" PRIi32
-                   ":%+7" PRIi32 "] L:[%+7" PRIi32 ":%+7" PRIi32
-                   "] VL:[%+7" PRIi32 ":%+7" PRIi32 "]",
-                   corrs[3].I,
-                   corrs[3].Q,
-                   corrs[0].I,
-                   corrs[0].Q,
-                   corrs[1].I,
-                   corrs[1].Q,
-                   corrs[2].I,
-                   corrs[2].Q,
-                   corrs[4].I,
-                   corrs[4].Q);
-  }
-
-  /* Check carrier phase reckoning */
-  u8 sw_carr_phase = (s->sw_carr_phase >> 29) & 0x3F;
-  u8 hw_carr_phase = GET_NAP_TRK_CH_STATUS_CARR_PHASE_INT(trk_ch.STATUS)
-                         << NAP_TRK_CH_STATUS_CARR_PHASE_FRAC_Len |
-                     GET_NAP_TRK_CH_STATUS_CARR_PHASE_FRAC(trk_ch.STATUS);
-  if (sw_carr_phase != hw_carr_phase) {
-    log_error_mesid(s->mesid,
-                    "Carrier reckoning: SW=%" PRIu8 ".%" PRIu8 ", HW=%" PRIu8
-                    ".%" PRIu8,
-                    (sw_carr_phase >> 3),
-                    (sw_carr_phase & 0x7),
-                    (hw_carr_phase >> 3),
-                    (hw_carr_phase & 0x7));
-  }
-
-  /* Check code phase reckoning */
-  u8 sw_code_phase = (s->sw_code_phase >> 29) & 0x3F;
-  u8 hw_code_phase = GET_NAP_TRK_CH_STATUS_CODE_PHASE_INT(trk_ch.STATUS)
-                         << NAP_TRK_CH_STATUS_CODE_PHASE_FRAC_Len |
-                     GET_NAP_TRK_CH_STATUS_CODE_PHASE_FRAC(trk_ch.STATUS);
-  if (sw_code_phase != hw_code_phase) {
-    log_error_mesid(s->mesid,
-                    "Code reckoning: SW=%" PRIu8 ".%" PRIu8 ", HW=%" PRIu8
-                    ".%" PRIu8,
-                    (sw_code_phase >> 3),
-                    (sw_code_phase & 0x7),
-                    (hw_code_phase >> 3),
-                    (hw_code_phase & 0x7));
-  }
-#endif /* PIKSI_RELEASE */
 }
 
 void nap_track_enable(u8 channel) {
