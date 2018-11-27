@@ -37,6 +37,7 @@
 #include "sbp_fileio.h"
 #include "system_monitor/system_monitor.h"
 #include "xadc.h"
+
 #define REQUIRED_NAP_VERSION_MASK (0xFFFF0000U)
 #define REQUIRED_NAP_VERSION_VAL NAP_VERSION
 
@@ -169,31 +170,14 @@ static void nap_version_check(void) {
 
 static void nap_auth_setup(void) { nap_unlock(factory_params.nap_key); }
 
-/* Check NAP authentication status. Block and print error message
- * if authentication has failed. This must be done after the NAP,
- * USARTs, and SBP subsystems are set up, so that SBP messages and
- * be sent and received (it can't go in init() or nap_setup()).
+/* Check NAP authentication status. Print error message if authentication
+ * has failed. This must be done after the USARTs and SBP subsystems are
+ * set up, so that SBP messages can be sent and received.
  */
 static void nap_auth_check(void) {
-  const int NAP_AUTH_RETRIES = 3;
-  char dna[NAP_DNA_LENGTH * 2 + 1];
-  char key[NAP_KEY_LENGTH * 2 + 1];
-
-  /* Linux has access to the NAP->AUTHENTICATE register as well.
-   * It can potentially access it, while nap_unlock() is writing the key,
-   * because both CPUs share 1 AXI bus arbiter, that can interrupt at any
-   * 'random' time.
-   * In the case Linux was interrupting and working with the register, the
-   * RSA core would assert the status-busy flag.
-   * This polling would then at least give us information that Linux
-   * interfered here.
-   */
-  volatile u16 count = 0;
-  while (GET_NAP_STATUS_AUTH_BUSY(NAP->STATUS)) {
-    count++;
-  }
-
-  for (int k = 0; k < NAP_AUTH_RETRIES && nap_locked(); k++) {
+  if (nap_locked()) {
+    char dna[NAP_DNA_LENGTH * 2 + 1];
+    char key[NAP_KEY_LENGTH * 2 + 1];
     /* Create strings for log_error */
     char *pnt = dna;
     for (int i = NAP_DNA_LENGTH - 1; i >= 0; i--) {
@@ -205,17 +189,8 @@ static void nap_auth_check(void) {
       pnt += sprintf(pnt, "%02x", factory_params.nap_key[i]);
     }
     key[NAP_KEY_LENGTH * 2] = '\0';
-    log_error(
-        "NAP Verification Failed: DNA=%s, Key=%s, Poll=%i", dna, key, count);
 
-    /* Retry */
-    factory_params_read();
-    nap_unlock(factory_params.nap_key);
-    chThdSleepSeconds(1);
-  }
-
-  if (nap_locked()) {
-    log_error("NAP Unlock Retries Exceeded. Triggering Reset");
+    log_error("NAP Verification Failed: DNA=%s, Key=%s", dna, key);
     chThdSleepSeconds(1);
     hard_reset();
   }
