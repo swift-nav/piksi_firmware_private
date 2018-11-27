@@ -134,7 +134,8 @@ void nap_unlock(const u8 key[]) {
     count++;
   }
   if (count > 0)
-    log_error("Linux interrupted writing of NAP->AUTHENTICATE. Count=%i", count);
+    log_error("Linux interrupted writing of NAP->AUTHENTICATE. Count=%i",
+              count);
 
   for (u32 i = 0; i < NAP_KEY_LENGTH; ++i) {
     NAP->AUTHENTICATION = SET_NAP_AUTHENTICATION_OPERATION(0, 0) |

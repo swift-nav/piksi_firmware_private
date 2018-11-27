@@ -176,9 +176,9 @@ static void nap_auth_setup(void) { nap_unlock(factory_params.nap_key); }
  */
 static void nap_auth_check(void) {
   if (nap_locked()) {
+    /* Create strings for log_error */
     char dna[NAP_DNA_LENGTH * 2 + 1];
     char key[NAP_KEY_LENGTH * 2 + 1];
-    /* Create strings for log_error */
     char *pnt = dna;
     for (int i = NAP_DNA_LENGTH - 1; i >= 0; i--) {
       pnt += sprintf(pnt, "%02x", nap_dna[i]);
