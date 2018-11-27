@@ -129,14 +129,10 @@ void nap_unlock(const u8 key[]) {
    * interfered here.
    */
   chSysLock();
-  volatile u16 count = 0;
+  volatile u16 n = 0;
   while (GET_NAP_STATUS_AUTH_BUSY(NAP->STATUS)) {
-    count++;
+    log_error("Linux interrupted writing of NAP->AUTHENTICATE. Count=%i", n);
   }
-  if (count > 0)
-    log_error("Linux interrupted writing of NAP->AUTHENTICATE. Count=%i",
-              count);
-
   for (u32 i = 0; i < NAP_KEY_LENGTH; ++i) {
     NAP->AUTHENTICATION = SET_NAP_AUTHENTICATION_OPERATION(0, 0) |
                           SET_NAP_AUTHENTICATION_ADDR(0, i) |
