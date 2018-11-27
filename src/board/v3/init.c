@@ -175,7 +175,6 @@ static void nap_auth_setup(void) { nap_unlock(factory_params.nap_key); }
  * set up, so that SBP messages can be sent and received.
  */
 static void nap_auth_check(void) {
-
   if (nap_locked()) {
     /* Create strings for log_error */
     char dna[NAP_DNA_LENGTH * 2 + 1];
