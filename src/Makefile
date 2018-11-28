@@ -219,7 +219,7 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/cn0_est/cn0_est_rscn.o \
         $(SWIFTNAV_ROOT)/src/cn0_est/cn0_est_snv.o \
         $(SWIFTNAV_ROOT)/src/cn0_est/cn0_est_svr.o \
-        $(SWIFTNAV_ROOT)/src/utils/track_loop/track_pll3_fll2_dll2.o \
+        $(SWIFTNAV_ROOT)/src/utils/track_loop/track_pll3_fll2_dll1.o \
         $(SWIFTNAV_ROOT)/src/utils/track_loop/track_pll2_dll1.o \
         $(SWIFTNAV_ROOT)/src/utils/track_loop/trk_loop_common.o \
         $(SWIFTNAV_ROOT)/src/utils/filters/filter_lp1.o \
