@@ -52,7 +52,7 @@ typedef enum {
   IDX_20MS,
   IDX_RECOVERY,
   IDX_SENS_NM,
-  IDX_SENS
+  IDX_SENS /* IDX_SENS must be last one in the list. */
 } profile_indices_t;
 
 typedef enum {
@@ -356,7 +356,7 @@ static const tp_profile_entry_t tracker_profiles_rover[] = {
       IDX_20MS,   IDX_SENS,     IDX_10MS,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
 
-  /* recover profile for pulling signal back after sensitivity mode */
+  /* recovery profile for pulling signal back after sensitivity mode */
   [IDX_RECOVERY] =
   { { BW_DYN,         BW_DYN,          5,   TP_CTRL_PLL3,
       TP_TM_10MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS,  TP_TM_10MS_SC4 },
@@ -565,6 +565,12 @@ static u8 get_profile_index(code_t code,
       return i;
     }
   }
+
+  /* Verify last tracking mode */
+  u8 idx = g_tracker_mode.size - 1;
+  u8 idx_max = tp_is_rover_mode() ? IDX_SENS : IDX_20MS;
+  assert(idx == idx_max);
+
   /* IDX_SENS for rover and IDX_20MS for base station */
   return g_tracker_mode.size - 1;
 }
