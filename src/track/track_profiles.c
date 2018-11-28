@@ -36,6 +36,10 @@
    to sensitivity profile, when signal is reasonably strong */
 #define TP_WEAK_SIGNAL_THRESHOLD_MS 100
 
+/** DLL Bandwidth addon for handover signals which start from non-init profiles.
+    Used for faster DLL loop convergence. */
+#define DLL_BW_ADDON_HZ (10.0f)
+
 /** Unknown delay indicator */
 #define TP_DELAY_UNKNOWN -1
 
@@ -653,9 +657,11 @@ void tp_profile_update_config(tracker_t *tracker) {
   profile->loop_params.fll_bw = profile->cur.fll_bw;
   profile->loop_params.code_bw = cur_profile->profile.dll_bw;
   bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
-  bool handover = !code_requires_direct_acq(mesid.code);
-  if (!confirmed && handover && !is_gal(mesid.code) && !is_bds2(mesid.code)) {
-    profile->loop_params.code_bw += 10.0f;
+  bool init_profiles = !code_requires_direct_acq(mesid.code);
+  init_profiles |= is_gal(mesid.code);
+  init_profiles |= is_bds2(mesid.code);
+  if (!confirmed && !init_profiles) {
+    profile->loop_params.code_bw += DLL_BW_ADDON_HZ;
   }
   profile->loop_params.mode = get_track_mode(mesid, cur_profile);
   profile->loop_params.ctrl = cur_profile->profile.controller_type;
@@ -825,7 +831,7 @@ static bool profile_switch_requested(tracker_t *tracker,
 
   bool pll_changed = pll_bw_changed(tracker, index);
   bool fll_changed = fll_bw_changed(tracker, index);
-  bool dll_init_bw = (0 != (tracker->flags & TRACKER_FLAG_DLL_BW_ADDON));
+  bool dll_init_bw = (0 != (tracker->flags & TRACKER_FLAG_REMOVE_DLL_BW_ADDON));
 
   if ((index == state->cur.index) && !pll_changed && !fll_changed &&
       !dll_init_bw) {
@@ -833,7 +839,7 @@ static bool profile_switch_requested(tracker_t *tracker,
   }
 
   state->dll_init = false;
-  tracker->flags &= ~TRACKER_FLAG_DLL_BW_ADDON;
+  tracker->flags &= ~TRACKER_FLAG_REMOVE_DLL_BW_ADDON;
 
   const tp_profile_entry_t *cur = &state->profiles[state->cur.index];
   if ((0 != (cur->flags & TP_UNAIDED)) && (0 == (next->flags & TP_UNAIDED))) {
@@ -908,7 +914,7 @@ bool tp_profile_has_new_profile(tracker_t *tracker) {
   const tp_profile_entry_t *cur_profile = &state->profiles[state->cur.index];
   u16 flags = cur_profile->flags;
 
-  if (0 != (tracker->flags & TRACKER_FLAG_DLL_BW_ADDON)) {
+  if (0 != (tracker->flags & TRACKER_FLAG_REMOVE_DLL_BW_ADDON)) {
     return profile_switch_requested(tracker, state->cur.index, "dll_init_bw");
   }
 
