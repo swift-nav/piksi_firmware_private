@@ -90,7 +90,6 @@ void tl_pll3_init(tl_pll3_state_t *s,
   s->carr_freq = rates->carr_freq;
   s->code_freq = code_freq;
 
-  s->code_vel = code_freq;
   s->carr_acc = rates->acceleration;
   s->carr_vel = rates->carr_freq;
 
