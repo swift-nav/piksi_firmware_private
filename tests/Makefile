@@ -149,7 +149,6 @@ vpath %.c $(USER_SRC_DIR) \
           $(USER_SRC_DIR)/lib \
           $(USER_SRC_DIR)/cn0_est \
           $(USER_SRC_DIR)/utils/filters \
-          $(USER_SRC_DIR)/utils/track_loop \
           $(USER_SRC_DIR)/soft_macq \
           $(USER_SRC_DIR)/utils/sv_visibility \
           $(USER_SRC_DIR)/nav_msg \
@@ -173,7 +172,6 @@ C_SRCS = fixed_fft_r2.c \
          sbas_select.c \
          $(notdir $(shell find $(USER_SRC_DIR)/cn0_est -name '*.c')) \
          $(notdir $(shell find $(USER_SRC_DIR)/utils/filters -name '*.c')) \
-         $(notdir $(shell find $(USER_SRC_DIR)/utils/track_loop -name '*.c')) \
          prns.c \
          gal_prns.c \
          bds2_prns.c \
