@@ -448,12 +448,11 @@ static s8 me_compute_pvt(const obs_array_t *obs_array,
   gnss_solution current_fix;
   sid_set_init(raim_removed_sids);
 
-  /* Calculate the SPP position
-   * disable_raim controlled by external setting. Defaults to false. */
+  /* Calculate the SPP position */
   s8 pvt_ret = calc_PVT(n_ready,
                         nav_meas,
                         &obs_array->t,
-                        disable_raim,
+                        /* disable_raim */ false,
                         /*disable_velocity = */ false,
                         GPS_L1CA_WHEN_POSSIBLE,
                         &current_fix,
@@ -741,16 +740,11 @@ static void me_calc_pvt_thread(void *arg) {
       /* Propagate the measurements to the output epoch */
       remove_clock_offset(&obs_array, &output_time, smoothed_drift, current_tc);
 
-      if (disable_raim) {
-        /* Send all observations. */
-        me_send_all(&obs_array, e_meas);
-      } else {
-        /* Send only the observations that have gone through RAIM. */
-        static obs_array_t send_obs_array;
-        copy_raimed_obs(
-            &obs_array, &raim_sids, &raim_failed_sids, &send_obs_array);
-        me_send_all(&send_obs_array, e_meas);
-      }
+      /* Send only the observations that have gone through RAIM. */
+      static obs_array_t send_obs_array;
+      copy_raimed_obs(
+          &obs_array, &raim_sids, &raim_failed_sids, &send_obs_array);
+      me_send_all(&send_obs_array, e_meas);
     } else {
       if (TIME_UNKNOWN != time_quality) {
         log_info("Observations suppressed because time jumps %.2f seconds",

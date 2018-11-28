@@ -52,9 +52,7 @@
  * Globals
  ******************************************************************************/
 bool send_heading = false;
-
-/* TODO(kevin) what to do about this? */
-bool disable_raim = false;
+bool disable_raim = true;
 
 /*******************************************************************************
  * Locals
