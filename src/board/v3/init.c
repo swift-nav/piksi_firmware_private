@@ -15,6 +15,7 @@
 #include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 #include <libsbp/sbp.h>
 #include <swiftnav/logging.h>
@@ -180,13 +181,34 @@ void nap_auth_check(void) {
       pnt += sprintf(pnt, "%02x", factory_params.nap_key[i]);
     }
     key[NAP_KEY_LENGTH * 2] = '\0';
-    log_error("NAP Verification Failed: DNA=%s, Key=%s", dna, key);
+    log_error("NAP Verification Failed: DNA=%s, Key=%s BORK BORK BORK", dna, key);
     nap_unlock(factory_params.nap_key);
     chThdSleepSeconds(1);
   }
   if (nap_locked()) {
     log_error("NAP Unlock Retries Exceeded. Triggering Reset");
     hard_reset();
+  }
+}
+
+
+static void xxd(const unsigned char *s,size_t len) {
+	char buf_start[8192] = {0};
+	char *buf = buf_start;
+  size_t i,j;
+  for(i=0;i<len;i+=16) {
+    buf += sprintf(buf, "%06x: ",i);
+    for(j=0;j<16;j++)
+      if(i+j<len)
+        buf += sprintf(buf, " %02x",s[i+j]);
+      else
+        buf += sprintf(buf, "   ");
+    buf += sprintf(buf, "  ");
+    for(j=0;j<16&&i+j<len;j++)
+      buf += sprintf(buf, "%c",isprint(s[i+j])?s[i+j]:'.');
+		log_debug("%s", buf_start);
+		buf = buf_start;
+		buf[0] = '\0';
   }
 }
 
@@ -201,6 +223,8 @@ static bool factory_params_read(void) {
     log_error("error reading factory data");
     return false;
   }
+
+	xxd(factory_data_buff, bytes_read);
 
   /* verify header */
   if (factory_data_header_verify(factory_data) != 0) {

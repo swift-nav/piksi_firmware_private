@@ -28,12 +28,12 @@
 #include "remoteproc_env.h"
 #include "rpmsg.h"
 
-#define ENDPOINT_FIFO_SIZE 4096
-#define RPMSG_BUFFER_SIZE_MAX 512
+#define ENDPOINT_FIFO_SIZE (16*1024)
+#define RPMSG_BUFFER_SIZE_MAX (512)
 
 #define RPMSG_THD_PRIO (HIGHPRIO - 21)
-#define RPMSG_THD_STACK_SIZE 4096
-#define RPMSG_THD_PERIOD_ms 10
+#define RPMSG_THD_STACK_SIZE (4096)
+#define RPMSG_THD_PERIOD_ms (10)
 
 static const u32 endpoint_addr_config[RPMSG_ENDPOINT__COUNT] = {
         [RPMSG_ENDPOINT_A] = 100,
