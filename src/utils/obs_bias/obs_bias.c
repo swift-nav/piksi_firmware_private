@@ -22,42 +22,42 @@ const u32 biases_message_freq_setting = 5.0;
  * https://github.com/swift-nav/piksi_v3_bug_tracking/issues/606#issuecomment-323163617
  * to align observations to Septentrio receiver-type biases
  */
-static const double glo_l1_isc[] = {[0] = -7.8,
+static const double glo_l1_isc[] = {[0] = -9.4,
                                     [1] = -8.7,
                                     [2] = -9.0,
-                                    [3] = -7.6,
-                                    [4] = -8.5,
-                                    [5] = -9.7,
-                                    [6] = -8.5,
-                                    [7] = -9.2,
-                                    [8] = -11,
-                                    [9] = -10.6,
-                                    [10] = -10.7,
-                                    [11] = -10.9,
-                                    [12] = -12.7,
-                                    [13] = -11.5};
+                                    [3] = -7.9,
+                                    [4] = -8.6,
+                                    [5] = -10.2,
+                                    [6] = -8.3,
+                                    [7] = -9.4,
+                                    [8] = -9.2,
+                                    [9] = -9.7,
+                                    [10] = -10.8,
+                                    [11] = -10.1,
+                                    [12] = -10.5,
+                                    [13] = -12.1};
 
-static const double glo_l2_isc[] = {[0] = -5.3,
+static const double glo_l2_isc[] = {[0] = -5.9,
                                     [1] = -5.3,
                                     [2] = -5.0,
-                                    [3] = -4.6,
-                                    [4] = -3.8,
-                                    [5] = -5.2,
-                                    [6] = -5.2,
-                                    [7] = -4.0,
-                                    [8] = -4.5,
-                                    [9] = -5.3,
-                                    [10] = -5.3,
-                                    [11] = -5.0,
-                                    [12] = -4.0,
-                                    [13] = -5.0};
+                                    [3] = -2.9,
+                                    [4] = -4.5,
+                                    [5] = -6.1,
+                                    [6] = -3.9,
+                                    [7] = -4.9,
+                                    [8] = -4.1,
+                                    [9] = -6.8,
+                                    [10] = -5.4,
+                                    [11] = -5.4,
+                                    [12] = -5.4,
+                                    [13] = -7.0};
 
 /* TODO: estimate these properly against e.g. Septentrio  */
 static const double gps_l2_isc = 1.9;
-static const double bds2_b11_isc = -12.7;
-static const double bds2_b2_isc = -6.1;
-static const double gal_e1b_isc = -1.3;
-static const double gal_e7i_isc = 5.2;
+static const double bds2_b11_isc = -8.2;
+static const double bds2_b2_isc = 0.1;
+static const double gal_e1b_isc = -1.6;
+static const double gal_e7i_isc = 6.4;
 
 /* These biases are to align the GLONASS carrier phase to the Septentrio
  * receivers carrier phase These biases are in cycles and are proportional to
