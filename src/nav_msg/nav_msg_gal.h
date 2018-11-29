@@ -156,7 +156,6 @@ typedef struct _gal_inav_decoded_t {
   bool utc_params_upd_flag;
 
   cons_time_params_t cons_time_params;
-  bool cons_time_upd_flag;
 
   almanac_t alm[3];
 } gal_inav_decoded_t;

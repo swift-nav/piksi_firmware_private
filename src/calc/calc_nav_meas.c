@@ -240,8 +240,7 @@ void apply_gps_cnav_isc(u8 n_channels,
  */
 void apply_cons_time_offsets(const u8 n_channels,
                              navigation_measurement_t *nav_meas[]) {
-  u8 i = 0;
-  for (i = 0; i < n_channels; i++) {
+  for (u8 i = 0; i < n_channels; i++) {
     cons_time_params_t params;
     /* get system time offset from static store */
     if (!IS_GPS(nav_meas[i]->sid) &&

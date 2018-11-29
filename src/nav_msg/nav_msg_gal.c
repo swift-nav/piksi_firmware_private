@@ -646,6 +646,9 @@ static void parse_inav_gst_gps(const nav_msg_gal_inav_t *nav_msg,
 
   /* current time used to fix the week number ambiguity */
   gps_time_t now = get_current_time();
+  if (!gps_time_valid(&now) || TIME_PROPAGATED > get_time_quality()) {
+    return;
+  }
 
   cons_time_params_t *params = &(dd->cons_time_params);
   params->a0 = BITS_SIGN_EXTEND_32(16, A0G) * C_1_2P35;
@@ -665,7 +668,6 @@ static void parse_inav_gst_gps(const nav_msg_gal_inav_t *nav_msg,
             params->t.wn,
             params->t.tow);
 
-  dd->cons_time_upd_flag = true;
   gnss_signal_t sid = mesid2sid(nav_msg->mesid, GLO_ORBIT_SLOT_UNKNOWN);
   store_cons_time_params(sid, params);
 }
