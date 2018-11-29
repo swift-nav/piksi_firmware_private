@@ -563,15 +563,13 @@ static const state_table_t mode_20ms_10ms_base = {
   .fpll_decim = 1,
   .dll_ms = 20,
   .bit_ms = 10,
-  .ent_cnt = GLO_FSM_20MS_NUM * 6, /* 600 */
+  .ent_cnt = GLO_FSM_20MS_NUM * 5, /* 500 */
   .entries = {
 #define FSM_GLO_20_MS(odd, even)                                                                  \
     {2, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET | GLO_FLAGS(odd)},  \
     {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | GLO_FLAGS(odd)},  \
                                                                                                   \
-    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | GLO_FLAGS(odd)},  \
-                                                                                                  \
-    {5, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | GLO_FLAGS(odd) |  \
+    {6, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | GLO_FLAGS(odd) |  \
                       TPF_CN0_USE | TPF_BSYNC_UPD |               TPF_FLL_USE |                   \
                                                                   TPF_FLL_HALFQ},                 \
                                                                                                   \
@@ -775,13 +773,12 @@ static const state_table_t mode_20ms_20ms_base = {
   .fpll_decim = 1,
   .dll_ms = 20,
   .bit_ms = 20,
-  .ent_cnt = 6,
+  .ent_cnt = 5,
   .entries = {
     {2, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET},
     {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
-    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
 
-    {5, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
+    {6, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
                       TPF_CN0_USE |                               TPF_FLL_USE |
                                                                   TPF_FLL_HALFQ},
 
@@ -800,12 +797,12 @@ static const state_table_t mode_200ms_20ms = {
   .fpll_decim = 10,
   .dll_ms = 20,
   .bit_ms = 20,
-  .ent_cnt = 6,
+  .ent_cnt = 5,
   .entries = {
     {2, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_FLL_SET},
     {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_ADD},
-    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_ADD},
-    {5, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_ADD |
+
+    {6, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_ADD |
                                                     TPF_FLL_USE |
                                                     TPF_FLL_HALFQ},
 
