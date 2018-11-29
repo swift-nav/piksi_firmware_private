@@ -14,6 +14,7 @@
 #include <hal.h>
 #include "zynq7000.h"
 
+#include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -52,20 +53,26 @@ static u32 fallback_write_ftdi(u8 *buff, u32 n, void *context) {
  * message format to the FTDI USART, in a way that should get the message
  * through to the Python console even if it's interrupting another transmission.
  *
- * \param pos Position of the error on the file
- * \param msg A pointer to an array of chars containing the error message.
+ * \param fmt C string that contains the text to be written
+ * \param ... Variadic arguments
  */
-void _screaming_death(const char *pos, const char *msg) {
+void _screaming_death(const char *fmt, ...) {
   __asm__("CPSID if;"); /* Disable all interrupts and faults */
 
 #define SPEAKING_MSG_N 222 /* Maximum length of error message */
 
   static char err_msg[SPEAKING_MSG_N] = " ERROR: ";
-  strncat(err_msg, pos, SPEAKING_MSG_N - 9);
-  strncat(err_msg, " : ", SPEAKING_MSG_N - strlen(err_msg) - 1);
-  strncat(err_msg, msg, SPEAKING_MSG_N - strlen(err_msg) - 1);
+
+  va_list args;
+  va_start(args, fmt);
+  size_t len = strlen(err_msg);
+  /* Accommodate newline and null chars (-1 - 1) */
+  vsnprintf(err_msg + len, sizeof(err_msg) - len - 1 - 1, fmt, args);
+  va_end(args);
+  /* Accommodate null char (-1) */
   strncat(err_msg, "\n", SPEAKING_MSG_N - strlen(err_msg) - 1);
-  u8 len = strlen(err_msg);
+
+  len = strlen(err_msg);
   err_msg[0] = LOG_ERROR;
 
   static sbp_state_t sbp_state;
@@ -90,24 +97,24 @@ void __assert_func(const char *_file,
                    int _line,
                    const char *_func,
                    const char *_expr) {
-  char pos[255] = {'\0'};
-  char msg[255] = {'\0'};
-
   thread_t *thread = chThdGetSelfX();
   const char *name = NULL;
+
   if (thread) {
     name = chRegGetThreadNameX(thread);
   }
+
   if (NULL == name) {
     name = "unknown";
   }
-  snprintf(pos, 254, "%s:%s:%s():%d", name, _file, _func, _line);
-  snprintf(msg, 254, "assertion '%s' failed", _expr);
-  log_error("%s %s", pos, msg);
+
+  log_error(
+      "%s:%s:%s():%d assertion '%s' failed", name, _file, _func, _line, _expr);
 
   piksi_systime_sleep_ms(3000);
 
-  _screaming_death(pos, msg);
+  _screaming_death(
+      "%s:%s:%s():%d assertion '%s' failed", name, _file, _func, _line, _expr);
 }
 
 /** Required by exit() which is (hopefully not) called from BLAS/LAPACK. */
