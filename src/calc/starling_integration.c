@@ -72,7 +72,6 @@ static dgnss_filter_t dgnss_filter_mode = FILTER_FIXED;
 static dgnss_solution_mode_t dgnss_soln_mode = STARLING_SOLN_MODE_LOW_LATENCY;
 
 static double heading_offset = 0.0;
-static u32 max_age_of_differential = 30;
 static float glonass_downweight_factor = 4.0;
 
 static u32 corr_age_max = DFLT_CORRECTION_AGE_MAX_S;
@@ -539,7 +538,7 @@ static int set_max_age(void *ctx) {
   (void)ctx;
 
   if (0 >= corr_age_max) {
-    log_error("Trying to set invalid correction age max value %d", value);
+    log_error("Invalid correction age max value %" PRIu32, corr_age_max);
     return SETTINGS_WR_SETTING_REJECTED;
   }
 
@@ -750,8 +749,11 @@ static void initialize_starling_settings(void) {
                  dgnss_filter_setting,
                  enable_fix_mode);
 
-  SETTING_NOTIFY(
-      "solution", "correction_age_max", corr_age_max, TYPE_INT, set_max_age);
+  SETTING_NOTIFY("solution",
+                 "correction_age_max",
+                 corr_age_max,
+                 SETTINGS_TYPE_INT,
+                 set_max_age);
 
   SETTING_NOTIFY("solution",
                  "enable_glonass",
