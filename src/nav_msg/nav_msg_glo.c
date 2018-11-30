@@ -641,15 +641,15 @@ static bool extract_string_5_components(nav_msg_glo_t *n) {
 
   /* extract tau GPS [s] */
   double tau_gps_s = extract_word_glo(n, 10, 21) * C_1_2P30;
-  if (GLO_TAU_GPS_MAX_S < tau_gps_s) {
+  if (GLO_TAU_GPS_MAX_S < fabs(tau_gps_s)) {
     log_debug_mesid(n->mesid, "GLO-NAV-ERR: tau_gps=%lf", tau_gps_s);
     return false;
   }
-  /* convert to [ns] */
-  n->tau_gps_ns = (s32)(tau_gps_s * SECS_NS + 0.5); /* 0.5 is for rounding */
+
+  n->tau_gps_s = tau_gps_s;
   sign = extract_word_glo(n, 31, 1);
   if (sign) {
-    n->tau_gps_ns *= -1;
+    n->tau_gps_s *= -1;
   }
 
   return true;
