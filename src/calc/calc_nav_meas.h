@@ -34,6 +34,9 @@ void apply_gps_cnav_isc(u8 n_channels,
                         navigation_measurement_t *nav_meas[],
                         const ephemeris_t ephe[]);
 
+void apply_cons_time_offsets(u8 n_channels,
+                             navigation_measurement_t *nav_meas[]);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif /* __cplusplus */

@@ -433,6 +433,9 @@ static s8 me_compute_pvt(const obs_array_t *obs_array,
   /* apply GPS inter-signal corrections from CNAV messages */
   apply_gps_cnav_isc(n_ready, p_nav_meas, e_meas);
 
+  /* apply constellation time offsets (against GPS time) */
+  apply_cons_time_offsets(n_ready, p_nav_meas);
+
   /* apply iono and tropo corrections if LGF available */
   if (lgf->position_quality >= POSITION_GUESS) {
     ionosphere_t i_params;
