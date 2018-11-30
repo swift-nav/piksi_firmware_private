@@ -25,9 +25,7 @@
 
 static settings_t *settings = NULL;
 
-typedef struct settings_ctx_s {
-  binary_semaphore_t sem;
-} settings_ctx_t;
+typedef struct settings_ctx_s { binary_semaphore_t sem; } settings_ctx_t;
 
 static settings_ctx_t settings_api_ctx = {0};
 
