@@ -126,6 +126,7 @@ bool code_supported(code_t code);
 
 float code_to_tcxo_doppler_min(code_t code);
 float code_to_tcxo_doppler_max(code_t code);
+u32 code_to_init_spacing(code_t code);
 
 gnss_signal_t sv_index_to_sid(u16 sv_index);
 u16 sid_to_sv_index(gnss_signal_t sid);

@@ -11,13 +11,14 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "signal_db.h"
-#include <board.h>
-
 #include <assert.h>
 #include <string.h>
 
-#include <swiftnav/constants.h>
+#include "board.h"
+#include "signal_db.h"
+#include "swiftnav/constants.h"
+#include "swiftnav/signal.h"
+#include "v3/nap/nap_constants.h"
 
 /** \defgroup signal GNSS signal identifiers (SID)
  * \{ */
@@ -291,6 +292,12 @@ float code_to_tcxo_doppler_max(code_t code) {
   doppler = TCXO_FREQ_OFFSET_MAX_PPM * GLO_L1_TCXO_PPM_TO_HZ;
 
   return doppler;
+}
+
+u32 code_to_init_spacing(code_t code) {
+  u32 spacing = (u32)(NAP_TRACK_SAMPLE_RATE_Hz / code_to_chip_rate(code));
+
+  return (spacing & 0x1f);
 }
 
 /** Convert a SV signal index to a gnss_signal_t.
