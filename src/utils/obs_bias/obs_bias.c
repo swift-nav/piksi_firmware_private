@@ -63,8 +63,8 @@ static const double gal_e7i_isc = 6.4;
  * receivers carrier phase These biases are in cycles and are proportional to
  * the frequency number
  * */
-static const double glo_l1_carrier_phase_bias = -0.066;
-static const double glo_l2_carrier_phase_bias = -0.042;
+static const double glo_l1_carrier_phase_bias = -0.068;
+static const double glo_l2_carrier_phase_bias = -0.045;
 
 /** Apply ISC corrections from hard-coded table
  * Alignment is performed relative to the Septentrio
