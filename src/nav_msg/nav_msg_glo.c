@@ -599,6 +599,9 @@ static bool extract_string_4_components(nav_msg_glo_t *n) {
   }
   n->eph.glo.d_tau = d_tau_s;
 
+  /* extract E_n age of data */
+  n->age_of_data_days = extract_word_glo(n, 49, 5);
+
   /* extract n */
   u16 glo_slot_id = extract_word_glo(n, 11, 5);
   if (!glo_slot_id_is_valid(glo_slot_id)) {

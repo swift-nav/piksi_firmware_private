@@ -107,7 +107,8 @@ typedef struct {
                               */
   me_gnss_signal_t mesid;    /**< decoding channel ME sid */
 
-  u16 bit_cnt; /**< For navbit data integrity checks */
+  u16 bit_cnt;         /**< For navbit data integrity checks */
+  u8 age_of_data_days; /**< Age of the navigation data in days */
 } nav_msg_glo_t;
 
 void nav_msg_init_glo(nav_msg_glo_t *n, me_gnss_signal_t mesid);

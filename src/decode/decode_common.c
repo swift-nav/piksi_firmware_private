@@ -125,17 +125,19 @@ void save_glo_eph(const nav_msg_glo_t *n, me_gnss_signal_t mesid) {
   glo_map_set_slot_id(mesid, glo_slot_id);
 
   eph_new_status_t r = ephemeris_new(&n->eph);
-  if (EPH_NEW_OK == r) {
-    /* GLONASS transmits just a constant offset from GPS time */
-    cons_time_params_t cons_time_params = {
-        .t = n->eph.toe, .a0 = -n->tau_gps_s, .a1 = 0};
-    store_cons_time_params(n->eph.sid, &cons_time_params);
-
-  } else {
+  if (EPH_NEW_OK != r) {
     log_warn_mesid(mesid,
                    "Error in GLO ephemeris processing. "
                    "Eph status: %" PRIu8 " ",
                    r);
+    return;
+  }
+  /* Store constellation time offset unless it's older than one day */
+  if (0 == n->age_of_data_days) {
+    /* GLONASS transmits just a constant offset from GPS time */
+    cons_time_params_t cons_time_params = {
+        .t = n->eph.toe, .a0 = -n->tau_gps_s, .a1 = 0};
+    store_cons_time_params(n->eph.sid, &cons_time_params);
   }
 }
 
