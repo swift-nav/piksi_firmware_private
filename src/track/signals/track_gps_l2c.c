@@ -41,6 +41,7 @@
  *  of L2 tracking
  *  The value was calculated as mean value of L1/L2 signal power ratio */
 #define GPS_L2CM_CN0_INIT_ADJUST_DBHZ (8.2f)
+extern bool gps_l2c_disable;
 
 /** GPS L2C configuration container */
 static tp_tracker_config_t gps_l2c_config = TP_TRACKER_DEFAULT_CONFIG;
@@ -87,6 +88,10 @@ void do_l1ca_to_l2c_handover(u32 sample_count,
                              s32 TOW_ms) {
   /* compose L2CM MESID: same SV, but code is L2CM */
   me_gnss_signal_t mesid = construct_mesid(CODE_GPS_L2CM, sat);
+
+  if (gps_l2c_disable) {
+    return; /* temp return and do no handover no matter what*/
+  }
 
   if (!tracking_startup_ready(mesid)) {
     return; /* L2C signal from the SV is already in track */

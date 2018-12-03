@@ -41,6 +41,7 @@ void nap_track_irq_thread(void *arg);
 static tracker_t trackers[NUM_TRACKER_CHANNELS];
 
 static u16 iq_output_mask = 0;
+bool gps_l2c_disable = true;
 
 /** Parse the IQ output enable bitfield. */
 static bool track_iq_output_notify(struct setting *s, const char *val) {
@@ -61,6 +62,10 @@ void track_setup(void) {
                  iq_output_mask,
                  TYPE_INT,
                  track_iq_output_notify);
+  SETTING("track",
+          "gps_l2c_disable",
+           gps_l2c_disable,
+           TYPE_BOOL);
 
   track_internal_setup();
 
