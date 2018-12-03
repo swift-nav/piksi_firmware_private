@@ -36,7 +36,7 @@ extern double soln_freq_setting; /* used to drive logic on PPS propagation */
  * \{ */
 
 /** Number of microseconds the PPS will remain active */
-static u32 pps_width_microseconds = 200000;
+static u32 pps_width_microseconds = 2000;
 /** Logic level on output pin when the PPS is active */
 static u8 pps_polarity = 1;
 /** Offset in nanoseconds between GPS time and the PPS */
