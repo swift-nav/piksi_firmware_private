@@ -120,15 +120,15 @@ static float solution_elevation_mask = 10.0;
 /** Flag if almanacs can be used in acq */
 static bool almanacs_enabled = false;
 /** Flag if GLONASS enabled */
-static bool glo_enabled = CODE_GLO_L1OF_SUPPORT || CODE_GLO_L2OF_SUPPORT;
+static bool glo_enabled = false;
 /** Flag if SBAS enabled */
 static bool sbas_enabled = CODE_SBAS_L1CA_SUPPORT;
 /** Flag if BEIDOU2 enabled */
-static bool bds2_enabled = CODE_BDS2_B1_SUPPORT || CODE_BDS2_B2_SUPPORT;
+static bool bds2_enabled = false;
 /** Flag if QZSS enabled */
-static bool qzss_enabled = CODE_QZSS_L1CA_SUPPORT || CODE_QZSS_L2C_SUPPORT;
+static bool qzss_enabled = false;
 /** Flag if Galileo enabled */
-static bool galileo_enabled = CODE_GAL_E1_SUPPORT || CODE_GAL_E7_SUPPORT;
+static bool galileo_enabled = false;
 
 typedef struct {
   piksi_systime_t tick; /**< Time when SV was detected as unhealthy */
