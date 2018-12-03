@@ -35,7 +35,7 @@
  * \{ */
 
 /** Number of microseconds the PPS will remain active */
-static u32 pps_width_us = 200000;
+static u32 pps_width_us = 2000;
 /** Logic level on output pin when the PPS is active */
 static u8 pps_polarity = 1;
 /** Offset in nanoseconds between GPS time and the PPS */
