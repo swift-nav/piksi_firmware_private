@@ -1,14 +1,21 @@
-#include <assert.h>
-
-#include <starling/pvt_engine/firmware_binding.h>
-#include <swiftnav/single_epoch_solver.h>
+/*
+ * Copyright (C) 2018 Swift Navigation Inc.
+ * Contact: Swift Navigation <dev@swiftnav.com>
+ *
+ * This source is subject to the license found in the file 'LICENSE' which must
+ * be distributed together with this source. All other rights reserved.
+ *
+ * THIS CODE AND INFORMATION IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND,
+ * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
+ */
 
 #include "calc_pvt_common.h"
 
-/** Max position accuracy we allow to output a SPP solution */
-#define MAX_SPP_ACCURACY_M 100.0
-/** Max velocity accuracy we allow to output a SPP solution */
-#define MAX_SPP_VEL_ACCURACY_M_PER_S 10.0
+#include <starling/pvt_engine/firmware_binding.h>
+
+#include "sbp/sbp.h"
+#include "sbp/sbp_utils.h"
 
 void send_observations(const obs_array_t *obs_array, u32 msg_obs_max_size) {
   static u8 buff[SBP_FRAMING_MAX_PAYLOAD_SIZE + 1];
@@ -64,88 +71,4 @@ void send_observations(const obs_array_t *obs_array, u32 msg_obs_max_size) {
         sizeof(observation_header_t) + curr_n * sizeof(packed_obs_content_t),
         buff);
   }
-}
-
-/** Extract the full covariance matrices from soln struct */
-void extract_covariance(double full_covariance[9],
-                        double vel_covariance[9],
-                        const gnss_solution *soln) {
-  assert(soln != NULL);
-  assert(full_covariance != NULL);
-  assert(vel_covariance != NULL);
-
-  /* soln->cov_err has the covariance in upper triangle covariance form, so
-   * copy from
-   *
-   *    0  1  2       0  1  2
-   *    _  3  4   to  3  4  5
-   *    _  _  5       6  7  8  */
-
-  full_covariance[0] = soln->err_cov[0];
-  full_covariance[1] = soln->err_cov[1];
-  full_covariance[2] = soln->err_cov[2];
-  full_covariance[3] = soln->err_cov[1];
-  full_covariance[4] = soln->err_cov[3];
-  full_covariance[5] = soln->err_cov[4];
-  full_covariance[6] = soln->err_cov[2];
-  full_covariance[7] = soln->err_cov[4];
-  full_covariance[8] = soln->err_cov[5];
-
-  vel_covariance[0] = soln->vel_cov[0];
-  vel_covariance[1] = soln->vel_cov[1];
-  vel_covariance[2] = soln->vel_cov[2];
-  vel_covariance[3] = soln->vel_cov[1];
-  vel_covariance[4] = soln->vel_cov[3];
-  vel_covariance[5] = soln->vel_cov[4];
-  vel_covariance[6] = soln->vel_cov[2];
-  vel_covariance[7] = soln->vel_cov[4];
-  vel_covariance[8] = soln->vel_cov[5];
-}
-
-bool gate_covariance(gnss_solution *soln) {
-  assert(soln != NULL);
-  double full_covariance[9];
-  double vel_covariance[9];
-  extract_covariance(full_covariance, vel_covariance, soln);
-
-  double pos_accuracy, pos_h_accuracy, pos_v_accuracy, vel_accuracy,
-      vel_h_accuracy, vel_v_accuracy;
-  /* We don't need the full covariance matrices for the gates at this time we
-   * could think about changing these gates to operate on the full covariance
-   * matrix */
-  pvt_engine_covariance_to_accuracy(full_covariance,
-                                    soln->pos_ecef,
-                                    &pos_accuracy,
-                                    &pos_h_accuracy,
-                                    &pos_v_accuracy,
-                                    NULL,
-                                    NULL);
-  pvt_engine_covariance_to_accuracy(vel_covariance,
-                                    soln->pos_ecef,
-                                    &vel_accuracy,
-                                    &vel_h_accuracy,
-                                    &vel_v_accuracy,
-                                    NULL,
-                                    NULL);
-  return check_covariance(pos_accuracy, vel_accuracy);
-}
-
-bool check_covariance(const double pos_accuracy, const double vel_accuracy) {
-  if (pos_accuracy > MAX_SPP_ACCURACY_M) {
-    log_warn(
-        "SPP Position suppressed due to position confidence of %.1f exceeding "
-        "%.0f m",
-        pos_accuracy,
-        MAX_SPP_ACCURACY_M);
-    return true;
-  }
-  if (vel_accuracy > MAX_SPP_VEL_ACCURACY_M_PER_S) {
-    log_warn(
-        "SPP Position suppressed due to velocity confidence of %.1f exceeding "
-        "%.0f m/s",
-        vel_accuracy,
-        MAX_SPP_VEL_ACCURACY_M_PER_S);
-    return true;
-  }
-  return false;
 }
