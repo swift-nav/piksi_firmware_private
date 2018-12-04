@@ -123,7 +123,7 @@ void apply_isc_table(obs_array_t *obs_array) {
         break;
     }
 
-    obs->pseudorange += pseudorange_corr;
+    obs->pseudorange += 0 * pseudorange_corr;
     obs->carrier_phase += carrier_phase_corr;
   }
 }
