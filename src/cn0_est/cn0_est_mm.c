@@ -11,6 +11,7 @@
  */
 
 #include <math.h>
+#include <stdbool.h>
 #include <string.h>
 
 #include "cn0_est_common.h"
@@ -22,7 +23,7 @@
 /** Filter coefficient for M2 an M4. */
 #define CN0_MM_ALPHA (0.5f)
 /** Filter coefficient for Pn. */
-#define CN0_MM_PN_ALPHA (0.005f)
+#define CN0_MM_PN_ALPHA (0.15f)
 /** Estimate of noise power Pn. For smoother initial CN0 output. */
 #define CN0_MM_PN_INIT (100000.0f)
 
@@ -58,10 +59,7 @@
  */
 void cn0_est_mm_init(cn0_est_mm_state_t *s, float cn0_0) {
   memset(s, 0, sizeof(*s));
-
-  s->M2 = -1.0f; /* Set negative for first iteration */
-  s->M4 = -1.0f;
-  s->Pn = CN0_MM_PN_INIT;
+  s->updated_once = false;
   s->cn0_dbhz = cn0_0;
 }
 
@@ -82,13 +80,13 @@ float cn0_est_mm_update(cn0_est_mm_state_t *s,
   float m2 = I * I + Q * Q;
   float m4 = m2 * m2;
 
-  if (s->M2 < 0.0f) {
+  if (s->updated_once) {
     /* This is the first iteration, just initialize moments. */
-    s->M2 = m2;
-    s->M4 = m4;
-  } else {
     s->M2 += (m2 - s->M2) * CN0_MM_ALPHA;
     s->M4 += (m4 - s->M4) * CN0_MM_ALPHA;
+  } else {
+    s->M2 = m2;
+    s->M4 = m4;
   }
 
   float tmp = 2.0f * s->M2 * s->M2 - s->M4;
@@ -98,7 +96,12 @@ float cn0_est_mm_update(cn0_est_mm_state_t *s,
 
   float Pd = sqrtf(tmp);
   float Pn = s->M2 - Pd;
-  s->Pn += (Pn - s->Pn) * CN0_MM_PN_ALPHA;
+  if (s->updated_once) {
+    s->Pn += (Pn - s->Pn) * CN0_MM_PN_ALPHA;
+  } else {
+    s->Pn = Pn;
+    s->updated_once = true;
+  }
 
   float snr = m2 / s->Pn;
 

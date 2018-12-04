@@ -44,6 +44,7 @@ typedef struct {
   float M4;       /**< Running sum of fourth order moments. */
   float Pn;       /**< Running sum of noise power. */
   float cn0_dbhz; /**< Carrier to noise ratio in dB/Hz. */
+  float updated_once;
 } cn0_est_mm_state_t;
 
 typedef struct {
