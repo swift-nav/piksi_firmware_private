@@ -31,7 +31,7 @@ static void update_params(tl_pll3_state_t *s, const tl_config_t *config) {
   s->pll_bw_hz = config->pll_bw;
 
   /** PLL & FLL constants
-   *  References: Kaplan
+   *  References: Kaplan 2nd edition pp.180
    */
   if (config->fll_bw > 0) {
     float freq_omega_0 = config->fll_bw / 0.53f;
@@ -62,7 +62,9 @@ static void update_params(tl_pll3_state_t *s, const tl_config_t *config) {
   s->carr_c2 = a3 * omega_0_2 / config->carr_k;
   s->carr_c3 = omega_0_3 / config->carr_k;
 
-  /* DLL constants */
+  /** DLL constant
+   *  References: Kaplan 2nd edition pp.180
+   */
   s->code_c1 = 4.0f * config->code_bw;
 
   s->carr_to_code = config->carr_to_code > 0 ? 1.f / config->carr_to_code : 0.f;
