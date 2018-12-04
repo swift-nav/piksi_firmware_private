@@ -88,9 +88,7 @@ typedef struct {
   float carr_acc; /**< PLL: y[n-2] */
   float carr_vel; /**< PLL: y[n-1] */
 
-  float code_c1;  /**< DLL: c1 coefficient */
-  float code_c2;  /**< DLL: c2 coefficient */
-  float code_vel; /**< DLL: y[n-1] */
+  float code_c1; /**< DLL: c1 coefficient */
 
   float carr_to_code; /**< FLL to DLL assist coefficient */
   float fll_bw_hz;    /**< FLL BW [Hz] */
@@ -145,7 +143,7 @@ void calc_loop_gains2(float bw, float zeta, float k, float *c1, float *c2);
 float costas_discriminator(float I, float Q);
 float dll_discriminator(const correlation_t cs[3]);
 
-/* FLL2, PLL3, DLL2 */
+/* FLL2, PLL3, DLL1 */
 void tl_pll3_init(tl_pll3_state_t *s,
                   const tl_rates_t *rates,
                   const tl_config_t *config);
