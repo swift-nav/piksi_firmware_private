@@ -18,7 +18,7 @@
 #include "ndb_internal.h"
 #include "sbp.h"
 #include "sbp_utils.h"
-#include "settings/settings.h"
+#include "settings/settings_client.h"
 
 /** Ionospheric corrections file name */
 #define IONO_CORR_FILE_NAME "persistent/ndb/iono"
@@ -39,7 +39,7 @@ static ndb_file_t iono_corr_file = {.name = IONO_CORR_FILE_NAME,
 
 void ndb_iono_init(void) {
   static bool erase_iono = false;
-  SETTING("ndb", "erase_iono", erase_iono, TYPE_BOOL);
+  SETTING("ndb", "erase_iono", erase_iono, SETTINGS_TYPE_BOOL);
 
   ndb_load_data(&iono_corr_file, erase_iono || !NDB_USE_NV_IONO);
 

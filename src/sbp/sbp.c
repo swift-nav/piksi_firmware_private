@@ -29,7 +29,7 @@
 #include "peripherals/leds.h"
 #include "sbp.h"
 #include "sbp_utils.h"
-#include "settings/settings.h"
+#include "settings/settings_client.h"
 #include "timing/timing.h"
 
 /** \defgroup io Input/Output

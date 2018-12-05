@@ -16,7 +16,7 @@
 #include <hal.h>
 #include <swiftnav/logging.h>
 
-#include "settings/settings.h"
+#include "settings/settings_client.h"
 
 #include <assert.h>
 #include <string.h>
@@ -32,14 +32,12 @@ static void antenna_configure(bool use_ext_clk) {
   }
 }
 
-static bool rf_clk_config_notify(struct setting *s, const char *val) {
-  if (!s->type->from_string(s->type->priv, s->addr, s->len, val)) {
-    return false;
-  }
+static int rf_clk_config_notify(void *ctx) {
+  (void)ctx;
 
   antenna_configure(rf_clk_ext);
 
-  return true;
+  return SETTINGS_WR_OK;
 }
 
 void rf_clk_init(bool allow_ext_clk) {
@@ -49,9 +47,12 @@ void rf_clk_init(bool allow_ext_clk) {
   palSetLineMode(CLK_SEL_GPIO_LINE, PAL_MODE_OUTPUT);
 
   if (allow_ext_clk) {
-    SETTING_NOTIFY(
-        "frontend", "use_ext_clk", rf_clk_ext, TYPE_BOOL, rf_clk_config_notify);
+    SETTING_NOTIFY("frontend",
+                   "use_ext_clk",
+                   rf_clk_ext,
+                   SETTINGS_TYPE_BOOL,
+                   rf_clk_config_notify);
+  } else {
+    antenna_configure(rf_clk_ext);
   }
-
-  antenna_configure(rf_clk_ext);
 }

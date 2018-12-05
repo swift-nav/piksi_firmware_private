@@ -40,16 +40,19 @@ LIB_BUILDFOLDER = build_$(PIKSI_HW)
 MAKEFLAGS += LIB_BUILDFOLDER=$(LIB_BUILDFOLDER)
 
 LIBSBP_BUILDDIR=$(SWIFTNAV_ROOT)/libsbp/c/$(LIB_BUILDFOLDER)
+LIBSETTINGS_BUILDDIR=$(SWIFTNAV_ROOT)/libsettings/$(LIB_BUILDFOLDER)
 STARLING_BUILDDIR=$(SWIFTNAV_ROOT)/starling/$(LIB_BUILDFOLDER)
 LIBSWIFTNAV_BUILDDIR=$(STARLING_BUILDDIR)/third_party/libswiftnav
 OPENAMP_BUILDDIR=$(SWIFTNAV_ROOT)/open-amp/$(LIB_BUILDFOLDER)
 
 MAKEFLAGS += LIBSBP_BUILDDIR=$(LIBSBP_BUILDDIR)
+MAKEFLAGS += LIBSETTINGS_BUILDDIR=$(LIBSETTINGS_BUILDDIR)
 MAKEFLAGS += STARLING_BUILDDIR=$(STARLING_BUILDDIR)
 MAKEFLAGS += LIBSWIFTNAV_BUILDDIR=$(LIBSWIFTNAV_BUILDDIR)
 MAKEFLAGS += OPENAMP_BUILDDIR=$(OPENAMP_BUILDDIR)
 
 FW_DEPS=$(LIBSBP_BUILDDIR)/src/libsbp.a \
+        $(LIBSETTINGS_BUILDDIR)/src/libsettings.a \
         $(STARLING_BUILDDIR)/src/libstarling-shim.a \
         $(STARLING_BUILDDIR)/src/libstarling.a \
         $(STARLING_BUILDDIR)/src/libstarling-integration.a 
@@ -79,6 +82,15 @@ $(LIBSBP_BUILDDIR)/src/libsbp.a:
 	      -DCMAKE_TOOLCHAIN_FILE=../cmake/Toolchain-gcc-arm-embedded.cmake \
 	      $(CMAKEFLAGS) ../
 	$(MAKE) -C $(LIBSBP_BUILDDIR) $(MAKEFLAGS)
+
+$(LIBSETTINGS_BUILDDIR)/src/libsettings.a: $(LIBSBP_BUILDDIR)/src/libsbp.a
+	@printf "BUILD   libsettings for target $(PIKSI_TARGET)\n"; \
+	mkdir -p $(LIBSETTINGS_BUILDDIR); cd $(LIBSETTINGS_BUILDDIR); \
+	cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+	      -DCMAKE_TOOLCHAIN_FILE=../cmake/Toolchain-gcc-arm-embedded.cmake \
+	      -DLIBSBP_SEARCH_PATH=$(SWIFTNAV_ROOT)/libsbp/c/ \
+	      $(CMAKEFLAGS) ../
+	$(MAKE) -C $(LIBSETTINGS_BUILDDIR) $(MAKEFLAGS)
 
 $(STARLING_BUILDDIR)/src/libstarling.a: .PHONY
 	@printf "BUILD   starling for target $(PIKSI_TARGET)\n"; \
@@ -119,6 +131,8 @@ clean:
 	$(MAKE) -C src $(MAKEFLAGS) clean
 	@printf "CLEAN   libsbp\n"; \
 	$(RM) -rf $(LIBSBP_BUILDDIR)
+	@printf "CLEAN   libsettings\n"; \
+	$(RM) -rf $(LIBSETTINGS_BUILDDIR)
 	@printf "CLEAN   starling\n"; \
 	$(RM) -rf $(STARLING_BUILDDIR)
 	@printf "CLEAN   open-amp\n"; \

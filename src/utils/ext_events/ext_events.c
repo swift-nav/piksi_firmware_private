@@ -18,49 +18,32 @@
 #include "ext_events.h"
 #include "sbp.h"
 #include "sbp_utils.h"
-#include "settings/settings.h"
+#include "settings/settings_client.h"
 #include "timing/timing.h"
 
 /** \defgroup ext_events External Events
  * Capture accurate timestamps of external pin events
  * \{ */
 
-static struct {
+typedef struct event_config_s {
+  u8 pin;
   ext_event_trigger_t trigger;
-  u32 timeout_microseconds;
-} event_config[3];
+  u32 timeout_us;
+} event_config_t;
+
+static event_config_t event_config[3] = {
+        [0] = {.pin = 0, .trigger = 0, .timeout_us = 0},
+        [1] = {.pin = 1, .trigger = 0, .timeout_us = 0},
+        [2] = {.pin = 2, .trigger = 0, .timeout_us = 0},
+};
 
 /** Settings callback to inform NAP which trigger mode and timeout is desired */
-static bool event0_changed(struct setting *s, const char *val) {
-  if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
-    u8 pin = 0;
-    nap_set_ext_event(
-        pin, event_config[pin].trigger, event_config[pin].timeout_microseconds);
-    return true;
-  }
-  return false;
-}
+static int event0_changed(void *ctx) {
+  event_config_t *cfg = ctx;
 
-/** Settings callback to inform NAP which trigger mode and timeout is desired */
-static bool event1_changed(struct setting *s, const char *val) {
-  if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
-    u8 pin = 1;
-    nap_set_ext_event(
-        pin, event_config[pin].trigger, event_config[pin].timeout_microseconds);
-    return true;
-  }
-  return false;
-}
+  nap_set_ext_event(cfg->pin, cfg->trigger, cfg->timeout_us);
 
-/** Settings callback to inform NAP which trigger mode and timeout is desired */
-static bool event2_changed(struct setting *s, const char *val) {
-  if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
-    u8 pin = 2;
-    nap_set_ext_event(
-        pin, event_config[pin].trigger, event_config[pin].timeout_microseconds);
-    return true;
-  }
-  return false;
+  return SETTINGS_WR_OK;
 }
 
 /** Set up the external event detection system
@@ -73,42 +56,47 @@ static bool event2_changed(struct setting *s, const char *val) {
 void ext_event_setup(void) {
   static const char *const trigger_enum[] = {
       "None", "Rising", "Falling", "Both", NULL};
-  static struct setting_type trigger_setting;
-  int TYPE_TRIGGER =
-      settings_type_register_enum(trigger_enum, &trigger_setting);
+  settings_type_t trigger_setting;
+  settings_api_register_enum(trigger_enum, &trigger_setting);
 
-  SETTING_NOTIFY("ext_event_a",
-                 "edge_trigger",
-                 event_config[0].trigger,
-                 TYPE_TRIGGER,
-                 event0_changed);
-  SETTING_NOTIFY("ext_event_a",
-                 "sensitivity",
-                 event_config[0].timeout_microseconds,
-                 TYPE_INT,
-                 event0_changed);
+  SETTING_NOTIFY_CTX("ext_event_a",
+                     "edge_trigger",
+                     event_config[0].trigger,
+                     trigger_setting,
+                     event0_changed,
+                     &event_config[0]);
+  SETTING_NOTIFY_CTX("ext_event_a",
+                     "sensitivity",
+                     event_config[0].timeout_us,
+                     SETTINGS_TYPE_INT,
+                     event0_changed,
+                     &event_config[0]);
 
-  SETTING_NOTIFY("ext_event_b",
-                 "edge_trigger",
-                 event_config[1].trigger,
-                 TYPE_TRIGGER,
-                 event1_changed);
-  SETTING_NOTIFY("ext_event_b",
-                 "sensitivity",
-                 event_config[1].timeout_microseconds,
-                 TYPE_INT,
-                 event1_changed);
+  SETTING_NOTIFY_CTX("ext_event_b",
+                     "edge_trigger",
+                     event_config[1].trigger,
+                     trigger_setting,
+                     event0_changed,
+                     &event_config[1]);
+  SETTING_NOTIFY_CTX("ext_event_b",
+                     "sensitivity",
+                     event_config[1].timeout_us,
+                     SETTINGS_TYPE_INT,
+                     event0_changed,
+                     &event_config[1]);
 
-  SETTING_NOTIFY("ext_event_c",
-                 "edge_trigger",
-                 event_config[2].trigger,
-                 TYPE_TRIGGER,
-                 event2_changed);
-  SETTING_NOTIFY("ext_event_c",
-                 "sensitivity",
-                 event_config[2].timeout_microseconds,
-                 TYPE_INT,
-                 event2_changed);
+  SETTING_NOTIFY_CTX("ext_event_c",
+                     "edge_trigger",
+                     event_config[2].trigger,
+                     trigger_setting,
+                     event0_changed,
+                     &event_config[2]);
+  SETTING_NOTIFY_CTX("ext_event_c",
+                     "sensitivity",
+                     event_config[2].timeout_us,
+                     SETTINGS_TYPE_INT,
+                     event0_changed,
+                     &event_config[2]);
 }
 
 /** Service an external event interrupt

@@ -19,7 +19,7 @@
 #include <sbp.h>
 #include "board/v3/nap/grabber.h"
 #include "board/v3/nap/nap_constants.h"
-#include "settings/settings.h"
+#include "settings/settings_client.h"
 #include "system_monitor/system_monitor.h"
 #include "timing/timing.h"
 
@@ -140,7 +140,8 @@ int SpecanStart(void) {
   uint32_t k;
   const float fTwoPI = 2.0 * M_PI;
 
-  SETTING("system_monitor", "spectrum_analyzer", run_spectrum, TYPE_BOOL);
+  SETTING(
+      "system_monitor", "spectrum_analyzer", run_spectrum, SETTINGS_TYPE_BOOL);
 
   for (k = 0; k < SPECAN_FFT_SIZE; k++) {
     /* uCoeff[k] = MIN(MIN(k+1, SPECAN_FFT_SIZE-k), 32); */

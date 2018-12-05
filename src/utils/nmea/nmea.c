@@ -33,7 +33,7 @@
 #include "piksi_systime.h"
 #include "sbp.h"
 #include "sbp_utils.h"
-#include "settings/settings.h"
+#include "settings/settings_client.h"
 #include "starling_integration.h"
 #include "timing/timing.h"
 #include "track/track_sid_db.h"
@@ -144,7 +144,7 @@ static void nmea_output(char *s, size_t size) {
 }
 
 void nmea_setup(void) {
-  SETTING("nmea", "gpgsv_msg_rate", gpgsv_msg_rate, TYPE_INT);
+  SETTING("nmea", "gpgsv_msg_rate", gpgsv_msg_rate, SETTINGS_TYPE_INT);
 }
 
 /** Calculate and append the checksum of an NMEA sentence.

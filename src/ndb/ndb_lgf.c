@@ -18,7 +18,7 @@
 #include "ndb_fs_access.h"
 #include "ndb_internal.h"
 #include "sbp_utils.h"
-#include "settings/settings.h"
+#include "settings/settings_client.h"
 
 /** Default NDB LGF interval update threshold [s] */
 #define NDB_LGF_UPDATE_INTERVAL_S (30 * MINUTE_SECS)
@@ -47,9 +47,9 @@ static ndb_file_t lgf_file = {.name = LGF_FILE_NAME,
 
 void ndb_lgf_init(void) {
   static bool erase_lgf = true;
-  SETTING("ndb", "erase_lgf", erase_lgf, TYPE_BOOL);
-  SETTING("ndb", "lgf_update_s", lgf_update_s, TYPE_INT);
-  SETTING("ndb", "lgf_update_m", lgf_update_m, TYPE_INT);
+  SETTING("ndb", "erase_lgf", erase_lgf, SETTINGS_TYPE_BOOL);
+  SETTING("ndb", "lgf_update_s", lgf_update_s, SETTINGS_TYPE_INT);
+  SETTING("ndb", "lgf_update_m", lgf_update_m, SETTINGS_TYPE_INT);
 
   ndb_load_data(&lgf_file, erase_lgf || !NDB_USE_NV_LGF);
 

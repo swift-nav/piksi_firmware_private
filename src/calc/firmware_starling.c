@@ -17,7 +17,7 @@
 #include <sbp/sbp_fileio.h>
 #include <starling/integration/starling_input_bridge.h>
 #include <starling/starling.h>
-#include <utils/settings/settings.h>
+#include <utils/settings/settings_client.h>
 #include <utils/system_monitor/system_monitor.h>
 
 /* Persistent file indicating whether Starling should run on the firmware

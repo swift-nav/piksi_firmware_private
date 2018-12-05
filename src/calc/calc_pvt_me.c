@@ -43,7 +43,7 @@
 #include "position/position.h"
 #include "sbp/sbp.h"
 #include "sbp/sbp_utils.h"
-#include "settings/settings.h"
+#include "settings/settings_client.h"
 #include "shm/shm.h"
 #include "simulator/simulator.h"
 #include "starling_integration.h"
@@ -794,37 +794,33 @@ static double validate_soln_freq(double requested_freq_hz) {
 }
 
 /* Update the solution frequency used by the ME and by Starling. */
-static bool soln_freq_setting_notify(struct setting *s, const char *val) {
-  double old_value = soln_freq_setting;
-  bool res = s->type->from_string(s->type->priv, s->addr, s->len, val);
-  if (!res) {
-    return false;
-  }
+static int soln_freq_setting_notify(void *ctx) {
+  (void)ctx;
+
   /* Certain values are disallowed. */
   if (soln_freq_setting < (SOLN_FREQ_SETTING_MIN - DBL_EPSILON) ||
       soln_freq_setting > (SOLN_FREQ_SETTING_MAX + DBL_EPSILON)) {
     log_warn(
-        "Solution frequency setting outside acceptable range: [%.2f, %.2f] Hz. "
-        "Reverting to previous value: %.2f Hz.",
-        0.0,
-        SOLN_FREQ_SETTING_MAX,
-        old_value);
-    soln_freq_setting = old_value;
-    return false;
+        "Solution frequency setting outside acceptable range: [%.2f, %.2f] Hz.",
+        SOLN_FREQ_SETTING_MIN,
+        SOLN_FREQ_SETTING_MAX);
+    return SETTINGS_WR_VALUE_REJECTED;
   }
+
   soln_freq_setting = validate_soln_freq(soln_freq_setting);
   starling_set_solution_frequency(soln_freq_setting);
-  return true;
+  return SETTINGS_WR_OK;
 }
 
 void me_calc_pvt_setup() {
   SETTING_NOTIFY("solution",
                  "soln_freq",
                  soln_freq_setting,
-                 TYPE_FLOAT,
+                 SETTINGS_TYPE_FLOAT,
                  soln_freq_setting_notify);
-  SETTING("solution", "output_every_n_obs", obs_output_divisor, TYPE_INT);
-  SETTING("sbp", "obs_msg_max_size", msg_obs_max_size, TYPE_INT);
+  SETTING(
+      "solution", "output_every_n_obs", obs_output_divisor, SETTINGS_TYPE_INT);
+  SETTING("sbp", "obs_msg_max_size", msg_obs_max_size, SETTINGS_TYPE_INT);
 
   /* Start solution thread */
   chThdCreateStatic(wa_me_calc_pvt_thread,

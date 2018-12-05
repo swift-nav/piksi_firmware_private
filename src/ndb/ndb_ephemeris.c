@@ -24,7 +24,7 @@
 #include "ndb.h"
 #include "ndb_fs_access.h"
 #include "ndb_internal.h"
-#include "settings/settings.h"
+#include "settings/settings_client.h"
 #include "signal_db/signal_db.h"
 #include "timing/timing.h"
 
@@ -77,10 +77,22 @@ static piksi_systime_t ephemeris_send_time[NUM_SATS];
 static bool almanacs_enabled = false;
 
 void ndb_ephemeris_init(void) {
-  SETTING("ndb", "erase_ephemeris", ndb_ephe_config.erase_ephemeris, TYPE_BOOL);
-  SETTING("ndb", "valid_alm_acc", ndb_ephe_config.valid_alm_accuracy, TYPE_INT);
-  SETTING("ndb", "valid_eph_acc", ndb_ephe_config.valid_eph_accuracy, TYPE_INT);
-  SETTING("ndb", "valid_alm_days", ndb_ephe_config.alm_fit_interval, TYPE_INT);
+  SETTING("ndb",
+          "erase_ephemeris",
+          ndb_ephe_config.erase_ephemeris,
+          SETTINGS_TYPE_BOOL);
+  SETTING("ndb",
+          "valid_alm_acc",
+          ndb_ephe_config.valid_alm_accuracy,
+          SETTINGS_TYPE_INT);
+  SETTING("ndb",
+          "valid_eph_acc",
+          ndb_ephe_config.valid_eph_accuracy,
+          SETTINGS_TYPE_INT);
+  SETTING("ndb",
+          "valid_alm_days",
+          ndb_ephe_config.alm_fit_interval,
+          SETTINGS_TYPE_INT);
 
   ndb_load_data(&ndb_ephe_file,
                 ndb_ephe_config.erase_ephemeris || !NDB_USE_NV_EPHEMERIS);

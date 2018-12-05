@@ -90,6 +90,10 @@ ifeq ($(LIBSBP_BUILDDIR),)
   LIBSBP_BUILDDIR=$(SWIFTNAV_ROOT)/libsbp/c/$(LIB_BUILDFOLDER)
 endif
 
+ifeq ($(LIBSETTINGS_BUILDDIR),)
+  LIBSETTINGS_BUILDDIR=$(SWIFTNAV_ROOT)/libsettings/$(LIB_BUILDFOLDER)
+endif
+
 ifeq ($(STARLING_BUILDDIR),)
   STARLING_BUILDDIR=$(SWIFTNAV_ROOT)/starling/$(LIB_BUILDFOLDER)
 endif
@@ -157,7 +161,7 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/nav_msg/nav_msg_gal.o \
         $(SWIFTNAV_ROOT)/src/utils/glo_map_setup/glo_map_setup.o \
         $(SWIFTNAV_ROOT)/src/acq/manage.o \
-        $(SWIFTNAV_ROOT)/src/utils/settings/settings.o \
+        $(SWIFTNAV_ROOT)/src/utils/settings/settings_client.o \
         $(SWIFTNAV_ROOT)/src/utils/timing/timing.o \
         $(SWIFTNAV_ROOT)/src/utils/clock_filter/clock_filter.o \
         $(SWIFTNAV_ROOT)/src/utils/ext_events/ext_events.o \
@@ -263,6 +267,7 @@ INCDIR = $(STARTUPINC) $(PORTINC) $(KERNINC) \
          $(HALINC) $(OSALINC) $(PLATFORMINC) $(BOARDINC) \
          $(CHIBIOS)/os/various \
          $(SWIFTNAV_ROOT)/libsbp/c/include \
+         $(SWIFTNAV_ROOT)/libsettings/include \
          $(SWIFTNAV_ROOT)/starling/include \
          $(SWIFTNAV_ROOT)/starling/third_party/libswiftnav/include \
          $(SWIFTNAV_ROOT)/src \
@@ -361,6 +366,7 @@ DINCDIR =
 # List the default directory to look for the libraries here
 
 DLIBDIR = $(LIBSBP_BUILDDIR)/src \
+          $(LIBSETTINGS_BUILDDIR)/src \
           $(STARLING_BUILDDIR)/src \
           $(STARLING_BUILDDIR)/libfec \
           $(LIBSWIFTNAV_BUILDDIR) \
@@ -368,8 +374,8 @@ DLIBDIR = $(LIBSBP_BUILDDIR)/src \
 
 # List all default libraries here
 DLIBS = $(BOARDLIBS) -lsbp -lstarling -lswiftnav -lstarling-shim\
-		     -lstarling-integration -lm -Wl,--start-group -lstdc++\
-		     -lc -Wl,--end-group -lfec -lnosys
+         -lstarling-integration -lm -Wl,--start-group -lstdc++\
+         -lc -Wl,--end-group -lfec -lnosys -lsettings
 
 #
 # End of default section

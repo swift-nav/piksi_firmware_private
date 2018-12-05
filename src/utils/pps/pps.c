@@ -20,7 +20,7 @@
 #include "board/nap/nap_common.h"
 #include "main.h"
 #include "pps.h"
-#include "settings/settings.h"
+#include "settings/settings_client.h"
 #include "timing/timing.h"
 
 #define PPS_THREAD_INTERVAL_MS (10)
@@ -34,11 +34,11 @@
  * \{ */
 
 /** Number of microseconds the PPS will remain active */
-static u32 pps_width_microseconds = 200000;
+static u32 pps_width_us = 200000;
 /** Logic level on output pin when the PPS is active */
 static u8 pps_polarity = 1;
 /** Offset in microseconds between GPS time and the PPS */
-static s32 pps_offset_microseconds = 0;
+static s32 pps_offset_us = 0;
 /** Generate a pulse with the given frequency */
 static double pps_frequency_hz = 1.0;
 static double pps_period = 1.0;
@@ -53,7 +53,7 @@ static void pps_thread(void *arg) {
       gps_time_t t = get_current_time();
 
       t.tow = (t.tow - fmod(t.tow, pps_period)) + pps_period +
-              ((double)pps_offset_microseconds / 1.0e6) + PPS_FW_OFFSET_S;
+              ((double)pps_offset_us / 1.0e6) + PPS_FW_OFFSET_S;
 
       u64 next = gpstime2napcount(&t);
       nap_pps((u32)next);
@@ -69,7 +69,7 @@ static void pps_thread(void *arg) {
  * \param polarity Active logic level.
  * \return Returns true if value is within valid range, false otherwise.
  */
-bool pps_config(u32 microseconds, u8 polarity) {
+static bool pps_config(u32 microseconds, u8 polarity) {
   if (microseconds < 1 || microseconds >= 1e6) {
     log_info("Invalid PPS width. Valid range: 1-999999\n");
     return FALSE;
@@ -91,14 +91,14 @@ bool pps_config(u32 microseconds, u8 polarity) {
  * \param val Pointer to new value.
  * \return Returns true if the change was successful, false otherwise.
  */
-bool pps_config_changed(struct setting *s, const char *val) {
-  (void)s;
-  (void)val;
+static int pps_config_changed(void *ctx) {
+  (void)ctx;
 
-  if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
-    return pps_config(pps_width_microseconds, pps_polarity);
+  if (!pps_config(pps_width_us, pps_polarity)) {
+    return SETTINGS_WR_VALUE_REJECTED;
   }
-  return FALSE;
+
+  return SETTINGS_WR_OK;
 }
 
 /** Settings callback for PPS frequency.
@@ -108,26 +108,24 @@ bool pps_config_changed(struct setting *s, const char *val) {
  * \param val Pointer to new value.
  * \return Returns true if the change was successful, false otherwise.
  */
-bool pps_frequency_changed(struct setting *s, const char *val) {
-  (void)s;
-  (void)val;
+static int pps_frequency_changed(void *ctx) {
+  (void)ctx;
 
-  if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
-    if (pps_frequency_hz > 20.0) {
-      log_info("Invalid PPS frequency. Maximum: 20 Hz\n");
-      return FALSE;
-    }
-
-    pps_period = 1.0 / pps_frequency_hz;
-
-    if (pps_width_microseconds >= pps_period * 1.0e6) {
-      log_info("PPS width needs to be smaller than PPS period.\n");
-      return FALSE;
-    }
-
-    return TRUE;
+  if (pps_frequency_hz > 20.0) {
+    log_info("Invalid PPS frequency. Maximum: 20 Hz\n");
+    return SETTINGS_WR_VALUE_REJECTED;
   }
-  return FALSE;
+
+  double pps_period_cand = 1.0 / pps_frequency_hz;
+
+  if (pps_width_us >= pps_period_cand * 1.0e6) {
+    log_info("PPS width needs to be smaller than PPS period.\n");
+    return SETTINGS_WR_VALUE_REJECTED;
+  }
+
+  pps_period = pps_period_cand;
+
+  return SETTINGS_WR_OK;
 }
 
 /** Set up PPS generation.
@@ -135,21 +133,21 @@ bool pps_frequency_changed(struct setting *s, const char *val) {
  * the pulses.
  */
 void pps_setup(void) {
-  pps_config(pps_width_microseconds, pps_polarity);
+  pps_config(pps_width_us, pps_polarity);
 
   SETTING_NOTIFY(
-      "pps", "width", pps_width_microseconds, TYPE_INT, pps_config_changed);
+      "pps", "width", pps_width_us, SETTINGS_TYPE_INT, pps_config_changed);
 
-  SETTING_NOTIFY("pps", "polarity", pps_polarity, TYPE_INT, pps_config_changed);
+  SETTING_NOTIFY(
+      "pps", "polarity", pps_polarity, SETTINGS_TYPE_INT, pps_config_changed);
+
+  SETTING("pps", "offset", pps_offset_us, SETTINGS_TYPE_INT);
 
   SETTING_NOTIFY("pps",
-                 "offset",
-                 pps_offset_microseconds,
-                 TYPE_INT,
-                 settings_default_notify);
-
-  SETTING_NOTIFY(
-      "pps", "frequency", pps_frequency_hz, TYPE_FLOAT, pps_frequency_changed);
+                 "frequency",
+                 pps_frequency_hz,
+                 SETTINGS_TYPE_FLOAT,
+                 pps_frequency_changed);
 
   chThdCreateStatic(wa_pps_thread,
                     sizeof(wa_pps_thread),

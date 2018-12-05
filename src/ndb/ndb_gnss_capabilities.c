@@ -18,7 +18,7 @@
 #include "ndb_internal.h"
 #include "sbp.h"
 #include "sbp_utils.h"
-#include "settings/settings.h"
+#include "settings/settings_client.h"
 
 /* one can use a simple Matlab script to generate these:
 PRNS_PRESENT = [11 12 19  26 24 30 ...
@@ -82,7 +82,7 @@ static ndb_file_t ndb_gnss_capb_file = {
 
 void ndb_gnss_capb_init(void) {
   static bool erase = false;
-  SETTING("ndb", "erase_gnss_capb", erase, TYPE_BOOL);
+  SETTING("ndb", "erase_gnss_capb", erase, SETTINGS_TYPE_BOOL);
 
   ndb_load_data(&ndb_gnss_capb_file, erase || !NDB_USE_NV_GNSS_CAPB);
 
