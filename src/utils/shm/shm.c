@@ -335,7 +335,7 @@ void shm_gps_set_shi_ephemeris(u16 sat, u8 new_value) {
  * \param new_value value to set shi_ephemeris to
  */
 void shm_qzss_set_shi_ephemeris(u16 sat, u8 new_value) {
-  assert(sat >= QZS_FIRST_PRN && sat < QZS_FIRST_PRN + NUM_SATS_GPS);
+  assert(sat >= QZS_FIRST_PRN && sat < QZS_FIRST_PRN + NUM_SATS_QZS);
   chMtxLock(&shm_data_access);
   qzs_shis[sat - QZS_FIRST_PRN].shi_ephemeris = new_value;
   qzs_shis[sat - QZS_FIRST_PRN].shi_ephemeris_set = true;
