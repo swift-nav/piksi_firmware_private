@@ -64,8 +64,6 @@ int main(void) {
   io_support_init();
   sbp_setup();
 
-  nap_init();
-
   settings_setup();
   timing_setup();
 
@@ -122,6 +120,9 @@ int main(void) {
   static char hw_version_string[16] = {0};
   hw_version_string_get(hw_version_string);
   log_info("hw_version: %s", hw_version_string);
+
+  nap_auth_setup();
+  nap_auth_check();
 
   frontend_setup();
   me_settings_setup();
