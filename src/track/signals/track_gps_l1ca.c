@@ -417,9 +417,10 @@ static void update_l1_xcorr_from_l2(tracker_t *tracker) {
       tracker, xcorr_suspect | prn_check_fail, sensitivity_mode);
 }
 
-static void tracker_gps_l1ca_update(tracker_t *tracker) {
-  u32 cflags = tp_tracker_update(tracker, &gps_l1ca_config);
-
+/**
+ * Shared with QZSS
+ */
+void tracker_gps_l1ca_update_shared(tracker_t *tracker, u32 cflags) {
   bool bit_aligned =
       ((0 != (cflags & TPF_BSYNC_UPD)) && tracker_bit_aligned(tracker));
   if (!bit_aligned) {
@@ -452,4 +453,10 @@ static void tracker_gps_l1ca_update(tracker_t *tracker) {
                             tracker->cn0,
                             tracker->TOW_ms);
   }
+}
+
+static void tracker_gps_l1ca_update(tracker_t *tracker) {
+  u32 cflags = tp_tracker_update(tracker, &gps_l1ca_config);
+
+  tracker_gps_l1ca_update_shared(tracker, cflags);
 }

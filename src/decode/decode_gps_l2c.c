@@ -29,22 +29,9 @@
 #include "track/track_decode.h"
 #include "track/track_flags.h"
 
-/** GPS L2 C decoder data */
-typedef struct {
-  cnav_msg_t cnav_msg;
-  cnav_msg_decoder_t cnav_msg_decoder;
-  u16 bit_cnt; /**< For navbit data integrity checks */
-} gps_l2c_decoder_data_t;
-
 static decoder_t gps_l2c_decoders[NUM_GPS_L2C_DECODERS];
 static gps_l2c_decoder_data_t
     gps_l2c_decoder_data[ARRAY_SIZE(gps_l2c_decoders)];
-
-static void decoder_gps_l2c_init(const decoder_channel_info_t *channel_info,
-                                 decoder_data_t *decoder_data);
-
-static void decoder_gps_l2c_process(const decoder_channel_info_t *channel_info,
-                                    decoder_data_t *decoder_data);
 
 static const decoder_interface_t decoder_interface_gps_l2c = {
     .code = CODE_GPS_L2CM,
@@ -66,8 +53,8 @@ void decode_gps_l2c_register(void) {
   decoder_interface_register(&list_element_gps_l2c);
 }
 
-static void decoder_gps_l2c_init(const decoder_channel_info_t *channel_info,
-                                 decoder_data_t *decoder_data) {
+void decoder_gps_l2c_init(const decoder_channel_info_t *channel_info,
+                          decoder_data_t *decoder_data) {
   (void)channel_info;
   gps_l2c_decoder_data_t *data = decoder_data;
   memset(data, 0, sizeof(gps_l2c_decoder_data_t));
@@ -75,8 +62,8 @@ static void decoder_gps_l2c_init(const decoder_channel_info_t *channel_info,
   cnav_msg_decoder_init(&data->cnav_msg_decoder);
 }
 
-static void decoder_gps_l2c_process(const decoder_channel_info_t *channel_info,
-                                    decoder_data_t *decoder_data) {
+void decoder_gps_l2c_process(const decoder_channel_info_t *channel_info,
+                             decoder_data_t *decoder_data) {
   gps_l2c_decoder_data_t *data = decoder_data;
   gnss_signal_t l2c_sid =
       construct_sid(channel_info->mesid.code, channel_info->mesid.sat);

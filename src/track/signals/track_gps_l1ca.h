@@ -12,11 +12,15 @@
 #ifndef SWIFTNAV_TRACK_GPS_L1CA_H
 #define SWIFTNAV_TRACK_GPS_L1CA_H
 
+#include "track/track_common.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 void track_gps_l1ca_register(void);
+
+void tracker_gps_l1ca_update_shared(tracker_t *tracker, u32 cflags);
 
 #ifdef __cplusplus
 }

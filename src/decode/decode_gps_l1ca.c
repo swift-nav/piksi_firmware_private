@@ -34,21 +34,9 @@
 
 #define IONO_HYSTERESIS_MS 1000
 
-/** GPS L1 C/A decoder data */
-typedef struct {
-  nav_msg_t nav_msg;
-  u16 bit_cnt; /**< For navbit data integrity checks */
-} gps_l1ca_decoder_data_t;
-
 static decoder_t gps_l1ca_decoders[NUM_GPS_L1CA_DECODERS];
 static gps_l1ca_decoder_data_t
     gps_l1ca_decoder_data[ARRAY_SIZE(gps_l1ca_decoders)];
-
-static void decoder_gps_l1ca_init(const decoder_channel_info_t *channel_info,
-                                  decoder_data_t *decoder_data);
-
-static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
-                                     decoder_data_t *decoder_data);
 
 static const decoder_interface_t decoder_interface_gps_l1ca = {
     .code = CODE_GPS_L1CA,
@@ -368,8 +356,8 @@ void decode_gps_l1ca_register(void) {
   decoder_interface_register(&list_element_gps_l1ca);
 }
 
-static void decoder_gps_l1ca_init(const decoder_channel_info_t *channel_info,
-                                  decoder_data_t *decoder_data) {
+void decoder_gps_l1ca_init(const decoder_channel_info_t *channel_info,
+                           decoder_data_t *decoder_data) {
   (void)channel_info;
   gps_l1ca_decoder_data_t *data = decoder_data;
 
@@ -377,8 +365,8 @@ static void decoder_gps_l1ca_init(const decoder_channel_info_t *channel_info,
   nav_msg_init(&data->nav_msg);
 }
 
-static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
-                                     decoder_data_t *decoder_data) {
+void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
+                              decoder_data_t *decoder_data) {
   gps_l1ca_decoder_data_t *data = decoder_data;
 
   /* Process incoming nav bits */

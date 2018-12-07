@@ -20,13 +20,6 @@ extern "C" {
 
 void track_qzss_l2c_register(void);
 
-void qzss_l1ca_to_l2c_handover(u32 sample_count,
-                               u16 sat,
-                               double code_phase,
-                               double carrier_freq,
-                               float cn0_init,
-                               s32 TOW_ms);
-
 #ifdef __cplusplus
 }
 #endif

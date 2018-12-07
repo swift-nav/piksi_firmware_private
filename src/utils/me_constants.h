@@ -52,6 +52,9 @@
 /** Beidou2 B11 D2 symbol length */
 #define BDS2_B11_D2NAV_SYMBOL_LENGTH_MS 2
 
+/** QZSS L1 C/A bit length [ms] */
+#define QZSS_L1CA_BIT_LENGTH_MS 20
+
 /** QZSS L2 CM PRN period in ms */
 #define QZS_L2CM_PRN_PERIOD_MS 20
 

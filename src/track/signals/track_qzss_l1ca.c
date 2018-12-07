@@ -17,7 +17,8 @@
 #include "track/track_common.h"
 #include "track/track_interface.h"
 #include "track/track_utils.h"
-#include "track_qzss_l2c.h" /* for L1C/A to L2C tracking handover */
+#include "track_gps_l1ca.h"
+#include "utils/me_constants.h"
 
 /* Non-local headers */
 #include <manage.h>
@@ -53,38 +54,23 @@ static const tracker_interface_t tracker_interface_qzss_l1ca = {
  *  framework.
  */
 void track_qzss_l1ca_register(void) {
+  lp1_filter_compute_params(&qzss_l1ca_config.xcorr_f_params,
+                            qzss_l1ca_config.xcorr_cof,
+                            SECS_MS / QZSS_L1CA_BIT_LENGTH_MS);
+
   tracker_interface_register(&tracker_interface_qzss_l1ca);
 }
 
 static void tracker_qzss_l1ca_init(tracker_t *tracker) {
+  gps_l1ca_tracker_data_t *data = &tracker->gps_l1ca;
+
+  memset(data, 0, sizeof(*data));
+
   tp_tracker_init(tracker, &qzss_l1ca_config);
 }
 
 static void tracker_qzss_l1ca_update(tracker_t *tracker) {
   u32 cflags = tp_tracker_update(tracker, &qzss_l1ca_config);
 
-  bool bit_aligned =
-      ((0 != (cflags & TPF_BSYNC_UPD)) && tracker_bit_aligned(tracker));
-  if (!bit_aligned) {
-    return;
-  }
-
-  /* TOW manipulation on bit edge */
-  tracker_tow_cache(tracker);
-
-  bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
-  bool inlock = ((0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) ||
-                 (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK)));
-
-  if (inlock && confirmed && (TOW_UNKNOWN != (tracker->TOW_ms))) {
-    log_info_mesid(tracker->mesid, "calling qzss_l1ca_to_l2c_handover()");
-
-    /* Start L2C tracker if not running */
-    qzss_l1ca_to_l2c_handover(tracker->sample_count,
-                              tracker->mesid.sat,
-                              tracker->code_phase_prompt,
-                              tracker->carrier_freq,
-                              tracker->cn0,
-                              tracker->TOW_ms);
-  }
+  tracker_gps_l1ca_update_shared(tracker, cflags);
 }

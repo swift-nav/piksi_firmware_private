@@ -319,9 +319,7 @@ static void update_l2_xcorr_from_l1(tracker_t *tracker) {
       tracker, xcorr_suspect | prn_check_fail, sensitivity_mode);
 }
 
-static void tracker_gps_l2c_update(tracker_t *tracker) {
-  u32 cflags = tp_tracker_update(tracker, &gps_l2c_config);
-
+void tracker_gps_l2c_update_shared(tracker_t *tracker, u32 cflags) {
   bool bit_aligned =
       ((0 != (cflags & TPF_BSYNC_UPD)) && tracker_bit_aligned(tracker));
 
@@ -343,4 +341,10 @@ static void tracker_gps_l2c_update(tracker_t *tracker) {
     tracker->bit_polarity = BIT_POLARITY_INVERTED;
     tracker_update_bit_polarity_flags(tracker);
   }
+}
+
+static void tracker_gps_l2c_update(tracker_t *tracker) {
+  u32 cflags = tp_tracker_update(tracker, &gps_l2c_config);
+
+  tracker_gps_l2c_update_shared(tracker, cflags);
 }
