@@ -65,7 +65,18 @@ static bool enable_glonass = true;
 static bool enable_galileo = true;
 static bool enable_beidou = true;
 
-static bool skylark_enabled = false;
+static const char *const skylark_mode_enum_names[] = {"Disabled",
+                                                      "HTTP 1.1",
+                                                      "HTTP 2",
+                                                      NULL};
+
+enum {
+  SKYLARK_MODE_DISABLED,
+  SKYLARK_MODE_HTTP_1_1,
+  SKYLARK_MODE_HTTP_2,
+};
+
+static u8 skylark_enabled = 0;
 static bool orion_enabled = false;
 
 static dgnss_filter_t dgnss_filter_mode = FILTER_FIXED;
@@ -779,10 +790,14 @@ static void initialize_starling_settings(void) {
                  SETTINGS_TYPE_FLOAT,
                  set_glonass_downweight_factor);
 
+  settings_type_t skylark_mode;
+  settings_api_register_enum(skylark_mode_enum_names,
+                             &skylark_mode);
+
   SETTING_WATCH("skylark",
-                "enable",
+                "mode",
                 skylark_enabled,
-                SETTINGS_TYPE_BOOL,
+                skylark_mode,
                 klobuchar_notify);
   SETTING_WATCH(
       "orion", "enable", orion_enabled, SETTINGS_TYPE_BOOL, klobuchar_notify);
