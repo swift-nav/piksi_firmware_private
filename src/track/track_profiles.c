@@ -39,22 +39,6 @@
 /** Unknown delay indicator */
 #define TP_DELAY_UNKNOWN -1
 
-/** Indices of specific entries in gnss_track_profiles[] table below */
-typedef enum {
-  /** Placeholder for an index. Indicates an unused index field. */
-  IDX_NONE = -1,
-  IDX_INIT_0,
-  IDX_INIT_1,
-  IDX_INIT_2,
-  IDX_2MS,
-  IDX_5MS,
-  IDX_10MS,
-  IDX_20MS,
-  IDX_RECOVERY,
-  IDX_SENS_NM,
-  IDX_SENS /* IDX_SENS must be last one in the list. */
-} profile_indices_t;
-
 typedef enum {
   TP_LOW_CN0 = (1 << 0),    /**< Watch low CN0 value */
   TP_HIGH_CN0 = (1 << 1),   /**< Watch high CN0 value */

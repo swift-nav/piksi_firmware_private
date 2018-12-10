@@ -73,11 +73,12 @@ static void tracker_gal_e1_update(tracker_t *tracker) {
     return;
   }
 
-  bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
+  tp_profile_t *profile = &tracker->profile;
+  bool settled = (profile->cur.index >= IDX_2MS);
   bool inlock = ((0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) ||
                  (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK)));
 
-  if (inlock && confirmed) {
+  if (inlock && settled) {
     tracker->bit_polarity = BIT_POLARITY_NORMAL;
     tracker_update_bit_polarity_flags(tracker);
 

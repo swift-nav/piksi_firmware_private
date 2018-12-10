@@ -73,11 +73,12 @@ static void tracker_qzss_l1ca_update(tracker_t *tracker) {
   /* TOW manipulation on bit edge */
   tracker_tow_cache(tracker);
 
-  bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
+  tp_profile_t *profile = &tracker->profile;
+  bool settled = (profile->cur.index >= IDX_2MS);
   bool inlock = ((0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) ||
                  (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK)));
 
-  if (inlock && confirmed && (TOW_UNKNOWN != (tracker->TOW_ms))) {
+  if (inlock && settled && (TOW_UNKNOWN != (tracker->TOW_ms))) {
     log_debug_mesid(tracker->mesid, "calling qzss_l1ca_to_l2c_handover()");
 
     /* Start L2C tracker if not running */

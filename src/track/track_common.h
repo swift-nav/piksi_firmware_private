@@ -27,6 +27,22 @@ enum tracker_mode {
   TRACKER_MODE_BASE   /* base station tracker mode */
 };
 
+/** Indices of specific entries in gnss_track_profiles[] table */
+typedef enum {
+  /** Placeholder for an index. Indicates an unused index field. */
+  IDX_NONE = -1,
+  IDX_INIT_0,
+  IDX_INIT_1,
+  IDX_INIT_2,
+  IDX_2MS,
+  IDX_5MS,
+  IDX_10MS,
+  IDX_20MS,
+  IDX_RECOVERY,
+  IDX_SENS_NM,
+  IDX_SENS /* IDX_SENS must be last one in the list. */
+} profile_indices_t;
+
 /**
  * Common tracker configuration container.
  */
