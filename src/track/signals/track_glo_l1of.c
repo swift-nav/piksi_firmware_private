@@ -67,14 +67,14 @@ static void tracker_glo_l1of_update(tracker_t *tracker) {
   if (0 != (tracker->flags & TRACKER_FLAG_UNHEALTHY)) {
     me_gnss_signal_t mesid_drop;
     mesid_drop = construct_mesid(CODE_GLO_L2OF, tracker->mesid.sat);
-    tracker_drop_unhealthy(mesid_drop);
+    tracker_drop_unhealthy(tracker, mesid_drop);
     return;
   }
 
   if (glo_slot_id_is_valid(tracker->glo_orbit_slot)) {
     gnss_signal_t sid = mesid2sid(tracker->mesid, tracker->glo_orbit_slot);
     if (!glo_active(sid)) {
-      tracker_drop_unhealthy(tracker->mesid);
+      tracker_drop_unhealthy(tracker, tracker->mesid);
       return;
     }
   }

@@ -291,7 +291,7 @@ static void update_l2_xcorr_from_l1(tracker_t *tracker) {
   }
 
   tracker_cc_data_t cc_data;
-  u16 cnt = tracker_load_cc_data(&cc_data);
+  u16 cnt = tracker_load_cc_data(tracker, &cc_data);
 
   bool xcorr_flag = false;
   for (u16 idx = 0; idx < cnt; ++idx) {

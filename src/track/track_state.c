@@ -127,13 +127,15 @@ tracker_t *tracker_get(u8 id) {
  * \return true if the tracker channel is available, false otherwise.
  */
 bool tracker_available(const u8 id, const me_gnss_signal_t mesid) {
-  tracker_t *tracker = tracker_get(id);
-
   if (!nap_track_supports(id, mesid)) {
     return false;
   }
+  tracker_t *tracker = tracker_get(id);
+  tracker_lock(tracker);
+  bool available = !(tracker->busy);
+  tracker_unlock(tracker);
 
-  return !(tracker->busy);
+  return available;
 }
 
 /**
@@ -160,6 +162,8 @@ void tracker_get_state(u8 id,
   tracker_t *tracker = tracker_get(id);
 
   tracker_lock(tracker);
+
+  sanitize_tracker(tracker);
 
   /* Tracker identifier */
   info->id = (u8)(tracker - &trackers[0]);
@@ -240,12 +244,13 @@ bool tracker_init(const u8 id,
                   float cn0_init) {
   tracker_t *tracker = tracker_get(id);
 
-  if (tracker->busy) {
-    return false;
-  }
-
   tracker_lock(tracker);
   {
+    if (tracker->busy) {
+      tracker_unlock(tracker);
+      return false;
+    }
+
     tracker_cleanup(tracker);
 
     /* Set up channel */
@@ -356,9 +361,7 @@ void tracker_disable(const u8 id) {
   tracker->busy = false;
 
   /* this does restore_acq() and tracker_cleanup() */
-  tracker_lock(tracker);
   tracker_interface_lookup(tracker->mesid.code)->disable(tracker);
-  tracker_unlock(tracker);
 }
 
 /** Add an error flag to a tracker channel.
@@ -372,21 +375,6 @@ static void error_flags_add(tracker_t *tracker, error_flag_t error_flag) {
   }
 }
 
-/** Check the state of a tracker channel and generate events as required.
- * \param tracker   Tracker channel to use.
- * \param update_required   True when correlations are pending for the
- *                          tracking channel.
- */
-static void serve_nap_request(tracker_t *tracker) {
-  if (tracker->busy) {
-    tracker_lock(tracker);
-    tracker_interface_lookup(tracker->mesid.code)->update(tracker);
-    tracker_unlock(tracker);
-  } else {
-    log_error_mesid(tracker->mesid, "tracker is disabled");
-  }
-}
-
 /** Handles pending IRQs and background tasks for tracking channels.
  * \param channels_mask   Bitfield indicating the tracking channels for which
  *                        an IRQ is pending.
@@ -396,15 +384,19 @@ void trackers_update(u32 channels_mask, const u8 c0) {
   /* experiment 3: like this we always clean a tracker if it has to...
    * and don't clean trackers that are not to be served by NAP */
   for (u8 ci = 0; channels_mask && ((c0 + ci) < nap_track_n_channels); ci++) {
-    tracker_t *tracker = tracker_get(c0 + ci);
     bool update_required = (channels_mask & 1) ? true : false;
     /* if NAP has something to do, serve this channel */
-    /* due to a chance for a race condition between tracking thread and NAP
-       we may end up here for an inactive tracker, which was just dropped.
-       So we check the validity of the tracker by looking at its busy flag */
-    if (update_required && tracker->busy) {
-      serve_nap_request(tracker);
-      sanitize_tracker(tracker);
+    if (update_required) {
+      tracker_t *tracker = tracker_get(c0 + ci);
+      tracker_lock(tracker);
+      /* due to a chance for a race condition between tracking thread and NAP
+         we may end up here for an inactive tracker, which was just dropped.
+         So we check the validity of the tracker by looking at its busy flag */
+      bool dropped = tracker->flags & TRACKER_FLAG_DROP_CHANNEL;
+      if (tracker->busy && !dropped) {
+        tracker_interface_lookup(tracker->mesid.code)->update(tracker);
+      }
+      tracker_unlock(tracker);
     }
     channels_mask >>= 1;
   }
@@ -448,11 +440,16 @@ static void tracking_send_state_85(void) {
     u8 max_obs = (SBP_FRAMING_MAX_PAYLOAD_SIZE / sizeof(measurement_state_t));
     for (u8 i = 0; (i < nap_track_n_channels) && (i < max_obs); i++) {
       tracker_t *tracker = tracker_get(i);
+
+      tracker_lock(tracker);
+
       bool running = tracker->busy;
       me_gnss_signal_t mesid = tracker->mesid;
       u16 glo_slot_id = tracker->glo_orbit_slot;
       float cn0 = tracker->cn0;
       bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
+
+      tracker_unlock(tracker);
 
       if (!running || !confirmed) {
         meas_states[i].mesid = (sbp_gnss_signal_t){
@@ -488,24 +485,3 @@ static void tracking_send_state_85(void) {
  * so that we can incrementally move to 85 channels.
  */
 void tracking_send_state(void) { tracking_send_state_85(); }
-
-/** Goes through all the NAP tracker channels and cleans the stale ones
- * (there should NEVER be any!)
- */
-void stale_trackers_cleanup(void) {
-  for (u8 i = 0; i < nap_track_n_channels; i++) {
-    tracker_t *tracker = tracker_get(i);
-    if (!tracker->busy) {
-      continue;
-    }
-    if (!tracker->updated_once) {
-      continue;
-    }
-    u64 delay_ms = tracker_timer_ms(&tracker->update_timer);
-    if (delay_ms > NAP_CORR_LENGTH_MAX_MS) {
-      log_error_mesid(tracker->mesid, "hit delay_ms: %" PRIu64, delay_ms);
-      tracker_flag_drop(tracker, CH_DROP_REASON_NO_UPDATES);
-      sanitize_tracker(tracker);
-    }
-  }
-}

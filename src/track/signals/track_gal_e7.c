@@ -62,7 +62,7 @@ static void tracker_gal_e7_update(tracker_t *tracker) {
   if (0 != (tracker->flags & TRACKER_FLAG_UNHEALTHY)) {
     me_gnss_signal_t mesid_drop;
     mesid_drop = construct_mesid(CODE_GAL_E1B, tracker->mesid.sat);
-    tracker_drop_unhealthy(mesid_drop);
+    tracker_drop_unhealthy(tracker, mesid_drop);
     return;
   }
 

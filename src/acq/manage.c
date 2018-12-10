@@ -815,10 +815,6 @@ bool leap_second_imminent(void) {
  * Keep tracking unhealthy (except GLO) and low-elevation satellites for
  * cross-correlation purposes. */
 void sanitize_tracker(tracker_t *tracker) {
-  /*! Addressing the problem where we try to disable a channel that is
-   * not busy in the first place. It remains to check
-   * why `TRACKING_CHANNEL_FLAG_ACTIVE` might not be effective here?
-   * */
   if (!(tracker->busy)) {
     return;
   }
@@ -826,14 +822,20 @@ void sanitize_tracker(tracker_t *tracker) {
   u32 flags = tracker->flags;
   me_gnss_signal_t mesid = tracker->mesid;
 
-  /* Skip channels that aren't in use */
-  if (0 == (flags & TRACKER_FLAG_ACTIVE)) {
-    return;
-  }
+  assert(0 != (flags & TRACKER_FLAG_ACTIVE));
 
   if (0 != (flags & TRACKER_FLAG_DROP_CHANNEL)) {
     drop_channel(tracker, tracker->ch_drop_reason);
     return;
+  }
+
+  if (tracker->updated_once) {
+    u64 delay_ms = tracker_timer_ms(&tracker->update_timer);
+    if (delay_ms > NAP_CORR_LENGTH_MAX_MS) {
+      log_error_mesid(tracker->mesid, "hit delay_ms: %" PRIu64, delay_ms);
+      drop_channel(tracker, CH_DROP_REASON_NO_UPDATES);
+      return;
+    }
   }
 
   /* Is tracking masked? */

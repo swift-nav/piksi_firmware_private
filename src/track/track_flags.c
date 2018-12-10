@@ -34,7 +34,7 @@ void tracker_set_prn_fail_flag(const me_gnss_signal_t mesid, bool val) {
     tracker_t *tracker = tracker_get(id);
     tracker_lock(tracker);
     /* Skip inactive channels */
-    if (0 == (tracker->flags & TRACKER_FLAG_ACTIVE)) {
+    if (!tracker->busy) {
       tracker_unlock(tracker);
       continue;
     }
@@ -59,7 +59,7 @@ void tracker_set_raim_flag(const gnss_signal_t sid) {
     tracker_t *tracker = tracker_get(i);
     tracker_lock(tracker);
     /* Skip inactive channels */
-    if (0 == (tracker->flags & TRACKER_FLAG_ACTIVE)) {
+    if (!tracker->busy) {
       tracker_unlock(tracker);
       continue;
     }
@@ -85,7 +85,7 @@ void tracker_set_sbas_provider_change_flag(void) {
 
     tracker_lock(tracker);
     /* Skip inactive channels */
-    if (0 == (tracker->flags & TRACKER_FLAG_ACTIVE)) {
+    if (!tracker->busy) {
       tracker_unlock(tracker);
       continue;
     }
@@ -112,7 +112,7 @@ void tracker_set_leap_second_flag(void) {
 
     tracker_lock(tracker);
     /* Skip inactive channels */
-    if (0 == (tracker->flags & TRACKER_FLAG_ACTIVE)) {
+    if (!tracker->busy) {
       tracker_unlock(tracker);
       continue;
     }
@@ -139,7 +139,7 @@ void tracker_set_xcorr_flag(const me_gnss_signal_t mesid) {
     tracker_t *tracker = tracker_get(id);
     tracker_lock(tracker);
     /* Skip inactive channels */
-    if (0 == (tracker->flags & TRACKER_FLAG_ACTIVE)) {
+    if (!tracker->busy) {
       tracker_unlock(tracker);
       continue;
     }

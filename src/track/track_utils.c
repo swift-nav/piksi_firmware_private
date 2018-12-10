@@ -120,29 +120,43 @@ double tracker_get_lock_time(const tracker_time_info_t *time_info,
  * The method loads information from all trackers for cross-correlation
  * algorithm.
  *
+ * \param[in] locked_tracker the caller's tracker, which is already mutex locked
  * \param[out] cc_data Destination container
  *
  * \return Number of entries loaded
  *
  * \sa tracker_cc_data_t
  */
-u16 tracker_load_cc_data(tracker_cc_data_t *cc_data) {
+u16 tracker_load_cc_data(const tracker_t *locked_tracker,
+                         tracker_cc_data_t *cc_data) {
   u16 cnt = 0;
 
   for (u8 id = 0; id < NUM_TRACKER_CHANNELS; ++id) {
     tracker_t *tracker = tracker_get(id);
     tracker_cc_entry_t entry;
+    bool uselock = (locked_tracker != tracker);
 
-    entry.id = id;
-    entry.mesid = tracker->mesid;
-    entry.flags = tracker->flags;
-    entry.freq = tracker->xcorr_freq;
-    entry.cn0 = tracker->cn0;
+    if (uselock) {
+      tracker_lock(tracker);
+    }
 
-    if (0 != (entry.flags & TRACKER_FLAG_ACTIVE) &&
-        0 != (entry.flags & TRACKER_FLAG_CONFIRMED) &&
-        0 != (entry.flags & TRACKER_FLAG_XCORR_FILTER_ACTIVE)) {
-      cc_data->entries[cnt++] = entry;
+    if (tracker->busy) {
+      entry.id = id;
+      entry.mesid = tracker->mesid;
+      entry.flags = tracker->flags;
+      entry.freq = tracker->xcorr_freq;
+      entry.cn0 = tracker->cn0;
+
+      assert(0 != (entry.flags & TRACKER_FLAG_ACTIVE));
+
+      if (0 != (entry.flags & TRACKER_FLAG_CONFIRMED) &&
+          0 != (entry.flags & TRACKER_FLAG_XCORR_FILTER_ACTIVE)) {
+        cc_data->entries[cnt++] = entry;
+      }
+    }
+
+    if (uselock) {
+      tracker_unlock(tracker);
     }
   }
 
@@ -169,8 +183,7 @@ void tracker_set_carrier_phase_offset(const tracker_info_t *info,
   tracker_t *tracker = tracker_get(info->id);
 
   tracker_lock(tracker);
-  if (0 != (tracker->flags & TRACKER_FLAG_ACTIVE) &&
-      mesid_is_equal(info->mesid, tracker->mesid) &&
+  if (tracker->busy && mesid_is_equal(info->mesid, tracker->mesid) &&
       info->lock_counter == tracker->lock_counter) {
     tracker_misc_info_t *misc_info = &tracker->misc_info;
     misc_info->carrier_phase_offset.value = carrier_phase_offset;
@@ -213,25 +226,32 @@ tracker_t *tracker_get_by_mesid(const me_gnss_signal_t mesid) {
  *
  *  This function is called from both GLO, BDS and GAL trackers.
  *
+ * \param[in] locked_tracker the caller's tracker, which is already mutex locked
  * \param[in] mesid ME signal to be dropped.
  *
  * \return None
  */
-void tracker_drop_unhealthy(const me_gnss_signal_t mesid) {
+void tracker_drop_unhealthy(const tracker_t *locked_tracker,
+                            const me_gnss_signal_t mesid) {
   assert(IS_GLO(mesid) || IS_BDS2(mesid) || IS_GAL(mesid));
   tracker_t *tracker = tracker_get_by_mesid(mesid);
   if (tracker == NULL) {
     return;
   }
-  /* Double-check that channel is in enabled state.
-   * Similar check exists in manage_track() in manage.c
-   */
-  if (!(tracker->busy)) {
-    return;
+
+  bool uselock = (locked_tracker != tracker);
+  if (uselock) {
+    tracker_lock(tracker);
   }
 
-  tracker->flags |= TRACKER_FLAG_UNHEALTHY;
-  tracker_flag_drop(tracker, CH_DROP_REASON_SV_UNHEALTHY);
+  if (tracker->busy) {
+    tracker->flags |= TRACKER_FLAG_UNHEALTHY;
+    tracker_flag_drop(tracker, CH_DROP_REASON_SV_UNHEALTHY);
+  }
+
+  if (uselock) {
+    tracker_unlock(tracker);
+  }
 }
 
 /**
