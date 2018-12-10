@@ -344,7 +344,7 @@ static const tp_profile_entry_t tracker_profiles_rover[] = {
   { { BW_DYN,      BW_DYN,            1,   TP_CTRL_PLL3,
       TP_TM_10MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS, TP_TM_10MS_SC4 },
       TP_LD_PARAMS_PHASE_10MS, TP_LD_PARAMS_FREQ_10MS,
-      40,          32,          38,
+      40,          THRESH_20MS_DBHZ, 38,
       IDX_10MS,    IDX_20MS,     IDX_5MS,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
 
@@ -502,7 +502,8 @@ static tp_tm_e get_track_mode(me_gnss_signal_t mesid,
 }
 
 static float compute_pll_bw(float cn0, u8 T_ms) {
-  float y[2] = {PLL_BW_MIN, PLL_BW_MAX};   /* bw */
+  float bw_min = (cn0 <= THRESH_20MS_DBHZ) ? PLL_BW_MIN_20MS : PLL_BW_MIN;
+  float y[2] = {bw_min, PLL_BW_MAX};       /* bw */
   float x[2] = {ADJ_CN0_MIN, ADJ_CN0_MAX}; /* cn0 */
 
   float m = (y[1] - y[0]) / (x[1] - x[0]);
@@ -517,8 +518,8 @@ static float compute_pll_bw(float cn0, u8 T_ms) {
     bw = TL_BWT_MAX * SECS_MS / T_ms;
   }
 
-  if (bw < PLL_BW_MIN) {
-    bw = PLL_BW_MIN;
+  if (bw < bw_min) {
+    bw = bw_min;
   }
 
   return bw;
