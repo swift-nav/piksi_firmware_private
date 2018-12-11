@@ -77,8 +77,6 @@ struct uuid {
 static void nap_conf_check(void);
 static bool nap_version_ok(u32 version);
 static void nap_version_check(void);
-static void nap_auth_setup(void);
-static void nap_auth_check(void);
 static bool factory_params_read(void);
 static void uuid_unpack(const uint8_t *in, struct uuid *uu);
 
@@ -93,24 +91,16 @@ static void random_init(void) {
   srand(seed);
 }
 
-void nap_init(void) {
+void init(void) {
+  fault_handling_setup();
   factory_params_read();
 
   /* Make sure FPGA is configured - required for EMIO usage */
   nap_conf_check();
 
   nap_version_check();
-
-  /* Unlock NAP */
-  nap_auth_setup();
-  nap_auth_check();
-
   nap_dna_callback_register();
   nap_setup();
-}
-
-void init(void) {
-  fault_handling_setup();
 
   /* Only boards after we started tracking HW version have working clk mux */
   bool allow_ext_clk = factory_params.hardware_version > 0;
@@ -168,13 +158,13 @@ static void nap_version_check(void) {
   }
 }
 
-static void nap_auth_setup(void) { nap_unlock(factory_params.nap_key); }
+void nap_auth_setup(void) { nap_unlock(factory_params.nap_key); }
 
 /* Check NAP authentication status. Print error message if authentication
  * has failed. This must be done after the USARTs and SBP subsystems are
  * set up, so that SBP messages can be sent and received.
  */
-static void nap_auth_check(void) {
+void nap_auth_check(void) {
   if (nap_locked()) {
     /* Create strings for log_error */
     char dna[NAP_DNA_LENGTH * 2 + 1];
