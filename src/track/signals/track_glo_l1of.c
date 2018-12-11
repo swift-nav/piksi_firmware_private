@@ -90,8 +90,7 @@ static void tracker_glo_l1of_update(tracker_t *tracker) {
   tracker_tow_cache(tracker);
 
   bool settled = (0 == (tracker->flags & TRACKER_FLAG_RECOVERY_MODE));
-  bool inlock = ((0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) ||
-                 (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK)));
+  bool inlock = tracker_has_all_locks(tracker);
   double cn0_threshold_dbhz = TP_DEFAULT_CN0_USE_THRESHOLD_DBHZ;
   cn0_threshold_dbhz += TRACK_CN0_HYSTERESIS_THRES_DBHZ;
   bool cn0_high = (tracker->cn0 > cn0_threshold_dbhz);

@@ -437,8 +437,7 @@ static void tracker_gps_l1ca_update(tracker_t *tracker) {
   update_l1_xcorr_from_l2(tracker);
 
   bool settled = (0 == (tracker->flags & TRACKER_FLAG_RECOVERY_MODE));
-  bool inlock = ((0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) ||
-                 (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK)));
+  bool inlock = tracker_has_all_locks(tracker);
   bool tow_valid = (TOW_UNKNOWN != (tracker->TOW_ms));
   double cn0_threshold_dbhz = TP_DEFAULT_CN0_USE_THRESHOLD_DBHZ;
   cn0_threshold_dbhz += TRACK_CN0_HYSTERESIS_THRES_DBHZ;

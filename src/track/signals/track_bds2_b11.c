@@ -75,8 +75,7 @@ static void tracker_bds2_b11_update(tracker_t *tracker) {
   tracker_tow_cache(tracker);
 
   bool settled = (0 == (tracker->flags & TRACKER_FLAG_RECOVERY_MODE));
-  bool inlock = ((0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) ||
-                 (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK)));
+  bool inlock = tracker_has_all_locks(tracker);
 
   if (inlock && settled) {
     /* Start B2 tracker if not running */

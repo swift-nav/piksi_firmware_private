@@ -74,8 +74,7 @@ static void tracker_qzss_l1ca_update(tracker_t *tracker) {
   tracker_tow_cache(tracker);
 
   bool settled = (0 == (tracker->flags & TRACKER_FLAG_RECOVERY_MODE));
-  bool inlock = ((0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) ||
-                 (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK)));
+  bool inlock = tracker_has_all_locks(tracker);
 
   if (inlock && settled && (TOW_UNKNOWN != (tracker->TOW_ms))) {
     log_debug_mesid(tracker->mesid, "calling qzss_l1ca_to_l2c_handover()");
