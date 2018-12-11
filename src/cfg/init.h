@@ -14,7 +14,6 @@
 #define SWIFTNAV_INIT_H
 
 void pre_init(void);
-void nap_init(void);
 void init(void);
 
 u16 sender_id_get(void);
@@ -25,5 +24,8 @@ u8 nap_date_string_get(char *nap_date_string);
 u8 uuid_string_get(char *uuid_string);
 u8 mfg_id_string_get(char *mfg_id_string, size_t size);
 u8 mac_address_string_get(char *mac_string);
+
+void nap_auth_setup(void);
+void nap_auth_check(void);
 
 #endif
