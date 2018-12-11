@@ -73,8 +73,7 @@ static void tracker_gal_e1_update(tracker_t *tracker) {
     return;
   }
 
-  tp_profile_t *profile = &tracker->profile;
-  bool settled = (profile->cur.index >= IDX_2MS);
+  bool settled = (0 == (tracker->flags & TRACKER_FLAG_RECOVERY_MODE));
   bool inlock = ((0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) ||
                  (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK)));
 
