@@ -148,8 +148,7 @@ void tp_profile_apply_config(tracker_t *tracker, bool init) {
   config.fll_discr_period_s =
       tp_get_flld_ms(tracker->tracking_mode) / (float)SECS_MS;
 
-  /* DLL init could be done nicer by initing DLL only */
-  if (init || profile->dll_init) {
+  if (init) {
     log_debug_mesid(mesid, "Initializing TL");
 
     tp_tl_init(&tracker->tl_state, profile->loop_params.ctrl, &rates, &config);
