@@ -19,7 +19,6 @@
 #include <libsbp/sbp.h>
 #include <swiftnav/logging.h>
 #include <swiftnav/memcpy_s.h>
-
 #include "board/nap/nap_common.h"
 #include "clk_dac.h"
 #include "error.h"
@@ -170,6 +169,7 @@ static void nap_version_check(void) {
 
 static void nap_auth_setup(void) { nap_unlock(factory_params.nap_key); }
 
+
 /* Check NAP authentication status. Print error message if authentication
  * has failed. This must be done after the USARTs and SBP subsystems are
  * set up, so that SBP messages can be sent and received.
@@ -190,9 +190,9 @@ static void nap_auth_check(void) {
       pnt += sprintf(pnt, "%02x", factory_params.nap_key[i]);
     }
     key[NAP_KEY_LENGTH * 2] = '\0';
-
-    log_error("NAP Verification Failed: DNA=%s, Key=%s", dna, key);
-    chThdSleepSeconds(1);
+    _screaming_death(
+         "NAP Verification Failed: DNA=%s, Key=%s", dna, key);
+//    chThdSleepSeconds(1);
     hard_reset();
   }
 }
