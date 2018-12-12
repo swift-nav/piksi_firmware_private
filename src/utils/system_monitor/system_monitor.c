@@ -32,6 +32,7 @@
 #include "nt1065.h"
 #include "peripherals/antenna.h"
 #include "position/position.h"
+#include "remoteproc/rpmsg.h"
 #include "sbp/sbp.h"
 #include "settings/settings_client.h"
 #include "simulator/simulator.h"
@@ -208,6 +209,14 @@ static void panic_dead_thread(u32 threads_dead) {
   chSysHalt("Forced halt due to dead or starved thread.");
 }
 
+static void declare_panic(void) {
+  mutex_t *mtx = rpmsg_fw_panic();
+  if (mtx != NULL) {
+    chMtxLock(mtx);
+    chMtxUnlock(mtx);
+  }
+}
+
 static THD_WORKING_AREA(wa_watchdog_thread, WATCHDOG_THREAD_STACK);
 static void watchdog_thread(void *arg) {
   (void)arg;
@@ -231,6 +240,7 @@ static void watchdog_thread(void *arg) {
 
     if (threads_dead) {
       /* TODO: ChibiOS thread state dump */
+      declare_panic();
       log_error(
           "One or more threads appear to be dead: 0x%08X. "
           "Watchdog reset %s.",
