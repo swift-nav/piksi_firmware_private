@@ -13,6 +13,8 @@
 #ifndef SWIFTNAV_RPMSG_H
 #define SWIFTNAV_RPMSG_H
 
+#include <ch.h>
+
 #include <swiftnav/common.h>
 
 typedef enum {
@@ -30,5 +32,7 @@ u32 rpmsg_rx_fifo_read(rpmsg_endpoint_t rpmsg_endpoint, u8 *buffer, u32 length);
 u32 rpmsg_tx_fifo_write(rpmsg_endpoint_t rpmsg_endpoint,
                         const u8 *buffer,
                         u32 length);
+
+mutex_t *rpmsg_fw_panic(void);
 
 #endif /* SWIFTNAV_RPMSG_H */

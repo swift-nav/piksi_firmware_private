@@ -23,6 +23,7 @@
 
 #include "board.h"
 #include "board/nap/nap_common.h"
+#include "board/v3/remoteproc/rpmsg.h"
 #include "calc_base_obs.h"
 #include "main.h"
 #include "manage.h"
@@ -187,6 +188,14 @@ static void debug_threads(void) {
   }
 }
 
+static void declare_panic(void) {
+  mutex_t *mtx = rpmsg_fw_panic();
+  if (mtx != NULL) {
+    chMtxLock(mtx);
+    chMtxUnlock(mtx);
+  }
+}
+
 static THD_WORKING_AREA(wa_watchdog_thread, WATCHDOG_THREAD_STACK);
 static void watchdog_thread(void *arg) {
   (void)arg;
@@ -210,6 +219,7 @@ static void watchdog_thread(void *arg) {
 
     if (threads_dead) {
       /* TODO: ChibiOS thread state dump */
+      declare_panic();
       log_error(
           "One or more threads appear to be dead: 0x%08X. "
           "Watchdog reset %s.",
