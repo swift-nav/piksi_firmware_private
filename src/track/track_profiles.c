@@ -501,6 +501,22 @@ static tp_tm_e get_track_mode(me_gnss_signal_t mesid,
   return track_mode;
 }
 
+/*
+     ^ PLL BW (Hz)
+     |
+   20+                  *
+     |               *
+     |            *
+     |         *
+     |      *
+     |        <- discontinuity of ~2.8Hz (~21.5%)
+     |      *
+     |    *
+    6+  *
+     |
+     +--+---+-----------+-----> CN0 (dB-Hz)
+        20  32          60
+ */
 static float compute_pll_bw(float cn0, u8 T_ms) {
   float bw_min = (cn0 <= THRESH_20MS_DBHZ) ? PLL_BW_MIN_20MS : PLL_BW_MIN;
   float y[2] = {bw_min, PLL_BW_MAX};       /* bw */
