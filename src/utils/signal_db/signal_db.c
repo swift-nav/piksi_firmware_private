@@ -403,6 +403,10 @@ float code_to_tcxo_doppler_max(code_t code) {
   return doppler;
 }
 
+u32 code_to_init_spacing(code_t code) {
+  return (u32)(NAP_TRACK_SAMPLE_RATE_Hz / code_to_chip_rate(code) / 2);
+}
+
 /** Convert a SV signal index to a gnss_signal_t.
  *
  * \param sv_index      SV signal index in [0, NUM_SATS)

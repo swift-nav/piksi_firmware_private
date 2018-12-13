@@ -39,7 +39,8 @@ void nap_track_update(u8 channel,
                       double doppler_hz,
                       double code_phase_rate,
                       u32 chips_to_correlate,
-                      bool has_pilot_sync);
+                      bool has_pilot_sync,
+                      bool narrow_corr);
 
 void nap_track_read_results(u8 channel,
                             u32 *count_snapshot,
