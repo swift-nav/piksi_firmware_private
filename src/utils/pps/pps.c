@@ -39,7 +39,7 @@ static u32 pps_width_us = 2000;
 /** Logic level on output pin when the PPS is active */
 static u8 pps_polarity = 1;
 /** Offset in nanoseconds between GPS time and the PPS */
-static s32 pps_offset_us = 0;
+static s32 pps_offset_ns = 0;
 /** Generate a pulse with the given frequency */
 static double pps_frequency_hz = 1.0;
 static double pps_period = 1.0;
@@ -89,7 +89,7 @@ static void pps_thread(void *arg) {
       gps_time_t t = get_current_time();
       if (output_pps(&t)) {
         t.tow = (t.tow - fmod(t.tow, pps_period)) + pps_period +
-                ((double)pps_offset_us / 1.0e6) + PPS_FW_OFFSET_S;
+                ((double)pps_offset_ns / 1.0e9) + PPS_FW_OFFSET_S;
 
         u64 next = gpstime2napcount(&t);
         nap_pps((u32)next);
