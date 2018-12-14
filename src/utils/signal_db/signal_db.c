@@ -43,12 +43,11 @@ static constellation_table_element_t constellation_table[CONSTELLATION_COUNT] =
      [CONSTELLATION_GLO] = {GLO_FIRST_PRN, NUM_SATS_GPS + NUM_SATS_SBAS},
      [CONSTELLATION_BDS] = {BDS_FIRST_PRN,
                             NUM_SATS_GPS + NUM_SATS_SBAS + NUM_SATS_GLO},
-     [CONSTELLATION_QZS] = {QZS_FIRST_PRN,
-                            NUM_SATS_GPS + NUM_SATS_SBAS + NUM_SATS_GLO +
-                                NUM_SATS_BDS},
      [CONSTELLATION_GAL] = {GAL_FIRST_PRN,
                             NUM_SATS_GPS + NUM_SATS_SBAS + NUM_SATS_GLO +
-                                NUM_SATS_BDS + NUM_SATS_QZS}};
+                                NUM_SATS_BDS },
+    [CONSTELLATION_QZS] = {QZS_FIRST_PRN, NUM_SATS_GPS + NUM_SATS_SBAS +
+                            NUM_SATS_GLO + NUM_SATS_BDS + NUM_SATS_GAL}};
 
 /** Number of signals for each code which are supported on
  * the current hardware platform. */
@@ -208,6 +207,7 @@ gnss_signal_t sid_from_constellation_index(constellation_t constellation,
  * \return Global ME signal index in [0, PLATFORM_ACQ_TRACK_COUNT).
  */
 u16 mesid_to_global_index(const me_gnss_signal_t mesid) {
+
   assert(code_supported(mesid.code));
   return code_db[mesid.code].me_global_start_index + mesid_to_code_index(mesid);
 }
@@ -335,10 +335,16 @@ gnss_signal_t sv_index_to_sid(u16 sv_index) {
  * \return SV index in [0, NUM_SATS).
  */
 u16 sid_to_sv_index(gnss_signal_t sid) {
-  assert(sid_valid(sid));
+
   constellation_t cons = sid_to_constellation(sid);
   u16 sv_index = constellation_table[cons].start_index + sid.sat -
                  constellation_table[cons].sat_start;
+  // DEBUG
+  if (!sid_valid(sid)){
+  log_warn("SID %d Idx %d %d %d %d",sid.sat, sv_index,NUM_SATS,constellation_table[cons].start_index,constellation_table[cons].sat_start);}
+
+  assert(sid_valid(sid));
+
   assert(sv_index < NUM_SATS);
   return sv_index;
 }

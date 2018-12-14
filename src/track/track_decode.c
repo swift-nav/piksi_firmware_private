@@ -77,7 +77,7 @@ void tracker_data_sync(u8 id, nav_data_sync_t *from_decoder) {
   }
 
   tracker_t *tracker = tracker_get(id);
-  if (!IS_GPS(tracker->mesid)) {
+  if (!(IS_GPS(tracker->mesid)||IS_QZSS(tracker->mesid))) {
     data_sync(id, from_decoder);
     return;
   }

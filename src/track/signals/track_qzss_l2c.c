@@ -82,11 +82,15 @@ void qzss_l1ca_to_l2c_handover(u32 sample_count,
   /* compose L2CM MESID: same SV, but code is L2CM */
   me_gnss_signal_t mesid = construct_mesid(CODE_QZS_L2CM, sat);
 
+
+  // // DEBUG
+  //   log_warn_mesid(
+  //       mesid, "H-L1/L2C %d %f %ld", sat,cn0_init,TOW_ms );
+
   if (!tracking_startup_ready(mesid)) {
     log_debug_mesid(mesid, "already in track");
     return; /* L2C signal from the SV is already in track */
   }
-
   if (!handover_valid(code_phase, QZS_L1CA_CHIPS_NUM)) {
     log_warn_mesid(
         mesid, "Unexpected L1CA to L2C hand-over code phase: %f", code_phase);
@@ -165,7 +169,7 @@ static void tracker_qzss_l2c_update(tracker_t *tracker) {
   bool in_phase_lock = (0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK));
 
   if (in_phase_lock && confirmed) {
-    /* naturally synched as we track */
+          /* naturally synched as we track */
     tracker->bit_polarity = BIT_POLARITY_INVERTED;
     tracker_update_bit_polarity_flags(tracker);
   }

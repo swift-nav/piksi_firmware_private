@@ -295,6 +295,9 @@ void nap_track_init(u8 channel,
   if (mesid.code == CODE_GPS_L2CM) {
     index = (num_codes % GPS_L2CL_PRN_START_POINTS);
   }
+  if (mesid.code == CODE_QZS_L2CM) {
+      index = (num_codes % QZS_L2CL_PRN_START_POINTS);
+  }
 
 #if defined CODE_GAL_E1_SUPPORT && CODE_GAL_E1_SUPPORT > 0
   if (mesid.code == CODE_GAL_E1B) {

@@ -150,6 +150,10 @@ static acq_timer_t bds2_acq_timer[NUM_SATS_BDS] = {0};
 /* The array keeps time when GAL SV was detected as unhealthy. */
 static acq_timer_t gal_acq_timer[NUM_SATS_GAL] = {0};
 
+/* The array keeps time when QZS SV was detected as unhealthy. */
+static acq_timer_t qzs_acq_timer[NUM_SATS_QZS] = {0};
+
+
 static u8 manage_track_new_acq(const me_gnss_signal_t mesid);
 static void manage_acq(void);
 
@@ -601,6 +605,13 @@ void check_clear_unhealthy(void) {
     revert_expired_unhealthiness(
         gal_acq_timer, ARRAY_SIZE(gal_acq_timer), ACQ_UNHEALTHY_TIMEOUT_SEC);
   }
+  // TODO QZSS
+  if (is_qzss_enabled()) {
+    revert_expired_unhealthiness(
+        qzs_acq_timer, ARRAY_SIZE(qzs_acq_timer), ACQ_UNHEALTHY_TIMEOUT_SEC);
+  }
+
+
 }
 
 void me_settings_setup(void) {
@@ -796,7 +807,16 @@ void restore_acq(const tracker_t *tracker) {
     assert(index < ARRAY_SIZE(gal_acq_timer));
     gal_acq_timer[index].status = acq;
     piksi_systime_get(&gal_acq_timer[index].tick); /* channel drop time */
+  } else if (IS_QZSS(mesid)) {  // TODO QZSS
+    mesid = construct_mesid(CODE_QZS_L1CA, mesid.sat);
+    acq = &acq_status[mesid_to_global_index(mesid)];
+    acq->state = ACQ_PRN_UNHEALTHY;
+    u16 index = tracker->mesid.sat - QZS_FIRST_PRN;
+    assert(index < ARRAY_SIZE(qzs_acq_timer));
+    qzs_acq_timer[index].status = acq;
+    piksi_systime_get(&qzs_acq_timer[index].tick); /* channel drop time */
   }
+
 }
 
 /** Initiates the drop of all GLO signals from tracker on leap second event */
@@ -1227,7 +1247,7 @@ static void manage_tracking_startup(void) {
     if (ACQ_PRN_TRACKING == acq->state || ACQ_PRN_UNHEALTHY == acq->state) {
       continue;
     }
-
+    // Utility of these 3 lines?
     if (IS_SBAS(acq->mesid)) {
       if (constellation_track_count(CONSTELLATION_SBAS) >= SBAS_SV_NUM_LIMIT) {
         continue;

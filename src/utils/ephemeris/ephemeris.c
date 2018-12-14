@@ -228,7 +228,7 @@ static bool xcorr_check_eph_to_eph(const ephemeris_t *e) {
   u16 first_prn, num_sats;
   char *gnss = "";
 
-  if (IS_GPS(e->sid)) {
+  if (IS_GPS(e->sid)||IS_QZSS(e->sid)) {
     first_prn = GPS_FIRST_PRN;
     num_sats = NUM_SATS_GPS;
     gnss = "GPS";
@@ -399,7 +399,7 @@ eph_new_status_t ephemeris_new(const ephemeris_t *e) {
   }
 
   /* TODO GLO: Implement ephemeris - almanac cross-checking for GLO */
-  if (IS_GPS(e->sid)) {
+  if (IS_GPS(e->sid)||IS_QZSS(e->sid)) {
     xcorr_positions_t alm_pos;
     xcorr_positions_t eph_pos;
     s32 time_s = e->toe.wn * WEEK_SECS + (s32)e->toe.tow;

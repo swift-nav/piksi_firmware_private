@@ -11,7 +11,7 @@
 
 /** Acquisition CN0 threshold to determine if a strong peak has been found.
  * High CN0 triggers early exit from acquisition frequency sweep */
-#define ACQ_EARLY_THRESHOLD 39.0 /* dBHz */
+ #define ACQ_EARLY_THRESHOLD 39.0 /* dBHz */
 
 /** If handover to tracking fails,
  *  satellite with a high CN0 should be prioritized */

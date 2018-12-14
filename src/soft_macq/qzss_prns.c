@@ -37,7 +37,6 @@ const u32 qzss_l2cl_prns_last_values[] = {
   [ 8] = 0376333266, [ 9] = 0467523556
 };
 
-
 /* The QZSS L2CM LFSR init values
  * For example, PRN 1 has LFSR init value 0204244652.
  */
@@ -46,7 +45,6 @@ const u32 qzss_l2cm_prns_init_values[] = {
   [ 4] = 0130567507, [ 5] = 0670517677, [ 6] = 0607275514, [ 7] = 0045413633,
   [ 8] = 0212645405, [ 9] = 0613700455
 };
-
 
 /* The last QZSS L2CM LFSR values */
 const u32 qzss_l2cm_prns_last_values[] = {

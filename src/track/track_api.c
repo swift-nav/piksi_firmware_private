@@ -37,6 +37,8 @@ static s32 normalize_tow(s32 tow) {
   if (tow < 0) {
     log_error("tow %" PRId32, tow);
     assert(0);
+    // DEBUG
+    //tow=0;
   }
   return tow % GPS_WEEK_LENGTH_ms;
 }
@@ -313,7 +315,7 @@ void tracker_bit_sync_update(tracker_t *tracker,
   if (nav_bit_fifo_write(&tracker->nav_bit_fifo, &element)) {
     /* warn if the FIFO has become full */
     if (nav_bit_fifo_full(&tracker->nav_bit_fifo)) {
-      log_error_mesid(mesid, "nav bit FIFO full");
+      log_warn_mesid(mesid, "nav bit FIFO full");
     }
   }
 

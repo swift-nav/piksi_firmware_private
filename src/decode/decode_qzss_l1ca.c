@@ -66,7 +66,10 @@ void decode_qzss_l1ca_register(void) {
     qzss_l1ca_decoders[i - 1].active = false;
     qzss_l1ca_decoders[i - 1].data = &qzss_l1ca_decoder_data[i - 1];
   }
-
+  // for (u16 i = 0; i <= ARRAY_SIZE(qzss_l1ca_decoders); i++) {
+  //   qzss_l1ca_decoders[i].active = false;
+  //   qzss_l1ca_decoders[i].data = &qzss_l1ca_decoder_data[i];
+  // }
   decoder_interface_register(&list_element_qzss_l1ca);
 }
 
@@ -118,12 +121,11 @@ static void decoder_qzss_l1ca_process(
   /* Decode nav data to temporary structure */
   gps_l1ca_decoded_data_t dd;
   s8 ret = process_subframe(&data->nav_msg, channel_info->mesid, &dd);
+
   if (ret <= 0) {
     return;
   }
-
-  return;
-
+  // return;
   gnss_signal_t l1ca_sid =
       construct_sid(channel_info->mesid.code, channel_info->mesid.sat);
 

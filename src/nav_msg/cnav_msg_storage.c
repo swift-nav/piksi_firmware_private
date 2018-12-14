@@ -69,8 +69,9 @@ static bool cnav_msg_type_id_valid(u8 msg_id) {
  * \param msg pointer to message to be stored
  */
 void cnav_msg_put(const cnav_msg_t *msg) {
-  if (cnav_msg_type_id_valid(msg->msg_id) &&
-      (sid_valid(construct_sid(CODE_GPS_L2CM, msg->prn)))) {
+  if (cnav_msg_type_id_valid(msg->msg_id) && (
+      (sid_valid(construct_sid(CODE_GPS_L2CM, msg->prn))) ||
+      (sid_valid(construct_sid(CODE_QZS_L2CM, msg->prn))))) {
     u8 msg_idx = cnav_msg_type_to_idx(msg->msg_id);
     gnss_signal_t sid = construct_sid(CODE_GPS_L2CM, msg->prn);
     u16 sat_idx = sid_to_code_index(sid);
@@ -96,7 +97,7 @@ void cnav_msg_put(const cnav_msg_t *msg) {
 bool cnav_msg_get(gnss_signal_t sid, cnav_msg_type_t type, cnav_msg_t *msg) {
   bool res = false;
 
-  if (cnav_msg_type_id_valid(type) && sid_valid(sid) && IS_GPS(sid)) {
+  if (cnav_msg_type_id_valid(type) && sid_valid(sid) && (IS_GPS(sid) || IS_QZSS(sid))) {
     u16 sat_idx = sid_to_code_index(sid);
     u8 msg_idx = cnav_msg_type_to_idx(type);
     chMtxLock(&cnav_msg_mutex);
@@ -117,7 +118,7 @@ bool cnav_msg_get(gnss_signal_t sid, cnav_msg_type_t type, cnav_msg_t *msg) {
  *
  */
 void cnav_msg_clear(gnss_signal_t sid) {
-  if (!sid_valid(sid) || !IS_GPS(sid)) {
+  if (!sid_valid(sid) || (!IS_GPS(sid) && !IS_QZSS(sid))) {
     log_debug_sid(sid, "cnav_msg_clear: invalid sid");
     return;
   }

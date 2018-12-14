@@ -15,6 +15,7 @@
 #include <swiftnav/bits.h>
 #include <swiftnav/constants.h>
 #include <swiftnav/gnss_time.h>
+#include <swiftnav/logging.h>
 
 #include "lock_detector/lock_detector.h"
 #include "manage.h"
@@ -117,20 +118,20 @@ void tp_profile_apply_config(tracker_t *tracker, bool init) {
   tp_profile_t *profile = &tracker->profile;
 
   const tp_loop_params_t *l = &profile->loop_params;
-  bool prev_use_alias_detection = 0;
-
-  if (!init) {
-    prev_use_alias_detection =
-        (0 != (tracker->flags & TRACKER_FLAG_USE_ALIAS_DETECTION));
-  }
+  // bool prev_use_alias_detection = 0;
+  //
+  // if (!init) {
+  //   prev_use_alias_detection =
+  //       (0 != (tracker->flags & TRACKER_FLAG_USE_ALIAS_DETECTION));
+  // }
 
   tracker->tracking_mode = profile->loop_params.mode;
 
-  if (profile->use_alias_detection) {
-    tracker->flags |= TRACKER_FLAG_USE_ALIAS_DETECTION;
-  } else {
-    tracker->flags &= ~TRACKER_FLAG_USE_ALIAS_DETECTION;
-  }
+  // if (profile->use_alias_detection) {
+  //   tracker->flags |= TRACKER_FLAG_USE_ALIAS_DETECTION;
+  // } else {
+  //   tracker->flags &= ~TRACKER_FLAG_USE_ALIAS_DETECTION;
+  // }
 
   tracker->has_next_params = false;
 
@@ -190,22 +191,22 @@ void tp_profile_apply_config(tracker_t *tracker, bool init) {
 
     log_debug_mesid(mesid, "CN0 init: %f", tracker->cn0);
   }
-
-  bool use_alias_detection =
-      (0 != (tracker->flags & TRACKER_FLAG_USE_ALIAS_DETECTION));
-  if (use_alias_detection) {
-    float alias_detect_ms = tp_get_alias_ms(tracker->tracking_mode);
-
-    if (prev_use_alias_detection) {
-      alias_detect_reinit(&tracker->alias_detect,
-                          (u32)(TP_TRACKER_ALIAS_DURATION_MS / alias_detect_ms),
-                          alias_detect_ms * 1e-3f);
-    } else {
-      alias_detect_init(&tracker->alias_detect,
-                        (u32)(TP_TRACKER_ALIAS_DURATION_MS / alias_detect_ms),
-                        alias_detect_ms * 1e-3f);
-    }
-  }
+  //
+  // bool use_alias_detection =
+  //     (0 != (tracker->flags & TRACKER_FLAG_USE_ALIAS_DETECTION));
+  // if (use_alias_detection) {
+  //   float alias_detect_ms = tp_get_alias_ms(tracker->tracking_mode);
+  //
+  //   if (prev_use_alias_detection) {
+  //     alias_detect_reinit(&tracker->alias_detect,
+  //                         (u32)(TP_TRACKER_ALIAS_DURATION_MS / alias_detect_ms),
+  //                         alias_detect_ms * 1e-3f);
+  //   } else {
+  //     alias_detect_init(&tracker->alias_detect,
+  //                       (u32)(TP_TRACKER_ALIAS_DURATION_MS / alias_detect_ms),
+  //                       alias_detect_ms * 1e-3f);
+  //   }
+  // }
 }
 
 /**
@@ -319,10 +320,10 @@ static u32 tp_tracker_compute_rollover_count(tracker_t *tracker) {
  * \return None
  */
 static void mode_change_init(tracker_t *tracker) {
-  bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
-  if (!confirmed) {
-    return;
-  }
+  // bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
+  // if (!confirmed) {
+  //   return;
+  // }
 
   /* Compute time of the currently integrated period */
   u16 next_cycle = tp_wrap_cycle(tracker->tracking_mode, tracker->cycle_no + 1);
@@ -374,43 +375,43 @@ static void tp_tracker_update_cycle_counter(tracker_t *tracker) {
       tp_wrap_cycle(tracker->tracking_mode, tracker->cycle_no + 1);
 }
 
-/**
- * Second stage of false lock detection.
- *
- * Detect frequency error and update tracker state as appropriate.
- *
- * \param[in] tracker Tracker channel data
- * \param[in] I in-phase signal component
- * \param[in] Q quadrature signal component
- *
- * \return None
- */
-static void process_alias_error(tracker_t *tracker, float I, float Q) {
-  float err_hz = alias_detect_second(&tracker->alias_detect, I, Q);
-
-  if (fabsf(err_hz) < TRACK_ALIAS_THRESHOLD_HZ) {
-    return;
-  }
-
-  /* The expected frequency errors depend on the modulated data rate.
-     For more details on GPS, see:
-     https://swiftnav.hackpad.com/Alias-PLL-lock-detector-in-L2C-4fWUJWUNnOE
-     However in practice we see alias frequencies also in between the expected
-     ones. So let's just correct the error we actually observe. */
-
-  bool plock = (0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK));
-  bool flock = (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK));
-  log_warn_mesid(tracker->mesid,
-                 "False freq detected: %.1f Hz (plock=%d,flock=%d)",
-                 err_hz,
-                 (int)plock,
-                 (int)flock);
-
-  tracker_ambiguity_unknown(tracker);
-  /* alias_detect_second() returns the freq correction value directly.
-     So we can use it as is for the adjustment. */
-  tp_tl_adjust(&tracker->tl_state, err_hz);
-}
+// /**
+//  * Second stage of false lock detection.
+//  *
+//  * Detect frequency error and update tracker state as appropriate.
+//  *
+//  * \param[in] tracker Tracker channel data
+//  * \param[in] I in-phase signal component
+//  * \param[in] Q quadrature signal component
+//  *
+//  * \return None
+//  */
+// static void process_alias_error(tracker_t *tracker, float I, float Q) {
+//   float err_hz = alias_detect_second(&tracker->alias_detect, I, Q);
+//
+//   if (fabsf(err_hz) < TRACK_ALIAS_THRESHOLD_HZ) {
+//     return;
+//   }
+//
+//   /* The expected frequency errors depend on the modulated data rate.
+//      For more details on GPS, see:
+//      https://swiftnav.hackpad.com/Alias-PLL-lock-detector-in-L2C-4fWUJWUNnOE
+//      However in practice we see alias frequencies also in between the expected
+//      ones. So let's just correct the error we actually observe. */
+//
+//   bool plock = (0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK));
+//   bool flock = (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK));
+//   log_warn_mesid(tracker->mesid,
+//                  "False freq detected: %.1f Hz (plock=%d,flock=%d)",
+//                  err_hz,
+//                  (int)plock,
+//                  (int)flock);
+//
+//   tracker_ambiguity_unknown(tracker);
+//   /* alias_detect_second() returns the freq correction value directly.
+//      So we can use it as is for the adjustment. */
+//   tp_tl_adjust(&tracker->tl_state, err_hz);
+// }
 
 static void add_pilot_and_data_iq(tp_epl_corr_t *cs_now) {
   corr_t *all = cs_now->all;
@@ -524,11 +525,15 @@ static void tp_tracker_update_correlators(tracker_t *tracker, u32 cycle_flags) {
    */
   bool decoded_tow;
   tracker->TOW_ms_prev = tracker->TOW_ms;
+
+
+
   tracker->TOW_ms = tracker_tow_update(tracker,
                                        tracker->TOW_ms,
                                        int_ms,
                                        &tracker->TOW_residual_ns,
                                        &decoded_tow);
+
 
   if (!tp_tow_is_sane(tracker->TOW_ms)) {
     log_error_mesid(mesid,
@@ -918,44 +923,44 @@ static void tp_tracker_flag_outliers(tracker_t *tracker) {
   }
 }
 
-/**
- * Runs false lock detection logic.
- *
- * \param[in,out] tracker Tracker channel data
- * \param[in]     cycle_flags  Current cycle flags.
- *
- * \return None
- */
-static void tp_tracker_update_alias(tracker_t *tracker, u32 cycle_flags) {
-  bool use_alias_detection =
-      (0 != (tracker->flags & TRACKER_FLAG_USE_ALIAS_DETECTION));
-  if (!use_alias_detection) {
-    return;
-  }
-
-  bool do_first = (0 != (cycle_flags & TPF_ALIAS_1ST));
-  bool do_second = (0 != (cycle_flags & TPF_ALIAS_2ND));
-
-  if (!do_first && !do_second) {
-    return;
-  }
-
-  float I = tracker->corrs.corr_ad.I;
-  float Q = tracker->corrs.corr_ad.Q;
-
-  if (do_second) {
-    bool inlock = ((0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) ||
-                   (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK)));
-    if (inlock) {
-      process_alias_error(tracker, I, Q);
-    }
-    do_first = true;
-  }
-
-  if (do_first) {
-    alias_detect_first(&tracker->alias_detect, I, Q);
-  }
-}
+// /**
+//  * Runs false lock detection logic.
+//  *
+//  * \param[in,out] tracker Tracker channel data
+//  * \param[in]     cycle_flags  Current cycle flags.
+//  *
+//  * \return None
+//  */
+// static void tp_tracker_update_alias(tracker_t *tracker, u32 cycle_flags) {
+//   bool use_alias_detection =
+//       (0 != (tracker->flags & TRACKER_FLAG_USE_ALIAS_DETECTION));
+//   if (!use_alias_detection) {
+//     return;
+//   }
+//
+//   bool do_first = (0 != (cycle_flags & TPF_ALIAS_1ST));
+//   bool do_second = (0 != (cycle_flags & TPF_ALIAS_2ND));
+//
+//   if (!do_first && !do_second) {
+//     return;
+//   }
+//
+//   float I = tracker->corrs.corr_ad.I;
+//   float Q = tracker->corrs.corr_ad.Q;
+//
+//   if (do_second) {
+//     bool inlock = ((0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) ||
+//                    (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK)));
+//     if (inlock) {
+//       process_alias_error(tracker, I, Q);
+//     }
+//     do_first = true;
+//   }
+//
+//   if (do_first) {
+//     alias_detect_first(&tracker->alias_detect, I, Q);
+//   }
+// }
 
 /**
  * Computes filtered SV doppler for cross-correlation and other uses.
@@ -1022,7 +1027,7 @@ u32 tp_tracker_update(tracker_t *tracker, const tp_tracker_config_t *config) {
   tp_tracker_update_loops(tracker, cflags);
   tp_tracker_update_locks(tracker, cflags);
   tp_tracker_flag_outliers(tracker);
-  tp_tracker_update_alias(tracker, cflags);
+  // tp_tracker_update_alias(tracker, cflags);
   tp_tracker_filter_doppler(tracker, cflags, config);
   tp_tracker_update_mode(tracker);
 
@@ -1047,7 +1052,7 @@ static bool tow_is_bit_aligned(tracker_t *tracker) {
    * Current block assumes the bit sync has been reached and current
    * interval has closed a bit interval. ToW shall be aligned by bit
    * duration, which is:
-   * 20ms for GPS and [QZSS L1/L2/L5, plus Beidou B1/B2 with D1 data
+   * 20ms for GPS and QZSS L1/L2/L5, plus Beidou B1/B2 with D1 data
    * 10ms for GLO L1/L2
    * 2 ms for SBAS and Beidou B1/B2 with D2 data
    */
@@ -1133,6 +1138,7 @@ void tracker_tow_cache(tracker_t *tracker) {
   if (TOW_UNKNOWN == tracker->TOW_ms) {
     propagate_tow_from_sid_db(tracker);
   }
+
 
   /* Check that tracker has valid TOW. */
   if (!tow_is_bit_aligned(tracker)) {

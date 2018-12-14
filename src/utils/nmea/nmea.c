@@ -53,6 +53,9 @@ static u32 gpgsv_msg_rate = 10;
 /* GLO NMEA SV IDs are from 65 to 96 */
 #define NMEA_SV_ID_OFFSET_GLO (64)
 
+/* QZSS NMEA SV IDs are from 193 to 97 */
+#define NMEA_SV_ID_OFFSET_QZS (193)
+
 /* GAL NMEA SV IDs are from 301 to 336 */
 #define NMEA_SV_ID_OFFSET_GAL (300)
 
@@ -86,7 +89,10 @@ typedef enum talker_id_e {
   TALKER_ID_GL = 1,
   TALKER_ID_GA = 2,
   TALKER_ID_GB = 3,
-  TALKER_ID_COUNT = 4
+  // DEBUG QZSS
+  TALKER_ID_QZ = 4,
+  TALKER_ID_COUNT = 5
+  // DEBUG QZSS
 } talker_id_t;
 
 #define NMEA_SUFFIX_LEN                    \
@@ -206,6 +212,8 @@ static u16 nmea_get_id(const gnss_signal_t sid) {
       id = NMEA_SV_ID_OFFSET_SBAS + sid.sat;
       break;
     case CONSTELLATION_QZS:
+      id = sid.sat;
+      break;
     case CONSTELLATION_COUNT:
     case CONSTELLATION_INVALID:
     default:
@@ -226,6 +234,8 @@ static const char *talker_id_to_str(const talker_id_t id) {
       return "GL";
     case TALKER_ID_GP:
       return "GP";
+    case TALKER_ID_QZ:
+      return "QZ";
     case TALKER_ID_COUNT:
     case TALKER_ID_INVALID:
     default:
@@ -244,6 +254,7 @@ static talker_id_t sid_to_talker_id(const gnss_signal_t sid) {
       return TALKER_ID_GL;
     case CONSTELLATION_GPS:
     case CONSTELLATION_QZS:
+      return TALKER_ID_QZ;
     case CONSTELLATION_SBAS:
       return TALKER_ID_GP;
     case CONSTELLATION_INVALID:

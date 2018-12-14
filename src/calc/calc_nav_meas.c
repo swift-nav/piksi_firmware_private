@@ -243,7 +243,7 @@ void apply_cons_time_offsets(const u8 n_channels,
   for (u8 i = 0; i < n_channels; i++) {
     cons_time_params_t params;
     /* get system time offset from static store */
-    if (!IS_GPS(nav_meas[i]->sid) &&
+    if (!(IS_GPS(nav_meas[i]->sid)||IS_QZSS(nav_meas[i]->sid)) &&
         get_cons_time_params(nav_meas[i]->sid, &params)) {
       double dt = gpsdifftime(&nav_meas[i]->tot, &params.t);
       double corr_m = GPS_C * (dt * params.a1 + params.a0);

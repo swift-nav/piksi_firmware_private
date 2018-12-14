@@ -58,6 +58,7 @@ static decoder_interface_list_element_t list_element_qzss_l2c = {
     .interface = &decoder_interface_qzss_l2c, .next = 0};
 
 void decode_qzss_l2c_register(void) {
+
   for (u16 i = 0; i < ARRAY_SIZE(qzss_l2c_decoders); i++) {
     qzss_l2c_decoders[i].active = false;
     qzss_l2c_decoders[i].data = &qzss_l2c_decoder_data[i];
@@ -111,7 +112,7 @@ if (!decoded) {
 }
 
 /* Update health indicators */
-shm_gps_set_shi_cnav_alert(channel_info->mesid.sat, !data->cnav_msg.alert);
+shm_qzss_set_shi_cnav_alert(channel_info->mesid.sat, !data->cnav_msg.alert);
 
 if (CNAV_MSG_TYPE_10 == data->cnav_msg.msg_id) {
   log_debug_mesid(channel_info->mesid,

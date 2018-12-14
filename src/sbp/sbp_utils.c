@@ -720,38 +720,45 @@ static ephe_type_table_element_t ephe_type_table[CONSTELLATION_COUNT] = {
 
         /* GPS */
         [CONSTELLATION_GPS] = {{SBP_MSG_EPHEMERIS_GPS,
-                                sizeof(msg_ephemeris_gps_t)},
+                               sizeof(msg_ephemeris_gps_t)},
                                pack_ephemeris_gps,
                                unpack_ephemeris_gps,
                                {0}},
 
         /* SBAS */
         [CONSTELLATION_SBAS] = {{SBP_MSG_EPHEMERIS_SBAS,
-                                 sizeof(msg_ephemeris_sbas_t)},
+                                sizeof(msg_ephemeris_sbas_t)},
                                 pack_ephemeris_sbas,
                                 unpack_ephemeris_sbas,
                                 {0}},
 
         /* GLO */
         [CONSTELLATION_GLO] = {{SBP_MSG_EPHEMERIS_GLO,
-                                sizeof(msg_ephemeris_glo_t)},
+                               sizeof(msg_ephemeris_glo_t)},
                                pack_ephemeris_glo,
                                unpack_ephemeris_glo,
                                {0}},
 
         /* BDS */
         [CONSTELLATION_BDS] = {{SBP_MSG_EPHEMERIS_BDS,
-                                sizeof(msg_ephemeris_bds_t)},
+                               sizeof(msg_ephemeris_bds_t)},
                                pack_ephemeris_bds,
                                unpack_ephemeris_bds,
                                {0}},
 
         /* GAL */
         [CONSTELLATION_GAL] = {{SBP_MSG_EPHEMERIS_GAL,
-                                sizeof(msg_ephemeris_gal_t)},
+                               sizeof(msg_ephemeris_gal_t)},
                                pack_ephemeris_gal,
                                unpack_ephemeris_gal,
                                {0}},
+
+        /* GPS */
+        [CONSTELLATION_QZS] = {{SBP_MSG_EPHEMERIS_GPS,
+                                sizeof(msg_ephemeris_gps_t)},
+                                pack_ephemeris_gps,
+                                unpack_ephemeris_gps,
+                                {0}},
 };
 
 void unpack_ephemeris(const msg_ephemeris_t *msg, ephemeris_t *e) {

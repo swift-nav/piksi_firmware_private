@@ -55,6 +55,7 @@ static const tracker_interface_t tracker_interface_gps_l1ca = {
  *  framework.
  */
 void track_gps_l1ca_register(void) {
+
   lp1_filter_compute_params(&gps_l1ca_config.xcorr_f_params,
                             gps_l1ca_config.xcorr_cof,
                             SECS_MS / GPS_L1CA_BIT_LENGTH_MS);
@@ -94,8 +95,7 @@ static void check_L1_entry(tracker_t *tracker,
                            float xcorr_cn0_diffs[]) {
   gps_l1ca_tracker_data_t *data = &tracker->gps_l1ca;
 
-  if ((CODE_GPS_L1CA != entry->mesid.code) &&
-      (CODE_QZS_L1CA != entry->mesid.code)) {
+  if (CODE_GPS_L1CA != entry->mesid.code) {
     /* Ignore other than L1CA for now */
     return;
   }

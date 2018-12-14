@@ -312,6 +312,23 @@ typedef struct {
   u8 xcorr_flag : 1;       /**< Cross-correlation flag */
 } gps_l1ca_tracker_data_t;
 
+
+/**
+ * QZSS L1 C/A tracker data container type.
+ */
+typedef struct {
+  u16 xcorr_counts[NUM_SATS_QZS]; /**< L1 Cross-correlation interval counters */
+  u16 xcorr_count_l2;             /**< L2 Cross-correlation interval counter */
+  u16 xcorr_whitelist_counts[NUM_SATS_GPS]; /**< L1 whitelist interval counters
+                                             */
+  bool xcorr_whitelist[NUM_SATS_QZS]; /**< L1 Cross-correlation whitelist status
+                                       */
+  bool xcorr_whitelist_l2; /**< L2 Cross-correlation whitelist status */
+  u8 xcorr_flag : 1;       /**< Cross-correlation flag */
+} qzs_l1ca_tracker_data_t;
+
+
+
 /**
  * GPS L2C tracker data container type.
  */
@@ -422,6 +439,12 @@ typedef struct {
     gps_l1ca_tracker_data_t gps_l1ca;
     gps_l2cm_tracker_data_t gps_l2cm;
   };
+
+  /* Constellation specific data */
+  union {
+    qzs_l1ca_tracker_data_t qzs_l1ca;
+  };
+
 
   u16 fpll_cycle; /**< FPLL run cycle within current profile */
 

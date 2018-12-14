@@ -38,7 +38,7 @@ void tracker_set_prn_fail_flag(const me_gnss_signal_t mesid, bool val) {
       tracker_unlock(tracker);
       continue;
     }
-    if (IS_GPS(tracker->mesid) && tracker->mesid.sat == mesid.sat) {
+    if ((IS_GPS(tracker->mesid)||IS_QZSS(tracker->mesid)) && tracker->mesid.sat == mesid.sat) {
       tracker->prn_check_fail = val;
     }
     tracker_unlock(tracker);
