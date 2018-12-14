@@ -17,7 +17,6 @@
 
 #include <swiftnav/common.h>
 #include <swiftnav/constants.h>
-#include <swiftnav/logging.h>
 
 #include <hal.h>
 
@@ -119,26 +118,11 @@ bool nap_locked(void) {
 }
 
 void nap_unlock(const u8 key[]) {
-  /* Linux has access to the NAP->AUTHENTICATE register as well.
-   * It can potentially access it, while nap_unlock() is writing the key,
-   * because both CPUs share 1 AXI bus arbiter, that can interrupt at any
-   * 'random' time.
-   * In the case Linux was interrupting and working with the register, the
-   * RSA core would assert the status-busy flag.
-   * This polling would then at least give us information that Linux
-   * interfered here.
-   */
-  chSysLock();
-  volatile u16 n = 0;
-  while (GET_NAP_STATUS_AUTH_BUSY(NAP->STATUS)) {
-    log_error("Linux interrupted writing of NAP->AUTHENTICATE. Count=%i", n);
-  }
   for (u32 i = 0; i < NAP_KEY_LENGTH; ++i) {
     NAP->AUTHENTICATION = SET_NAP_AUTHENTICATION_OPERATION(0, 0) |
                           SET_NAP_AUTHENTICATION_ADDR(0, i) |
                           SET_NAP_AUTHENTICATION_BYTE(0, (u32)key[i]);
   }
-  chSysUnlock();
 }
 
 /** \} */

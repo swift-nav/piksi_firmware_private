@@ -37,7 +37,6 @@
 #include "sbp_fileio.h"
 #include "system_monitor/system_monitor.h"
 #include "xadc.h"
-
 #define REQUIRED_NAP_VERSION_MASK (0xFFFF0000U)
 #define REQUIRED_NAP_VERSION_VAL NAP_VERSION
 
@@ -77,8 +76,6 @@ struct uuid {
 static void nap_conf_check(void);
 static bool nap_version_ok(u32 version);
 static void nap_version_check(void);
-static void nap_auth_setup(void);
-static void nap_auth_check(void);
 static bool factory_params_read(void);
 static void uuid_unpack(const uint8_t *in, struct uuid *uu);
 
@@ -93,24 +90,16 @@ static void random_init(void) {
   srand(seed);
 }
 
-void nap_init(void) {
+void init(void) {
+  fault_handling_setup();
   factory_params_read();
 
   /* Make sure FPGA is configured - required for EMIO usage */
   nap_conf_check();
 
   nap_version_check();
-
-  /* Unlock NAP */
-  nap_auth_setup();
-  nap_auth_check();
-
   nap_dna_callback_register();
   nap_setup();
-}
-
-void init(void) {
-  fault_handling_setup();
 
   /* Only boards after we started tracking HW version have working clk mux */
   bool allow_ext_clk = factory_params.hardware_version > 0;
@@ -168,17 +157,18 @@ static void nap_version_check(void) {
   }
 }
 
-static void nap_auth_setup(void) { nap_unlock(factory_params.nap_key); }
+void nap_auth_setup(void) { nap_unlock(factory_params.nap_key); }
 
-/* Check NAP authentication status. Print error message if authentication
- * has failed. This must be done after the USARTs and SBP subsystems are
- * set up, so that SBP messages can be sent and received.
+/* Check NAP authentication status. Block and print error message
+ * if authentication has failed. This must be done after the NAP,
+ * USARTs, and SBP subsystems are set up, so that SBP messages and
+ * be sent and received (it can't go in init() or nap_setup()).
  */
-static void nap_auth_check(void) {
+void nap_auth_check(void) {
+  char dna[NAP_DNA_LENGTH * 2 + 1];
+  char key[NAP_KEY_LENGTH * 2 + 1];
+
   if (nap_locked()) {
-    /* Create strings for log_error */
-    char dna[NAP_DNA_LENGTH * 2 + 1];
-    char key[NAP_KEY_LENGTH * 2 + 1];
     char *pnt = dna;
     for (int i = NAP_DNA_LENGTH - 1; i >= 0; i--) {
       pnt += sprintf(pnt, "%02x", nap_dna[i]);
@@ -189,7 +179,6 @@ static void nap_auth_check(void) {
       pnt += sprintf(pnt, "%02x", factory_params.nap_key[i]);
     }
     key[NAP_KEY_LENGTH * 2] = '\0';
-
     log_error("NAP Verification Failed: DNA=%s, Key=%s", dna, key);
     chThdSleepSeconds(1);
     hard_reset();
