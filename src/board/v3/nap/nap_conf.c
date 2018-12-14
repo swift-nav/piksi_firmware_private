@@ -18,8 +18,6 @@
 #include <swiftnav/common.h>
 #include <swiftnav/constants.h>
 
-#include <hal.h>
-
 #include "nap_conf.h"
 #include "nap_constants.h"
 #include "nap_hw.h"
@@ -32,26 +30,18 @@
  * \{ */
 
 u32 nap_conf_rd_random(void) {
-  chSysLock();
   NAP->CONTROL = SET_NAP_CONTROL_VERSION_ADDR(NAP->CONTROL, NAP_RANDOM_OFFSET);
-  u32 version = NAP->VERSION;
-  chSysUnlock();
-  return version;
+  return NAP->VERSION;
 }
 
 u32 nap_conf_rd_version(void) {
-  chSysLock();
   NAP->CONTROL = SET_NAP_CONTROL_VERSION_ADDR(NAP->CONTROL, NAP_VERSION_OFFSET);
-  u32 version = NAP->VERSION;
-  chSysUnlock();
-  return version;
+  return NAP->VERSION;
 }
 
 u8 nap_conf_rd_version_string(char version_string[]) {
   u8 i = 0;
   u32 reg = 0;
-
-  chSysLock();
   u32 ctrl = (NAP->CONTROL & ~((u32)NAP_CONTROL_VERSION_ADDR_Msk));
 
   do {
@@ -61,7 +51,6 @@ u8 nap_conf_rd_version_string(char version_string[]) {
     memcpy(&version_string[i], &reg, sizeof(reg));
     i += sizeof(reg);
   } while (reg && i < NAP_VERSION_STRING_LENGTH);
-  chSysUnlock();
   version_string[i] = 0;
 
   return strlen(version_string);
@@ -69,8 +58,6 @@ u8 nap_conf_rd_version_string(char version_string[]) {
 
 u8 nap_conf_rd_date_string(char date_string[]) {
   u32 reg;
-
-  chSysLock();
   u32 ctrl = (NAP->CONTROL & ~((u32)NAP_CONTROL_VERSION_ADDR_Msk));
 
   NAP->CONTROL = SET_NAP_CONTROL_VERSION_ADDR(ctrl, NAP_BUILD_TIME_OFFSET);
@@ -84,7 +71,6 @@ u8 nap_conf_rd_date_string(char date_string[]) {
   u16 yrs = (reg & 0xFFFF0000) >> 16;
   u8 mon = (reg & 0x0000FF00) >> 8;
   u8 day = (reg & 0x000000FF);
-  chSysUnlock();
 
   sprintf(date_string,
           "%04X-%02X-%02X %02X:%02X:%02X UTC",
@@ -100,8 +86,6 @@ u8 nap_conf_rd_date_string(char date_string[]) {
 
 void nap_rd_dna(u8 dna[]) {
   u32 reg = 0;
-
-  chSysLock();
   u32 ctrl = (NAP->CONTROL & ~((u32)NAP_CONTROL_VERSION_ADDR_Msk));
 
   for (u8 i = 0; i < NAP_DNA_LENGTH; i += sizeof(reg)) {
@@ -110,7 +94,6 @@ void nap_rd_dna(u8 dna[]) {
     reg = NAP->VERSION;
     memcpy(&dna[i], &reg, sizeof(reg));
   }
-  chSysUnlock();
 }
 
 bool nap_locked(void) {
