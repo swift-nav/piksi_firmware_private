@@ -84,15 +84,13 @@ void apply_isc_table(obs_array_t *obs_array) {
         break;
 
       case CODE_GLO_L1OF:
-        pseudorange_corr =
-            0 * glo_l1_isc[glo_map_get_fcn(obs->sid) - GLO_MIN_FCN];
+        pseudorange_corr = glo_l1_isc[7];
         carrier_phase_corr = (glo_map_get_fcn(obs->sid) - GLO_MIN_FCN) *
                              glo_l1_carrier_phase_bias;
         break;
 
       case CODE_GLO_L2OF:
-        pseudorange_corr =
-            0 * glo_l2_isc[glo_map_get_fcn(obs->sid) - GLO_MIN_FCN];
+        pseudorange_corr = glo_l2_isc[7];
         carrier_phase_corr = (glo_map_get_fcn(obs->sid) - GLO_MIN_FCN) *
                              glo_l2_carrier_phase_bias;
         break;
