@@ -290,8 +290,8 @@ static void gal_eph_debug(const nav_msg_gal_inav_t *n,
   log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
             e->ura,
             (double)e->health_bits,
-            k->tgd_gal_s[0],
-            k->tgd_gal_s[1]);
+            k->tgd.gal_s[0],
+            k->tgd.gal_s[1]);
   log_debug("    %19.11E%19.11E ", rint(t->tow), 0.0);
 }
 
@@ -516,8 +516,8 @@ static void parse_inav_bgd(const u8 content[GAL_INAV_CONTENT_BYTE],
   ephemeris_kepler_t *kep = &(dd->ephemeris.kepler);
   u32 e1e5a = getbitu(content, 47, 10);
   u32 e1e5b = getbitu(content, 57, 10);
-  kep->tgd_gal_s[0] = BITS_SIGN_EXTEND_32(10, e1e5a) * C_1_2P32;
-  kep->tgd_gal_s[1] = BITS_SIGN_EXTEND_32(10, e1e5b) * C_1_2P32;
+  kep->tgd.gal_s[0] = BITS_SIGN_EXTEND_32(10, e1e5a) * C_1_2P32;
+  kep->tgd.gal_s[1] = BITS_SIGN_EXTEND_32(10, e1e5b) * C_1_2P32;
 }
 
 static void parse_inav_health6(const u8 content[GAL_INAV_CONTENT_BYTE],

@@ -19,8 +19,7 @@ static const ephemeris_t ref_eph = {
     BDS_FIT_INTERVAL_SECONDS, /* fit_interval [s] */
     1,                        /* valid */
     0,                        /* health_bits */
-    {{{5.60000000000E-09},    /* kepler.tgd_bds_s[0] */
-      /* 3.00000000000E-09 */ /* kepler.tgd_bds_s[1] */
+    {{.tgd = {0},             /* kepler.tgd */
       -3.47640625000E+02,     /* kepler.crc */
       -1.20656250000E+02,     /* kepler.crs */
       -3.98792326450E-06,     /* kepler.cuc */
@@ -233,7 +232,8 @@ TEST(nav_msg_bds_tests, ephemeris_decoding) {
   ephemeris_t tmp_eph;
   memcpy(&tmp_eph, &ref_eph, sizeof(ref_eph));
   /* Set TGD2 into copy of ref_eph. */
-  tmp_eph.kepler.tgd_bds_s[1] = 3.00000000000E-09;
+  tmp_eph.kepler.tgd.bds_s[0] = 5.6E-09;
+  tmp_eph.kepler.tgd.bds_s[1] = 3.0E-09;
   /* Adjust ref_eph times to GPS time. */
   add_secs(&tmp_eph.toe, BDS_SECOND_TO_GPS_SECOND);
   add_secs(&tmp_eph.kepler.toc, BDS_SECOND_TO_GPS_SECOND);
@@ -254,8 +254,8 @@ TEST(nav_msg_bds_tests, ephemeris_decoding) {
   EXPECT_EQ(tmp_eph.fit_interval, decoded_eph.fit_interval);
   EXPECT_EQ(tmp_eph.valid, decoded_eph.valid);
   EXPECT_EQ(tmp_eph.health_bits, decoded_eph.health_bits);
-  EXPECT_FLOAT_EQ(tmp_k.tgd_bds_s[0], decoded_k.tgd_bds_s[0]);
-  EXPECT_FLOAT_EQ(tmp_k.tgd_bds_s[1], decoded_k.tgd_bds_s[1]);
+  EXPECT_FLOAT_EQ(tmp_k.tgd.bds_s[0], decoded_k.tgd.bds_s[0]);
+  EXPECT_FLOAT_EQ(tmp_k.tgd.bds_s[1], decoded_k.tgd.bds_s[1]);
   EXPECT_FLOAT_EQ(tmp_k.crc, decoded_k.crc);
   EXPECT_FLOAT_EQ(tmp_k.crs, decoded_k.crs);
   EXPECT_FLOAT_EQ(tmp_k.cuc, decoded_k.cuc);
