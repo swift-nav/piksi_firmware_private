@@ -446,7 +446,7 @@ static void unpack_ephemeris_gps(const msg_ephemeris_t *m, ephemeris_t *e) {
   const msg_ephemeris_gps_t *msg = &m->gps;
   ephemeris_kepler_t *k = &e->kepler;
   unpack_ephemeris_common(&msg->common, e);
-  k->tgd_gps_s = msg->tgd;
+  k->tgd.gps_s = msg->tgd;
   k->crs = msg->c_rs;
   k->crc = msg->c_rc;
   k->cuc = msg->c_uc;
@@ -475,7 +475,7 @@ static void pack_ephemeris_gps(const ephemeris_t *e, msg_ephemeris_t *m) {
   const ephemeris_kepler_t *k = &e->kepler;
   msg_ephemeris_gps_t *msg = &m->gps;
   pack_ephemeris_common(e, &msg->common);
-  msg->tgd = k->tgd_gps_s;
+  msg->tgd = k->tgd.gps_s;
   msg->c_rs = k->crs;
   msg->c_rc = k->crc;
   msg->c_uc = k->cuc;
@@ -504,8 +504,8 @@ static void unpack_ephemeris_bds(const msg_ephemeris_t *m, ephemeris_t *e) {
   const msg_ephemeris_bds_t *msg = &m->bds;
   ephemeris_kepler_t *k = &e->kepler;
   unpack_ephemeris_common(&msg->common, e);
-  k->tgd_bds_s[0] = msg->tgd1;
-  k->tgd_bds_s[1] = msg->tgd2;
+  k->tgd.bds_s[0] = msg->tgd1;
+  k->tgd.bds_s[1] = msg->tgd2;
   k->crs = msg->c_rs;
   k->crc = msg->c_rc;
   k->cuc = msg->c_uc;
@@ -534,8 +534,8 @@ static void pack_ephemeris_bds(const ephemeris_t *e, msg_ephemeris_t *m) {
   const ephemeris_kepler_t *k = &e->kepler;
   msg_ephemeris_bds_t *msg = &m->bds;
   pack_ephemeris_common(e, &msg->common);
-  msg->tgd1 = k->tgd_bds_s[0];
-  msg->tgd2 = k->tgd_bds_s[1];
+  msg->tgd1 = k->tgd.bds_s[0];
+  msg->tgd2 = k->tgd.bds_s[1];
   msg->c_rs = k->crs;
   msg->c_rc = k->crc;
   msg->c_uc = k->cuc;
@@ -564,8 +564,8 @@ static void unpack_ephemeris_gal(const msg_ephemeris_t *m, ephemeris_t *e) {
   const msg_ephemeris_gal_t *msg = &m->gal;
   ephemeris_kepler_t *k = &e->kepler;
   unpack_ephemeris_common(&msg->common, e);
-  k->tgd_gal_s[0] = msg->bgd_e1e5a;
-  k->tgd_gal_s[1] = msg->bgd_e1e5b;
+  k->tgd.gal_s[0] = msg->bgd_e1e5a;
+  k->tgd.gal_s[1] = msg->bgd_e1e5b;
   k->crs = msg->c_rs;
   k->crc = msg->c_rc;
   k->cuc = msg->c_uc;
@@ -594,8 +594,8 @@ static void pack_ephemeris_gal(const ephemeris_t *e, msg_ephemeris_t *m) {
   const ephemeris_kepler_t *k = &e->kepler;
   msg_ephemeris_gal_t *msg = &m->gal;
   pack_ephemeris_common(e, &msg->common);
-  msg->bgd_e1e5a = k->tgd_gal_s[0];
-  msg->bgd_e1e5b = k->tgd_gal_s[1];
+  msg->bgd_e1e5a = k->tgd.gal_s[0];
+  msg->bgd_e1e5b = k->tgd.gal_s[1];
   msg->c_rs = k->crs;
   msg->c_rc = k->crc;
   msg->c_uc = k->cuc;

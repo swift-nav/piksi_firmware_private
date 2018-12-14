@@ -149,8 +149,8 @@ static void bds_eph_debug(const nav_msg_bds_t *n,
   log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
             e->ura,
             (double)e->health_bits,
-            k->tgd_bds_s[0],
-            k->tgd_bds_s[1]);
+            k->tgd.bds_s[0],
+            k->tgd.bds_s[1]);
   log_debug("    %19.11E%19.11E ", rint(TOW_s), (double)k->iodc);
 }
 
@@ -595,8 +595,8 @@ static void process_d1_fraid1(const nav_msg_bds_t *n,
   e->ura = bds_ura_table[urai];
   e->toe.wn = BDS_WEEK_TO_GPS_WEEK + weekno;
   /* Keplerian params */
-  k->tgd_bds_s[0] = BITS_SIGN_EXTEND_32(10, tgd1) * 1e-10;
-  k->tgd_bds_s[1] = BITS_SIGN_EXTEND_32(10, tgd2) * 1e-10;
+  k->tgd.bds_s[0] = BITS_SIGN_EXTEND_32(10, tgd1) * 1e-10;
+  k->tgd.bds_s[1] = BITS_SIGN_EXTEND_32(10, tgd2) * 1e-10;
   k->toc.wn = e->toe.wn;
   k->toc.tow = (double)toc * C_2P3;
   k->af0 = BITS_SIGN_EXTEND_32(24, a[0]) * C_1_2P33;
