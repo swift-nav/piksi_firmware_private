@@ -89,14 +89,13 @@ static void tracker_glo_l1of_update(tracker_t *tracker) {
   /* TOW manipulation on bit edge */
   tracker_tow_cache(tracker);
 
-  bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
-  bool inlock = ((0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) ||
-                 (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK)));
+  bool settled = (0 == (tracker->flags & TRACKER_FLAG_RECOVERY_MODE));
+  bool inlock = tracker_has_all_locks(tracker);
   double cn0_threshold_dbhz = TP_DEFAULT_CN0_USE_THRESHOLD_DBHZ;
   cn0_threshold_dbhz += TRACK_CN0_HYSTERESIS_THRES_DBHZ;
   bool cn0_high = (tracker->cn0 > cn0_threshold_dbhz);
 
-  if (inlock && confirmed && cn0_high) {
+  if (inlock && settled && cn0_high) {
     /* Start GLO L2CA tracker if not running */
     do_glo_l1of_to_l2of_handover(tracker->sample_count,
                                  tracker->mesid.sat,

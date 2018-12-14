@@ -76,11 +76,10 @@ static void tracker_gal_e7_update(tracker_t *tracker) {
   /* TOW manipulation on bit edge */
   tracker_tow_cache(tracker);
 
-  bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
-  bool inlock = ((0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) ||
-                 (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK)));
+  bool settled = (0 == (tracker->flags & TRACKER_FLAG_RECOVERY_MODE));
+  bool inlock = tracker_has_all_locks(tracker);
 
-  if (inlock && confirmed) {
+  if (inlock && settled) {
     tracker->bit_polarity = BIT_POLARITY_NORMAL;
     tracker_update_bit_polarity_flags(tracker);
 

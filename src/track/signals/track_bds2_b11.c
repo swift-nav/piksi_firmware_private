@@ -74,11 +74,10 @@ static void tracker_bds2_b11_update(tracker_t *tracker) {
   /* TOW manipulation on bit edge */
   tracker_tow_cache(tracker);
 
-  bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
-  bool inlock = ((0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) ||
-                 (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK)));
+  bool settled = (0 == (tracker->flags & TRACKER_FLAG_RECOVERY_MODE));
+  bool inlock = tracker_has_all_locks(tracker);
 
-  if (inlock && confirmed) {
+  if (inlock && settled) {
     /* Start B2 tracker if not running */
     bds_b11_to_b2_handover(tracker->sample_count,
                            tracker->mesid.sat,

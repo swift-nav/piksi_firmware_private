@@ -436,15 +436,14 @@ static void tracker_gps_l1ca_update(tracker_t *tracker) {
   /* GPS L1 C/A-specific L2C cross-correlation operations */
   update_l1_xcorr_from_l2(tracker);
 
-  bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
-  bool inlock = ((0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) ||
-                 (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK)));
+  bool settled = (0 == (tracker->flags & TRACKER_FLAG_RECOVERY_MODE));
+  bool inlock = tracker_has_all_locks(tracker);
   bool tow_valid = (TOW_UNKNOWN != (tracker->TOW_ms));
   double cn0_threshold_dbhz = TP_DEFAULT_CN0_USE_THRESHOLD_DBHZ;
   cn0_threshold_dbhz += TRACK_CN0_HYSTERESIS_THRES_DBHZ;
   bool cn0_high = (tracker->cn0 > cn0_threshold_dbhz);
 
-  if (inlock && confirmed && tow_valid && cn0_high) {
+  if (inlock && settled && tow_valid && cn0_high) {
     /* Start L2C tracker if not running */
     do_l1ca_to_l2c_handover(tracker->sample_count,
                             tracker->mesid.sat,
