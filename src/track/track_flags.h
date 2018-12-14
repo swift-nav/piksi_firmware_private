@@ -68,6 +68,7 @@ void tracker_flag_drop(tracker_t *tracker, ch_drop_reason_t reason);
 void tracker_set_prn_fail_flag(const me_gnss_signal_t mesid, bool val);
 void tracker_set_sbas_provider_change_flag(void);
 void tracker_set_leap_second_flag(void);
+void tracker_reset_all_phase_offsets(void);
 void tracker_set_raim_flag(const gnss_signal_t sid);
 void tracker_set_xcorr_flag(const me_gnss_signal_t mesid);
 void tracker_set_xcorr_suspect_flag(tracker_t *tracker,
