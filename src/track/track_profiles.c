@@ -38,7 +38,7 @@
 
 /** DLL Bandwidth addon for handover signals which start from non-init profiles.
     Used for faster DLL loop convergence. */
-#define DLL_BW_ADDON_HZ (10.0f)
+#define DLL_BW_ADDON_HZ (5.0f)
 
 /** Unknown delay indicator */
 #define TP_DELAY_UNKNOWN -1
