@@ -680,7 +680,7 @@ void tp_profile_update_config(tracker_t *tracker) {
   profile->loop_params.fll_bw = profile->cur.fll_bw;
   profile->loop_params.code_bw = cur_profile->profile.dll_bw;
   bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
-  bool init_profiles = !code_requires_direct_acq(mesid.code);
+  bool init_profiles = code_requires_direct_acq(mesid.code);
   init_profiles |= is_gal(mesid.code);
   init_profiles |= is_bds2(mesid.code);
   if (!confirmed && !init_profiles) {
