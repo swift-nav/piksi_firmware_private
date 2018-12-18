@@ -9,6 +9,10 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
+
+#include <starling/platform/mq.h>
+#include <starling/platform/starling_platform.h>
+
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
@@ -17,8 +21,8 @@
 #include <ch.h>
 
 #include <libsbp/sbp.h>
+#include <starling/integration/starling_input_bridge.h>
 #include <starling/observation.h>
-#include <starling/platform/starling_platform.h>
 #include <starling/pvt_engine/firmware_binding.h>
 #include <swiftnav/constants.h>
 #include <swiftnav/coord_system.h>
@@ -55,12 +59,6 @@
  ******************************************************************************/
 
 #define MAILBOX_BLOCKING_TIMEOUT_MS 5000
-
-#define SBAS_DATA_N_BUFF 6
-
-#define EPHEMERIS_N_BUFF 10
-
-#define IMU_N_BUFF 10
 
 #define NUM_MUTEXES STARLING_MAX_NUM_MUTEXES
 
@@ -169,57 +167,29 @@ typedef struct mailbox_info_s {
   memory_pool_t mpool;
   msg_t *mailbox_buf;
   void *mpool_buf;
-  uint8_t mailbox_len;
-  size_t item_size;
 } mailbox_info_t;
 
-static mailbox_info_t mailbox_info[MB_ID_COUNT] =
-    {[MB_ID_PAIRED_OBS] = {{0},
-                           {0},
-                           paired_obs_mailbox_buff,
-                           paired_obs_buff,
-                           PAIRED_OBS_N_BUFF,
-                           sizeof(paired_obss_t)},
-     [MB_ID_BASE_OBS] = {{0},
-                         {0},
-                         base_obs_mailbox_buff,
-                         base_obs_buff,
-                         BASE_OBS_N_BUFF,
-                         sizeof(obs_array_t)},
-     [MB_ID_ME_OBS] = {{0},
-                       {0},
-                       me_obs_mailbox_buff,
-                       me_obs_buff,
-                       ME_OBS_MSG_N_BUFF,
-                       sizeof(obs_array_t)},
-     [MB_ID_SBAS_DATA] = {{0},
-                          {0},
-                          sbas_data_mailbox_buff,
-                          sbas_data_buff,
-                          SBAS_DATA_N_BUFF,
-                          sizeof(sbas_raw_data_t)},
-     [MB_ID_EPHEMERIS] = {{0},
-                          {0},
-                          ephemeris_mailbox_buff,
-                          ephemeris_buff,
-                          EPHEMERIS_N_BUFF,
-                          sizeof(ephemeris_array_t)},
-     [MB_ID_IMU] = {
-         {0}, {0}, imu_mailbox_buff, imu_buff, IMU_N_BUFF, sizeof(imu_data_t)}};
+static mailbox_info_t mailbox_info[MQ_ID_COUNT] = {
+    [MQ_ID_PAIRED_OBS] = {{0}, {0}, paired_obs_mailbox_buff, paired_obs_buff},
+    [MQ_ID_BASE_OBS] = {{0}, {0}, base_obs_mailbox_buff, base_obs_buff},
+    [MQ_ID_ME_OBS] = {{0}, {0}, me_obs_mailbox_buff, me_obs_buff},
+    [MQ_ID_SBAS_DATA] = {{0}, {0}, sbas_data_mailbox_buff, sbas_data_buff},
+    [MQ_ID_EPHEMERIS] = {{0}, {0}, ephemeris_mailbox_buff, ephemeris_buff},
+    [MQ_ID_IMU] = {{0}, {0}, imu_mailbox_buff, imu_buff}};
 
-void platform_mailbox_init(mailbox_id_t id) {
-  chMBObjectInit(&mailbox_info[id].mailbox,
-                 mailbox_info[id].mailbox_buf,
-                 mailbox_info[id].mailbox_len);
-  chPoolObjectInit(&mailbox_info[id].mpool, mailbox_info[id].item_size, NULL);
-  chPoolLoadArray(&mailbox_info[id].mpool,
-                  mailbox_info[id].mpool_buf,
-                  mailbox_info[id].mailbox_len);
+void platform_mq_init(msg_queue_id_t id, size_t msg_size, size_t max_length) {
+  chMBObjectInit(
+      &mailbox_info[id].mailbox, mailbox_info[id].mailbox_buf, max_length);
+  chPoolObjectInit(&mailbox_info[id].mpool, msg_size, NULL);
+  chPoolLoadArray(
+      &mailbox_info[id].mpool, mailbox_info[id].mpool_buf, max_length);
 }
 
-errno_t platform_mailbox_post(mailbox_id_t id, void *msg, int blocking) {
+errno_t platform_mq_push(msg_queue_id_t id,
+                         void *msg,
+                         mq_blocking_mode_t should_block) {
   uint32_t timeout_ms =
-      (MB_BLOCKING == blocking) ? MAILBOX_BLOCKING_TIMEOUT_MS : 0;
+      (MQ_BLOCKING == should_block) ? MAILBOX_BLOCKING_TIMEOUT_MS : 0;
   if (MSG_OK !=
       chMBPost(&mailbox_info[id].mailbox, (msg_t)msg, MS2ST(timeout_ms))) {
     /* Full or mailbox reset while waiting */
@@ -229,22 +199,25 @@ errno_t platform_mailbox_post(mailbox_id_t id, void *msg, int blocking) {
   return 0;
 }
 
-errno_t platform_mailbox_fetch(mailbox_id_t id, void **msg, int blocking) {
+errno_t platform_mq_pop(msg_queue_id_t id,
+                        void **msg,
+                        mq_blocking_mode_t should_block) {
   uint32_t timeout_ms =
-      (MB_BLOCKING == blocking) ? MAILBOX_BLOCKING_TIMEOUT_MS : 0;
+      (MQ_BLOCKING == should_block) ? MAILBOX_BLOCKING_TIMEOUT_MS : 0;
   if (MSG_OK !=
       chMBFetch(&mailbox_info[id].mailbox, (msg_t *)msg, MS2ST(timeout_ms))) {
     /* Empty or mailbox reset while waiting */
+    msg = NULL;
     return EBUSY;
   }
 
   return 0;
 }
 
-void *platform_mailbox_item_alloc(mailbox_id_t id) {
+void *platform_mq_alloc_msg(msg_queue_id_t id) {
   return chPoolAlloc(&mailbox_info[id].mpool);
 }
 
-void platform_mailbox_item_free(mailbox_id_t id, const void *ptr) {
-  chPoolFree(&mailbox_info[id].mpool, (void *)ptr);
+void platform_mq_free_msg(msg_queue_id_t id, void *msg) {
+  chPoolFree(&mailbox_info[id].mpool, msg);
 }

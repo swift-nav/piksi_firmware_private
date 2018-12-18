@@ -19,6 +19,8 @@
 
 #include <libsbp/sbp.h>
 #include <starling/observation.h>
+#include <starling/platform/mq.h>
+#include <starling/platform/starling_platform.h>
 #include <starling/pvt_engine/firmware_binding.h>
 #include <starling/starling_platform.h>
 #include <swiftnav/constants.h>
@@ -31,8 +33,6 @@
 #include <swiftnav/sid_set.h>
 #include <swiftnav/single_epoch_solver.h>
 #include <swiftnav/troposphere.h>
-#include <starling/platform/starling_platform.h>
-#include <starling/platform/mq.h>
 
 #include "calc_base_obs.h"
 #include "calc_pvt_common.h"
@@ -198,17 +198,12 @@ typedef struct mailbox_info_s {
   char *mailbox_name;
 } mailbox_info_t;
 
-static mailbox_info_t mailbox_info[MQ_ID_COUNT] =
-    {[MB_ID_TIME_MATCHED_OBS] = {0,
-                                 TMO_QUEUE_NAME},
-     [MQ_ID_BASE_OBS] = {0,
-                         BO_QUEUE_NAME},
-     [MQ_ID_ME_OBS] = {0,
-                       MEO_QUEUE_NAME},
-     [MQ_ID_SBAS_DATA] = {0,
-                          SBAS_DATA_QUEUE_NAME},
-     [MQ_ID_EPHEMERIS] = {
-         0, EPH_QUEUE_NAME}};
+static mailbox_info_t mailbox_info[MQ_ID_COUNT] = {
+    [MB_ID_TIME_MATCHED_OBS] = {0, TMO_QUEUE_NAME},
+    [MQ_ID_BASE_OBS] = {0, BO_QUEUE_NAME},
+    [MQ_ID_ME_OBS] = {0, MEO_QUEUE_NAME},
+    [MQ_ID_SBAS_DATA] = {0, SBAS_DATA_QUEUE_NAME},
+    [MQ_ID_EPHEMERIS] = {0, EPH_QUEUE_NAME}};
 
 void platform_mq_init(msg_queue_id_t id, size_t msg_size, size_t max_length) {
   struct mq_attr attr;
@@ -254,13 +249,17 @@ static int platform_mailbox_post_internal(msg_queue_id_t id,
   return 0;
 }
 
-int platform_mq_push(msg_queue_id_t id, void *msg, mq_blocking_mode_t should_block) {
+int platform_mq_push(msg_queue_id_t id,
+                     void *msg,
+                     mq_blocking_mode_t should_block) {
   uint32_t timeout_ms =
       (MQ_BLOCKING == should_block) ? MAILBOX_BLOCKING_TIMEOUT_MS : 0;
   return platform_mailbox_post_internal(id, msg, timeout_ms, MSG_PRIO_NORMAL);
 }
 
-int platform_mq_pop(msg_queue_id_t id, void **msg, mq_blocking_mode_t should_block) {
+int platform_mq_pop(msg_queue_id_t id,
+                    void **msg,
+                    mq_blocking_mode_t should_block) {
   uint32_t timeout_ms =
       (MQ_BLOCKING == should_block) ? MAILBOX_BLOCKING_TIMEOUT_MS : 0;
   struct timespec ts = {0};

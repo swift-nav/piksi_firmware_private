@@ -30,8 +30,6 @@
  */
 #define BASE_STATION_RESET_THRESHOLD 1000.0
 
-#define BASE_OBS_N_BUFF 5
-
 /* \} */
 
 extern bool base_pos_known;
