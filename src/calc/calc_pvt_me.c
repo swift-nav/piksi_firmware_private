@@ -117,10 +117,9 @@ static void me_send_all(obs_array_t *obs_array, const ephemeris_t _ephem[]) {
 
 static void me_send_emptyobs(void) {
   obs_array_t *obs_array = starling_alloc_rover_obs();
-  if (NULL == obs_array)
-  {
+  if (NULL == obs_array) {
     log_error("me_send_emptyobs(): Failed to allocate an obs_array!");
-    return; // TODO(jangelo) What to do here?
+    return;  // TODO(jangelo) What to do here?
   }
   obs_array->n = 0;
   obs_array->t = GPS_TIME_UNKNOWN;
