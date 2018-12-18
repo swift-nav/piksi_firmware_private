@@ -132,54 +132,54 @@ typedef struct cons_cfg_s {
 } cons_cfg_t;
 
 static cons_cfg_t cons_cfg[CONSTELLATION_COUNT] = {
-        [CONSTELLATION_GPS] =
-            {
-                .name = "GPS",
-                .enabled = true,
-                .supported = true,
-                .is_applicable = NULL,
-                .sid_active = NULL,
-            },
-        [CONSTELLATION_SBAS] =
-            {
-                .name = "SBAS",
-                .enabled = CODE_SBAS_L1CA_SUPPORT,
-                .supported = CODE_SBAS_L1CA_SUPPORT,
-                .is_applicable = is_sbas,
-                .sid_active = sbas_active,
-            },
-        [CONSTELLATION_GLO] =
-            {
-                .name = "GLONASS",
-                .enabled = (CODE_GLO_L1OF_SUPPORT || CODE_GLO_L2OF_SUPPORT),
-                .supported = (CODE_GLO_L1OF_SUPPORT || CODE_GLO_L2OF_SUPPORT),
-                .is_applicable = is_glo,
-                .sid_active = NULL,
-            },
-        [CONSTELLATION_BDS] =
-            {
-                .name = "BeiDou",
-                .enabled = (CODE_BDS2_B1_SUPPORT || CODE_BDS2_B2_SUPPORT),
-                .supported = (CODE_BDS2_B1_SUPPORT || CODE_BDS2_B2_SUPPORT),
-                .is_applicable = is_bds2,
-                .sid_active = bds_active,
-            },
-        [CONSTELLATION_QZS] =
-            {
-                .name = "QZSS",
-                .enabled = (CODE_QZSS_L1CA_SUPPORT || CODE_QZSS_L2C_SUPPORT),
-                .supported = (CODE_QZSS_L1CA_SUPPORT || CODE_QZSS_L2C_SUPPORT),
-                .is_applicable = is_qzss,
-                .sid_active = qzss_active,
-            },
-        [CONSTELLATION_GAL] =
-            {
-                .name = "Galileo",
-                .enabled = (CODE_GAL_E1_SUPPORT || CODE_GAL_E7_SUPPORT),
-                .supported = (CODE_GAL_E1_SUPPORT || CODE_GAL_E7_SUPPORT),
-                .is_applicable = is_gal,
-                .sid_active = gal_active,
-            },
+    [CONSTELLATION_GPS] =
+        {
+            .name = "GPS",
+            .enabled = true,
+            .supported = true,
+            .is_applicable = NULL,
+            .sid_active = NULL,
+        },
+    [CONSTELLATION_SBAS] =
+        {
+            .name = "SBAS",
+            .enabled = CODE_SBAS_L1CA_SUPPORT,
+            .supported = CODE_SBAS_L1CA_SUPPORT,
+            .is_applicable = is_sbas,
+            .sid_active = sbas_active,
+        },
+    [CONSTELLATION_GLO] =
+        {
+            .name = "GLONASS",
+            .enabled = (CODE_GLO_L1OF_SUPPORT || CODE_GLO_L2OF_SUPPORT),
+            .supported = (CODE_GLO_L1OF_SUPPORT || CODE_GLO_L2OF_SUPPORT),
+            .is_applicable = is_glo,
+            .sid_active = NULL,
+        },
+    [CONSTELLATION_BDS] =
+        {
+            .name = "BeiDou",
+            .enabled = (CODE_BDS2_B1_SUPPORT || CODE_BDS2_B2_SUPPORT),
+            .supported = (CODE_BDS2_B1_SUPPORT || CODE_BDS2_B2_SUPPORT),
+            .is_applicable = is_bds2,
+            .sid_active = bds_active,
+        },
+    [CONSTELLATION_QZS] =
+        {
+            .name = "QZSS",
+            .enabled = (CODE_QZSS_L1CA_SUPPORT || CODE_QZSS_L2C_SUPPORT),
+            .supported = (CODE_QZSS_L1CA_SUPPORT || CODE_QZSS_L2C_SUPPORT),
+            .is_applicable = is_qzss,
+            .sid_active = qzss_active,
+        },
+    [CONSTELLATION_GAL] =
+        {
+            .name = "Galileo",
+            .enabled = (CODE_GAL_E1_SUPPORT || CODE_GAL_E7_SUPPORT),
+            .supported = (CODE_GAL_E1_SUPPORT || CODE_GAL_E7_SUPPORT),
+            .is_applicable = is_gal,
+            .sid_active = gal_active,
+        },
 };
 
 typedef struct {
@@ -1049,7 +1049,7 @@ u32 get_tracking_channel_meas(u8 i,
  * size of tracking lock congestion.
  *
  * \param[in]  sid  Signal identifier.
- * \param[in]  tow_ms ToW in milliseconds. Can be #TOW_UNKNOWN
+ * \param[in]  tow_ms ToW in milliseconds. Can be \a TOW_UNKNOWN
  * \param[in]  pephe  Pointer to ephemeris, or NULL if not available
  *
  * \return Flags, computed from ephemeris and other sources.

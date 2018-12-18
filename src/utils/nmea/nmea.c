@@ -116,7 +116,7 @@ typedef enum talker_id_e {
 
 /** NMEA_SENTENCE_DONE: append checksum and dispatch.
  * \note According to section 5.3.1 of the NMEA 0183 spec, sentences are
- *       terminated with <CR><LF>. The sentence_buf is null_terminated.
+ *       terminated with \<CR\>\<LF\>. The sentence_buf is null_terminated.
  *       The call to nmea_output has been modified to remove the NULL.
  *       This will also affect all registered dispatchers
  */

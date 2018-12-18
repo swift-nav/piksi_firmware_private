@@ -228,7 +228,7 @@ bool track_sid_db_elevation_degrees_get(const gnss_signal_t sid,
  * \param[out] error_ms   Optional alignment error: difference between
  *                        computed and aligned results.
  *
- * \return Computed ToW if >= 0 or #TOW_UNKNOWN on error.
+ * \return Computed ToW if >= 0 or \a TOW_UNKNOWN on error.
  */
 s32 tp_tow_compute(s32 old_TOW_ms,
                    u64 delta_tk,
