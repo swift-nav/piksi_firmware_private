@@ -124,7 +124,7 @@ static float solution_elevation_mask = 10.0;
 static bool almanacs_enabled = false;
 
 typedef struct cons_cfg_s {
-  char *name;
+  const char *name;
   bool enabled;
   const bool supported;
   bool (*is_applicable)(const code_t code);
@@ -202,7 +202,6 @@ static acq_timer_t gal_acq_timer[NUM_SATS_GAL] = {0};
 static u8 manage_track_new_acq(const me_gnss_signal_t mesid);
 static void manage_acq(void);
 
-static void manage_tracking_startup(void);
 static void tracking_startup_fifo_init(tracking_startup_fifo_t *fifo);
 static bool tracking_startup_fifo_write(
     tracking_startup_fifo_t *fifo, const tracking_startup_params_t *element);
@@ -264,7 +263,7 @@ static void manage_acq_thread(void *arg) {
 
   init_reacq();
 
-  while (TRUE) {
+  while (true) {
     last_good_fix_t lgf;
     bool have_fix;
 
@@ -645,6 +644,7 @@ static const char *get_ch_drop_reason_str(ch_drop_reason_t reason) {
  * \param[in] reason     Channel drop reason
  */
 static void drop_channel(tracker_t *tracker, ch_drop_reason_t reason) {
+#ifndef MESTA_BUILD
   /* Read the required parameters from the tracking channel first to ensure
    * that the tracking channel is not restarted in the mean time.
    */
@@ -707,6 +707,7 @@ static void drop_channel(tracker_t *tracker, ch_drop_reason_t reason) {
   /* Disable the decoder and tracking channels */
   decoder_channel_disable(tracker->nap_channel);
   tracker_disable(tracker->nap_channel);
+#endif /* #ifndef MESTA_BUILD */
 }
 
 /**
@@ -1182,7 +1183,7 @@ u8 constellation_track_count(constellation_t gnss) {
 /** Read tracking startup requests from the FIFO and attempt to start
  * tracking and decoding.
  */
-static void manage_tracking_startup(void) {
+void manage_tracking_startup(void) {
   tracking_startup_params_t startup_params;
   while (tracking_startup_fifo_read(&tracking_startup_fifo, &startup_params)) {
     acq_status_t *acq =

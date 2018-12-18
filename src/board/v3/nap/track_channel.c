@@ -346,6 +346,7 @@ void nap_track_init(u8 channel,
   NAP->TRK_TIMING_COMPARE = tc_next_rollover;
   chSysUnlock();
 
+#ifndef MESTA_BUILD
   /* Sleep until compare match */
   s32 tc_delta;
   while ((tc_delta = (tc_next_rollover - NAP->TIMING_COUNT)) >= 0) {
@@ -356,6 +357,7 @@ void nap_track_init(u8 channel,
      * in the future, so sleep for an extra tick. */
     chThdSleep(1 + sleep_time / 2);
   }
+#endif
 }
 
 void nap_track_update(u8 channel,

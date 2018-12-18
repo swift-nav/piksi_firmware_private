@@ -121,5 +121,6 @@ u16 get_orbit_slot(const u16 fcn);
 double glo_2ms_fcn_residual(const gnss_signal_t sid, u64 ref_tc);
 u8 code_track_count(code_t code);
 u8 constellation_track_count(constellation_t gnss);
+void manage_tracking_startup(void);
 
 #endif

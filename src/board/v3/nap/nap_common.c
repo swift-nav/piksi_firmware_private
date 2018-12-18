@@ -169,7 +169,7 @@ static void handle_nap_irq(void) {
   }
 }
 
-static void handle_nap_track_irq(void) {
+void handle_nap_track_irq(void) {
   u32 irq0 = NAP->TRK_IRQS[0];
   trackers_update(irq0, 0);
   NAP->TRK_IRQS[0] = irq0;
@@ -201,7 +201,7 @@ static void handle_nap_track_irq(void) {
   DO_EVERY(4096, watchdog_notify(WD_NOTIFY_NAP_ISR));
 }
 
-static void nap_irq_thread(void *arg) {
+static void __attribute__((noreturn)) nap_irq_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("NAP");
 
@@ -213,7 +213,7 @@ static void nap_irq_thread(void *arg) {
   }
 }
 
-void nap_track_irq_thread(void *arg) {
+void __attribute__((noreturn)) nap_track_irq_thread(void *arg) {
   piksi_systime_t sys_time;
   (void)arg;
   chRegSetThreadName("NAP Tracking");
