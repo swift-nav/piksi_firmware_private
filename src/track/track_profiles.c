@@ -852,12 +852,11 @@ static bool profile_switch_requested(tracker_t *tracker,
   tp_profile_t *state = &tracker->profile;
   const tp_profile_entry_t *next = &state->profiles[index];
 
-  bool pll_changed = pll_bw_changed(tracker, index);
-  bool fll_changed = fll_bw_changed(tracker, index);
-  bool dll_init_bw = (0 != (tracker->flags & TRACKER_FLAG_REMOVE_DLL_BW_ADDON));
+  bool bw_changed = pll_bw_changed(tracker, index);
+  bw_changed |= fll_bw_changed(tracker, index);
+  bw_changed |= (0 != (tracker->flags & TRACKER_FLAG_REMOVE_DLL_BW_ADDON));
 
-  if ((index == state->cur.index) && !pll_changed && !fll_changed &&
-      !dll_init_bw) {
+  if ((index == state->cur.index) && !bw_changed) {
     return false;
   }
 
