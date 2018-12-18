@@ -81,6 +81,9 @@ void tracker_retune(tracker_t *tracker, u32 chips_to_correlate) {
   }
 
   u8 spac = 0;
+  static u8 prev_spac_gps = 0;
+  static u8 prev_spac_bds = 0;
+  static u8 prev_spac_gal = 0;
   if (time_in_track_ms > 60 * SECS_MS && geo_sv) {
     if (time_in_track_ms < 70 * SECS_MS) {
       spac = 1;
@@ -146,6 +149,18 @@ void tracker_retune(tracker_t *tracker, u32 chips_to_correlate) {
       spac = 31;
     } else if (time_in_track_ms < 380 * SECS_MS) {
       spac = 32;
+    }
+    if (is_gal(tracker->mesid.code) && (spac != prev_spac_gal)) {
+      prev_spac_gal = spac;
+      log_error_mesid(tracker->mesid, "Spacing: %" PRIu8 "", spac);
+    }
+    if (is_gps(tracker->mesid.code) && (spac != prev_spac_gps)) {
+      prev_spac_gps = spac;
+      log_error_mesid(tracker->mesid, "Spacing: %" PRIu8 "", spac);
+    }
+    if (is_bds2(tracker->mesid.code) && (spac != prev_spac_bds)) {
+      prev_spac_bds = spac;
+      log_error_mesid(tracker->mesid, "Spacing: %" PRIu8 "", spac);
     }
   }
   /* Write NAP UPDATE register. */
