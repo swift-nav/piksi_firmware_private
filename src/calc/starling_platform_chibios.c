@@ -66,31 +66,6 @@
  * Local Variables
  ******************************************************************************/
 
-/* Time-matched observations data-structures. */
-static msg_t paired_obs_mailbox_buff[PAIRED_OBS_N_BUFF];
-static paired_obss_t paired_obs_buff[PAIRED_OBS_N_BUFF] _CCM;
-
-/* Keep a mailbox of received base obs so we can process all of them in
- * order even if we have a bursty base station connection. */
-static msg_t base_obs_mailbox_buff[BASE_OBS_N_BUFF];
-static obs_array_t base_obs_buff[BASE_OBS_N_BUFF] _CCM;
-
-/* ME Data API data-structures. */
-static msg_t me_obs_mailbox_buff[ME_OBS_MSG_N_BUFF];
-static obs_array_t me_obs_buff[ME_OBS_MSG_N_BUFF];
-
-/* SBAS Data API data-structures. */
-static msg_t sbas_data_mailbox_buff[SBAS_DATA_N_BUFF];
-static sbas_raw_data_t sbas_data_buff[SBAS_DATA_N_BUFF];
-
-/* Ephemeris Data API data-structures. */
-static msg_t ephemeris_mailbox_buff[EPHEMERIS_N_BUFF];
-static ephemeris_array_t ephemeris_buff[EPHEMERIS_N_BUFF];
-
-/* Imu Data API data-structures. */
-static msg_t imu_mailbox_buff[IMU_N_BUFF];
-static imu_data_t imu_buff[IMU_N_BUFF];
-
 static mutex_t mutexes[NUM_MUTEXES];
 
 /*******************************************************************************
@@ -170,14 +145,18 @@ typedef struct mailbox_info_s {
 } mailbox_info_t;
 
 static mailbox_info_t mailbox_info[MQ_ID_COUNT] = {
-    [MQ_ID_PAIRED_OBS] = {{0}, {0}, paired_obs_mailbox_buff, paired_obs_buff},
-    [MQ_ID_BASE_OBS] = {{0}, {0}, base_obs_mailbox_buff, base_obs_buff},
-    [MQ_ID_ME_OBS] = {{0}, {0}, me_obs_mailbox_buff, me_obs_buff},
-    [MQ_ID_SBAS_DATA] = {{0}, {0}, sbas_data_mailbox_buff, sbas_data_buff},
-    [MQ_ID_EPHEMERIS] = {{0}, {0}, ephemeris_mailbox_buff, ephemeris_buff},
-    [MQ_ID_IMU] = {{0}, {0}, imu_mailbox_buff, imu_buff}};
+    [MQ_ID_PAIRED_OBS] = {{0}, {0}, NULL, NULL},
+    [MQ_ID_BASE_OBS] = {{0}, {0}, NULL, NULL},
+    [MQ_ID_ME_OBS] = {{0}, {0}, NULL, NULL},
+    [MQ_ID_SBAS_DATA] = {{0}, {0}, NULL, NULL},
+    [MQ_ID_EPHEMERIS] = {{0}, {0}, NULL, NULL},
+    [MQ_ID_IMU] = {{0}, {0}, NULL, NULL}};
 
 void platform_mq_init(msg_queue_id_t id, size_t msg_size, size_t max_length) {
+  mailbox_info[id].mailbox_buf = chCoreAlloc(sizeof(msg_t) * max_length);
+  mailbox_info[id].mpool_buf = chCoreAlloc(msg_size * max_length);
+  assert(mailbox_info[id].mailbox_buf);
+  assert(mailbox_info[id].mpool_buf);
   chMBObjectInit(
       &mailbox_info[id].mailbox, mailbox_info[id].mailbox_buf, max_length);
   chPoolObjectInit(&mailbox_info[id].mpool, msg_size, NULL);
