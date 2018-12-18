@@ -18,14 +18,14 @@
 /* exported setting */
 const u32 biases_message_freq_setting = 5.0;
 
-/* Piksi Multi HW inter-signal biases estimated against Skydel / Septentrio  */
-static const double gps_l2_isc = -0.8;
-static const double glo_l1_isc = -5.4;
+/* Piksi Multi HW inter-signal biases calibrated against Skydel / Septentrio  */
+static const double gps_l2_isc = -1.3;
+static const double glo_l1_isc = -7.4;
 static const double glo_l2_isc = -0.4;
-static const double bds2_b11_isc = 1.1;
-static const double bds2_b2_isc = 4.4;
-static const double gal_e1b_isc = 0;
-static const double gal_e7i_isc = 4.4;
+static const double bds2_b11_isc = 0.3;
+static const double bds2_b2_isc = 3.6;
+static const double gal_e1b_isc = -0.2;
+static const double gal_e7i_isc = 3.3;
 
 /* These biases are to align the GLONASS carrier phase to the Septentrio
  * receivers carrier phase These biases are in cycles and are proportional to
