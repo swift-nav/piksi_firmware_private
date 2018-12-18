@@ -18,46 +18,14 @@
 /* exported setting */
 const u32 biases_message_freq_setting = 5.0;
 
-/* Empirical corrections for GLO per-frequency pseudorange bias as per
- * https://github.com/swift-nav/piksi_v3_bug_tracking/issues/606#issuecomment-323163617
- * to align observations to Septentrio receiver-type biases
- */
-static const double glo_l1_isc[] = {[0] = -7.8,
-                                    [1] = -8.7,
-                                    [2] = -9.0,
-                                    [3] = -7.6,
-                                    [4] = -8.5,
-                                    [5] = -9.7,
-                                    [6] = -8.5,
-                                    [7] = -9.2,
-                                    [8] = -11,
-                                    [9] = -10.6,
-                                    [10] = -10.7,
-                                    [11] = -10.9,
-                                    [12] = -12.7,
-                                    [13] = -11.5};
-
-static const double glo_l2_isc[] = {[0] = -5.3,
-                                    [1] = -5.3,
-                                    [2] = -5.0,
-                                    [3] = -4.6,
-                                    [4] = -3.8,
-                                    [5] = -5.2,
-                                    [6] = -5.2,
-                                    [7] = -4.0,
-                                    [8] = -4.5,
-                                    [9] = -5.3,
-                                    [10] = -5.3,
-                                    [11] = -5.0,
-                                    [12] = -4.0,
-                                    [13] = -5.0};
-
-/* TODO: estimate these properly against e.g. Septentrio  */
-static const double gps_l2_isc = 1.9;
-static const double bds2_b11_isc = -12.7;
-static const double bds2_b2_isc = -6.1;
-static const double gal_e1b_isc = -1.8;
-static const double gal_e7i_isc = 6.3;
+/* Piksi Multi HW inter-signal biases estimated against Skydel / Septentrio  */
+static const double gps_l2_isc = -0.8;
+static const double glo_l1_isc = -5.4;
+static const double glo_l2_isc = -0.4;
+static const double bds2_b11_isc = 1.1;
+static const double bds2_b2_isc = 4.4;
+static const double gal_e1b_isc = 0;
+static const double gal_e7i_isc = 4.4;
 
 /* These biases are to align the GLONASS carrier phase to the Septentrio
  * receivers carrier phase These biases are in cycles and are proportional to
@@ -84,13 +52,13 @@ void apply_isc_table(obs_array_t *obs_array) {
         break;
 
       case CODE_GLO_L1OF:
-        pseudorange_corr = glo_l1_isc[7];
+        pseudorange_corr = glo_l1_isc;
         carrier_phase_corr = (glo_map_get_fcn(obs->sid) - GLO_MIN_FCN) *
                              glo_l1_carrier_phase_bias;
         break;
 
       case CODE_GLO_L2OF:
-        pseudorange_corr = glo_l2_isc[7];
+        pseudorange_corr = glo_l2_isc;
         carrier_phase_corr = (glo_map_get_fcn(obs->sid) - GLO_MIN_FCN) *
                              glo_l2_carrier_phase_bias;
         break;
