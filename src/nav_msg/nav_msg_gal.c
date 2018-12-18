@@ -454,6 +454,7 @@ gal_decode_status_t gal_data_decoding(nav_msg_gal_inav_t *n,
   }
 
   gal_inav_decoded_t dd;
+  memset(&dd, 0, sizeof(gal_inav_decoded_t));
   gal_decode_status_t status = GAL_DECODE_WAIT;
   inav_data_type_t ret = parse_inav_word(n, &dd);
   switch (ret) {
