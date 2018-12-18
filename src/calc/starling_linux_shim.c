@@ -31,6 +31,8 @@
 #include <swiftnav/sid_set.h>
 #include <swiftnav/single_epoch_solver.h>
 #include <swiftnav/troposphere.h>
+#include <starling/platform/starling_platform.h>
+#include <starling/platform/mq.h>
 
 #include "calc_base_obs.h"
 #include "calc_pvt_common.h"
@@ -71,10 +73,8 @@
 #define MEO_QUEUE_NAME "meo-obs"
 
 /* SBAS Data API data-structures. */
-#define SBAS_DATA_N_BUFF 6
 #define SBAS_DATA_QUEUE_NAME "sbas-data"
 
-#define EPH_N_BUFF
 #define EPH_QUEUE_NAME "ephemeris"
 
 #define NUM_MUTEXES STARLING_MAX_NUM_MUTEXES
@@ -196,35 +196,25 @@ void platform_watchdog_notify_starling_main_thread() { /* TODO */
 typedef struct mailbox_info_s {
   mqd_t mailbox;
   char *mailbox_name;
-  uint8_t mailbox_len;
-  size_t item_size;
 } mailbox_info_t;
 
-static mailbox_info_t mailbox_info[MB_ID_COUNT] =
+static mailbox_info_t mailbox_info[MQ_ID_COUNT] =
     {[MB_ID_TIME_MATCHED_OBS] = {0,
-                                 TMO_QUEUE_NAME,
-                                 STARLING_OBS_N_BUFF,
-                                 sizeof(obss_t)},
-     [MB_ID_BASE_OBS] = {0,
-                         BO_QUEUE_NAME,
-                         BASE_OBS_N_BUFF,
-                         sizeof(obs_array_t)},
-     [MB_ID_ME_OBS] = {0,
-                       MEO_QUEUE_NAME,
-                       ME_OBS_MSG_N_BUFF,
-                       sizeof(obs_array_t)},
-     [MB_ID_SBAS_DATA] = {0,
-                          SBAS_DATA_QUEUE_NAME,
-                          SBAS_DATA_N_BUFF,
-                          sizeof(sbas_raw_data_t)},
-     [MB_ID_EPHEMERIS] = {
-         0, EPH_QUEUE_NAME, EPH_N_BUFF, sizeof(ephemeris_array_t)}};
+                                 TMO_QUEUE_NAME},
+     [MQ_ID_BASE_OBS] = {0,
+                         BO_QUEUE_NAME},
+     [MQ_ID_ME_OBS] = {0,
+                       MEO_QUEUE_NAME},
+     [MQ_ID_SBAS_DATA] = {0,
+                          SBAS_DATA_QUEUE_NAME},
+     [MQ_ID_EPHEMERIS] = {
+         0, EPH_QUEUE_NAME}};
 
-void platform_mailbox_init(mailbox_id_t id) {
+void platform_mq_init(msg_queue_id_t id, size_t msg_size, size_t max_length) {
   struct mq_attr attr;
 
-  attr.mq_maxmsg = mailbox_info[id].mailbox_len;
-  attr.mq_msgsize = mailbox_info[id].item_size;
+  attr.mq_maxmsg = max_length;
+  attr.mq_msgsize = msg_size;
   attr.mq_flags = 0;
 
   /* Blocking / non-blocking? */
@@ -243,7 +233,7 @@ static void platform_get_timeout(const uint32_t timeout_ms,
   ts->tv_nsec += timeout_ms * 1e6;
 }
 
-static int platform_mailbox_post_internal(mailbox_id_t id,
+static int platform_mailbox_post_internal(msg_queue_id_t id,
                                           void *msg,
                                           uint32_t timeout_ms,
                                           uint32_t msg_prio) {
@@ -264,15 +254,15 @@ static int platform_mailbox_post_internal(mailbox_id_t id,
   return 0;
 }
 
-int platform_mailbox_post(mailbox_id_t id, void *msg, int blocking) {
+int platform_mq_push(msg_queue_id_t id, void *msg, mq_blocking_mode_t should_block) {
   uint32_t timeout_ms =
-      (MB_BLOCKING == blocking) ? MAILBOX_BLOCKING_TIMEOUT_MS : 0;
+      (MQ_BLOCKING == should_block) ? MAILBOX_BLOCKING_TIMEOUT_MS : 0;
   return platform_mailbox_post_internal(id, msg, timeout_ms, MSG_PRIO_NORMAL);
 }
 
-int platform_mailbox_fetch(mailbox_id_t id, void **msg, int blocking) {
+int platform_mq_pop(msg_queue_id_t id, void **msg, mq_blocking_mode_t should_block) {
   uint32_t timeout_ms =
-      (MB_BLOCKING == blocking) ? MAILBOX_BLOCKING_TIMEOUT_MS : 0;
+      (MQ_BLOCKING == should_block) ? MAILBOX_BLOCKING_TIMEOUT_MS : 0;
   struct timespec ts = {0};
   platform_get_timeout(timeout_ms, &ts);
 
@@ -282,18 +272,19 @@ int platform_mailbox_fetch(mailbox_id_t id, void **msg, int blocking) {
                            mailbox_info[id].item_size,
                            NULL,
                            &ts)) {
+    msg = NULL;
     return errno;
   }
 
   return 0;
 }
 
-void *platform_mailbox_item_alloc(mailbox_id_t id) {
+void *platform_mq_alloc_msg(msg_queue_id_t id) {
   /* Do we want memory pool rather than straight from heap? */
   return malloc(mailbox_info[id].item_size);
 }
 
-void platform_mailbox_item_free(mailbox_id_t id, const void *ptr) {
+void platform_mq_free_msg(msg_queue_id_t id, void *msg) {
   (void)id;
-  free((void *)ptr);
+  free(msg);
 }
