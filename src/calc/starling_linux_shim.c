@@ -198,12 +198,12 @@ typedef struct mailbox_info_s {
   char *mailbox_name;
 } mailbox_info_t;
 
-static mailbox_info_t mailbox_info[MQ_ID_COUNT] = {
-    [MB_ID_TIME_MATCHED_OBS] = {0, TMO_QUEUE_NAME},
-    [MQ_ID_BASE_OBS] = {0, BO_QUEUE_NAME},
-    [MQ_ID_ME_OBS] = {0, MEO_QUEUE_NAME},
-    [MQ_ID_SBAS_DATA] = {0, SBAS_DATA_QUEUE_NAME},
-    [MQ_ID_EPHEMERIS] = {0, EPH_QUEUE_NAME}};
+static mailbox_info_t mailbox_info[MQ_ID_COUNT] =
+    {[MB_ID_TIME_MATCHED_OBS] = {0, TMO_QUEUE_NAME},
+     [MQ_ID_BASE_OBS] = {0, BO_QUEUE_NAME},
+     [MQ_ID_ME_OBS] = {0, MEO_QUEUE_NAME},
+     [MQ_ID_SBAS_DATA] = {0, SBAS_DATA_QUEUE_NAME},
+     [MQ_ID_EPHEMERIS] = {0, EPH_QUEUE_NAME}};
 
 void platform_mq_init(msg_queue_id_t id, size_t msg_size, size_t max_length) {
   struct mq_attr attr;

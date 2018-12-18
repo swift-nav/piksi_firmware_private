@@ -144,13 +144,13 @@ typedef struct mailbox_info_s {
   void *mpool_buf;
 } mailbox_info_t;
 
-static mailbox_info_t mailbox_info[MQ_ID_COUNT] = {
-    [MQ_ID_PAIRED_OBS] = {{0}, {0}, NULL, NULL},
-    [MQ_ID_BASE_OBS] = {{0}, {0}, NULL, NULL},
-    [MQ_ID_ME_OBS] = {{0}, {0}, NULL, NULL},
-    [MQ_ID_SBAS_DATA] = {{0}, {0}, NULL, NULL},
-    [MQ_ID_EPHEMERIS] = {{0}, {0}, NULL, NULL},
-    [MQ_ID_IMU] = {{0}, {0}, NULL, NULL}};
+static mailbox_info_t mailbox_info[MQ_ID_COUNT] =
+    {[MQ_ID_PAIRED_OBS] = {{0}, {0}, NULL, NULL},
+     [MQ_ID_BASE_OBS] = {{0}, {0}, NULL, NULL},
+     [MQ_ID_ME_OBS] = {{0}, {0}, NULL, NULL},
+     [MQ_ID_SBAS_DATA] = {{0}, {0}, NULL, NULL},
+     [MQ_ID_EPHEMERIS] = {{0}, {0}, NULL, NULL},
+     [MQ_ID_IMU] = {{0}, {0}, NULL, NULL}};
 
 void platform_mq_init(msg_queue_id_t id, size_t msg_size, size_t max_length) {
   mailbox_info[id].mailbox_buf = chCoreAlloc(sizeof(msg_t) * max_length);
