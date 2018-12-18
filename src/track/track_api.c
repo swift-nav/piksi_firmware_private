@@ -71,14 +71,90 @@ void tracker_retune(tracker_t *tracker, u32 chips_to_correlate) {
   double doppler_hz = tracker->doppler_hz;
   double code_phase_rate = tracker->code_phase_rate;
   bool nap_strip_sc = nap_sc_wipeoff(tracker);
-  bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
+  u64 time_in_track_ms = tracker_timer_ms(&tracker->age_timer);
+
+  bool geo_sv = false;
+  if ((tracker->mesid.code == CODE_BDS2_B1 && tracker->mesid.sat == 6) ||
+      (tracker->mesid.code == CODE_GPS_L1CA && tracker->mesid.sat == 1) ||
+      (tracker->mesid.code == CODE_GAL_E1B && tracker->mesid.sat == 1)) {
+    geo_sv = true;
+  }
+
+  u8 spac = 0;
+  if (time_in_track_ms > 60 * SECS_MS && geo_sv) {
+    if (time_in_track_ms < 70 * SECS_MS) {
+      spac = 1;
+    } else if (time_in_track_ms < 80 * SECS_MS) {
+      spac = 2;
+    } else if (time_in_track_ms < 90 * SECS_MS) {
+      spac = 3;
+    } else if (time_in_track_ms < 100 * SECS_MS) {
+      spac = 4;
+    } else if (time_in_track_ms < 110 * SECS_MS) {
+      spac = 5;
+    } else if (time_in_track_ms < 120 * SECS_MS) {
+      spac = 6;
+    } else if (time_in_track_ms < 130 * SECS_MS) {
+      spac = 7;
+    } else if (time_in_track_ms < 140 * SECS_MS) {
+      spac = 8;
+    } else if (time_in_track_ms < 150 * SECS_MS) {
+      spac = 9;
+    } else if (time_in_track_ms < 160 * SECS_MS) {
+      spac = 10;
+    } else if (time_in_track_ms < 170 * SECS_MS) {
+      spac = 11;
+    } else if (time_in_track_ms < 180 * SECS_MS) {
+      spac = 12;
+    } else if (time_in_track_ms < 190 * SECS_MS) {
+      spac = 13;
+    } else if (time_in_track_ms < 200 * SECS_MS) {
+      spac = 14;
+    } else if (time_in_track_ms < 210 * SECS_MS) {
+      spac = 15;
+    } else if (time_in_track_ms < 220 * SECS_MS) {
+      spac = 16;
+    } else if (time_in_track_ms < 230 * SECS_MS) {
+      spac = 17;
+    } else if (time_in_track_ms < 240 * SECS_MS) {
+      spac = 18;
+    } else if (time_in_track_ms < 250 * SECS_MS) {
+      spac = 19;
+    } else if (time_in_track_ms < 260 * SECS_MS) {
+      spac = 20;
+    } else if (time_in_track_ms < 270 * SECS_MS) {
+      spac = 21;
+    } else if (time_in_track_ms < 280 * SECS_MS) {
+      spac = 22;
+    } else if (time_in_track_ms < 290 * SECS_MS) {
+      spac = 23;
+    } else if (time_in_track_ms < 300 * SECS_MS) {
+      spac = 24;
+    } else if (time_in_track_ms < 310 * SECS_MS) {
+      spac = 25;
+    } else if (time_in_track_ms < 320 * SECS_MS) {
+      spac = 26;
+    } else if (time_in_track_ms < 330 * SECS_MS) {
+      spac = 27;
+    } else if (time_in_track_ms < 340 * SECS_MS) {
+      spac = 28;
+    } else if (time_in_track_ms < 350 * SECS_MS) {
+      spac = 29;
+    } else if (time_in_track_ms < 360 * SECS_MS) {
+      spac = 30;
+    } else if (time_in_track_ms < 370 * SECS_MS) {
+      spac = 31;
+    } else if (time_in_track_ms < 380 * SECS_MS) {
+      spac = 32;
+    }
+  }
   /* Write NAP UPDATE register. */
   nap_track_update(tracker->nap_channel,
                    doppler_hz,
                    code_phase_rate,
                    chips_to_correlate,
                    nap_strip_sc,
-                   confirmed);
+                   spac);
 }
 
 /** Adjust TOW for FIFO delay.
