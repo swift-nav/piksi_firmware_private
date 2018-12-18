@@ -268,6 +268,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
   if (NULL == obs_callback_array) {
     obs_callback_array = starling_alloc_base_obs();
     if (NULL == obs_callback_array) {
+      log_error("Couldn't get an array to store base obs");
       return;  // TODO(jangelo) Is this the correct course of action??
     }
   }
