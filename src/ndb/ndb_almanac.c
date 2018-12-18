@@ -728,7 +728,7 @@ void ndb_almanac_init(void) {
  *
  * \param[in]  sid GNSS signal identifier
  * \param[out] a   Almanac data destination. May have WN field set to
- *                 #WN_UNKNOWN if NDB doesn't have matching TOA/WN pair.
+ *                 \a WN_UNKNOWN if NDB doesn't have matching TOA/WN pair.
  *
  * \retval NDB_ERR_NONE             On success
  * \retval NDB_ERR_BAD_PARAM        On parameter error
