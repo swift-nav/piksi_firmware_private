@@ -75,7 +75,9 @@ static paired_obss_t paired_obs_buff[PAIRED_OBS_N_BUFF] _CCM;
 /* Keep a mailbox of received base obs so we can process all of them in
  * order even if we have a bursty base station connection. */
 static msg_t base_obs_mailbox_buff[BASE_OBS_N_BUFF];
+/* @cond Doxygen_to_ignore_CCM */
 static obs_array_t base_obs_buff[BASE_OBS_N_BUFF] _CCM;
+/* @endcond */
 
 /* ME Data API data-structures. */
 static msg_t me_obs_mailbox_buff[ME_OBS_MSG_N_BUFF];
@@ -173,39 +175,39 @@ typedef struct mailbox_info_s {
   size_t item_size;
 } mailbox_info_t;
 
-static mailbox_info_t mailbox_info[MB_ID_COUNT] =
-    {[MB_ID_PAIRED_OBS] = {{0},
-                           {0},
-                           paired_obs_mailbox_buff,
-                           paired_obs_buff,
-                           PAIRED_OBS_N_BUFF,
-                           sizeof(paired_obss_t)},
-     [MB_ID_BASE_OBS] = {{0},
+static mailbox_info_t mailbox_info[MB_ID_COUNT] = {
+    [MB_ID_PAIRED_OBS] = {{0},
+                          {0},
+                          paired_obs_mailbox_buff,
+                          paired_obs_buff,
+                          PAIRED_OBS_N_BUFF,
+                          sizeof(paired_obss_t)},
+    [MB_ID_BASE_OBS] = {{0},
+                        {0},
+                        base_obs_mailbox_buff,
+                        base_obs_buff,
+                        BASE_OBS_N_BUFF,
+                        sizeof(obs_array_t)},
+    [MB_ID_ME_OBS] = {{0},
+                      {0},
+                      me_obs_mailbox_buff,
+                      me_obs_buff,
+                      ME_OBS_MSG_N_BUFF,
+                      sizeof(obs_array_t)},
+    [MB_ID_SBAS_DATA] = {{0},
                          {0},
-                         base_obs_mailbox_buff,
-                         base_obs_buff,
-                         BASE_OBS_N_BUFF,
-                         sizeof(obs_array_t)},
-     [MB_ID_ME_OBS] = {{0},
-                       {0},
-                       me_obs_mailbox_buff,
-                       me_obs_buff,
-                       ME_OBS_MSG_N_BUFF,
-                       sizeof(obs_array_t)},
-     [MB_ID_SBAS_DATA] = {{0},
-                          {0},
-                          sbas_data_mailbox_buff,
-                          sbas_data_buff,
-                          SBAS_DATA_N_BUFF,
-                          sizeof(sbas_raw_data_t)},
-     [MB_ID_EPHEMERIS] = {{0},
-                          {0},
-                          ephemeris_mailbox_buff,
-                          ephemeris_buff,
-                          EPHEMERIS_N_BUFF,
-                          sizeof(ephemeris_array_t)},
-     [MB_ID_IMU] = {
-         {0}, {0}, imu_mailbox_buff, imu_buff, IMU_N_BUFF, sizeof(imu_data_t)}};
+                         sbas_data_mailbox_buff,
+                         sbas_data_buff,
+                         SBAS_DATA_N_BUFF,
+                         sizeof(sbas_raw_data_t)},
+    [MB_ID_EPHEMERIS] = {{0},
+                         {0},
+                         ephemeris_mailbox_buff,
+                         ephemeris_buff,
+                         EPHEMERIS_N_BUFF,
+                         sizeof(ephemeris_array_t)},
+    [MB_ID_IMU] = {
+        {0}, {0}, imu_mailbox_buff, imu_buff, IMU_N_BUFF, sizeof(imu_data_t)}};
 
 void platform_mailbox_init(mailbox_id_t id) {
   chMBObjectInit(&mailbox_info[id].mailbox,
