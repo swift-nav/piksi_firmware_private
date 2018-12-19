@@ -195,7 +195,7 @@ endef
 $(eval $(call SOURCES,${CSRC}))
 
 mesta : ${obj.c}
-	$(CC) -o $@ -lm $^
+	$(CC) -o $@ $^ -lm
 
 ${obj.c} : % :
 	@mkdir -p $(dir $@)
