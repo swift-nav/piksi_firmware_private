@@ -787,6 +787,16 @@ static void tp_tracker_update_loops(tracker_t *tracker, u32 cycle_flags) {
   }
 }
 
+/* Assume that the maximum expected acceleration is 7g and the carrier
+   wavelength is of GPS L1CA (0.19m), which is a safe generalization for this
+   purpose. */
+#define MAX_FREQ_RATE_HZ_PER_S (7. * STD_GRAVITY_ACCELERATION / 0.19)
+/* The carrier freq diff threshold we do not want to exceed */
+#define MAX_FREQ_DIFF_HZ 70
+/* work out the time difference needed to check the actual freq rate
+   against max_freq_diff_hz threshold */
+#define DIFF_INTERVAL_MS (SECS_MS * MAX_FREQ_DIFF_HZ / MAX_FREQ_RATE_HZ_PER_S)
+
 /**
  * Drops channels with measurement outliers.
  *
@@ -808,21 +818,10 @@ static void tp_tracker_flag_outliers(tracker_t *tracker) {
     tracker_flag_drop(tracker, CH_DROP_REASON_OUTLIER);
   }
 
-  /* Check the maximum carrier frequency rate.
-     Assume that the maximum expected acceleration is 7g and the carrier
-     wavelength is of GPS L1CA (0.19m), which is a safe generalization for this
-     purpose. */
-  static const double max_freq_rate_hz_per_s =
-      7. * STD_GRAVITY_ACCELERATION / 0.19;
-  /* The carrier freq diff threshold we do not want to exceed */
-  static const double max_freq_diff_hz = 70;
-  /* work out the time difference needed to check the actual freq rate
-     against max_freq_diff_hz threshold */
-  static const u32 diff_interval_ms =
-      (u32)(SECS_MS * max_freq_diff_hz / max_freq_rate_hz_per_s);
+  /* Check the maximum carrier frequency rate. */
 
   u64 elapsed_ms = tracker_timer_ms(&tracker->carrier_freq_age_timer);
-  if (elapsed_ms >= diff_interval_ms) {
+  if (elapsed_ms >= (u32)DIFF_INTERVAL_MS) {
     if (!tracker->carrier_freq_prev_valid) {
       tracker->carrier_freq_prev = tracker->carrier_freq;
       tracker->carrier_freq_prev_valid = true;
@@ -830,9 +829,9 @@ static void tp_tracker_flag_outliers(tracker_t *tracker) {
 
     double diff_hz = tracker->carrier_freq - tracker->carrier_freq_prev;
     double elapsed_s = (double)elapsed_ms / SECS_MS;
-    /* the elapsed time could be slightly larger than diff_interval_ms.
+    /* the elapsed time could be slightly larger than DIFF_INTERVAL_MS
        So let's account for it in max_diff_hz */
-    double max_diff_hz = max_freq_rate_hz_per_s * elapsed_s;
+    double max_diff_hz = MAX_FREQ_RATE_HZ_PER_S * elapsed_s;
     /* If raw CN0 is high the outliers are likely due to genuine acceleration */
     bool low_cn0 = (tracker->cn0_est.cn0_raw_dbhz < TP_OUTLIERS_CN0_THRES_DBHZ);
     if (low_cn0 && (fabs(diff_hz) > max_diff_hz)) {
