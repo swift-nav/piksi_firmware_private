@@ -429,7 +429,7 @@ static const tp_profile_entry_t tracker_profiles_base[] = {
       TP_WAIT_FLOCK | TP_WAIT_PLOCK },
 
   [IDX_2MS] =
-  { { BW_DYN,           0,            2,   TP_CTRL_PLL2,
+  { { BW_DYN,           0,           .5,   TP_CTRL_PLL2,
       TP_TM_2MS_20MS,  TP_TM_2MS_10MS,  TP_TM_2MS_2MS,  TP_TM_2MS_SC4 },
       TP_LD_PARAMS_PHASE_2MS, TP_LD_PARAMS_FREQ_2MS,
         40,             0,            0,
@@ -437,7 +437,7 @@ static const tp_profile_entry_t tracker_profiles_base[] = {
       0},
 
   [IDX_5MS] =
-  { { BW_DYN,           0,            1,   TP_CTRL_PLL2,
+  { { BW_DYN,           0,           .5,   TP_CTRL_PLL2,
       TP_TM_5MS_20MS,  TP_TM_5MS_10MS,  TP_TM_2MS_2MS,  TP_TM_4MS_SC4 },
       TP_LD_PARAMS_PHASE_5MS, TP_LD_PARAMS_FREQ_5MS,
         40,             0,            0,
