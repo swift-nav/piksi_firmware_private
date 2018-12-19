@@ -564,14 +564,22 @@ static float compute_fll_bw(float cn0, u8 T_ms) {
   return bw;
 }
 
+static bool code_requires_init_profile(code_t code) {
+  bool ret = false;
+  if (code_requires_direct_acq(code) || is_gal(code) || is_bds2(code)) {
+    /* signals from ACQ always go through init profiles,
+     * and also if they are Galileo or Beidou, as right now
+     * the NAP secondary code stripping still has problems with FW */
+    ret = true;
+  }
+  return ret;
+}
+
 static u8 get_profile_index(code_t code,
                             const tp_profile_entry_t *profiles,
                             size_t num_profiles,
                             float cn0) {
-  if (code_requires_direct_acq(code) || is_gal(code) || is_bds2(code)) {
-    /* signals from ACQ always go through init profiles,
-     * and also if they are Galileo as right now
-     * the NAP secondary code stripping still has problems with FW */
+  if (code_requires_init_profile(code)) {
     return 0;
   }
 
@@ -680,10 +688,8 @@ void tp_profile_update_config(tracker_t *tracker) {
   profile->loop_params.fll_bw = profile->cur.fll_bw;
   profile->loop_params.code_bw = cur_profile->profile.dll_bw;
   bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
-  bool init_profiles = code_requires_direct_acq(mesid.code);
-  init_profiles |= is_gal(mesid.code);
-  init_profiles |= is_bds2(mesid.code);
-  if (!confirmed && !init_profiles) {
+  if (!confirmed && !code_requires_init_profile(mesid.code)) {
+    /* BW addon for unconfirmed signals that start from non-init profiles. */
     profile->loop_params.code_bw += DLL_BW_ADDON_HZ;
   }
   profile->loop_params.mode = get_track_mode(mesid, cur_profile);
