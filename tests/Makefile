@@ -109,7 +109,7 @@ lsnp :
 	      -DCMAKE_CXX_COMPILER=$(CXX_COMPILER) \
 	      -DENABLE_AUTOFORMAT=OFF \
 	      ../
-	$(MAKE) -C $(STARLING_BUILDDIR) --no-print-directory
+	$(MAKE) -C $(STARLING_BUILDDIR) starling --no-print-directory
 
 clean :
 	@printf "CLEAN   Starling\n"; \
