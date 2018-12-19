@@ -36,6 +36,10 @@
    to sensitivity profile, when signal is reasonably strong */
 #define TP_WEAK_SIGNAL_THRESHOLD_MS 100
 
+/** DLL Bandwidth addon for handover signals which start from non-init profiles.
+    Used for faster DLL loop convergence. */
+#define DLL_BW_ADDON_HZ (5.0f)
+
 /** Unknown delay indicator */
 #define TP_DELAY_UNKNOWN -1
 
@@ -560,14 +564,22 @@ static float compute_fll_bw(float cn0, u8 T_ms) {
   return bw;
 }
 
+static bool code_requires_init_profile(code_t code) {
+  bool ret = false;
+  if (code_requires_direct_acq(code) || is_gal(code) || is_bds2(code)) {
+    /* signals from ACQ always go through init profiles,
+     * and also if they are Galileo or Beidou, as right now
+     * the NAP secondary code stripping still has problems with FW */
+    ret = true;
+  }
+  return ret;
+}
+
 static u8 get_profile_index(code_t code,
                             const tp_profile_entry_t *profiles,
                             size_t num_profiles,
                             float cn0) {
-  if (code_requires_direct_acq(code) || is_gal(code) || is_bds2(code)) {
-    /* signals from ACQ always go through init profiles,
-     * and also if they are Galileo as right now
-     * the NAP secondary code stripping still has problems with FW */
+  if (code_requires_init_profile(code)) {
     return 0;
   }
 
@@ -675,6 +687,11 @@ void tp_profile_update_config(tracker_t *tracker) {
   profile->loop_params.pll_bw = profile->cur.pll_bw;
   profile->loop_params.fll_bw = profile->cur.fll_bw;
   profile->loop_params.code_bw = cur_profile->profile.dll_bw;
+  bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
+  if (!confirmed && !code_requires_init_profile(mesid.code)) {
+    /* BW addon for unconfirmed signals that start from non-init profiles. */
+    profile->loop_params.code_bw += DLL_BW_ADDON_HZ;
+  }
   profile->loop_params.mode = get_track_mode(mesid, cur_profile);
   profile->loop_params.ctrl = cur_profile->profile.controller_type;
 
@@ -841,10 +858,11 @@ static bool profile_switch_requested(tracker_t *tracker,
   tp_profile_t *state = &tracker->profile;
   const tp_profile_entry_t *next = &state->profiles[index];
 
-  bool pll_changed = pll_bw_changed(tracker, index);
-  bool fll_changed = fll_bw_changed(tracker, index);
+  bool bw_changed = pll_bw_changed(tracker, index);
+  bw_changed |= fll_bw_changed(tracker, index);
+  bw_changed |= (0 != (tracker->flags & TRACKER_FLAG_REMOVE_DLL_BW_ADDON));
 
-  if ((index == state->cur.index) && !pll_changed && !fll_changed) {
+  if ((index == state->cur.index) && !bw_changed) {
     return false;
   }
 
@@ -854,6 +872,8 @@ static bool profile_switch_requested(tracker_t *tracker,
     /* Unaided DLL velocity causes instability when switching to aided DLL */
     state->dll_init = true;
   }
+
+  tracker->flags &= ~TRACKER_FLAG_REMOVE_DLL_BW_ADDON;
 
   state->next.index = index;
 
@@ -921,6 +941,10 @@ bool tp_profile_has_new_profile(tracker_t *tracker) {
 
   const tp_profile_entry_t *cur_profile = &state->profiles[state->cur.index];
   u16 flags = cur_profile->flags;
+
+  if (0 != (tracker->flags & TRACKER_FLAG_REMOVE_DLL_BW_ADDON)) {
+    return profile_switch_requested(tracker, state->cur.index, "dll_init_bw");
+  }
 
   if (0 != (flags & TP_LOW_CN0) && low_cn0_profile_switch_requested(tracker)) {
     return true;
