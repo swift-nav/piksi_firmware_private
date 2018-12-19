@@ -36,8 +36,8 @@ static const double gal_e1b_isc = -0.2;
 static const double gal_e7i_isc = 3.3;
 
 /* FCN coefficients for GLO pseudoranges (meters/fcn number) */
-static const double glo_l1_pseudorange_fcn_coef = 0.05;
-static const double glo_l2_pseudorange_fcn_coef = -0.25;
+static const double glo_l1_pseudorange_fcn_coef = -0.05;
+static const double glo_l2_pseudorange_fcn_coef = 0.25;
 
 /* FCN coefficients for GLO carrier phases (cycles/fcn number) */
 static const double glo_l1_carrier_fcn_coef = -0.041;
