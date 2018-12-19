@@ -49,6 +49,7 @@
 #include "system_monitor/system_monitor.h"
 #include "timing/timing.h"
 #include "track/track_api.h"
+#include "track/track_common.h"
 #include "track/track_sid_db.h"
 #include "track/track_state.h"
 #include "track/track_utils.h"
@@ -580,134 +581,51 @@ void me_settings_setup(void) {
  */
 float get_solution_elevation_mask() { return solution_elevation_mask; }
 
-/**
- * Helper to provide channel drop reason literal.
- * \param[in] reason Channel drop reason.
- *
- * \return Literal for the given \a reason.
- */
-static const char *get_ch_drop_reason_str(ch_drop_reason_t reason) {
-  const char *str = "";
-  switch (reason) {
-    case CH_DROP_REASON_ERROR:
-      str = "error occurred, dropping";
-      break;
-    case CH_DROP_REASON_MASKED:
-      str = "channel is masked, dropping";
-      break;
-    case CH_DROP_REASON_NO_BIT_SYNC:
-      str = "no bit sync, dropping";
-      break;
-    case CH_DROP_REASON_NO_PLOCK:
-      str = "No pessimistic lock for too long, dropping";
-      break;
-    case CH_DROP_REASON_LOW_CN0:
-      str = "low CN0 too long, dropping";
-      break;
-    case CH_DROP_REASON_XCORR:
-      str = "cross-correlation confirmed, dropping";
-      break;
-    case CH_DROP_REASON_NO_UPDATES:
-      str = "no updates, dropping";
-      break;
-    case CH_DROP_REASON_SV_UNHEALTHY:
-      str = "SV is unhealthy, dropping";
-      break;
-    case CH_DROP_REASON_LEAP_SECOND:
-      str = "Leap second event, dropping GLO signal";
-      break;
-    case CH_DROP_REASON_OUTLIER:
-      str = "SV measurement outlier, dropping";
-      break;
-    case CH_DROP_REASON_SBAS_PROVIDER_CHANGE:
-      str = "SBAS provider change, dropping";
-      break;
-    case CH_DROP_REASON_RAIM:
-      str = "Measurement flagged by RAIM, dropping";
-      break;
-    case CH_DROP_REASON_NEW_MODE:
-      str = "New tracker mode, dropping";
-      break;
-    default:
-      assert(!"Unknown channel drop reason");
-  }
-  return str;
-}
-
-/**
- * Processes channel drop operation.
- *
- * The method logs channel drop reason message, actually disables tracking
- * channel components and updates ACQ hints for re-acqusition.
- *
- * \param[in,out] tracker Tracker channel data
- * \param[in] reason     Channel drop reason
- */
-static void drop_channel(tracker_t *tracker, ch_drop_reason_t reason) {
-#ifndef MESTA_BUILD
-  /* Read the required parameters from the tracking channel first to ensure
-   * that the tracking channel is not restarted in the mean time.
-   */
-  const u32 flags = tracker->flags;
+/** Updates acq hints using last observed Doppler value */
+void update_acq_hints(tracker_t *tracker) {
   me_gnss_signal_t mesid = tracker->mesid;
+  if (!code_requires_direct_acq(mesid.code)) {
+    return;
+  }
+
+  const u32 flags = tracker->flags;
+  bool had_locks =
+      (0 != (flags & (TRACKER_FLAG_HAD_PLOCK | TRACKER_FLAG_HAD_FLOCK)));
+  if (!had_locks) {
+    return;
+  }
+
   u64 time_in_track_ms = tracker_timer_ms(&tracker->age_timer);
+  bool long_in_track = time_in_track_ms > TRACK_REACQ_MS;
+  if (!long_in_track) {
+    return;
+  }
 
-  /* Log message with appropriate priority. */
-  if ((CH_DROP_REASON_ERROR == reason) ||
-      (CH_DROP_REASON_NO_UPDATES == reason)) {
-    log_error_mesid(mesid,
-                    "[+%" PRIu64 "ms] nap_channel = %" PRIu8 " %s",
-                    time_in_track_ms,
-                    tracker->nap_channel,
-                    get_ch_drop_reason_str(reason));
-  } else if ((0 == (flags & TRACKER_FLAG_CONFIRMED)) ||
-             (CH_DROP_REASON_NEW_MODE == reason)) {
-    /* Unconfirmed tracker messages are always logged at debug level.
-       Same is for new tracker mode activation. */
-    log_debug_mesid(mesid,
-                    "[+%" PRIu64 "ms] %s",
-                    time_in_track_ms,
-                    get_ch_drop_reason_str(reason));
+  u64 unlocked_ms = tracker_timer_ms(&tracker->unlocked_timer);
+  bool long_unlocked = unlocked_ms > TRACK_REACQ_MS;
+  if (long_unlocked) {
+    return;
+  }
+
+  bool was_xcorr = (flags & TRACKER_FLAG_DROP_CHANNEL) &&
+                   (CH_DROP_REASON_XCORR == tracker->ch_drop_reason);
+  if (was_xcorr) {
+    return;
+  }
+
+  double carrier_freq = tracker->carrier_freq_at_lock;
+  float doppler_min =
+      code_to_sv_doppler_min(mesid.code) + code_to_tcxo_doppler_min(mesid.code);
+  float doppler_max =
+      code_to_sv_doppler_max(mesid.code) + code_to_tcxo_doppler_max(mesid.code);
+  if ((carrier_freq < doppler_min) || (carrier_freq > doppler_max)) {
+    log_error_mesid(
+        mesid, "Acq: bogus carr freq: %lf. Rejected.", carrier_freq);
   } else {
-    /* Confirmed tracker messages are always logged at info level */
-    log_info_mesid(mesid,
-                   "[+%" PRIu64 "ms] %s",
-                   time_in_track_ms,
-                   get_ch_drop_reason_str(reason));
+    acq_status_t *acq = &acq_status[mesid_to_global_index(mesid)];
+    acq->dopp_hint_low = MAX(carrier_freq - ACQ_FULL_CF_STEP, doppler_min);
+    acq->dopp_hint_high = MIN(carrier_freq + ACQ_FULL_CF_STEP, doppler_max);
   }
-
-  acq_status_t *acq = &acq_status[mesid_to_global_index(mesid)];
-
-  if (code_requires_direct_acq(mesid.code)) {
-    bool had_locks =
-        (0 != (flags & (TRACKER_FLAG_HAD_PLOCK | TRACKER_FLAG_HAD_FLOCK)));
-    bool long_in_track = time_in_track_ms > TRACK_REACQ_MS;
-    u64 unlocked_ms = tracker_timer_ms(&tracker->unlocked_timer);
-    bool long_unlocked = unlocked_ms > TRACK_REACQ_MS;
-    bool was_xcorr = (flags & TRACKER_FLAG_DROP_CHANNEL) &&
-                     (CH_DROP_REASON_XCORR == tracker->ch_drop_reason);
-
-    if (long_in_track && had_locks && !long_unlocked && !was_xcorr) {
-      double carrier_freq = tracker->carrier_freq_at_lock;
-      float doppler_min = code_to_sv_doppler_min(mesid.code) +
-                          code_to_tcxo_doppler_min(mesid.code);
-      float doppler_max = code_to_sv_doppler_max(mesid.code) +
-                          code_to_tcxo_doppler_max(mesid.code);
-      if ((carrier_freq < doppler_min) || (carrier_freq > doppler_max)) {
-        log_error_mesid(
-            mesid, "Acq: bogus carr freq: %lf. Rejected.", carrier_freq);
-      } else {
-        /* FIXME other constellations/bands */
-        acq->dopp_hint_low = MAX(carrier_freq - ACQ_FULL_CF_STEP, doppler_min);
-        acq->dopp_hint_high = MIN(carrier_freq + ACQ_FULL_CF_STEP, doppler_max);
-      }
-    }
-  }
-
-  /* Disable the decoder and tracking channels */
-  decoder_channel_disable(tracker->nap_channel);
-  tracker_disable(tracker->nap_channel);
-#endif /* #ifndef MESTA_BUILD */
 }
 
 /**
@@ -833,14 +751,14 @@ void sanitize_tracker(tracker_t *tracker) {
   }
 
   if (0 != (flags & TRACKER_FLAG_DROP_CHANNEL)) {
-    drop_channel(tracker, tracker->ch_drop_reason);
+    tp_drop_channel(tracker, tracker->ch_drop_reason);
     return;
   }
 
   /* Is tracking masked? */
   u16 global_index = mesid_to_global_index(mesid);
   if (track_mask[global_index]) {
-    drop_channel(tracker, CH_DROP_REASON_MASKED);
+    tp_drop_channel(tracker, CH_DROP_REASON_MASKED);
     return;
   }
 
@@ -851,7 +769,7 @@ void sanitize_tracker(tracker_t *tracker) {
 
   /* Do we not have nav bit sync yet? */
   if (0 == (flags & TRACKER_FLAG_BIT_SYNC)) {
-    drop_channel(tracker, CH_DROP_REASON_NO_BIT_SYNC);
+    tp_drop_channel(tracker, CH_DROP_REASON_NO_BIT_SYNC);
     return;
   }
 
@@ -862,14 +780,14 @@ void sanitize_tracker(tracker_t *tracker) {
      CN0 sanity checks.*/
   u64 unlocked_ms = tracker_timer_ms(&tracker->unlocked_timer);
   if (unlocked_ms > TRACK_DROP_UNLOCKED_MS) {
-    drop_channel(tracker, CH_DROP_REASON_NO_PLOCK);
+    tp_drop_channel(tracker, CH_DROP_REASON_NO_PLOCK);
     return;
   }
 
   /* CN0 below threshold for a while? */
   u64 cn0_drop_ms = tracker_timer_ms(&tracker->cn0_below_drop_thres_timer);
   if (cn0_drop_ms > TRACK_DROP_CN0_MS) {
-    drop_channel(tracker, CH_DROP_REASON_LOW_CN0);
+    tp_drop_channel(tracker, CH_DROP_REASON_LOW_CN0);
     return;
   }
 }

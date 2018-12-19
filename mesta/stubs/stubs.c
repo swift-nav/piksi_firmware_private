@@ -117,7 +117,11 @@ void chSysLockFromISR(void) {}
 
 void chSysUnlockFromISR(void) {}
 
+extern swiftnap_t mesta_nap;
+
 systime_t chThdSleep(systime_t time) {
+  u32 *count = (u32 *)(uintptr_t)&mesta_nap.TIMING_COUNT;
+  *count += 1000;
   (void)time;
   return 0;
 }
@@ -344,3 +348,8 @@ ssize_t sbp_fileio_read(const char *filename,
 }
 
 u16 sender_id_get(void) { return 0x1; /* dummy value */ }
+
+void tp_drop_channel(tracker_t *tracker, ch_drop_reason_t reason) {
+  (void)tracker;
+  (void)reason;
+}

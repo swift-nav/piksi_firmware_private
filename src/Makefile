@@ -151,6 +151,7 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/track/track_state.o \
         $(SWIFTNAV_ROOT)/src/track/track_utils.o \
         $(SWIFTNAV_ROOT)/src/track/track_timer.o \
+        $(SWIFTNAV_ROOT)/src/track/track_drop.o \
         $(SWIFTNAV_ROOT)/src/nav_msg/nav_msg.o \
         $(SWIFTNAV_ROOT)/src/nav_msg/cnav_msg.o \
         $(SWIFTNAV_ROOT)/src/nav_msg/sbas_msg.o \
