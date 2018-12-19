@@ -21,7 +21,6 @@
 #include <ch.h>
 
 #include <libsbp/sbp.h>
-#include <starling/integration/starling_input_bridge.h>
 #include <starling/observation.h>
 #include <starling/pvt_engine/firmware_binding.h>
 #include <swiftnav/constants.h>
@@ -186,7 +185,7 @@ errno_t platform_mq_pop(msg_queue_id_t id,
   if (MSG_OK !=
       chMBFetch(&mailbox_info[id].mailbox, (msg_t *)msg, MS2ST(timeout_ms))) {
     /* Empty or mailbox reset while waiting */
-    msg = NULL;
+    *msg = NULL;
     return EBUSY;
   }
 

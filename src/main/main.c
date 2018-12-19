@@ -121,6 +121,11 @@ int main(void) {
   hw_version_string_get(hw_version_string);
   log_info("hw_version: %s", hw_version_string);
 
+  log_info("sizeof(obs_array_t) = %u", sizeof(obs_array_t));
+  log_info("sizeof(paired_obss_t) = %u", sizeof(paired_obss_t));
+  log_info("sizeof(sbas_raw_data_t) = %u", sizeof(sbas_raw_data_t));
+  log_info("sizeof(ephemeris_array_t) = %u", sizeof(ephemeris_array_t));
+
   nap_auth_setup();
   nap_auth_check();
 
