@@ -4,12 +4,6 @@
 #include <swiftnav/linear_algebra.h>
 #include "sbas_select/sbas_select.h"
 
-void log_(u8 level, const char *msg, ...) {
-  (void)level;
-  (void)msg;
-  return;
-}
-
 TEST(sbas_select_tests, masks) {
   EXPECT_EQ(sbas_select_prn_mask(SBAS_NONE), 0);
 
