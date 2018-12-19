@@ -42,8 +42,8 @@
 
 /* Implementation used for libswiftnav's logging functionality. */
 static void sbp_log_(int level, const char *msg, ...);
-static void sbp_detailed_log_(int level, 
-                              const char *file_path, 
+static void sbp_detailed_log_(int level,
+                              const char *file_path,
                               const int line_number,
                               const char *msg,
                               ...);
