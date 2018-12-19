@@ -18,21 +18,30 @@
 /* exported setting */
 const u32 biases_message_freq_setting = 5.0;
 
-/* Piksi Multi HW inter-signal biases calibrated against Skydel / Septentrio  */
-static const double gps_l2_isc = -1.3;
+/** Inter-signal corrections
+ *
+ * These hard-coded constants calibrate the Piksi Multi observation outputs to
+ * those of the Septentrio receiver. Calibration was done in Dec 2018 against
+ * the live-roof-650-townsend-msm7 scenario, using just the zero-baseline boards
+ * of the pairs
+ * */
+
+/* pseudorange biases (meters) */
+static const double gps_l2_isc = -1.1;
 static const double glo_l1_isc = -7.4;
-static const double glo_l2_isc = -0.4;
-static const double bds2_b11_isc = 0.3;
+static const double glo_l2_isc = -0.2;
+static const double bds2_b11_isc = 0.4;
 static const double bds2_b2_isc = 3.6;
 static const double gal_e1b_isc = -0.2;
 static const double gal_e7i_isc = 3.3;
 
-/* These biases are to align the GLONASS carrier phase to the Septentrio
- * receivers carrier phase These biases are in cycles and are proportional to
- * the frequency number
- * */
-static const double glo_l1_carrier_phase_bias = -0.041;
-static const double glo_l2_carrier_phase_bias = -0.024;
+/* FCN coefficients for GLO pseudoranges (meters/fcn number) */
+static const double glo_l1_pseudorange_fcn_coef = 0.05;
+static const double glo_l2_pseudorange_fcn_coef = -0.25;
+
+/* FCN coefficients for GLO carrier phases (cycles/fcn number) */
+static const double glo_l1_carrier_fcn_coef = -0.041;
+static const double glo_l2_carrier_fcn_coef = -0.024;
 
 /** Apply ISC corrections from hard-coded table
  * Alignment is performed relative to the Septentrio
@@ -51,17 +60,19 @@ void apply_isc_table(obs_array_t *obs_array) {
         pseudorange_corr = gps_l2_isc;
         break;
 
-      case CODE_GLO_L1OF:
-        pseudorange_corr = glo_l1_isc;
-        carrier_phase_corr = (glo_map_get_fcn(obs->sid) - GLO_MIN_FCN) *
-                             glo_l1_carrier_phase_bias;
+      case CODE_GLO_L1OF: {
+        u8 fcn_diff = glo_map_get_fcn(obs->sid) - GLO_MIN_FCN;
+        pseudorange_corr = fcn_diff * glo_l1_pseudorange_fcn_coef + glo_l1_isc;
+        carrier_phase_corr = fcn_diff * glo_l1_carrier_fcn_coef;
         break;
+      }
 
-      case CODE_GLO_L2OF:
-        pseudorange_corr = glo_l2_isc;
-        carrier_phase_corr = (glo_map_get_fcn(obs->sid) - GLO_MIN_FCN) *
-                             glo_l2_carrier_phase_bias;
+      case CODE_GLO_L2OF: {
+        u8 fcn_diff = glo_map_get_fcn(obs->sid) - GLO_MIN_FCN;
+        pseudorange_corr = fcn_diff * glo_l2_pseudorange_fcn_coef + glo_l2_isc;
+        carrier_phase_corr = fcn_diff * glo_l2_carrier_fcn_coef;
         break;
+      }
 
       case CODE_BDS2_B1:
         pseudorange_corr = bds2_b11_isc;
