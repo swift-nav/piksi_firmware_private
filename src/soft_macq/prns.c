@@ -596,8 +596,6 @@ static const u32 gps_l2cl_prns_last_values[] = {
 
 /** Return the code generator init value for the 1st LFSR.
  * \param mesid ME signal ID
- * \param index GPS L2CL specific starting point index.
- *              For other signals any value can be written.
  * \return LFSR initial value
  */
 u32 mesid_to_lfsr0_init(const me_gnss_signal_t mesid) {

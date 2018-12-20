@@ -75,7 +75,9 @@ static paired_obss_t paired_obs_buff[PAIRED_OBS_N_BUFF] _CCM;
 /* Keep a mailbox of received base obs so we can process all of them in
  * order even if we have a bursty base station connection. */
 static msg_t base_obs_mailbox_buff[BASE_OBS_N_BUFF];
+/* @cond Doxygen_to_ignore_CCM */
 static obs_array_t base_obs_buff[BASE_OBS_N_BUFF] _CCM;
+/* @endcond */
 
 /* ME Data API data-structures. */
 static msg_t me_obs_mailbox_buff[ME_OBS_MSG_N_BUFF];
