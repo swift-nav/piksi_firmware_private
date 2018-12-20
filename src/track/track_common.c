@@ -148,8 +148,7 @@ void tp_profile_apply_config(tracker_t *tracker, bool init) {
   config.fll_discr_period_s =
       tp_get_flld_ms(tracker->tracking_mode) / (float)SECS_MS;
 
-  /* DLL init could be done nicer by initing DLL only */
-  if (init || profile->dll_init) {
+  if (init) {
     log_debug_mesid(mesid, "Initializing TL");
 
     tp_tl_init(&tracker->tl_state, profile->loop_params.ctrl, &rates, &config);
@@ -565,7 +564,8 @@ static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
 
   if (cn0 > cn0_thres.drop_dbhz && !confirmed && inlock &&
       tracker_has_bit_sync(tracker)) {
-    tracker->flags |= TRACKER_FLAG_CONFIRMED;
+    tracker->flags |=
+        (TRACKER_FLAG_CONFIRMED | TRACKER_FLAG_REMOVE_DLL_BW_ADDON);
     log_debug_mesid(tracker->mesid, "CONFIRMED with CN0: %f", cn0);
   }
 

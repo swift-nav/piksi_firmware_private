@@ -36,6 +36,10 @@
    to sensitivity profile, when signal is reasonably strong */
 #define TP_WEAK_SIGNAL_THRESHOLD_MS 100
 
+/** DLL Bandwidth addon for handover signals which start from non-init profiles.
+    Used for faster DLL loop convergence. */
+#define DLL_BW_ADDON_HZ (5.0f)
+
 /** Unknown delay indicator */
 #define TP_DELAY_UNKNOWN -1
 
@@ -62,9 +66,6 @@ typedef enum {
   TP_WAIT_PLOCK = (1 << 6), /**< Wait for phase lock */
   TP_WAIT_FLOCK = (1 << 7), /**< Wait for frequency lock */
   TP_USE_NEXT = (1 << 8),   /**< Use next index to choose next profile */
-
-  /** Do not use carrier aiding */
-  TP_UNAIDED = (1 << 11)
 } tp_profile_flags_t;
 
 /**
@@ -301,20 +302,20 @@ static const tp_profile_entry_t tracker_profiles_rover[] = {
 */
 
   [IDX_INIT_0] =
-  { {   10,           7,             20,   TP_CTRL_PLL3,
+  { {   10,           7,             10,   TP_CTRL_PLL3,
          TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL },
          TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
        100,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
-      TP_UNAIDED | TP_WAIT_FLOCK},
+      TP_WAIT_FLOCK},
 
   [IDX_INIT_1] =
-  { { BW_DYN,      BW_DYN,           20,   TP_CTRL_PLL3,
+  { { BW_DYN,      BW_DYN,           10,   TP_CTRL_PLL3,
          TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL },
          TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
        100,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
-      TP_WAIT_BSYNC | TP_WAIT_PLOCK | TP_WAIT_FLOCK | TP_UNAIDED },
+      TP_WAIT_BSYNC | TP_WAIT_PLOCK | TP_WAIT_FLOCK },
 
   [IDX_INIT_2] =
   { { BW_DYN,     BW_DYN,            5,   TP_CTRL_PLL3,
@@ -325,7 +326,7 @@ static const tp_profile_entry_t tracker_profiles_rover[] = {
       TP_WAIT_FLOCK | TP_WAIT_PLOCK },
 
   [IDX_2MS] =
-  { { BW_DYN,      BW_DYN,            2,   TP_CTRL_PLL3,
+  { { BW_DYN,      BW_DYN,           .5,   TP_CTRL_PLL3,
       TP_TM_2MS_20MS,  TP_TM_2MS_10MS,  TP_TM_2MS_2MS,  TP_TM_2MS_SC4 },
       TP_LD_PARAMS_PHASE_2MS, TP_LD_PARAMS_FREQ_2MS,
         40,          43,          0,
@@ -333,7 +334,7 @@ static const tp_profile_entry_t tracker_profiles_rover[] = {
       TP_USE_NEXT | TP_LOW_CN0},
 
   [IDX_5MS] =
-  { { BW_DYN,      BW_DYN,            1,   TP_CTRL_PLL3,
+  { { BW_DYN,      BW_DYN,           .5,   TP_CTRL_PLL3,
       TP_TM_5MS_20MS,  TP_TM_5MS_10MS,  TP_TM_2MS_2MS,  TP_TM_4MS_SC4 },
       TP_LD_PARAMS_PHASE_5MS, TP_LD_PARAMS_FREQ_5MS,
       40,          35,          46,
@@ -341,7 +342,7 @@ static const tp_profile_entry_t tracker_profiles_rover[] = {
       TP_USE_NEXT | TP_LOW_CN0 | TP_HIGH_CN0},
 
   [IDX_10MS] =
-  { { BW_DYN,      BW_DYN,            1,   TP_CTRL_PLL3,
+  { { BW_DYN,      BW_DYN,           .5,   TP_CTRL_PLL3,
       TP_TM_10MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS, TP_TM_10MS_SC4 },
       TP_LD_PARAMS_PHASE_10MS, TP_LD_PARAMS_FREQ_10MS,
       40,          THRESH_20MS_DBHZ, 38,
@@ -404,20 +405,20 @@ static const tp_profile_entry_t tracker_profiles_base[] = {
 */
 
   [IDX_INIT_0] =
-  { {   10,             7,           20,   TP_CTRL_PLL3,
+  { {   10,             7,           10,   TP_CTRL_PLL3,
         TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL},
         TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
        100,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
-      TP_UNAIDED | TP_WAIT_FLOCK},
+      TP_WAIT_FLOCK},
 
   [IDX_INIT_1] =
-  { { BW_DYN,           3,           20,   TP_CTRL_PLL3,
+  { { BW_DYN,           3,           10,   TP_CTRL_PLL3,
         TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL },
         TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
        100,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
-      TP_WAIT_BSYNC | TP_WAIT_PLOCK | TP_WAIT_FLOCK | TP_UNAIDED },
+      TP_WAIT_BSYNC | TP_WAIT_PLOCK | TP_WAIT_FLOCK },
 
   [IDX_INIT_2] =
   { { BW_DYN,           1,            5,   TP_CTRL_PLL3,
@@ -428,7 +429,7 @@ static const tp_profile_entry_t tracker_profiles_base[] = {
       TP_WAIT_FLOCK | TP_WAIT_PLOCK },
 
   [IDX_2MS] =
-  { { BW_DYN,           0,            2,   TP_CTRL_PLL2,
+  { { BW_DYN,           0,           .5,   TP_CTRL_PLL2,
       TP_TM_2MS_20MS,  TP_TM_2MS_10MS,  TP_TM_2MS_2MS,  TP_TM_2MS_SC4 },
       TP_LD_PARAMS_PHASE_2MS, TP_LD_PARAMS_FREQ_2MS,
         40,             0,            0,
@@ -436,7 +437,7 @@ static const tp_profile_entry_t tracker_profiles_base[] = {
       0},
 
   [IDX_5MS] =
-  { { BW_DYN,           0,            1,   TP_CTRL_PLL2,
+  { { BW_DYN,           0,           .5,   TP_CTRL_PLL2,
       TP_TM_5MS_20MS,  TP_TM_5MS_10MS,  TP_TM_2MS_2MS,  TP_TM_4MS_SC4 },
       TP_LD_PARAMS_PHASE_5MS, TP_LD_PARAMS_FREQ_5MS,
         40,             0,            0,
@@ -560,14 +561,22 @@ static float compute_fll_bw(float cn0, u8 T_ms) {
   return bw;
 }
 
+static bool code_requires_init_profile(code_t code) {
+  bool ret = false;
+  if (code_requires_direct_acq(code) || is_gal(code) || is_bds2(code)) {
+    /* signals from ACQ always go through init profiles,
+     * and also if they are Galileo or Beidou, as right now
+     * the NAP secondary code stripping still has problems with FW */
+    ret = true;
+  }
+  return ret;
+}
+
 static u8 get_profile_index(code_t code,
                             const tp_profile_entry_t *profiles,
                             size_t num_profiles,
                             float cn0) {
-  if (code_requires_direct_acq(code) || is_gal(code) || is_bds2(code)) {
-    /* signals from ACQ always go through init profiles,
-     * and also if they are Galileo as right now
-     * the NAP secondary code stripping still has problems with FW */
+  if (code_requires_init_profile(code)) {
     return 0;
   }
 
@@ -664,17 +673,16 @@ void tp_profile_update_config(tracker_t *tracker) {
   /* fill out the tracking loop parameters */
   profile->loop_params = loop_params_template;
 
-  u16 flags = cur_profile->flags;
-  double carr_to_code = 0.0;
-  if (0 == (flags & TP_UNAIDED)) {
-    carr_to_code = mesid_to_carr_to_code(mesid);
-  }
-
   /* fill out the rest of tracking loop parameters */
-  profile->loop_params.carr_to_code = carr_to_code;
+  profile->loop_params.carr_to_code = mesid_to_carr_to_code(mesid);
   profile->loop_params.pll_bw = profile->cur.pll_bw;
   profile->loop_params.fll_bw = profile->cur.fll_bw;
   profile->loop_params.code_bw = cur_profile->profile.dll_bw;
+  bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
+  if (!confirmed && !code_requires_init_profile(mesid.code)) {
+    /* BW addon for unconfirmed signals that start from non-init profiles. */
+    profile->loop_params.code_bw += DLL_BW_ADDON_HZ;
+  }
   profile->loop_params.mode = get_track_mode(mesid, cur_profile);
   profile->loop_params.ctrl = cur_profile->profile.controller_type;
 
@@ -841,19 +849,15 @@ static bool profile_switch_requested(tracker_t *tracker,
   tp_profile_t *state = &tracker->profile;
   const tp_profile_entry_t *next = &state->profiles[index];
 
-  bool pll_changed = pll_bw_changed(tracker, index);
-  bool fll_changed = fll_bw_changed(tracker, index);
+  bool bw_changed = pll_bw_changed(tracker, index);
+  bw_changed |= fll_bw_changed(tracker, index);
+  bw_changed |= (0 != (tracker->flags & TRACKER_FLAG_REMOVE_DLL_BW_ADDON));
 
-  if ((index == state->cur.index) && !pll_changed && !fll_changed) {
+  if ((index == state->cur.index) && !bw_changed) {
     return false;
   }
 
-  state->dll_init = false;
-  const tp_profile_entry_t *cur = &state->profiles[state->cur.index];
-  if ((0 != (cur->flags & TP_UNAIDED)) && (0 == (next->flags & TP_UNAIDED))) {
-    /* Unaided DLL velocity causes instability when switching to aided DLL */
-    state->dll_init = true;
-  }
+  tracker->flags &= ~TRACKER_FLAG_REMOVE_DLL_BW_ADDON;
 
   state->next.index = index;
 
@@ -921,6 +925,10 @@ bool tp_profile_has_new_profile(tracker_t *tracker) {
 
   const tp_profile_entry_t *cur_profile = &state->profiles[state->cur.index];
   u16 flags = cur_profile->flags;
+
+  if (0 != (tracker->flags & TRACKER_FLAG_REMOVE_DLL_BW_ADDON)) {
+    return profile_switch_requested(tracker, state->cur.index, "dll_init_bw");
+  }
 
   if (0 != (flags & TP_LOW_CN0) && low_cn0_profile_switch_requested(tracker)) {
     return true;

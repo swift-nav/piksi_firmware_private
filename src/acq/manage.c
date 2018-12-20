@@ -1049,7 +1049,7 @@ u32 get_tracking_channel_meas(u8 i,
  * size of tracking lock congestion.
  *
  * \param[in]  sid  Signal identifier.
- * \param[in]  tow_ms ToW in milliseconds. Can be #TOW_UNKNOWN
+ * \param[in]  tow_ms ToW in milliseconds. Can be \a TOW_UNKNOWN
  * \param[in]  pephe  Pointer to ephemeris, or NULL if not available
  *
  * \return Flags, computed from ephemeris and other sources.

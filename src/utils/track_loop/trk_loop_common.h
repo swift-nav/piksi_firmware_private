@@ -137,9 +137,6 @@ typedef struct {
 
 /** \} */
 
-void calc_loop_gains(
-    float bw, float zeta, float k, float loop_freq, float *b0, float *b1);
-void calc_loop_gains2(float bw, float zeta, float k, float *c1, float *c2);
 float costas_discriminator(float I, float Q);
 float dll_discriminator(const correlation_t cs[3]);
 
