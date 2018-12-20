@@ -78,6 +78,7 @@ typedef enum {
 typedef enum {
   TP_CTRL_PLL2, /**< 2nd order PLL, 1st order DLL */
   TP_CTRL_PLL3, /**< 2nd order FLL, 3rd order PLL, 2nd order DLL */
+  TP_CTRL_FLL1  /**< 1st order FLL, 1st order DLL */
 } tp_ctrl_e;
 
 /** Supported channel drop reasons */
@@ -249,6 +250,7 @@ typedef struct {
   union {
     tl_pll2_state_t pll2; /**< Tracking loop filter state */
     tl_pll3_state_t pll3; /**< Tracking loop filter state */
+    tl_fll1_state_t fll1; /**< Tracking loop filter state */
   };
   tp_ctrl_e ctrl;
 } tp_tl_state_t;

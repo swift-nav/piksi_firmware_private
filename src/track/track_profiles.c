@@ -369,7 +369,7 @@ static const tp_profile_entry_t tracker_profiles_rover[] = {
 
   /* sensitivity profile for GLO without meander sync */
   [IDX_SENS_NM] =
-  { {      0,      BW_DYN,           .5,   TP_CTRL_PLL3,
+  { {      0,      BW_DYN,           .5,   TP_CTRL_FLL1,
       TP_TM_200MS_20MS, TP_TM_200MS_10MS_NM, TP_TM_200MS_2MS, TP_TM_200MS_SC4 },
       TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
       200,             0,          32,
@@ -378,7 +378,7 @@ static const tp_profile_entry_t tracker_profiles_rover[] = {
 
   /* sensitivity profile */
   [IDX_SENS] =
-  { {      0,      BW_DYN,           .5,   TP_CTRL_PLL3,
+  { {      0,      BW_DYN,           .5,   TP_CTRL_FLL1,
       TP_TM_200MS_20MS, TP_TM_200MS_10MS, TP_TM_200MS_2MS, TP_TM_200MS_SC4 },
       TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
       200,             0,          32,
@@ -715,6 +715,9 @@ static const char *get_ctrl_str(tp_ctrl_e v) {
       break;
     case TP_CTRL_PLL3:
       str = "PLL3";
+      break;
+    case TP_CTRL_FLL1:
+      str = "FLL1";
       break;
     default:
       assert(!"Unknown loop controller type");

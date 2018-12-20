@@ -121,6 +121,39 @@ typedef struct {
   float carr_to_code; /**< PLL to DLL assist coefficient [unitless] */
 } tl_pll2_state_t;
 
+/**
+ * FLL controller.
+ *
+ * The controller implements 1st order FLL and 1st order DLL
+ */
+typedef struct {
+  float carr_freq_hz; /**< Carrier doppler */
+  float code_freq_hz; /**< Code doppler */
+
+  float T_CARR; /**< carrier integration interval [s] */
+
+  float freq_c1;  /**< FLL: c1 coefficient */
+  float freq_c2;  /**< FLL: c2 coefficient */
+  float carr_vel; /**< FLL: y[n-1] */
+
+  float prev_I;           /**< FLL: I[n-1] */
+  float prev_Q;           /**< FLL: Q[n-1] */
+  float prev_period_s;    /**< FLL: Discriminator period [n-1] */
+  float fll_discr_sum_hz; /**< FLL: Discriminator sum over coh. int. period [Hz]
+                           */
+  float fll_discr_period_s; /**< FLL: Discriminator period [s] */
+  u8 fll_discr_cnt; /**< FLL: discr_sum is averaged across this many updates */
+
+  float dll_discr_sum_hz; /* DLL discriminator sum over coh. int. period [Hz] */
+  u8 dll_discr_cnt; /**< DLL: discr_sum is averaged across this many updates */
+
+  float code_c1; /**< DLL: c1 coefficient */
+
+  float carr_to_code; /**< FLL to DLL assist coefficient [unitless] */
+
+  float freq_error_hz;
+} tl_fll1_state_t;
+
 /** \} */
 
 /** Structure representing a complex valued correlation. */
@@ -170,6 +203,19 @@ void tl_pll2_update_pll(tl_pll2_state_t *s,
                         bool costas);
 void tl_pll2_adjust(tl_pll2_state_t *s, float err_hz);
 void tl_pll2_get_rates(const tl_pll2_state_t *s, tl_rates_t *rates);
+
+/* FLL1, DLL1 */
+void tl_fll1_init(tl_fll1_state_t *s,
+                  const tl_rates_t *rates,
+                  const tl_config_t *config);
+void tl_fll1_retune(tl_fll1_state_t *s, const tl_config_t *config);
+void tl_fll1_update_dll_discr(tl_fll1_state_t *s, const correlation_t cs[3]);
+void tl_fll1_update_dll(tl_fll1_state_t *s);
+void tl_fll1_update_fpll(tl_fll1_state_t *s);
+float tl_fll1_get_freq_error(const tl_fll1_state_t *s);
+void tl_fll1_adjust(tl_fll1_state_t *s, float err);
+void tl_fll1_update_fll_discr(tl_fll1_state_t *s, float I, float Q, bool halfq);
+void tl_fll1_get_rates(const tl_fll1_state_t *s, tl_rates_t *rates);
 
 #ifdef __cplusplus
 } /* extern "C" */

@@ -31,10 +31,8 @@ void tp_tl_init(tp_tl_state_t *s,
                 tp_ctrl_e ctrl,
                 const tl_rates_t *rates,
                 const tl_config_t *config) {
-  /*
-   * TODO add logic to initialize internal filter states: velocity and
-   *      acceleration.
-   */
+  /* When changing controller type, the old filter's state is
+     propagated to the new one in tp_tl_retune() API */
 
   memset(s, 0, sizeof(*s));
   s->ctrl = ctrl;
@@ -46,6 +44,10 @@ void tp_tl_init(tp_tl_state_t *s,
 
     case TP_CTRL_PLL3:
       tl_pll3_init(&s->pll3, rates, config);
+      break;
+
+    case TP_CTRL_FLL1:
+      tl_fll1_init(&s->fll1, rates, config);
       break;
 
     default:
@@ -74,6 +76,10 @@ void tp_tl_retune(tp_tl_state_t *s, tp_ctrl_e ctrl, const tl_config_t *config) {
 
       case TP_CTRL_PLL3:
         tl_pll3_retune(&s->pll3, config);
+        break;
+
+      case TP_CTRL_FLL1:
+        tl_fll1_retune(&s->fll1, config);
         break;
 
       default:
@@ -112,6 +118,10 @@ void tp_tl_adjust(tp_tl_state_t *s, float err) {
       tl_pll3_adjust(&s->pll3, err);
       break;
 
+    case TP_CTRL_FLL1:
+      tl_fll1_adjust(&s->fll1, err);
+      break;
+
     default:
       assert(false);
   }
@@ -133,6 +143,10 @@ void tp_tl_get_rates(const tp_tl_state_t *s, tl_rates_t *rates) {
 
     case TP_CTRL_PLL3:
       tl_pll3_get_rates(&s->pll3, rates);
+      break;
+
+    case TP_CTRL_FLL1:
+      tl_fll1_get_rates(&s->fll1, rates);
       break;
 
     default:
@@ -183,6 +197,10 @@ void tp_tl_update_fpll(tp_tl_state_t *s, const tp_epl_corr_t *cs, bool costas) {
       tl_pll3_update_fpll(&s->pll3, cs2, costas);
       break;
 
+    case TP_CTRL_FLL1:
+      tl_fll1_update_fpll(&s->fll1);
+      break;
+
     default:
       assert(false);
   }
@@ -199,6 +217,9 @@ void tp_tl_update_dll(tp_tl_state_t *s) {
       break;
     case TP_CTRL_PLL3:
       tl_pll3_update_dll(&s->pll3);
+      break;
+    case TP_CTRL_FLL1:
+      tl_fll1_update_dll(&s->fll1);
       break;
 
     default:
@@ -223,6 +244,10 @@ float tp_tl_get_fll_error(const tp_tl_state_t *s) {
 
     case TP_CTRL_PLL3:
       freq_error_hz = tl_pll3_get_freq_error(&s->pll3);
+      break;
+
+    case TP_CTRL_FLL1:
+      freq_error_hz = tl_fll1_get_freq_error(&s->fll1);
       break;
 
     default:
@@ -254,6 +279,10 @@ void tp_tl_update_dll_discr(tp_tl_state_t *s, const tp_epl_corr_t *cs) {
       tl_pll3_update_dll_discr(&s->pll3, cs2);
       break;
 
+    case TP_CTRL_FLL1:
+      tl_fll1_update_dll_discr(&s->fll1, cs2);
+      break;
+
     default:
       assert(false);
   }
@@ -275,6 +304,10 @@ void tp_tl_update_fll_discr(tp_tl_state_t *s, corr_t cs, bool halfq) {
 
     case TP_CTRL_PLL3:
       tl_pll3_update_fll_discr(&s->pll3, cs.I, cs.Q, halfq);
+      break;
+
+    case TP_CTRL_FLL1:
+      tl_fll1_update_fll_discr(&s->fll1, cs.I, cs.Q, halfq);
       break;
 
     default:
