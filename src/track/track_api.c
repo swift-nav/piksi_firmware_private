@@ -72,11 +72,13 @@ void tracker_retune(tracker_t *tracker, u32 chips_to_correlate) {
   double code_phase_rate = tracker->code_phase_rate;
   bool nap_strip_sc = nap_sc_wipeoff(tracker);
   u64 time_in_track_ms = tracker_timer_ms(&tracker->age_timer);
+  code_t code = tracker->mesid.code;
 
   bool geo_sv = false;
-  if ((tracker->mesid.code == CODE_BDS2_B1 && tracker->mesid.sat == 6) ||
-      (tracker->mesid.code == CODE_GPS_L1CA && tracker->mesid.sat == 1) ||
-      (tracker->mesid.code == CODE_GAL_E1B && tracker->mesid.sat == 1)) {
+  /* These are the SVs selected to be GEOs in Skydel scenario */
+  if ((code == CODE_BDS2_B1 && tracker->mesid.sat == 6) ||
+      (code == CODE_GPS_L1CA && tracker->mesid.sat == 1) ||
+      (code == CODE_GAL_E1B && tracker->mesid.sat == 1)) {
     geo_sv = true;
   }
 
@@ -84,81 +86,30 @@ void tracker_retune(tracker_t *tracker, u32 chips_to_correlate) {
   static u8 prev_spac_gps = 0;
   static u8 prev_spac_bds = 0;
   static u8 prev_spac_gal = 0;
-  if (time_in_track_ms > 60 * SECS_MS && geo_sv) {
-    if (time_in_track_ms < 70 * SECS_MS) {
-      spac = 1;
-    } else if (time_in_track_ms < 80 * SECS_MS) {
-      spac = 2;
-    } else if (time_in_track_ms < 90 * SECS_MS) {
-      spac = 3;
-    } else if (time_in_track_ms < 100 * SECS_MS) {
-      spac = 4;
-    } else if (time_in_track_ms < 110 * SECS_MS) {
-      spac = 5;
-    } else if (time_in_track_ms < 120 * SECS_MS) {
-      spac = 6;
-    } else if (time_in_track_ms < 130 * SECS_MS) {
-      spac = 7;
-    } else if (time_in_track_ms < 140 * SECS_MS) {
-      spac = 8;
-    } else if (time_in_track_ms < 150 * SECS_MS) {
-      spac = 9;
-    } else if (time_in_track_ms < 160 * SECS_MS) {
-      spac = 10;
-    } else if (time_in_track_ms < 170 * SECS_MS) {
-      spac = 11;
-    } else if (time_in_track_ms < 180 * SECS_MS) {
-      spac = 12;
-    } else if (time_in_track_ms < 190 * SECS_MS) {
-      spac = 13;
-    } else if (time_in_track_ms < 200 * SECS_MS) {
-      spac = 14;
-    } else if (time_in_track_ms < 210 * SECS_MS) {
-      spac = 15;
-    } else if (time_in_track_ms < 220 * SECS_MS) {
-      spac = 16;
-    } else if (time_in_track_ms < 230 * SECS_MS) {
-      spac = 17;
-    } else if (time_in_track_ms < 240 * SECS_MS) {
-      spac = 18;
-    } else if (time_in_track_ms < 250 * SECS_MS) {
-      spac = 19;
-    } else if (time_in_track_ms < 260 * SECS_MS) {
-      spac = 20;
-    } else if (time_in_track_ms < 270 * SECS_MS) {
-      spac = 21;
-    } else if (time_in_track_ms < 280 * SECS_MS) {
-      spac = 22;
-    } else if (time_in_track_ms < 290 * SECS_MS) {
-      spac = 23;
-    } else if (time_in_track_ms < 300 * SECS_MS) {
-      spac = 24;
-    } else if (time_in_track_ms < 310 * SECS_MS) {
-      spac = 25;
-    } else if (time_in_track_ms < 320 * SECS_MS) {
-      spac = 26;
-    } else if (time_in_track_ms < 330 * SECS_MS) {
-      spac = 27;
-    } else if (time_in_track_ms < 340 * SECS_MS) {
-      spac = 28;
-    } else if (time_in_track_ms < 350 * SECS_MS) {
-      spac = 29;
-    } else if (time_in_track_ms < 360 * SECS_MS) {
-      spac = 30;
-    } else if (time_in_track_ms < 370 * SECS_MS) {
-      spac = 31;
-    } else if (time_in_track_ms < 380 * SECS_MS) {
-      spac = 32;
+
+  u8 max_spac = code_to_init_spacing(code);
+  u8 num_cycles = 2 * max_spac;     /* wide + narrow cycle */
+  u64 cycle_time_ms = 30 * SECS_MS; /* Time spent in a cycle */
+  u64 start_ms = 120 * SECS_MS; /* Initial time given to obtain RTK solution */
+  if (geo_sv && (time_in_track_ms > start_ms)) {
+    for (u8 ii = 1; ii <= num_cycles; ii++) {
+      if (time_in_track_ms < (start_ms + ii * cycle_time_ms)) {
+        /* Narrow spacing for even indexes */
+        /* Wide spacing for odd indexes */
+        spac = (0 == ii % 2) ? 0 : ii / 2;
+        break;
+      }
     }
-    if (is_gal(tracker->mesid.code) && (spac != prev_spac_gal)) {
+
+    if (is_gal(code) && (spac != prev_spac_gal)) {
       prev_spac_gal = spac;
       log_error_mesid(tracker->mesid, "Spacing: %" PRIu8 "", spac);
     }
-    if (is_gps(tracker->mesid.code) && (spac != prev_spac_gps)) {
+    if (is_gps(code) && (spac != prev_spac_gps)) {
       prev_spac_gps = spac;
       log_error_mesid(tracker->mesid, "Spacing: %" PRIu8 "", spac);
     }
-    if (is_bds2(tracker->mesid.code) && (spac != prev_spac_bds)) {
+    if (is_bds2(code) && (spac != prev_spac_bds)) {
       prev_spac_bds = spac;
       log_error_mesid(tracker->mesid, "Spacing: %" PRIu8 "", spac);
     }
