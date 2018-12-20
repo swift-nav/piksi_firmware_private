@@ -28,12 +28,12 @@ const u32 biases_message_freq_setting = 5.0;
 
 /* pseudorange biases (meters) */
 static const double gps_l2_isc = -1.1;
-static const double glo_l1_isc = -7.4;
-static const double glo_l2_isc = -0.2;
-static const double bds2_b11_isc = 0.4;
-static const double bds2_b2_isc = 3.6;
+static const double glo_l1_isc = -6.5;
+static const double glo_l2_isc = -1.7;
+static const double bds2_b11_isc = 0.6;
+static const double bds2_b2_isc = 3.8;
 static const double gal_e1b_isc = -0.2;
-static const double gal_e7i_isc = 3.3;
+static const double gal_e7i_isc = 3.4;
 
 /* FCN coefficients for GLO pseudoranges (meters/fcn number) */
 static const double glo_l1_pseudorange_fcn_coef = -0.05;
