@@ -168,8 +168,8 @@ static void update_obss(obs_array_t *obs_array) {
   }
 }
 
-// Pointer to the dynamically allocated storage used across calls to
-// `obs_callback()`
+/* Pointer to the dynamically allocated storage used across calls to
+ * `obs_callback()` */
 static obs_array_t *obs_callback_array = NULL;
 /** SBP callback for observation messages.
  * SBP observation sets are potentially split across multiple SBP messages to
@@ -264,7 +264,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
     prev_count = count;
   }
 
-  // Make sure we have a valid array before operating on it
+  /* Make sure we have a valid array before operating on it */
   if (NULL == obs_callback_array) {
     obs_callback_array = starling_alloc_base_obs();
     if (NULL == obs_callback_array) {
@@ -280,7 +280,6 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
     obs_callback_array->t = tor;
   }
   obs_callback_array->sender = sender_id;
-  // TODO(jangelo) Does n and t need to be initialized in other situations??
 
   /* Calculate the number of observations in this message by looking at the SBP
    * `len` field. */
