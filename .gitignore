@@ -40,3 +40,7 @@ tests/run_tests
 *.gcda
 
 .vscode/
+
+GPATH
+GRTAGS
+GTAGS

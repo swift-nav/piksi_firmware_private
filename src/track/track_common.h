@@ -124,4 +124,6 @@ void tp_set_rover_mode(void);
 bool tp_is_rover_mode(void);
 bool tp_is_base_station_mode(void);
 
+void tp_drop_channel(tracker_t *tracker, ch_drop_reason_t reason);
+
 #endif

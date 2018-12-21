@@ -48,7 +48,7 @@ static void int_shi_2_str(bool set, unsigned shi, char* str, int len) {
   }
 }
 
-static void cns_2_str(code_nav_state_t state, char** state_str) {
+static void cns_2_str(code_nav_state_t state, const char** state_str) {
   switch (state) {
     case CODE_NAV_STATE_UNKNOWN:
       *state_str = CODE_NAV_STATE_UNKNOWN_STR;
@@ -255,8 +255,8 @@ void shm_log_sat_state(const char* shi_name, u16 sat) {
         shm_get_sat_state(construct_sid(CODE_GPS_L1CA, sat));
     gnss_signal_t l2_sid = construct_sid(CODE_GPS_L2CM, sat);
     code_nav_state_t s_l2 = shm_get_sat_state(l2_sid);
-    char* s_l1_str;
-    char* s_l2_str;
+    const char* s_l1_str;
+    const char* s_l2_str;
     cns_2_str(s_l1, &s_l1_str);
     cns_2_str(s_l2, &s_l2_str);
     char shi_ephemeris_str[4], shi_lnav_how_alert_str[2], shi_cnav_alert_str[2];
