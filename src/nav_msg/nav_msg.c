@@ -898,7 +898,7 @@ static s8 decode_subframe45(u8 age,
      */
     if (sv_id >= GPS_LNAV_ALM_MIN_PRN && sv_id <= GPS_LNAV_ALM_MAX_PRN) {
       almanac_decode(words, &data->almanac);
-      data->almanac_upd_flag = data->almanac.valid;
+      data->almanac_upd_flag = 0;
       res = 1;
     }
 
