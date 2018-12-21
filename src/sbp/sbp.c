@@ -80,7 +80,7 @@ static void sbp_thread(void *arg) {
   corr_stats.obs_period.pmax = 0;
   corr_stats.obs_period.current = -1;
 
-  while (TRUE) {
+  while (true) {
     chThdSleepMilliseconds(10);
     sbp_process_messages();
 

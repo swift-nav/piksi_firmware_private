@@ -226,7 +226,7 @@ static bool xcorr_check_eph_to_eph(const ephemeris_t *e) {
 
   ephemeris_t test_e;
   u16 first_prn, num_sats;
-  char *gnss = "";
+  const char *gnss = "";
 
   if (IS_GPS(e->sid)) {
     first_prn = GPS_FIRST_PRN;

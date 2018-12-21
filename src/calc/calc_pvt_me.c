@@ -296,7 +296,7 @@ static void update_sat_azel(const double rcv_pos[3], const gps_time_t t) {
  */
 static void me_thd_sleep(piksi_systime_t *next_epoch, u32 interval_us) {
   u32 slept_us = 0;
-  while (TRUE) {
+  while (true) {
     slept_us = piksi_systime_sleep_until_us(next_epoch);
     piksi_systime_inc_us(next_epoch, interval_us);
 
@@ -633,7 +633,7 @@ static void me_calc_pvt_thread(void *arg) {
   sid_set_init(&raim_sids);
   sid_set_init(&raim_failed_sids);
 
-  while (TRUE) {
+  while (true) {
     /* read current value of soln_freq into a local variable that does not
      * change during this loop iteration */
     chSysLock();

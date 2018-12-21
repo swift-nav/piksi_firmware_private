@@ -1018,10 +1018,10 @@ bool ndb_almanac_sbp_update_tx(gnss_signal_t sid) {
     msg_almanac_t msg;
     msg_info_t info = pack_almanac(&a, &msg);
     sbp_send_msg(info.msg_id, info.size, (u8 *)&msg);
-    return TRUE;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 static ndb_sbp_update_info_t alma_update_info = {
