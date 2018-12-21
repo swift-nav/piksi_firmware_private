@@ -762,6 +762,13 @@ void sanitize_tracker(tracker_t *tracker) {
     return;
   }
 
+  /* CN0 below threshold for a while? */
+  u64 cn0_drop_ms = tracker_timer_ms(&tracker->cn0_below_drop_thres_timer);
+  if (cn0_drop_ms > TRACK_DROP_CN0_MS) {
+    tp_drop_channel(tracker, CH_DROP_REASON_LOW_CN0);
+    return;
+  }
+
   /* Give newly-initialized channels a chance to converge. */
   if (!tracker_timer_expired(&tracker->init_settle_timer)) {
     return;
@@ -781,13 +788,6 @@ void sanitize_tracker(tracker_t *tracker) {
   u64 unlocked_ms = tracker_timer_ms(&tracker->unlocked_timer);
   if (unlocked_ms > TRACK_DROP_UNLOCKED_MS) {
     tp_drop_channel(tracker, CH_DROP_REASON_NO_PLOCK);
-    return;
-  }
-
-  /* CN0 below threshold for a while? */
-  u64 cn0_drop_ms = tracker_timer_ms(&tracker->cn0_below_drop_thres_timer);
-  if (cn0_drop_ms > TRACK_DROP_CN0_MS) {
-    tp_drop_channel(tracker, CH_DROP_REASON_LOW_CN0);
     return;
   }
 }
