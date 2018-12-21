@@ -16,15 +16,17 @@
 #include "nap/axi_dma.h"
 #include "platform/starling_platform.h"
 #include "platform/starling_platform_semaphore.h"
-#include "starling/platform/mq.h"
 #include "settings/settings_client.h"
 #include "simulator/simulator.h"
+#include "starling/platform/mq.h"
 #include "system_monitor/system_monitor.h"
 
 AXIDMADriver AXIDMADriver1;
 bool disable_raim = false;
 
-errno_t platform_mq_push(msg_queue_id_t id, void *msg, mq_blocking_mode_t blocking) {
+errno_t platform_mq_push(msg_queue_id_t id,
+                         void *msg,
+                         mq_blocking_mode_t blocking) {
   (void)id;
   (void)msg;
   (void)blocking;
@@ -36,7 +38,9 @@ void platform_mq_free_msg(msg_queue_id_t id, void *ptr) {
   (void)ptr;
 }
 
-errno_t platform_mq_pop(msg_queue_id_t id, void **msg, mq_blocking_mode_t blocking) {
+errno_t platform_mq_pop(msg_queue_id_t id,
+                        void **msg,
+                        mq_blocking_mode_t blocking) {
   (void)id;
   (void)msg;
   (void)blocking;
