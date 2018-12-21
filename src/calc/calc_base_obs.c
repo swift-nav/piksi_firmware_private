@@ -168,9 +168,6 @@ static void update_obss(obs_array_t *obs_array) {
   }
 }
 
-/* Pointer to the dynamically allocated storage used across calls to
- * `obs_callback()` */
-static obs_array_t *obs_callback_array = NULL;
 /** SBP callback for observation messages.
  * SBP observation sets are potentially split across multiple SBP messages to
  * keep the payload within the size limit.
@@ -190,6 +187,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
    * so we can verify we haven't dropped a message. */
   static s16 prev_count = 0;
   static gps_time_t prev_tor = GPS_TIME_UNKNOWN;
+  static obs_array_t *obs_callback_array = NULL;
 
   /* An SBP sender ID of zero means that the messages are relayed observations
    * from the console, not from the base station. We don't want to use them and
@@ -268,7 +266,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
   if (NULL == obs_callback_array) {
     obs_callback_array = starling_alloc_base_obs();
     if (NULL == obs_callback_array) {
-      log_error("Couldn't get an array to store base obs");
+      log_error("Unable to allocate an array to store base obs, dropping one packet");
       return;
     }
   }
