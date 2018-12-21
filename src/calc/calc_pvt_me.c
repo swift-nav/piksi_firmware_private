@@ -91,7 +91,8 @@ static void me_post_observations(obs_array_t *obs_array,
     log_error("ME: Unable to send ephemeris array.");
   }
 
-  ret = starling_send_rover_obs(obs_array); /* Transferring ownership of obs_array here */
+  ret = starling_send_rover_obs(
+      obs_array); /* Transferring ownership of obs_array here */
   obs_array = NULL;
   if (STARLING_SEND_OK != ret) {
     log_error("ME: Unable to send observations.");
@@ -115,14 +116,16 @@ static void me_send_all(obs_array_t *obs_array, const ephemeris_t _ephem[]) {
   if (decimate_observations(&obs_array->t) && !simulation_enabled()) {
     send_observations(obs_array, msg_obs_max_size);
   }
-  me_post_observations(obs_array, _ephem);/* Transferring ownership of obs_array here */
+  me_post_observations(obs_array,
+                       _ephem); /* Transferring ownership of obs_array here */
   obs_array = NULL;
   DO_EVERY(biases_message_freq_setting, send_glonass_biases());
 }
 
 /** This function takes ownership of `obs_array` and reuses it to send empty
- * observation data. If NULL is given it attempts to allocate some memory itself.
- * Finally it transfers ownership of the message to `me_post_observations()` */
+ * observation data. If NULL is given it attempts to allocate some memory
+ * itself. Finally it transfers ownership of the message to
+ * `me_post_observations()` */
 static void me_send_emptyobs(obs_array_t *obs_array) {
   if (NULL == obs_array) {
     obs_array = starling_alloc_rover_obs();
@@ -134,7 +137,8 @@ static void me_send_emptyobs(obs_array_t *obs_array) {
 
   obs_array->n = 0;
   obs_array->t = GPS_TIME_UNKNOWN;
-  me_post_observations(obs_array, NULL); /* Transferring ownership of obs_array here */
+  me_post_observations(obs_array,
+                       NULL); /* Transferring ownership of obs_array here */
   obs_array = NULL;
   /* When we don't have a time solve, we still want to decimate our
    * observation output, we can use the GPS time if we have one,
@@ -224,7 +228,8 @@ static void me_send_failed_obs(obs_array_t *obs_array,
   /* require at least some timing quality */
   if (TIME_PROPAGATED > get_time_quality() || !gps_time_valid(&obs_array->t) ||
       obs_array->n == 0) {
-    me_send_emptyobs(obs_array); /* Transferring ownership of obs_array, to be reused */
+    me_send_emptyobs(
+        obs_array); /* Transferring ownership of obs_array, to be reused */
     obs_array = NULL;
     return;
   }
@@ -249,7 +254,8 @@ static void me_send_failed_obs(obs_array_t *obs_array,
   if (decimate_observations(&obs_array->t) && !simulation_enabled()) {
     send_observations(obs_array, msg_obs_max_size);
   }
-  me_post_observations(obs_array, _ephem); /* Transferring ownership of obs_array here */
+  me_post_observations(obs_array,
+                       _ephem); /* Transferring ownership of obs_array here */
   obs_array = NULL;
 }
 
@@ -749,7 +755,8 @@ static void me_calc_pvt_thread(void *arg) {
      * the channel measurements */
     obs_array_t *obs_array = starling_alloc_rover_obs();
     if (NULL == obs_array) {
-      log_error("Unable to allocate memory for obs_array, dropping observation data");
+      log_error(
+          "Unable to allocate memory for obs_array, dropping observation data");
       /* No use in trying to send empty data here, not enough memory */
       continue;
     }
@@ -803,22 +810,30 @@ static void me_calc_pvt_thread(void *arg) {
 
       if (disable_raim) {
         /* Send all observations. */
-        me_send_all(obs_array, e_meas); /* Transferring ownership of obs_array here */
+        me_send_all(obs_array,
+                    e_meas); /* Transferring ownership of obs_array here */
         obs_array = NULL;
       } else {
         /* Send only the observations that have gone through RAIM. */
         obs_array_t *send_obs_array = starling_alloc_rover_obs();
 
         if (NULL == send_obs_array) {
-          log_error("Unable to allocate memory for raimed obs, dropping observations");
-          /* No point in sending empty data, there's no memory to hold the message */
+          log_error(
+              "Unable to allocate memory for raimed obs, dropping "
+              "observations");
+          /* No point in sending empty data, there's no memory to hold the
+           * message */
         } else {
           copy_raimed_obs(
               obs_array, &raim_sids, &raim_failed_sids, send_obs_array);
-          me_send_all(send_obs_array, e_meas); /* Transferring ownership of send_obs_array here */
+          me_send_all(
+              send_obs_array,
+              e_meas); /* Transferring ownership of send_obs_array here */
           send_obs_array = NULL;
         }
-        starling_free_rover_obs(obs_array); /* We must manually free here since we didn't send `obs_array` itself */
+        starling_free_rover_obs(
+            obs_array); /* We must manually free here since we didn't send
+                           `obs_array` itself */
         obs_array = NULL;
       }
     } else {
@@ -827,7 +842,8 @@ static void me_calc_pvt_thread(void *arg) {
                  output_offset);
       }
       /* Send the observations, but marked unusable */
-      me_send_failed_obs(obs_array, e_meas); /* Transferring ownership of obs_array here */
+      me_send_failed_obs(obs_array,
+                         e_meas); /* Transferring ownership of obs_array here */
       obs_array = NULL;
     }
   }

@@ -268,7 +268,8 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
   if (NULL == obs_array) {
     obs_array = starling_alloc_base_obs();
     if (NULL == obs_array) {
-      log_error("Unable to allocate an array to store base obs, dropping one packet");
+      log_error(
+          "Unable to allocate an array to store base obs, dropping one packet");
       return;
     }
   }
@@ -294,8 +295,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
   for (size_t i = 0;
        i < obs_in_msg && obs_array->n < STARLING_MAX_CHANNEL_COUNT;
        ++i) {
-    starling_obs_t *current_obs =
-        &obs_array->observations[obs_array->n++];
+    starling_obs_t *current_obs = &obs_array->observations[obs_array->n++];
     unpack_obs_content(&msg_raw_obs[i], current_obs);
     /* We must also compute the TOT using the TOR from the header. */
     current_obs->tot = obs_array->t;
