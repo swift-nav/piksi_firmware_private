@@ -16,6 +16,7 @@
 #include "nap/axi_dma.h"
 #include "platform/starling_platform.h"
 #include "platform/starling_platform_semaphore.h"
+#include "starling/platform/mq.h"
 #include "settings/settings_client.h"
 #include "simulator/simulator.h"
 #include "system_monitor/system_monitor.h"
@@ -23,19 +24,19 @@
 AXIDMADriver AXIDMADriver1;
 bool disable_raim = false;
 
-errno_t platform_mailbox_post(mailbox_id_t id, void *msg, int blocking) {
+errno_t platform_mq_push(msg_queue_id_t id, void *msg, mq_blocking_mode_t blocking) {
   (void)id;
   (void)msg;
   (void)blocking;
   return 0;
 }
 
-void platform_mailbox_item_free(mailbox_id_t id, const void *ptr) {
+void platform_mq_free_msg(msg_queue_id_t id, void *ptr) {
   (void)id;
   (void)ptr;
 }
 
-errno_t platform_mailbox_fetch(mailbox_id_t id, void **msg, int blocking) {
+errno_t platform_mq_pop(msg_queue_id_t id, void **msg, mq_blocking_mode_t blocking) {
   (void)id;
   (void)msg;
   (void)blocking;
@@ -46,9 +47,13 @@ void platform_sem_signal(platform_sem_t *sem) { (void)sem; }
 
 platform_sem_t *platform_sem_create(void) { return NULL; }
 
-void platform_mailbox_init(mailbox_id_t id) { (void)id; }
+void platform_mq_init(msg_queue_id_t id, size_t msg_size, size_t max_length) {
+  (void)id;
+  (void)msg_size;
+  (void)max_length;
+}
 
-void *platform_mailbox_item_alloc(mailbox_id_t id) {
+void *platform_mq_alloc_msg(msg_queue_id_t id) {
   (void)id;
   return NULL;
 }
