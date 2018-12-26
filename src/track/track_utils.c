@@ -164,7 +164,7 @@ u16 tracker_load_cc_data(tracker_cc_data_t *cc_data) {
  * \return None
  */
 void tracker_set_carrier_phase_offset(const tracker_info_t *info,
-                                      s64 carrier_phase_offset) {
+                                      s32 carrier_phase_offset) {
   bool adjusted = false;
   tracker_t *tracker = tracker_get(info->id);
 

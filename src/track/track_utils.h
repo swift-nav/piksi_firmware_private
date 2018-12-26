@@ -56,17 +56,12 @@ bool tracker_calc_pseudorange(u64 ref_tc,
                               const channel_measurement_t *meas,
                               double *raw_pseudorange);
 
-void tracker_get_state(u8 id,
-                       tracker_info_t *info,
-                       tracker_time_info_t *time_info,
-                       tracker_freq_info_t *freq_info,
-                       tracker_misc_info_t *misc_params);
 double tracker_get_lock_time(const tracker_time_info_t *time_info,
                              const tracker_misc_info_t *misc_info);
 u16 tracker_load_cc_data(tracker_cc_data_t *cc_data);
 
 void tracker_set_carrier_phase_offset(const tracker_info_t *info,
-                                      s64 carrier_phase_offset);
+                                      s32 carrier_phase_offset);
 
 tracker_t *tracker_get_by_mesid(const me_gnss_signal_t mesid);
 void tracker_drop_unhealthy(const me_gnss_signal_t mesid);

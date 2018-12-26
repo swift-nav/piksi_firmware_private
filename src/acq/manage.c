@@ -1446,26 +1446,5 @@ u16 get_orbit_slot(const u16 fcn) {
   return glo_orbit_slot;
 }
 
-/** Return GLO fractional 2ms FCN residual for signal at given NAP count
- * \param sid gnss_signal_t to use
- * \param ref_tc NAP counter the measurements are referenced to
- * \return The residual in cycles
- */
-double glo_2ms_fcn_residual(const gnss_signal_t sid, u64 ref_tc) {
-  if (!IS_GLO(sid)) {
-    return 0.0;
-  }
-
-  double carr_fcn_hz = 0;
-  if (CODE_GLO_L1OF == sid.code) {
-    carr_fcn_hz = (glo_map_get_fcn(sid) - GLO_FCN_OFFSET) * GLO_L1_DELTA_HZ;
-  } else if (CODE_GLO_L2OF == sid.code) {
-    carr_fcn_hz = (glo_map_get_fcn(sid) - GLO_FCN_OFFSET) * GLO_L2_DELTA_HZ;
-  }
-
-  u64 tc_2ms_boundary = FCN_NCO_RESET_COUNT * (ref_tc / FCN_NCO_RESET_COUNT);
-  return -carr_fcn_hz * (ref_tc - tc_2ms_boundary) /
-         NAP_FRONTEND_SAMPLE_RATE_Hz;
-}
 
 /** \} */
