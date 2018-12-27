@@ -181,7 +181,7 @@ void tracker_set_carrier_phase_offset(const tracker_info_t *info,
 
   if (adjusted) {
     log_debug_mesid(info->mesid,
-                    "Adjusting carrier phase offset to %" PRId64,
+                    "Adjusting carrier phase offset to %" PRId32,
                     carrier_phase_offset);
   }
 }
