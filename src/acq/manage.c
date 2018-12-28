@@ -886,11 +886,9 @@ u32 get_tracking_channel_meas(u8 i,
   memset(meas, 0, sizeof(*meas));
 
   tracker_info_t info;
-  tracker_time_info_t time_info;
   tracker_freq_info_t freq_info;
-  tracker_misc_info_t misc_info;
 
-  tracker_get_state(i, &info, &time_info, &freq_info, &misc_info);
+  tracker_get_state(i, &info, &freq_info);
   u32 flags = info.flags;
   if (IS_GLO(info.mesid) && !glo_slot_id_is_valid(info.glo_orbit_slot)) {
     memset(meas, 0, sizeof(*meas));
@@ -914,7 +912,7 @@ u32 get_tracking_channel_meas(u8 i,
     flags |= get_tracking_channel_sid_flags(sid, info.tow_ms, ephe);
 
     tracker_measurement_get(
-        ref_tc, &info, &freq_info, &time_info, &misc_info, meas);
+        ref_tc, &info, &freq_info, meas);
 
     /* Adjust for half phase ambiguity */
     if ((0 != (info.flags & TRACKER_FLAG_BIT_POLARITY_KNOWN)) &&
@@ -935,7 +933,7 @@ u32 get_tracking_channel_meas(u8 i,
      * have caused initial offset reset are not longer present. See callers of
      * tracker_ambiguity_unknown() for more details.
      */
-    s32 carrier_phase_offset = misc_info.carrier_phase_offset.value;
+    s32 carrier_phase_offset = freq_info.cpo.value;
 
     /* try to compute cpo if it is not computed yet but could be */
     if ((0 == carrier_phase_offset) &&

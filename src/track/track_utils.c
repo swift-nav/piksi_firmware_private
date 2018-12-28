@@ -30,8 +30,6 @@
  * \param[in]  ref_tc    Reference timing count.
  * \param[in]  info      Generic tracking channel information block.
  * \param[in]  freq_info Frequency and phase information block.
- * \param[in]  time_info Time information block.
- * \param[in]  misc_info Miscellaneous information block.
  * \param[out] meas      Pointer to output channel_measurement_t.
  *
  * \return None
@@ -39,8 +37,6 @@
 void tracker_measurement_get(u64 ref_tc,
                              const tracker_info_t *info,
                              const tracker_freq_info_t *freq_info,
-                             const tracker_time_info_t *time_info,
-                             const tracker_misc_info_t *misc_info,
                              channel_measurement_t *meas) {
   /* Update our channel measurement. */
   memset(meas, 0, sizeof(*meas));
@@ -57,7 +53,7 @@ void tracker_measurement_get(u64 ref_tc,
                          NAP_FRONTEND_SAMPLE_RATE_Hz;
 
   meas->cn0 = info->cn0;
-  meas->lock_time = tracker_get_lock_time(time_info, misc_info);
+  meas->lock_time = tracker_get_lock_time(freq_info);
   meas->flags = 0;
 }
 
@@ -95,21 +91,18 @@ bool tracker_calc_pseudorange(u64 ref_tc,
 /**
  * Computes the lock time from tracking channel time info.
  *
- * \param[in]  time_info Time information block.
- * \param[in]  misc_info Miscellaneous information block.
+ * \param[in]  freq_info Freq and phase information block.
  *
  * \return Lock time [s]
  */
-double tracker_get_lock_time(const tracker_time_info_t *time_info,
-                             const tracker_misc_info_t *misc_info) {
-  u64 lock_time_ms = UINT64_MAX;
+double tracker_get_lock_time(const tracker_freq_info_t *freq_info) {
+  u64 lock_time_ms = 0;
 
-  if (0 != misc_info->carrier_phase_offset.value) {
+  if (0 != freq_info->cpo.value) {
     u64 now_ms = timing_getms();
-    assert(now_ms >= misc_info->carrier_phase_offset.timestamp_ms);
-    lock_time_ms = now_ms - misc_info->carrier_phase_offset.timestamp_ms;
+    assert(now_ms >= freq_info->cpo.timestamp_ms);
+    lock_time_ms = now_ms - freq_info->cpo.timestamp_ms;
   }
-  lock_time_ms = MIN(lock_time_ms, time_info->ld_pess_locked_ms);
 
   return (double)lock_time_ms / SECS_MS;
 }
@@ -172,9 +165,8 @@ void tracker_set_carrier_phase_offset(const tracker_info_t *info,
   if (0 != (tracker->flags & TRACKER_FLAG_ACTIVE) &&
       mesid_is_equal(info->mesid, tracker->mesid) &&
       info->lock_counter == tracker->lock_counter) {
-    tracker_misc_info_t *misc_info = &tracker->misc_info;
-    misc_info->carrier_phase_offset.value = carrier_phase_offset;
-    misc_info->carrier_phase_offset.timestamp_ms = timing_getms();
+    tracker->cpo.value = carrier_phase_offset;
+    tracker->cpo.timestamp_ms = timing_getms();
     adjusted = true;
   }
   tracker_unlock(tracker);

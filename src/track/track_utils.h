@@ -48,16 +48,13 @@ extern "C" {
 void tracker_measurement_get(u64 ref_tc,
                              const tracker_info_t *info,
                              const tracker_freq_info_t *freq_info,
-                             const tracker_time_info_t *time_info,
-                             const tracker_misc_info_t *misc_info,
                              channel_measurement_t *meas);
 
 bool tracker_calc_pseudorange(u64 ref_tc,
                               const channel_measurement_t *meas,
                               double *raw_pseudorange);
 
-double tracker_get_lock_time(const tracker_time_info_t *time_info,
-                             const tracker_misc_info_t *misc_info);
+double tracker_get_lock_time(const tracker_freq_info_t *freq_info);
 u16 tracker_load_cc_data(tracker_cc_data_t *cc_data);
 
 void tracker_set_carrier_phase_offset(const tracker_info_t *info,
