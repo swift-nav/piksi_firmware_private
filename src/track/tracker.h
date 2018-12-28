@@ -226,8 +226,8 @@ typedef struct {
 } tracker_ctrl_info_t;
 
 typedef struct {
-  s32 value;            /**< Carrier phase offset value [cycles] */
-  u64 timestamp_ms;     /**< Carrier phase offset timestamp [ms] */
+  s32 value;        /**< Carrier phase offset value [cycles] */
+  u64 timestamp_ms; /**< Carrier phase offset timestamp [ms] */
 } tracker_cpo_t;
 
 /**
@@ -239,7 +239,7 @@ typedef struct {
   double carrier_phase;    /**< Carrier phase in cycles */
   double carrier_freq;     /**< Carrier frequency in Hz */
   double carrier_freq_at_lock; /**< Carrier frequency at last lock time */
-  tracker_cpo_t cpo;       /**< Carrier phase offset */
+  tracker_cpo_t cpo;           /**< Carrier phase offset */
 } tracker_freq_info_t;
 
 /**

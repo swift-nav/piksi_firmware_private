@@ -911,8 +911,7 @@ u32 get_tracking_channel_meas(u8 i,
     /* Load information from SID cache */
     flags |= get_tracking_channel_sid_flags(sid, info.tow_ms, ephe);
 
-    tracker_measurement_get(
-        ref_tc, &info, &freq_info, meas);
+    tracker_measurement_get(ref_tc, &info, &freq_info, meas);
 
     /* Adjust for half phase ambiguity */
     if ((0 != (info.flags & TRACKER_FLAG_BIT_POLARITY_KNOWN)) &&
