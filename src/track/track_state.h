@@ -35,6 +35,12 @@ bool tracker_init(const u8 id,
                   float cn0_init);
 void tracker_disable(const u8 id);
 
+void tracker_get_state(u8 id,
+                       tracker_info_t *info,
+                       tracker_time_info_t *time_info,
+                       tracker_freq_info_t *freq_info,
+                       tracker_misc_info_t *misc_params);
+
 /* Update interface */
 void trackers_update(u32 channels_mask, const u8 start_chan);
 void trackers_missed(u32 channels_mask, const u8 start_chan);
