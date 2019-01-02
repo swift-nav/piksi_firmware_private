@@ -78,7 +78,8 @@ static void log_time_quality(time_quality_t new_quality) {
   current_time_quality = new_quality;
   chMtxUnlock(&clock_mutex);
 
-  if (new_quality != old_quality) {
+  if (new_quality != old_quality &&
+      (new_quality < TIME_FINE || old_quality < TIME_FINE)) {
     log_info("Quality of time solution changed from %s to %s",
              time_quality_names[old_quality],
              time_quality_names[new_quality]);
