@@ -74,6 +74,7 @@ typedef struct {
   decoder_channel_state_t state; /**< State of this channel. */
   decoder_channel_info_t info;   /**< Info associated with this channel. */
   decoder_t *decoder;            /**< Associated decoder instance. */
+  const decoder_interface_t *interface; /**< Associated decoder interface */
 } decoder_channel_t;
 
 static decoder_interface_list_element_t *decoder_interface_list = 0;
@@ -184,6 +185,7 @@ bool decoder_channel_init(u8 tracking_channel, const me_gnss_signal_t mesid) {
   d->info.tracking_channel = tracking_channel;
   d->info.mesid = mesid;
   d->decoder = decoder;
+  d->interface = interface;
 
   /* Empty the nav bit FIFO */
   nav_bit_t nav_bit;
@@ -223,16 +225,14 @@ static void decode_thread(void *arg) {
       decoder_channel_t *d = &decoder_channels[i];
       switch (decoder_channel_state_get(d)) {
         case DECODER_CHANNEL_STATE_ENABLED: {
-          const decoder_interface_t *interface =
-              decoder_interface_get(d->info.mesid);
+          const decoder_interface_t *interface = d->interface;
           assert(interface);
           assert(interface->process);
           interface_function(d, interface->process);
         } break;
 
         case DECODER_CHANNEL_STATE_DISABLE_REQUESTED: {
-          const decoder_interface_t *interface =
-              decoder_interface_get(d->info.mesid);
+          const decoder_interface_t *interface = d->interface;
           assert(interface);
           assert(interface->disable);
           interface_function(d, interface->disable);
