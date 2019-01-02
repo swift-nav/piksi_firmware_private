@@ -662,11 +662,13 @@ static void update_ld_freq(tracker_t *tracker, u32 cycle_flags) {
  * \return None
  */
 static void tp_tracker_update_locks(tracker_t *tracker, u32 cycle_flags) {
+  bool outp_phase_prev = tracker->ld_phase.outp;
   bool outp_prev = tracker->ld_phase.outp || tracker->ld_freq.outp;
 
   update_ld_phase(tracker, cycle_flags);
   update_ld_freq(tracker, cycle_flags);
 
+  bool outp_phase = tracker->ld_phase.outp;
   bool outp = tracker->ld_phase.outp || tracker->ld_freq.outp;
 
   bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
@@ -678,9 +680,7 @@ static void tp_tracker_update_locks(tracker_t *tracker, u32 cycle_flags) {
   if (outp != outp_prev) {
     if (outp) {
       tracker_timer_init(&tracker->unlocked_timer);
-      tracker_timer_arm(&tracker->locked_timer, /*deadline_ms=*/-1);
     } else {
-      tracker_timer_init(&tracker->locked_timer);
       tracker_timer_arm(&tracker->unlocked_timer, /*deadline_ms=*/-1);
     }
   }
@@ -693,8 +693,13 @@ static void tp_tracker_update_locks(tracker_t *tracker, u32 cycle_flags) {
    * is done always to prevent incorrect handling of partial integration
    * intervals.
    */
-  if (0 == (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) {
-    tracker_ambiguity_unknown(tracker);
+  if (outp_phase != outp_phase_prev) {
+    if (outp_phase) {
+      tracker_timer_arm(&tracker->phase_locked_timer, /*deadline_ms=*/-1);
+    } else {
+      tracker_timer_init(&tracker->phase_locked_timer);
+      tracker_ambiguity_unknown(tracker);
+    }
   }
 }
 
