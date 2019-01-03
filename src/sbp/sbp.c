@@ -40,6 +40,14 @@
  * Send and receive messages using Swift Binary Protocol.
  * \{ */
 
+/* Implementation used for libswiftnav's logging functionality. */
+static void sbp_log_(int level, const char *msg, ...);
+static void sbp_detailed_log_(int level,
+                              const char *file_path,
+                              const int line_number,
+                              const char *msg,
+                              ...);
+
 u16 my_sender_id;
 
 /* TODO: Make new message type containing only latency and obs period */
@@ -103,8 +111,8 @@ static void sbp_thread(void *arg) {
  * thread.
  */
 void sbp_setup(void) {
+  logging_set_implementation(sbp_log_, sbp_detailed_log_);
   sbp_state_init(&sbp_state);
-
   chThdCreateStatic(wa_sbp_thread,
                     sizeof(wa_sbp_thread),
                     SBP_THREAD_PRIORITY,
@@ -218,7 +226,7 @@ int _write(int file, char *ptr, int len) {
 }
 
 /** Directs log_ output to the SBP log message */
-void log_(int level, const char *msg, ...) {
+static void sbp_log_(int level, const char *msg, ...) {
   msg_log_t *log;
   va_list ap;
   char buf[SBP_FRAMING_MAX_PAYLOAD_SIZE];
@@ -236,11 +244,11 @@ void log_(int level, const char *msg, ...) {
   sbp_send_msg(SBP_MSG_LOG, n + sizeof(msg_log_t), (u8 *)buf);
 }
 
-void detailed_log_(int level,
-                   const char *file_path,
-                   const int line_number,
-                   const char *msg,
-                   ...) {
+static void sbp_detailed_log_(int level,
+                              const char *file_path,
+                              const int line_number,
+                              const char *msg,
+                              ...) {
   msg_log_t *log;
   va_list ap;
   char buf[SBP_FRAMING_MAX_PAYLOAD_SIZE];
