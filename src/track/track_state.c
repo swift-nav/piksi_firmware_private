@@ -141,7 +141,6 @@ bool tracker_available(const u8 id, const me_gnss_signal_t mesid) {
  *
  * \param[in]  id           Tracking channel identifier.
  * \param[out] info         generic information.
- * \param[out] time_info    timing information.
  * \param[out] freq_info    frequency and phase information.
  * \param[out] misc_info    misc information.
  *
@@ -149,13 +148,9 @@ bool tracker_available(const u8 id, const me_gnss_signal_t mesid) {
  */
 void tracker_get_state(u8 id,
                        tracker_info_t *info,
-                       tracker_time_info_t *time_info,
-                       tracker_freq_info_t *freq_info,
-                       tracker_misc_info_t *misc_info) {
+                       tracker_freq_info_t *freq_info) {
   assert(info);
-  assert(time_info);
   assert(freq_info);
-  assert(misc_info);
 
   tracker_t *tracker = tracker_get(id);
 
@@ -182,20 +177,12 @@ void tracker_get_state(u8 id,
   /* Cross-correlation doppler frequency [hz] */
   info->xcorr_freq = tracker->xcorr_freq;
 
-  if (0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) {
-    time_info->ld_pess_locked_ms = tracker_timer_ms(&tracker->locked_timer);
-  } else {
-    time_info->ld_pess_locked_ms = 0;
-  }
-
   /* Current carrier frequency for a tracker channel. */
   freq_info->carrier_freq = tracker->carrier_freq;
-  /* Carrier frequency snapshot at the moment of latest PLL/FLL pessimistic
-   * lock
+  /* Carrier frequency snapshot at latest PLL/FLL pessimistic lock
    * condition for a tracker channel.
    *
-   * The returned carrier frequency is not necessarily the latest reading of
-   * the
+   * The returned carrier frequency is not necessarily the latest measured
    * carrier frequency. It is the latest carrier frequency snapshot, when the
    * tracking channel was in PLL/FLL pessimistic lock state.
    */
@@ -207,9 +194,9 @@ void tracker_get_state(u8 id,
   /* Code phase rate in chips/s */
   freq_info->code_phase_rate = tracker->code_phase_rate;
 
-  *misc_info = tracker->misc_info;
+  freq_info->cpo = tracker->cpo;
   if (tracker->reset_cpo) {
-    tracker->misc_info.carrier_phase_offset.value = 0;
+    tracker->cpo.value = 0;
     tracker->reset_cpo = false;
   }
 
@@ -264,8 +251,6 @@ bool tracker_init(const u8 id,
     tracker->sample_count = ref_sample_count;
     /* First profile selection is based on initial CN0 estimate. */
     tracker->cn0 = cn0_init;
-
-    tracker_timer_init(&tracker->locked_timer);
 
     tracker_timer_init(&tracker->unlocked_timer);
     tracker_timer_arm(&tracker->unlocked_timer, /*deadline_ms=*/-1);

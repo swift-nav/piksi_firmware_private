@@ -402,8 +402,7 @@ static u16 tracking_lock_counter_increment(const me_gnss_signal_t mesid) {
  * Changes the lock counter to indicate to the consumer of the tracking channel
  * observations that the carrier phase ambiguity may have changed. Also
  * invalidates the half cycle ambiguity, which must be resolved again by the
- * navigation
- *  message processing. Should be called if a cycle slip is suspected.
+ * navigation message processing. To be called if a cycle slip is suspected.
  *
  * \param[in] tracker Tracker data
  */

@@ -662,12 +662,12 @@ static void update_ld_freq(tracker_t *tracker, u32 cycle_flags) {
  * \return None
  */
 static void tp_tracker_update_locks(tracker_t *tracker, u32 cycle_flags) {
-  bool outp_prev = tracker->ld_phase.outp || tracker->ld_freq.outp;
+  bool outp_prev = tracker_has_all_locks(tracker);
 
   update_ld_phase(tracker, cycle_flags);
   update_ld_freq(tracker, cycle_flags);
 
-  bool outp = tracker->ld_phase.outp || tracker->ld_freq.outp;
+  bool outp = tracker_has_all_locks(tracker);
 
   bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
   if (!outp_prev && outp && confirmed) {
@@ -678,9 +678,7 @@ static void tp_tracker_update_locks(tracker_t *tracker, u32 cycle_flags) {
   if (outp != outp_prev) {
     if (outp) {
       tracker_timer_init(&tracker->unlocked_timer);
-      tracker_timer_arm(&tracker->locked_timer, /*deadline_ms=*/-1);
     } else {
-      tracker_timer_init(&tracker->locked_timer);
       tracker_timer_arm(&tracker->unlocked_timer, /*deadline_ms=*/-1);
     }
   }
