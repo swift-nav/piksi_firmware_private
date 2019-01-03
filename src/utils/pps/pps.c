@@ -57,8 +57,8 @@ static bool output_pps(gps_time_t *in_time) {
     case PPS_PROP_MODE_NONE:
       /* if time update within 1 time solve solution interval
        * it means we have had a soln or have had one very recently,
-       * therfore we return true */
-      if (time_updated_within(in_time, 1 / ME_PVT_INTERVAL_S)) {
+       * therefore we return true */
+      if (time_updated_within(in_time, ME_PVT_INTERVAL_S + 0.005)) {
         return true;
       }
       break;
@@ -85,7 +85,7 @@ static void pps_thread(void *arg) {
   chRegSetThreadName("PPS");
 
   while (TRUE) {
-    if (get_time_quality() >= TIME_PROPAGATED && !nap_pps_armed()) {
+    if (get_time_quality() > TIME_UNKNOWN && !nap_pps_armed()) {
       gps_time_t t = get_current_time();
       if (output_pps(&t)) {
         t.tow = (t.tow - fmod(t.tow, pps_period)) + pps_period +
