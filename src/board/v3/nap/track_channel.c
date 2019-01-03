@@ -90,42 +90,38 @@ static u32 calc_length_samples(u32 chips_to_correlate,
  */
 static u8 mesid_to_nap_code(const me_gnss_signal_t mesid) {
   u8 ret = ~0;
-  switch ((s8)mesid.code) {
-    case CODE_GPS_L1CA:
-    case CODE_QZS_L1CA:
+  switch ((s8)mesid.me_code) {
+    case ME_CODE_GPS_L1:
+    case ME_CODE_QZS_L1:
       ret = NAP_TRK_CODE_GPS_L1;
       break;
-    case CODE_SBAS_L1CA:
+    case ME_CODE_SBAS_L1:
       ret = NAP_TRK_CODE_SBAS_L1;
       break;
-    case CODE_GPS_L2CM:
-    case CODE_QZS_L2CM:
+    case ME_CODE_GPS_L2:
+    case ME_CODE_QZS_L2:
       ret = NAP_TRK_CODE_GPS_L2;
       break;
-    case CODE_GLO_L1OF:
+    case ME_CODE_GLO_L1:
       ret = NAP_TRK_CODE_GLO_G1;
       break;
-    case CODE_GLO_L2OF:
+    case ME_CODE_GLO_L2:
       ret = NAP_TRK_CODE_GLO_G2;
       break;
-    case CODE_BDS2_B1:
+    case ME_CODE_BDS2_B1:
       ret = NAP_TRK_CODE_BDS_B1;
       break;
-    case CODE_BDS2_B2:
+    case ME_CODE_BDS2_B2:
       ret = NAP_TRK_CODE_BDS_B2;
       break;
-    case CODE_GPS_L1P:
-    case CODE_GPS_L2P:
-      assert(!"Unsupported SID");
-      break;
-    case CODE_GAL_E1B:
+    case ME_CODE_GAL_E1:
 #if defined CODE_GAL_E1_SUPPORT && CODE_GAL_E1_SUPPORT > 0
       ret = NAP_TRK_CODE_GAL_E1;
 #else
       assert(!"Invalid code");
 #endif /* CODE_GAL_E1_SUPPORT*/
       break;
-    case CODE_GAL_E7I:
+    case ME_CODE_GAL_E7:
       ret = NAP_TRK_CODE_GAL_E7;
       break;
     default:
@@ -149,25 +145,25 @@ void nap_track_init(u8 channel,
                     float doppler_freq_hz,
                     double code_phase,
                     u32 chips_to_correlate) {
-  assert((mesid.code == CODE_GPS_L1CA) || (mesid.code == CODE_GPS_L2CM) ||
-         (mesid.code == CODE_GPS_L5I) || (mesid.code == CODE_SBAS_L1CA) ||
-         (mesid.code == CODE_GLO_L1OF) || (mesid.code == CODE_GLO_L2OF) ||
-         (mesid.code == CODE_BDS2_B1) || (mesid.code == CODE_BDS2_B2) ||
-         (mesid.code == CODE_QZS_L1CA) || (mesid.code == CODE_QZS_L2CM) ||
-         (mesid.code == CODE_QZS_L5I) || (mesid.code == CODE_GAL_E1B) ||
-         (mesid.code == CODE_GAL_E7I) || (mesid.code == CODE_GAL_E5I));
+  assert(
+      (mesid.me_code == ME_CODE_GPS_L1) || (mesid.me_code == ME_CODE_GPS_L2) ||
+      (mesid.me_code == ME_CODE_SBAS_L1) || (mesid.me_code == ME_CODE_GLO_L1) ||
+      (mesid.me_code == ME_CODE_GLO_L2) || (mesid.me_code == ME_CODE_BDS2_B1) ||
+      (mesid.me_code == ME_CODE_BDS2_B2) || (mesid.me_code == ME_CODE_QZS_L1) ||
+      (mesid.me_code == ME_CODE_QZS_L2) || (mesid.me_code == ME_CODE_GAL_E1) ||
+      (mesid.me_code == ME_CODE_GAL_E7));
 
   swiftnap_tracking_wr_t *t = &NAP->TRK_CH_WR[channel];
   struct nap_ch_state *s = &nap_ch_desc[channel];
 
-  if (mesid.code == CODE_BDS2_B2) {
+  if (mesid.me_code == ME_CODE_BDS2_B2) {
     log_debug("C%02" PRIu8 " channel %" PRIu8 " t %" PRIxPTR " s %" PRIxPTR,
               mesid.sat,
               channel,
               (uintptr_t)t,
               (uintptr_t)s);
   }
-  if (mesid.code == CODE_GAL_E1B) {
+  if (mesid.me_code == ME_CODE_GAL_E1) {
     log_debug("E%02" PRIu8 " e1bc channel %" PRIu8 " t %" PRIxPTR
               " s %" PRIxPTR,
               mesid.sat,
@@ -175,7 +171,7 @@ void nap_track_init(u8 channel,
               (uintptr_t)t,
               (uintptr_t)s);
   }
-  if (mesid.code == CODE_GAL_E7I) {
+  if (mesid.me_code == ME_CODE_GAL_E7) {
     log_debug("E%02" PRIu8 " e5bIQ channel %" PRIu8 " t %" PRIxPTR
               " s %" PRIxPTR,
               mesid.sat,

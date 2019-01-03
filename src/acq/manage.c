@@ -233,7 +233,6 @@ static void mask_sat_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
   gnss_signal_t sid = sid_from_sbp(m->sid);
 
   if (sid_supported(sid)) {
-    /* TODO GLO: Handle GLO signals properly. */
     me_gnss_signal_t mesid;
     if (IS_GLO(sid)) {
       assert(glo_map_valid(sid));

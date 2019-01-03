@@ -199,13 +199,11 @@ static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
   /** first of all reset the destination buffer */
   memset(baseband, 0, FAU_BASEBAND_SIZE * sizeof(sc16_t));
 
-  switch ((s8)mesid.code) {
-    case CODE_GPS_L1CA:
-    case CODE_SBAS_L1CA:
-    case CODE_QZS_L1CA:
-    case CODE_GAL_E1B:
-    case CODE_GAL_E1C:
-    case CODE_GAL_E1X:
+  switch ((s8)mesid.me_code) {
+    case ME_CODE_GPS_L1:
+    case ME_CODE_SBAS_L1:
+    case ME_CODE_QZS_L1:
+    case ME_CODE_GAL_E1:
       nco_step = CirclesToUint32(GPS_L1_HZ / (double)FAU_RAW_FS);
 
       for (k = 0, carr_nco = 0; k < FAU_SAMPLE_GRABBER_LENGTH; k++) {
@@ -223,7 +221,7 @@ static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
       }
       break;
 
-    case CODE_GLO_L1OF:
+    case ME_CODE_GLO_L1:
       nco_step = CirclesToUint32(
           (GLO_L1_HZ + (mesid.sat - GLO_FCN_OFFSET) * GLO_L1_DELTA_HZ) /
           (double)FAU_RAW_FS);
@@ -243,7 +241,7 @@ static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
       }
       break;
 
-    case CODE_BDS2_B1:
+    case ME_CODE_BDS2_B1:
       nco_step = CirclesToUint32(BDS2_B11_HZ / (double)FAU_RAW_FS);
 
       for (k = 0, carr_nco = 0; k < FAU_SAMPLE_GRABBER_LENGTH; k++) {
@@ -261,7 +259,7 @@ static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
       }
       break;
 
-    case CODE_GAL_E7I:
+    case ME_CODE_GAL_E7:
       nco_step = CirclesToUint32(GAL_E7_HZ / (double)FAU_RAW_FS);
 
       for (k = 0, carr_nco = 0; k < FAU_SAMPLE_GRABBER_LENGTH; k++) {
