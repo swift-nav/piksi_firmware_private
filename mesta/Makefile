@@ -79,6 +79,7 @@ CSRC := $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l2c.c \
 	$(SWIFTNAV_ROOT)/src/utils/lock_detector/lock_detector.c \
 	$(SWIFTNAV_ROOT)/src/utils/track_loop/track_pll2_dll1.c \
 	$(SWIFTNAV_ROOT)/src/utils/track_loop/track_pll3_fll2_dll1.c \
+	$(SWIFTNAV_ROOT)/src/utils/track_loop/track_fll1_dll1.c \
 	$(SWIFTNAV_ROOT)/src/utils/track_loop/trk_loop_common.c \
 	$(SWIFTNAV_ROOT)/src/utils/signal_db/signal_db.c \
 	$(SWIFTNAV_ROOT)/src/utils/bit_sync/bit_sync.c \
