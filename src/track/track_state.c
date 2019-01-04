@@ -142,7 +142,6 @@ bool tracker_available(const u8 id, const me_gnss_signal_t mesid) {
  * \param[in]  id           Tracking channel identifier.
  * \param[out] info         generic information.
  * \param[out] freq_info    frequency and phase information.
- * \param[out] misc_info    misc information.
  *
  * \return None
  */
