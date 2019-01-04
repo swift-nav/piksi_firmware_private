@@ -69,9 +69,6 @@ static const double valid_soln_freqs_hz[] = {1.0, 2.0, 4.0, 5.0, 10.0, 20.0};
 #define SOLN_FREQ_SETTING_MAX \
   (valid_soln_freqs_hz[ARRAY_SIZE(valid_soln_freqs_hz) - 1])
 
-/* Maximum interval for computing ME PVT solution */
-#define ME_PVT_INTERVAL_S 1.0
-
 double soln_freq_setting = 10.0;
 u32 obs_output_divisor = 10;
 

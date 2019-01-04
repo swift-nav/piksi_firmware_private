@@ -886,11 +886,9 @@ u32 get_tracking_channel_meas(u8 i,
   memset(meas, 0, sizeof(*meas));
 
   tracker_info_t info;
-  tracker_time_info_t time_info;
   tracker_freq_info_t freq_info;
-  tracker_misc_info_t misc_info;
 
-  tracker_get_state(i, &info, &time_info, &freq_info, &misc_info);
+  tracker_get_state(i, &info, &freq_info);
   u32 flags = info.flags;
   if (IS_GLO(info.mesid) && !glo_slot_id_is_valid(info.glo_orbit_slot)) {
     memset(meas, 0, sizeof(*meas));
@@ -913,8 +911,7 @@ u32 get_tracking_channel_meas(u8 i,
     /* Load information from SID cache */
     flags |= get_tracking_channel_sid_flags(sid, info.tow_ms, ephe);
 
-    tracker_measurement_get(
-        ref_tc, &info, &freq_info, &time_info, &misc_info, meas);
+    tracker_measurement_get(ref_tc, &info, &freq_info, meas);
 
     /* Adjust for half phase ambiguity */
     if ((0 != (info.flags & TRACKER_FLAG_BIT_POLARITY_KNOWN)) &&
@@ -935,7 +932,7 @@ u32 get_tracking_channel_meas(u8 i,
      * have caused initial offset reset are not longer present. See callers of
      * tracker_ambiguity_unknown() for more details.
      */
-    s32 carrier_phase_offset = misc_info.carrier_phase_offset.value;
+    s32 carrier_phase_offset = freq_info.cpo.value;
 
     /* try to compute cpo if it is not computed yet but could be */
     if ((0 == carrier_phase_offset) &&
@@ -1329,26 +1326,5 @@ u16 get_orbit_slot(const u16 fcn) {
   return glo_orbit_slot;
 }
 
-/** Return GLO fractional 2ms FCN residual for signal at given NAP count
- * \param sid gnss_signal_t to use
- * \param ref_tc NAP counter the measurements are referenced to
- * \return The residual in cycles
- */
-double glo_2ms_fcn_residual(const gnss_signal_t sid, u64 ref_tc) {
-  if (!IS_GLO(sid)) {
-    return 0.0;
-  }
-
-  double carr_fcn_hz = 0;
-  if (CODE_GLO_L1OF == sid.code) {
-    carr_fcn_hz = (glo_map_get_fcn(sid) - GLO_FCN_OFFSET) * GLO_L1_DELTA_HZ;
-  } else if (CODE_GLO_L2OF == sid.code) {
-    carr_fcn_hz = (glo_map_get_fcn(sid) - GLO_FCN_OFFSET) * GLO_L2_DELTA_HZ;
-  }
-
-  u64 tc_2ms_boundary = FCN_NCO_RESET_COUNT * (ref_tc / FCN_NCO_RESET_COUNT);
-  return -carr_fcn_hz * (ref_tc - tc_2ms_boundary) /
-         NAP_FRONTEND_SAMPLE_RATE_Hz;
-}
 
 /** \} */
