@@ -37,9 +37,9 @@ static const double gal_e7i_isc = 3.4;
 
 /* GLO pseudorange biases per FCN (meters) */
 static const double glo_l1_isc[GLO_MAX_FCN] =
-  {-7.2,-7.1,-7.1,-7.0,-6.9,-6.8,-6.8,-6.8,-6.9,-6.7,-6.8,-7.3,-7.2,-7.7};
+  {-7.8,-7.7,-7.6,-7.5,-7.3,-7.4,-7.2,-7.3,-7.4,-7.2,-7.5,-7.8,-7.8,-8.3};
 static const double glo_l2_isc[GLO_MAX_FCN] =
-  {-1.6,-1.4,-1.3,-1.1,-1.1,-0.7,-0.3,+0.2,+0.3,+0.1,+1.1,+0.9,+1.2,+1.3};
+  {-2.2,-2.0,-1.9,-1.7,-1.4,-1.2,-0.9,-0.3,-0.1,-0.4,+0.2,+0.6,+0.7,+0.8};
 
 /* GLO carrier biases per FCN (cycles) */
 static const double glo_l1_carrier_corr[GLO_MAX_FCN] =
