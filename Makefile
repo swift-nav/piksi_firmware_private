@@ -90,7 +90,7 @@ $(LIBSETTINGS_BUILDDIR)/src/libsettings.a: $(LIBSBP_BUILDDIR)/src/libsbp.a
 	      -DCMAKE_TOOLCHAIN_FILE=../cmake/Toolchain-gcc-arm-embedded.cmake \
 	      -DLIBSBP_SEARCH_PATH=$(SWIFTNAV_ROOT)/libsbp/c/ \
 	      $(CMAKEFLAGS) ../
-	$(MAKE) -C $(LIBSETTINGS_BUILDDIR) $(MAKEFLAGS)
+	$(MAKE) -C $(LIBSETTINGS_BUILDDIR) $(MAKEFLAGS) settings
 
 $(STARLING_BUILDDIR)/src/libstarling.a: .PHONY
 	@printf "BUILD   starling for target $(PIKSI_TARGET)\n"; \
