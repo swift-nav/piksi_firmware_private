@@ -151,6 +151,8 @@ static bool is_final_message_in_obs_sequence(u8 count, u8 total) {
  *
  * \note This function is stateful as it must store the previous observation
  *       set for the TDCP Doppler.
+ *
+ * \note This function takes ownership of `obs_array`
  */
 static void update_obss(obs_array_t *obs_array) {
   /* Warn on receiving observations which are very old. This may be indicative
@@ -187,11 +189,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
    * so we can verify we haven't dropped a message. */
   static s16 prev_count = 0;
   static gps_time_t prev_tor = GPS_TIME_UNKNOWN;
-
-  /* Storage for collecting the incoming observations. */
-  static obs_array_t obs_array;
-
-  obs_array.sender = sender_id;
+  static obs_array_t *obs_array = NULL;
 
   /* An SBP sender ID of zero means that the messages are relayed observations
    * from the console, not from the base station. We don't want to use them and
@@ -266,12 +264,23 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
     prev_count = count;
   }
 
+  /* Make sure we have a valid array before operating on it */
+  if (NULL == obs_array) {
+    obs_array = starling_alloc_base_obs();
+    if (NULL == obs_array) {
+      log_error(
+          "Unable to allocate an array to store base obs, dropping one packet");
+      return;
+    }
+  }
+
   /* If this is the first packet in the sequence then reset the base_obss_rx
    * state. */
   if (is_first_message_in_obs_sequence(count)) {
-    obs_array.n = 0;
-    obs_array.t = tor;
+    obs_array->n = 0;
+    obs_array->t = tor;
   }
+  obs_array->sender = sender_id;
 
   /* Calculate the number of observations in this message by looking at the SBP
    * `len` field. */
@@ -283,26 +292,27 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
       (packed_obs_content_t *)(msg + sizeof(observation_header_t));
 
   /* Copy into local array. */
-  for (size_t i = 0; i < obs_in_msg && obs_array.n < STARLING_MAX_CHANNEL_COUNT;
+  for (size_t i = 0;
+       i < obs_in_msg && obs_array->n < STARLING_MAX_CHANNEL_COUNT;
        ++i) {
-    starling_obs_t *current_obs = &obs_array.observations[obs_array.n++];
+    starling_obs_t *current_obs = &obs_array->observations[obs_array->n++];
     unpack_obs_content(&msg_raw_obs[i], current_obs);
     /* We must also compute the TOT using the TOR from the header. */
-    current_obs->tot = obs_array.t;
+    current_obs->tot = obs_array->t;
     current_obs->tot.tow -= current_obs->pseudorange / GPS_C;
     normalize_gps_time(&current_obs->tot);
   }
 
   /* Print msg if we encounter a remote which sends large amount of obs. */
-  if (STARLING_MAX_CHANNEL_COUNT == obs_array.n) {
+  if (STARLING_MAX_CHANNEL_COUNT == obs_array->n) {
     log_info("Remote obs reached maximum: %d", STARLING_MAX_CHANNEL_COUNT);
   }
 
   /* If we can, and all the obs have been received, update to using the new
    * obss. */
   if (is_final_message_in_obs_sequence(count, total)) {
-    // TODO(kevin) Do something with the obs array.
-    update_obss(&obs_array);
+    update_obss(obs_array); /* Transferring ownership of obs_array here */
+    obs_array = NULL;
 
     /* Calculate packet latency. */
     if (get_time_quality() >= TIME_COARSE) {

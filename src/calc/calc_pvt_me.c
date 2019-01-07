@@ -78,8 +78,9 @@ static soln_stats_t last_stats = {.signals_tracked = 0, .signals_useable = 0};
 
 /* STATIC FUNCTIONS */
 
-/******************************************************************************/
-static void me_post_observations(const obs_array_t *obs_array,
+/** This function takes ownership of `obs_array`, and passes ownership
+ *  of it to `starling_send_rover_obs()` */
+static void me_post_observations(obs_array_t *obs_array,
                                  const ephemeris_t _ephem[]) {
   assert(NULL != obs_array);
   int ret = starling_send_ephemerides(_ephem, obs_array->n);
@@ -87,7 +88,9 @@ static void me_post_observations(const obs_array_t *obs_array,
     log_error("ME: Unable to send ephemeris array.");
   }
 
-  ret = starling_send_rover_obs(obs_array);
+  ret = starling_send_rover_obs(
+      obs_array); /* Transferring ownership of obs_array here */
+  obs_array = NULL;
   if (STARLING_SEND_OK != ret) {
     log_error("ME: Unable to send observations.");
   }
@@ -102,22 +105,38 @@ static bool decimate_observations(const gps_time_t *_t) {
   return fabs(gpsdifftime(_t, &epoch)) < TIME_MATCH_THRESHOLD;
 }
 
-static void me_send_all(const obs_array_t *obs_array,
-                        const ephemeris_t _ephem[]) {
-  me_post_observations(obs_array, _ephem);
+/** This function takes ownership of `obs_array` and transfers ownership
+ * of it to `me_post_observations()` */
+static void me_send_all(obs_array_t *obs_array, const ephemeris_t _ephem[]) {
   /* Output observations only every obs_output_divisor times, taking
    * care to ensure that the observations are aligned. */
   if (decimate_observations(&obs_array->t) && !simulation_enabled()) {
     send_observations(obs_array, msg_obs_max_size);
   }
+  me_post_observations(obs_array,
+                       _ephem); /* Transferring ownership of obs_array here */
+  obs_array = NULL;
   DO_EVERY(biases_message_freq_setting, send_glonass_biases());
 }
 
-static void me_send_emptyobs(void) {
-  obs_array_t obs_array;
-  obs_array.n = 0;
-  obs_array.t = GPS_TIME_UNKNOWN;
-  me_post_observations(&obs_array, NULL);
+/** This function takes ownership of `obs_array` and reuses it to send empty
+ * observation data. If NULL is given it attempts to allocate some memory
+ * itself. Finally it transfers ownership of the message to
+ * `me_post_observations()` */
+static void me_send_emptyobs(obs_array_t *obs_array) {
+  if (NULL == obs_array) {
+    obs_array = starling_alloc_rover_obs();
+    if (NULL == obs_array) {
+      log_error("me_send_emptyobs(): Failed to allocate an obs_array!");
+      return;
+    }
+  }
+
+  obs_array->n = 0;
+  obs_array->t = GPS_TIME_UNKNOWN;
+  me_post_observations(obs_array,
+                       NULL); /* Transferring ownership of obs_array here */
+  obs_array = NULL;
   /* When we don't have a time solve, we still want to decimate our
    * observation output, we can use the GPS time if we have one,
    * otherwise we'll default to using receiver time. */
@@ -197,13 +216,18 @@ static void remove_clock_offset(obs_array_t *obs_array,
 
 /** Roughly propagate and send the observations when PVT solution failed or is
  * not available. Flag all with RAIM exclusion so they do not get used
- * downstream. */
+ * downstream.
+ *
+ * NOTE: This function takes ownership of `obs_array` and passes it to
+ * `me_post_observations()` or `me_send_emptyobs()` */
 static void me_send_failed_obs(obs_array_t *obs_array,
                                const ephemeris_t _ephem[]) {
   /* require at least some timing quality */
   if (TIME_PROPAGATED > get_time_quality() || !gps_time_valid(&obs_array->t) ||
       obs_array->n == 0) {
-    me_send_emptyobs();
+    me_send_emptyobs(
+        obs_array); /* Transferring ownership of obs_array, to be reused */
+    obs_array = NULL;
     return;
   }
 
@@ -222,12 +246,14 @@ static void me_send_failed_obs(obs_array_t *obs_array,
     obs_array->observations[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION;
   }
 
-  me_post_observations(obs_array, _ephem);
   /* Output observations only every obs_output_divisor times, taking
    * care to ensure that the observations are aligned. */
   if (decimate_observations(&obs_array->t) && !simulation_enabled()) {
     send_observations(obs_array, msg_obs_max_size);
   }
+  me_post_observations(obs_array,
+                       _ephem); /* Transferring ownership of obs_array here */
+  obs_array = NULL;
 }
 
 /** Update the satellite azimuth & elevation database with current angles
@@ -703,7 +729,7 @@ static void me_calc_pvt_thread(void *arg) {
     last_stats.signals_useable = n_ready;
 
     if (n_ready == 0) {
-      me_send_emptyobs();
+      me_send_emptyobs(NULL);
       sid_set_init(&raim_sids);
       continue;
     }
@@ -724,19 +750,27 @@ static void me_calc_pvt_thread(void *arg) {
 
     /* Initialize the observation array and create navigation measurements from
      * the channel measurements */
-    static obs_array_t obs_array;
+    obs_array_t *obs_array = starling_alloc_rover_obs();
+    if (NULL == obs_array) {
+      log_error(
+          "Unable to allocate memory for obs_array, dropping observation data");
+      /* No use in trying to send empty data here, not enough memory */
+      continue;
+    }
+
     s8 nm_ret =
-        calc_navigation_measurement(n_ready, meas, &obs_array, &current_time);
+        calc_navigation_measurement(n_ready, meas, obs_array, &current_time);
 
     if (nm_ret != 0) {
       log_error("calc_navigation_measurement() returned error %d", nm_ret);
-      me_send_emptyobs();
+      me_send_emptyobs(obs_array); /* Transferring ownership of obs_array */
+      obs_array = NULL;
       sid_set_init(&raim_sids);
       continue;
     }
 
     /* Apply empirical (Piksi Multi specific) inter-signal corrections */
-    apply_isc_table(&obs_array);
+    apply_isc_table(obs_array);
 
     /* Compute a PVT solution from the measurements to update LGF and clock
      * models. Compute on every epoch until the time quality gets to FINEST,
@@ -744,7 +778,7 @@ static void me_calc_pvt_thread(void *arg) {
     u32 interval_ms =
         (TIME_FINEST > time_quality) ? 0 : ME_PVT_INTERVAL_S * SECS_MS;
     DO_EACH_MS(interval_ms,
-               me_compute_pvt(&obs_array,
+               me_compute_pvt(obs_array,
                               current_tc,
                               e_meas,
                               &lgf,
@@ -756,10 +790,10 @@ static void me_calc_pvt_thread(void *arg) {
     double smoothed_drift = get_clock_drift();
 
     /* update the time of reception to the better estimate */
-    obs_array.t = smoothed_time;
+    obs_array->t = smoothed_time;
 
     /* Get the offset of measurement time from the desired output time */
-    double output_offset = gpsdifftime(&output_time, &obs_array.t);
+    double output_offset = gpsdifftime(&output_time, &obs_array->t);
 
     /* Only send observations that are closely aligned with the desired
      * solution epoch to ensure they haven't been propagated too far. */
@@ -769,17 +803,35 @@ static void me_calc_pvt_thread(void *arg) {
                 smoothed_drift);
 
       /* Propagate the measurements to the output epoch */
-      remove_clock_offset(&obs_array, &output_time, smoothed_drift, current_tc);
+      remove_clock_offset(obs_array, &output_time, smoothed_drift, current_tc);
 
       if (disable_raim) {
         /* Send all observations. */
-        me_send_all(&obs_array, e_meas);
+        me_send_all(obs_array,
+                    e_meas); /* Transferring ownership of obs_array here */
+        obs_array = NULL;
       } else {
         /* Send only the observations that have gone through RAIM. */
-        static obs_array_t send_obs_array;
-        copy_raimed_obs(
-            &obs_array, &raim_sids, &raim_failed_sids, &send_obs_array);
-        me_send_all(&send_obs_array, e_meas);
+        obs_array_t *send_obs_array = starling_alloc_rover_obs();
+
+        if (NULL == send_obs_array) {
+          log_error(
+              "Unable to allocate memory for raimed obs, dropping "
+              "observations");
+          /* No point in sending empty data, there's no memory to hold the
+           * message */
+        } else {
+          copy_raimed_obs(
+              obs_array, &raim_sids, &raim_failed_sids, send_obs_array);
+          me_send_all(
+              send_obs_array,
+              e_meas); /* Transferring ownership of send_obs_array here */
+          send_obs_array = NULL;
+        }
+        starling_free_rover_obs(
+            obs_array); /* We must manually free here since we didn't send
+                           `obs_array` itself */
+        obs_array = NULL;
       }
     } else {
       if (TIME_UNKNOWN != time_quality) {
@@ -787,7 +839,9 @@ static void me_calc_pvt_thread(void *arg) {
                  output_offset);
       }
       /* Send the observations, but marked unusable */
-      me_send_failed_obs(&obs_array, e_meas);
+      me_send_failed_obs(obs_array,
+                         e_meas); /* Transferring ownership of obs_array here */
+      obs_array = NULL;
     }
   }
 }
