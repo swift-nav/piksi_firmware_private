@@ -178,7 +178,7 @@ CSRC := $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l2c.c \
 	$(SWIFTNAV_ROOT)/starling/third_party/libswiftnav/src/troposphere.c \
 	$(SWIFTNAV_ROOT)/libsettings/src/settings.c \
 	$(SWIFTNAV_ROOT)/libsettings/src/settings_util.c \
-	$(SWIFTNAV_ROOT)/libsettings/src/registration_state.c \
+	$(SWIFTNAV_ROOT)/libsettings/src/request_state.c \
 	$(SWIFTNAV_ROOT)/mesta/stubs/stubs.c \
 	$(SWIFTNAV_ROOT)/mesta/main.c \
 
