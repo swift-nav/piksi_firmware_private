@@ -330,7 +330,7 @@ static const tp_profile_entry_t tracker_profiles_rover[] = {
   { { BW_DYN,      BW_DYN,           .5,   TP_CTRL_PLL3,
       TP_TM_2MS_20MS,  TP_TM_2MS_10MS,  TP_TM_2MS_2MS,  TP_TM_2MS_SC4 },
       TP_LD_PARAMS_PHASE_2MS, TP_LD_PARAMS_FREQ_2MS,
-        40,          43,          0,
+       0,          43,           0,
       IDX_2MS,     IDX_5MS,     IDX_NONE,
       TP_USE_NEXT | TP_LOW_CN0},
 
