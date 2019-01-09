@@ -225,7 +225,7 @@ void apply_gps_cnav_isc(u8 n_channels,
     if (cnav_msg_get(nav_meas[i]->sid, CNAV_MSG_TYPE_30, &cnav_msg) &&
         get_isc_corr(nav_meas[i]->sid.code, &cnav_msg.data.type_30, &isc)) {
       /* remove the already applied TGD correction */
-      double tgd = 0.0;
+      float tgd = 0.0;
       get_tgd_correction(&ephe[i], &nav_meas[i]->sid, &tgd);
       isc += tgd * GPS_C;
       /* apply the new minus old */
