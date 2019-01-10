@@ -294,17 +294,6 @@ static void imu_thread(void *arg) {
 
       /* Send out IMU_RAW SBP message. */
       sbp_send_msg(SBP_MSG_IMU_RAW, sizeof(imu_raw), (u8 *)&imu_raw);
-
-      /* Send data to Starling engine. */
-      imu_data_t imu_data;
-      imu_data.t = sample_time;
-      imu_data.acc_xyz[0] = imu_raw.acc_x;
-      imu_data.acc_xyz[1] = imu_raw.acc_y;
-      imu_data.acc_xyz[2] = imu_raw.acc_z;
-      imu_data.gyr_xyz[0] = imu_raw.gyr_x;
-      imu_data.gyr_xyz[1] = imu_raw.gyr_y;
-      imu_data.gyr_xyz[2] = imu_raw.gyr_z;
-      starling_send_imu_data(&imu_data);
     }
     if (new_mag && raw_mag_output) {
       /* Read out the magnetometer data and fill out the SBP message. */
