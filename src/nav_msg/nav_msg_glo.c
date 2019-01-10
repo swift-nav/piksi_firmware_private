@@ -61,7 +61,7 @@ enum glo_sv_model { SV_GLONASS, SV_GLONASS_M };
 #define GLO_D_TAU_MAX_S 13.97e-9            /* [s] */
 #define GLO_NT_MAX_DAYS 1461                /* [days] */
 
-/* ICD L1,L2 GLONASS edition 5.1 2008 Table 4.5 Table 4.9 */
+/* ICD L1,L2 GLONASS edition 5.1 2008 Table 4.9 */
 #define GLO_TAU_GPS_MAX_S 1.9e-3 /* [s] */
 
 /* The figures below are from the analysis of GLO ephemeris data
@@ -644,16 +644,16 @@ static bool extract_string_5_components(nav_msg_glo_t *n) {
 
   /* extract tau GPS [s] */
   double tau_gps_s = extract_word_glo(n, 10, 21) * C_1_2P30;
+  sign = extract_word_glo(n, 31, 1);
+  if (sign) {
+    tau_gps_s *= -1;
+  }
   if (GLO_TAU_GPS_MAX_S < fabs(tau_gps_s)) {
     log_debug_mesid(n->mesid, "GLO-NAV-ERR: tau_gps=%lf", tau_gps_s);
     return false;
   }
 
-  n->tau_gps_s = tau_gps_s;
-  sign = extract_word_glo(n, 31, 1);
-  if (sign) {
-    n->tau_gps_s *= -1;
-  }
+  n->tau_gps_s = (float)tau_gps_s;
 
   return true;
 }

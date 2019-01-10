@@ -93,7 +93,7 @@ typedef struct {
 
   /** TOE as a GLO epoch. h/m/s comes from the field tb in the GLO string 2 */
   glo_time_t toe;
-  double tau_gps_s;    /**< correction to GPS time relative to GLO time [s] */
+  float tau_gps_s;     /**< correction to GPS time relative to GLO time [s] */
   u8 decoded_strings;  /**< bit field to indicate decoded strings 1-5 */
   gps_time_t gps_time; /**< GPS time of the last data bit [s] */
   glo_receive_machine state; /**< current state of receiver */
