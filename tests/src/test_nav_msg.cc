@@ -248,6 +248,11 @@ TEST(nav_msg_tests, nav_msg_update_error_codes) {
     TOW = nav_msg_update(&n, (bool)bit);
     EXPECT_NE(BIT_INDEX_INVALID, TOW);
   }
+
+  /* Check incorrect bit index is correctly handled. */
+  n.subframe_bit_index = NAV_MSG_SUBFRAME_BITS_LEN;
+  TOW = nav_msg_update(&n, (bool)bit);
+  EXPECT_EQ(BIT_INDEX_INVALID, TOW);
 }
 
 TEST(nav_msg_tests, nav_msg_update_preamble_seek) {
