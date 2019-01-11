@@ -59,9 +59,6 @@
 /* Maximum time to maintain POSITION_FIX after last successful solution */
 #define POSITION_FIX_TIMEOUT_S 60
 
-/* Downweighting coefficient for the accuracy of the first fix */
-#define FIRST_FIX_ACCURACY_COEF 4
-
 #define ME_CALC_PVT_THREAD_PRIORITY (HIGHPRIO - 3)
 #define ME_CALC_PVT_THREAD_STACK (3 * 10 * 1024)
 
@@ -560,9 +557,6 @@ static s8 me_compute_pvt(const obs_array_t *obs_array,
     log_info("first fix clk_offset %.3e clk_drift %.3e",
              current_fix.clock_offset,
              current_fix.clock_drift);
-    /* Down-weight the first fix time solution */
-    current_fix.clock_offset_var *= FIRST_FIX_ACCURACY_COEF;
-    current_fix.clock_drift_var *= FIRST_FIX_ACCURACY_COEF;
   }
 
   /* Update the relationship between the solved GPS time and NAP count */
@@ -803,7 +797,8 @@ static void me_calc_pvt_thread(void *arg) {
 
     /* Only send observations that are closely aligned with the desired
      * solution epoch to ensure they haven't been propagated too far. */
-    if (fabs(output_offset) < OBS_PROPAGATION_LIMIT) {
+    if (fabs(output_offset) < OBS_PROPAGATION_LIMIT &&
+        TIME_PROPAGATED <= time_quality) {
       log_debug("output offset %.4e, smoothed_drift %.3e",
                 output_offset,
                 smoothed_drift);
@@ -840,7 +835,7 @@ static void me_calc_pvt_thread(void *arg) {
         obs_array = NULL;
       }
     } else {
-      if (TIME_UNKNOWN != time_quality) {
+      if (TIME_PROPAGATED <= time_quality) {
         log_info("Observations suppressed because time jumps %.2f seconds",
                  output_offset);
       }
