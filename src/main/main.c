@@ -39,7 +39,6 @@
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "settings/settings_client.h"
-#include "signal_db/signal_db.h"
 #include "simulator.h"
 #include "specan/specan_main.h"
 #include "system_monitor/system_monitor.h"

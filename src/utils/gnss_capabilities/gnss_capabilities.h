@@ -16,8 +16,8 @@
 #include <stdbool.h>
 #include <swiftnav/common.h>
 #include <swiftnav/signal.h>
-
 #include "nav_msg/nav_msg.h"
+#include "signal_db/signal_db.h"
 
 #ifdef __cplusplus
 extern "C" {

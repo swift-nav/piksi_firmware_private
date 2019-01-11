@@ -17,8 +17,8 @@
 #include <swiftnav/gnss_time.h>
 #include <swiftnav/signal.h>
 #include <swiftnav/single_epoch_solver.h>
-
 #include "nap/nap_constants.h"
+#include "signal_db/signal_db.h"
 
 #ifdef __cplusplus
 extern "C" {

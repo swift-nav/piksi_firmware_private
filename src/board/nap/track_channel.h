@@ -17,8 +17,8 @@
 #include <stdbool.h>
 #include <swiftnav/common.h>
 #include <swiftnav/signal.h>
-
 #include "nap_common.h"
+#include "signal_db/signal_db.h"
 
 /** \addtogroup track_channel
  * \{ */

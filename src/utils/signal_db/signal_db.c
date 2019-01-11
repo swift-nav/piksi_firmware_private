@@ -147,6 +147,23 @@ gnss_signal_t sid_from_global_index(u16 global_index) {
   return construct_sid(CODE_INVALID, 0);
 }
 
+/** Convert a code-specific ME signal index to a me_gnss_signal_t.
+ *
+ * \param code          Code to use.
+ * \param me_code_index ME code-specific signal index in
+ *                      [0, ACQ_TRACK_COUNT_\<code\>).
+ *
+ * \return me_gnss_signal_t corresponding to code and code_index.
+ */
+me_gnss_signal_t mesid_from_code_index(code_t code, u16 me_code_index) {
+  assert(code_valid(code));
+  assert(me_code_index < code_to_sig_count(code));
+
+  constellation_t cons = code_to_constellation(code);
+  u16 sat = constellation_table[cons].sat_start + me_code_index;
+  return construct_mesid(code, sat);
+}
+
 /** Convert a global ME signal index to a me_gnss_signal_t.
  *
  * \note This function only accounts for codes supported on the current
@@ -357,6 +374,169 @@ double mesid_to_carr_fcn_hz(const me_gnss_signal_t mesid) {
     carr_fcn_hz = (mesid.sat - GLO_FCN_OFFSET) * GLO_L2_DELTA_HZ;
   }
   return carr_fcn_hz;
+}
+
+/** Get the constellation to which a me_gnss_signal_t belongs.
+ *
+ * \param mesid   me_gnss_signal_t to use.
+ *
+ * \return Constellation to which mesid belongs.
+ */
+constellation_t mesid_to_constellation(const me_gnss_signal_t mesid) {
+  return code_to_constellation(mesid.code);
+}
+
+/** ME signal comparison function. */
+int mesid_compare(const me_gnss_signal_t a, const me_gnss_signal_t b) {
+  /* Signal code are not sorted in order per constellation
+   * (e.g. GLO L1C ~ 3 and GPS L2P ~ 6).
+   * As some of our functions relies on comparing ordered sets of signals,
+   * this can cause issues.
+   * Therefore, in this function, we enforce the ordering per
+   * constellation/frequency/satellite */
+  if ((code_valid(a.code)) && code_valid(b.code)) {
+    if (mesid_to_constellation(a) == mesid_to_constellation(b)) {
+      if (code_equiv(a.code, b.code)) {
+        return a.sat - b.sat;
+      }
+      return a.code - b.code;
+    }
+    return mesid_to_constellation(a) - mesid_to_constellation(b);
+  }
+  return a.code - b.code;
+}
+
+bool mesid_is_equal(const me_gnss_signal_t a, const me_gnss_signal_t b) {
+  return mesid_compare(a, b) == 0;
+}
+
+/** Construct a me_gnss_signal_t.
+ *
+ * \note This function does not check the validity of the resulting signal.
+ *
+ * \param code  Code to use.
+ * \param sat   Satellite identifier to use.
+ *
+ * \return me_gnss_signal_t corresponding to the specified arguments.
+ */
+me_gnss_signal_t construct_mesid(code_t code, u16 sat) {
+  me_gnss_signal_t mesid = {.code = code, .sat = sat};
+  return mesid;
+}
+
+/** Construct a gnss_signal_t from input me_gnss_signal_t.
+ *
+ * \param mesid        ME signal to use.
+ * \param glo_slot_id  GLO orbital slot.
+ *
+ * \return gnss_signal_t corresponding to the specified argument.
+ */
+gnss_signal_t mesid2sid(const me_gnss_signal_t mesid, u16 glo_slot_id) {
+  assert(mesid_valid(mesid));
+  gnss_signal_t sid;
+  if (IS_GLO(mesid)) {
+    assert(glo_slot_id_is_valid(glo_slot_id));
+    sid = construct_sid(mesid.code, glo_slot_id);
+  } else {
+    sid = construct_sid(mesid.code, mesid.sat);
+  }
+  return sid;
+}
+
+/** Print a string representation of a me_gnss_signal_t.
+ *
+ * \param s     Buffer of capacity n to which the string will be written.
+ * \param n     Capacity of buffer s.
+ * \param mesid me_gnss_signal_t to use.
+ *
+ * \return Number of characters written to s, excluding the terminating null.
+ */
+int mesid_to_string(char *s, int n, const me_gnss_signal_t mesid) {
+  assert(n >= MESID_STR_LEN_MAX);
+  (void)n;
+  return sat_code_to_string(
+      s, MESID_SUFFIX_LENGTH, /* suffix = */ " ME ", mesid.sat, mesid.code);
+}
+
+/** Determine if a me_gnss_signal_t corresponds to a known code and
+ * ME satellite identifier.
+ *
+ * \param mesid   me_gnss_signal_t to use.
+ *
+ * \return true if mesid exists, false otherwise.
+ */
+bool mesid_valid(const me_gnss_signal_t mesid) {
+  if (!code_valid(mesid.code)) {
+    return false;
+  }
+
+  u16 me_sig_count = code_to_sig_count(mesid.code);
+  constellation_t cons = code_to_constellation(mesid.code);
+  u16 sat_start = constellation_table[cons].sat_start;
+  if ((mesid.sat < sat_start) || (mesid.sat >= sat_start + me_sig_count)) {
+    log_debug_mesid(mesid,
+                    "mesid.sat %u sat_start %u me_sig_count %u",
+                    mesid.sat,
+                    sat_start,
+                    me_sig_count);
+    return false;
+  }
+
+  return true;
+}
+
+/** Return the code-specific signal index for a me_gnss_signal_t.
+ *
+ * \param mesid me_gnss_signal_t to use.
+ *
+ * \return Code-specific signal index in [0, SIGNAL_COUNT_\<code\>).
+ */
+u16 mesid_to_code_index(const me_gnss_signal_t mesid) {
+  assert(mesid_valid(mesid));
+  constellation_t cons = code_to_constellation(mesid.code);
+  u16 sat_start = constellation_table[cons].sat_start;
+  return mesid.sat - sat_start;
+}
+
+/** Return the carrier frequency for a mesid.
+ *
+ * \param mesid  me_gnss_signal_t to use.
+ * \return carrier frequency
+ */
+double mesid_to_carr_freq(const me_gnss_signal_t mesid) {
+  code_t code = mesid.code;
+  assert(code_valid(code));
+  /* Map GLO mesid.sat [1 - 14] -> GLO FCN [-7 - +6] */
+  s8 fcn = mesid.sat - GLO_FCN_OFFSET;
+  if (CODE_GLO_L1OF == code) {
+    return GLO_L1_HZ + fcn * GLO_L1_DELTA_HZ;
+  }
+  if (CODE_GLO_L2OF == code) {
+    return GLO_L2_HZ + fcn * GLO_L2_DELTA_HZ;
+  }
+  /* there is no difference between mesid and sid for GPS */
+  gnss_signal_t sid = construct_sid(mesid.code, mesid.sat);
+  return sid_to_carr_freq(sid);
+}
+
+/** Return the [carrier freq / code chip rate] for a code_t.
+ *
+ * \param mesid  me_gnss_signal_t to use.
+ * \return [carrier freq / code chip rate]
+ */
+double mesid_to_carr_to_code(const me_gnss_signal_t mesid) {
+  code_t code = mesid.code;
+  assert(code_valid(code));
+  /* Map GLO mesid.sat [1 - 14] -> GLO FCN [-7 - +6] */
+  s8 fcn = mesid.sat - GLO_FCN_OFFSET;
+  if (CODE_GLO_L1OF == code) {
+    return GLO_L1_CARR_TO_CODE(fcn);
+  }
+  if (CODE_GLO_L2OF == code) {
+    return GLO_L2_CARR_TO_CODE(fcn);
+  }
+  gnss_signal_t sid = construct_sid(mesid.code, mesid.sat);
+  return sid_to_carr_to_code(sid);
 }
 
 /* \} */
