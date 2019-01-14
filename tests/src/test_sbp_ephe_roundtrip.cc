@@ -13,7 +13,7 @@ static const ephemeris_t e_in = {
     14400,                        // fit_interval
     1,                            // valid
     0,                            // health_bits
-    {{{-0.00000001071020960808},  // kepler.tgd_gps_s
+    {{ {{-0.00000001071020960808}},  // kepler.tgd_gps_s
       222.34375000000000000000,   // kepler.crc
       62.87500000000000000000,    // kepler.crs
       0.00000356882810592651,     // kepler.cuc

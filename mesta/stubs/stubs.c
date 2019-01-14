@@ -33,11 +33,6 @@ errno_t platform_mq_push(msg_queue_id_t id,
   return 0;
 }
 
-void platform_mq_free_msg(msg_queue_id_t id, void *ptr) {
-  (void)id;
-  (void)ptr;
-}
-
 errno_t platform_mq_pop(msg_queue_id_t id,
                         void **msg,
                         mq_blocking_mode_t blocking) {
@@ -51,14 +46,13 @@ void platform_sem_signal(platform_sem_t *sem) { (void)sem; }
 
 platform_sem_t *platform_sem_create(void) { return NULL; }
 
-void platform_mq_init(msg_queue_id_t id, size_t msg_size, size_t max_length) {
+void platform_mq_init(msg_queue_id_t id, size_t max_length) {
   (void)id;
-  (void)msg_size;
   (void)max_length;
 }
 
-void *platform_mq_alloc_msg(msg_queue_id_t id) {
-  (void)id;
+void *platform_mq_alloc(size_t size) {
+  (void)size;
   return NULL;
 }
 
@@ -69,6 +63,11 @@ int platform_sem_wait_timeout(platform_sem_t *sem, unsigned long millis) {
 }
 
 void watchdog_notify(watchdog_notify_t thread_id) { (void)thread_id; }
+
+int platform_mutex_init(mtx_id_t id) {
+  (void)id;
+  return 0;
+}
 
 void platform_mutex_lock(mtx_id_t id) { (void)id; }
 
