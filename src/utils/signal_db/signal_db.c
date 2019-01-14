@@ -453,7 +453,6 @@ gnss_signal_t mesid2sid(const me_gnss_signal_t mesid, u16 glo_slot_id) {
  */
 int mesid_to_string(char *s, int n, const me_gnss_signal_t mesid) {
   assert(n >= MESID_STR_LEN_MAX);
-  (void)n;
   return sat_code_to_string(
       s, MESID_SUFFIX_LENGTH, /* suffix = */ " ME ", mesid.sat, mesid.code);
 }
@@ -519,7 +518,7 @@ double mesid_to_carr_freq(const me_gnss_signal_t mesid) {
   return sid_to_carr_freq(sid);
 }
 
-/** Return the [carrier freq / code chip rate] for a code_t.
+/** Return the [carrier freq / code chip rate] for a mesid.
  *
  * \param mesid  me_gnss_signal_t to use.
  * \return [carrier freq / code chip rate]
