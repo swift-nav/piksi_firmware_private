@@ -188,8 +188,6 @@ CXXSRC := $(SWIFTNAV_ROOT)/starling/src/starling/integration/starling_input_brid
 
 CXXFLAGS := -std=c++11
 
-# target.c = $(patsubst $(SWIFTNAV_ROOT)%.c,$(OBJDIR)%.o,${1})
-# target.cc = $(patsubst $(SWIFTNAV_ROOT)%.cc,$(OBJDIR)%.o,${1})
 target = $(patsubst $(SWIFTNAV_ROOT)%$(suffix ${1}),$(OBJDIR)%.o,${1})
 
 obj.c :=
