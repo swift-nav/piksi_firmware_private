@@ -213,10 +213,6 @@ typedef struct {
 /**
  * Timing information from tracking channel for external use.
  */
-typedef struct {
-  u64 ld_pess_locked_ms; /**< Time in pessimistic lock [ms] */
-} tracker_time_info_t;
-
 /** Controller parameters for error sigma computations */
 typedef struct {
   float fll_bw; /**< FLL controller NBW [Hz].
@@ -229,24 +225,21 @@ typedef struct {
   u8 int_ms;    /**< PLL/FLL controller integration time [ms] */
 } tracker_ctrl_info_t;
 
-/** Tracking channel miscellaneous info */
 typedef struct {
-  struct {
-    s32 value;            /**< Carrier phase offset value [cycles] */
-    u64 timestamp_ms;     /**< Carrier phase offset timestamp [ms] */
-  } carrier_phase_offset; /**< Carrier phase offset */
-} tracker_misc_info_t;
+  s32 value;        /**< Carrier phase offset value [cycles] */
+  u64 timestamp_ms; /**< Carrier phase offset timestamp [ms] */
+} tracker_cpo_t;
 
 /**
  * Phase and frequencies information
  */
 typedef struct {
-  double code_phase_chips; /**< The code-phase in chips at `receiver_time`. */
-  double code_phase_rate;  /**< Code phase rate in chips/s. */
-  double carrier_phase;    /**< Carrier phase in cycles. */
-  double carrier_freq;     /**< Carrier frequency in Hz. */
-  double
-      carrier_freq_at_lock; /**< Carrier frequency in Hz at last lock time. */
+  double code_phase_chips; /**< The code-phase in chips at `receiver_time` */
+  double code_phase_rate;  /**< Code phase rate in chips/s */
+  double carrier_phase;    /**< Carrier phase in cycles */
+  double carrier_freq;     /**< Carrier frequency in Hz */
+  double carrier_freq_at_lock; /**< Carrier frequency at last lock time */
+  tracker_cpo_t cpo;           /**< Carrier phase offset */
 } tracker_freq_info_t;
 
 /**
@@ -254,8 +247,8 @@ typedef struct {
  */
 typedef struct {
   union {
-    tl_pll2_state_t pll2; /**< Tracking loop filter state. */
-    tl_pll3_state_t pll3; /**< Tracking loop filter state. */
+    tl_pll2_state_t pll2; /**< Tracking loop filter state */
+    tl_pll3_state_t pll3; /**< Tracking loop filter state */
   };
   tp_ctrl_e ctrl;
 } tp_tl_state_t;
@@ -323,7 +316,6 @@ typedef struct {
 /** Top-level generic tracker channel. */
 typedef struct {
   /* This portion of the structure is not cleaned-up at tracker channel start */
-
   /** State of this channel. */
   bool busy;
 
@@ -353,8 +345,6 @@ typedef struct {
   u16 lock_counter;
   /** Set if this channel should output I/Q samples on SBP. */
   bool output_iq;
-  /** Flags if carrier phase integer offset to be reset. */
-  bool reset_cpo;
   /** Flags if PRN conformity check failed */
   bool prn_check_fail;
   /** Flags if tracker is cross-correlated */
@@ -363,7 +353,6 @@ typedef struct {
   update_count_t update_count; /**< Number of ms channel has been running */
   tracker_timer_t cn0_below_drop_thres_timer;
 
-  tracker_timer_t locked_timer;
   tracker_timer_t unlocked_timer;
   /**< update_count value when pessimistic
        phase detector has changed last time. */
@@ -397,7 +386,10 @@ typedef struct {
 
   cp_sync_t cp_sync; /**< Half-cycle ambiguity resolution */
 
-  tracker_misc_info_t misc_info;
+  /** Flags if carrier phase integer offset to be reset. */
+  bool reset_cpo;
+  /** Carrier phase offset information */
+  tracker_cpo_t cpo;
 
   tp_profile_t profile; /**< Profile controller state. */
 

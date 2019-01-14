@@ -251,6 +251,8 @@ TEST(nav_msg_tests, nav_msg_update_error_codes) {
 
   /* Check incorrect bit index is correctly handled. */
   n.subframe_bit_index = NAV_MSG_SUBFRAME_BITS_LEN;
+  /* Note: nav_msg_update() is expected to generate error log. */
+  log_info("\"subframe bit index gone wild\" error below can be ignored.");
   TOW = nav_msg_update(&n, (bool)bit);
   EXPECT_EQ(BIT_INDEX_INVALID, TOW);
 }

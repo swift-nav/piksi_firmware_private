@@ -46,6 +46,9 @@ typedef struct {
 /* Tighter drop limit for GAL E1B */
 #define RAIM_DROP_E1B_THRESHOLD_M 100
 
+/* Maximum interval for computing ME PVT solution */
+#define ME_PVT_INTERVAL_S 1.0
+
 extern u32 obs_output_divisor;
 extern double soln_freq_setting;
 

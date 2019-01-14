@@ -70,7 +70,7 @@ TEST(sv_visibility_test, test_gps_sv_visibility) {
   ep.fit_interval = 14400;
   ep.valid = 1;
   ep.health_bits = 0;
-  ep.kepler.tgd.gps_s = -0.00000001071020960808;
+  ep.kepler.tgd.gps_s[0] = -0.00000001071020960808;
   ep.kepler.crc = 222.34375000000000000000;
   ep.kepler.crs = 62.87500000000000000000;
   ep.kepler.cuc = 0.00000356882810592651;
