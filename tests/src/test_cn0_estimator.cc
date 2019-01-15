@@ -144,7 +144,7 @@ TEST(cn0_test, test_cn0_mm) {
     cn0 = cn0_est_mm_update(&s, &p, signal_I[ii], signal_Q[ii]);
   }
 
-  EXPECT_GT(cn0, 30.0);
+  EXPECT_GT(cn0, 20.0);
 
   free(signal_I);
   free(signal_Q);
