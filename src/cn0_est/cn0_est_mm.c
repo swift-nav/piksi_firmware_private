@@ -22,9 +22,11 @@
 /** Filter coefficient for M2 an M4. */
 #define CN0_MM_ALPHA (0.5f)
 /** Filter coefficient for Pn. */
-#define CN0_MM_PN_ALPHA (0.005f)
+#define CN0_MM_PN_ALPHA (0.0001f)
 /** Estimate of noise power Pn. For smoother initial CN0 output. */
 #define CN0_MM_PN_INIT (100000.0f)
+
+static float Pn = CN0_MM_PN_INIT;
 
 /** Initialize the \f$ C / N_0 \f$ estimator state.
  *
@@ -61,7 +63,6 @@ void cn0_est_mm_init(cn0_est_mm_state_t *s, float cn0_0) {
 
   s->M2 = -1.0f; /* Set negative for first iteration */
   s->M4 = -1.0f;
-  s->Pn = CN0_MM_PN_INIT;
   s->cn0_dbhz = cn0_0;
 }
 
@@ -97,10 +98,10 @@ float cn0_est_mm_update(cn0_est_mm_state_t *s,
   }
 
   float Pd = sqrtf(tmp);
-  float Pn = s->M2 - Pd;
-  s->Pn += (Pn - s->Pn) * CN0_MM_PN_ALPHA;
+  float n = s->M2 - Pd;
+  Pn += (n - Pn) * CN0_MM_PN_ALPHA;
 
-  float snr = m2 / s->Pn;
+  float snr = m2 / Pn;
 
   if (!isfinite(snr) || (snr <= 0.0f)) {
     /* CN0 out of limits, no updates. */
