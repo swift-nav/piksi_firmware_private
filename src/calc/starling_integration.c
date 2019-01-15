@@ -98,12 +98,10 @@ static u8 current_base_sender_id = STARLING_BASE_SENDER_ID_DEFAULT;
  * Output Callback Helpers
  ******************************************************************************/
 
-static bool is_raim_disabled(void) {
-  return disable_raim;
-}
+static bool is_raim_disabled(void) { return disable_raim; }
 
-static cache_ret_t cache_read_ephemeris(const gnss_signal_t sid, 
-    ephemeris_t *eph) {
+static cache_ret_t cache_read_ephemeris(const gnss_signal_t sid,
+                                        ephemeris_t *eph) {
   ndb_op_code_t ret = ndb_ephemeris_read(sid, eph);
   if (NDB_ERR_NONE == ret) {
     return CACHE_OK;
@@ -915,13 +913,15 @@ static THD_FUNCTION(initialize_and_run_starling, arg) {
 void starling_calc_pvt_setup() {
   /* Connect the missing external dependencies for the Starling engine. */
   external_functions_t extfns = {
-    .cache_read_ephemeris = cache_read_ephemeris,
-    .cache_read_iono_corr = cache_read_iono_corr,
-    .track_sid_db_elevation_degrees_get = track_sid_db_elevation_degrees_get,
-    .shm_navigation_unusable = shm_navigation_unusable,
-    .starling_integration_simulation_enabled = starling_integration_simulation_enabled,
-    .starling_integration_simulation_run = starling_integration_simulation_run,
-    .disable_raim = is_raim_disabled,
+      .cache_read_ephemeris = cache_read_ephemeris,
+      .cache_read_iono_corr = cache_read_iono_corr,
+      .track_sid_db_elevation_degrees_get = track_sid_db_elevation_degrees_get,
+      .shm_navigation_unusable = shm_navigation_unusable,
+      .starling_integration_simulation_enabled =
+          starling_integration_simulation_enabled,
+      .starling_integration_simulation_run =
+          starling_integration_simulation_run,
+      .disable_raim = is_raim_disabled,
   };
   starling_set_external_functions_implementation(&extfns);
 
