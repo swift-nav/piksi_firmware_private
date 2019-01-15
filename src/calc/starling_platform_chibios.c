@@ -48,9 +48,6 @@
 #include "sbas_select/sbas_select.h"
 #include "sbp.h"
 #include "sbp_utils.h"
-#include "shm/shm.h"
-#include "signal_db/signal_db.h"
-#include "simulator.h"
 #include "system_monitor/system_monitor.h"
 #include "timing/timing.h"
 
@@ -62,7 +59,7 @@
 
 static mutex_t mutexes[NUM_MUTEXES];
 
-int platform_mutex_init(mtx_id_t id) {
+static int chibios_mutex_init(mtx_id_t id) {
   if (id >= NUM_MUTEXES) {
     return -1;
   }
@@ -70,9 +67,9 @@ int platform_mutex_init(mtx_id_t id) {
   return 0;
 }
 
-void platform_mutex_lock(mtx_id_t id) { chMtxLock(&mutexes[id]); }
+static void chibios_mutex_lock(mtx_id_t id) { chMtxLock(&mutexes[id]); }
 
-void platform_mutex_unlock(mtx_id_t id) { chMtxUnlock(&mutexes[id]); }
+static void chibios_mutex_unlock(mtx_id_t id) { chMtxUnlock(&mutexes[id]); }
 
 /*******************************************************************************
  * Thread
@@ -111,21 +108,21 @@ static void platform_thread_info_init(const thread_id_t id,
   }
 }
 
-void platform_thread_create(const thread_id_t id, platform_routine_t *fn) {
+static void chibios_thread_create(const thread_id_t id, platform_routine_t *fn) {
   assert(fn);
   platform_thread_info_t info;
   platform_thread_info_init(id, &info);
   chThdCreateStatic(info.wsp, info.size, info.prio, fn, NULL);
 }
 
-void platform_thread_set_name(const char *name) { chRegSetThreadName(name); }
+static void chibios_thread_set_name(const char *name) { chRegSetThreadName(name); }
 
 /*******************************************************************************
  * Watchdog
  ******************************************************************************/
 
 
-void platform_watchdog_notify_starling_main_thread() {
+static void chibios_watchdog_notify_starling_main_thread(void) {
   watchdog_notify(WD_NOTIFY_STARLING);
 }
 
@@ -150,7 +147,7 @@ static mailbox_info_t mailbox_info[MQ_ID_COUNT] =
      [MQ_ID_EPHEMERIS] = {{0}, {0}, NULL, NULL},
      [MQ_ID_IMU] = {{0}, {0}, NULL, NULL}};
 
-void platform_mq_init(msg_queue_id_t id, size_t msg_size, size_t max_length) {
+static void chibios_mq_init(msg_queue_id_t id, size_t msg_size, size_t max_length) {
   mailbox_info[id].mailbox_buf = chCoreAlloc(sizeof(msg_t) * max_length);
   mailbox_info[id].mpool_buf = chCoreAlloc(msg_size * max_length);
   assert(mailbox_info[id].mailbox_buf);
@@ -162,7 +159,7 @@ void platform_mq_init(msg_queue_id_t id, size_t msg_size, size_t max_length) {
       &mailbox_info[id].mpool, mailbox_info[id].mpool_buf, max_length);
 }
 
-errno_t platform_mq_push(msg_queue_id_t id,
+static errno_t chibios_mq_push(msg_queue_id_t id,
                          void *msg,
                          mq_blocking_mode_t should_block) {
   uint32_t timeout_ms =
@@ -176,7 +173,7 @@ errno_t platform_mq_push(msg_queue_id_t id,
   return 0;
 }
 
-errno_t platform_mq_pop(msg_queue_id_t id,
+static errno_t chibios_mq_pop(msg_queue_id_t id,
                         void **msg,
                         mq_blocking_mode_t should_block) {
   uint32_t timeout_ms =
@@ -191,17 +188,18 @@ errno_t platform_mq_pop(msg_queue_id_t id,
   return 0;
 }
 
-void *platform_mq_alloc_msg(msg_queue_id_t id) {
+static void *chibios_mq_alloc_msg(msg_queue_id_t id) {
   return chPoolAlloc(&mailbox_info[id].mpool);
 }
 
-void platform_mq_free_msg(msg_queue_id_t id, void *msg) {
+static void chibios_mq_free_msg(msg_queue_id_t id, void *msg) {
   chPoolFree(&mailbox_info[id].mpool, msg);
 }
 
 /*******************************************************************************
  * Semaphore
  ******************************************************************************/
+
 #define MAX_N_SEMAPHORES 8
 
 static int convert_chibios_ret(msg_t ret) {
@@ -215,7 +213,7 @@ static int convert_chibios_ret(msg_t ret) {
   }
 }
 
-platform_sem_t *platform_sem_create(void) {
+static platform_sem_t *chibios_sem_create(void) {
   return platform_sem_create_count(0);
 }
 
@@ -224,7 +222,7 @@ platform_sem_t *platform_sem_create(void) {
  * there is an upper bound on the number of semaphores which
  * may be created during a single execution, and that is that.
  */
-platform_sem_t *platform_sem_create_count(int count) {
+static platform_sem_t *chibios_sem_create_count(int count) {
   static int n_semaphores = 0;
   static semaphore_t semaphores[MAX_N_SEMAPHORES];
 
@@ -238,23 +236,65 @@ platform_sem_t *platform_sem_create_count(int count) {
   return (platform_sem_t *)sem;
 }
 
-void platform_sem_destroy(platform_sem_t **sem_loc) {
+static void chibios_sem_destroy(platform_sem_t **sem_loc) {
   if (sem_loc) {
     *sem_loc = NULL;
   }
 }
 
-void platform_sem_signal(platform_sem_t *sem) {
+static void chibios_sem_signal(platform_sem_t *sem) {
   chSemSignal((semaphore_t *)sem);
 }
 
-int platform_sem_wait(platform_sem_t *sem) {
+static int chibios_sem_wait(platform_sem_t *sem) {
   int ret = chSemWait((semaphore_t *)sem);
   return convert_chibios_ret(ret);
 }
 
-int platform_sem_wait_timeout(platform_sem_t *sem, unsigned long millis) {
+static int chibios_sem_wait_timeout(platform_sem_t *sem, unsigned long millis) {
   const systime_t timeout = MS2ST(millis);
   int ret = chSemWaitTimeout((semaphore_t *)sem, timeout);
   return convert_chibios_ret(ret);
 }
+
+/*******************************************************************************
+ * Initialization
+ ******************************************************************************/
+
+void init_starling_platform_implementation(void) {
+  /* Mutex */
+  mutex_impl_t mutex_impl = {
+    .mutex_init = chibios_mutex_init,
+    .mutex_lock = chibios_mutex_lock,
+    .mutex_unlock = chibios_mutex_unlock,
+  };
+  platform_set_implementation_mutex(&mutex_impl); 
+  /* Thread */
+  thread_impl_t thread_impl = {
+    .thread_create = chibios_thread_create,
+    .thread_set_name = chibios_thread_set_name,
+  };
+  platform_set_implementation_thread(&thread_impl);
+  /* Watchdog */
+  platform_set_implementation_watchdog(chibios_watchdog_notify_starling_main_thread);
+  /* Queue */
+  mq_impl_t mq_impl = {
+    .mq_init = chibios_mq_init,
+    .mq_push = chibios_mq_push,
+    .mq_pop = chibios_mq_pop,
+    .mq_alloc_msg = chibios_mq_alloc_msg,
+    .mq_free_msg = chibios_mq_free_msg,
+  };
+  platform_set_implementation_mq(&mq_impl);
+  /* Semaphore */
+  sem_impl_t sem_impl = {
+    .sem_create = chibios_sem_create,
+    .sem_create_count = chibios_sem_create_count,
+    .sem_destroy = chibios_sem_destroy,
+    .sem_signal = chibios_sem_signal,
+    .sem_wait = chibios_sem_wait,
+    .sem_wait_timeout = chibios_sem_wait_timeout,
+  };
+  platform_set_implementation_semaphore(&sem_impl);
+}
+
