@@ -141,7 +141,7 @@ typedef struct mailbox_info_s {
   msg_t *mailbox_buf;
 } mailbox_info_t;
 
-static mailbox_info_t mailbox_info[MQ_ID_COUNT] = 
+static mailbox_info_t mailbox_info[MQ_ID_COUNT] =
     {[MQ_ID_PAIRED_OBS] = {{0}, NULL}, [MQ_ID_PRIMARY_DATA] = {{0}, NULL}};
 
 void platform_mq_init(msg_queue_id_t id, size_t max_length) {
