@@ -868,6 +868,7 @@ static bool low_cn0_profile_switch_requested(tracker_t *tracker) {
     /* filt_cn0 reports a reasonably strong signal, but
        weak_signal_ms derived from raw CN0 says there is no signal.
        So we expedite the transition to sensitivity profile. */
+    log_error_mesid(tracker->mesid, "Instant switch! CN0: %lf", tracker->cn0);
     return true;
   }
   if ((tracker->cn0_est.weak_signal_ms >= TP_WEAK_SIGNAL_THRESHOLD_MS) &&
