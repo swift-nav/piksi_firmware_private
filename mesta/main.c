@@ -18,13 +18,17 @@
 #include "track/track_common.h"
 #include "track/track_state.h"
 
+/* Forward decl. */
+void init_starling_platform_stub_implementation(void);
+
 swiftnap_t mesta_nap = {0};
 
 void handle_nap_track_irq(void);
 
 int main(void) {
   nap_track_n_channels = 73;
-
+  
+  init_starling_platform_stub_implementation();
   platform_track_setup();
   platform_decode_setup();
   track_setup();

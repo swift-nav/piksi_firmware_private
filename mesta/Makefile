@@ -151,6 +151,9 @@ CSRC := $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l2c.c \
 	$(SWIFTNAV_ROOT)/src/board/v3/ndb_fs_access.c \
 	$(SWIFTNAV_ROOT)/src/lib/fixed_fft_r2.c \
 	$(SWIFTNAV_ROOT)/starling/src/starling/integration/starling_input_bridge.c \
+	$(SWIFTNAV_ROOT)/starling/src/starling/starling_platform.c \
+	$(SWIFTNAV_ROOT)/starling/src/starling/starling_platform_mq.c \
+	$(SWIFTNAV_ROOT)/starling/src/starling/starling_platform_semaphore.c \
 	$(SWIFTNAV_ROOT)/starling/src/observation.c \
 	$(SWIFTNAV_ROOT)/starling/src/cycle_slip.c \
 	$(SWIFTNAV_ROOT)/starling/libfec/src/viterbi27.c \
@@ -180,6 +183,7 @@ CSRC := $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l2c.c \
 	$(SWIFTNAV_ROOT)/libsettings/src/settings_util.c \
 	$(SWIFTNAV_ROOT)/libsettings/src/registration_state.c \
 	$(SWIFTNAV_ROOT)/mesta/stubs/stubs.c \
+	$(SWIFTNAV_ROOT)/mesta/stubs/starling_platform_stubs.c \
 	$(SWIFTNAV_ROOT)/mesta/main.c \
 
 target = $(patsubst $(SWIFTNAV_ROOT)%.c,$(OBJDIR)%.o,${1})
