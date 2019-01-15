@@ -18,5 +18,3 @@
 void init_starling_platform_chibios_implementation(void);
 
 #endif
-
-

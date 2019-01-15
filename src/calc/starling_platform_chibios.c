@@ -79,19 +79,21 @@ static void platform_thread_info_init(const thread_id_t id,
   }
 }
 
-static void chibios_thread_create(const thread_id_t id, platform_routine_t *fn) {
+static void chibios_thread_create(const thread_id_t id,
+                                  platform_routine_t *fn) {
   assert(fn);
   platform_thread_info_t info;
   platform_thread_info_init(id, &info);
   chThdCreateStatic(info.wsp, info.size, info.prio, fn, NULL);
 }
 
-static void chibios_thread_set_name(const char *name) { chRegSetThreadName(name); }
+static void chibios_thread_set_name(const char *name) {
+  chRegSetThreadName(name);
+}
 
 /*******************************************************************************
  * Watchdog
  ******************************************************************************/
-
 
 static void chibios_watchdog_notify_starling_main_thread(void) {
   watchdog_notify(WD_NOTIFY_STARLING);
@@ -118,7 +120,9 @@ static mailbox_info_t mailbox_info[MQ_ID_COUNT] =
      [MQ_ID_EPHEMERIS] = {{0}, {0}, NULL, NULL},
      [MQ_ID_IMU] = {{0}, {0}, NULL, NULL}};
 
-static void chibios_mq_init(msg_queue_id_t id, size_t msg_size, size_t max_length) {
+static void chibios_mq_init(msg_queue_id_t id,
+                            size_t msg_size,
+                            size_t max_length) {
   mailbox_info[id].mailbox_buf = chCoreAlloc(sizeof(msg_t) * max_length);
   mailbox_info[id].mpool_buf = chCoreAlloc(msg_size * max_length);
   assert(mailbox_info[id].mailbox_buf);
@@ -131,8 +135,8 @@ static void chibios_mq_init(msg_queue_id_t id, size_t msg_size, size_t max_lengt
 }
 
 static errno_t chibios_mq_push(msg_queue_id_t id,
-                         void *msg,
-                         mq_blocking_mode_t should_block) {
+                               void *msg,
+                               mq_blocking_mode_t should_block) {
   uint32_t timeout_ms =
       (MQ_BLOCKING == should_block) ? MAILBOX_BLOCKING_TIMEOUT_MS : 0;
   if (MSG_OK !=
@@ -145,8 +149,8 @@ static errno_t chibios_mq_push(msg_queue_id_t id,
 }
 
 static errno_t chibios_mq_pop(msg_queue_id_t id,
-                        void **msg,
-                        mq_blocking_mode_t should_block) {
+                              void **msg,
+                              mq_blocking_mode_t should_block) {
   uint32_t timeout_ms =
       (MQ_BLOCKING == should_block) ? MAILBOX_BLOCKING_TIMEOUT_MS : 0;
   if (MSG_OK !=
@@ -235,37 +239,37 @@ static int chibios_sem_wait_timeout(platform_sem_t *sem, unsigned long millis) {
 void init_starling_platform_chibios_implementation(void) {
   /* Mutex */
   mutex_impl_t mutex_impl = {
-    .mutex_init = chibios_mutex_init,
-    .mutex_lock = chibios_mutex_lock,
-    .mutex_unlock = chibios_mutex_unlock,
+      .mutex_init = chibios_mutex_init,
+      .mutex_lock = chibios_mutex_lock,
+      .mutex_unlock = chibios_mutex_unlock,
   };
-  platform_set_implementation_mutex(&mutex_impl); 
+  platform_set_implementation_mutex(&mutex_impl);
   /* Thread */
   thread_impl_t thread_impl = {
-    .thread_create = chibios_thread_create,
-    .thread_set_name = chibios_thread_set_name,
+      .thread_create = chibios_thread_create,
+      .thread_set_name = chibios_thread_set_name,
   };
   platform_set_implementation_thread(&thread_impl);
   /* Watchdog */
-  platform_set_implementation_watchdog(chibios_watchdog_notify_starling_main_thread);
+  platform_set_implementation_watchdog(
+      chibios_watchdog_notify_starling_main_thread);
   /* Queue */
   mq_impl_t mq_impl = {
-    .mq_init = chibios_mq_init,
-    .mq_push = chibios_mq_push,
-    .mq_pop = chibios_mq_pop,
-    .mq_alloc_msg = chibios_mq_alloc_msg,
-    .mq_free_msg = chibios_mq_free_msg,
+      .mq_init = chibios_mq_init,
+      .mq_push = chibios_mq_push,
+      .mq_pop = chibios_mq_pop,
+      .mq_alloc_msg = chibios_mq_alloc_msg,
+      .mq_free_msg = chibios_mq_free_msg,
   };
   platform_set_implementation_mq(&mq_impl);
   /* Semaphore */
   sem_impl_t sem_impl = {
-    .sem_create = chibios_sem_create,
-    .sem_create_count = chibios_sem_create_count,
-    .sem_destroy = chibios_sem_destroy,
-    .sem_signal = chibios_sem_signal,
-    .sem_wait = chibios_sem_wait,
-    .sem_wait_timeout = chibios_sem_wait_timeout,
+      .sem_create = chibios_sem_create,
+      .sem_create_count = chibios_sem_create_count,
+      .sem_destroy = chibios_sem_destroy,
+      .sem_signal = chibios_sem_signal,
+      .sem_wait = chibios_sem_wait,
+      .sem_wait_timeout = chibios_sem_wait_timeout,
   };
   platform_set_implementation_semaphore(&sem_impl);
 }
-
