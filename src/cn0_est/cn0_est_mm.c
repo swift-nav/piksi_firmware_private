@@ -22,9 +22,19 @@
 /** Filter coefficient for M2 an M4. */
 #define CN0_MM_ALPHA (0.5f)
 /** Filter coefficient for Pn. */
-#define CN0_MM_PN_ALPHA (0.005f)
+#define CN0_MM_PN_ALPHA (0.0001f)
 /** Estimate of noise power Pn. For smoother initial CN0 output. */
 #define CN0_MM_PN_INIT (100000.0f)
+
+static float Pn_gps_l1 = CN0_MM_PN_INIT;
+static float Pn_gps_l2 = CN0_MM_PN_INIT;
+static float Pn_glo_l1 = CN0_MM_PN_INIT;
+static float Pn_glo_l2 = CN0_MM_PN_INIT;
+static float Pn_gal_l1 = CN0_MM_PN_INIT;
+static float Pn_gal_l2 = CN0_MM_PN_INIT;
+static float Pn_bds_l1 = CN0_MM_PN_INIT;
+static float Pn_bds_l2 = CN0_MM_PN_INIT;
+static float Pn_sbas_l1 = CN0_MM_PN_INIT;
 
 /** Initialize the \f$ C / N_0 \f$ estimator state.
  *
@@ -61,7 +71,6 @@ void cn0_est_mm_init(cn0_est_mm_state_t *s, float cn0_0) {
 
   s->M2 = -1.0f; /* Set negative for first iteration */
   s->M4 = -1.0f;
-  s->Pn = CN0_MM_PN_INIT;
   s->cn0_dbhz = cn0_0;
 }
 
@@ -78,7 +87,8 @@ void cn0_est_mm_init(cn0_est_mm_state_t *s, float cn0_0) {
 float cn0_est_mm_update(cn0_est_mm_state_t *s,
                         const cn0_est_params_t *p,
                         float I,
-                        float Q) {
+                        float Q,
+                        me_gnss_signal_t mesid) {
   float m2 = I * I + Q * Q;
   float m4 = m2 * m2;
 
@@ -98,9 +108,35 @@ float cn0_est_mm_update(cn0_est_mm_state_t *s,
 
   float Pd = sqrtf(tmp);
   float Pn = s->M2 - Pd;
-  s->Pn += (Pn - s->Pn) * CN0_MM_PN_ALPHA;
 
-  float snr = m2 / s->Pn;
+  float *Pn_p;
+  if (CODE_GPS_L1CA == mesid.code) {
+    Pn_p = &Pn_gps_l1;
+  } else if (CODE_GPS_L2CM == mesid.code) {
+    Pn_p = &Pn_gps_l2;
+  } else if (CODE_GLO_L1OF == mesid.code) {
+    Pn_p = &Pn_glo_l1;
+  } else if (CODE_GLO_L2OF == mesid.code) {
+    Pn_p = &Pn_glo_l2;
+  } else if (CODE_GAL_E1B == mesid.code) {
+    Pn_p = &Pn_gal_l1;
+  } else if (CODE_GAL_E7I == mesid.code) {
+    Pn_p = &Pn_gal_l2;
+  } else if (CODE_BDS2_B1 == mesid.code) {
+    Pn_p = &Pn_bds_l1;
+  } else if (CODE_BDS2_B2 == mesid.code) {
+    Pn_p = &Pn_bds_l2;
+  } else if (CODE_SBAS_L1CA == mesid.code) {
+    Pn_p = &Pn_sbas_l1;
+  } else {
+    log_error_mesid(mesid, "CN0: Unsupported code! %lf", (float)mesid.code);
+    s->cn0_dbhz = 0.0f;
+    return s->cn0_dbhz;
+  }
+
+  *Pn_p += (Pn - *Pn_p) * CN0_MM_PN_ALPHA;
+
+  float snr = m2 / *Pn_p;
 
   if (!isfinite(snr) || (snr <= 0.0f)) {
     /* CN0 out of limits, no updates. */
