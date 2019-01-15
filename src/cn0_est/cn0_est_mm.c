@@ -79,8 +79,8 @@ float cn0_est_mm_update(cn0_est_mm_state_t *s,
                         const cn0_est_params_t *p,
                         float I,
                         float Q) {
-  float m2 = I * I + Q * Q;
-  float m4 = m2 * m2;
+  double m2 = I * I + Q * Q;
+  double m4 = m2 * m2;
 
   if (s->M2 < 0.0f) {
     /* This is the first iteration, just initialize moments. */
@@ -91,32 +91,32 @@ float cn0_est_mm_update(cn0_est_mm_state_t *s,
     s->M4 += (m4 - s->M4) * CN0_MM_ALPHA;
   }
 
-  float tmp = 2.0f * s->M2 * s->M2 - s->M4;
+  double tmp = 2.0f * s->M2 * s->M2 - s->M4;
   if (0.0f > tmp) {
     tmp = 0.0f;
   }
 
-  float Pd = sqrtf(tmp);
-  float Pn = s->M2 - Pd;
+  double Pd = sqrtf(tmp);
+  double Pn = s->M2 - Pd;
   s->Pn += (Pn - s->Pn) * CN0_MM_PN_ALPHA;
 
-  float snr = m2 / s->Pn;
+  double snr = Pd / s->Pn;
 
   if (!isfinite(snr) || (snr <= 0.0f)) {
     /* CN0 out of limits, no updates. */
     return s->cn0_dbhz;
   }
 
-  float snr_db = 10.0f * log10f(snr);
+  double snr_db = 10.0f * log10f(snr);
 
   /* Compute CN0 */
-  float cn0_dbhz = p->log_bw + snr_db;
+  double cn0_dbhz = p->log_bw + snr_db;
   if (cn0_dbhz < 0.0f) {
     cn0_dbhz = 0.0f;
   } else if (cn0_dbhz > 60.0f) {
     cn0_dbhz = 60.0f;
   }
-  s->cn0_dbhz = cn0_dbhz;
+  s->cn0_dbhz = (float)cn0_dbhz;
 
   return s->cn0_dbhz;
 }
