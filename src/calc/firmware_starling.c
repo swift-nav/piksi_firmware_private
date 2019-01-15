@@ -11,6 +11,7 @@
  */
 
 #include "firmware_starling.h"
+#include "starling_platform_chibios.h"
 
 #include <calc/starling_integration.h>
 #include <ch.h>
@@ -41,6 +42,7 @@ static bool is_firmware_starling_enabled(void) {
 }
 
 void firmware_starling_setup(void) {
+  init_starling_platform_chibios_implementation();
   starling_input_bridge_init();
   starling_calc_pvt_setup();
 
