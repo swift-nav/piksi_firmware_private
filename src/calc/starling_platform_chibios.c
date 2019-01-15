@@ -15,41 +15,12 @@
 #include <starling/platform/starling_platform_semaphore.h>
 
 #include <assert.h>
-#include <math.h>
-#include <stdio.h>
 #include <string.h>
 
 #include <ch.h>
 
-#include <libsbp/sbp.h>
-#include <starling/observation.h>
-#include <starling/pvt_engine/firmware_binding.h>
-#include <swiftnav/constants.h>
-#include <swiftnav/coord_system.h>
-#include <swiftnav/ephemeris.h>
-#include <swiftnav/linear_algebra.h>
-#include <swiftnav/logging.h>
-#include <swiftnav/memcpy_s.h>
-#include <swiftnav/sbas_raw_data.h>
-#include <swiftnav/sid_set.h>
-#include <swiftnav/single_epoch_solver.h>
-#include <swiftnav/troposphere.h>
-
-#include "calc_base_obs.h"
-#include "calc_pvt_common.h"
-#include "calc_pvt_me.h"
-#include "main.h"
-#include "manage.h"
-#include "ndb/ndb.h"
-#include "nmea/nmea.h"
-#include "peripherals/leds.h"
-#include "piksi_systime.h"
-#include "position/position.h"
-#include "sbas_select/sbas_select.h"
-#include "sbp.h"
-#include "sbp_utils.h"
+/* Used for watchdog implementation. */
 #include "system_monitor/system_monitor.h"
-#include "timing/timing.h"
 
 /*******************************************************************************
  * Mutex
