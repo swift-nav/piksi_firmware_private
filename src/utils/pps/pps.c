@@ -88,7 +88,7 @@ static void pps_thread(void *arg) {
   static bool initial_time_qual_achieved = false;
 
   while (TRUE) {
-    if (!initial_time_qual_achieved && get_time_quality() >= TIME_PROPAGATED) {
+    if (!initial_time_qual_achieved && get_time_quality() > TIME_UNKNOWN) {
       initial_time_qual_achieved = true;
     }
     if (initial_time_qual_achieved && !nap_pps_armed()) {
