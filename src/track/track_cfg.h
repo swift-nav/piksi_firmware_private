@@ -99,7 +99,7 @@
 /** Default C/N0 threshold in dB/Hz for dropping track (for 1 ms integration) */
 #define TP_DEFAULT_CN0_DROP_THRESHOLD_DBHZ (32.2f)
 /** C/N0 threshold for measurements use */
-#define TP_DEFAULT_CN0_USE_THRESHOLD_DBHZ (27.f)
+#define TP_DEFAULT_CN0_USE_THRESHOLD_DBHZ THRESH_SENS_DBHZ
 
 #define TL_BWT_MAX (18.f * 0.020f)
 
