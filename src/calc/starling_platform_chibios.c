@@ -12,6 +12,7 @@
 
 #include <starling/platform/mq.h>
 #include <starling/platform/starling_platform.h>
+#include <starling/platform/starling_platform_semaphore.h>
 
 #include <assert.h>
 #include <math.h>
@@ -54,24 +55,13 @@
 #include "timing/timing.h"
 
 /*******************************************************************************
- * Constants
+ * Mutex
  ******************************************************************************/
-
-#define MAILBOX_BLOCKING_TIMEOUT_MS 5000
 
 #define NUM_MUTEXES STARLING_MAX_NUM_MUTEXES
 
-/*******************************************************************************
- * Local Variables
- ******************************************************************************/
-
 static mutex_t mutexes[NUM_MUTEXES];
 
-/*******************************************************************************
- * Platform Shim Calls
- ******************************************************************************/
-
-/* Mutex */
 int platform_mutex_init(mtx_id_t id) {
   if (id >= NUM_MUTEXES) {
     return -1;
@@ -84,7 +74,9 @@ void platform_mutex_lock(mtx_id_t id) { chMtxLock(&mutexes[id]); }
 
 void platform_mutex_unlock(mtx_id_t id) { chMtxUnlock(&mutexes[id]); }
 
-/* Threading */
+/*******************************************************************************
+ * Thread
+ ******************************************************************************/
 
 typedef struct platform_thread_info_s {
   void *wsp;
@@ -128,13 +120,20 @@ void platform_thread_create(const thread_id_t id, platform_routine_t *fn) {
 
 void platform_thread_set_name(const char *name) { chRegSetThreadName(name); }
 
-/* NDB */
+/*******************************************************************************
+ * Watchdog
+ ******************************************************************************/
+
 
 void platform_watchdog_notify_starling_main_thread() {
   watchdog_notify(WD_NOTIFY_STARLING);
 }
 
-/* Mailbox */
+/*******************************************************************************
+ * Queue
+ ******************************************************************************/
+
+#define MAILBOX_BLOCKING_TIMEOUT_MS 5000
 
 typedef struct mailbox_info_s {
   mailbox_t mailbox;
@@ -198,4 +197,64 @@ void *platform_mq_alloc_msg(msg_queue_id_t id) {
 
 void platform_mq_free_msg(msg_queue_id_t id, void *msg) {
   chPoolFree(&mailbox_info[id].mpool, msg);
+}
+
+/*******************************************************************************
+ * Semaphore
+ ******************************************************************************/
+#define MAX_N_SEMAPHORES 8
+
+static int convert_chibios_ret(msg_t ret) {
+  switch (ret) {
+    case MSG_OK:
+      return PLATFORM_SEM_OK;
+    case MSG_TIMEOUT:
+      return PLATFORM_SEM_TIMEOUT;
+    default:
+      return PLATFORM_SEM_ERROR;
+  }
+}
+
+platform_sem_t *platform_sem_create(void) {
+  return platform_sem_create_count(0);
+}
+
+/**
+ * We make no effort here to reuse destroyed semaphores,
+ * there is an upper bound on the number of semaphores which
+ * may be created during a single execution, and that is that.
+ */
+platform_sem_t *platform_sem_create_count(int count) {
+  static int n_semaphores = 0;
+  static semaphore_t semaphores[MAX_N_SEMAPHORES];
+
+  if (n_semaphores >= MAX_N_SEMAPHORES) {
+    return NULL;
+  }
+
+  semaphore_t *sem = &semaphores[n_semaphores++];
+
+  chSemObjectInit(sem, count);
+  return (platform_sem_t *)sem;
+}
+
+void platform_sem_destroy(platform_sem_t **sem_loc) {
+  if (sem_loc) {
+    *sem_loc = NULL;
+  }
+}
+
+void platform_sem_signal(platform_sem_t *sem) {
+  chSemSignal((semaphore_t *)sem);
+}
+
+int platform_sem_wait(platform_sem_t *sem) {
+  int ret = chSemWait((semaphore_t *)sem);
+  return convert_chibios_ret(ret);
+}
+
+int platform_sem_wait_timeout(platform_sem_t *sem, unsigned long millis) {
+  const systime_t timeout = MS2ST(millis);
+  int ret = chSemWaitTimeout((semaphore_t *)sem, timeout);
+  return convert_chibios_ret(ret);
 }
