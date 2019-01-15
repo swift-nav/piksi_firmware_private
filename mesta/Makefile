@@ -204,7 +204,7 @@ mesta : ${obj.c}
 
 ${obj.c} : % :
 	@mkdir -p $(dir $@)
-	$(CC) -c $(CFLAGS) $(IINCDIR) $(UDEF) -o $@ $^
+	$(CC) -c -O0 -g $(CFLAGS) $(IINCDIR) $(UDEF) -o $@ $^
 
 ${OBJDIR} :
 	mkdir $@

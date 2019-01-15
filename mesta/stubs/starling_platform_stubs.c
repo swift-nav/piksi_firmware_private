@@ -31,15 +31,12 @@ static void stub_mutex_unlock(mtx_id_t id) { (void)id; }
  * Thread
  ******************************************************************************/
 
-static void stub_thread_create(const thread_id_t id,
-                               platform_routine_t *fn) {
+static void stub_thread_create(const thread_id_t id, platform_routine_t *fn) {
   (void)id;
   (void)fn;
 }
 
-static void stub_thread_set_name(const char *name) {
-  (void)name;
-}
+static void stub_thread_set_name(const char *name) { (void)name; }
 
 /*******************************************************************************
  * Watchdog
@@ -69,8 +66,8 @@ static errno_t stub_mq_push(msg_queue_id_t id,
 }
 
 static errno_t stub_mq_pop(msg_queue_id_t id,
-                              void **msg,
-                              mq_blocking_mode_t should_block) {
+                           void **msg,
+                           mq_blocking_mode_t should_block) {
   (void)id;
   (void)msg;
   (void)should_block;
@@ -91,9 +88,7 @@ static void stub_mq_free_msg(msg_queue_id_t id, void *msg) {
  * Semaphore
  ******************************************************************************/
 
-static platform_sem_t *stub_sem_create(void) {
-  return NULL;
-}
+static platform_sem_t *stub_sem_create(void) { return NULL; }
 
 /**
  * We make no effort here to reuse destroyed semaphores,
@@ -105,13 +100,9 @@ static platform_sem_t *stub_sem_create_count(int count) {
   return NULL;
 }
 
-static void stub_sem_destroy(platform_sem_t **sem_loc) {
-  (void)sem_loc;
-}
+static void stub_sem_destroy(platform_sem_t **sem_loc) { (void)sem_loc; }
 
-static void stub_sem_signal(platform_sem_t *sem) {
-  (void)sem;
-}
+static void stub_sem_signal(platform_sem_t *sem) { (void)sem; }
 
 static int stub_sem_wait(platform_sem_t *sem) {
   (void)sem;
