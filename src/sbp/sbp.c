@@ -214,10 +214,17 @@ int _write(int file, char *ptr, int len) {
   switch (file) {
     /* Direct stdout and stderr to MSG_PRINT */
     case 1:
-    case 2:
-      if (len > 255) len = 255; /* Send maximum of 255 chars at a time */
-      sbp_send_msg(SBP_MSG_PRINT_DEP, len, (u8 *)ptr);
+    case 2: {
+      char buf[SBP_FRAMING_MAX_PAYLOAD_SIZE];
+      int max_log_len = SBP_FRAMING_MAX_PAYLOAD_SIZE - sizeof(msg_log_t);
+      msg_log_t *log = (msg_log_t *)buf;
+
+      log->level = LOG_LEVEL;
+      len = (len > max_log_len) ? max_log_len : len;
+      memcpy(log->text, ptr, len);
+      sbp_send_msg(SBP_MSG_LOG, sizeof(msg_log_t) + len, (u8 *)buf);
       return len;
+    } break;
 
     default:
       errno = EIO;
