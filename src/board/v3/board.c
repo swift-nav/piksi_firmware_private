@@ -48,20 +48,25 @@ void boardInit(void) {
 }
 
 void board_send_state(void) {
-  msg_device_monitor_t msg;
+  msg_device_monitor_t temp_msg;
+  msg_front_end_gain_t gain_msg;
+  memset(gain_msg.rf_gain, 0x7f, 8);
+  memset(gain_msg.if_gain, 0x7f, 8);
 
   double fe_temp = 0;
   if (!nt1065_get_temperature(&fe_temp)) {
     fe_temp = -99.99;
   }
-  msg.fe_temperature = (s16)(fe_temp * 100);
+  temp_msg.fe_temperature = (s16)(fe_temp * 100);
 
-  msg.dev_vin = (s16)(xadc_vin_get() * 1000);
-  msg.cpu_vint = (s16)(xadc_vccint_get() * 1000);
-  msg.cpu_vaux = (s16)(xadc_vccaux_get() * 1000);
-  msg.cpu_temperature = (s16)(xadc_die_temp_get() * 100);
+  temp_msg.dev_vin = (s16)(xadc_vin_get() * 1000);
+  temp_msg.cpu_vint = (s16)(xadc_vccint_get() * 1000);
+  temp_msg.cpu_vaux = (s16)(xadc_vccaux_get() * 1000);
+  temp_msg.cpu_temperature = (s16)(xadc_die_temp_get() * 100);
 
-  sbp_send_msg(SBP_MSG_DEVICE_MONITOR, sizeof(msg), (u8*)&msg);
+  sbp_send_msg(SBP_MSG_DEVICE_MONITOR, sizeof(temp_msg), (u8*)&temp_msg);
+  nt1065_get_agc(gain_msg.rf_gain, gain_msg.if_gain);
+  sbp_send_msg(SBP_MSG_FRONT_END_GAIN, sizeof(gain_msg), (u8*)&gain_msg);
 }
 
 /* ENET0_RST_LINE (MIO pin 0) is a GPIO connected to the hardware WDT /en line.

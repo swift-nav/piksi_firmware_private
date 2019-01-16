@@ -20,6 +20,8 @@
  */
 bool nt1065_get_temperature(double* temperature);
 
+void nt1065_get_agc(s8 rf_gain[], s8 if_gain[]);
+
 /** @brief read nt1065 AOK status
  *    Checks if error in
  *      LPF auto-calibration
