@@ -34,7 +34,7 @@
 /* 100ms is a result of experimenting.
    The threshold is needed to avoid spontaneous transitions
    to sensitivity profile, when signal is reasonably strong */
-#define TP_WEAK_SIGNAL_THRESHOLD_MS 100
+#define TP_WEAK_SIGNAL_THRESHOLD_MS 50
 /* 200ms is a result of experimenting.
    The threshold is needed to avoid spontaneous transitions
    from sensitivity profile */
@@ -904,7 +904,7 @@ bool tp_profile_has_new_profile(tracker_t *tracker) {
   if ((IDX_SENS == state->cur.index) &&
       (tracker->cn0_est.strong_signal_ms >= TP_STRONG_SIGNAL_THRESHOLD_MS) &&
       (profile_switch_requested(tracker, IDX_20MS, "high cn0: delay"))) {
-    tracker->flags |= TRACKER_FLAG_CN0_FILTER_INIT;
+    //tracker->flags |= TRACKER_FLAG_CN0_FILTER_INIT;
     return true;
   }
 

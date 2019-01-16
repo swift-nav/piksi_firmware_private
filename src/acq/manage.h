@@ -43,7 +43,7 @@
 
 /** If C/N0 is below track_cn0_threshold for >= TRACK_DROP_CN0_T ms,
     drop the channel. */
-#define TRACK_DROP_CN0_MS 500
+#define TRACK_DROP_CN0_MS 2000
 
 /** If pessimistic lock detector shows "unlocked" for >=
     TRACK_DROP_UNLOCKED_MS, drop the channel. */
