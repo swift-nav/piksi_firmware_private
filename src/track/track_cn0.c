@@ -195,6 +195,13 @@ void track_cn0_init(track_cn0_state_t *e, u8 cn0_ms, float cn0) {
   cn0_filter_init(&e->filter, &pp->filter_params, cn0);
 }
 
+void track_cn0_init_filter(track_cn0_state_t *e, u8 cn0_ms, float cn0) {
+  track_cn0_params_t p;
+  const track_cn0_params_t *pp = track_cn0_get_params(cn0_ms, &p);
+
+  cn0_filter_init(&e->filter, &pp->filter_params, cn0);
+}
+
 /**
  * Updates C/N0 estimator.
  *

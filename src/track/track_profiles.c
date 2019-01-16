@@ -900,15 +900,15 @@ bool tp_profile_has_new_profile(tracker_t *tracker) {
   const tp_profile_entry_t *cur_profile = &state->profiles[state->cur.index];
   u16 flags = cur_profile->flags;
 
-  /* Early entry to sensitivity profile. */
-  if (0 != (flags & TP_LOW_CN0) && low_cn0_profile_switch_requested(tracker)) {
-    return true;
-  }
-
   /* Early exit from sensitivity profile. */
   if ((IDX_SENS == state->cur.index) &&
       (tracker->cn0_est.strong_signal_ms >= TP_STRONG_SIGNAL_THRESHOLD_MS) &&
       (profile_switch_requested(tracker, IDX_20MS, "high cn0: delay"))) {
+    tracker->flags |= TRACKER_FLAG_CN0_FILTER_INIT;
+    return true;
+  }
+
+  if (0 != (flags & TP_LOW_CN0) && low_cn0_profile_switch_requested(tracker)) {
     return true;
   }
 
