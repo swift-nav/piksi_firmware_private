@@ -15,6 +15,6 @@
 
 /* This should be called prior to using any of the Starling API to make
  * sure that all the appropriate platform implementations are registered. */
-void init_starling_platform_chibios_implementation(void);
+void starling_initialize_platform(void);
 
 #endif

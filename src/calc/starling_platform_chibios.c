@@ -236,7 +236,7 @@ static int chibios_sem_wait_timeout(platform_sem_t *sem, unsigned long millis) {
  * Initialization
  ******************************************************************************/
 
-void init_starling_platform_chibios_implementation(void) {
+void starling_initialize_platform(void) {
   /* Mutex */
   mutex_impl_t mutex_impl = {
       .mutex_init = chibios_mutex_init,

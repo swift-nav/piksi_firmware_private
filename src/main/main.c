@@ -71,7 +71,8 @@ int main(void) {
   log_info("pfwp_build_id: " GIT_VERSION "");
   log_info("pfwp_build_date: " __DATE__ " " __TIME__ "");
 
-  starling_initialize_api();
+  firmware_starling_preinit();
+
   init();
   signal_db_init();
 

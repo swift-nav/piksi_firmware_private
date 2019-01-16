@@ -21,6 +21,8 @@
 #include <utils/settings/settings_client.h>
 #include <utils/system_monitor/system_monitor.h>
 
+#include <stdbool.h>
+
 /* Persistent file indicating whether Starling should run on the firmware
  * or on Linux. */
 #define STARLING_ON_LINUX_FILENAME "/etc/flags/starling_on_linux"
@@ -41,8 +43,12 @@ static bool is_firmware_starling_enabled(void) {
   return true;
 }
 
+void firmware_starling_preinit(void) {
+  starling_initialize_platform();
+  starling_initialize_api();
+}
+
 void firmware_starling_setup(void) {
-  init_starling_platform_chibios_implementation();
   starling_input_bridge_init();
   starling_calc_pvt_setup();
 

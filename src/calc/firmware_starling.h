@@ -13,14 +13,19 @@
 #ifndef CALC_FIRMWARE_STARLING_H_
 #define CALC_FIRMWARE_STARLING_H_
 
-#include <stdbool.h>
+/**
+ * This initializes the Starling platform and API, and must take place
+ * prior to any calls into the Starling engine. This is a lightweight
+ * function and should be placed very early during startup.
+ */
+void firmware_starling_preinit(void);
 
 /**
- * Top level wrapper for the Starling engine. The
- * entire engine may be disabled from running via
- * runtime setting.
+ * Allow the Starling engine to start (if configured to run on firmware).
+ * This is a heavyweight call which initializes some rather large resources.
+ * As long as the preinit call has been made at some point, this can be
+ * delayed arbitrarily with no adverse effects.
  */
-
 void firmware_starling_setup(void);
 
 #endif
