@@ -132,7 +132,8 @@ float cn0_est_mm_update(cn0_est_mm_state_t *s,
                         const cn0_est_params_t *p,
                         float I,
                         float Q,
-                        me_gnss_signal_t mesid);
+                        me_gnss_signal_t mesid,
+                        bool confirmed);
 void cn0_est_nwpr_init(cn0_est_nwpr_state_t *s,
                        const cn0_est_params_t *p,
                        float cn0_0);

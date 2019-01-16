@@ -121,7 +121,7 @@ TEST(cn0_test, test_cn0_mm_init) {
   EXPECT_FLOAT_EQ(p.log_bw, 30.f);
   EXPECT_FLOAT_EQ(cn0.M2, -1.0f);
   EXPECT_FLOAT_EQ(cn0.M4, -1.0f);
-  cn0_est_mm_update(&cn0, &p, -0.5, 0.f, mesid);
+  cn0_est_mm_update(&cn0, &p, -0.5, 0.f, mesid, true);
   EXPECT_FLOAT_EQ(cn0.M2, 0.25);
   EXPECT_FLOAT_EQ(cn0.M4, 0.25f * 0.25f);
 }
@@ -147,7 +147,7 @@ TEST(cn0_test, test_cn0_mm) {
   cn0_est_mm_init(&s, CN0_0);
 
   for (ii = 0; ii < test_length; ii++) {
-    cn0 = cn0_est_mm_update(&s, &p, signal_I[ii], signal_Q[ii], mesid);
+    cn0 = cn0_est_mm_update(&s, &p, signal_I[ii], signal_Q[ii], mesid, true);
   }
 
   EXPECT_GT(cn0, 20.0);

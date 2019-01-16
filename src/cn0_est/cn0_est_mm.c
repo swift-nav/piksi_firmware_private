@@ -88,7 +88,8 @@ float cn0_est_mm_update(cn0_est_mm_state_t *s,
                         const cn0_est_params_t *p,
                         float I,
                         float Q,
-                        me_gnss_signal_t mesid) {
+                        me_gnss_signal_t mesid,
+                        bool confirmed) {
   float m2 = I * I + Q * Q;
   float m4 = m2 * m2;
 
@@ -134,7 +135,9 @@ float cn0_est_mm_update(cn0_est_mm_state_t *s,
     return s->cn0_dbhz;
   }
 
-  *Pn_p += (Pn - *Pn_p) * CN0_MM_PN_ALPHA;
+  if (confirmed) {
+    *Pn_p += (Pn - *Pn_p) * CN0_MM_PN_ALPHA;
+  }
 
   float snr = m2 / *Pn_p;
 

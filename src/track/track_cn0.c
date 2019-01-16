@@ -135,8 +135,9 @@ static float update_estimator(track_cn0_state_t *e,
                               const cn0_est_params_t *p,
                               float I,
                               float Q,
-                              me_gnss_signal_t mesid) {
-  return cn0_est_mm_update(&e->moment, p, I, Q, mesid);
+                              me_gnss_signal_t mesid,
+                              bool confirmed) {
+  return cn0_est_mm_update(&e->moment, p, I, Q, mesid, confirmed);
 }
 
 /**
@@ -206,12 +207,17 @@ void track_cn0_init(track_cn0_state_t *e, u8 cn0_ms, float cn0) {
  *
  * \return Filtered estimator value.
  */
-float track_cn0_update(
-    track_cn0_state_t *e, u8 cn0_ms, float I, float Q, me_gnss_signal_t mesid) {
+float track_cn0_update(track_cn0_state_t *e,
+                       u8 cn0_ms,
+                       float I,
+                       float Q,
+                       me_gnss_signal_t mesid,
+                       bool confirmed) {
   track_cn0_params_t p;
   const track_cn0_params_t *pp = track_cn0_get_params(cn0_ms, &p);
 
-  e->cn0_raw_dbhz = update_estimator(e, &pp->est_params, I, Q, mesid);
+  e->cn0_raw_dbhz =
+      update_estimator(e, &pp->est_params, I, Q, mesid, confirmed);
   float cn0 =
       cn0_filter_update(&e->filter, &pp->filter_params, e->cn0_raw_dbhz);
 
