@@ -220,7 +220,7 @@ int _write(int file, char *ptr, int len) {
       msg_log_t *log = (msg_log_t *)buf;
 
       log->level = LOG_LEVEL;
-      len = (len > max_log_len) ? max_log_len : len;
+      len = MIN(len, max_log_len);
       memcpy(log->text, ptr, len);
       sbp_send_msg(SBP_MSG_LOG, sizeof(msg_log_t) + len, (u8 *)buf);
       return len;
