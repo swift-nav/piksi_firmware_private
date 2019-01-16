@@ -617,7 +617,8 @@ static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
       u8 cn0_ms = tp_get_cn0_ms(tracker->tracking_mode);
       if (0 != (tracker->flags & TRACKER_FLAG_CN0_FILTER_INIT)) {
         tracker->flags &= ~TRACKER_FLAG_CN0_FILTER_INIT;
-        track_cn0_init_filter(&tracker->cn0_est, cn0_ms, tracker->cn0_est.cn0_raw_dbhz);
+        track_cn0_init_filter(
+            &tracker->cn0_est, cn0_ms, tracker->cn0_est.cn0_raw_dbhz);
       }
       bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
       cn0 = track_cn0_update(&tracker->cn0_est,
