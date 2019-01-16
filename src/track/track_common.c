@@ -615,10 +615,12 @@ static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
     } else {
       /* Update C/N0 estimate */
       u8 cn0_ms = tp_get_cn0_ms(tracker->tracking_mode);
+      bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
       cn0 = track_cn0_update(&tracker->cn0_est,
                              cn0_ms,
                              tracker->corrs.corr_cn0.prompt.I,
-                             tracker->corrs.corr_cn0.prompt.Q);
+                             tracker->corrs.corr_cn0.prompt.Q,
+                             confirmed);
     }
   }
 
