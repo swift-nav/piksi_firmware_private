@@ -116,8 +116,7 @@ static code_db_element_t code_db[CODE_COUNT] = {
         [CODE_QZS_L1CA] = {.carr_to_code = QZS_L1CA_CARR_TO_CODE},
         [CODE_AUX_QZS] = {.carr_to_code = QZS_L1CA_CARR_TO_CODE},
         [CODE_QZS_L2CM] = {.carr_to_code = QZS_L2C_CARR_TO_CODE},
-        [CODE_QZS_L2CL] = {.carr_to_code = QZS_L2C_CARR_TO_CODE}
-};
+        [CODE_QZS_L2CL] = {.carr_to_code = QZS_L2C_CARR_TO_CODE}};
 
 /** Table of sv constellation indexes. */
 typedef struct {
