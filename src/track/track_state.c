@@ -298,6 +298,7 @@ bool tracker_init(const u8 id,
     tracker_timer_arm(&tracker->carrier_freq_age_timer, -1);
 
     tracker_timer_init(&tracker->profile.profile_settle_timer);
+    tracker_timer_init(&tracker->profile.sens_timer);
 
     tracker->cp_sync.polarity = BIT_POLARITY_UNKNOWN;
     tracker->cp_sync.synced = false;

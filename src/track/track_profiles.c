@@ -780,6 +780,10 @@ static bool fll_bw_changed(tracker_t *tracker, profile_indices_t index) {
   return true;
 }
 
+static bool is_sens_profile(profile_indices_t index) {
+  return (IDX_SENS_NM == index) || (IDX_SENS == index);
+}
+
 /**
  * Internal method for profile switch request.
  *
@@ -824,6 +828,13 @@ static bool profile_switch_requested(tracker_t *tracker,
 
   if ((index == state->cur.index) && !pll_changed && !fll_changed) {
     return false;
+  }
+
+  if (is_sens_profile(index) && !is_sens_profile(state->cur.index)) {
+    /* about to activate sens profile */
+    tracker_timer_arm(&state->sens_timer, -1);
+  } else {
+    tracker_timer_init(&state->sens_timer);
   }
 
   state->dll_init = false;

@@ -167,6 +167,7 @@ typedef struct {
   tp_cn0_thres_t cn0_thres;
 
   tracker_timer_t profile_settle_timer;
+  tracker_timer_t sens_timer;
 
   const struct tp_profile_entry *profiles; /**< Profiles switching table. */
 } tp_profile_t;
