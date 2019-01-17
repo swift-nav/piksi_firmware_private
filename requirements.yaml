@@ -8,8 +8,8 @@
         - piksi_firmware_v3_prod.stripped.elf
   artifacts:
     -
-      bucket: swiftnav-artifacts-pull-requests
-      prefix: piksi_buildroot/v2.1.0-develop-2019011120-10-g6565c74d/v3/prod
+      bucket: swiftnav-artifacts
+      prefix: piksi_buildroot/v2.1.0-develop-2019011120/v3/prod
       files:
         - uImage.piksiv3_prod
     -
