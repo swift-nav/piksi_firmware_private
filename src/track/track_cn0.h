@@ -42,7 +42,6 @@ typedef struct {
   cn0_est_mm_state_t moment; /**< MM estimator */
 
   float cn0_raw_dbhz; /**< Last unfiltered CN0 estimation [dB-Hz] */
-  u32 weak_signal_ms; /**< Signal is below #THRESH_SENS_DBHZ this long [ms] */
 
   cn0_filter_t filter; /**< Additional C/N0 filter */
 } track_cn0_state_t;
