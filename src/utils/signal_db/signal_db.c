@@ -19,6 +19,69 @@
 
 #include <swiftnav/constants.h>
 
+/** GPS L1 C/A carrier freq / code chipping rate
+ * \note this is GPS_L1_HZ / GPS_CA_CHIPPING_RATE */
+#define GPS_L1CA_CARR_TO_CODE (GPS_L1_HZ / GPS_CA_CHIPPING_RATE)
+
+/** GPS L2C carrier freq / code chipping rate
+ * \note this is GPS_L2_HZ / GPS_CA_CHIPPING_RATE */
+#define GPS_L2C_CARR_TO_CODE (GPS_L2_HZ / GPS_CA_CHIPPING_RATE)
+
+/** GPS L5 carrier freq / code chipping rate
+ * \note this is GPS_L5_HZ / GPS_L5_CHIPPING_RATE */
+#define GPS_L5_CARR_TO_CODE (GPS_L5_HZ / GPS_L5_CHIPPING_RATE)
+/** GLO L1 carrier freq / code chipping rate
+ * \note this is GLO_L1_HZ / GLO_CHIPPING_RATE */
+#define GLO_L1_CARR_TO_CODE(fcn) \
+  ((GLO_L1_HZ + (fcn)*GLO_L1_DELTA_HZ) / GLO_CA_CHIPPING_RATE)
+
+/** GLO L2 carrier freq / code chipping rate
+ * \note this is GLO_L2_HZ / GLO_CHIPPING_RATE */
+#define GLO_L2_CARR_TO_CODE(fcn) \
+  ((GLO_L2_HZ + (fcn)*GLO_L2_DELTA_HZ) / GLO_CA_CHIPPING_RATE)
+
+/** SBAS L1 carrier to code ratio */
+#define SBAS_L1CA_CARR_TO_CODE (SBAS_L1_HZ / SBAS_L1CA_CHIPPING_RATE)
+
+/** SBAS L5 carrier to code ratio */
+#define SBAS_L5_CARR_TO_CODE (SBAS_L5_HZ / SBAS_L5_CHIPPING_RATE)
+
+/** Beidou2 B11 carrier to code ratio */
+#define BDS2_B11_CARR_TO_CODE (BDS2_B11_HZ / BDS2_B11_CHIPPING_RATE)
+
+/** Beidou2 B2 carrier to code ratio */
+#define BDS2_B2_CARR_TO_CODE (BDS2_B2_HZ / BDS2_B2_CHIPPING_RATE)
+
+/** Beidou3 B1C carrier to code ratio */
+#define BDS3_B1C_CARR_TO_CODE (BDS3_B1C_HZ / BDS3_B1C_CHIPPING_RATE)
+
+/** Beidou3 B3 carrier to code ratio */
+#define BDS3_B3_CARR_TO_CODE (BDS3_B3_HZ / BDS3_B3_CHIPPING_RATE)
+
+/** Beidou3 B2b carrier to code ratio */
+#define BDS3_B7_CARR_TO_CODE (BDS3_B7_HZ / BDS3_B7_CHIPPING_RATE)
+
+/** Beidou3 B2a carrier to code ratio */
+#define BDS3_B5_CARR_TO_CODE (BDS3_B5_HZ / BDS3_B5_CHIPPING_RATE)
+
+/** Galileo E1 carrier to code ratio */
+#define GAL_E1_CARR_TO_CODE (GAL_E1_HZ / GAL_E1_CHIPPING_RATE)
+
+/** Galileo E6 carrier to code ratio */
+#define GAL_E6_CARR_TO_CODE (GAL_E6_HZ / GAL_E6_CHIPPING_RATE)
+
+/** Galileo E5b carrier to code ratio */
+#define GAL_E7_CARR_TO_CODE (GAL_E7_HZ / GAL_E7_CHIPPING_RATE)
+
+/** Galileo E5a carrier to code ratio */
+#define GAL_E5_CARR_TO_CODE (GAL_E5_HZ / GAL_E5_CHIPPING_RATE)
+
+/** QZSS L1C/A carrier to code ratio */
+#define QZS_L1CA_CARR_TO_CODE (QZS_L1_HZ / QZS_L1CA_CHIPPING_RATE)
+
+/** QZSS L2C carrier to code ratio */
+#define QZS_L2C_CARR_TO_CODE (QZS_L2_HZ / QZS_L1CA_CHIPPING_RATE)
+
 /** \defgroup signal GNSS signal identifiers (SID)
  * \{ */
 
@@ -29,8 +92,32 @@ typedef struct {
   u16 me_constellation_start_index;
   u16 global_start_index;
   u16 me_global_start_index;
+  double carr_to_code;
 } code_db_element_t;
-static code_db_element_t code_db[CODE_COUNT];
+static code_db_element_t code_db[CODE_COUNT] = {
+    /** GPS */
+    [CODE_GPS_L1CA] = {.carr_to_code = GPS_L1CA_CARR_TO_CODE},
+    [CODE_GPS_L2CM] = {.carr_to_code = GPS_L2C_CARR_TO_CODE},
+    [CODE_GPS_L2CL] = {.carr_to_code = GPS_L2C_CARR_TO_CODE},
+
+    /** SBAS */
+    [CODE_SBAS_L1CA] = {.carr_to_code = SBAS_L1CA_CARR_TO_CODE},
+
+    /** Galileo  */
+    [CODE_GAL_E1B] = {.carr_to_code = GAL_E1_CARR_TO_CODE},
+    [CODE_GAL_E7I] = {.carr_to_code = GAL_E7_CARR_TO_CODE},
+    [CODE_GAL_E5I] = {.carr_to_code = GAL_E5_CARR_TO_CODE},
+
+    /** Beidou */
+    [CODE_BDS2_B1] = {.carr_to_code = BDS2_B11_CARR_TO_CODE},
+    [CODE_BDS2_B2] = {.carr_to_code = BDS2_B2_CARR_TO_CODE},
+
+    /** QZS L1C/A has all the same characteristics as GPS L1 C/A */
+    [CODE_QZS_L1CA] = {.carr_to_code = QZS_L1CA_CARR_TO_CODE},
+    [CODE_AUX_QZS] = {.carr_to_code = QZS_L1CA_CARR_TO_CODE},
+    [CODE_QZS_L2CM] = {.carr_to_code = QZS_L2C_CARR_TO_CODE},
+    [CODE_QZS_L2CL] = {.carr_to_code = QZS_L2C_CARR_TO_CODE}
+};
 
 /** Table of sv constellation indexes. */
 typedef struct {
@@ -122,6 +209,8 @@ void signal_db_init(void) {
 
     global_start_index += code_signal_counts[code];
     me_global_start_index += me_code_signal_counts[code];
+
+
   }
 }
 
@@ -534,8 +623,9 @@ double mesid_to_carr_to_code(const me_gnss_signal_t mesid) {
   if (CODE_GLO_L2OF == code) {
     return GLO_L2_CARR_TO_CODE(fcn);
   }
-  gnss_signal_t sid = construct_sid(mesid.code, mesid.sat);
-  return sid_to_carr_to_code(sid);
+  double carr_to_code = code_db[mesid.code].carr_to_code;
+  assert(carr_to_code > 0);
+  return carr_to_code;
 }
 
 /* \} */
