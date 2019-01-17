@@ -35,6 +35,10 @@
    The threshold is needed to avoid spontaneous transitions
    to sensitivity profile, when signal is reasonably strong */
 #define TP_WEAK_SIGNAL_THRESHOLD_MS 100
+/* 50ms is a result of experimenting.
+   The threshold is needed to avoid spontaneous transitions
+   from sensitivity profile */
+#define TP_STRONG_SIGNAL_THRESHOLD_MS 50
 
 /** Unknown delay indicator */
 #define TP_DELAY_UNKNOWN -1
@@ -344,7 +348,7 @@ static const tp_profile_entry_t tracker_profiles_rover[] = {
   { { BW_DYN,      BW_DYN,            1,   TP_CTRL_PLL3,
       TP_TM_10MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS, TP_TM_10MS_NH20MS,  TP_TM_10MS_SC4 },
       TP_LD_PARAMS_PHASE_10MS, TP_LD_PARAMS_FREQ_10MS,
-      40,          32,          38,
+      40,          32,          THRESH_10MS_DBHZ,
       IDX_10MS,    IDX_20MS,     IDX_5MS,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
 
@@ -361,16 +365,16 @@ static const tp_profile_entry_t tracker_profiles_rover[] = {
   { {      0,         1.0,           .5,   TP_CTRL_PLL3,
       TP_TM_200MS_20MS, TP_TM_200MS_10MS, TP_TM_200MS_2MS, TP_TM_200MS_NH20MS, TP_TM_200MS_SC4 },
       TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
-      300,             0,          32,
+      600,             0,          32,
       IDX_SENS,  IDX_NONE,     IDX_20MS,
-      TP_HIGH_CN0 | TP_USE_NEXT },
+      TP_USE_NEXT },
 
   /* sensitivity profile for GLO without meander sync */
   [IDX_SENS_NM] =
   { {      0,         1.0,           .5,   TP_CTRL_PLL3,
       TP_TM_200MS_20MS, TP_TM_200MS_10MS_NM, TP_TM_200MS_2MS, TP_TM_200MS_NH20MS, TP_TM_200MS_SC4 },
       TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
-      300,             0,          32,
+      600,             0,          32,
       IDX_SENS,  IDX_NONE,     IDX_10MS,
       TP_HIGH_CN0 | TP_USE_NEXT },
 };
@@ -877,6 +881,10 @@ static bool low_cn0_profile_switch_requested(tracker_t *tracker) {
   return false;
 }
 
+static bool is_sens_profile(int index) {
+  return (IDX_SENS == index) || (IDX_SENS_NM == index);
+}
+
 /**
  * Method to check if there is a pending profile change.
  *
@@ -895,6 +903,13 @@ bool tp_profile_has_new_profile(tracker_t *tracker) {
 
   const tp_profile_entry_t *cur_profile = &state->profiles[state->cur.index];
   u16 flags = cur_profile->flags;
+
+  /* Early exit from sensitivity profile. */
+  if (is_sens_profile(state->cur.index) &&
+      (tracker->cn0_est.strong_signal_ms >= TP_STRONG_SIGNAL_THRESHOLD_MS) &&
+      (profile_switch_requested(tracker, IDX_20MS, "high cn0: delay"))) {
+    return true;
+  }
 
   if (0 != (flags & TP_LOW_CN0) && low_cn0_profile_switch_requested(tracker)) {
     return true;
@@ -919,7 +934,12 @@ bool tp_profile_has_new_profile(tracker_t *tracker) {
     return false; /* tracking loop has not settled yet */
   }
 
-  if ((0 != (flags & TP_HIGH_CN0)) &&
+  /* Do not exit from sensitivity profile by looking at the filtered CN0.
+     as during rapid transition to sensitivity profile the filtered
+     CN0 can still be high and cause premature exit from sens profile.
+     The exit from sens profile is done by looking at raw CN0 only.
+     See the processing of tracker->cn0_est_strong_signal_ms above */
+  if ((0 != (flags & TP_HIGH_CN0)) && !is_sens_profile(state->cur.index) &&
       (state->filt_cn0 > cur_profile->cn0_high_threshold) &&
       profile_switch_requested(
           tracker, cur_profile->next_cn0_high, "high cno")) {

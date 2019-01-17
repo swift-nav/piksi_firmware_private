@@ -31,6 +31,7 @@
 
 #define THRESH_SENS_DBHZ 25
 #define THRESH_20MS_DBHZ 32
+#define THRESH_10MS_DBHZ 38
 
 /**
  * Tracking mode enumeration.
