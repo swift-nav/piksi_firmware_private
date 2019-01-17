@@ -344,28 +344,28 @@ static void configure_v2(void) {
   spi_write(12, 0x1C); /* clock source and signal type */
   spi_write(13, 0x01); /* channel 1 enabled and Upper/Lower side-band */
   spi_write(14, 0x26); /* Glonass L1OF LPF */
-  spi_write(15, 0x3B); /* RF and IF AGC mode*/
+  spi_write(15, 0x1B); /* RF and IF AGC mode*/
   spi_write(16, 0x53); /* Max and minimum RF AGC threshholds*/
   spi_write(17, 0xF1);
   spi_write(18, 0xEA);
   spi_write(19, 0x0B);
   spi_write(20, 0x03); /* channel 2 enabled and Upper/Lower side-band */
   spi_write(21, 0x52); /* GPS L1 and BDS2 B11 LPF at 32.4 MHz */
-  spi_write(22, 0x3B); /* RF and IF AGC mode*/
+  spi_write(22, 0x1B); /* RF and IF AGC mode*/
   spi_write(23, 0x53); /* Max and minimum RF AGC threshholds*/
   spi_write(24, 0xF1);
   spi_write(25, 0xEA);
   spi_write(26, 0x0B);
   spi_write(27, 0x01); /* channel 3 enabled and Upper/Lower side-band */
   spi_write(28, 0x1D); /* Glonass L2OF LPF */
-  spi_write(29, 0x3B); /* RF and IF AGC mode*/
+  spi_write(29, 0x1B); /* RF and IF AGC mode*/
   spi_write(30, 0x53); /* Max and minimum RF AGC threshholds*/
   spi_write(31, 0xF1);
   spi_write(32, 0xEA);
   spi_write(33, 0x0B);
   spi_write(34, 0x03); /* channel 4 enabled and Upper/Lower side-band */
   spi_write(35, 0x52); /* GPS L2 and BDS2 B2 LPF at 32.4 MHz */
-  spi_write(36, 0x3B); /* RF and IF AGC mode*/
+  spi_write(36, 0x1B); /* RF and IF AGC mode*/
   spi_write(37, 0x53); /* Max and minimum RF AGC threshholds*/
   spi_write(38, 0xF1);
   spi_write(39, 0xEA);
