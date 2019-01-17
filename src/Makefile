@@ -173,7 +173,6 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/calc/starling_sbp_output.o \
         $(SWIFTNAV_ROOT)/src/calc/starling_sbp_messages.o \
         $(SWIFTNAV_ROOT)/src/calc/starling_platform_chibios.o \
-        $(SWIFTNAV_ROOT)/src/calc/starling_platform_extra_chibios.o \
         $(SWIFTNAV_ROOT)/src/calc/calc_pvt_me.o \
         $(SWIFTNAV_ROOT)/src/calc/calc_nav_meas.o \
         $(SWIFTNAV_ROOT)/src/utils/obs_bias/obs_bias.o \

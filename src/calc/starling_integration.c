@@ -17,6 +17,7 @@
 #include <starling/integration/starling_input_bridge.h>
 #include <starling/platform/starling_platform.h>
 #include <starling/starling.h>
+#include <starling/starling_external_dependencies.h>
 #include <swiftnav/coord_system.h>
 #include <swiftnav/linear_algebra.h>
 #include <swiftnav/memcpy_s.h>
@@ -29,7 +30,9 @@
 #include "sbp/sbp.h"
 #include "sbp/sbp_utils.h"
 #include "settings/settings_client.h"
+#include "shm/shm.h"
 #include "simulator/simulator.h"
+#include "track/track_sid_db.h"
 #include "utils/nmea/nmea.h"
 #include "utils/timing/timing.h"
 
@@ -94,6 +97,31 @@ static u8 current_base_sender_id = STARLING_BASE_SENDER_ID_DEFAULT;
 /*******************************************************************************
  * Output Callback Helpers
  ******************************************************************************/
+
+static bool is_raim_disabled(void) { return disable_raim; }
+
+static cache_ret_t cache_read_ephemeris(const gnss_signal_t sid,
+                                        ephemeris_t *eph) {
+  ndb_op_code_t ret = ndb_ephemeris_read(sid, eph);
+  if (NDB_ERR_NONE == ret) {
+    return CACHE_OK;
+  } else if (NDB_ERR_UNCONFIRMED_DATA == ret) {
+    return CACHE_OK_UNCONFIRMED_DATA;
+  } else {
+    return CACHE_ERROR;
+  }
+}
+
+static cache_ret_t cache_read_iono_corr(ionosphere_t *iono) {
+  ndb_op_code_t ret = ndb_iono_corr_read(iono);
+  if (NDB_ERR_NONE == ret) {
+    return CACHE_OK;
+  } else if (NDB_ERR_UNCONFIRMED_DATA == ret) {
+    return CACHE_OK_UNCONFIRMED_DATA;
+  } else {
+    return CACHE_ERROR;
+  }
+}
 
 static double calc_heading(const double b_ned[3]) {
   double heading = atan2(b_ned[1], b_ned[0]);
@@ -883,6 +911,20 @@ static THD_FUNCTION(initialize_and_run_starling, arg) {
  ******************************************************************************/
 
 void starling_calc_pvt_setup() {
+  /* Connect the missing external dependencies for the Starling engine. */
+  external_functions_t extfns = {
+      .cache_read_ephemeris = cache_read_ephemeris,
+      .cache_read_iono_corr = cache_read_iono_corr,
+      .track_sid_db_elevation_degrees_get = track_sid_db_elevation_degrees_get,
+      .shm_navigation_unusable = shm_navigation_unusable,
+      .starling_integration_simulation_enabled =
+          starling_integration_simulation_enabled,
+      .starling_integration_simulation_run =
+          starling_integration_simulation_run,
+      .disable_raim = is_raim_disabled,
+  };
+  starling_set_external_functions_implementation(&extfns);
+
   /* Init settings here in the main thread to avoid thread safety issues */
   initialize_starling_settings();
 
