@@ -51,7 +51,7 @@
 
 /** Do not dispose tracker in sens profile at least this time
     in a hope for faster correlator based re-acq [ms] */
-#define TRACK_SENS_PROF_MIN_MS 10000
+#define TRACK_SENS_PROF_MIN_MS 3000
 
 #define ACQ_FULL_CF_STEP soft_multi_acq_bin_width()
 
