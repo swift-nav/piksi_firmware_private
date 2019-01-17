@@ -164,7 +164,7 @@ static const state_table_t mode_1ms_2ms = {
  * 1 ms tracking mode for Galileo I/NAV
  */
 static const state_table_t mode_1ms_sc4 = {
-  .cn0_ms = 4,
+  .cn0_ms = 10,
   .lockdet_ms = 1,
   .alias_ms = 0, /* not used as equal to flld_ms */
   .flld_ms = 1,
@@ -172,9 +172,30 @@ static const state_table_t mode_1ms_sc4 = {
   .fpll_decim = 1,
   .dll_ms = 1,
   .bit_ms = 4,
-  .ent_cnt = 4,
+  .ent_cnt = 20,
   .entries = {
     {1, TP_FLAGS_1MS | TPF_CN0_SET | TPF_DATAPILOT_SET},
+    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_DATAPILOT_ADD},
+    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_DATAPILOT_ADD},
+    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_DATAPILOT_ADD
+                                   | TPF_DATAPILOT_UPD},
+    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_DATAPILOT_SET},
+    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_DATAPILOT_ADD},
+    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_DATAPILOT_ADD},
+    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_DATAPILOT_ADD
+                                   | TPF_DATAPILOT_UPD},
+    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_DATAPILOT_SET},
+    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_DATAPILOT_ADD
+                     | TPF_CN0_USE},
+    {1, TP_FLAGS_1MS | TPF_CN0_SET | TPF_DATAPILOT_ADD},
+    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_DATAPILOT_ADD
+                                   | TPF_DATAPILOT_UPD},
+    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_DATAPILOT_SET},
+    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_DATAPILOT_ADD},
+    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_DATAPILOT_ADD},
+    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_DATAPILOT_ADD
+                                   | TPF_DATAPILOT_UPD},
+    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_DATAPILOT_SET},
     {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_DATAPILOT_ADD},
     {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_DATAPILOT_ADD},
     {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_DATAPILOT_ADD
