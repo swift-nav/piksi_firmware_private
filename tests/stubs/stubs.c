@@ -135,21 +135,6 @@ void dum_get_doppler_wndw(const gnss_signal_t *sid,
   *doppler_max = 200;
 }
 
-float code_to_tcxo_doppler_min(code_t code) {
-  (void)code;
-  return -TCXO_FREQ_OFFSET_MAX_PPM * GLO_L1_TCXO_PPM_TO_HZ;
-}
-
-/** Return the maximum Doppler value for a code induced by TCXO error.
- *
- * \param code The code to use.
- * \return Maximum Doppler value [Hz]
- */
-float code_to_tcxo_doppler_max(code_t code) {
-  (void)code;
-  return TCXO_FREQ_OFFSET_MAX_PPM * GLO_L1_TCXO_PPM_TO_HZ;
-}
-
 /*** SCHEDULER UNIT TESTS STUBS ***/
 u16 get_orbit_slot(const u16 fcn) {
   (void)fcn;

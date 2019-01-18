@@ -680,8 +680,7 @@ static void unpack_ephemeris_glo(const msg_ephemeris_t *m, ephemeris_t *e) {
   } else if (!glo_fcn_is_valid((u16)msg->fcn)) {
     log_warn("Received GLO ephemeris from peer with invalid FCN %u", msg->fcn);
   } else {
-    glo_map_set_slot_id(construct_mesid(msg->common.sid.code, (u16)msg->fcn),
-                        msg->common.sid.sat);
+    glo_map_set_slot_id(msg->fcn, msg->common.sid.sat);
   }
 }
 

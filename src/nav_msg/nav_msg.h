@@ -18,8 +18,8 @@
 #include <swiftnav/common.h>
 #include <swiftnav/ephemeris.h>
 #include <swiftnav/ionosphere.h>
-
 #include "me_constants.h"
+#include "signal_db/signal_db.h"
 
 #ifdef __cplusplus
 extern "C" {
