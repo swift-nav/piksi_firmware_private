@@ -15,6 +15,7 @@
 #include <stdbool.h>
 #include <swiftnav/common.h>
 #include <swiftnav/signal.h>
+#include "signal_db/signal_db.h"
 
 /** \addtogroup decoding
  * \{ */

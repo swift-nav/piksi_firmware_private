@@ -16,6 +16,7 @@
 #include <stdbool.h>
 #include <swiftnav/common.h>
 #include <swiftnav/ephemeris.h>
+#include "signal_db/signal_db.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -93,7 +94,7 @@ typedef struct {
 
   /** TOE as a GLO epoch. h/m/s comes from the field tb in the GLO string 2 */
   glo_time_t toe;
-  s32 tau_gps_ns;      /**< correction to GPS time relative to GLO time [ns] */
+  float tau_gps_s;     /**< correction to GPS time relative to GLO time [s] */
   u8 decoded_strings;  /**< bit field to indicate decoded strings 1-5 */
   gps_time_t gps_time; /**< GPS time of the last data bit [s] */
   glo_receive_machine state; /**< current state of receiver */
@@ -107,7 +108,8 @@ typedef struct {
                               */
   me_gnss_signal_t mesid;    /**< decoding channel ME sid */
 
-  u16 bit_cnt; /**< For navbit data integrity checks */
+  u16 bit_cnt;         /**< For navbit data integrity checks */
+  u8 age_of_data_days; /**< Age of the navigation data in days */
 } nav_msg_glo_t;
 
 void nav_msg_init_glo(nav_msg_glo_t *n, me_gnss_signal_t mesid);

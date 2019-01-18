@@ -39,7 +39,6 @@
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "settings/settings_client.h"
-#include "signal_db/signal_db.h"
 #include "simulator.h"
 #include "specan/specan_main.h"
 #include "system_monitor/system_monitor.h"
@@ -49,7 +48,11 @@
 
 extern void ext_setup(void);
 
-void* __dso_handle(void) { return (void*)0; };
+/* References:
+   https://wiki.osdev.org/C++#GCC
+   https://lists.debian.org/debian-gcc/2003/07/msg00057.html
+   https://stackoverflow.com/questions/34308720/where-is-dso-handle-defined */
+void *__dso_handle = NULL;
 
 int main(void) {
   halInit();
@@ -71,7 +74,8 @@ int main(void) {
   log_info("pfwp_build_id: " GIT_VERSION "");
   log_info("pfwp_build_date: " __DATE__ " " __TIME__ "");
 
-  starling_initialize_api();
+  firmware_starling_preinit();
+
   init();
   signal_db_init();
 

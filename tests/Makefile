@@ -75,6 +75,7 @@ INCLUDE_DIRS += -I./
 INCLUDE_DIRS += -I$(STUBS_DIR)
 INCLUDE_DIRS += -I$(USER_SRC_DIR)
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/board/v3/
+INCLUDE_DIRS += -I$(USER_SRC_DIR)/board/v3/prod/
 INCLUDE_DIRS += -I../starling/include
 INCLUDE_DIRS += -I../starling/third_party/libswiftnav/include
 INCLUDE_DIRS += -I../starling/libfec/include
@@ -163,6 +164,7 @@ vpath %.c $(USER_SRC_DIR) \
           $(USER_SRC_DIR)/sbp \
           $(USER_SRC_DIR)/utils/shm \
           $(USER_SRC_DIR)/utils/nav_bit_fifo \
+          $(USER_SRC_DIR)/utils/signal_db \
           $(STUBS_DIR)
 
 vpath %.cc $(TEST_SRC_DIR)
@@ -187,6 +189,7 @@ C_SRCS = fixed_fft_r2.c \
          gnss_capabilities.c \
          search_manager.c \
          task_generator.c \
+         signal_db.c \
          scheduler.c \
          stubs.c \
          ch_stubs.c \

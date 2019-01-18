@@ -15,7 +15,7 @@
 #include <string.h>
 
 #include <swiftnav/gnss_time.h>
-
+#include "signal_db/signal_db.h"
 #include "sv_visibility.h"
 /**
  * The function will compute visibility and visibility known status for a SV

@@ -109,6 +109,17 @@
    PLATFORM_FREQ_COUNT_GLO + PLATFORM_SIGNAL_COUNT_BDS2 +   \
    PLATFORM_SIGNAL_COUNT_QZS + PLATFORM_SIGNAL_COUNT_GAL)
 
+/** GNSS signal identifier for internal ME processing.
+ *
+ *  All signals except GLO are encoded similarly with gnss_signal_t
+ *  GLO signals have their sat field represent the frequency slot FCN,
+ *  sat range 1 - 14 (which is FCN -7..6 shifted by 8).
+ */
+typedef struct {
+  u16 sat;
+  code_t code;
+} me_gnss_signal_t;
+
 /* \} */
 #ifdef __cplusplus
 extern "C" {
@@ -130,6 +141,18 @@ float code_to_tcxo_doppler_max(code_t code);
 gnss_signal_t sv_index_to_sid(u16 sv_index);
 u16 sid_to_sv_index(gnss_signal_t sid);
 double mesid_to_carr_fcn_hz(const me_gnss_signal_t mesid);
+
+constellation_t mesid_to_constellation(const me_gnss_signal_t mesid);
+int mesid_compare(const me_gnss_signal_t a, const me_gnss_signal_t b);
+bool mesid_is_equal(const me_gnss_signal_t a, const me_gnss_signal_t b);
+me_gnss_signal_t construct_mesid(code_t code, u16 sat);
+gnss_signal_t mesid2sid(const me_gnss_signal_t mesid, u16 glo_slot_id);
+int mesid_to_string(char *s, int n, const me_gnss_signal_t mesid);
+bool mesid_valid(const me_gnss_signal_t mesid);
+me_gnss_signal_t mesid_from_code_index(code_t code, u16 code_index);
+double mesid_to_carr_freq(const me_gnss_signal_t mesid);
+double mesid_to_carr_to_code(const me_gnss_signal_t mesid);
+u16 mesid_to_code_index(const me_gnss_signal_t mesid);
 
 #ifdef __cplusplus
 } /* extern "C" */

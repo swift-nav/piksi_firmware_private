@@ -5,6 +5,8 @@
 #include <swiftnav/logging.h>
 #include <swiftnav/signal.h>
 
+#include "signal_db/signal_db.h"
+
 /** Acquisition CN0 threshold to determine if
  * handover to tracking should be initiated. */
 #define ACQ_THRESHOLD 38.0 /* dBHz */
