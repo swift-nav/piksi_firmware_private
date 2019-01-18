@@ -49,7 +49,6 @@ static void start_tracker_for_noise_estimation(code_t code) {
       .cn0_init = -1.f}; /* this is for noise estimation only */
 
   tracking_startup_request(&startup_params);
-  log_info("Ar %d %d", code, sat);
 }
 
 void cn0_noise_estimate(code_t code, u8 cn0_ms, s32 I, s32 Q) {
@@ -85,10 +84,6 @@ float cn0_noise_get_estimate(code_t code) {
     noise[code] = 151.f;
   }
   float n = sqrt(noise[code]);
-
-  if (old_noise_estimation) {
-    log_info("A %d noise = %.1f", code, n);
-  }
 
   return 1100. * n;
 }
