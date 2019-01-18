@@ -70,6 +70,7 @@ void cn0_est_mm_init(cn0_est_mm_state_t *s, float cn0_0) {
  * Computes \f$ C / N_0 \f$ with Moment method.
  *
  * \param s Initialized estimator object.
+ * \param code Signal code
  * \param p Common C/N0 estimator parameters.
  * \param I In-phase signal component
  * \param Q Quadrature phase signal component.
@@ -77,33 +78,16 @@ void cn0_est_mm_init(cn0_est_mm_state_t *s, float cn0_0) {
  * \return Computed \f$ C / N_0 \f$ value
  */
 float cn0_est_mm_update(cn0_est_mm_state_t *s,
+                        code_t code,
                         const cn0_est_params_t *p,
                         float I,
                         float Q,
                         bool confirmed) {
   float m2 = I * I + Q * Q;
-  float m4 = m2 * m2;
 
-  if (s->M2 < 0.0f) {
-    /* This is the first iteration, just initialize moments. */
-    s->M2 = m2;
-    s->M4 = m4;
-  } else {
-    s->M2 += (m2 - s->M2) * CN0_MM_ALPHA;
-    s->M4 += (m4 - s->M4) * CN0_MM_ALPHA;
-  }
+  float Pn = cn0_noise_get_estimate(code);
 
-  float tmp = 2.0f * s->M2 * s->M2 - s->M4;
-  if (0.0f > tmp) {
-    tmp = 0.0f;
-  }
-
-  float Pd = sqrtf(tmp);
-  float n = s->M2 - Pd;
-  if (confirmed) {
-    Pn += (n - Pn) * CN0_MM_PN_ALPHA;
-  }
-
+  (void)confirmed;
   float snr = m2 / Pn;
 
   if (!isfinite(snr) || (snr <= 0.0f)) {

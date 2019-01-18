@@ -185,8 +185,9 @@ void tp_profile_apply_config(tracker_t *tracker, bool init) {
   if (init) {
     /* Initialize C/N0 estimator and filter */
     track_cn0_init(&tracker->cn0_est, /* C/N0 estimator state */
-                   cn0_ms,            /* C/N0 period in ms */
-                   tracker->cn0);     /* Initial C/N0 value */
+                   mesid.code,
+                   cn0_ms,        /* C/N0 period in ms */
+                   tracker->cn0); /* Initial C/N0 value */
 
     log_debug_mesid(mesid, "CN0 init: %f", tracker->cn0);
   }
@@ -614,18 +615,25 @@ static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
 
     } else {
       /* Update C/N0 estimate */
+      s32 I = tracker->corrs.corr_cn0.prompt.I;
+      s32 Q = tracker->corrs.corr_cn0.prompt.Q;
       u8 cn0_ms = tp_get_cn0_ms(tracker->tracking_mode);
       if (0 != (tracker->flags & TRACKER_FLAG_CN0_FILTER_INIT)) {
         tracker->flags &= ~TRACKER_FLAG_CN0_FILTER_INIT;
         track_cn0_init_filter(
             &tracker->cn0_est, cn0_ms, tracker->cn0_est.cn0_raw_dbhz);
       }
-      bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
-      cn0 = track_cn0_update(&tracker->cn0_est,
-                             cn0_ms,
-                             tracker->corrs.corr_cn0.prompt.I,
-                             tracker->corrs.corr_cn0.prompt.Q,
-                             confirmed);
+      if (tracker->cn0 < 0) {
+        /* this is a noise estimation tracker */
+        cn0_noise_estimate(tracker->mesid.code, cn0_ms, I, Q);
+      } else {
+        bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
+        cn0 = track_cn0_update(&tracker->cn0_est,
+                               cn0_ms,
+                               tracker->corrs.corr_cn0.prompt.I,
+                               tracker->corrs.corr_cn0.prompt.Q,
+                               confirmed);
+      }
     }
   }
 
