@@ -852,28 +852,6 @@ static bool low_cn0_profile_switch_requested(tracker_t *tracker) {
       profile_switch_requested(tracker, cur_profile->next_cn0_low, "low cn0")) {
     return true;
   }
-
-  bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
-  if (!confirmed) {
-    return false;
-  }
-
-  if (!tracker_timer_expired(&tracker->init_settle_timer)) {
-    return false;
-  }
-
-  if ((tracker->cn0_est.weak_signal_ms > 0) &&
-      (state->filt_cn0 > THRESH_20MS_DBHZ) &&
-      profile_switch_requested(tracker, IDX_SENS, "low cn0: instant")) {
-    /* filt_cn0 reports a reasonably strong signal, but
-       weak_signal_ms derived from raw CN0 says there is no signal.
-       So we expedite the transition to sensitivity profile. */
-    return true;
-  }
-  if ((tracker->cn0_est.weak_signal_ms >= TP_WEAK_SIGNAL_THRESHOLD_MS) &&
-      profile_switch_requested(tracker, IDX_SENS, "low cn0: delay")) {
-    return true;
-  }
   return false;
 }
 
