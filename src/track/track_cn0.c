@@ -135,7 +135,7 @@ static float update_estimator(track_cn0_state_t *e,
                               const cn0_est_params_t *p,
                               float I,
                               float Q) {
-  return cn0_est_mm_update(&e->moment, p, I, Q);
+  return cn0_est_mm_update(&e->moment, e->code, p, I, Q);
 }
 
 /**
@@ -182,15 +182,17 @@ static const track_cn0_params_t *track_cn0_get_params(u8 cn0_ms,
  * Initializes C/N0 estimator and filter
  *
  * \param[out] e      C/N0 estimator state.
+ * \param[in]  code   Signal code
  * \param[in]  cn0_ms C/N0 estimator update period in ms.
  * \param[in]  cn0    Initial C/N0 value in dB/Hz.
  *
  * \return None
  */
-void track_cn0_init(track_cn0_state_t *e, u8 cn0_ms, float cn0) {
+void track_cn0_init(track_cn0_state_t *e, code_t code, u8 cn0_ms, float cn0) {
   track_cn0_params_t p;
   const track_cn0_params_t *pp = track_cn0_get_params(cn0_ms, &p);
 
+  e->code = code;
   init_estimator(e, cn0);
   cn0_filter_init(&e->filter, &pp->filter_params, cn0);
 }
