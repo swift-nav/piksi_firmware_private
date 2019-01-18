@@ -80,27 +80,7 @@ float cn0_est_mm_update(cn0_est_mm_state_t *s,
                         float I,
                         float Q) {
   float m2 = I * I + Q * Q;
-  float m4 = m2 * m2;
-
-  if (s->M2 < 0.0f) {
-    /* This is the first iteration, just initialize moments. */
-    s->M2 = m2;
-    s->M4 = m4;
-  } else {
-    s->M2 += (m2 - s->M2) * CN0_MM_ALPHA;
-    s->M4 += (m4 - s->M4) * CN0_MM_ALPHA;
-  }
-
-  float tmp = 2.0f * s->M2 * s->M2 - s->M4;
-  if (0.0f > tmp) {
-    tmp = 0.0f;
-  }
-
-  float Pd = sqrtf(tmp);
-  float Pn = s->M2 - Pd;
-  s->Pn += (Pn - s->Pn) * CN0_MM_PN_ALPHA;
-
-  float snr = m2 / s->Pn;
+  float snr = m2 / CN0_MM_PN_INIT;
 
   if (!isfinite(snr) || (snr <= 0.0f)) {
     /* CN0 out of limits, no updates. */
