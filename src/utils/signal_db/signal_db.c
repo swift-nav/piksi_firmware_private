@@ -95,28 +95,28 @@ typedef struct {
   double carr_to_code;
 } code_db_element_t;
 static code_db_element_t code_db[CODE_COUNT] = {
-        /** GPS */
-        [CODE_GPS_L1CA] = {.carr_to_code = GPS_L1CA_CARR_TO_CODE},
-        [CODE_GPS_L2CM] = {.carr_to_code = GPS_L2C_CARR_TO_CODE},
-        [CODE_GPS_L2CL] = {.carr_to_code = GPS_L2C_CARR_TO_CODE},
+    /** GPS */
+    [CODE_GPS_L1CA] = {.carr_to_code = GPS_L1CA_CARR_TO_CODE},
+    [CODE_GPS_L2CM] = {.carr_to_code = GPS_L2C_CARR_TO_CODE},
+    [CODE_GPS_L2CL] = {.carr_to_code = GPS_L2C_CARR_TO_CODE},
 
-        /** SBAS */
-        [CODE_SBAS_L1CA] = {.carr_to_code = SBAS_L1CA_CARR_TO_CODE},
+    /** SBAS */
+    [CODE_SBAS_L1CA] = {.carr_to_code = SBAS_L1CA_CARR_TO_CODE},
 
-        /** Galileo  */
-        [CODE_GAL_E1B] = {.carr_to_code = GAL_E1_CARR_TO_CODE},
-        [CODE_GAL_E7I] = {.carr_to_code = GAL_E7_CARR_TO_CODE},
-        [CODE_GAL_E5I] = {.carr_to_code = GAL_E5_CARR_TO_CODE},
+    /** Galileo  */
+    [CODE_GAL_E1B] = {.carr_to_code = GAL_E1_CARR_TO_CODE},
+    [CODE_GAL_E7I] = {.carr_to_code = GAL_E7_CARR_TO_CODE},
+    [CODE_GAL_E5I] = {.carr_to_code = GAL_E5_CARR_TO_CODE},
 
-        /** Beidou */
-        [CODE_BDS2_B1] = {.carr_to_code = BDS2_B11_CARR_TO_CODE},
-        [CODE_BDS2_B2] = {.carr_to_code = BDS2_B2_CARR_TO_CODE},
+    /** Beidou */
+    [CODE_BDS2_B1] = {.carr_to_code = BDS2_B11_CARR_TO_CODE},
+    [CODE_BDS2_B2] = {.carr_to_code = BDS2_B2_CARR_TO_CODE},
 
-        /** QZS L1C/A has all the same characteristics as GPS L1 C/A */
-        [CODE_QZS_L1CA] = {.carr_to_code = QZS_L1CA_CARR_TO_CODE},
-        [CODE_AUX_QZS] = {.carr_to_code = QZS_L1CA_CARR_TO_CODE},
-        [CODE_QZS_L2CM] = {.carr_to_code = QZS_L2C_CARR_TO_CODE},
-        [CODE_QZS_L2CL] = {.carr_to_code = QZS_L2C_CARR_TO_CODE}};
+    /** QZS L1C/A has all the same characteristics as GPS L1 C/A */
+    [CODE_QZS_L1CA] = {.carr_to_code = QZS_L1CA_CARR_TO_CODE},
+    [CODE_AUX_QZS] = {.carr_to_code = QZS_L1CA_CARR_TO_CODE},
+    [CODE_QZS_L2CM] = {.carr_to_code = QZS_L2C_CARR_TO_CODE},
+    [CODE_QZS_L2CL] = {.carr_to_code = QZS_L2C_CARR_TO_CODE}};
 
 /** Table of sv constellation indexes. */
 typedef struct {
