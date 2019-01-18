@@ -150,7 +150,6 @@ CSRC := $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l2c.c \
 	$(SWIFTNAV_ROOT)/src/board/v3/platform_signal.c \
 	$(SWIFTNAV_ROOT)/src/board/v3/ndb_fs_access.c \
 	$(SWIFTNAV_ROOT)/src/lib/fixed_fft_r2.c \
-	$(SWIFTNAV_ROOT)/starling/src/starling/integration/starling_input_bridge.c \
 	$(SWIFTNAV_ROOT)/starling/src/starling/starling_platform.c \
 	$(SWIFTNAV_ROOT)/starling/src/starling/starling_platform_mq.c \
 	$(SWIFTNAV_ROOT)/starling/src/starling/starling_platform_semaphore.c \

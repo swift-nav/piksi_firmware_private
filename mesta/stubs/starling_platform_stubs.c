@@ -48,11 +48,8 @@ static void stub_watchdog_notify_starling_main_thread(void) {}
  * Queue
  ******************************************************************************/
 
-static void stub_mq_init(msg_queue_id_t id,
-                         size_t msg_size,
-                         size_t max_length) {
+static void stub_mq_init(msg_queue_id_t id, size_t max_length) {
   (void)id;
-  (void)msg_size;
   (void)max_length;
 }
 
@@ -74,14 +71,9 @@ static errno_t stub_mq_pop(msg_queue_id_t id,
   return 0;
 }
 
-static void *stub_mq_alloc_msg(msg_queue_id_t id) {
-  (void)id;
+static void *stub_mq_alloc(size_t size) {
+  (void)size;
   return NULL;
-}
-
-static void stub_mq_free_msg(msg_queue_id_t id, void *msg) {
-  (void)id;
-  (void)msg;
 }
 
 /*******************************************************************************
@@ -141,8 +133,7 @@ void init_starling_platform_stub_implementation(void) {
       .mq_init = stub_mq_init,
       .mq_push = stub_mq_push,
       .mq_pop = stub_mq_pop,
-      .mq_alloc_msg = stub_mq_alloc_msg,
-      .mq_free_msg = stub_mq_free_msg,
+      .mq_alloc = stub_mq_alloc,
   };
   platform_set_implementation_mq(&mq_impl);
   /* Semaphore */
