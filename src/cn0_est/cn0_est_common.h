@@ -168,7 +168,7 @@ float cn0_est_basic_update(cn0_est_basic_state_t *s,
                            float ve_I,
                            float ve_Q);
 
-void cn0_noise_estimate(code_t code, u8 ms, s32 I, s32 Q);
+void cn0_noise_update_estimate(code_t code, u8 ms, s32 I, s32 Q);
 float cn0_noise_get_estimate(code_t code);
 void cn0_noise_update_mesid_status(me_gnss_signal_t mesid, bool intrack);
 

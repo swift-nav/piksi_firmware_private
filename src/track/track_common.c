@@ -623,9 +623,9 @@ static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
         track_cn0_init_filter(
             &tracker->cn0_est, cn0_ms, tracker->cn0_est.cn0_raw_dbhz);
       }
-      if (tracker->cn0 < 0) {
-        /* this is a noise estimation tracker */
-        cn0_noise_estimate(tracker->mesid.code, cn0_ms, I, Q);
+      bool noise_estimation = (tracker->cn0 < 0);
+      if (noise_estimation) {
+        cn0_noise_update_estimate(tracker->mesid.code, cn0_ms, I, Q);
       } else {
         bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
         cn0 = track_cn0_update(&tracker->cn0_est,

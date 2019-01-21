@@ -86,6 +86,11 @@ float cn0_est_mm_update(cn0_est_mm_state_t *s,
   float Pn = cn0_noise_get_estimate(code);
 
   (void)confirmed;
+
+  m2 -= Pn;
+  if (m2 < 0) {
+    m2 = 0;
+  }
   float snr = m2 / Pn;
 
   if (!isfinite(snr) || (snr <= 0.0f)) {
