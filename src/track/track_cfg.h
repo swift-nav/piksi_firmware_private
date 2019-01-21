@@ -107,7 +107,6 @@
 #define ADJ_CN0_MAX (60.0f)
 
 #define PLL_BW_MIN (10.0f)
-#define PLL_BW_MIN_20MS (6.0f)
 #define PLL_BW_MAX (20.0f)
 
 #define FLL_BW_MIN (1.5f)
