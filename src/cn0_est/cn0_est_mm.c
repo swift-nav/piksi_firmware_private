@@ -26,8 +26,6 @@
 /** Estimate of noise power Pn. For smoother initial CN0 output. */
 #define CN0_MM_PN_INIT (100000.0f)
 
-static float Pn = CN0_MM_PN_INIT;
-
 /** Initialize the \f$ C / N_0 \f$ estimator state.
  *
  * Initializes Moment method \f$ C / N_0 \f$ estimator.
