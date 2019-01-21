@@ -618,9 +618,9 @@ static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
       s32 I = tracker->corrs.corr_cn0.prompt.I;
       s32 Q = tracker->corrs.corr_cn0.prompt.Q;
       u8 cn0_ms = tp_get_cn0_ms(tracker->tracking_mode);
-      if (tracker->cn0 < 0) {
-        /* this is a noise estimation tracker */
-        cn0_noise_estimate(tracker->mesid.code, cn0_ms, I, Q);
+      bool noise_estimation = (tracker->cn0 < 0);
+      if (noise_estimation) {
+        cn0_noise_update_estimate(tracker->mesid.code, cn0_ms, I, Q);
       } else {
         cn0 = track_cn0_update(&tracker->cn0_est, cn0_ms, I, Q);
       }
