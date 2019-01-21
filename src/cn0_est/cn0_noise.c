@@ -10,9 +10,49 @@
 
 static MUTEX_DECL(cn0_mutex);
 
-static u64 ms[CODE_COUNT] = {0};
+static int init_done = 0;
+
+static u64 ms[CODE_COUNT] = {[CODE_GPS_L1CA] = NOISE_MAX_AGE_MS,
+                             [CODE_GPS_L2CM] = NOISE_MAX_AGE_MS,
+
+                             [CODE_GLO_L1OF] = NOISE_MAX_AGE_MS,
+                             [CODE_GLO_L2OF] = NOISE_MAX_AGE_MS,
+
+                             [CODE_GAL_E1B] = NOISE_MAX_AGE_MS,
+                             [CODE_GAL_E7I] = NOISE_MAX_AGE_MS,
+
+                             [CODE_BDS2_B1] = NOISE_MAX_AGE_MS,
+                             [CODE_BDS2_B2] = NOISE_MAX_AGE_MS,
+
+                             [CODE_SBAS_L1CA] = NOISE_MAX_AGE_MS};
 static u32 mask[CODE_COUNT] = {0};
-static double noise[CODE_COUNT] = {0};
+static int has_estimated_noise[CODE_COUNT] = {0};
+static double noise[CODE_COUNT] = {[CODE_GPS_L1CA] = 5.,
+                                   [CODE_GPS_L2CM] = 5.,
+
+                                   [CODE_GLO_L1OF] = 5.,
+                                   [CODE_GLO_L2OF] = 5.,
+
+                                   [CODE_GAL_E1B] = 5.,
+                                   [CODE_GAL_E7I] = 1.,
+
+                                   [CODE_BDS2_B1] = 5.,
+                                   [CODE_BDS2_B2] = 5.,
+
+                                   [CODE_SBAS_L1CA] = 5.};
+static double scale_factor[CODE_COUNT] = {[CODE_GPS_L1CA] = 5.3,
+                                          [CODE_GPS_L2CM] = 6.5,
+
+                                          [CODE_GLO_L1OF] = 5.7,
+                                          [CODE_GLO_L2OF] = 6.7,
+
+                                          [CODE_GAL_E1B] = 6.6,
+                                          [CODE_GAL_E7I] = 7.8,
+
+                                          [CODE_BDS2_B1] = 6.7,
+                                          [CODE_BDS2_B2] = 6.7,
+
+                                          [CODE_SBAS_L1CA] = 1.};
 
 static void lock(void) { chMtxLock(&cn0_mutex); }
 static void unlock(void) { chMtxUnlock(&cn0_mutex); }
@@ -51,41 +91,47 @@ static void start_tracker_for_noise_estimation(code_t code) {
   tracking_startup_request(&startup_params);
 }
 
-void cn0_noise_estimate(code_t code, u8 cn0_ms, s32 I, s32 Q) {
+void cn0_noise_update_estimate(code_t code, u8 cn0_ms, s32 I, s32 Q) {
   assert(code_valid(code));
-  double i = I / (double)cn0_ms;
-  double q = Q / (double)cn0_ms;
-  double n = i * i + q * q;
-  if (noise[code] <= 0) {
-    noise[code] = n;
-  } else {
+  double n = ((double)I * I + (double)Q * Q) / (double)cn0_ms;
+  if (has_estimated_noise[code]) {
     noise[code] += (n - noise[code]) * NOISE_ALPHA;
+  } else {
+    noise[code] = n;
+    has_estimated_noise[code] = 1;
   }
 }
 
 float cn0_noise_get_estimate(code_t code) {
   assert(code_valid(code));
 
-  if (CODE_SBAS_L1CA == code) {
-    return cn0_noise_get_estimate(CODE_GPS_L1CA);
+  if (!init_done) {
+    static const code_t used_codes[] = {CODE_GPS_L1CA,
+                                        CODE_GPS_L2CM,
+                                        CODE_GLO_L1OF,
+                                        CODE_GLO_L2OF,
+                                        CODE_GAL_E1B,
+                                        CODE_GAL_E7I,
+                                        CODE_BDS2_B1,
+                                        CODE_BDS2_B2};
+    init_done = 1;
+    for (int i = 0; i < (int)ARRAY_SIZE(used_codes); i++) {
+      start_tracker_for_noise_estimation(used_codes[i]);
+    }
   }
 
-  bool no_noise_estimation = (noise[code] <= 0);
+  if (CODE_SBAS_L1CA == code) {
+    return scale_factor[CODE_SBAS_L1CA] * noise[CODE_GPS_L1CA];
+  }
 
   ms[code] += 10; /* the API is called roughly each 10ms */
-  bool old_noise_estimation = (ms[code] > NOISE_MAX_AGE_MS);
-
-  if (no_noise_estimation || old_noise_estimation) {
+  bool old_noise_estimation = (ms[code] >= NOISE_MAX_AGE_MS);
+  if (old_noise_estimation) {
     start_tracker_for_noise_estimation(code);
     ms[code] = 0;
   }
 
-  if (no_noise_estimation) {
-    noise[code] = 151.f;
-  }
-  float n = sqrt(noise[code]);
-
-  return 1100. * n;
+  return scale_factor[code] * noise[code];
 }
 
 void cn0_noise_update_mesid_status(me_gnss_signal_t mesid, bool intrack) {
