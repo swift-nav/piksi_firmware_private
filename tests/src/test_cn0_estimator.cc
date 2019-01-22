@@ -111,6 +111,9 @@ TEST(cn0_test, test_cn0_snv) {
 
 TEST(cn0_test, test_cn0_mm_init) {
   cn0_est_params_t p;
+  me_gnss_signal_t mesid;
+  mesid.code = CODE_GPS_L1CA;
+  mesid.sat = 1;
   cn0_est_compute_params(&p, CUTOFF_FREQ, LOOP_FREQ, 1, 0);
   cn0_est_mm_state_t cn0;
   cn0_est_mm_init(&cn0, 40.f);
@@ -118,7 +121,7 @@ TEST(cn0_test, test_cn0_mm_init) {
   EXPECT_FLOAT_EQ(p.log_bw, 30.f);
   EXPECT_FLOAT_EQ(cn0.M2, -1.0f);
   EXPECT_FLOAT_EQ(cn0.M4, -1.0f);
-  cn0_est_mm_update(&cn0, &p, -0.5, 0.f);
+  cn0_est_mm_update(&cn0, &p, -0.5, 0.f, mesid);
   EXPECT_FLOAT_EQ(cn0.M2, 0.25);
   EXPECT_FLOAT_EQ(cn0.M4, 0.25f * 0.25f);
 }
@@ -126,6 +129,9 @@ TEST(cn0_test, test_cn0_mm_init) {
 TEST(cn0_test, test_cn0_mm) {
   cn0_est_mm_state_t s;
   cn0_est_params_t p;
+  me_gnss_signal_t mesid;
+  mesid.code = CODE_GPS_L1CA;
+  mesid.sat = 1;
   s8* signal_I;
   s8* signal_Q;
   u32 ii = 0;
@@ -141,10 +147,10 @@ TEST(cn0_test, test_cn0_mm) {
   cn0_est_mm_init(&s, CN0_0);
 
   for (ii = 0; ii < test_length; ii++) {
-    cn0 = cn0_est_mm_update(&s, &p, signal_I[ii], signal_Q[ii]);
+    cn0 = cn0_est_mm_update(&s, &p, signal_I[ii], signal_Q[ii], mesid);
   }
 
-  EXPECT_GT(cn0, 30.0);
+  EXPECT_GT(cn0, 20.0);
 
   free(signal_I);
   free(signal_Q);
