@@ -568,7 +568,8 @@ static void tp_tracker_update_correlators(tracker_t *tracker, u32 cycle_flags) {
  * \return None
  */
 static void tp_tracker_update_bsync(tracker_t *tracker, u32 cycle_flags) {
-  if (0 != (cycle_flags & TPF_BSYNC_UPD)) {
+  bool noise_tracker = (tracker->cn0 < 0);
+  if ((0 != (cycle_flags & TPF_BSYNC_UPD)) && !noise_tracker) {
     bool sensitivity_mode =
         (0 != (tracker->flags & TRACKER_FLAG_SENSITIVITY_MODE));
     /* Bit sync / data decoding update counter. */
@@ -618,9 +619,9 @@ static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
       s32 I = tracker->corrs.corr_cn0.prompt.I;
       s32 Q = tracker->corrs.corr_cn0.prompt.Q;
       u8 cn0_ms = tp_get_cn0_ms(tracker->tracking_mode);
-      bool noise_estimation = (tracker->cn0 < 0);
-      if (noise_estimation) {
-        cn0_noise_update_estimate(tracker->mesid.code, cn0_ms, I, Q);
+      bool noise_tracker = (tracker->cn0 < 0);
+      if (noise_tracker) {
+        noise_calc(tracker->mesid.code, cn0_ms, I, Q);
       } else {
         cn0 = track_cn0_update(&tracker->cn0_est, cn0_ms, I, Q);
       }

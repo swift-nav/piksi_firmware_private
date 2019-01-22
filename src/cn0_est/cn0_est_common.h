@@ -43,6 +43,7 @@ typedef struct {
 typedef struct {
   float M2;       /**< Running sum of second order moments. */
   float M4;       /**< Running sum of fourth order moments. */
+  float Pn;       /**< Running sum of noise power. */
   float cn0_dbhz; /**< Carrier to noise ratio in dB/Hz. */
 } cn0_est_mm_state_t;
 
@@ -77,8 +78,6 @@ typedef struct {
  */
 typedef struct {
   float cn0_db;      /**< Signal to noise ratio in dB/Hz. */
-  float noise_Q_abs; /**< Current value of noise in Q branch of VE correlator */
-  float noise_n0;    /**< Value of noise power from Q branch in VE correlator */
 } cn0_est_basic_state_t;
 
 /**
@@ -129,7 +128,6 @@ float cn0_est_rscn_update(cn0_est_rscn_state_t *s,
                           float Q);
 void cn0_est_mm_init(cn0_est_mm_state_t *s, float cn0_0);
 float cn0_est_mm_update(cn0_est_mm_state_t *s,
-                        code_t code,
                         const cn0_est_params_t *p,
                         float I,
                         float Q);
@@ -154,20 +152,16 @@ float cn0_est_ch_update(cn0_est_ch_state_t *s,
                         const cn0_est_params_t *p,
                         float I,
                         float Q);
-void cn0_est_basic_init(cn0_est_basic_state_t *s,
-                        const cn0_est_params_t *p,
-                        float cn0_0,
-                        float q0);
+void cn0_est_basic_init(cn0_est_basic_state_t *s, float cn0_0);
 float cn0_est_basic_update(cn0_est_basic_state_t *s,
                            const cn0_est_params_t *p,
                            float I,
                            float Q,
-                           float ve_I,
-                           float ve_Q);
+                           float n);
 
-void cn0_noise_update_estimate(code_t code, u8 ms, s32 I, s32 Q);
-float cn0_noise_get_estimate(code_t code);
-void cn0_noise_update_mesid_status(me_gnss_signal_t mesid, bool intrack);
+void noise_calc(code_t code, u8 ms, s32 I, s32 Q);
+float noise_get_estimation(code_t code);
+void noise_update_mesid_status(me_gnss_signal_t mesid, bool intrack);
 
 #ifdef __cplusplus
 } /* extern "C" */

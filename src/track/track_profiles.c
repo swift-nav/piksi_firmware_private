@@ -544,7 +544,10 @@ static u8 get_profile_index(code_t code,
                             size_t num_profiles,
                             float cn0) {
   bool noise_tracker = (cn0 < 0);
-  if (code_requires_direct_acq(code) || is_gal(code) || noise_tracker) {
+  if (noise_tracker) {
+    return IDX_20MS;
+  }
+  if (code_requires_direct_acq(code) || is_gal(code)) {
     /* signals from ACQ always go through init profiles,
      * and also if they are Galileo as right now
      * the NAP secondary code stripping still has problems with FW */
