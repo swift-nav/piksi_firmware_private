@@ -14,7 +14,6 @@
 #include <string.h>
 
 #include "cn0_est_common.h"
-#include "main.h"
 
 /** \defgroup track Tracking
  * Functions used in tracking.
@@ -64,6 +63,7 @@ void cn0_est_mm_init(cn0_est_mm_state_t *s, float cn0_0) {
   s->M4 = -1.0f;
   s->Pn = CN0_MM_PN_INIT;
   s->cn0_dbhz = cn0_0;
+  s->cnt = 0;
 }
 
 /**
@@ -102,8 +102,10 @@ float cn0_est_mm_update(cn0_est_mm_state_t *s,
   float Pn = s->M2 - Pd;
   s->Pn += (Pn - s->Pn) * CN0_MM_PN_ALPHA;
 
-  if (CODE_GPS_L1CA == mesid.code && 9 == mesid.sat) {
-    DO_EACH_MS(500, log_error_mesid(mesid, "S/N: %lf %lf", m2, s->Pn););
+  s->cnt += 1;
+  if ((CODE_GPS_L1CA == mesid.code) && (9 == mesid.sat) && (100 == s->cnt)) {
+    log_error_mesid(mesid, "S/N: %lf %lf", m2, s->Pn);
+    s->cnt = 0;
   }
 
   float snr = m2 / s->Pn;
