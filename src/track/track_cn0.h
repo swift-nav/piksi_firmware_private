@@ -40,7 +40,7 @@ typedef struct {
  */
 typedef struct {
   code_t code;               /**< Signal code */
-  cn0_est_mm_state_t moment; /**< MM estimator */
+  cn0_est_basic_state_t basic; /**< Basic CN0 estimator */
 
   float cn0_raw_dbhz; /**< Last unfiltered CN0 estimation [dB-Hz] */
   u32 weak_signal_ms; /**< Signal is below #THRESH_SENS_DBHZ this long [ms] */

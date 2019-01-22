@@ -31,7 +31,7 @@
 #define CN0_EST_LPF_ALPHA (.005f)
 /** C/N0 LPF cutoff frequency. The lower it is, the more stable CN0 looks like
  * and the slower is the response. */
-#define CN0_EST_LPF_CUTOFF_HZ (.25f)
+#define CN0_EST_LPF_CUTOFF_HZ (0.5f)
 /** Integration interval: 1ms */
 #define INTEG_PERIOD_1_MS 1
 /** Integration interval: 2ms */
@@ -118,7 +118,7 @@ void track_cn0_params_init(void) {
  * \return None
  */
 static void init_estimator(track_cn0_state_t *e, float cn0_0) {
-  cn0_est_mm_init(&e->moment, cn0_0);
+  cn0_est_basic_init(&e->basic, cn0_0);
 }
 
 /**
@@ -135,7 +135,8 @@ static float update_estimator(track_cn0_state_t *e,
                               const cn0_est_params_t *p,
                               float I,
                               float Q) {
-  return cn0_est_mm_update(&e->moment, e->code, p, I, Q);
+  float n = noise_get_estimation(e->code);
+  return cn0_est_basic_update(&e->basic, p, I, Q, n);
 }
 
 /**
