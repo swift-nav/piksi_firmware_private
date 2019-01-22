@@ -89,7 +89,7 @@ void noise_calc(code_t code, u8 cn0_ms, s32 I, s32 Q) {
 float noise_get_estimation(code_t code) {
   assert(code_valid(code));
 
-  DO_EACH_MS(NOISE_MAX_AGE_MS, start_noise_estimation());
+  DO_EACH_MS(NOISE_MAX_AGE_MS, start_noise_estimation(););
 
   double n = NOISE_DEFAULT;
   if (has_noise_estimate[code]) {
