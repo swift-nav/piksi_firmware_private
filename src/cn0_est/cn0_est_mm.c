@@ -59,10 +59,9 @@
 void cn0_est_mm_init(cn0_est_mm_state_t *s, float cn0_0) {
   memset(s, 0, sizeof(*s));
 
-  s->M2 = -1.0f; /* Set negative for first iteration */
-  s->M4 = -1.0f;
-  s->Pn = CN0_MM_PN_INIT;
   s->cn0_dbhz = cn0_0;
+  s->cn0_ms_prev = 1;
+  s->cnt = 0;
 }
 
 /**
@@ -78,36 +77,62 @@ void cn0_est_mm_init(cn0_est_mm_state_t *s, float cn0_0) {
 float cn0_est_mm_update(cn0_est_mm_state_t *s,
                         const cn0_est_params_t *p,
                         float I,
-                        float Q) {
-  float m2 = I * I + Q * Q;
-  float m4 = m2 * m2;
+                        float Q,
+                        u8 cn0_ms) {
+  double m2 = I * I + Q * Q;
+  double m4 = m2 * m2;
 
-  if (s->M2 < 0.0f) {
-    /* This is the first iteration, just initialize moments. */
-    s->M2 = m2;
-    s->M4 = m4;
-  } else {
-    s->M2 += (m2 - s->M2) * CN0_MM_ALPHA;
-    s->M4 += (m4 - s->M4) * CN0_MM_ALPHA;
+  /* Shift array to left */
+  for (u8 ii = 0; ii < MM_IND_MAX; ii++) {
+    s->M2[ii] = s->M2[ii + 1];
+    s->M4[ii] = s->M4[ii + 1];
   }
 
-  float tmp = 2.0f * s->M2 * s->M2 - s->M4;
+  /* Place new value */
+  s->M2[MM_IND_MAX] = m2;
+  s->M4[MM_IND_MAX] = m4;
+
+  /* Check interation time change. 1ms -> 10ms */
+  if (cn0_ms != s->cn0_ms_prev) {
+    s->cnt = 0;
+  }
+
+  s->cn0_ms_prev = cn0_ms;
+
+  /* Freeze updates until array filled */
+  if (s->cnt < MM_N) {
+    s->cnt += 1;
+    return s->cn0_dbhz;
+  }
+
+  /* Compute mean of moments */
+  double M2 = 0.0;
+  double M4 = 0.0;
+
+  for (u8 ii = 0; ii < MM_N; ii++) {
+    M2 += s->M2[ii];
+    M4 += s->M4[ii];
+  }
+
+  M2 /= (double)MM_N;
+  M4 /= (double)MM_N;
+
+  double tmp = 2.0 * M2 * M2 - M4;
   if (0.0f > tmp) {
     tmp = 0.0f;
   }
 
-  float Pd = sqrtf(tmp);
-  float Pn = s->M2 - Pd;
-  s->Pn += (Pn - s->Pn) * CN0_MM_PN_ALPHA;
+  double Pd = sqrt(tmp);
+  double Pn = M2 - Pd;
 
-  float snr = m2 / s->Pn;
+  double snr = m2 / Pn;
 
   if (!isfinite(snr) || (snr <= 0.0f)) {
     /* CN0 out of limits, no updates. */
     return s->cn0_dbhz;
   }
 
-  float snr_db = 10.0f * log10f(snr);
+  double snr_db = 10.0 * log10(snr);
 
   /* Compute CN0 */
   float cn0_dbhz = p->log_bw + snr_db;

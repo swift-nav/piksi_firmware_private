@@ -134,8 +134,9 @@ static void init_estimator(track_cn0_state_t *e, float cn0_0) {
 static float update_estimator(track_cn0_state_t *e,
                               const cn0_est_params_t *p,
                               float I,
-                              float Q) {
-  return cn0_est_mm_update(&e->moment, p, I, Q);
+                              float Q,
+                              u8 cn0_ms) {
+  return cn0_est_mm_update(&e->moment, p, I, Q, cn0_ms);
 }
 
 /**
@@ -209,7 +210,7 @@ float track_cn0_update(track_cn0_state_t *e, u8 cn0_ms, float I, float Q) {
   track_cn0_params_t p;
   const track_cn0_params_t *pp = track_cn0_get_params(cn0_ms, &p);
 
-  e->cn0_raw_dbhz = update_estimator(e, &pp->est_params, I, Q);
+  e->cn0_raw_dbhz = update_estimator(e, &pp->est_params, I, Q, cn0_ms);
   float cn0 =
       cn0_filter_update(&e->filter, &pp->filter_params, e->cn0_raw_dbhz);
 

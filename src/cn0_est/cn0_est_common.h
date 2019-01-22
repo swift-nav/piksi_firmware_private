@@ -19,6 +19,9 @@
 extern "C" {
 #endif /* __cplusplus */
 
+#define MM_N (100)
+#define MM_IND_MAX (MM_N - 1)
+
 typedef struct {
   float I_prev_abs; /**< Abs. value of the previous in-phase correlation. */
   float Q_prev_abs; /**< Abs. value of the previous quadrature correlation. */
@@ -40,10 +43,11 @@ typedef struct {
 } cn0_est_rscn_state_t;
 
 typedef struct {
-  float M2;       /**< Running sum of second order moments. */
-  float M4;       /**< Running sum of fourth order moments. */
-  float Pn;       /**< Running sum of noise power. */
-  float cn0_dbhz; /**< Carrier to noise ratio in dB/Hz. */
+  double M2[MM_N]; /**< Array of second order moments. */
+  double M4[MM_N]; /**< Array of fourth order moments. */
+  float cn0_dbhz;  /**< Carrier to noise ratio in dB/Hz. */
+  u8 cn0_ms_prev;
+  u8 cnt; /**< Counter for moments. */
 } cn0_est_mm_state_t;
 
 typedef struct {
@@ -131,7 +135,8 @@ void cn0_est_mm_init(cn0_est_mm_state_t *s, float cn0_0);
 float cn0_est_mm_update(cn0_est_mm_state_t *s,
                         const cn0_est_params_t *p,
                         float I,
-                        float Q);
+                        float Q,
+                        u8 cn0_ms);
 void cn0_est_nwpr_init(cn0_est_nwpr_state_t *s,
                        const cn0_est_params_t *p,
                        float cn0_0);
