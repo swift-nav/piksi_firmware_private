@@ -39,7 +39,7 @@ typedef struct {
  * C/N0 estimator state.
  */
 typedef struct {
-  code_t code;               /**< Signal code */
+  code_t code;                 /**< Signal code */
   cn0_est_basic_state_t basic; /**< Basic CN0 estimator */
 
   float cn0_raw_dbhz; /**< Last unfiltered CN0 estimation [dB-Hz] */
