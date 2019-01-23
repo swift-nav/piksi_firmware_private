@@ -58,7 +58,7 @@ float track_cn0_update(track_cn0_state_t *e,
                        float I,
                        float Q,
                        me_gnss_signal_t mesid,
-                       bool confirmed);
+                       bool noise_update);
 float track_cn0_get_offset(u8 cn0_ms);
 
 #ifdef __cplusplus

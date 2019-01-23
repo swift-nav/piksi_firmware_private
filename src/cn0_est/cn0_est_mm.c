@@ -22,7 +22,7 @@
 /** Filter coefficient for M2 an M4. */
 #define CN0_MM_ALPHA (0.5f)
 /** Filter coefficient for Pn. */
-#define CN0_MM_PN_ALPHA (0.01f)
+#define CN0_MM_PN_ALPHA (0.005f)
 /** Estimate of noise power Pn. For smoother initial CN0 output. */
 #define CN0_MM_PN_INIT (100000.0f)
 
@@ -89,7 +89,7 @@ float cn0_est_mm_update(cn0_est_mm_state_t *s,
                         float I,
                         float Q,
                         me_gnss_signal_t mesid,
-                        bool confirmed) {
+                        bool noise_update) {
   float m2 = I * I + Q * Q;
   float m4 = m2 * m2;
 
@@ -135,7 +135,7 @@ float cn0_est_mm_update(cn0_est_mm_state_t *s,
     return s->cn0_dbhz;
   }
 
-  if (confirmed) {
+  if (noise_update) {
     *Pn_p += (Pn - *Pn_p) * CN0_MM_PN_ALPHA;
   }
 
