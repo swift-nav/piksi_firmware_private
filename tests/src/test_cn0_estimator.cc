@@ -109,6 +109,47 @@ TEST(cn0_test, test_cn0_snv) {
   free(signal_Q);
 }
 
+TEST(cn0_test, test_cn0_mm_init) {
+  cn0_est_params_t p;
+  cn0_est_compute_params(&p, CUTOFF_FREQ, LOOP_FREQ, 1, 0);
+  cn0_est_mm_state_t cn0;
+  cn0_est_mm_init(&cn0, 40.f);
+  EXPECT_FLOAT_EQ(cn0.cn0_dbhz, 40.f);
+  EXPECT_FLOAT_EQ(p.log_bw, 30.f);
+  EXPECT_FLOAT_EQ(cn0.M2, -1.0f);
+  EXPECT_FLOAT_EQ(cn0.M4, -1.0f);
+  cn0_est_mm_update(&cn0, &p, -0.5, 0.f);
+  EXPECT_FLOAT_EQ(cn0.M2, 0.25);
+  EXPECT_FLOAT_EQ(cn0.M4, 0.25f * 0.25f);
+}
+
+TEST(cn0_test, test_cn0_mm) {
+  cn0_est_mm_state_t s;
+  cn0_est_params_t p;
+  s8* signal_I;
+  s8* signal_Q;
+  u32 ii = 0;
+  u32 test_length = 1000;
+  float cn0 = 0.0;
+
+  signal_I = generate_input(test_length, 100);
+  ASSERT_NE((s8*)NULL, signal_I) << "Could not allocate I data";
+  signal_Q = generate_input(test_length, 50);
+  ASSERT_NE((s8*)NULL, signal_Q) << "Could not allocate Q data";
+
+  cn0_est_compute_params(&p, CUTOFF_FREQ, LOOP_FREQ, 1, 0);
+  cn0_est_mm_init(&s, CN0_0);
+
+  for (ii = 0; ii < test_length; ii++) {
+    cn0 = cn0_est_mm_update(&s, &p, signal_I[ii], signal_Q[ii]);
+  }
+
+  EXPECT_GT(cn0, 30.0);
+
+  free(signal_I);
+  free(signal_Q);
+}
+
 TEST(cn0_test, test_cn0_nwpr_init) {
   cn0_est_params_t p;
   cn0_est_compute_params(&p, CUTOFF_FREQ, LOOP_FREQ, 1, 0);
@@ -192,4 +233,45 @@ TEST(cn0_test, test_cn0_rscn) {
 
   free(signal_I);
   free(signal_Q);
+}
+
+TEST(cn0_test, test_cn0_basic_init) {
+  cn0_est_params_t p;
+  cn0_est_compute_params(&p, CUTOFF_FREQ, LOOP_FREQ, 1, 0);
+  EXPECT_FLOAT_EQ(p.log_bw, 30.f);
+
+  cn0_est_basic_state_t cn0;
+  cn0_est_basic_init(&cn0, 40.f);
+  EXPECT_FLOAT_EQ(cn0.cn0_db, 40.f);
+}
+
+TEST(cn0_test, test_cn0_basic) {
+  cn0_est_params_t p;
+  cn0_est_compute_params(&p, CUTOFF_FREQ, LOOP_FREQ, 1, 0);
+  cn0_est_basic_state_t s;
+  s8* signal_I;
+  s8* signal_Q;
+  s8* noise;
+  u32 ii = 0;
+  u32 test_length = 1000;
+  float cn0 = 0.0;
+
+  signal_I = generate_input(test_length, 100);
+  ASSERT_NE((s8*)NULL, signal_I) << "Could not allocate I data";
+  signal_Q = generate_input(test_length, 50);
+  ASSERT_NE((s8*)NULL, signal_Q) << "Could not allocate Q data";
+  noise = generate_input(test_length, 2);
+  ASSERT_NE((s8*)NULL, noise) << "Could not allocate noise data";
+
+  cn0_est_basic_init(&s, CN0_0);
+  p.t_int = 1000;
+
+  for (ii = 0; ii < test_length; ii++) {
+    cn0 = cn0_est_basic_update(&s, &p, signal_I[ii], signal_Q[ii], noise[ii]);
+  }
+  EXPECT_GT(cn0, 30.0);
+
+  free(signal_I);
+  free(signal_Q);
+  free(noise);
 }
