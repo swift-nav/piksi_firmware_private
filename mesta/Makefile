@@ -184,6 +184,10 @@ CSRC := $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l2c.c \
 	$(SWIFTNAV_ROOT)/libsettings/src/request_state.c \
 	$(SWIFTNAV_ROOT)/libsettings/src/setting_data.c \
 	$(SWIFTNAV_ROOT)/libsettings/src/setting_type.c \
+	$(SWIFTNAV_ROOT)/libsettings/src/setting_type_enum.c \
+	$(SWIFTNAV_ROOT)/libsettings/src/setting_type_float.c \
+	$(SWIFTNAV_ROOT)/libsettings/src/setting_type_int.c \
+	$(SWIFTNAV_ROOT)/libsettings/src/setting_type_str.c \
 	$(SWIFTNAV_ROOT)/mesta/stubs/stubs.c \
 	$(SWIFTNAV_ROOT)/mesta/stubs/starling_platform_stubs.c \
 	$(SWIFTNAV_ROOT)/mesta/main.c \
