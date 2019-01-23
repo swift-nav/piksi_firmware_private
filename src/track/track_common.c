@@ -664,7 +664,8 @@ static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
 
 static void update_ld_phase(tracker_t *tracker, u32 cycle_flags) {
   bool pll_in_use = (0 != (tracker->flags & TRACKER_FLAG_PLL_USE));
-  if (!pll_in_use) {
+  bool had_plock = (0 != (tracker->flags & TRACKER_FLAG_HAD_PLOCK));
+  if (!pll_in_use && !had_plock) {
     const tp_lock_detect_params_t *ldp = &tracker->profile.ld_phase_params;
     pll_lock_detect_init(
         &tracker->ld_phase, ldp->k1, ldp->k2, ldp->lp, /*lo=*/0);
