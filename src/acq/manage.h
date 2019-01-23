@@ -49,6 +49,10 @@
     TRACK_DROP_UNLOCKED_MS, drop the channel. */
 #define TRACK_DROP_UNLOCKED_MS 1500
 
+/** Do not dispose tracker in sens profile at least this time
+    in a hope for faster correlator based re-acq [ms] */
+#define TRACK_SENS_PROF_MIN_MS 3000
+
 #define ACQ_FULL_CF_STEP soft_multi_acq_bin_width()
 
 #define MANAGE_NO_CHANNELS_FREE 255

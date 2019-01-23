@@ -34,7 +34,11 @@
 /* 100ms is a result of experimenting.
    The threshold is needed to avoid spontaneous transitions
    to sensitivity profile, when signal is reasonably strong */
-#define TP_WEAK_SIGNAL_THRESHOLD_MS 100
+#define TP_WEAK_SIGNAL_THRESHOLD_MS 50
+/* 200ms is a result of experimenting.
+   The threshold is needed to avoid spontaneous transitions
+   from sensitivity profile */
+#define TP_STRONG_SIGNAL_THRESHOLD_MS 200
 
 /** Unknown delay indicator */
 #define TP_DELAY_UNKNOWN -1
@@ -361,7 +365,7 @@ static const tp_profile_entry_t tracker_profiles_rover[] = {
   { {      0,         1.0,           .5,   TP_CTRL_PLL3,
       TP_TM_200MS_20MS, TP_TM_200MS_10MS, TP_TM_200MS_2MS, TP_TM_200MS_NH20MS, TP_TM_200MS_SC4 },
       TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
-      300,             0,          32,
+      600,             0,          32,
       IDX_SENS,  IDX_NONE,     IDX_20MS,
       TP_HIGH_CN0 | TP_USE_NEXT },
 
@@ -780,6 +784,10 @@ static bool fll_bw_changed(tracker_t *tracker, profile_indices_t index) {
   return true;
 }
 
+static bool is_sens_profile(profile_indices_t index) {
+  return (IDX_SENS_NM == index) || (IDX_SENS == index);
+}
+
 /**
  * Internal method for profile switch request.
  *
@@ -824,6 +832,13 @@ static bool profile_switch_requested(tracker_t *tracker,
 
   if ((index == state->cur.index) && !pll_changed && !fll_changed) {
     return false;
+  }
+
+  if (is_sens_profile(index) && !is_sens_profile(state->cur.index)) {
+    /* about to activate sens profile */
+    tracker_timer_arm(&state->sens_timer, -1);
+  } else {
+    tracker_timer_init(&state->sens_timer);
   }
 
   state->dll_init = false;
@@ -904,6 +919,14 @@ bool tp_profile_has_new_profile(tracker_t *tracker) {
 
   const tp_profile_entry_t *cur_profile = &state->profiles[state->cur.index];
   u16 flags = cur_profile->flags;
+
+  /* Early exit from sensitivity profile. */
+  if ((IDX_SENS == state->cur.index) &&
+      (tracker->cn0_est.strong_signal_ms >= TP_STRONG_SIGNAL_THRESHOLD_MS) &&
+      (profile_switch_requested(tracker, IDX_20MS, "high cn0: delay"))) {
+    tracker->flags |= TRACKER_FLAG_CN0_FILTER_INIT;
+    return true;
+  }
 
   if (0 != (flags & TP_LOW_CN0) && low_cn0_profile_switch_requested(tracker)) {
     return true;

@@ -619,11 +619,21 @@ static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
       s32 I = tracker->corrs.corr_cn0.prompt.I;
       s32 Q = tracker->corrs.corr_cn0.prompt.Q;
       u8 cn0_ms = tp_get_cn0_ms(tracker->tracking_mode);
+      if (0 != (tracker->flags & TRACKER_FLAG_CN0_FILTER_INIT)) {
+        tracker->flags &= ~TRACKER_FLAG_CN0_FILTER_INIT;
+        track_cn0_init(&tracker->cn0_est,
+                       tracker->mesid.code,
+                       cn0_ms,
+                       tracker->cn0_est.cn0_raw_dbhz);
+      }
       bool noise_tracker = (tracker->cn0 < 0);
       if (noise_tracker) {
         noise_calc(tracker->mesid.code, cn0_ms, I, Q);
       } else {
-        cn0 = track_cn0_update(&tracker->cn0_est, cn0_ms, I, Q);
+        cn0 = track_cn0_update(&tracker->cn0_est,
+                               cn0_ms,
+                               tracker->corrs.corr_cn0.prompt.I,
+                               tracker->corrs.corr_cn0.prompt.Q);
       }
     }
   }

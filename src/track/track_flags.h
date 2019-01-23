@@ -44,6 +44,9 @@
 #define TRACKER_FLAG_XCORR_FILTER_ACTIVE (1 << 12)
 /** Tracker flag: GLO string synchronization achieved */
 #define TRACKER_FLAG_GLO_STRING_SYNC (1 << 13)
+
+#define TRACKER_FLAG_CN0_FILTER_INIT (1 << 14)
+
 /** Tracker flag: signal is unhealthy. */
 #define TRACKER_FLAG_UNHEALTHY (1 << 15)
 
