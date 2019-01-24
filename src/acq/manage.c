@@ -532,11 +532,6 @@ void acq_result_send(const me_gnss_signal_t mesid,
   msg_acq_result_t acq_result_msg;
   /* TODO GLO: Handle GLO orbit slot properly. */
   if (IS_GLO(mesid)) {
-    acq_result_msg.cn0 = cn0;
-    acq_result_msg.cp = cp;
-    acq_result_msg.cf = cf;
-    sbp_send_msg(
-        SBP_MSG_ACQ_RESULT, sizeof(msg_acq_result_t), (u8 *)&acq_result_msg);
     return;
   }
   acq_result_msg.sid = sid_to_sbp(mesid2sid(mesid, GLO_ORBIT_SLOT_UNKNOWN));
