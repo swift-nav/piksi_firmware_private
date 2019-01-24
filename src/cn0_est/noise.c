@@ -36,8 +36,8 @@ static void lock(void) { chMtxLock(&cn0_mutex); }
 static void unlock(void) { chMtxUnlock(&cn0_mutex); }
 
 static int find_nontracked_sat(code_t code, u32 msk) {
-  u16 gnss = code_to_constellation(code);
-  unsigned sat_count = constellation_to_sat_count(gnss);
+  constellation_t cons = code_to_constellation(code);
+  unsigned sat_count = constellation_to_sat_count(cons);
 
   for (unsigned i = 0; i < sat_count; i++) {
     if (0 == (msk & (1u << i))) {
