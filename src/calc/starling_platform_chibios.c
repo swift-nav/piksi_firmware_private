@@ -107,31 +107,17 @@ static void chibios_watchdog_notify_starling_main_thread(void) {
 
 typedef struct mailbox_info_s {
   mailbox_t mailbox;
-  memory_pool_t mpool;
   msg_t *mailbox_buf;
-  void *mpool_buf;
 } mailbox_info_t;
 
 static mailbox_info_t mailbox_info[MQ_ID_COUNT] =
-    {[MQ_ID_PAIRED_OBS] = {{0}, {0}, NULL, NULL},
-     [MQ_ID_BASE_OBS] = {{0}, {0}, NULL, NULL},
-     [MQ_ID_ME_OBS] = {{0}, {0}, NULL, NULL},
-     [MQ_ID_SBAS_DATA] = {{0}, {0}, NULL, NULL},
-     [MQ_ID_EPHEMERIS] = {{0}, {0}, NULL, NULL},
-     [MQ_ID_IMU] = {{0}, {0}, NULL, NULL}};
+    {[MQ_ID_PAIRED_OBS] = {{0}, NULL}, [MQ_ID_PRIMARY_DATA] = {{0}, NULL}};
 
-static void chibios_mq_init(msg_queue_id_t id,
-                            size_t msg_size,
-                            size_t max_length) {
+static void chibios_mq_init(msg_queue_id_t id, size_t max_length) {
   mailbox_info[id].mailbox_buf = chCoreAlloc(sizeof(msg_t) * max_length);
-  mailbox_info[id].mpool_buf = chCoreAlloc(msg_size * max_length);
   assert(mailbox_info[id].mailbox_buf);
-  assert(mailbox_info[id].mpool_buf);
   chMBObjectInit(
       &mailbox_info[id].mailbox, mailbox_info[id].mailbox_buf, max_length);
-  chPoolObjectInit(&mailbox_info[id].mpool, msg_size, NULL);
-  chPoolLoadArray(
-      &mailbox_info[id].mpool, mailbox_info[id].mpool_buf, max_length);
 }
 
 static errno_t chibios_mq_push(msg_queue_id_t id,
@@ -163,13 +149,7 @@ static errno_t chibios_mq_pop(msg_queue_id_t id,
   return 0;
 }
 
-static void *chibios_mq_alloc_msg(msg_queue_id_t id) {
-  return chPoolAlloc(&mailbox_info[id].mpool);
-}
-
-static void chibios_mq_free_msg(msg_queue_id_t id, void *msg) {
-  chPoolFree(&mailbox_info[id].mpool, msg);
-}
+static void *chibios_mq_alloc(size_t size) { return chCoreAlloc(size); }
 
 /*******************************************************************************
  * Semaphore
@@ -258,8 +238,7 @@ void starling_initialize_platform(void) {
       .mq_init = chibios_mq_init,
       .mq_push = chibios_mq_push,
       .mq_pop = chibios_mq_pop,
-      .mq_alloc_msg = chibios_mq_alloc_msg,
-      .mq_free_msg = chibios_mq_free_msg,
+      .mq_alloc = chibios_mq_alloc,
   };
   platform_set_implementation_mq(&mq_impl);
   /* Semaphore */

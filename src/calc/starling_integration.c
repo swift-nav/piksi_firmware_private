@@ -881,13 +881,7 @@ static THD_FUNCTION(initialize_and_run_starling, arg) {
 
   StarlingIoFunctionTable io_functions = {
       .wait = starling_wait,
-      .read_obs_rover = starling_receive_rover_obs,
-      .read_obs_base = starling_receive_base_obs,
-      .read_sbas_data = starling_receive_sbas_data,
-      .read_ephemeris_array = starling_receive_ephemeris_array,
-      .read_imu = starling_receive_imu_data,
-      .free_rover_obs = starling_free_rover_obs,
-      .free_base_obs = starling_free_base_obs,
+      .poll_for_data = starling_poll_for_data,
       .handle_solution_low_latency = send_solution_low_latency,
       .handle_solution_time_matched = send_solution_time_matched,
   };
