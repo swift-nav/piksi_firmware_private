@@ -362,8 +362,8 @@ u16 mesid_to_sv_index(me_gnss_signal_t mesid) {
 
 u16 code_to_sat_start(code_t code) {
   assert(code_valid(code));
-  u16 gnss = code_to_constellation(code);
-  return constellation_table[gnss].sat_start;
+  constellation_t cons = code_to_constellation(code);
+  return constellation_table[cons].sat_start;
 }
 
 /** Return carrier frequency channel for a me_gnss_signal_t
