@@ -122,7 +122,7 @@ static float tracking_elevation_mask = 0.0;
 static float solution_elevation_mask = 10.0;
 
 /** Flag if almanacs can be used in acq */
-static bool almanacs_enabled = false;
+static bool almanacs_enabled = true;
 
 typedef struct cons_cfg_s {
   const char *name;
