@@ -21,10 +21,15 @@
 #define NOISE_MAX_AGE_MS 2000 /* re-estimate the noise with this rate */
 #define NOISE_DEFAULT 5.
 
+/* This factor was derived experimentally.
+   It suggests that there could be a difference in noise levels
+   of SBAS L1 and GPS L1CA trackers. */
+#define NOISE_SBAS_FACTOR 0.13
+
 static MUTEX_DECL(cn0_mutex);
 
 static u32 mask[CODE_COUNT] = {0};
-static int has_noise_estimate[CODE_COUNT] = {0};
+static bool has_noise_estimate[CODE_COUNT] = {0};
 static double noise[CODE_COUNT] = {0};
 
 static void lock(void) { chMtxLock(&cn0_mutex); }
@@ -59,7 +64,7 @@ static void start_noise_estimation(void) {
 
     int sat = find_nontracked_sat(code, msk);
     if (sat < 0) {
-      return; /* no sats to track */
+      continue; /* no sats to track */
     }
 
     tracking_startup_params_t startup_params = {
@@ -82,7 +87,7 @@ void noise_calc(code_t code, u8 cn0_ms, s32 I, s32 Q) {
     noise[code] += (n - noise[code]) * NOISE_ALPHA;
   } else {
     noise[code] = n;
-    has_noise_estimate[code] = 1;
+    has_noise_estimate[code] = true;
   }
 }
 
@@ -97,7 +102,7 @@ float noise_get_estimation(code_t code) {
   }
 
   if (CODE_SBAS_L1CA == code) {
-    return 0.13 * noise_get_estimation(CODE_GPS_L1CA);
+    return NOISE_SBAS_FACTOR * noise_get_estimation(CODE_GPS_L1CA);
   }
   return n;
 }
