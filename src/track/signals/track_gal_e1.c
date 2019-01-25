@@ -83,7 +83,7 @@ static void tracker_gal_e1_update(tracker_t *tracker) {
     gal_e1_to_e7_handover(tracker->sample_count,
                           tracker->mesid.sat,
                           tracker->code_phase_prompt,
-                          tracker->carrier_freq,
+                          tracker->doppler_freq_hz,
                           tracker->cn0);
   }
 }
@@ -102,13 +102,13 @@ void track_gal_e1_register(void) {
  * \param[in] sample_count NAP sample count
  * \param[in] sat          Satellite ID
  * \param[in] code_phase   code phase [chips]
- * \param[in] carrier_freq Doppler [Hz]
+ * \param[in] doppler_freq_hz Doppler [Hz]
  * \param[in] cn0_init     CN0 estimate [dB-Hz]
  */
 void gal_e7_to_e1_handover(u32 sample_count,
                            u16 sat,
                            double code_phase,
-                           double carrier_freq,
+                           double doppler_freq_hz,
                            float cn0_init) {
   /* compose E1 MESID: same SV, but code is E1 */
   me_gnss_signal_t mesid_e1 = construct_mesid(CODE_GAL_E1B, sat);
@@ -127,7 +127,7 @@ void gal_e7_to_e1_handover(u32 sample_count,
       .mesid = mesid_e1,
       .sample_count = sample_count,
       /* recalculate doppler freq for E7 from E1 */
-      .carrier_freq = carrier_freq * GAL_E1_HZ / GAL_E7_HZ,
+      .doppler_freq_hz = doppler_freq_hz * GAL_E1_HZ / GAL_E7_HZ,
       .code_phase = fmod(code_phase / 10.0, code_to_chip_count(CODE_GAL_E1B)),
       /* chips to correlate during first 1 ms of tracking */
       .chips_to_correlate = code_to_chip_rate(mesid_e1.code) * 1e-3,

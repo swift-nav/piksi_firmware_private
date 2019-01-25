@@ -75,14 +75,14 @@ void track_gps_l2c_register(void) {
  * \param[in] sample_count NAP sample count
  * \param[in] sat          Satellite ID
  * \param[in] code_phase   code phase [chips]
- * \param[in] carrier_freq Doppler [Hz]
+ * \param[in] doppler_freq_hz Doppler [Hz]
  * \param[in] cn0_init     CN0 estimate [dB-Hz]
  * \param[in] TOW_ms       Latest decoded TOW [ms]
  */
 void do_l1ca_to_l2c_handover(u32 sample_count,
                              u16 sat,
                              double code_phase,
-                             double carrier_freq,
+                             double doppler_freq_hz,
                              float cn0_init,
                              s32 TOW_ms) {
   /* compose L2CM MESID: same SV, but code is L2CM */
@@ -121,7 +121,7 @@ void do_l1ca_to_l2c_handover(u32 sample_count,
       .mesid = mesid,
       .sample_count = sample_count,
       /* recalculate doppler freq for L2 from L1 */
-      .carrier_freq = carrier_freq * GPS_L2_HZ / GPS_L1_HZ,
+      .doppler_freq_hz = doppler_freq_hz * GPS_L2_HZ / GPS_L1_HZ,
       .code_phase = code_phase,
       /* chips to correlate during first 1 ms of tracking */
       .chips_to_correlate = code_to_chip_rate(mesid.code) * 1e-3,

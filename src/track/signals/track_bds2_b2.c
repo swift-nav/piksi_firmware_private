@@ -92,13 +92,13 @@ void track_bds2_b2_register(void) {
  * \param[in] sample_count NAP sample count
  * \param[in] sat          Satellite ID
  * \param[in] code_phase   code phase [chips]
- * \param[in] carrier_freq Doppler [Hz]
+ * \param[in] doppler_freq_hz Doppler [Hz]
  * \param[in] cn0_init     CN0 estimate [dB-Hz]
  */
 void bds_b11_to_b2_handover(u32 sample_count,
                             u16 sat,
                             double code_phase,
-                            double carrier_freq,
+                            double doppler_freq_hz,
                             float cn0_init) {
   /* compose B2 MESID: same SV, but code is B2 */
   me_gnss_signal_t mesid_B2 = construct_mesid(CODE_BDS2_B2, sat);
@@ -122,7 +122,7 @@ void bds_b11_to_b2_handover(u32 sample_count,
       .mesid = mesid_B2,
       .sample_count = sample_count,
       /* recalculate doppler freq for B2 from B1 */
-      .carrier_freq = carrier_freq * BDS2_B2_HZ / BDS2_B11_HZ,
+      .doppler_freq_hz = doppler_freq_hz * BDS2_B2_HZ / BDS2_B11_HZ,
       .code_phase = code_phase,
       /* chips to correlate during first 1 ms of tracking */
       .chips_to_correlate = code_to_chip_rate(mesid_B2.code) * 1e-3,

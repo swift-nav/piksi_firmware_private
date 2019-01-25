@@ -65,8 +65,8 @@ static bool bModuleInit;
 static bool BbMixAndDecimate(const me_gnss_signal_t mesid);
 
 static bool SoftMacqSerial(const me_gnss_signal_t mesid,
-                           float _fCarrFreqMin,
-                           float _fCarrFreqMax,
+                           float _fDoppFreqMin,
+                           float _fDoppFreqMax,
                            acq_result_t *_sAcqResult);
 
 static bool SoftMacqMdbzp(const me_gnss_signal_t mesid,
@@ -83,13 +83,13 @@ float soft_multi_acq_bin_width(void) {
 /** new interface shall be
  *
  * bool soft_multi_acq_search(const me_gnss_signal_t mesid, float
- * _fCarrFreqMin, float _fCarrFreqMax, enum sensitivity _eSense, acq_result_t
+ * _fDoppFreqMin, float _fDoppFreqMax, enum sensitivity _eSense, acq_result_t
  * *_sAcqResult)
  *
  *  */
 bool soft_multi_acq_search(const me_gnss_signal_t mesid,
-                           float _fCarrFreqMin,
-                           float _fCarrFreqMax,
+                           float _fDoppFreqMin,
+                           float _fDoppFreqMax,
                            acq_result_t *p_acqres) {
   u64 tmp_timetag = 0;
   u32 buff_size = 0;
@@ -154,18 +154,18 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
    * acquisition
    * */
   if (is_gal(mesid.code) || is_bds2(mesid.code) ||
-      ((_fCarrFreqMax - _fCarrFreqMin) > 5000)) {
+      ((_fDoppFreqMax - _fDoppFreqMin) > 5000)) {
     bool ret = SoftMacqMdbzp(mesid, &sLocalResult);
     p_acqres->cp =
         (1.0f - sLocalResult.fCodeDelay) * code_to_chip_count(mesid.code);
-    p_acqres->cf = sLocalResult.fDoppFreq;
+    p_acqres->df = sLocalResult.fDoppFreq;
     p_acqres->cn0 = ret ? ACQ_EARLY_THRESHOLD : sLocalResult.fMaxCorr;
     return ret;
   }
 
   /** call serial-frequency search acquisition with current sensitivity
    * parameters */
-  return SoftMacqSerial(mesid, _fCarrFreqMin, _fCarrFreqMax, p_acqres);
+  return SoftMacqSerial(mesid, _fDoppFreqMin, _fDoppFreqMax, p_acqres);
 }
 
 /**********************************
@@ -175,15 +175,15 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
 /************* Serial frequency search *****************/
 
 static bool SoftMacqSerial(const me_gnss_signal_t mesid,
-                           float _fCarrFreqMin,
-                           float _fCarrFreqMax,
+                           float _fDoppFreqMin,
+                           float _fDoppFreqMax,
                            acq_result_t *_psLegacyResult) {
   float cf_bin_width = soft_acq_bin_width();
 
   return soft_acq_search(baseband,
                          mesid,
-                         _fCarrFreqMin,
-                         _fCarrFreqMax,
+                         _fDoppFreqMin,
+                         _fDoppFreqMax,
                          cf_bin_width,
                          _psLegacyResult);
 }

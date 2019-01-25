@@ -176,17 +176,17 @@ void tracker_get_state(u8 id,
   /* Cross-correlation doppler frequency [hz] */
   info->xcorr_freq = tracker->xcorr_freq;
 
-  /* Current carrier frequency for a tracker channel. */
-  freq_info->carrier_freq = tracker->carrier_freq;
-  /* Carrier frequency snapshot at latest PLL/FLL pessimistic lock
+  /* Current doppler frequency for a tracker channel. */
+  freq_info->doppler_freq = tracker->doppler_freq_hz;
+  /* Doppler frequency snapshot at latest PLL/FLL pessimistic lock
    * condition for a tracker channel.
    *
-   * The returned carrier frequency is not necessarily the latest measured
-   * carrier frequency. It is the latest carrier frequency snapshot, when the
+   * The returned doppler frequency is not necessarily the latest measured
+   * doppler frequency. It is the latest doppler frequency snapshot, when the
    * tracking channel was in PLL/FLL pessimistic lock state.
    */
-  freq_info->carrier_freq_at_lock = tracker->carrier_freq_at_lock;
-  /* Current carrier frequency for a tracker channel. */
+  freq_info->doppler_freq_at_lock = tracker->doppler_freq_at_lock;
+  /* Current carrier phase for a tracker channel. */
   freq_info->carrier_phase = tracker->carrier_phase;
   /* Code phase in chips */
   freq_info->code_phase_chips = tracker->code_phase_prompt;
@@ -210,7 +210,7 @@ void tracker_get_state(u8 id,
  * \param ref_sample_count      NAP sample count at which code_phase was
  * acquired.
  * \param code_phase            Code phase
- * \param carrier_freq          Carrier frequency Doppler (Hz).
+ * \param doppler_freq          Doppler frequency (Hz).
  * \param chips_to_correlate    Chips to correlate.
  * \param cn0_init              Initial C/N0 estimate (dBHz).
  *
@@ -221,7 +221,7 @@ bool tracker_init(const u8 id,
                   u16 glo_orbit_slot,
                   u64 ref_sample_count,
                   double code_phase,
-                  float carrier_freq,
+                  float doppler_freq,
                   u32 chips_to_correlate,
                   float cn0_init) {
   tracker_t *tracker = tracker_get(id);
@@ -243,9 +243,9 @@ bool tracker_init(const u8 id,
 
     /* Calculate code phase rate with carrier aiding. */
     tracker->code_phase_rate =
-        (1.0 + carrier_freq / mesid_to_carr_freq(mesid)) *
+        (1.0 + doppler_freq / mesid_to_carr_freq(mesid)) *
         code_to_chip_rate(mesid.code);
-    tracker->carrier_freq = carrier_freq;
+    tracker->doppler_freq_hz = doppler_freq;
 
     tracker->sample_count = ref_sample_count;
     /* First profile selection is based on initial CN0 estimate. */
@@ -271,8 +271,8 @@ bool tracker_init(const u8 id,
     tracker_timer_arm(&tracker->update_timer, /*deadline_ms=*/-1);
     tracker->updated_once = false;
 
-    tracker_timer_init(&tracker->carrier_freq_age_timer);
-    tracker_timer_arm(&tracker->carrier_freq_age_timer, -1);
+    tracker_timer_init(&tracker->doppler_freq_age_timer);
+    tracker_timer_arm(&tracker->doppler_freq_age_timer, -1);
 
     tracker_timer_init(&tracker->profile.profile_settle_timer);
 
@@ -317,7 +317,7 @@ bool tracker_init(const u8 id,
   nap_track_init(tracker->nap_channel,
                  mesid,
                  ref_sample_count,
-                 carrier_freq,
+                 doppler_freq,
                  code_phase,
                  chips_to_correlate);
 

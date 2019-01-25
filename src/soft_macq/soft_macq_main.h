@@ -26,7 +26,7 @@ extern "C" {
 typedef struct {
   u64 sample_count;
   float cp;
-  float cf;
+  float df;
   float cn0;
 } acq_result_t;
 
@@ -37,8 +37,8 @@ typedef struct {
 } acq_peak_search_t;
 
 bool soft_multi_acq_search(const me_gnss_signal_t _sMeSid,
-                           float _fCarrFreqMin,
-                           float _fCarrFreqMax,
+                           float _fDoppFreqMin,
+                           float _fDoppFreqMax,
                            acq_result_t *_psAcqResult);
 
 float soft_multi_acq_bin_width(void);

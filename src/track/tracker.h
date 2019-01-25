@@ -237,8 +237,8 @@ typedef struct {
   double code_phase_chips; /**< The code-phase in chips at `receiver_time` */
   double code_phase_rate;  /**< Code phase rate in chips/s */
   double carrier_phase;    /**< Carrier phase in cycles */
-  double carrier_freq;     /**< Carrier frequency in Hz */
-  double carrier_freq_at_lock; /**< Carrier frequency at last lock time */
+  double doppler_freq;     /**< Doppler frequency in Hz */
+  double doppler_freq_at_lock; /**< Doppler frequency at last lock time */
   tracker_cpo_t cpo;           /**< Carrier phase offset */
 } tracker_freq_info_t;
 
@@ -366,13 +366,13 @@ typedef struct {
   double code_phase_prompt; /**< Prompt code phase in chips. */
   double code_phase_rate;   /**< Code phase rate in chips/s. */
   double carrier_phase;     /**< Carrier phase in cycles. */
-  double carrier_freq;      /**< Carrier frequency Hz. */
-  double carrier_freq_prev; /**< Carrier frequency Hz. */
-  bool carrier_freq_prev_valid; /**< carrier_freq_prev is valid. */
-  /** carrier_freq_prev age timer */
-  tracker_timer_t carrier_freq_age_timer;
+  double doppler_freq_hz;   /**< Doppler frequency Hz. */
+  double doppler_freq_prev_hz;  /**< Previous Doppler frequency Hz. */
+  bool doppler_freq_prev_valid; /**< doppler_freq_prev is valid. */
+  /** doppler_freq_prev age timer */
+  tracker_timer_t doppler_freq_age_timer;
 
-  double carrier_freq_at_lock; /**< Carrier frequency snapshot in the presence
+  double doppler_freq_at_lock; /**< Doppler frequency snapshot in the presence
                                     of PLL/FLL pessimistic locks [Hz]. */
   float unfiltered_freq_error; /**< Unfiltered frequency error at the FLL
                                     discriminator output [Hz]. */

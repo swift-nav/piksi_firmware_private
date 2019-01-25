@@ -69,13 +69,13 @@ void track_glo_l2of_register(void) {
  * \param sample_count NAP sample count
  * \param sat GLO L1CA frequency slot FCN
  * \param code_phase_chips L1CA code phase [chips]
- * \param carrier_freq_hz The current Doppler frequency for the L1CA channel
+ * \param doppler_freq_hz The current Doppler frequency for the L1CA channel
  * \param init_cn0_dbhz CN0 estimate for the L1CA channel [dB-Hz]
  */
 void do_glo_l1of_to_l2of_handover(u32 sample_count,
                                   u16 sat,
                                   float code_phase_chips,
-                                  double carrier_freq_hz,
+                                  double doppler_freq_hz,
                                   float init_cn0_dbhz) {
   /* compose L2CA MESID: same SV, but code is L2CA */
   me_gnss_signal_t L2_mesid = construct_mesid(CODE_GLO_L2OF, sat);
@@ -108,7 +108,7 @@ void do_glo_l1of_to_l2of_handover(u32 sample_count,
       .glo_slot_id = get_orbit_slot(sat),
       .sample_count = extended_sample_count,
       /* recalculate doppler freq for L2 from L1 */
-      .carrier_freq = carrier_freq_hz * glo_freq_scale,
+      .doppler_freq_hz = doppler_freq_hz * glo_freq_scale,
       .code_phase = code_phase_chips,
       /* chips to correlate during first 1 ms of tracking */
       .chips_to_correlate = code_to_chip_rate(L2_mesid.code) * 1e-3,

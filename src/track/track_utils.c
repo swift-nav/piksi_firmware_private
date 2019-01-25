@@ -45,7 +45,7 @@ void tracker_measurement_get(u64 ref_tc,
   meas->code_phase_chips = freq_info->code_phase_chips;
   meas->code_phase_rate = freq_info->code_phase_rate;
   meas->carrier_phase = freq_info->carrier_phase;
-  meas->carrier_freq = freq_info->carrier_freq;
+  meas->carrier_freq = freq_info->doppler_freq;
   meas->time_of_week_ms = info->tow_ms;
   meas->tow_residual_ns = info->tow_residual_ns;
 
@@ -254,7 +254,7 @@ bool handover_valid(double code_phase_chips, double max_chips) {
  *
  * \param mesid        ME signal ID.
  * \param code_phase   Current code phase in chips.
- * \param carrier_freq Current carrier frequency (i.e. Doppler) in Hz used for
+ * \param doppler_freq Current doppler frequency in Hz used for
  *                     carrier aiding.
  * \param n_samples    N, the number of samples to propagate for.
  *
@@ -262,10 +262,10 @@ bool handover_valid(double code_phase_chips, double max_chips) {
  */
 double propagate_code_phase(const me_gnss_signal_t mesid,
                             double code_phase,
-                            double carrier_freq,
+                            double doppler_freq,
                             u32 n_samples) {
   /* Calculate the code phase rate with carrier aiding. */
-  double code_phase_rate = (1.0 + carrier_freq / mesid_to_carr_freq(mesid)) *
+  double code_phase_rate = (1.0 + doppler_freq / mesid_to_carr_freq(mesid)) *
                            code_to_chip_rate(mesid.code);
   code_phase += n_samples * code_phase_rate / NAP_FRONTEND_SAMPLE_RATE_Hz;
   u32 cp_int = floor(code_phase);
