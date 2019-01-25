@@ -19,7 +19,7 @@
 
 #define NOISE_ALPHA 0.005
 #define NOISE_MAX_AGE_MS 2000 /* re-estimate the noise with this rate */
-#define NOISE_DEFAULT 5.
+#define NOISE_DEFAULT 20000.
 
 static MUTEX_DECL(cn0_mutex);
 
