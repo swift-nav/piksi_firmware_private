@@ -123,6 +123,17 @@ static cache_ret_t cache_read_iono_corr(ionosphere_t *iono) {
   }
 }
 
+static cache_ret_t cache_read_utc_params(utc_params_t *utc_params, bool *is_nv) {
+  ndb_op_code_t ret = ndb_utc_params_read(utc_params, is_nv);
+  if (NDB_ERR_NONE == ret) {
+    return CACHE_OK;
+  } else if (NDB_ERR_UNCONFIRMED_DATA == ret) {
+    return CACHE_OK_UNCONFIRMED_DATA;
+  } else {
+    return CACHE_ERROR;
+  }
+}
+
 static double calc_heading(const double b_ned[3]) {
   double heading = atan2(b_ned[1], b_ned[0]);
   if (heading < 0) {
@@ -909,6 +920,7 @@ void starling_calc_pvt_setup() {
   external_functions_t extfns = {
       .cache_read_ephemeris = cache_read_ephemeris,
       .cache_read_iono_corr = cache_read_iono_corr,
+      .cache_read_utc_params = cache_read_utc_params,
       .track_sid_db_elevation_degrees_get = track_sid_db_elevation_degrees_get,
       .shm_navigation_unusable = shm_navigation_unusable,
       .starling_integration_simulation_enabled =
