@@ -31,7 +31,7 @@
 #define CN0_EST_LPF_ALPHA (.005f)
 /** C/N0 LPF cutoff frequency. The lower it is, the more stable CN0 looks like
  * and the slower is the response. */
-#define CN0_EST_LPF_CUTOFF_HZ (0.25f)
+#define CN0_EST_LPF_CUTOFF_HZ (0.5f)
 /** Integration interval: 1ms */
 #define INTEG_PERIOD_1_MS 1
 /** Integration interval: 2ms */
