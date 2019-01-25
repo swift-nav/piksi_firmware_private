@@ -78,6 +78,7 @@ void tracker_retune(tracker_t *tracker, u32 chips_to_correlate) {
   /* These are the SVs selected to be GEOs in Skydel scenario */
   if ((code == CODE_BDS2_B1 && tracker->mesid.sat == 6) ||
       (code == CODE_GPS_L1CA && tracker->mesid.sat == 1) ||
+      (code == CODE_GPS_L1CA && tracker->mesid.sat == 2) ||
       (code == CODE_GAL_E1B && tracker->mesid.sat == 1)) {
     geo_sv = true;
   }
