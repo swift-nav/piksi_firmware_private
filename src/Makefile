@@ -171,7 +171,6 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/calc/firmware_starling.o \
         $(SWIFTNAV_ROOT)/src/calc/starling_integration.o \
         $(SWIFTNAV_ROOT)/src/calc/starling_sbp_output.o \
-        $(SWIFTNAV_ROOT)/src/calc/starling_sbp_messages.o \
         $(SWIFTNAV_ROOT)/src/calc/starling_platform_chibios.o \
         $(SWIFTNAV_ROOT)/src/calc/calc_pvt_me.o \
         $(SWIFTNAV_ROOT)/src/calc/calc_nav_meas.o \

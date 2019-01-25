@@ -21,6 +21,7 @@
 #include <libsbp/observation.h>
 #include <libsbp/orientation.h>
 #include <libsbp/system.h>
+#include <starling/sbp/utils.h>
 #include <starling/starling.h>
 #include <swiftnav/almanac.h>
 #include <swiftnav/ephemeris.h>
@@ -32,26 +33,6 @@
 #include "nav_msg/cnav_msg.h"
 #include "obs_bias/obs_bias.h"
 #include "sbp.h"
-
-typedef struct {
-  union {
-    msg_ephemeris_gps_t gps;
-    msg_ephemeris_bds_t bds;
-    msg_ephemeris_gal_t gal;
-    msg_ephemeris_sbas_t sbas;
-    msg_ephemeris_glo_t glo;
-  };
-} msg_ephemeris_t;
-
-typedef struct {
-  u16 msg_id;
-  u16 size;
-} msg_info_t;
-
-typedef union {
-  msg_almanac_gps_t gps;
-  msg_almanac_glo_t glo;
-} msg_almanac_t;
 
 typedef enum {
   NDB_EVENT_UNKNOWN = 0,
@@ -78,21 +59,6 @@ typedef enum {
 extern "C" {
 #endif
 
-void sbp_init_gps_time(msg_gps_time_t *gps_time, gps_time_t *t, u8 time_qual);
-void sbp_init_utc_time(msg_utc_time_t *utc_time, gps_time_t *t, u8 time_qual);
-void sbp_init_dgnss_status(msg_dgnss_status_t *dgnss_status);
-void sbp_make_gps_time(msg_gps_time_t *t_out,
-                       const gps_time_t *t_in,
-                       u8 time_qual);
-u8 sbp_get_time_quality_flags(u8 time_qual);
-
-void sbp_make_dgnss_status(msg_dgnss_status_t *dgnss_status,
-                           u8 num_sats,
-                           double obs_latency,
-                           u8 flags);
-void sbp_make_utc_time(msg_utc_time_t *t_out,
-                       const gps_time_t *t_in,
-                       u8 time_qual);
 void sbp_send_ndb_event(u8 event,
                         u8 obj_type,
                         u8 result,
@@ -101,82 +67,18 @@ void sbp_send_ndb_event(u8 event,
                         const gnss_signal_t *src_sid,
                         u16 sender);
 
-#define MSG_OBS_HEADER_SEQ_SHIFT 4u
-#define MSG_OBS_HEADER_SEQ_MASK ((1 << 4u) - 1)
-#define MSG_OBS_HEADER_MAX_SIZE MSG_OBS_HEADER_SEQ_MASK
-
-#define MSG_OBS_P_MULTIPLIER ((double)5e1)
-#define MSG_OBS_CN0_MULTIPLIER ((float)4)
-#define MSG_OBS_LF_OVERFLOW (1 << 8)
-#define MSG_OBS_DF_OVERFLOW (1 << 8)
-#define MSG_OBS_LF_MULTIPLIER ((double)(1 << 8))
-#define MSG_OBS_DF_MULTIPLIER ((double)(1 << 8))
-#define MSG_OBS_FLAGS_CODE_VALID ((u8)(1 << 0))
-#define MSG_OBS_FLAGS_PHASE_VALID ((u8)(1 << 1))
-#define MSG_OBS_FLAGS_HALF_CYCLE_KNOWN ((u8)(1 << 2))
-#define MSG_OBS_FLAGS_MEAS_DOPPLER_VALID ((u8)(1 << 3))
-#define MSG_OBS_FLAGS_RAIM_EXCLUSION ((u8)(1 << 7))
-
 #define MSG_FORWARD_SENDER_ID 0
 
-void unpack_obs_header(const observation_header_t *msg,
-                       gps_time_t *t,
-                       u8 *total,
-                       u8 *count);
-
-void pack_obs_header(const gps_time_t *t,
-                     u8 total,
-                     u8 count,
-                     observation_header_t *msg);
-
-u8 nm_flags_to_sbp(nav_meas_flags_t from);
-nav_meas_flags_t nm_flags_from_sbp(u8 from);
-
-/**
- * Convert an SBP observation into the format accepted
- * by the Starling engine.
- */
-void unpack_obs_content(const packed_obs_content_t *msg, starling_obs_t *obs);
-
-s8 pack_obs_content(double P,
-                    double L,
-                    double D,
-                    double cn0,
-                    double lock_time,
-                    nav_meas_flags_t flags,
-                    gnss_signal_t sid,
-                    packed_obs_content_t *msg);
-
-void unpack_ephemeris(const msg_ephemeris_t *msg, ephemeris_t *e);
-
-msg_info_t pack_ephemeris(const ephemeris_t *e, msg_ephemeris_t *msg);
-
 void sbp_ephe_reg_cbks(void (*ephemeris_msg_callback)(u16, u8, u8 *, void *));
-
-msg_info_t pack_almanac(const almanac_t *a, msg_almanac_t *msg);
 
 /** Value specifying the size of the SBP framing */
 #define SBP_FRAMING_SIZE_BYTES 8
 /** Value defining maximum SBP packet size */
 #define SBP_FRAMING_MAX_PAYLOAD_SIZE 255
 
-gnss_signal_t sid_from_sbp(const sbp_gnss_signal_t from);
-sbp_gnss_signal_t sid_to_sbp(const gnss_signal_t from);
-
 void sbp_send_iono(const ionosphere_t *iono);
 void sbp_send_gnss_capb(const gnss_capb_t *gc);
 void sbp_send_group_delay(const cnav_msg_t *cnav);
-void sbp_pack_sbas_raw_data(const gnss_signal_t sid,
-                            u32 tow_ms,
-                            u8 msg,
-                            const u8 *decoded,
-                            msg_sbas_raw_t *sbas_raw_msg);
-void unpack_sbas_raw_data(const msg_sbas_raw_t *m, sbas_raw_data_t *d);
-
-void sbp_unpack_glonass_biases_content(msg_glo_biases_t msg,
-                                       glo_biases_t *glonass_biases);
-void sbp_pack_glonass_biases_content(glo_biases_t glonass_biases,
-                                     msg_glo_biases_t *msg);
 
 #ifdef __cplusplus
 }
