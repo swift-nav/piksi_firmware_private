@@ -16,6 +16,7 @@
 #include <swiftnav/logging.h>
 
 #include "cn0_est_common.h"
+#include "signal_db/signal_db.h"
 
 /**
  * The function returns signal power
@@ -25,57 +26,29 @@
  */
 static float c_pwr(float I, float Q) { return I * I + Q * Q; }
 
-/**
- * The function calculates noise power
- * \param s Estimator state
- * \param Q Quadrature component
- * \param p Estimator parameters
- * \return Noise power
- */
-static float n0_pwr(cn0_est_basic_state_t *s,
-                    float Q,
-                    const cn0_est_params_t *p) {
-  float Q_abs = s->noise_Q_abs * (1 - p->alpha) + p->alpha * fabsf(Q);
-
-  s->noise_Q_abs = Q_abs;
-
-  s->noise_n0 = Q_abs * Q_abs;
-
-  return s->noise_n0;
-}
-
 /** Initialize the \f$ C / N_0 \f$ estimator state.
  *
  * Initializes Basic C/N0 \f$ C / N_0 \f$ estimator.
  *
  * \param s     The estimator state struct to initialize.
- * \param p     Common C/N0 estimator parameters.
  * \param cn0_0 The initial value of \f$ C / N_0 \f$ in dBHz.
- * \param q0    Initial value of noise in Q branch of VE correlator
  *
  * \return None
  */
-void cn0_est_basic_init(cn0_est_basic_state_t *s,
-                        const cn0_est_params_t *p,
-                        float cn0_0,
-                        float q0) {
+void cn0_est_basic_init(cn0_est_basic_state_t *s, float cn0_0) {
   memset(s, 0, sizeof(*s));
 
-  (void)p;
-
   s->cn0_db = cn0_0;
-  s->noise_Q_abs = q0;
 }
 
 /**
- * Computes \f$ C / N_0 \f$ using Very Early tap for noise assess.
+ * Computes \f$ C / N_0 \f$ with the given noise power estimation
  *
  * \param s Initialized estimator object.
  * \param p Common C/N0 estimator parameters.
  * \param p_I Prompt in-phase accumulator
  * \param p_Q Prompt quadrature accumulator
- * \param ve_I Very Early in-phase accumulator (VE correlator)
- * \param ve_Q Very Early quadrature accumulator (VE correlator)
+ * \param n Noise power estimation
  *
  * \return Computed \f$ C / N_0 \f$ value
  */
@@ -83,27 +56,24 @@ float cn0_est_basic_update(cn0_est_basic_state_t *s,
                            const cn0_est_params_t *p,
                            float p_I,
                            float p_Q,
-                           float ve_I,
-                           float ve_Q) {
-  (void)ve_I;
+                           float n) {
   /* calculate signal power */
-  float c = c_pwr(p_I, p_Q);
-  /* calculate noise power, use VE tap*/
-  float n0 = n0_pwr(s, ve_Q, p);
-  float loop_freq = 1000.f / p->t_int;
-  float cn0 = c * loop_freq / n0;
-  cn0 = p->scale * 10.f * log10f(cn0) + p->cn0_shift;
-  if (!isnormal(cn0)) {
+  float c = c_pwr(p_I, p_Q) / p->t_int;
+  if (c > n) {
+    c -= n;
+  }
+  float snr = c / n;
+  float cn0_dbhz = 10.f * log10f(snr) + p->log_bw + p->cn0_shift;
+  if (!isfinite(cn0_dbhz)) {
     log_warn(
-        "cn0 estimator problem: c %.3e  loop_freq %.3e  n0 %.3e  p_I %.3e  p_Q "
-        "%.3e  ve_Q %.3e",
+        "cn0 estimator problem: c %.3e  n %.3e  p_I %.3e  p_Q "
+        "%.3e snr %.3e",
         c,
-        loop_freq,
-        n0,
+        n,
         p_I,
         p_Q,
-        ve_Q);
+        snr);
   }
-  s->cn0_db = cn0;
+  s->cn0_db = cn0_dbhz;
   return s->cn0_db;
 }
