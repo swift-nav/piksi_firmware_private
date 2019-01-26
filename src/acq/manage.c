@@ -756,6 +756,12 @@ void sanitize_tracker(tracker_t *tracker) {
     return;
   }
 
+  bool noise_tracker = (tracker->cn0 < 0);
+  if (noise_tracker && tracker_timer_expired(&tracker->noise_est_timer)) {
+    tp_drop_channel(tracker, CH_DROP_REASON_NOISE_ESTIMATOR);
+    return;
+  }
+
   /* Is tracking masked? */
   u16 global_index = mesid_to_global_index(mesid);
   if (track_mask[global_index]) {

@@ -257,6 +257,13 @@ bool tracker_init(const u8 id,
     }
     tracker_timer_arm(&tracker->init_settle_timer, deadline_ms);
 
+    tracker_timer_init(&tracker->noise_est_timer);
+    bool noise_tracker = tracker->cn0 < 0;
+    if (noise_tracker) {
+      deadline_ms = (s64)tracker_time_now_ms() + TRACK_NOISE_EST_MAX_TIME_MS;
+      tracker_timer_arm(&tracker->noise_est_timer, deadline_ms);
+    }
+
     tracker_timer_init(&tracker->update_timer);
     tracker_timer_arm(&tracker->update_timer, /*deadline_ms=*/-1);
     tracker->updated_once = false;

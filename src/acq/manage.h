@@ -53,6 +53,9 @@
 
 #define MANAGE_NO_CHANNELS_FREE 255
 
+/** The noise tracker max age [ms] */
+#define TRACK_NOISE_EST_MAX_TIME_MS 1000
+
 /** How many SBAS SV can be tracked */
 #define SBAS_SV_NUM_LIMIT 1
 

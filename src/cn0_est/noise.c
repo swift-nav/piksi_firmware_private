@@ -17,7 +17,7 @@
 #include "acq/manage.h"
 #include "signal_db/signal_db.h"
 
-#define NOISE_ALPHA 0.005
+#define NOISE_ALPHA 0.01
 #define NOISE_MAX_AGE_MS 2000 /* re-estimate the noise with this rate */
 #define NOISE_DEFAULT 20000.
 

@@ -95,7 +95,8 @@ typedef enum {
   CH_DROP_REASON_OUTLIER,      /**< Doppler outlier */
   CH_DROP_REASON_SBAS_PROVIDER_CHANGE, /**< SBAS provider change */
   CH_DROP_REASON_RAIM,                 /**< Signal removed by RAIM */
-  CH_DROP_REASON_NEW_MODE              /**< New tracker mode */
+  CH_DROP_REASON_NEW_MODE,             /**< New tracker mode */
+  CH_DROP_REASON_NOISE_ESTIMATOR       /**< Noise estimation tracker */
 } ch_drop_reason_t;
 
 struct profile_vars {
@@ -413,6 +414,7 @@ typedef struct {
   corr_t correlators[20];
 
   tracker_timer_t init_settle_timer;
+  tracker_timer_t noise_est_timer;
 } tracker_t;
 
 /** \} */
