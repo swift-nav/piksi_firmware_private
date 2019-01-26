@@ -743,6 +743,7 @@ static void drop_channel(tracker_t *tracker, ch_drop_reason_t reason) {
   /* Disable the decoder and tracking channels */
   decoder_channel_disable(tracker->nap_channel);
   tracker_disable(tracker->nap_channel);
+  noise_update_mesid_status(mesid, /*intrack=*/false);
 }
 
 /**

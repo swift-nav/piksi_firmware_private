@@ -185,8 +185,9 @@ void tp_profile_apply_config(tracker_t *tracker, bool init) {
   if (init) {
     /* Initialize C/N0 estimator and filter */
     track_cn0_init(&tracker->cn0_est, /* C/N0 estimator state */
-                   cn0_ms,            /* C/N0 period in ms */
-                   tracker->cn0);     /* Initial C/N0 value */
+                   mesid.code,
+                   cn0_ms,        /* C/N0 period in ms */
+                   tracker->cn0); /* Initial C/N0 value */
 
     log_debug_mesid(mesid, "CN0 init: %f", tracker->cn0);
   }
@@ -567,7 +568,8 @@ static void tp_tracker_update_correlators(tracker_t *tracker, u32 cycle_flags) {
  * \return None
  */
 static void tp_tracker_update_bsync(tracker_t *tracker, u32 cycle_flags) {
-  if (0 != (cycle_flags & TPF_BSYNC_UPD)) {
+  bool noise_tracker = (tracker->cn0 < 0);
+  if ((0 != (cycle_flags & TPF_BSYNC_UPD)) && !noise_tracker) {
     bool sensitivity_mode =
         (0 != (tracker->flags & TRACKER_FLAG_SENSITIVITY_MODE));
     /* Bit sync / data decoding update counter. */
@@ -614,11 +616,15 @@ static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
 
     } else {
       /* Update C/N0 estimate */
+      s32 I = tracker->corrs.corr_cn0.prompt.I;
+      s32 Q = tracker->corrs.corr_cn0.prompt.Q;
       u8 cn0_ms = tp_get_cn0_ms(tracker->tracking_mode);
-      cn0 = track_cn0_update(&tracker->cn0_est,
-                             cn0_ms,
-                             tracker->corrs.corr_cn0.prompt.I,
-                             tracker->corrs.corr_cn0.prompt.Q);
+      bool noise_tracker = (tracker->cn0 < 0);
+      if (noise_tracker) {
+        noise_calc(tracker->mesid.code, cn0_ms, I, Q);
+      } else {
+        cn0 = track_cn0_update(&tracker->cn0_est, cn0_ms, I, Q);
+      }
     }
   }
 
