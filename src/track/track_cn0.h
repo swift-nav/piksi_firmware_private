@@ -39,7 +39,8 @@ typedef struct {
  * C/N0 estimator state.
  */
 typedef struct {
-  cn0_est_mm_state_t moment; /**< MM estimator */
+  code_t code;                 /**< Signal code */
+  cn0_est_basic_state_t basic; /**< Basic CN0 estimator */
 
   float cn0_raw_dbhz; /**< Last unfiltered CN0 estimation [dB-Hz] */
   u32 weak_signal_ms; /**< Signal is below #THRESH_SENS_DBHZ this long [ms] */
@@ -52,7 +53,7 @@ extern "C" {
 #endif /* __cplusplus */
 
 void track_cn0_params_init(void);
-void track_cn0_init(track_cn0_state_t *e, u8 cn0_ms, float cn0);
+void track_cn0_init(track_cn0_state_t *e, code_t code, u8 cn0_ms, float cn0);
 float track_cn0_update(track_cn0_state_t *e, u8 cn0_ms, float I, float Q);
 float track_cn0_get_offset(u8 cn0_ms);
 
