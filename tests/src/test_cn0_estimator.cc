@@ -241,9 +241,8 @@ TEST(cn0_test, test_cn0_basic_init) {
   EXPECT_FLOAT_EQ(p.log_bw, 30.f);
 
   cn0_est_basic_state_t cn0;
-  cn0_est_basic_init(&cn0, &p, 40.f, 1);
+  cn0_est_basic_init(&cn0, 40.f);
   EXPECT_FLOAT_EQ(cn0.cn0_db, 40.f);
-  EXPECT_FLOAT_EQ(cn0.noise_Q_abs, 1.f);
 }
 
 TEST(cn0_test, test_cn0_basic) {
@@ -252,7 +251,7 @@ TEST(cn0_test, test_cn0_basic) {
   cn0_est_basic_state_t s;
   s8* signal_I;
   s8* signal_Q;
-  s8* noise_Q;
+  s8* noise;
   u32 ii = 0;
   u32 test_length = 1000;
   float cn0 = 0.0;
@@ -261,25 +260,18 @@ TEST(cn0_test, test_cn0_basic) {
   ASSERT_NE((s8*)NULL, signal_I) << "Could not allocate I data";
   signal_Q = generate_input(test_length, 50);
   ASSERT_NE((s8*)NULL, signal_Q) << "Could not allocate Q data";
-  noise_Q = generate_input(test_length, 2);
-  ASSERT_NE((s8*)NULL, noise_Q) << "Could not allocate Q data";
+  noise = generate_input(test_length, 2);
+  ASSERT_NE((s8*)NULL, noise) << "Could not allocate noise data";
 
-  cn0_est_basic_init(&s, &p, CN0_0, 8);
+  cn0_est_basic_init(&s, CN0_0);
   p.t_int = 1000;
 
   for (ii = 0; ii < test_length; ii++) {
-    cn0 = cn0_est_basic_update(&s,
-                               &p,
-                               signal_I[ii],
-                               signal_Q[ii],
-                               /*Noise_I is not used in Basic Estimator,
-                                * just put noise_Q instead */
-                               noise_Q[ii],
-                               noise_Q[ii]);
+    cn0 = cn0_est_basic_update(&s, &p, signal_I[ii], signal_Q[ii], noise[ii]);
   }
   EXPECT_GT(cn0, 30.0);
 
   free(signal_I);
   free(signal_Q);
-  free(noise_Q);
+  free(noise);
 }

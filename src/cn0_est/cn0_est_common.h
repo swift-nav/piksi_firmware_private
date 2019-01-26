@@ -14,6 +14,7 @@
 #define CN0_EST_COMMON_H
 
 #include <swiftnav/common.h>
+#include <swiftnav/signal.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -77,8 +78,6 @@ typedef struct {
  */
 typedef struct {
   float cn0_db;      /**< Signal to noise ratio in dB/Hz. */
-  float noise_Q_abs; /**< Current value of noise in Q branch of VE correlator */
-  float noise_n0;    /**< Value of noise power from Q branch in VE correlator */
 } cn0_est_basic_state_t;
 
 /**
@@ -93,7 +92,7 @@ typedef struct {
   float alpha;     /**< IIR filter coeff. for averaging approximation */
   u32 t_int;       /**< Integration time */
   float scale;     /**< Scale for basic estimator */
-  float cn0_shift; /** < Shift for C/No in dBHz */
+  float cn0_shift; /**< Shift for C/No in dBHz */
 } cn0_est_params_t;
 
 /* C/N0 estimators */
@@ -153,16 +152,16 @@ float cn0_est_ch_update(cn0_est_ch_state_t *s,
                         const cn0_est_params_t *p,
                         float I,
                         float Q);
-void cn0_est_basic_init(cn0_est_basic_state_t *s,
-                        const cn0_est_params_t *p,
-                        float cn0_0,
-                        float q0);
+void cn0_est_basic_init(cn0_est_basic_state_t *s, float cn0_0);
 float cn0_est_basic_update(cn0_est_basic_state_t *s,
                            const cn0_est_params_t *p,
                            float I,
                            float Q,
-                           float ve_I,
-                           float ve_Q);
+                           float n);
+
+void noise_calc(code_t code, u8 ms, s32 I, s32 Q);
+float noise_get_estimation(code_t code);
+void noise_update_mesid_status(me_gnss_signal_t mesid, bool intrack);
 
 #ifdef __cplusplus
 } /* extern "C" */

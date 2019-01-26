@@ -577,6 +577,10 @@ static u8 get_profile_index(code_t code,
                             const tp_profile_entry_t *profiles,
                             size_t num_profiles,
                             float cn0) {
+  bool noise_tracker = (cn0 < 0);
+  if (noise_tracker) {
+    return IDX_20MS;
+  }
   if (code_requires_init_profile(code)) {
     return 0;
   }
@@ -917,6 +921,11 @@ static bool low_cn0_profile_switch_requested(tracker_t *tracker) {
  * \retval false No profile change is required.
  */
 bool tp_profile_has_new_profile(tracker_t *tracker) {
+  bool noise_tracker = (tracker->cn0 < 0);
+  if (noise_tracker) {
+    return false;
+  }
+
   tp_profile_t *state = &tracker->profile;
   bool tracker_mode_changed = (state->profiles != g_tracker_mode.profiles);
   if (tracker_mode_changed) {
