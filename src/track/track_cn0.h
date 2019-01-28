@@ -14,6 +14,7 @@
 #define SWIFTNAV_TRACK_CN0_H
 
 #include "filters/filter_common.h"
+#include "signal_db/signal_db.h"
 
 #include <swiftnav/signal.h>
 
