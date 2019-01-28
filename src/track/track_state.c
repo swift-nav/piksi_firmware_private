@@ -173,19 +173,9 @@ void tracker_get_state(u8 id,
   info->lock_counter = tracker->lock_counter;
   /* Sample counter */
   info->sample_count = tracker->sample_count;
-  /* Cross-correlation doppler frequency [hz] */
-  info->xcorr_freq_hz = tracker->xcorr_freq_hz;
 
   /* Current doppler frequency for a tracker channel. */
   freq_info->doppler_hz = tracker->doppler_hz;
-  /* Doppler frequency snapshot at latest PLL/FLL pessimistic lock
-   * condition for a tracker channel.
-   *
-   * The returned doppler frequency is not necessarily the latest measured
-   * doppler frequency. It is the latest doppler frequency snapshot, when the
-   * tracking channel was in PLL/FLL pessimistic lock state.
-   */
-  freq_info->doppler_at_lock_hz = tracker->doppler_at_lock_hz;
   /* Current carrier phase for a tracker channel. */
   freq_info->carrier_phase = tracker->carrier_phase;
   /* Code phase in chips */

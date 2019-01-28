@@ -205,9 +205,6 @@ typedef struct {
   float cn0;              /**< C/N0 [dB/Hz] */
   u32 sample_count;       /**< Last measurement sample counter */
   u16 lock_counter;       /**< Lock state counter */
-  float xcorr_freq_hz;    /**< Cross-correlation doppler [hz] */
-  u16 xcorr_count;        /**< Cross-correlation counter */
-  bool xcorr_wl;          /**< Is signal xcorr whitelisted? */
 } tracker_info_t;
 
 /**
@@ -234,12 +231,11 @@ typedef struct {
  * Phase and frequencies information
  */
 typedef struct {
-  double code_phase_chips;   /**< The code-phase in chips at `receiver_time` */
-  double code_phase_rate;    /**< Code phase rate in chips/s */
-  double carrier_phase;      /**< Carrier phase in cycles */
-  double doppler_hz;         /**< Doppler frequency in Hz */
-  double doppler_at_lock_hz; /**< Doppler frequency at last lock time */
-  tracker_cpo_t cpo;         /**< Carrier phase offset */
+  double code_phase_chips; /**< The code-phase in chips at `receiver_time` */
+  double code_phase_rate;  /**< Code phase rate in chips/s */
+  double carrier_phase;    /**< Carrier phase in cycles */
+  double doppler_hz;       /**< Doppler frequency in Hz */
+  tracker_cpo_t cpo;       /**< Carrier phase offset */
 } tracker_freq_info_t;
 
 /**
