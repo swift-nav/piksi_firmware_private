@@ -964,8 +964,8 @@ static float compute_cn0_offset(const me_gnss_signal_t mesid,
   cur_profile = &profile->profiles[profile->cur.index];
   mode = get_track_mode(mesid, cur_profile);
 
-  u8 cn0_ms = tp_get_cn0_ms(mode);
-  float cn0_offset = track_cn0_get_offset(cn0_ms);
+  int int_ms = (int)tp_get_fpll_ms(mode) * tp_get_fpll_decim(mode);
+  float cn0_offset = track_cn0_get_offset(int_ms);
 
   return cn0_offset;
 }
