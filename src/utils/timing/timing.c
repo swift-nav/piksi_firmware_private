@@ -375,7 +375,8 @@ gps_time_t glo2gps_with_utc_params(const glo_time_t *glo_time,
     } else {
       /* mark current NV/factory UTC offset invalid */
       if (utc_offset_valid) {
-        log_warn("Current GLO leap second offset invalid, diff=%+0.2f s", dt);
+        log_warn("Initial GLO leap second offset was invalid, diff=%+0.2f s",
+                 dt);
         utc_offset_valid = false;
       }
     }
