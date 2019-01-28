@@ -89,11 +89,11 @@ void tl_pll3_init(tl_pll3_state_t *s,
   }
 
   /* Initial state */
-  s->doppler_freq = rates->doppler_freq;
+  s->doppler_freq_hz = rates->doppler_freq_hz;
   s->code_freq = code_freq;
 
   s->carr_acc = rates->acceleration;
-  s->carr_vel = rates->doppler_freq;
+  s->carr_vel = rates->doppler_freq_hz;
 
   update_params(s, config);
 }
@@ -170,7 +170,7 @@ void tl_pll3_update_fpll(tl_pll3_state_t *s,
   float carr_vel_change =
       s->T_CARR * (s->carr_c2 * carr_error + s->freq_c1 * freq_error +
                    0.5f * (2.0f * s->carr_acc + carr_acc_change));
-  s->doppler_freq =
+  s->doppler_freq_hz =
       s->carr_c1 * carr_error + 0.5f * (2.0f * s->carr_vel + carr_vel_change);
   s->carr_vel += carr_vel_change;
   s->carr_acc += carr_acc_change;
@@ -189,7 +189,7 @@ float tl_pll3_get_freq_error(const tl_pll3_state_t *s) {
  * \return None
  */
 void tl_pll3_adjust(tl_pll3_state_t *s, float err) {
-  s->doppler_freq += err;
+  s->doppler_freq_hz += err;
   s->carr_vel += err;
 }
 
@@ -240,7 +240,7 @@ void tl_pll3_update_fll_discr(tl_pll3_state_t *s,
 void tl_pll3_get_rates(const tl_pll3_state_t *s, tl_rates_t *rates) {
   memset(rates, 0, sizeof(*rates));
 
-  rates->doppler_freq = s->doppler_freq;
-  rates->code_freq = s->code_freq + s->doppler_freq * s->carr_to_code;
+  rates->doppler_freq_hz = s->doppler_freq_hz;
+  rates->code_freq = s->code_freq + s->doppler_freq_hz * s->carr_to_code;
   rates->acceleration = s->carr_acc;
 }

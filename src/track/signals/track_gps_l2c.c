@@ -186,11 +186,11 @@ static bool check_L1_entries(tracker_t *tracker,
   /* Convert L2 doppler to L1 */
   float L2_to_L1_freq = GPS_L1_HZ / GPS_L2_HZ;
   float freq_mod =
-      fmodf(tracker->xcorr_freq * L2_to_L1_freq, L1CA_XCORR_FREQ_STEP);
+      fmodf(tracker->xcorr_freq_hz * L2_to_L1_freq, L1CA_XCORR_FREQ_STEP);
 
   float entry_cn0 = entry->cn0;
-  float entry_freq = entry->freq;
-  float entry_freq_mod = fmodf(entry_freq, L1CA_XCORR_FREQ_STEP);
+  float entry_freq_hz = entry->freq_hz;
+  float entry_freq_mod = fmodf(entry_freq_hz, L1CA_XCORR_FREQ_STEP);
   float error = fabsf(entry_freq_mod - freq_mod);
 
   if (error <= gps_l2c_config.xcorr_delta) {

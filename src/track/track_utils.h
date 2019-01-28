@@ -27,7 +27,7 @@ typedef struct {
   u8 id;                  /**< Tracking channel id */
   u32 flags;              /**< Tracker flags TRACKER_FLAG_... */
   me_gnss_signal_t mesid; /**< Tracked GNSS ME signal identifier */
-  float freq;             /**< Doppler frequency for cross-correlation [hz] */
+  float freq_hz;          /**< Doppler frequency for cross-correlation [hz] */
   float cn0;              /**< C/N0 level [dB/Hz] */
 } tracker_cc_entry_t;
 
@@ -67,7 +67,7 @@ bool handover_valid(double code_phase_chips, double max_chips);
 
 double propagate_code_phase(const me_gnss_signal_t mesid,
                             double code_phase,
-                            double doppler_freq,
+                            double doppler_freq_hz,
                             u32 n_samples);
 
 #ifdef __cplusplus

@@ -51,7 +51,7 @@ void sch_send_acq_profile_msg(const acq_job_t *job,
   prof.time_spent = (u32)1000 * (job->stop_time - job->start_time);
   prof.cf_min = (s32)acq_params->doppler_min_hz;
   prof.cf_max = (s32)acq_params->doppler_max_hz;
-  prof.cf = (s32)acq_result->df;
+  prof.cf = (s32)acq_result->df_hz;
   prof.cp = (u32)acq_result->cp;
 
   reacq_sbp_data_process(&prof);

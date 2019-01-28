@@ -205,7 +205,7 @@ typedef struct {
   float cn0;              /**< C/N0 [dB/Hz] */
   u32 sample_count;       /**< Last measurement sample counter */
   u16 lock_counter;       /**< Lock state counter */
-  float xcorr_freq;       /**< Cross-correlation doppler [hz] */
+  float xcorr_freq_hz;    /**< Cross-correlation doppler [hz] */
   u16 xcorr_count;        /**< Cross-correlation counter */
   bool xcorr_wl;          /**< Is signal xcorr whitelisted? */
 } tracker_info_t;
@@ -237,9 +237,9 @@ typedef struct {
   double code_phase_chips; /**< The code-phase in chips at `receiver_time` */
   double code_phase_rate;  /**< Code phase rate in chips/s */
   double carrier_phase;    /**< Carrier phase in cycles */
-  double doppler_freq;     /**< Doppler frequency in Hz */
-  double doppler_freq_at_lock; /**< Doppler frequency at last lock time */
-  tracker_cpo_t cpo;           /**< Carrier phase offset */
+  double doppler_freq_hz;  /**< Doppler frequency in Hz */
+  double doppler_freq_at_lock_hz; /**< Doppler frequency at last lock time */
+  tracker_cpo_t cpo;              /**< Carrier phase offset */
 } tracker_freq_info_t;
 
 /**
@@ -372,14 +372,15 @@ typedef struct {
   /** doppler_freq_prev age timer */
   tracker_timer_t doppler_freq_age_timer;
 
-  double doppler_freq_at_lock; /**< Doppler frequency snapshot in the presence
-                                    of PLL/FLL pessimistic locks [Hz]. */
-  float unfiltered_freq_error; /**< Unfiltered frequency error at the FLL
-                                    discriminator output [Hz]. */
-  float cn0;                   /**< Current estimate of C/N0. */
-  u32 flags;                   /**< Tracker flags TRACKER_FLAG_... */
+  double
+      doppler_freq_at_lock_hz; /**< Doppler frequency snapshot in the presence
+                                 of PLL/FLL pessimistic locks [Hz]. */
+  float unfiltered_freq_error_hz;  /**< Unfiltered frequency error at the FLL
+                                     discriminator output [Hz]. */
+  float cn0;                       /**< Current estimate of C/N0. */
+  u32 flags;                       /**< Tracker flags TRACKER_FLAG_... */
   ch_drop_reason_t ch_drop_reason; /* Drop reason if TRACKER_FLAG_DROP is set */
-  float xcorr_freq;                /**< Doppler for cross-correlation [Hz] */
+  float xcorr_freq_hz;             /**< Doppler for cross-correlation [Hz] */
   tracker_timer_t age_timer;       /**< Tracking channel age timer */
   tracker_timer_t update_timer;    /**< Tracking channel last update timer */
   bool updated_once;               /**< Tracker was updated at least once */

@@ -110,8 +110,8 @@ static void check_L1_entry(tracker_t *tracker,
   sat_active[index] = true;
   float cn0 = tracker->cn0;
   float entry_cn0 = entry->cn0;
-  float error =
-      fabsf(remainder(entry->freq - tracker->xcorr_freq, L1CA_XCORR_FREQ_STEP));
+  float error = fabsf(
+      remainder(entry->freq_hz - tracker->xcorr_freq_hz, L1CA_XCORR_FREQ_STEP));
 
   s32 max_time_cnt =
       (s32)(10.0f * gps_l1ca_config.xcorr_time * XCORR_UPDATE_RATE);
@@ -214,9 +214,9 @@ static bool check_L2_entries(tracker_t *tracker,
   u16 index = mesid_to_code_index(tracker->mesid);
   float L2_to_L1_freq = GPS_L1_HZ / GPS_L2_HZ;
   /* Convert L2 doppler to L1 */
-  float entry_freq = entry->freq * L2_to_L1_freq;
-  float error =
-      fabsf(remainderf(entry_freq - tracker->xcorr_freq, L1CA_XCORR_FREQ_STEP));
+  float entry_freq = entry->freq_hz * L2_to_L1_freq;
+  float error = fabsf(
+      remainderf(entry_freq - tracker->xcorr_freq_hz, L1CA_XCORR_FREQ_STEP));
 
   if (error <= gps_l1ca_config.xcorr_delta) {
     /* Signal pairs with matching doppler are NOT xcorr flagged */

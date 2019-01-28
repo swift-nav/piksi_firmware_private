@@ -135,7 +135,7 @@ void tp_profile_apply_config(tracker_t *tracker, bool init) {
   /**< Set initial rates */
   tl_rates_t rates;
   rates.code_freq = tracker->code_phase_rate - code_to_chip_rate(mesid.code);
-  rates.doppler_freq = tracker->doppler_freq_hz;
+  rates.doppler_freq_hz = tracker->doppler_freq_hz;
   rates.acceleration = 0.0f;
   /**< Set tracking loop configuration parameters */
   tl_config_t config;
@@ -640,7 +640,7 @@ static void update_ld_freq(tracker_t *tracker, u32 cycle_flags) {
   tracker->flags &= ~TRACKER_FLAG_HAS_FLOCK;
 
   /* FLL lock detector is based on frequency error seen by FLL discriminator */
-  float unfiltered_freq_error = tracker->unfiltered_freq_error;
+  float unfiltered_freq_error = tracker->unfiltered_freq_error_hz;
 
   /* Calculate low-pass filtered frequency error */
   fll_lock_detect_update(&tracker->ld_freq, unfiltered_freq_error);
@@ -683,7 +683,7 @@ static void tp_tracker_update_locks(tracker_t *tracker, u32 cycle_flags) {
     }
   }
   if (outp) {
-    tracker->doppler_freq_at_lock = tracker->doppler_freq_hz;
+    tracker->doppler_freq_at_lock_hz = tracker->doppler_freq_hz;
   }
   /*
    * Reset carrier phase ambiguity if there's doubt as to our phase lock.
@@ -725,7 +725,7 @@ static void tp_tracker_update_loops(tracker_t *tracker, u32 cycle_flags) {
   if (0 != (cycle_flags & TPF_FLL_USE)) {
     bool halfq = (0 != (cycle_flags & TPF_FLL_HALFQ));
     tp_tl_update_fll_discr(&tracker->tl_state, tracker->corrs.corr_fll, halfq);
-    tracker->unfiltered_freq_error = tp_tl_get_fll_error(&tracker->tl_state);
+    tracker->unfiltered_freq_error_hz = tp_tl_get_fll_error(&tracker->tl_state);
   }
 
   if (0 != (cycle_flags & TPF_EPL_USE)) {
@@ -772,7 +772,7 @@ static void tp_tracker_update_loops(tracker_t *tracker, u32 cycle_flags) {
     tl_rates_t rates = {0};
     tp_tl_get_rates(&tracker->tl_state, &rates);
 
-    tracker->doppler_freq_hz = rates.doppler_freq;
+    tracker->doppler_freq_hz = rates.doppler_freq_hz;
     tracker->code_phase_rate =
         rates.code_freq + code_to_chip_rate(tracker->mesid.code);
 
@@ -806,11 +806,11 @@ static void tp_tracker_update_loops(tracker_t *tracker, u32 cycle_flags) {
  * \return None
  */
 static void tp_tracker_flag_outliers(tracker_t *tracker) {
-  const float fMaxDoppler = code_to_sv_doppler_max(tracker->mesid.code) +
-                            code_to_tcxo_doppler_max(tracker->mesid.code);
+  const float doppler_max_hz = code_to_sv_doppler_max(tracker->mesid.code) +
+                               code_to_tcxo_doppler_max(tracker->mesid.code);
 
   /* remove channels with a large positive Doppler outlier */
-  if (fabsf(tracker->doppler_freq_hz) > fMaxDoppler) {
+  if (fabsf(tracker->doppler_freq_hz) > doppler_max_hz) {
     log_debug_mesid(
         tracker->mesid, "Doppler %.2f too high", tracker->doppler_freq_hz);
     tracker_flag_drop(tracker, CH_DROP_REASON_OUTLIER);
@@ -860,18 +860,18 @@ static void tp_tracker_filter_doppler(tracker_t *tracker,
                                       u32 cycle_flags,
                                       const tp_tracker_config_t *config) {
   if (0 != (cycle_flags & TPF_BSYNC_UPD) && tracker_bit_aligned(tracker)) {
-    float xcorr_freq = tracker->doppler_freq_hz;
+    float xcorr_freq_hz = tracker->doppler_freq_hz;
 
     if (tracker->flags & TRACKER_FLAG_XCORR_FILTER_ACTIVE) {
-      xcorr_freq = lp1_filter_update(
-          &tracker->xcorr_filter, &config->xcorr_f_params, xcorr_freq);
+      xcorr_freq_hz = lp1_filter_update(
+          &tracker->xcorr_filter, &config->xcorr_f_params, xcorr_freq_hz);
     } else {
       lp1_filter_init(
-          &tracker->xcorr_filter, &config->xcorr_f_params, xcorr_freq);
+          &tracker->xcorr_filter, &config->xcorr_f_params, xcorr_freq_hz);
       tracker->flags |= TRACKER_FLAG_XCORR_FILTER_ACTIVE;
     }
 
-    tracker->xcorr_freq = xcorr_freq;
+    tracker->xcorr_freq_hz = xcorr_freq_hz;
   }
 }
 

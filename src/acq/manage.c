@@ -453,7 +453,8 @@ static void manage_acq(void) {
   if (soft_multi_acq_search(
           acq->mesid, acq->dopp_hint_low, acq->dopp_hint_high, &acq_result)) {
     /* Send result of an acquisition to the host. */
-    acq_result_send(acq->mesid, acq_result.cn0, acq_result.cp, acq_result.df);
+    acq_result_send(
+        acq->mesid, acq_result.cn0, acq_result.cp, acq_result.df_hz);
 
     if (acq_result.cn0 < ACQ_THRESHOLD) {
       /* Didn't find the satellite :( */
@@ -466,13 +467,13 @@ static void manage_acq(void) {
 
     me_gnss_signal_t mesid_trk = acq->mesid;
     float cp = acq_result.cp;
-    float df = acq_result.df;
+    float df_hz = acq_result.df_hz;
 
     tracking_startup_params_t tracking_startup_params = {
         .mesid = mesid_trk,
         .glo_slot_id = GLO_ORBIT_SLOT_UNKNOWN,
         .sample_count = acq_result.sample_count,
-        .doppler_freq_hz = df,
+        .doppler_freq_hz = df_hz,
         .code_phase = cp,
         .chips_to_correlate = code_to_chip_count(mesid_trk.code),
         .cn0_init = acq_result.cn0};
@@ -486,12 +487,12 @@ static void manage_acq(void) {
  * \param mesid ME SID of the acquisition
  * \param cn0 Carrier to noise ratio of best point from acquisition.
  * \param cp  Code phase of best point.
- * \param df  Doppler frequency of best point.
+ * \param df_hz  Doppler frequency of best point.
  */
 void acq_result_send(const me_gnss_signal_t mesid,
                      float cn0,
                      float cp,
-                     float df) {
+                     float df_hz) {
   msg_acq_result_t acq_result_msg;
   /* TODO GLO: Handle GLO orbit slot properly. */
   if (IS_GLO(mesid)) {
@@ -500,7 +501,7 @@ void acq_result_send(const me_gnss_signal_t mesid,
   acq_result_msg.sid = sid_to_sbp(mesid2sid(mesid, GLO_ORBIT_SLOT_UNKNOWN));
   acq_result_msg.cn0 = cn0;
   acq_result_msg.cp = cp;
-  acq_result_msg.cf = df;
+  acq_result_msg.cf = df_hz;
 
   sbp_send_msg(
       SBP_MSG_ACQ_RESULT, sizeof(msg_acq_result_t), (u8 *)&acq_result_msg);
@@ -613,18 +614,21 @@ void update_acq_hints(tracker_t *tracker) {
     return;
   }
 
-  double doppler_freq = tracker->doppler_freq_at_lock;
-  float doppler_min =
+  double doppler_freq_hz = tracker->doppler_freq_at_lock_hz;
+  float doppler_min_hz =
       code_to_sv_doppler_min(mesid.code) + code_to_tcxo_doppler_min(mesid.code);
-  float doppler_max =
+  float doppler_max_hz =
       code_to_sv_doppler_max(mesid.code) + code_to_tcxo_doppler_max(mesid.code);
-  if ((doppler_freq < doppler_min) || (doppler_freq > doppler_max)) {
+  if ((doppler_freq_hz < doppler_min_hz) ||
+      (doppler_freq_hz > doppler_max_hz)) {
     log_error_mesid(
-        mesid, "Acq: bogus doppler freq: %lf. Rejected.", doppler_freq);
+        mesid, "Acq: bogus doppler freq: %lf. Rejected.", doppler_freq_hz);
   } else {
     acq_status_t *acq = &acq_status[mesid_to_global_index(mesid)];
-    acq->dopp_hint_low = MAX(doppler_freq - ACQ_FULL_CF_STEP, doppler_min);
-    acq->dopp_hint_high = MIN(doppler_freq + ACQ_FULL_CF_STEP, doppler_max);
+    acq->dopp_hint_low =
+        MAX(doppler_freq_hz - ACQ_FULL_CF_STEP, doppler_min_hz);
+    acq->dopp_hint_high =
+        MIN(doppler_freq_hz + ACQ_FULL_CF_STEP, doppler_max_hz);
   }
 }
 
@@ -1119,10 +1123,10 @@ void manage_tracking_startup(void) {
 
     if (chan == MANAGE_NO_CHANNELS_FREE) {
       if (code_requires_direct_acq(acq->mesid.code)) {
-        float doppler_min = code_to_sv_doppler_min(acq->mesid.code) +
-                            code_to_tcxo_doppler_min(acq->mesid.code);
-        float doppler_max = code_to_sv_doppler_max(acq->mesid.code) +
-                            code_to_tcxo_doppler_max(acq->mesid.code);
+        float doppler_min_hz = code_to_sv_doppler_min(acq->mesid.code) +
+                               code_to_tcxo_doppler_min(acq->mesid.code);
+        float doppler_max_hz = code_to_sv_doppler_max(acq->mesid.code) +
+                               code_to_tcxo_doppler_max(acq->mesid.code);
 
         /* No channels are free to accept our new satellite :( */
         /* TODO: Perhaps we can try to warm start this one
@@ -1130,14 +1134,16 @@ void manage_tracking_startup(void) {
          */
         if (startup_params.cn0_init > ACQ_RETRY_THRESHOLD) {
           /* Check that reported Doppler frequency is within Doppler bounds */
-          float freq = startup_params.doppler_freq_hz;
-          if (freq < doppler_min) {
-            freq = doppler_min;
-          } else if (freq > doppler_max) {
-            freq = doppler_max;
+          float doppler_hz = startup_params.doppler_freq_hz;
+          if (doppler_hz < doppler_min_hz) {
+            doppler_hz = doppler_min_hz;
+          } else if (doppler_hz > doppler_max_hz) {
+            doppler_hz = doppler_max_hz;
           }
-          acq->dopp_hint_low = MAX(freq - ACQ_FULL_CF_STEP, doppler_min);
-          acq->dopp_hint_high = MIN(freq + ACQ_FULL_CF_STEP, doppler_max);
+          acq->dopp_hint_low =
+              MAX(doppler_hz - ACQ_FULL_CF_STEP, doppler_min_hz);
+          acq->dopp_hint_high =
+              MIN(doppler_hz + ACQ_FULL_CF_STEP, doppler_max_hz);
         }
       }
       log_info_mesid(startup_params.mesid,

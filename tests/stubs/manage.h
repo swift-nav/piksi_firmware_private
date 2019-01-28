@@ -69,8 +69,8 @@ void dum_get_doppler_wndw(const gnss_signal_t *sid,
                           const gps_time_t *t,
                           const last_good_fix_t *lgf,
                           float speed,
-                          float *doppler_min,
-                          float *doppler_max);
+                          float *doppler_min_hz,
+                          float *doppler_max_hz);
 u16 get_orbit_slot(const u16 fcn);
 void tracker_set_sbas_provider_change_flag(void);
 u8 tracking_startup_request(const tracking_startup_params_t *startup_params);
@@ -81,18 +81,18 @@ void dum_report_reacq_result(const gnss_signal_t *sid, bool res);
 void acq_result_send(const me_gnss_signal_t mesid,
                      float cn0,
                      float cp,
-                     float df);
+                     float df_hz);
 void sch_initialize_cost(acq_job_t *init_job,
                          const acq_jobs_state_t *all_jobs_data);
 bool soft_multi_acq_search(const me_gnss_signal_t mesid,
-                           float _fDoppFreqMin,
-                           float _fDoppFreqMax,
+                           float doppler_min_hz,
+                           float doppler_max_hz,
                            acq_result_t *p_acqres);
 acq_job_t *sch_select_job(acq_jobs_state_t *jobs_data);
 void sch_run(acq_jobs_state_t *jobs_data);
 bool soft_multi_acq_search(const me_gnss_signal_t mesid,
-                           float _fDoppFreqMin,
-                           float _fDoppFreqMax,
+                           float doppler_min_hz,
+                           float doppler_max_hz,
                            acq_result_t *p_acqres);
 ndb_op_code_t ndb_lgf_read(last_good_fix_t *lgf);
 u16 sm_constellation_to_start_index(constellation_t gnss);
