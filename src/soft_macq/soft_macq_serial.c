@@ -247,30 +247,30 @@ bool soft_acq_search(const sc16_t *_cSignal,
 /** Find dopper_bin_min and doppler_bin_max,
  *  given uncertainty range and bin_width.
  * \param[in]     mesid           ME signal id
- * \param[in]     df_min          Uncertainty range minimum [Hz]
- * \param[in]     df_max          Uncertainty range maximum [Hz]
- * \param[in]     df_bin_width    Doppler bin width [Hz]
+ * \param[in]     df_min_hz       Uncertainty range minimum [Hz]
+ * \param[in]     df_max_hz       Uncertainty range maximum [Hz]
+ * \param[in]     df_bin_width_hz Doppler bin width [Hz]
  * \param[in,out] doppler_bin_min Minimum doppler bin
  * \param[in,out] doppler_bin_max Maximum doppler bin
  * \retval true  Success
  * \retval false Failure
  */
 static bool get_bin_min_max(const me_gnss_signal_t mesid,
-                            float df_min,
-                            float df_max,
-                            float df_bin_width,
+                            float df_min_hz,
+                            float df_max_hz,
+                            float df_bin_width_hz,
                             s16 *doppler_bin_min,
                             s16 *doppler_bin_max) {
   /* Loop over Doppler bins */
-  *doppler_bin_min = (s16)floorf(df_min / df_bin_width);
-  *doppler_bin_max = (s16)floorf(df_max / df_bin_width);
+  *doppler_bin_min = (s16)floorf(df_min_hz / df_bin_width_hz);
+  *doppler_bin_max = (s16)floorf(df_max_hz / df_bin_width_hz);
 
   /* Check that bin_max >= bin_min. */
   if (*doppler_bin_min > *doppler_bin_max) {
     log_error_mesid(mesid,
                     "Acq_search: caught bogus dopp_hints (%lf, %lf)",
-                    df_min,
-                    df_max);
+                    df_min_hz,
+                    df_max_hz);
     return false;
   }
 
@@ -285,26 +285,27 @@ static bool get_bin_min_max(const me_gnss_signal_t mesid,
 }
 
 /** Multiply sample FFT by shifted conjugate code FFT. Perform inverse FFT.
- * \param[in]     mesid         ME signal id
- * \param[in]     doppler_bin   Current doppler bin
- * \param[in]     df_bin_width  Doppler bin width [Hz]
- * \param[in]     fft_len       FFT length
- * \param[in]     fft_bin_width Doppler bin width [Hz]
- * \param[in]     _pCodeFft      Conjugate code FFT samples
- * \param[in]     _pSampleFft    Sample FFT
- * \param[in]     fft_len_log2  FFT length
- * \param[in,out] doppler       Actual doppler of current frequency bin [Hz]
+ * \param[in]     mesid            ME signal id
+ * \param[in]     doppler_bin      Current doppler bin
+ * \param[in]     df_bin_width_hz  Doppler bin width [Hz]
+ * \param[in]     fft_len          FFT length
+ * \param[in]     fft_bin_width    Doppler bin width [Hz]
+ * \param[in]     _pCodeFft        Conjugate code FFT samples
+ * \param[in]     _pSampleFft      Sample FFT
+ * \param[in]     fft_len_log2     FFT length
+ * \param[in,out] doppler_hz       Actual doppler of current frequency bin [Hz]
  */
 static void ifft_operations(s16 doppler_bin,
-                            float df_bin_width,
+                            float df_bin_width_hz,
                             u32 fft_len,
                             float fft_bin_width,
                             const sc16_t *_pCodeFft,
                             const sc16_t *_pSampleFft,
                             float *doppler_hz) {
-  s32 sample_offset = (s32)round((doppler_bin * df_bin_width) / fft_bin_width);
+  s32 sample_offset =
+      (s32)round((doppler_bin * df_bin_width_hz) / fft_bin_width);
   /* Actual computed Doppler */
-  *doppler_hz = doppler_bin * df_bin_width;
+  *doppler_hz = doppler_bin * df_bin_width_hz;
 
   /* Multiply sample FFT by shifted conjugate code FFT */
   for (u32 i = 0; i < fft_len; i++) {

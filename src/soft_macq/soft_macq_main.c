@@ -178,13 +178,13 @@ static bool SoftMacqSerial(const me_gnss_signal_t mesid,
                            float doppler_min_hz,
                            float doppler_max_hz,
                            acq_result_t *_psLegacyResult) {
-  float cf_bin_width = soft_acq_bin_width();
+  float df_bin_width_hz = soft_acq_bin_width();
 
   return soft_acq_search(baseband,
                          mesid,
                          doppler_min_hz,
                          doppler_max_hz,
-                         cf_bin_width,
+                         df_bin_width_hz,
                          _psLegacyResult);
 }
 
