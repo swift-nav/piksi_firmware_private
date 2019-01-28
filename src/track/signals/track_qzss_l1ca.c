@@ -83,7 +83,7 @@ static void tracker_qzss_l1ca_update(tracker_t *tracker) {
     qzss_l1ca_to_l2c_handover(tracker->sample_count,
                               tracker->mesid.sat,
                               tracker->code_phase_prompt,
-                              tracker->doppler_freq_hz,
+                              tracker->doppler_hz,
                               tracker->cn0,
                               tracker->TOW_ms);
   }

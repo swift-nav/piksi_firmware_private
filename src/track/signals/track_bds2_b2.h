@@ -23,7 +23,7 @@ void track_bds2_b2_register(void);
 void bds_b11_to_b2_handover(u32 sample_count,
                             u16 sat,
                             double code_phase,
-                            double doppler_freq_hz,
+                            double doppler_hz,
                             float cn0_init);
 
 #ifdef __cplusplus

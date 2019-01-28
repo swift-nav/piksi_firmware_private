@@ -30,7 +30,7 @@ bool tracker_init(const u8 id,
                   u16 glo_orbit_slot,
                   u64 ref_sample_count,
                   double code_phase,
-                  float doppler_freq_hz,
+                  float doppler_hz,
                   u32 chips_to_correlate,
                   float cn0_init);
 void tracker_disable(const u8 id);

@@ -135,7 +135,7 @@ void tp_profile_apply_config(tracker_t *tracker, bool init) {
   /**< Set initial rates */
   tl_rates_t rates;
   rates.code_freq = tracker->code_phase_rate - code_to_chip_rate(mesid.code);
-  rates.doppler_freq_hz = tracker->doppler_freq_hz;
+  rates.doppler_hz = tracker->doppler_hz;
   rates.acceleration = 0.0f;
   /**< Set tracking loop configuration parameters */
   tl_config_t config;
@@ -683,7 +683,7 @@ static void tp_tracker_update_locks(tracker_t *tracker, u32 cycle_flags) {
     }
   }
   if (outp) {
-    tracker->doppler_freq_at_lock_hz = tracker->doppler_freq_hz;
+    tracker->doppler_at_lock_hz = tracker->doppler_hz;
   }
   /*
    * Reset carrier phase ambiguity if there's doubt as to our phase lock.
@@ -772,7 +772,7 @@ static void tp_tracker_update_loops(tracker_t *tracker, u32 cycle_flags) {
     tl_rates_t rates = {0};
     tp_tl_get_rates(&tracker->tl_state, &rates);
 
-    tracker->doppler_freq_hz = rates.doppler_freq_hz;
+    tracker->doppler_hz = rates.doppler_hz;
     tracker->code_phase_rate =
         rates.code_freq + code_to_chip_rate(tracker->mesid.code);
 
@@ -810,22 +810,22 @@ static void tp_tracker_flag_outliers(tracker_t *tracker) {
                                code_to_tcxo_doppler_max(tracker->mesid.code);
 
   /* remove channels with a large positive Doppler outlier */
-  if (fabsf(tracker->doppler_freq_hz) > doppler_max_hz) {
+  if (fabsf(tracker->doppler_hz) > doppler_max_hz) {
     log_debug_mesid(
-        tracker->mesid, "Doppler %.2f too high", tracker->doppler_freq_hz);
+        tracker->mesid, "Doppler %.2f too high", tracker->doppler_hz);
     tracker_flag_drop(tracker, CH_DROP_REASON_OUTLIER);
   }
 
   /* Check the maximum doppler frequency rate. */
 
-  u64 elapsed_ms = tracker_timer_ms(&tracker->doppler_freq_age_timer);
+  u64 elapsed_ms = tracker_timer_ms(&tracker->doppler_age_timer);
   if (elapsed_ms >= (u32)DIFF_INTERVAL_MS) {
-    if (!tracker->doppler_freq_prev_valid) {
-      tracker->doppler_freq_prev_hz = tracker->doppler_freq_hz;
-      tracker->doppler_freq_prev_valid = true;
+    if (!tracker->doppler_prev_valid) {
+      tracker->doppler_prev_hz = tracker->doppler_hz;
+      tracker->doppler_prev_valid = true;
     }
 
-    double diff_hz = tracker->doppler_freq_hz - tracker->doppler_freq_prev_hz;
+    double diff_hz = tracker->doppler_hz - tracker->doppler_prev_hz;
     double elapsed_s = (double)elapsed_ms / SECS_MS;
     /* the elapsed time could be slightly larger than DIFF_INTERVAL_MS
        So let's account for it in max_diff_hz */
@@ -838,8 +838,8 @@ static void tp_tracker_flag_outliers(tracker_t *tracker) {
       tracker_flag_drop(tracker, CH_DROP_REASON_OUTLIER);
     }
 
-    tracker->doppler_freq_prev_hz = tracker->doppler_freq_hz;
-    tracker_timer_arm(&tracker->doppler_freq_age_timer, -1);
+    tracker->doppler_prev_hz = tracker->doppler_hz;
+    tracker_timer_arm(&tracker->doppler_age_timer, -1);
   }
 }
 
@@ -860,7 +860,7 @@ static void tp_tracker_filter_doppler(tracker_t *tracker,
                                       u32 cycle_flags,
                                       const tp_tracker_config_t *config) {
   if (0 != (cycle_flags & TPF_BSYNC_UPD) && tracker_bit_aligned(tracker)) {
-    float xcorr_freq_hz = tracker->doppler_freq_hz;
+    float xcorr_freq_hz = tracker->doppler_hz;
 
     if (tracker->flags & TRACKER_FLAG_XCORR_FILTER_ACTIVE) {
       xcorr_freq_hz = lp1_filter_update(

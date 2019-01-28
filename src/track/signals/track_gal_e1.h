@@ -23,7 +23,7 @@ void track_gal_e1_register(void);
 void gal_e7_to_e1_handover(u32 sample_count,
                            u16 sat,
                            double code_phase,
-                           double doppler_freq_hz,
+                           double doppler_hz,
                            float cn0_init);
 
 #ifdef __cplusplus

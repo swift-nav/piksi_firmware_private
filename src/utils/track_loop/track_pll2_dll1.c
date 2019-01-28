@@ -60,10 +60,10 @@ void tl_pll2_init(tl_pll2_state_t *s,
   }
 
   /* Initial state */
-  s->doppler_freq_hz = rates->doppler_freq_hz;
+  s->doppler_hz = rates->doppler_hz;
   s->code_freq_hz = code_freq_hz;
 
-  s->carr_vel = rates->doppler_freq_hz;
+  s->carr_vel = rates->doppler_hz;
 
   update_params(s, config);
 }
@@ -117,8 +117,8 @@ void tl_pll2_update_pll(tl_pll2_state_t *s,
   }
 
   float carr_vel_change_hz_per_s = carr_error_cyc * s->carr_c2 * s->T_CODE;
-  s->doppler_freq_hz = carr_error_cyc * s->carr_c1;
-  s->doppler_freq_hz += 0.5f * (2.0f * s->carr_vel + carr_vel_change_hz_per_s);
+  s->doppler_hz = carr_error_cyc * s->carr_c1;
+  s->doppler_hz += 0.5f * (2.0f * s->carr_vel + carr_vel_change_hz_per_s);
   s->carr_vel += carr_vel_change_hz_per_s;
 }
 
@@ -129,7 +129,7 @@ void tl_pll2_update_pll(tl_pll2_state_t *s,
  * \param[in]     err_hz Frequency error [Hz]
  */
 void tl_pll2_adjust(tl_pll2_state_t *s, float err_hz) {
-  s->doppler_freq_hz += err_hz;
+  s->doppler_hz += err_hz;
   s->carr_vel += err_hz;
   s->code_freq_hz += err_hz * s->carr_to_code;
 }
@@ -143,7 +143,7 @@ void tl_pll2_adjust(tl_pll2_state_t *s, float err_hz) {
 void tl_pll2_get_rates(const tl_pll2_state_t *s, tl_rates_t *rates) {
   memset(rates, 0, sizeof(*rates));
 
-  rates->doppler_freq_hz = s->doppler_freq_hz;
-  rates->code_freq = s->code_freq_hz + s->doppler_freq_hz * s->carr_to_code;
+  rates->doppler_hz = s->doppler_hz;
+  rates->code_freq = s->code_freq_hz + s->doppler_hz * s->carr_to_code;
   rates->acceleration = 0;
 }

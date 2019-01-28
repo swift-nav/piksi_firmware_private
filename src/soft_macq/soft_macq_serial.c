@@ -330,7 +330,7 @@ static void ifft_operations(s16 doppler_bin,
  * \param[in]     mesid         ME signal id
  * \param[in]     c_array       Complex input array
  * \param[in]     array_sz      Array size
- * \param[in]     doppler_hz       Actual doppler of current frequency bin [Hz]
+ * \param[in]     doppler_hz    Actual doppler of current frequency bin [Hz]
  * \param[in]     fft_len       FFT length
  * \param[in]     fft_bin_width Doppler bin width [Hz]
  * \param[in,out] peak          Max peak parameters

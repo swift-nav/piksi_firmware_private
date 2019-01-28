@@ -473,7 +473,7 @@ static void manage_acq(void) {
         .mesid = mesid_trk,
         .glo_slot_id = GLO_ORBIT_SLOT_UNKNOWN,
         .sample_count = acq_result.sample_count,
-        .doppler_freq_hz = df_hz,
+        .doppler_hz = df_hz,
         .code_phase = cp,
         .chips_to_correlate = code_to_chip_count(mesid_trk.code),
         .cn0_init = acq_result.cn0};
@@ -614,21 +614,18 @@ void update_acq_hints(tracker_t *tracker) {
     return;
   }
 
-  double doppler_freq_hz = tracker->doppler_freq_at_lock_hz;
+  double doppler_hz = tracker->doppler_at_lock_hz;
   float doppler_min_hz =
       code_to_sv_doppler_min(mesid.code) + code_to_tcxo_doppler_min(mesid.code);
   float doppler_max_hz =
       code_to_sv_doppler_max(mesid.code) + code_to_tcxo_doppler_max(mesid.code);
-  if ((doppler_freq_hz < doppler_min_hz) ||
-      (doppler_freq_hz > doppler_max_hz)) {
+  if ((doppler_hz < doppler_min_hz) || (doppler_hz > doppler_max_hz)) {
     log_error_mesid(
-        mesid, "Acq: bogus doppler freq: %lf. Rejected.", doppler_freq_hz);
+        mesid, "Acq: bogus doppler freq: %lf. Rejected.", doppler_hz);
   } else {
     acq_status_t *acq = &acq_status[mesid_to_global_index(mesid)];
-    acq->dopp_hint_low =
-        MAX(doppler_freq_hz - ACQ_FULL_CF_STEP, doppler_min_hz);
-    acq->dopp_hint_high =
-        MIN(doppler_freq_hz + ACQ_FULL_CF_STEP, doppler_max_hz);
+    acq->dopp_hint_low = MAX(doppler_hz - ACQ_FULL_CF_STEP, doppler_min_hz);
+    acq->dopp_hint_high = MIN(doppler_hz + ACQ_FULL_CF_STEP, doppler_max_hz);
   }
 }
 
@@ -1134,7 +1131,7 @@ void manage_tracking_startup(void) {
          */
         if (startup_params.cn0_init > ACQ_RETRY_THRESHOLD) {
           /* Check that reported Doppler frequency is within Doppler bounds */
-          float doppler_hz = startup_params.doppler_freq_hz;
+          float doppler_hz = startup_params.doppler_hz;
           if (doppler_hz < doppler_min_hz) {
             doppler_hz = doppler_min_hz;
           } else if (doppler_hz > doppler_max_hz) {
@@ -1173,7 +1170,7 @@ void manage_tracking_startup(void) {
                       startup_params.glo_slot_id,
                       startup_params.sample_count,
                       startup_params.code_phase,
-                      startup_params.doppler_freq_hz,
+                      startup_params.doppler_hz,
                       startup_params.chips_to_correlate,
                       startup_params.cn0_init)) {
       log_error("tracker channel init failed");

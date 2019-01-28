@@ -23,7 +23,7 @@ void track_glo_l2of_register(void);
 void do_glo_l1of_to_l2of_handover(u32 sample_count,
                                   u16 sat,
                                   float code_phase_chips,
-                                  double doppler_freq_hz,
+                                  double doppler_hz,
                                   float init_cn0_dbhz);
 
 #ifdef __cplusplus

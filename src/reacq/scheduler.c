@@ -310,7 +310,7 @@ static void sch_run_common(acq_jobs_state_t *jobs_data, acq_job_t *job) {
     tracking_startup_params_t tracking_startup_params = {
         .mesid = mesid_trk,
         .sample_count = acq_result.sample_count,
-        .doppler_freq_hz = df_hz,
+        .doppler_hz = df_hz,
         .code_phase = cp,
         .chips_to_correlate = code_to_chip_count(mesid_trk.code),
         .cn0_init = acq_result.cn0,
