@@ -11,7 +11,6 @@
  */
 #include "track_cn0.h"
 #include "settings/settings_client.h"
-#include "signal_db/signal_db.h"
 #include "track/tracker.h"
 
 #include <assert.h>
