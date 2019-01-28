@@ -56,7 +56,7 @@ extern "C" {
 void track_cn0_params_init(void);
 void track_cn0_init(track_cn0_state_t *e, code_t code, u8 cn0_ms, float cn0);
 float track_cn0_update(track_cn0_state_t *e, u8 cn0_ms, float I, float Q);
-float track_cn0_get_offset(u8 cn0_ms);
+float track_cn0_get_offset(int int_ms);
 
 #ifdef __cplusplus
 }
