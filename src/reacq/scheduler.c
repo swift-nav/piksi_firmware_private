@@ -305,12 +305,12 @@ static void sch_run_common(acq_jobs_state_t *jobs_data, acq_job_t *job) {
 
     me_gnss_signal_t mesid_trk = job->mesid;
     float cp = acq_result.cp;
-    float cf = acq_result.cf;
+    float df_hz = acq_result.df_hz;
 
     tracking_startup_params_t tracking_startup_params = {
         .mesid = mesid_trk,
         .sample_count = acq_result.sample_count,
-        .carrier_freq = cf,
+        .doppler_hz = df_hz,
         .code_phase = cp,
         .chips_to_correlate = code_to_chip_count(mesid_trk.code),
         .cn0_init = acq_result.cn0,
@@ -338,7 +338,7 @@ static void sch_run_common(acq_jobs_state_t *jobs_data, acq_job_t *job) {
   sch_send_acq_profile_msg(job, &acq_result, peak_found);
 
   /* Send result of an acquisition to the host. */
-  acq_result_send(job->mesid, acq_result.cn0, acq_result.cp, acq_result.cf);
+  acq_result_send(job->mesid, acq_result.cn0, acq_result.cp, acq_result.df_hz);
 }
 
 /* Search manager API functions */

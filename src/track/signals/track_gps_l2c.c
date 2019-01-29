@@ -75,14 +75,14 @@ void track_gps_l2c_register(void) {
  * \param[in] sample_count NAP sample count
  * \param[in] sat          Satellite ID
  * \param[in] code_phase   code phase [chips]
- * \param[in] carrier_freq Doppler [Hz]
+ * \param[in] doppler_hz   Doppler [Hz]
  * \param[in] cn0_init     CN0 estimate [dB-Hz]
  * \param[in] TOW_ms       Latest decoded TOW [ms]
  */
 void do_l1ca_to_l2c_handover(u32 sample_count,
                              u16 sat,
                              double code_phase,
-                             double carrier_freq,
+                             double doppler_hz,
                              float cn0_init,
                              s32 TOW_ms) {
   /* compose L2CM MESID: same SV, but code is L2CM */
@@ -121,7 +121,7 @@ void do_l1ca_to_l2c_handover(u32 sample_count,
       .mesid = mesid,
       .sample_count = sample_count,
       /* recalculate doppler freq for L2 from L1 */
-      .carrier_freq = carrier_freq * GPS_L2_HZ / GPS_L1_HZ,
+      .doppler_hz = doppler_hz * GPS_L2_HZ / GPS_L1_HZ,
       .code_phase = code_phase,
       /* chips to correlate during first 1 ms of tracking */
       .chips_to_correlate = code_to_chip_rate(mesid.code) * 1e-3,
@@ -186,11 +186,11 @@ static bool check_L1_entries(tracker_t *tracker,
   /* Convert L2 doppler to L1 */
   float L2_to_L1_freq = GPS_L1_HZ / GPS_L2_HZ;
   float freq_mod =
-      fmodf(tracker->xcorr_freq * L2_to_L1_freq, L1CA_XCORR_FREQ_STEP);
+      fmodf(tracker->xcorr_freq_hz * L2_to_L1_freq, L1CA_XCORR_FREQ_STEP);
 
   float entry_cn0 = entry->cn0;
-  float entry_freq = entry->freq;
-  float entry_freq_mod = fmodf(entry_freq, L1CA_XCORR_FREQ_STEP);
+  float entry_freq_hz = entry->freq_hz;
+  float entry_freq_mod = fmodf(entry_freq_hz, L1CA_XCORR_FREQ_STEP);
   float error = fabsf(entry_freq_mod - freq_mod);
 
   if (error <= gps_l2c_config.xcorr_delta) {

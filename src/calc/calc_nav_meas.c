@@ -73,7 +73,7 @@ static s8 convert_channel_measurement_to_starling_obs(
   /* Compute the carrier phase measurement. */
   obs->carrier_phase = meas->carrier_phase;
 
-  /* For raw Doppler we use the instantaneous carrier frequency from the
+  /* For raw Doppler we use the instantaneous Doppler frequency from the
    * tracking loop. */
   obs->doppler = meas->carrier_freq;
 
@@ -99,7 +99,7 @@ static s8 convert_channel_measurement_to_starling_obs(
 
   /* Propagate pseudorange with raw doppler times wavelength */
   obs->pseudorange += dt * obs->doppler * lambda;
-  /* Propagate carrier phase with carrier frequency */
+  /* Propagate carrier phase with doppler frequency */
   obs->carrier_phase += dt * obs->doppler;
 
   /* Compute flags.
