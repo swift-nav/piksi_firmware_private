@@ -31,6 +31,8 @@ matrix:
             - graphviz
       env: GCCVER=6
     - os: linux
+      env: TESTENV=mesta
+    - os: linux
       addons:
         apt:
           sources:
@@ -42,6 +44,9 @@ matrix:
     - os: osx
       osx_image: xcode10
       env: GCCVER=6
+  allow_failures:
+    - os: linux
+      env: TESTENV=mesta
 
 before_install:
   - test -n $CC && unset CC
@@ -70,6 +75,8 @@ install:
   # the event type.
   - if [[ "$TESTENV" == "lint" ]]; then
       echo "lint";
+    elif [[ "$TESTENV" == "mesta" ]]; then
+      echo "mesta";
     elif [[ "$TRAVIS_EVENT_TYPE" == "cron" ]]; then
       ANSIBLE_SUDO_OPTION="" bash setup.sh -s origin/master -x install;
     else
