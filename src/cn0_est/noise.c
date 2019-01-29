@@ -34,7 +34,7 @@ static int find_nontracked_sat(code_t code, u32 msk) {
   constellation_t cons = code_to_constellation(code);
   unsigned sat_count = constellation_to_sat_count(cons);
   unsigned sig_count = sat_count;
-  if (CONSTELLATION_GLO == sig_count) {
+  if (CONSTELLATION_GLO == cons) {
     sig_count = GLO_MAX_FCN;
   }
 
