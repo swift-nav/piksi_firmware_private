@@ -133,6 +133,7 @@ typedef struct {
   const volatile u32 STATUS;
   volatile u32 CONTROL;
   volatile u32 AUTHENTICATION;
+  volatile u32 RESET_N_AES_RSA;
   const volatile u32 VERSION;
   const volatile u32 TIMING_COUNT;
   volatile u32 IRQS;
@@ -362,6 +363,15 @@ typedef struct {
 #define SET_NAP_AUTHENTICATION_BYTE(REG, VAL) \
   (((REG) & ~NAP_AUTHENTICATION_BYTE_Msk) |   \
    ((VAL) << NAP_AUTHENTICATION_BYTE_Pos))
+
+/* Register: NAP_RESET_N_AES_RSA */
+#define NAP_RESET_N_AES_RSA_VALUE_Pos (0U)
+#define NAP_RESET_N_AES_RSA_VALUE_Len (1U)
+#define NAP_RESET_N_AES_RSA_VALUE_Rst (0x0U)
+#define NAP_RESET_N_AES_RSA_VALUE_Msk (0x1U << NAP_RESET_N_AES_RSA_VALUE_Pos)
+#define SET_NAP_RESET_N_AES_RSA_VALUE(REG, VAL) \
+  (((REG) & ~NAP_RESET_N_AES_RSA_VALUE_Msk) |   \
+   ((VAL) << NAP_RESET_N_AES_RSA_VALUE_Pos))
 
 /* Register: NAP_VERSION */
 #define NAP_VERSION_VALUE_Pos (0U)
