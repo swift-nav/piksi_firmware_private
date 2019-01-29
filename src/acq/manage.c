@@ -627,8 +627,6 @@ void update_acq_hints(tracker_t *tracker) {
     acq->dopp_hint_low = MAX(doppler_hz - ACQ_FULL_CF_STEP, doppler_min_hz);
     acq->dopp_hint_high = MIN(doppler_hz + ACQ_FULL_CF_STEP, doppler_max_hz);
   }
-
-  noise_update_mesid_status(mesid, /*intrack=*/false);
 }
 
 /**
