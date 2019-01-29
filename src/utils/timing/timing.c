@@ -123,7 +123,8 @@ void update_time(u64 tc, const gnss_solution *sol) {
   chMtxUnlock(&clock_mutex);
 
   /* Is the clock state initialized? */
-  if (!gps_time_valid(&clock_state.t_gps)) {
+  if (!gps_time_valid(&clock_state.t_gps) ||
+      TIME_UNKNOWN == clock_var_to_time_quality(clock_state.P[0][0])) {
     /* Initialize clock state estimate with the given solution */
     clock_state.tc = tc;
     clock_state.t_gps = sol->time;
