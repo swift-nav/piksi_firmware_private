@@ -24,6 +24,8 @@
 #include "nap_constants.h"
 #include "nap_hw.h"
 
+#define COMPILER_BARRIER() asm volatile("" : : : "memory")
+
 /** \addtogroup nap
  * \{ */
 
@@ -127,11 +129,16 @@ void nap_unlock(const u8 key[]) {
    * This polling would then at least give us information that Linux
    * interfered here.
    */
-  chSysLock();
   volatile u16 n = 0;
   while (GET_NAP_STATUS_AUTH_BUSY(NAP->STATUS)) {
     log_error("Linux interrupted writing of NAP->AUTHENTICATE. Count=%i", n);
   }
+
+  NAP->RESET_N_AES_RSA = 1;
+  COMPILER_BARRIER();          /* make sure reset is released before auth. */
+  chThdSleepMicroseconds(100); /* allow FPGA logic to release reset */
+
+  chSysLock();
   for (u32 i = 0; i < NAP_KEY_LENGTH; ++i) {
     NAP->AUTHENTICATION = SET_NAP_AUTHENTICATION_OPERATION(0, 0) |
                           SET_NAP_AUTHENTICATION_ADDR(0, i) |
