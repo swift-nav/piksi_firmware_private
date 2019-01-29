@@ -65,8 +65,8 @@ static void start_noise_estimation(void) {
         .mesid = construct_mesid(code, (u16)sat),
         .glo_slot_id = GLO_ORBIT_SLOT_UNKNOWN,
         .sample_count = nap_timing_count(),
-        .carrier_freq = 1567.f, /* an arbitrary prime number */
-        .code_phase = 131.f,    /* an arbitrary prime number */
+        .doppler_hz = 1567.f, /* an arbitrary prime number */
+        .code_phase = 131.f,  /* an arbitrary prime number */
         .chips_to_correlate = code_to_chip_count(code),
         .cn0_init = -1.f}; /* this is for noise estimation only */
 
