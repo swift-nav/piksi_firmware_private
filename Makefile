@@ -55,7 +55,8 @@ FW_DEPS=$(LIBSBP_BUILDDIR)/src/libsbp.a \
         $(LIBSETTINGS_BUILDDIR)/src/libsettings.a \
         $(STARLING_BUILDDIR)/src/libstarling-shim.a \
         $(STARLING_BUILDDIR)/src/libstarling.a \
-        $(STARLING_BUILDDIR)/src/libstarling-integration.a 
+        $(STARLING_BUILDDIR)/src/libstarling-integration.a \
+        $(STARLING_BUILDDIR)/src/libstarling-utils.a
 
 ifeq ($(PIKSI_HW),v3)
   CMAKEFLAGS += -DCMAKE_SYSTEM_PROCESSOR=cortex-a9
@@ -107,8 +108,14 @@ $(STARLING_BUILDDIR)/src/libstarling-shim.a: $(STARLING_BUILDDIR)/Makefile \
 $(STARLING_BUILDDIR)/src/libstarling-integration.a: $(STARLING_BUILDDIR)/Makefile \
                                            $(STARLING_BUILDDIR)/src/libstarling-shim.a \
                                            .PHONY
-	@printf "BUILD   libstarling-shim for target $(PIKSI_TARGET)\n"; \
+	@printf "BUILD   libstarling-integration for target $(PIKSI_TARGET)\n"; \
 	$(MAKE) starling-integration -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
+
+$(STARLING_BUILDDIR)/src/libstarling-utils.a: $(STARLING_BUILDDIR)/Makefile \
+                                           $(STARLING_BUILDDIR)/src/libstarling-shim.a \
+                                           .PHONY
+	@printf "BUILD   libstarling-utils for target $(PIKSI_TARGET)\n"; \
+	$(MAKE) starling-utils -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
 
 $(STARLING_BUILDDIR)/Makefile:
 	@printf "Run cmake for target $(STARLING_BUILDDIR)\n"; \

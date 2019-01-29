@@ -269,6 +269,7 @@ INCDIR = $(STARTUPINC) $(PORTINC) $(KERNINC) \
          $(SWIFTNAV_ROOT)/libsettings/include \
          $(SWIFTNAV_ROOT)/starling/include \
          $(SWIFTNAV_ROOT)/starling/third_party/libswiftnav/include \
+         $(SWIFTNAV_ROOT)/starling/starling-utils/include \
          $(SWIFTNAV_ROOT)/src \
          $(SWIFTNAV_ROOT)/src/board \
          $(SWIFTNAV_ROOT)/starling/libfec/include \
@@ -367,14 +368,15 @@ DINCDIR =
 DLIBDIR = $(LIBSBP_BUILDDIR)/src \
           $(LIBSETTINGS_BUILDDIR)/src \
           $(STARLING_BUILDDIR)/src \
+          $(STARLING_BUILDDIR)/starling-utils \
           $(STARLING_BUILDDIR)/libfec \
           $(LIBSWIFTNAV_BUILDDIR) \
           $(BOARDLIBDIR)
 
 # List all default libraries here
 DLIBS = $(BOARDLIBS) -lsbp -lstarling -lswiftnav -lstarling-shim\
-         -lstarling-integration -lm -Wl,--start-group -lstdc++\
-         -lc -Wl,--end-group -lfec -lnosys -lsettings
+         -lstarling-integration -lstarling-utils -lm -Wl,--start-group\
+         -lstdc++ -lc -Wl,--end-group -lfec -lnosys -lsettings
 
 #
 # End of default section
