@@ -731,34 +731,37 @@ static const char *get_ctrl_str(tp_ctrl_e v) {
  * \return None
  */
 static void log_switch(tracker_t *tracker, const char *reason) {
-  const me_gnss_signal_t mesid = tracker->mesid;
-  const tp_profile_t *state = &tracker->profile;
-  const tp_profile_entry_t *cur_profile = &state->profiles[state->cur.index];
-  const tp_profile_entry_t *next_profile = &state->profiles[state->next.index];
-  tp_tm_e cur_track_mode = get_track_mode(mesid, cur_profile);
-  tp_tm_e next_track_mode = get_track_mode(mesid, next_profile);
-
   /* To help debugging report tracking mode each 5 minutes */
   DO_EACH_MS(5 * 60 * 1000,
              log_info("Tracking mode: %s",
                       tp_is_rover_mode() ? "rover" : "base station"));
 
-  log_debug_mesid(mesid,
-                  "%s:"
-                  " cn0=%.1f "
-                  "(mode,pll,fll,ctrl): (%s,%.1f,%.1f,%s)->(%s,%.1f,%.1f,%s)",
-                  reason,
-                  state->filt_cn0,
-                  /* old state */
-                  tp_get_mode_str(cur_track_mode),
-                  state->cur.pll_bw,
-                  state->cur.fll_bw,
-                  get_ctrl_str(cur_profile->profile.controller_type),
-                  /* new state */
-                  tp_get_mode_str(next_track_mode),
-                  state->next.pll_bw,
-                  state->next.fll_bw,
-                  get_ctrl_str(next_profile->profile.controller_type));
+  if (DEBUG) {
+    const me_gnss_signal_t mesid = tracker->mesid;
+    const tp_profile_t *state = &tracker->profile;
+    const tp_profile_entry_t *cur_profile = &state->profiles[state->cur.index];
+    const tp_profile_entry_t *next_profile =
+        &state->profiles[state->next.index];
+    tp_tm_e cur_track_mode = get_track_mode(mesid, cur_profile);
+    tp_tm_e next_track_mode = get_track_mode(mesid, next_profile);
+
+    log_debug_mesid(mesid,
+                    "%s:"
+                    " cn0=%.1f "
+                    "(mode,pll,fll,ctrl): (%s,%.1f,%.1f,%s)->(%s,%.1f,%.1f,%s)",
+                    reason,
+                    state->filt_cn0,
+                    /* old state */
+                    tp_get_mode_str(cur_track_mode),
+                    state->cur.pll_bw,
+                    state->cur.fll_bw,
+                    get_ctrl_str(cur_profile->profile.controller_type),
+                    /* new state */
+                    tp_get_mode_str(next_track_mode),
+                    state->next.pll_bw,
+                    state->next.fll_bw,
+                    get_ctrl_str(next_profile->profile.controller_type));
+  }
 }
 
 static bool pll_bw_changed(tracker_t *tracker, profile_indices_t index) {

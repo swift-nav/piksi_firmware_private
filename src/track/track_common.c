@@ -669,7 +669,7 @@ static void tp_tracker_update_locks(tracker_t *tracker, u32 cycle_flags) {
   bool outp = tracker->ld_phase.outp || tracker->ld_freq.outp;
 
   bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
-  if (!outp_prev && outp && confirmed) {
+  if (DEBUG && !outp_prev && outp && confirmed) {
     u64 unlocked_ms = tracker_timer_ms(&tracker->unlocked_timer);
     log_debug_mesid(tracker->mesid, "Lock after %" PRIu64 "ms", unlocked_ms);
   }
