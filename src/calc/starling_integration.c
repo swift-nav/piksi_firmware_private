@@ -123,17 +123,6 @@ static cache_ret_t cache_read_iono_corr(ionosphere_t *iono) {
   }
 }
 
-static cache_ret_t cache_read_utc_params(utc_params_t *utc_params, bool *is_nv) {
-  ndb_op_code_t ret = ndb_utc_params_read(utc_params, is_nv);
-  if (NDB_ERR_NONE == ret) {
-    return CACHE_OK;
-  } else if (NDB_ERR_UNCONFIRMED_DATA == ret) {
-    return CACHE_OK_UNCONFIRMED_DATA;
-  } else {
-    return CACHE_ERROR;
-  }
-}
-
 static double calc_heading(const double b_ned[3]) {
   double heading = atan2(b_ned[1], b_ned[0]);
   if (heading < 0) {
@@ -195,7 +184,9 @@ void starling_integration_sbp_messages_init(sbp_messages_t *sbp_messages,
    * time quality */
   u8 sbp_time_qual = (TIME_PROPAGATED <= time_qual) ? TIME_PROPAGATED : 0;
   sbp_init_gps_time(&sbp_messages->gps_time, t, sbp_time_qual);
-  sbp_init_utc_time(&sbp_messages->utc_time, t, sbp_time_qual);
+  utc_params_t utc_params;
+  const utc_params_t *params_ptr = ndb_utc_params_read(&utc_params, NULL) ? &utc_params : NULL; // TODO(jbangelo): Do we need to use the is_nv param?
+  sbp_init_utc_time(&sbp_messages->utc_time, t, params_ptr, sbp_time_qual);
   sbp_init_pos_llh(&sbp_messages->pos_llh, t);
   sbp_init_pos_ecef(&sbp_messages->pos_ecef, t);
   sbp_init_vel_ned(&sbp_messages->vel_ned, t);
@@ -238,7 +229,9 @@ static void solution_make_sbp(const pvt_engine_result_t *soln,
                               u8 time_qual) {
   if (soln && soln->valid) {
     sbp_make_gps_time(&sbp_messages->gps_time, &soln->time, time_qual);
-    sbp_make_utc_time(&sbp_messages->utc_time, &soln->time, time_qual);
+    utc_params_t utc_params;
+    const utc_params_t *params_ptr = ndb_utc_params_read(&utc_params, NULL) ? &utc_params : NULL; // TODO(jbangelo): Do we need to use the is_nv param?
+    sbp_make_utc_time(&sbp_messages->utc_time, &soln->time, params_ptr, time_qual);
     /* In SPP, `baseline` is actually absolute position in ECEF. */
     double pos_ecef[3], pos_llh[3];
     memcpy(pos_ecef, soln->baseline, 3 * sizeof(double));
@@ -920,7 +913,6 @@ void starling_calc_pvt_setup() {
   external_functions_t extfns = {
       .cache_read_ephemeris = cache_read_ephemeris,
       .cache_read_iono_corr = cache_read_iono_corr,
-      .cache_read_utc_params = cache_read_utc_params,
       .track_sid_db_elevation_degrees_get = track_sid_db_elevation_degrees_get,
       .shm_navigation_unusable = shm_navigation_unusable,
       .starling_integration_simulation_enabled =
