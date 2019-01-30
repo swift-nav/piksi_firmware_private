@@ -60,7 +60,7 @@
 /** C/N0 offset for 20ms integration mode [dB/Hz] */
 #define TRACK_CN0_OFFSET_20MS_DBHZ 13
 /** C/N0 offset for 200ms integration mode [dB/Hz] */
-#define TRACK_CN0_OFFSET_200MS_DBHZ 23
+#define TRACK_CN0_OFFSET_200MS_DBHZ 26
 /** Total number of precomputed integration intervals */
 #define INTEG_PERIODS_NUM (ARRAY_SIZE(cn0_periods_ms))
 
