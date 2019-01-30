@@ -839,7 +839,7 @@ static void profile_low_latency_thread(enum ProfileDirective directive) {
   static float avg_diff_run_time_s = 0.0f;
   static float std_run_time_s = 0.1f;
   const float smooth_factor = 0.01f;
-  u32 nap_snapshot_begin = 0;
+  static u32 nap_snapshot_begin = 0;
   switch (directive) {
     case PROFILE_BEGIN:
       nap_snapshot_begin = NAP->TIMING_COUNT;
