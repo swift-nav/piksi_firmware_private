@@ -79,7 +79,7 @@ void sch_initialize_cost(acq_job_t *init_job,
 
   switch (init_job->cost_hint) {
     case ACQ_COST_MIN:
-      init_job->cost = MAX(init_job->cost, min_cost);
+      init_job->cost = min_cost + init_job->cost_delta;
       break;
     case ACQ_COST_AVG:
       if (0 == init_job->cost) {
