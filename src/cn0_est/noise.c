@@ -23,7 +23,8 @@
 
 static MUTEX_DECL(cn0_mutex);
 
-static u32 mask[CODE_COUNT] = {0};
+static u32 mask_all[CODE_COUNT] = {0};
+static u32 mask_noise[CODE_COUNT] = {0};
 static bool has_noise_estimate[CODE_COUNT] = {0};
 static double noise[CODE_COUNT] = {0};
 
@@ -53,13 +54,23 @@ static void start_noise_estimation(void) {
   for (int i = 0; i < (int)ARRAY_SIZE(used_codes); i++) {
     code_t code = used_codes[i];
     lock();
-    u32 msk = mask[code];
+    u32 msk_all = mask_all[code];
+    u32 msk_noise = mask_noise[code];
     unlock();
 
-    int sat = find_nontracked_sat(code, msk);
+    if (msk_noise) {
+      continue; /* there is still noise tracker running */
+    }
+
+    int sat = find_nontracked_sat(code, msk_all);
     if (sat < 0) {
       continue; /* no sats to track */
     }
+
+    u32 bit = 1u << (sat - code_to_sat_start(code));
+    lock();
+    mask_noise[code] |= bit;
+    unlock();
 
     tracking_startup_params_t startup_params = {
         .mesid = construct_mesid(code, (u16)sat),
@@ -108,9 +119,10 @@ void noise_update_mesid_status(me_gnss_signal_t mesid, bool intrack) {
 
   lock();
   if (intrack) {
-    mask[mesid.code] |= bit;
+    mask_all[mesid.code] |= bit;
   } else {
-    mask[mesid.code] &= ~bit;
+    mask_all[mesid.code] &= ~bit;
+    mask_noise[mesid.code] &= ~bit;
   }
   unlock();
 }
