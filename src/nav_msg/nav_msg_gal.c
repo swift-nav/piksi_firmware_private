@@ -249,56 +249,8 @@ bool gal_inav_msg_update(nav_msg_gal_inav_t *n, s8 bit_val) {
   return true;
 }
 
-static void gal_eph_debug(const nav_msg_gal_inav_t *n,
-                          const gal_inav_decoded_t *data,
-                          const gps_time_t *t) {
-  const ephemeris_t *e = &(data->ephemeris);
-  const ephemeris_kepler_t *k = &(data->ephemeris.kepler);
-  utc_tm date;
-  make_utc_tm(&(k->toc), &date);
-  log_debug_mesid(n->mesid,
-                  "%4" PRIu16 " %2" PRIu8 " %2" PRIu8 " %2" PRIu8 " %2" PRIu8
-                  " %2" PRIu8 "%19.11E%19.11E%19.11E  ",
-                  date.year,
-                  date.month,
-                  date.month_day,
-                  date.hour,
-                  date.minute,
-                  date.second_int,
-                  k->af0,
-                  k->af1,
-                  k->af2);
-  log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
-            (double)k->iode,
-            k->crs,
-            k->dn,
-            k->m0);
-  log_debug(
-      "    %19.11E%19.11E%19.11E%19.11E  ", k->cuc, k->ecc, k->cus, k->sqrta);
-  log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
-            (double)e->toe.tow,
-            k->cic,
-            k->omega0,
-            k->cis);
-  log_debug(
-      "    %19.11E%19.11E%19.11E%19.11E  ", k->inc, k->crc, k->w, k->omegadot);
-  log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
-            k->inc_dot,
-            1.0,
-            (double)e->toe.wn,
-            0.0);
-  log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
-            e->ura,
-            (double)e->health_bits,
-            k->tgd.gal_s[0],
-            k->tgd.gal_s[1]);
-  log_debug("    %19.11E%19.11E ", rint(t->tow), 0.0);
-}
-
 static void gal_eph_store(const nav_msg_gal_inav_t *n,
-                          gal_inav_decoded_t *data,
-                          const gps_time_t *t) {
-  gal_eph_debug(n, data, t);
+                          gal_inav_decoded_t *data) {
   ephemeris_t *e = &(data->ephemeris);
   /* Always mark GAL ephemeris as if it was coming from E1. */
   e->sid.code = CODE_GAL_E1B;
@@ -362,7 +314,7 @@ inav_data_type_t parse_inav_word(nav_msg_gal_inav_t *nav_msg,
     parse_inav_health6(content, dd);
     t_dec = parse_inav_w5tow(content);
     parse_inav_eph(nav_msg, dd, &t_dec);
-    gal_eph_store(nav_msg, dd, &t_dec);
+    gal_eph_store(nav_msg, dd);
     nav_msg->TOW_ms = (s32)rint(t_dec.tow * 1000) + 2000;
     nav_msg->health = shm_ephe_healthy(&dd->ephemeris, nav_msg->mesid.code)
                           ? SV_HEALTHY

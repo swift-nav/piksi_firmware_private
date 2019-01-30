@@ -109,52 +109,6 @@ void bds_nav_msg_clear_decoded(nav_msg_bds_t *n) {
   memset(n->page_words, 0, sizeof(n->page_words));
 }
 
-static void bds_eph_debug(const nav_msg_bds_t *n,
-                          const bds_d1_decoded_data_t *data,
-                          s32 TOW_s) {
-  utc_tm date;
-  const ephemeris_t *e = &(data->ephemeris);
-  const ephemeris_kepler_t *k = &(data->ephemeris.kepler);
-  make_utc_tm(&(k->toc), &date);
-  log_debug_mesid(n->mesid,
-                  "%4" PRIu16 " %2" PRIu8 " %2" PRIu8 " %2" PRIu8 " %2" PRIu8
-                  " %2" PRIu8 "%19.11E%19.11E%19.11E  ",
-                  date.year,
-                  date.month,
-                  date.month_day,
-                  date.hour,
-                  date.minute,
-                  date.second_int,
-                  k->af0,
-                  k->af1,
-                  k->af2);
-  log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
-            (double)k->iode,
-            k->crs,
-            k->dn,
-            k->m0);
-  log_debug(
-      "    %19.11E%19.11E%19.11E%19.11E  ", k->cuc, k->ecc, k->cus, k->sqrta);
-  log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
-            (double)e->toe.tow,
-            k->cic,
-            k->omega0,
-            k->cis);
-  log_debug(
-      "    %19.11E%19.11E%19.11E%19.11E  ", k->inc, k->crc, k->w, k->omegadot);
-  log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
-            k->inc_dot,
-            0.0,
-            (double)e->toe.wn - BDS_WEEK_TO_GPS_WEEK,
-            0.0);
-  log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
-            e->ura,
-            (double)e->health_bits,
-            k->tgd.bds_s[0],
-            k->tgd.bds_s[1]);
-  log_debug("    %19.11E%19.11E ", rint(TOW_s), (double)k->iodc);
-}
-
 static void bds_eph_store(const nav_msg_bds_t *n, bds_d1_decoded_data_t *data) {
   ephemeris_t *e = &(data->ephemeris);
   ephemeris_kepler_t *k = &(data->ephemeris.kepler);
@@ -249,7 +203,6 @@ bds_decode_status_t bds_d1_processing(nav_msg_bds_t *n,
     process_d1_fraid2(n, data);
     process_d1_fraid3(n, data);
     /* debug information */
-    bds_eph_debug(n, data, TOW_s);
     bds_eph_store(n, data);
     n->goodwords_mask = 0;
     n->health = shm_ephe_healthy(&data->ephemeris, n->mesid.code)
