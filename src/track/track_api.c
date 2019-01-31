@@ -90,7 +90,7 @@ void tracker_retune(tracker_t *tracker, u32 chips_to_correlate) {
 
   u8 max_spac = code_to_init_spacing(code);
   u8 num_cycles = 2 * max_spac;     /* wide + narrow cycle */
-  u64 cycle_time_ms = 30 * SECS_MS; /* Time spent in a cycle */
+  u64 cycle_time_ms = 60 * SECS_MS; /* Time spent in a cycle */
   u64 start_ms = 180 * SECS_MS; /* Initial time given to obtain RTK solution */
   if (geo_sv && (uptime_ms > start_ms)) {
     for (u8 ii = 1; ii <= num_cycles; ii++) {
