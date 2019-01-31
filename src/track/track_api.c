@@ -84,7 +84,8 @@ void tracker_retune(tracker_t *tracker, u32 chips_to_correlate) {
   }
 
   u8 spac = 0;
-  static u8 prev_spac_gps = 0;
+  static u8 prev_spac_gps_prn1 = 0;
+  static u8 prev_spac_gps_prn2 = 0;
   static u8 prev_spac_bds = 0;
   static u8 prev_spac_gal = 0;
 
@@ -106,8 +107,14 @@ void tracker_retune(tracker_t *tracker, u32 chips_to_correlate) {
       prev_spac_gal = spac;
       log_error_mesid(tracker->mesid, "Spacing: %" PRIu8 "", spac);
     }
-    if (is_gps(code) && (spac != prev_spac_gps)) {
-      prev_spac_gps = spac;
+    if ((code == CODE_GPS_L1CA) && (tracker->mesid.sat == 1) &&
+        (spac != prev_spac_gps_prn1)) {
+      prev_spac_gps_prn1 = spac;
+      log_error_mesid(tracker->mesid, "Spacing: %" PRIu8 " ", spac);
+    }
+    if ((code == CODE_GPS_L1CA) && (tracker->mesid.sat == 2) &&
+        (spac != prev_spac_gps_prn2)) {
+      prev_spac_gps_prn2 = spac;
       log_error_mesid(tracker->mesid, "Spacing: %" PRIu8 " ", spac);
     }
     if (is_bds2(code) && (spac != prev_spac_bds)) {
