@@ -82,7 +82,7 @@ static void tracker_bds2_b11_update(tracker_t *tracker) {
     bds_b11_to_b2_handover(tracker->sample_count,
                            tracker->mesid.sat,
                            tracker->code_phase_prompt,
-                           tracker->carrier_freq,
+                           tracker->doppler_hz,
                            tracker->cn0);
   }
 }

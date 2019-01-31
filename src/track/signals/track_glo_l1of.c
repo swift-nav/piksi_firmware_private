@@ -100,7 +100,7 @@ static void tracker_glo_l1of_update(tracker_t *tracker) {
     do_glo_l1of_to_l2of_handover(tracker->sample_count,
                                  tracker->mesid.sat,
                                  tracker->code_phase_prompt,
-                                 tracker->carrier_freq,
+                                 tracker->doppler_hz,
                                  tracker->cn0);
   }
 }

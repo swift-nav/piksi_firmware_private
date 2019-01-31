@@ -146,7 +146,7 @@ static double calc_samples_per_chip(double code_phase_rate) {
 void nap_track_init(u8 channel,
                     const me_gnss_signal_t mesid,
                     u64 ref_timing_count,
-                    float doppler_freq_hz,
+                    float doppler_hz,
                     double code_phase,
                     u32 chips_to_correlate) {
   assert((mesid.code == CODE_GPS_L1CA) || (mesid.code == CODE_GPS_L2CM) ||
@@ -198,9 +198,9 @@ void nap_track_init(u8 channel,
   s->spacing = NAP_EPL_SPACING_SAMPLES - 1;
 
   /* code and carrier frequency */
-  double carrier_freq_hz = mesid_to_carr_freq(mesid);
+  double carrier_hz = mesid_to_carr_freq(mesid);
   double chip_rate =
-      (1.0 + doppler_freq_hz / carrier_freq_hz) * code_to_chip_rate(mesid.code);
+      (1.0 + doppler_hz / carrier_hz) * code_to_chip_rate(mesid.code);
 
   /* Spacing between VE and P correlators */
   s16 delta_samples = NAP_VEP_SPACING_SAMPLES;
@@ -229,7 +229,7 @@ void nap_track_init(u8 channel,
                 SET_NAP_CORR_LEN(length);
   s->length_adjust = delta_samples;
   /* Carrier phase rate */
-  double carrier_dopp_hz = -(s->fcn_freq_hz + doppler_freq_hz);
+  double carrier_dopp_hz = -(s->fcn_freq_hz + doppler_hz);
   s32 carr_pinc = round(carrier_dopp_hz * NAP_TRACK_CARRIER_FREQ_UNITS_PER_HZ);
   s->carr_pinc[1] = s->carr_pinc[0] = carr_pinc;
   t->CARR_PINC = carr_pinc;
@@ -359,7 +359,7 @@ void nap_track_init(u8 channel,
 }
 
 void nap_track_update(u8 channel,
-                      double doppler_freq_hz,
+                      double doppler_hz,
                       double chip_rate,
                       u32 chips_to_correlate,
                       bool has_pilot_sync) {
@@ -405,7 +405,7 @@ void nap_track_update(u8 channel,
 
   /* CARRIER (+FCN) FREQ ---------------------------------------------- */
   /* Note: s->fcn_freq_hz is non zero for Glonass only */
-  double carrier_freq_hz = -(s->fcn_freq_hz + doppler_freq_hz);
+  double carrier_freq_hz = -(s->fcn_freq_hz + doppler_hz);
 
   s32 carr_pinc = round(carrier_freq_hz * NAP_TRACK_CARRIER_FREQ_UNITS_PER_HZ);
   s->carr_pinc[1] = s->carr_pinc[0];

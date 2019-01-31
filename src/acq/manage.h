@@ -60,7 +60,7 @@ typedef struct {
   me_gnss_signal_t mesid; /**< ME signal identifier. */
   u16 glo_slot_id;        /**< GLO orbital slot. */
   u64 sample_count;       /**< Reference NAP sample count. */
-  float carrier_freq;     /**< Carrier frequency Doppler (Hz). */
+  float doppler_hz;       /**< Doppler frequency (Hz). */
   double code_phase;      /**< Code phase (chips). */
   u32 chips_to_correlate; /**< Chips to integrate over. */
   float cn0_init;         /**< C/N0 estimate (dBHz). */

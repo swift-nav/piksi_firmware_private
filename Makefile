@@ -67,6 +67,9 @@ ifeq ($(PIKSI_HW),v3)
   FW_DEPS += $(OPENAMP_BUILDDIR)/lib/libopen-amp.a
 endif
 
+ARM_NONE_EABI_GCC_VERSION = $(shell arm-none-eabi-gcc --version)
+$(info $$ARM_NONE_EABI_GCC_VERSION is [${ARM_NONE_EABI_GCC_VERSION}])
+
 .PHONY: all tests firmware docs .FORCE
 
 all: firmware

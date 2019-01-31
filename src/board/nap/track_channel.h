@@ -30,12 +30,12 @@ extern u8 nap_track_n_channels;
 void nap_track_init(u8 channel,
                     const me_gnss_signal_t mesid,
                     u64 ref_timing_count,
-                    float doppler_freq_hz,
+                    float doppler_hz,
                     double code_phase,
                     u32 chips_to_correlate);
 
 void nap_track_update(u8 channel,
-                      double doppler_freq_hz,
+                      double doppler_hz,
                       double code_phase_rate,
                       u32 chips_to_correlate,
                       bool has_pilot_sync);
