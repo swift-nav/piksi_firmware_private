@@ -65,5 +65,5 @@ int main(void) {
     handle_nap_track_irq();
   }
 
-  return j;
+  return 0;
 }
