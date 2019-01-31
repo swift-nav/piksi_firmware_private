@@ -101,7 +101,7 @@ typedef enum {
   NDB_CAND_NEW_TRUSTED,   /**< Previous candidate confirmed */
   NDB_CAND_MISMATCH,      /**< Candidate data mismatch */
   NDB_CAND_GPS_TIME_MISSING, /**< GPS time missing, can't update NDB */
-  NDB_CAND_ERR_BAD_PARAM     /**< Invalid SID */
+  NDB_CAND_BAD_PARAM     /**< Invalid SID */
 } ndb_cand_status_t;
 
 #define NDB_SBP_UPDATE_SIG_IDX_INIT -1
