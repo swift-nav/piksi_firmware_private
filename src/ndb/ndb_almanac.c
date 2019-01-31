@@ -803,6 +803,9 @@ ndb_op_code_t ndb_almanac_store(const gnss_signal_t *src_sid,
       case NDB_CAND_GPS_TIME_MISSING:
         res = NDB_ERR_GPS_TIME_MISSING;
         break;
+      case NDB_CAND_ERR_BAD_PARAM:
+        res = NDB_ERR_BAD_PARAM;
+        break;
       default:
         assert(!"Invalid status");
     }
@@ -909,6 +912,9 @@ ndb_op_code_t ndb_almanac_wn_store(
     case NDB_CAND_OLDER:
     case NDB_CAND_GPS_TIME_MISSING:
       res = NDB_ERR_GPS_TIME_MISSING;
+      break;
+    case NDB_CAND_ERR_BAD_PARAM:
+      res = NDB_ERR_BAD_PARAM;
       break;
     default:
       assert(!"Unexpected almanac's TOA/WN candidate status");
