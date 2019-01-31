@@ -17,7 +17,9 @@
 #include <stddef.h>
 
 /* Resource table entries */
-#define NUM_TABLE_ENTRIES 2
+#define NUM_TABLE_ENTRIES 3
+#define RPROC_MEM_START 0x1B000000
+#define RPROC_MEM_SIZE 0x04000000
 #define ELF_START 0x1B000000
 #define ELF_SIZE 0x02000000
 #define NUM_VRINGS 2
@@ -40,6 +42,8 @@ struct remote_resource_table {
   unsigned int num;
   unsigned int reserved[2];
   unsigned int offset[NUM_TABLE_ENTRIES];
+  /* Reserved memory area */
+  struct fw_rsc_rproc_mem rproc_mem;
   /* text carveout entry */
   struct fw_rsc_carveout elf_cout;
   /* rpmsg vdev entry */
