@@ -214,7 +214,12 @@ endef
 $(eval $(call SOURCES,${CSRC}))
 $(eval $(call SOURCES,${CXXSRC}))
 
-mesta : ${obj.c} ${obj.cc}
+GIT_VERSION := $(shell git describe --tags --dirty --always)
+version :
+	@echo "Generating $@"
+	@echo "#define GIT_VERSION \"$(GIT_VERSION)\"" > stubs/version.h
+
+mesta : version ${obj.c} ${obj.cc}
 	$(CXX) -o $@ $^ -lm
 
 ${obj.c} : % :
