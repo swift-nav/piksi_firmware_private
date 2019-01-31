@@ -71,7 +71,7 @@ void tracker_retune(tracker_t *tracker, u32 chips_to_correlate) {
   double doppler_hz = tracker->doppler_hz;
   double code_phase_rate = tracker->code_phase_rate;
   bool nap_strip_sc = nap_sc_wipeoff(tracker);
-  u64 time_in_track_ms = tracker_timer_ms(&tracker->age_timer);
+  u64 uptime_ms = timing_getms();
   code_t code = tracker->mesid.code;
 
   bool geo_sv = false;
@@ -91,10 +91,10 @@ void tracker_retune(tracker_t *tracker, u32 chips_to_correlate) {
   u8 max_spac = code_to_init_spacing(code);
   u8 num_cycles = 2 * max_spac;     /* wide + narrow cycle */
   u64 cycle_time_ms = 30 * SECS_MS; /* Time spent in a cycle */
-  u64 start_ms = 120 * SECS_MS; /* Initial time given to obtain RTK solution */
-  if (geo_sv && (time_in_track_ms > start_ms)) {
+  u64 start_ms = 180 * SECS_MS; /* Initial time given to obtain RTK solution */
+  if (geo_sv && (uptime_ms > start_ms)) {
     for (u8 ii = 1; ii <= num_cycles; ii++) {
-      if (time_in_track_ms < (start_ms + ii * cycle_time_ms)) {
+      if (uptime_ms < (start_ms + ii * cycle_time_ms)) {
         /* Narrow spacing for even indexes */
         /* Wide spacing for odd indexes */
         spac = (0 == ii % 2) ? 0 : ii / 2;
@@ -108,7 +108,7 @@ void tracker_retune(tracker_t *tracker, u32 chips_to_correlate) {
     }
     if (is_gps(code) && (spac != prev_spac_gps)) {
       prev_spac_gps = spac;
-      log_error_mesid(tracker->mesid, "Spacing: %" PRIu8 "", spac);
+      log_error_mesid(tracker->mesid, "Spacing: %" PRIu8 " ", spac);
     }
     if (is_bds2(code) && (spac != prev_spac_bds)) {
       prev_spac_bds = spac;
