@@ -110,7 +110,10 @@ ndb_op_code_t ndb_iono_corr_store(const gnss_signal_t *sid,
   return res;
 }
 
-static void iono_msg_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
+static void iono_msg_callback(u16 sender_id,
+                              u8 len,
+                              u8 msg[], /* NOLINT */
+                              void *context) {
   (void)len;
   (void)context;
 

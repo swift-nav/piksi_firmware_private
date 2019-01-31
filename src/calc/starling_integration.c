@@ -552,7 +552,7 @@ bool starling_integration_simulation_enabled(void) {
 
 static void reset_filters_callback(u16 sender_id,
                                    u8 len,
-                                   u8 msg[],
+                                   u8 msg[], /* NOLINT */
                                    void *context) {
   (void)sender_id;
   (void)len;
@@ -715,7 +715,7 @@ static void profile_low_latency_thread(enum ProfileDirective directive) {
 }
 
 /******************************************************************************/
-static THD_FUNCTION(initialize_and_run_starling, arg) {
+static THD_FUNCTION(initialize_and_run_starling, arg) { /* NOLINT */
   (void)arg;
   chRegSetThreadName("starling");
 

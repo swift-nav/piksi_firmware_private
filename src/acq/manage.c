@@ -222,7 +222,10 @@ static bool tracking_startup_fifo_read(tracking_startup_fifo_t *fifo,
                                        tracking_startup_params_t *element);
 
 static sbp_msg_callbacks_node_t almanac_callback_node;
-static void almanac_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
+static void almanac_callback(u16 sender_id,
+                             u8 len,
+                             u8 msg[], /* NOLINT */
+                             void *context) {
   (void)sender_id;
   (void)len;
   (void)context;

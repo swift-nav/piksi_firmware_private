@@ -329,7 +329,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
  * Just logs a deprecation warning. */
 static void deprecated_callback(u16 sender_id,
                                 u8 len,
-                                u8 msg[],
+                                u8 msg[], /* NOLINT */
                                 void *context) {
   (void)context;
   (void)len;
@@ -340,9 +340,11 @@ static void deprecated_callback(u16 sender_id,
       "Piksi.");
 }
 
-/** SBP callback for Group delay message
- */
-static void ics_msg_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
+/** SBP callback for Group delay message */
+static void ics_msg_callback(u16 sender_id,
+                             u8 len,
+                             u8 msg[], /* NOLINT */
+                             void *context) {
   (void)sender_id;
   (void)len;
   (void)context;

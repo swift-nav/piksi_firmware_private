@@ -170,7 +170,7 @@ static int pps_frequency_changed(void *ctx) {
  */
 void pps_setup(void) {
   pps_config(pps_width_us, pps_polarity);
-  static const char const *pps_propagation_mode_enum[] = {
+  static const char *pps_propagation_mode_enum[] = {
       "None", "Time Limited", "Unlimited", NULL};
 
   settings_type_t pps_propagation_setting;
