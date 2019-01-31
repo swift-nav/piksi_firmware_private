@@ -75,7 +75,7 @@ CSRC := $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l2c.c \
 	$(SWIFTNAV_ROOT)/src/track/track_interface.c \
 	$(SWIFTNAV_ROOT)/src/cn0_est/cn0_est_bl.c \
 	$(SWIFTNAV_ROOT)/src/cn0_est/cn0_est_basic.c \
-        $(SWIFTNAV_ROOT)/src/cn0_est/noise.c \
+	$(SWIFTNAV_ROOT)/src/cn0_est/noise.c \
 	$(SWIFTNAV_ROOT)/src/utils/filters/filter_lp1.c \
 	$(SWIFTNAV_ROOT)/src/utils/lock_detector/lock_detector.c \
 	$(SWIFTNAV_ROOT)/src/utils/track_loop/track_pll2_dll1.c \
