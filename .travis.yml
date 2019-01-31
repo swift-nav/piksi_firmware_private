@@ -31,7 +31,11 @@ matrix:
             - graphviz
       env: GCCVER=6
     - os: linux
-      env: TESTENV=mesta
+      addons:
+        apt:
+          packages:
+            - g++-6
+      env: TESTENV=mesta GCCVER=6
     - os: linux
       addons:
         apt:
@@ -46,7 +50,7 @@ matrix:
       env: GCCVER=6
   allow_failures:
     - os: linux
-      env: TESTENV=mesta
+      env: TESTENV=mesta GCCVER=6
 
 before_install:
   - test -n $CC && unset CC
