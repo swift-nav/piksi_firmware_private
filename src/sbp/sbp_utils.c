@@ -67,8 +67,6 @@ void sbp_send_ndb_event(u8 event,
 
 typedef struct {
   const msg_info_t msg_info;
-  // const pack_ephe_func pack;
-  // const unpack_ephe_func unpack;
   sbp_msg_callbacks_node_t cbk_node;
 } ephe_type_table_element_t;
 
