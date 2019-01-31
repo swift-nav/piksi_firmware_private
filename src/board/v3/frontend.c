@@ -148,51 +148,74 @@ bool nt1065_get_temperature(double* temperature) {
   return true;
 }
 
+/* NT1065 AGC gain constants (refer to datasheet) */
+
+#define AGC_CHANNEL_INDEX_SHIFT (4)
+#define AGC_STATUS_REG (5)
+#define AGC_RF_GAIN_REG (9)
+#define AGC_IND_MASK (0x30)
+#define AGC_IND_SHIFT (4)
+#define AGC_RF_GAIN_MASK (0xf)
+#define AGC_IF_GAIN_REG (10)
+#define AGC_IF_GAIN_MASK (0x1f)
+#define AGC_IF_GAIN_SHIFT (0)
+#define AGC_RF_GAIN_SF (0.95)
+#define AGC_RF_GAIN_OFFSET (12.0)
+#define AGC_IF_GAIN_MAX_DB (64.0)
+#define AGC_IF_GAIN_RANGE (23.0)
+#define AGC_IF_GAIN_SF (AGC_IF_GAIN_MAX_DB / AGC_IF_GAIN_RANGE)
+#define AGC_IF_GAIN_OFFSET (-0.5)
+#define AGC_RF_GAIN_RANGE (15.0)
+/* Invalid gain percentage is -1 in SBP */
+#define AGC_INVALID_GAIN (-1)
+
 void nt1065_get_agc(s8 rf_gain_array[], s8 if_gain_array[]) {
   u8 agc_indicator = 0;
   u8 agc_rf_gain = 0;
-  u8 agc_ifa_gain = 0;
+  u8 agc_if_gain = 0;
   if (rf_gain_array != NULL && if_gain_array != NULL) {
     /* Read each AGC gain value for each channel from registers 9 and 10 */
     for (int i = 0; i < NUM_CHANNELS; i++) {
       frontend_open_spi();
-      spi_write(5, i << 4); /* set NT1065 channel for gain status */
-      agc_rf_gain = spi_read(9);
-      /* bits 4 & 5 of reg 9 are rf agc gain indicator (not currently used) */
-      /* Note: the AGC indicator suggests that we have non-optimal RF feeding to
-       * 1065 in many cases where the receiver appears to function nominally */
-      agc_indicator = (agc_rf_gain & 0x30) >> 4;
+      /* set NT1065 channel for gain status */
+      spi_write(AGC_STATUS_REG, i << AGC_CHANNEL_INDEX_SHIFT);
+      agc_rf_gain = spi_read(AGC_RF_GAIN_REG);
+      /* bits 5 & 6 of reg 9 are rf agc gain indicator */
+      /* Note: the AGC indicator suggests that we may have non-optimal RF
+       * levels to 1065 in many cases where the receiver appears to function
+       * normally. Rather than spam users, only the conditionally compiled
+       * LOG_DEBUG is sent for agc_indicator at this time. */
+      agc_indicator = (agc_rf_gain & AGC_IND_MASK) >> AGC_IND_SHIFT;
       /* lower nible of reg 9 is the rf AGC gain */
-      agc_rf_gain &= 0xf;
+      agc_rf_gain &= AGC_RF_GAIN_MASK;
       /* bits 4 - 0 are the IFA gain */
-      agc_ifa_gain = spi_read(10) & 0x1f;
+      agc_if_gain = spi_read(AGC_IF_GAIN_REG) & AGC_IF_GAIN_MASK;
       frontend_close_spi();
-      /* See nt1065 datasheet for explanation of constants to convert to dB */
       log_debug(
-          "RF channel %d: agc_indicator->%x, rf_gain->%f dB, ifa_gain->%f dB",
+          "RF channel %d: agc_indicator->%x, rf_gain->%f dB, if_gain->%f dB",
           i,
           agc_indicator,
-          agc_rf_gain * 0.95 + 12,
-          agc_ifa_gain * 64 / 23.0 - 0.5);
+          agc_rf_gain * AGC_RF_GAIN_SF + AGC_RF_GAIN_OFFSET,
+          agc_if_gain * AGC_IF_GAIN_SF + AGC_IF_GAIN_OFFSET);
 
       /* non-dimensionalize RF gain to percent (max is 0b1111 or 15) */
-      rf_gain_array[i] = rintf(agc_rf_gain / 15.0 * 100.0);
+      rf_gain_array[i] = rintf(agc_rf_gain / AGC_RF_GAIN_RANGE * 100.0);
 
-      if (agc_indicator == 0) /* value of 0 indicates rf signal in range */
+      if (agc_indicator != 0) /* value of 0 indicates rf signal is in range */
       {
         log_debug(
             "NT1065 reported RF gain of %f dB out of range for channel %d",
-            agc_rf_gain * 0.95 + 12,
+            agc_rf_gain * AGC_RF_GAIN_SF + AGC_RF_GAIN_OFFSET,
             i + 1);
       }
       /* non-dimensionalize IF gain to percent (max is 0b10111 or 23) */
-      if (agc_ifa_gain < 24) {
-        if_gain_array[i] = rintf(agc_ifa_gain / 23.0 * 100.0);
+      if (agc_if_gain <= AGC_IF_GAIN_RANGE) {
+        if_gain_array[i] = rintf(agc_if_gain / AGC_IF_GAIN_RANGE * 100.0);
       } else { /* Should never get here */
         log_error("NT1065 reported IFA gain of %f out of range for channel %d",
-                  agc_ifa_gain * 64 / 23.0 - 0.5,
+                  agc_if_gain * AGC_IF_GAIN_SF + AGC_IF_GAIN_OFFSET,
                   i);
-        if_gain_array[i] = -1; /* invalid gain percent is given as -1 */
+        if_gain_array[i] = AGC_INVALID_GAIN;
       }
     }
   }
