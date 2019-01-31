@@ -67,6 +67,7 @@ void chRegSetThreadNameX(thread_t *tp, const char *name);
 void chRegSetThreadName(const char *name);
 
 systime_t chThdSleepMilliseconds(systime_t time);
+void chThdSleepSeconds(systime_t time);
 
 void chSysLock(void);
 void chSysUnlock(void);

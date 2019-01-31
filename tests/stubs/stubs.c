@@ -10,8 +10,8 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "acq/manage.h"
 #include "ephemeris/ephemeris.h"
-#include "manage.h"
 #include "nav_msg/cons_time_storage.h"
 #include "sbp/sbp.h"
 #include "timing/timing.h"

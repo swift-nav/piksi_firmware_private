@@ -11,8 +11,9 @@
  */
 #include <assert.h>
 #include <string.h>
+
+#include "acq/manage.h"
 #include "gtest/gtest.h"
-#include "manage.h"
 #include "task_generator_api.h"
 
 /** Doppler bin size (Hz) */
