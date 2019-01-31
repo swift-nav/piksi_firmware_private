@@ -33,6 +33,10 @@ matrix:
     - os: linux
       addons:
         apt:
+          sources:
+            - sourceline: 'deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-3.8 main'
+              key_url: 'http://apt.llvm.org/llvm-snapshot.gpg.key'
+            - ubuntu-toolchain-r-test
           packages:
             - g++-6
       env: TESTENV=mesta GCCVER=6
