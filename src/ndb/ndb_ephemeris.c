@@ -303,7 +303,7 @@ static bool ndb_can_confirm_ephemeris(const ephemeris_t *new,
  * \retval NDB_CAND_IDENTICAL     Candidate is identical to current ephemeris
  * \retval NDB_CAND_MISMATCH      Candidate differs from current ephemeris and
  *                                cannot be confirmed yet
- * \retval NDB_ERR_BAD_PARAM      Bad SID
+ * \retval NDB_CAND_BAD_PARAM     Bad SID
  */
 static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new) {
   ndb_cand_status_t r = NDB_CAND_MISMATCH;
@@ -316,7 +316,7 @@ static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new) {
 
   u16 idx = sid_to_sv_index(new->sid);
   if (ARRAY_SIZE(ndb_ephemeris) <= idx) {
-    return NDB_ERR_BAD_PARAM;
+    return NDB_CAND_BAD_PARAM;
   }
 
   assert(idx < ARRAY_SIZE(ndb_ephemeris_md));
@@ -502,6 +502,8 @@ static ndb_op_code_t ndb_ephemeris_store_do(const ephemeris_t *e,
         return NDB_ERR_UNCONFIRMED_DATA;
       case NDB_CAND_GPS_TIME_MISSING:
         return NDB_ERR_GPS_TIME_MISSING;
+      case NDB_CAND_BAD_PARAM:
+        return NDB_ERR_BAD_PARAM;
       default:
         assert(!"Invalid status");
     }
