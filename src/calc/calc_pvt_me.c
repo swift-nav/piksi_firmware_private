@@ -798,17 +798,9 @@ static void me_calc_pvt_thread(void *arg) {
     apply_isc_table(obs_array);
 
     /* Compute a PVT solution from the measurements to update LGF and clock
-     * models. Compute on every epoch until the time quality gets to FINEST,
-     * otherwise at a lower rate */
-    u32 interval_ms =
-        (TIME_FINEST > time_quality) ? 0 : ME_PVT_INTERVAL_S * SECS_MS;
-    DO_EACH_MS(interval_ms,
-               me_compute_pvt(obs_array,
-                              current_tc,
-                              e_meas,
-                              &lgf,
-                              &raim_sids,
-                              &raim_failed_sids));
+     * models. */
+    me_compute_pvt(
+        obs_array, current_tc, e_meas, &lgf, &raim_sids, &raim_failed_sids);
 
     /* Get the current estimate of GPS time and receiver clock drift */
     gps_time_t smoothed_time = napcount2gpstime(current_tc);
