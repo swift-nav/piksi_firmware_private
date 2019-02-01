@@ -36,8 +36,8 @@ time_quality_t get_time_quality(void);
 gps_time_t napcount2gpstime(const double tc);
 u64 gpstime2napcount(const gps_time_t* t);
 u64 timing_getms(void);
-gps_time_t glo2gps_with_utc_params(me_gnss_signal_t mesid,
-                                   const glo_time_t* glo_t);
+gps_time_t glo2gps_with_utc_params(const glo_time_t* glo_time,
+                                   const gps_time_t* ref_time);
 gps_time_t gps_time_round_to_epoch(const gps_time_t* time, double soln_freq);
 double get_clock_drift(void);
 double subsecond_cpo_correction(u64 tc);
