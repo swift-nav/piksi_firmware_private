@@ -297,7 +297,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
        ++i) {
     starling_obs_t *current_obs = &obs_array->observations[obs_array->n++];
     unpack_obs_content_into_starling_obs(&msg_raw_obs[i], current_obs);
-    
+
     /* We must also compute the TOT using the TOR from the header. */
     current_obs->tot = obs_array->t;
     current_obs->tot.tow -= current_obs->pseudorange / GPS_C;

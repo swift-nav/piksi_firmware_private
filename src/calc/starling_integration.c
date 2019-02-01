@@ -270,7 +270,7 @@ static void solution_make_sbp(const pvt_engine_result_t *soln,
                       &soln->time,
                       details.utc_params,
                       details.flags);
-    
+
     /* In SPP, `baseline` is actually absolute position in ECEF. */
     double pos_ecef[3], pos_llh[3];
     memcpy(pos_ecef, soln->baseline, 3 * sizeof(double));

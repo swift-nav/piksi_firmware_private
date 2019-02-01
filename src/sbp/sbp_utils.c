@@ -72,30 +72,26 @@ typedef struct {
 } ephe_type_table_element_t;
 
 static ephe_type_table_element_t ephe_type_table[CONSTELLATION_COUNT] = {
-        /* GPS */
-        [CONSTELLATION_GPS] = {{SBP_MSG_EPHEMERIS_GPS,
-                                sizeof(msg_ephemeris_gps_t)},
-                               {0}},
+    /* GPS */
+    [CONSTELLATION_GPS] = {{SBP_MSG_EPHEMERIS_GPS, sizeof(msg_ephemeris_gps_t)},
+                           {0}},
 
-        /* SBAS */
-        [CONSTELLATION_SBAS] = {{SBP_MSG_EPHEMERIS_SBAS,
-                                 sizeof(msg_ephemeris_sbas_t)},
-                                {0}},
+    /* SBAS */
+    [CONSTELLATION_SBAS] = {{SBP_MSG_EPHEMERIS_SBAS,
+                             sizeof(msg_ephemeris_sbas_t)},
+                            {0}},
 
-        /* GLO */
-        [CONSTELLATION_GLO] = {{SBP_MSG_EPHEMERIS_GLO,
-                                sizeof(msg_ephemeris_glo_t)},
-                               {0}},
+    /* GLO */
+    [CONSTELLATION_GLO] = {{SBP_MSG_EPHEMERIS_GLO, sizeof(msg_ephemeris_glo_t)},
+                           {0}},
 
-        /* BDS */
-        [CONSTELLATION_BDS] = {{SBP_MSG_EPHEMERIS_BDS,
-                                sizeof(msg_ephemeris_bds_t)},
-                               {0}},
+    /* BDS */
+    [CONSTELLATION_BDS] = {{SBP_MSG_EPHEMERIS_BDS, sizeof(msg_ephemeris_bds_t)},
+                           {0}},
 
-        /* GAL */
-        [CONSTELLATION_GAL] = {{SBP_MSG_EPHEMERIS_GAL,
-                                sizeof(msg_ephemeris_gal_t)},
-                               {0}},
+    /* GAL */
+    [CONSTELLATION_GAL] = {{SBP_MSG_EPHEMERIS_GAL, sizeof(msg_ephemeris_gal_t)},
+                           {0}},
 };
 
 void sbp_ephe_reg_cbks(void (*ephemeris_msg_callback)(u16, u8, u8 *, void *)) {
