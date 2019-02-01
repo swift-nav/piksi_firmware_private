@@ -150,15 +150,15 @@ docs:
 
 clang-format-all:
 	@echo "Auto formatting all C files under src/"
-	clang-format -i $$(git ls-files 'src/*.[ch]')
+	clang-format-6.0 -i $$(git ls-files 'src/*.[ch]')
 
 clang-format-head:
 	@echo "Auto formatting all staged lines"
-	git-clang-format
+	git-clang-format-6.0
 
 clang-format-diff:
 	@echo "Autoformatting all lines which differ from master"
-	git-clang-format master
+	git-clang-format-6.0 master
 
 run_tests:
 	$(MAKE) -C tests
