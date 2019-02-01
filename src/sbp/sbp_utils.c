@@ -34,6 +34,7 @@
  * Convert to and from SBP message types and other useful functions.
  * \{ */
 
+
 void sbp_send_ndb_event(u8 event,
                         u8 obj_type,
                         u8 result,
@@ -71,7 +72,6 @@ typedef struct {
 } ephe_type_table_element_t;
 
 static ephe_type_table_element_t ephe_type_table[CONSTELLATION_COUNT] = {
-
         /* GPS */
         [CONSTELLATION_GPS] = {{SBP_MSG_EPHEMERIS_GPS,
                                 sizeof(msg_ephemeris_gps_t)},

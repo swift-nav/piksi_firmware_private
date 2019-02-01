@@ -14,6 +14,7 @@
 #include "manage.h"
 #include "nav_msg/cons_time_storage.h"
 #include "sbp/sbp.h"
+#include "timing/timing.h"
 
 #define MAX_ACQUIRED_SV_INDEX 15
 
@@ -287,8 +288,10 @@ eph_new_status_t ephemeris_new(const ephemeris_t *e) {
 }
 
 /* GLO data decoder test stub */
-gps_time_t glo2gps_with_utc_params(me_gnss_signal_t mesid,
-                                   const glo_time_t *glo_t) {
-  (void)mesid;
-  return glo2gps(glo_t, /* utc_params = */ NULL);
+gps_time_t glo2gps_with_utc_params(const glo_time_t *glo_time,
+                                   const gps_time_t *ref_time) {
+  (void)ref_time;
+  return glo2gps(glo_time, /* utc_params = */ NULL);
 }
+
+time_quality_t get_time_quality(void) { return TIME_UNKNOWN; }

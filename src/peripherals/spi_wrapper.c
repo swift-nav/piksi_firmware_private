@@ -38,21 +38,21 @@ static spi_bus_t spi_bus_2 = {
     &SPID2, _MUTEX_DATA(spi_bus_2.mutex), NULL, 0, SPI_SLAVE_MAX};
 
 static const spi_slave_t spi_slave[] = {
-        [SPI_SLAVE_FPGA] =
-            {&spi_bus_1,
-             {NULL, PAL_PORT(LINE_SPI1NSS), PAL_PAD(LINE_SPI1NSS), 0, false}},
-        [SPI_SLAVE_FLASH] = {&spi_bus_2,
-                             {NULL,
-                              PAL_PORT(LINE_SPI2NSS_FLASH),
-                              PAL_PAD(LINE_SPI2NSS_FLASH),
-                              0,
-                              true}},
-        [SPI_SLAVE_FRONTEND] = {&spi_bus_2,
-                                {NULL,
-                                 PAL_PORT(LINE_SPI2NSS_MAX),
-                                 PAL_PAD(LINE_SPI2NSS_MAX),
-                                 0,
-                                 true}},
+    [SPI_SLAVE_FPGA] =
+        {&spi_bus_1,
+         {NULL, PAL_PORT(LINE_SPI1NSS), PAL_PAD(LINE_SPI1NSS), 0, false}},
+    [SPI_SLAVE_FLASH] = {&spi_bus_2,
+                         {NULL,
+                          PAL_PORT(LINE_SPI2NSS_FLASH),
+                          PAL_PAD(LINE_SPI2NSS_FLASH),
+                          0,
+                          true}},
+    [SPI_SLAVE_FRONTEND] = {&spi_bus_2,
+                            {NULL,
+                             PAL_PORT(LINE_SPI2NSS_MAX),
+                             PAL_PAD(LINE_SPI2NSS_MAX),
+                             0,
+                             true}},
 };
 
 /** Lock the SPI bus used by the selected peripheral.
