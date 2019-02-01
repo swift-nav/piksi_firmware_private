@@ -33,7 +33,7 @@ extern "C" {
  * Tracking loop rates
  */
 typedef struct {
-  float carr_freq;    /**< Carrier frequency [Hz] */
+  float doppler_hz;   /**< Doppler frequency [Hz] */
   float code_freq;    /**< Code frequency [Hz] */
   float acceleration; /**< Acceleration [Hz/s] */
 } tl_rates_t;
@@ -62,8 +62,8 @@ typedef struct {
  * The controller implements third order PLL assisted with second order FLL.
  */
 typedef struct {
-  float carr_freq; /**< Frequency doppler */
-  float code_freq; /**< Code doppler */
+  float doppler_hz; /**< Doppler frequency */
+  float code_freq;  /**< Code doppler */
 
   float T_CODE; /**< code integration interval [s] */
   float T_CARR; /**< carrier integration interval [s] */
@@ -104,7 +104,7 @@ typedef struct {
  * The controller implements 2nd order PLL and 1st order DLL
  */
 typedef struct {
-  float carr_freq_hz; /**< Carrier doppler */
+  float doppler_hz;   /**< Doppler frequency [Hz] */
   float code_freq_hz; /**< Code doppler */
 
   float T_CODE; /**< DLL/PLL integration interval [s] */

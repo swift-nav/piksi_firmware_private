@@ -45,7 +45,11 @@ static volatile time_quality_t current_time_quality = TIME_UNKNOWN;
 static MUTEX_DECL(clock_mutex);
 
 static const char *time_quality_names[] = {
-    "Unknown", "Coarse", "Propagated", "Fine", "Finest",
+    "Unknown",
+    "Coarse",
+    "Propagated",
+    "Fine",
+    "Finest",
 };
 
 /* The thresholds for time qualities */
@@ -123,7 +127,8 @@ void update_time(u64 tc, const gnss_solution *sol) {
   chMtxUnlock(&clock_mutex);
 
   /* Is the clock state initialized? */
-  if (!gps_time_valid(&clock_state.t_gps)) {
+  if (!gps_time_valid(&clock_state.t_gps) ||
+      TIME_UNKNOWN == clock_var_to_time_quality(clock_state.P[0][0])) {
     /* Initialize clock state estimate with the given solution */
     clock_state.tc = tc;
     clock_state.t_gps = sol->time;
@@ -326,26 +331,67 @@ u64 timing_getms(void) {
   return (u64)(nap_timing_count() * (RX_DT_NOMINAL * 1000.0));
 }
 
-/** A convenience wrapper for glo2gps() API. Adds UTC params reading from NDB.
- * \param mesid ME sid for debugging info
- * \param glo_t GLO time
- * \return The resulting GPS time
+/** A convenience wrapper for glo2gps() for handling the integer second offset.
+ *
+ * There are three possible sources for the GLO-GPS integer second offset:
+ * - UTC parameters decoded during this session: always trusted
+ * - UTC parameters loaded from non-volatile memory at startup:
+ *     trusted by default, verified after GPS time is solved
+ * - hard-coded default UTC parameters:
+ *     trusted by default, verified after GPS time is solved
+ *
+ * \param glo_time GLO time to be converted
+ * \param ref_time Optional reference GPS time stamp within 0.5 seconds
+ * \return The resulting GPS time, or GPS_TIME_UNKNOWN if offset unknown
  */
-gps_time_t glo2gps_with_utc_params(me_gnss_signal_t mesid,
-                                   const glo_time_t *glo_t) {
-  gps_time_t gps_time = GPS_TIME_UNKNOWN;
+gps_time_t glo2gps_with_utc_params(const glo_time_t *glo_time,
+                                   const gps_time_t *ref_time) {
   utc_params_t utc_params;
-  ndb_op_code_t ndb_op_code;
+  bool is_nv;
 
-  ndb_op_code = ndb_utc_params_read(&utc_params, /* is_nv = */ NULL);
-
+  /* Read UTC parameters from NDB */
+  ndb_op_code_t ndb_op_code = ndb_utc_params_read(&utc_params, &is_nv);
   if (NDB_ERR_NONE == ndb_op_code) {
-    gps_time = glo2gps(glo_t, &utc_params);
+    if (!is_nv) {
+      /* the parameters have been received during this session, use them */
+      return glo2gps(glo_time, &utc_params);
+    }
   } else {
-    log_debug_mesid(mesid,
-                    "GLO->GPS time conversion w/o up-to-date UTC params");
+    /* not found or NDB read error, make sure the UTC parameters are invalid */
+    utc_params.t_lse = GPS_TIME_UNKNOWN;
   }
-  return gps_time;
+
+  /* compute tentative time using either the UTC parameters loaded from NV or
+   * factory defaults */
+  gps_time_t gps_time = glo2gps(glo_time, &utc_params);
+
+  /* persistent flag for validated UTC offset (default to valid) */
+  static bool utc_offset_valid = true;
+
+  /* If reference time is given, validate the computed time stamp against it */
+  if (NULL != ref_time && gps_time_valid(ref_time)) {
+    double dt = gpsdifftime(&gps_time, ref_time);
+    if (fabs(dt) < 0.5) {
+      /* mark current NV/factory UTC offset valid */
+      if (!utc_offset_valid) {
+        log_info("GLO leap second offset validated against current time");
+        utc_offset_valid = true;
+      }
+    } else {
+      /* mark current NV/factory UTC offset invalid */
+      if (utc_offset_valid) {
+        log_warn("Initial GLO leap second offset was invalid, diff=%+0.2f s",
+                 dt);
+        utc_offset_valid = false;
+      }
+    }
+  }
+
+  if (utc_offset_valid) {
+    return gps_time;
+  }
+
+  return GPS_TIME_UNKNOWN;
 }
 
 /** Given a gps time, return the gps time of the nearest solution epoch

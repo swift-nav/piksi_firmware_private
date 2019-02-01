@@ -134,7 +134,12 @@ void decode_l2c_capability(const u32 *subframe4_words, u32 *l2c_cpbl) {
   };
 
   const struct sv_conf_location sv_conf_loc[6] = {
-      {4, 12}, {6, 4}, {6, 4}, {6, 4}, {6, 4}, {4, 4},
+      {4, 12},
+      {6, 4},
+      {6, 4},
+      {6, 4},
+      {6, 4},
+      {4, 4},
   };
 
   u8 sv_id = 0;

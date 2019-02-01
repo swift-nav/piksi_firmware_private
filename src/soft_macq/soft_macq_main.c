@@ -65,8 +65,8 @@ static bool bModuleInit;
 static bool BbMixAndDecimate(const me_gnss_signal_t mesid);
 
 static bool SoftMacqSerial(const me_gnss_signal_t mesid,
-                           float _fCarrFreqMin,
-                           float _fCarrFreqMax,
+                           float doppler_min_hz,
+                           float doppler_max_hz,
                            acq_result_t *_sAcqResult);
 
 static bool SoftMacqMdbzp(const me_gnss_signal_t mesid,
@@ -83,13 +83,13 @@ float soft_multi_acq_bin_width(void) {
 /** new interface shall be
  *
  * bool soft_multi_acq_search(const me_gnss_signal_t mesid, float
- * _fCarrFreqMin, float _fCarrFreqMax, enum sensitivity _eSense, acq_result_t
+ * doppler_min_hz, float doppler_max_hz, enum sensitivity _eSense, acq_result_t
  * *_sAcqResult)
  *
  *  */
 bool soft_multi_acq_search(const me_gnss_signal_t mesid,
-                           float _fCarrFreqMin,
-                           float _fCarrFreqMax,
+                           float doppler_min_hz,
+                           float doppler_max_hz,
                            acq_result_t *p_acqres) {
   u64 tmp_timetag = 0;
   u32 buff_size = 0;
@@ -133,9 +133,8 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
    * - if the carrier frequency of the last searched `sid` does not match the
    * current one
    *  */
-  if ((tmp_timetag) ||
-      !double_approx_eq(mesid_to_carr_freq(mesid_last),
-                        mesid_to_carr_freq(mesid))) {
+  if ((tmp_timetag) || !double_approx_eq(mesid_to_carr_freq(mesid_last),
+                                         mesid_to_carr_freq(mesid))) {
     /** perform baseband down-conversion + decimation depending on mesid */
     BbMixAndDecimate(mesid);
   }
@@ -154,18 +153,18 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
    * acquisition
    * */
   if (is_gal(mesid.code) || is_bds2(mesid.code) ||
-      ((_fCarrFreqMax - _fCarrFreqMin) > 5000)) {
+      ((doppler_max_hz - doppler_min_hz) > 5000)) {
     bool ret = SoftMacqMdbzp(mesid, &sLocalResult);
     p_acqres->cp =
         (1.0f - sLocalResult.fCodeDelay) * code_to_chip_count(mesid.code);
-    p_acqres->cf = sLocalResult.fDoppFreq;
+    p_acqres->df_hz = sLocalResult.fDoppFreq;
     p_acqres->cn0 = ret ? ACQ_EARLY_THRESHOLD : sLocalResult.fMaxCorr;
     return ret;
   }
 
   /** call serial-frequency search acquisition with current sensitivity
    * parameters */
-  return SoftMacqSerial(mesid, _fCarrFreqMin, _fCarrFreqMax, p_acqres);
+  return SoftMacqSerial(mesid, doppler_min_hz, doppler_max_hz, p_acqres);
 }
 
 /**********************************
@@ -175,16 +174,16 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
 /************* Serial frequency search *****************/
 
 static bool SoftMacqSerial(const me_gnss_signal_t mesid,
-                           float _fCarrFreqMin,
-                           float _fCarrFreqMax,
+                           float doppler_min_hz,
+                           float doppler_max_hz,
                            acq_result_t *_psLegacyResult) {
-  float cf_bin_width = soft_acq_bin_width();
+  float df_bin_width_hz = soft_acq_bin_width();
 
   return soft_acq_search(baseband,
                          mesid,
-                         _fCarrFreqMin,
-                         _fCarrFreqMax,
-                         cf_bin_width,
+                         doppler_min_hz,
+                         doppler_max_hz,
+                         df_bin_width_hz,
                          _psLegacyResult);
 }
 

@@ -68,12 +68,12 @@ bool nap_sc_wipeoff(const tracker_t *tracker) {
  * \param chips_to_correlate  Number of code chips to integrate over.
  */
 void tracker_retune(tracker_t *tracker, u32 chips_to_correlate) {
-  double doppler_freq_hz = tracker->carrier_freq;
+  double doppler_hz = tracker->doppler_hz;
   double code_phase_rate = tracker->code_phase_rate;
   bool nap_strip_sc = nap_sc_wipeoff(tracker);
   /* Write NAP UPDATE register. */
   nap_track_update(tracker->nap_channel,
-                   doppler_freq_hz,
+                   doppler_hz,
                    code_phase_rate,
                    chips_to_correlate,
                    nap_strip_sc);
@@ -299,7 +299,8 @@ void tracker_bit_sync_update(tracker_t *tracker,
 
   /* write to FIFO */
   nav_bit_t element = {
-      .data = sensitivity_mode ? 0 : soft_bit, .cnt = tracker->bit_cnt,
+      .data = sensitivity_mode ? 0 : soft_bit,
+      .cnt = tracker->bit_cnt,
   };
   tracker->bit_cnt++;
   if (nav_bit_fifo_write(&tracker->nav_bit_fifo, &element)) {

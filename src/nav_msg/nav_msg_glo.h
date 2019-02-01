@@ -72,7 +72,9 @@ typedef enum {
 
 /* Structure used for relative code removal.
  * See Figure 3.4. of GLO ICD 5.1. 2008. (english) */
-typedef struct { u8 state; } relcode_t;
+typedef struct {
+  u8 state;
+} relcode_t;
 
 /* Callback type to convert GLO time to GPS time using NDB UTC parameters */
 typedef gps_time_t (*glo2gps_with_utc_params_t)(me_gnss_signal_t mesid,

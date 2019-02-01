@@ -26,19 +26,19 @@ extern "C" {
 typedef struct {
   u64 sample_count;
   float cp;
-  float cf;
+  float df_hz;
   float cn0;
 } acq_result_t;
 
 typedef struct {
   float cn0;
-  float doppler;
+  float doppler_hz;
   u32 sample_offset;
 } acq_peak_search_t;
 
 bool soft_multi_acq_search(const me_gnss_signal_t _sMeSid,
-                           float _fCarrFreqMin,
-                           float _fCarrFreqMax,
+                           float doppler_min_hz,
+                           float doppler_max_hz,
                            acq_result_t *_psAcqResult);
 
 float soft_multi_acq_bin_width(void);

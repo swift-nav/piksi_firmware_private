@@ -440,13 +440,28 @@ static s8 me_compute_pvt(const obs_array_t *obs_array,
                          gnss_sid_set_t *raim_removed_sids) {
   u8 n_ready = obs_array->n;
   sid_set_init(raim_sids);
+  bool has_glo_obs = false;
+  bool has_non_glo_obs = false;
   for (u8 i = 0; i < n_ready; i++) {
+    if (IS_GLO(obs_array->observations[i].sid)) {
+      has_glo_obs = true;
+    } else {
+      has_non_glo_obs = true;
+    }
     sid_set_add(raim_sids, obs_array->observations[i].sid);
   }
 
   if (n_ready < MINIMUM_SV_COUNT ||
       sid_set_get_sat_count(raim_sids) < MINIMUM_SV_COUNT) {
     /* Not enough sats to even try PVT, mark all measurements as bad */
+    *raim_removed_sids = *raim_sids;
+    return PVT_INSUFFICENT_MEAS;
+  }
+
+  if (!has_non_glo_obs && lgf->position_quality <= POSITION_GUESS) {
+    /* Disallow first fix with only GLO observations to protect against
+     * incorrect time solution in case leap second offset is invalid */
+    log_info("Discarding GLO-only first fix");
     *raim_removed_sids = *raim_sids;
     return PVT_INSUFFICENT_MEAS;
   }
@@ -553,6 +568,16 @@ static s8 me_compute_pvt(const obs_array_t *obs_array,
   }
 
   if (lgf->position_quality <= POSITION_GUESS) {
+    /* This was the first fix. If GLO observations were involved, require RAIM
+     * to pass without exclusions. This is to protect against the case where
+     * initial leap second value is incorrect and GLO majority votes out the
+     * correct non-GLO observations. */
+    if (PVT_CONVERGED_RAIM_OK != pvt_ret && has_glo_obs) {
+      log_info("Discarding first fix because of RAIM exclusions");
+      *raim_removed_sids = *raim_sids;
+      return PVT_INSUFFICENT_MEAS;
+    }
+
     /* Notify of the first fix */
     log_info("first fix clk_offset %.3e clk_drift %.3e",
              current_fix.clock_offset,
@@ -797,7 +822,8 @@ static void me_calc_pvt_thread(void *arg) {
 
     /* Only send observations that are closely aligned with the desired
      * solution epoch to ensure they haven't been propagated too far. */
-    if (fabs(output_offset) < OBS_PROPAGATION_LIMIT) {
+    if (fabs(output_offset) < OBS_PROPAGATION_LIMIT &&
+        TIME_PROPAGATED <= time_quality) {
       log_debug("output offset %.4e, smoothed_drift %.3e",
                 output_offset,
                 smoothed_drift);
@@ -834,7 +860,7 @@ static void me_calc_pvt_thread(void *arg) {
         obs_array = NULL;
       }
     } else {
-      if (TIME_UNKNOWN != time_quality) {
+      if (TIME_PROPAGATED <= time_quality) {
         log_info("Observations suppressed because time jumps %.2f seconds",
                  output_offset);
       }

@@ -707,7 +707,7 @@ static void restart_decoding(nav_msg_glo_t *n) {
   n->eph.sid.code = CODE_GLO_L1OF;
 
   /* convert GLO TOE to GPS TOE */
-  n->eph.toe = glo2gps_with_utc_params(n->mesid, &n->toe);
+  n->eph.toe = glo2gps_with_utc_params(&n->toe, /* ref_time = */ NULL);
 
   n->eph.valid = 1;
 }
@@ -969,15 +969,25 @@ string_decode_status_t process_string_glo(nav_msg_glo_t *n, u32 time_tag_ms) {
      * We do not wait for the time mark of the string to come.
      * That's why we only account for the length of the data
      * part of the last string - 1.7s below.
-     *
-     * Also the Glonass time is converted to UTC first and then to GPS.
-     * So it requires UTC parameters describing leap seconds difference
-     * plus GPS to UTC time offset. Note that the conversion may return
+     */
+    double time_offset = (GLO_STR_LEN_S - GLO_STR_TIME_MARK_LEN_S) + tow_age_s;
+
+    /* expected GPS time at the end of last bit */
+    gps_time_t ref_time = GPS_TIME_UNKNOWN;
+    if (TIME_COARSE <= get_time_quality()) {
+      ref_time = get_current_time();
+      ref_time.tow -= time_offset;
+      normalize_gps_time(&ref_time);
+    }
+
+    /* Glonass time is converted to UTC first and then to GPS.
+     * First apply the integer leap second offset from UTC parameters.
+     * (The fractional GPS to UTC time offset tau_gps will be applied separately
+     * as constellation time offset.) Note that this conversion may return
      * an invalid time stamp if conversion parameters are not yet available.
      */
-
-    n->gps_time = glo2gps_with_utc_params(n->mesid, &n->tk);
-    n->gps_time.tow += (GLO_STR_LEN_S - GLO_STR_TIME_MARK_LEN_S) + tow_age_s;
+    n->gps_time = glo2gps_with_utc_params(&n->tk, &ref_time);
+    n->gps_time.tow += time_offset;
     normalize_gps_time(&n->gps_time);
     tow_ready = gps_time_valid(&n->gps_time);
   }
