@@ -88,7 +88,11 @@ struct {
     /* .base_obs_array left uninitialized */
     .dops =
         {
-            .pdop = 1.9, .gdop = 1.8, .tdop = 1.7, .hdop = 1.6, .vdop = 1.5,
+            .pdop = 1.9,
+            .gdop = 1.8,
+            .tdop = 1.7,
+            .hdop = 1.6,
+            .vdop = 1.5,
         },
     /* .noisy_solution left uninitialized */
 
@@ -432,7 +436,7 @@ u8 simulation_current_num_sats(void) {
 }
 
 /** Returns the number of satellites being simulated.
-*/
+ */
 channel_measurement_t* simulation_current_in_view(void) {
   return sim_state.ch_meas;
 }

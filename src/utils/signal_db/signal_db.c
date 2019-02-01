@@ -95,28 +95,28 @@ typedef struct {
   double carr_to_code;
 } code_db_element_t;
 static code_db_element_t code_db[CODE_COUNT] = {
-        /** GPS */
-        [CODE_GPS_L1CA] = {.carr_to_code = GPS_L1CA_CARR_TO_CODE},
-        [CODE_GPS_L2CM] = {.carr_to_code = GPS_L2C_CARR_TO_CODE},
-        [CODE_GPS_L2CL] = {.carr_to_code = GPS_L2C_CARR_TO_CODE},
+    /** GPS */
+    [CODE_GPS_L1CA] = {.carr_to_code = GPS_L1CA_CARR_TO_CODE},
+    [CODE_GPS_L2CM] = {.carr_to_code = GPS_L2C_CARR_TO_CODE},
+    [CODE_GPS_L2CL] = {.carr_to_code = GPS_L2C_CARR_TO_CODE},
 
-        /** SBAS */
-        [CODE_SBAS_L1CA] = {.carr_to_code = SBAS_L1CA_CARR_TO_CODE},
+    /** SBAS */
+    [CODE_SBAS_L1CA] = {.carr_to_code = SBAS_L1CA_CARR_TO_CODE},
 
-        /** Galileo  */
-        [CODE_GAL_E1B] = {.carr_to_code = GAL_E1_CARR_TO_CODE},
-        [CODE_GAL_E7I] = {.carr_to_code = GAL_E7_CARR_TO_CODE},
-        [CODE_GAL_E5I] = {.carr_to_code = GAL_E5_CARR_TO_CODE},
+    /** Galileo  */
+    [CODE_GAL_E1B] = {.carr_to_code = GAL_E1_CARR_TO_CODE},
+    [CODE_GAL_E7I] = {.carr_to_code = GAL_E7_CARR_TO_CODE},
+    [CODE_GAL_E5I] = {.carr_to_code = GAL_E5_CARR_TO_CODE},
 
-        /** Beidou */
-        [CODE_BDS2_B1] = {.carr_to_code = BDS2_B11_CARR_TO_CODE},
-        [CODE_BDS2_B2] = {.carr_to_code = BDS2_B2_CARR_TO_CODE},
+    /** Beidou */
+    [CODE_BDS2_B1] = {.carr_to_code = BDS2_B11_CARR_TO_CODE},
+    [CODE_BDS2_B2] = {.carr_to_code = BDS2_B2_CARR_TO_CODE},
 
-        /** QZS L1C/A has all the same characteristics as GPS L1 C/A */
-        [CODE_QZS_L1CA] = {.carr_to_code = QZS_L1CA_CARR_TO_CODE},
-        [CODE_AUX_QZS] = {.carr_to_code = QZS_L1CA_CARR_TO_CODE},
-        [CODE_QZS_L2CM] = {.carr_to_code = QZS_L2C_CARR_TO_CODE},
-        [CODE_QZS_L2CL] = {.carr_to_code = QZS_L2C_CARR_TO_CODE}};
+    /** QZS L1C/A has all the same characteristics as GPS L1 C/A */
+    [CODE_QZS_L1CA] = {.carr_to_code = QZS_L1CA_CARR_TO_CODE},
+    [CODE_AUX_QZS] = {.carr_to_code = QZS_L1CA_CARR_TO_CODE},
+    [CODE_QZS_L2CM] = {.carr_to_code = QZS_L2C_CARR_TO_CODE},
+    [CODE_QZS_L2CL] = {.carr_to_code = QZS_L2C_CARR_TO_CODE}};
 
 /** Table of sv constellation indexes. */
 typedef struct {
@@ -138,43 +138,43 @@ static constellation_table_element_t constellation_table[CONSTELLATION_COUNT] =
 
 /** Number of signals for each code which are supported on
  * the current hardware platform. */
-static const u16 code_signal_counts[CODE_COUNT] =
-    {[CODE_GPS_L1CA] = PLATFORM_SIGNAL_COUNT_GPS_L1CA,
-     [CODE_GPS_L2CM] = PLATFORM_SIGNAL_COUNT_GPS_L2C,
-     [CODE_GPS_L5X] = PLATFORM_SIGNAL_COUNT_GPS_L5,
-     [CODE_GPS_L1P] = PLATFORM_SIGNAL_COUNT_GPS_L1P,
-     [CODE_GPS_L2P] = PLATFORM_SIGNAL_COUNT_GPS_L2P,
-     [CODE_SBAS_L1CA] = PLATFORM_SIGNAL_COUNT_SBAS_L1CA,
-     [CODE_GLO_L1OF] = PLATFORM_SIGNAL_COUNT_GLO_L1OF,
-     [CODE_GLO_L2OF] = PLATFORM_SIGNAL_COUNT_GLO_L2OF,
-     [CODE_BDS2_B1] = PLATFORM_SIGNAL_COUNT_BDS2_B1,
-     [CODE_BDS2_B2] = PLATFORM_SIGNAL_COUNT_BDS2_B2,
-     [CODE_QZS_L1CA] = PLATFORM_SIGNAL_COUNT_QZS_L1CA,
-     [CODE_QZS_L2CM] = PLATFORM_SIGNAL_COUNT_QZS_L2C,
-     [CODE_QZS_L5X] = PLATFORM_SIGNAL_COUNT_QZS_L5,
-     [CODE_GAL_E1B] = PLATFORM_SIGNAL_COUNT_GAL_E1,
-     [CODE_GAL_E5I] = PLATFORM_SIGNAL_COUNT_GAL_E5,
-     [CODE_GAL_E7I] = PLATFORM_SIGNAL_COUNT_GAL_E7};
+static const u16 code_signal_counts[CODE_COUNT] = {
+    [CODE_GPS_L1CA] = PLATFORM_SIGNAL_COUNT_GPS_L1CA,
+    [CODE_GPS_L2CM] = PLATFORM_SIGNAL_COUNT_GPS_L2C,
+    [CODE_GPS_L5X] = PLATFORM_SIGNAL_COUNT_GPS_L5,
+    [CODE_GPS_L1P] = PLATFORM_SIGNAL_COUNT_GPS_L1P,
+    [CODE_GPS_L2P] = PLATFORM_SIGNAL_COUNT_GPS_L2P,
+    [CODE_SBAS_L1CA] = PLATFORM_SIGNAL_COUNT_SBAS_L1CA,
+    [CODE_GLO_L1OF] = PLATFORM_SIGNAL_COUNT_GLO_L1OF,
+    [CODE_GLO_L2OF] = PLATFORM_SIGNAL_COUNT_GLO_L2OF,
+    [CODE_BDS2_B1] = PLATFORM_SIGNAL_COUNT_BDS2_B1,
+    [CODE_BDS2_B2] = PLATFORM_SIGNAL_COUNT_BDS2_B2,
+    [CODE_QZS_L1CA] = PLATFORM_SIGNAL_COUNT_QZS_L1CA,
+    [CODE_QZS_L2CM] = PLATFORM_SIGNAL_COUNT_QZS_L2C,
+    [CODE_QZS_L5X] = PLATFORM_SIGNAL_COUNT_QZS_L5,
+    [CODE_GAL_E1B] = PLATFORM_SIGNAL_COUNT_GAL_E1,
+    [CODE_GAL_E5I] = PLATFORM_SIGNAL_COUNT_GAL_E5,
+    [CODE_GAL_E7I] = PLATFORM_SIGNAL_COUNT_GAL_E7};
 
 /** Number of ME signals for each code which are supported on
  * the current hardware platform. */
-static const u16 me_code_signal_counts[CODE_COUNT] =
-    {[CODE_GPS_L1CA] = PLATFORM_SIGNAL_COUNT_GPS_L1CA,
-     [CODE_GPS_L2CM] = PLATFORM_SIGNAL_COUNT_GPS_L2C,
-     [CODE_GPS_L5X] = PLATFORM_SIGNAL_COUNT_GPS_L5,
-     [CODE_GPS_L1P] = PLATFORM_SIGNAL_COUNT_GPS_L1P,
-     [CODE_GPS_L2P] = PLATFORM_SIGNAL_COUNT_GPS_L2P,
-     [CODE_SBAS_L1CA] = PLATFORM_SIGNAL_COUNT_SBAS_L1CA,
-     [CODE_GLO_L1OF] = PLATFORM_FREQ_COUNT_GLO_L1OF,
-     [CODE_GLO_L2OF] = PLATFORM_FREQ_COUNT_GLO_L2OF,
-     [CODE_BDS2_B1] = PLATFORM_SIGNAL_COUNT_BDS2_B1,
-     [CODE_BDS2_B2] = PLATFORM_SIGNAL_COUNT_BDS2_B2,
-     [CODE_QZS_L1CA] = PLATFORM_SIGNAL_COUNT_QZS_L1CA,
-     [CODE_QZS_L2CM] = PLATFORM_SIGNAL_COUNT_QZS_L2C,
-     [CODE_QZS_L5X] = PLATFORM_SIGNAL_COUNT_QZS_L5,
-     [CODE_GAL_E1B] = PLATFORM_SIGNAL_COUNT_GAL_E1,
-     [CODE_GAL_E5I] = PLATFORM_SIGNAL_COUNT_GAL_E5,
-     [CODE_GAL_E7Q] = PLATFORM_SIGNAL_COUNT_GAL_E7};
+static const u16 me_code_signal_counts[CODE_COUNT] = {
+    [CODE_GPS_L1CA] = PLATFORM_SIGNAL_COUNT_GPS_L1CA,
+    [CODE_GPS_L2CM] = PLATFORM_SIGNAL_COUNT_GPS_L2C,
+    [CODE_GPS_L5X] = PLATFORM_SIGNAL_COUNT_GPS_L5,
+    [CODE_GPS_L1P] = PLATFORM_SIGNAL_COUNT_GPS_L1P,
+    [CODE_GPS_L2P] = PLATFORM_SIGNAL_COUNT_GPS_L2P,
+    [CODE_SBAS_L1CA] = PLATFORM_SIGNAL_COUNT_SBAS_L1CA,
+    [CODE_GLO_L1OF] = PLATFORM_FREQ_COUNT_GLO_L1OF,
+    [CODE_GLO_L2OF] = PLATFORM_FREQ_COUNT_GLO_L2OF,
+    [CODE_BDS2_B1] = PLATFORM_SIGNAL_COUNT_BDS2_B1,
+    [CODE_BDS2_B2] = PLATFORM_SIGNAL_COUNT_BDS2_B2,
+    [CODE_QZS_L1CA] = PLATFORM_SIGNAL_COUNT_QZS_L1CA,
+    [CODE_QZS_L2CM] = PLATFORM_SIGNAL_COUNT_QZS_L2C,
+    [CODE_QZS_L5X] = PLATFORM_SIGNAL_COUNT_QZS_L5,
+    [CODE_GAL_E1B] = PLATFORM_SIGNAL_COUNT_GAL_E1,
+    [CODE_GAL_E5I] = PLATFORM_SIGNAL_COUNT_GAL_E5,
+    [CODE_GAL_E7Q] = PLATFORM_SIGNAL_COUNT_GAL_E7};
 
 /** Initialize the signal module. */
 void signal_db_init(void) {
