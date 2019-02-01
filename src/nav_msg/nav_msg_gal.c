@@ -45,15 +45,15 @@ static void inav_buffer_1bit_pushr(u32 buff[static GAL_INAV_DECODE_BUFF_SIZE],
 static void deint8x30(u8 out[static GAL_INAV_PAGE_SYMB],
                       const nav_msg_gal_inav_t *nav_msg,
                       u16 offset);
-static void inav_buffer_store(nav_msg_gal_inav_t *nav_msg, const u8 val);
+static void inav_buffer_store(nav_msg_gal_inav_t *nav_msg, u8 val);
 static void symb_buffer_copy_saturate(u8 *out,
                                       const nav_msg_gal_inav_t *nav_msg,
-                                      const u16 offset,
-                                      const u16 size);
-static void flip_odd(u8 inout[static GAL_INAV_PAGE_SYMB], const u16 size);
+                                      u16 offset,
+                                      u16 size);
+static void flip_odd(u8 inout[static GAL_INAV_PAGE_SYMB], u16 size);
 static u32 gal_inav_compute_crc(const u8 even[static GAL_INAV_PAGE_BYTE],
                                 const u8 odd[static GAL_INAV_PAGE_BYTE],
-                                const int inv);
+                                int inv);
 static u32 gal_inav_extract_crc(const u8 odd[static GAL_INAV_PAGE_BYTE],
                                 int inv);
 static void extract_inav_content(u8 content[static GAL_INAV_CONTENT_BYTE],
@@ -274,7 +274,9 @@ inav_data_type_t parse_inav_word(nav_msg_gal_inav_t *nav_msg,
   u8 word_type = getbitu(content, 0, 6);
   if (0 == word_type) {
     u32 tflag = getbitu(content, 6, 2);
-    if (tflag != 0b10) return INAV_INCOMPLETE;
+    if (tflag != 0b10) {
+      return INAV_INCOMPLETE;
+    }
     t_dec = parse_inav_w0tow(content);
     log_debug_mesid(nav_msg->mesid, "WN %d TOW %.3f", t_dec.wn, t_dec.tow);
     nav_msg->TOW_ms = (s32)rint(t_dec.tow * 1000) + 2000;
@@ -637,9 +639,15 @@ static void symb_buffer_copy_saturate(u8 *out,
                                       const nav_msg_gal_inav_t *nav_msg,
                                       const u16 offset,
                                       const u16 size) {
-  if (NULL == out) return;
-  if (NULL == nav_msg) return;
-  if (0 == size) return;
+  if (NULL == out) {
+    return;
+  }
+  if (NULL == nav_msg) {
+    return;
+  }
+  if (0 == size) {
+    return;
+  }
 
   const u8 *buff = nav_msg->decoder_buffer;
   for (u8 k = 0; k < size; k++) {
@@ -650,7 +658,9 @@ static void symb_buffer_copy_saturate(u8 *out,
 
 /** Shifts bytes properly in the array */
 static void inav_buffer_store(nav_msg_gal_inav_t *nav_msg, const u8 val) {
-  if (NULL == nav_msg) return;
+  if (NULL == nav_msg) {
+    return;
+  }
   nav_msg->decoder_buffer[nav_msg->bit_index] = val;
   nav_msg->bit_index = (nav_msg->bit_index + 1) % GAL_INAV_DECODE_BUFF_SIZE;
 }

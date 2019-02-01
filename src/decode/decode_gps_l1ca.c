@@ -205,10 +205,9 @@ static bool check_iono_timestamp(gnss_signal_t sid, ionosphere_t *iono) {
     /* Check if decoded data is not older that the one stored in NDB. */
     double age = gpsdifftime(&existing_a.toa, &existing_i.toa);
     return age >= 0.0f;
-  } else {
-    /* If NDB has no previously saved data, or contains aged data */
-    return true;
   }
+  /* If NDB has no previously saved data, or contains aged data */
+  return true;
 }
 
 /**

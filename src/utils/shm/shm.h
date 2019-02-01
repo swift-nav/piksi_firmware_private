@@ -57,7 +57,7 @@ bool shm_signal_unhealthy(gnss_signal_t sid);
 bool shm_navigation_suitable(gnss_signal_t sid);
 bool shm_navigation_unusable(gnss_signal_t sid);
 bool shm_health_unknown(gnss_signal_t sid);
-bool shm_ephe_healthy(const ephemeris_t* ephe, const code_t code);
+bool shm_ephe_healthy(const ephemeris_t* ephe, code_t code);
 
 bool shm_alma_page25_health_aged(u32 timetag_s);
 

@@ -22,7 +22,7 @@
 #define FULL_CIRCLE_DEG 360.0f
 
 /* Convert millimeters to meters */
-#define MM2M(x) (x / 1000.0)
+#define MM2M(x) ((x) / 1000.0)
 
 #define MS2KNOTS(x, y, z) (sqrt((x) * (x) + (y) * (y) + (z) * (z)) * 1.94385)
 #define MS2KMHR(x, y, z) \

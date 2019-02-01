@@ -118,7 +118,9 @@ double rand_gaussian(const double variance) {
   hasSpare = true;
 
   rand1 = rand() / ((double)RAND_MAX);
-  if (rand1 < FLT_MIN) rand1 = FLT_MIN;
+  if (rand1 < FLT_MIN) {
+    rand1 = FLT_MIN;
+  }
   rand1 = -2 * log(rand1);
   rand2 = (rand() / ((double)RAND_MAX)) * (M_PI * 2.0);
 
@@ -204,8 +206,8 @@ void simulation_step_position_in_circle(double elapsed) {
     sim_state.angle = 0;
   }
 
-  double pos_ned[3] = {sim_settings.radius * sin(sim_state.angle),
-                       sim_settings.radius * cos(sim_state.angle),
+  double pos_ned[3] = {sim_settings.radius * sinf(sim_state.angle),
+                       sim_settings.radius * cosf(sim_state.angle),
                        0};
 
   /* Fill out position simulation's gnss_solution pos_ECEF, pos_LLH structures
@@ -227,8 +229,8 @@ void simulation_step_position_in_circle(double elapsed) {
       sim_settings.speed +
       rand_gaussian(sim_settings.speed_sigma * sim_settings.speed_sigma);
   double vel_ned[3];
-  vel_ned[0] = noisy_speed * cos(sim_state.angle);
-  vel_ned[1] = noisy_speed * -1.0 * sin(sim_state.angle);
+  vel_ned[0] = noisy_speed * cosf(sim_state.angle);
+  vel_ned[1] = noisy_speed * -1.0 * sinf(sim_state.angle);
   vel_ned[2] = 0.0;
 
   wgsned2ecef(vel_ned,

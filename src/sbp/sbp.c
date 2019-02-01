@@ -41,11 +41,8 @@
 
 /* Implementation used for libswiftnav's logging functionality. */
 static void sbp_log_(int level, const char *msg, ...);
-static void sbp_detailed_log_(int level,
-                              const char *file_path,
-                              const int line_number,
-                              const char *msg,
-                              ...);
+static void sbp_detailed_log_(
+    int level, const char *file_path, int line_number, const char *msg, ...);
 
 u16 my_sender_id;
 
@@ -245,7 +242,9 @@ static void sbp_log_(int level, const char *msg, ...) {
       log->text, SBP_FRAMING_MAX_PAYLOAD_SIZE - sizeof(msg_log_t), msg, ap);
   va_end(ap);
 
-  if (n < 0) return;
+  if (n < 0) {
+    return;
+  }
 
   sbp_send_msg(SBP_MSG_LOG, n + sizeof(msg_log_t), (u8 *)buf);
 }
@@ -276,7 +275,9 @@ static void sbp_detailed_log_(int level,
                  ap);
   va_end(ap);
 
-  if (n < 0) return;
+  if (n < 0) {
+    return;
+  }
 
   sbp_send_msg(SBP_MSG_LOG, n + sizeof(msg_log_t), (u8 *)buf);
 }
@@ -297,11 +298,11 @@ void log_obs_latency(float latency_ms) {
   latency_count += 1;
 
   corr_stats.latency.current =
-      (s32)(LATENCY_SMOOTHING * (float)latency_ms +
+      (s32)(LATENCY_SMOOTHING * latency_ms +
             (1 - LATENCY_SMOOTHING) * (float)corr_stats.latency.current);
 
   corr_stats.obs_period.current =
-      (s32)(PERIOD_SMOOTHING * (float)obs_period_ms +
+      (s32)(PERIOD_SMOOTHING * obs_period_ms +
             (1 - PERIOD_SMOOTHING) * (float)corr_stats.obs_period.current);
 
   /* Don't change the min and max latencies if we appear to have a zero latency

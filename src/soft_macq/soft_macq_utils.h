@@ -26,19 +26,19 @@ uint32_t CirclesToUint32(double dCircles);
 void Sc16ArrayMulX(sc16_t *_pr, sc16_t *_pa, sc16_t *_pb, u32 _iSize);
 void Sc16ArrayAddAbsTo(float *_fOut, sc16_t *_fIn, u32 _iSize);
 bool IsAcquired3D(const float *vec,
-                  const u32 _iCodeSh,
-                  const u32 _iFreqSh,
-                  const u32 _iNonCoh,
+                  u32 _iCodeSh,
+                  u32 _iFreqSh,
+                  u32 _iNonCoh,
                   float *_fMval,
                   float *_pfCodeMaxI,
                   float *_pfFreqMaxI);
-void code_resample(const u8 *const code,
-                   const u32 code_len,
-                   const u32 code_rate_hz,
+void code_resample(const u8 *code,
+                   u32 code_len,
+                   u32 code_rate_hz,
                    s8 *upsamp,
-                   const u32 upsamp_length,
-                   const u32 fs_hz,
-                   const modulation_t m);
+                   u32 upsamp_length,
+                   u32 fs_hz,
+                   modulation_t m);
 
 #ifdef __cplusplus
 }

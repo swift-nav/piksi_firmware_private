@@ -84,11 +84,15 @@ float cn0_est_svr_update(cn0_est_svr_state_t *s,
     P_s = s->P_s += (S_2 * S_prev_2 - s->P_s) * p->alpha;
     P_tot = s->P_tot += (S_2 * S_2 - s->P_tot) * p->alpha;
 
-    if (0 == P_s) return s->cn0_db;
+    if (0 == P_s) {
+      return s->cn0_db;
+    }
 
     float nsr = (P_tot - P_s) / P_s;
 
-    if (isnan(nsr) || nsr < 0) return s->cn0_db;
+    if (isnan(nsr) || nsr < 0) {
+      return s->cn0_db;
+    }
 
     s->cn0_db = p->log_bw - 10.f * log10f(nsr);
   }

@@ -27,7 +27,7 @@
 #define BDS_PREAMBLE_INV (0x07680000)
 #define BDS_WORD_BITMASK (0x3fffffff)
 /* this bit mask does not work for n==0 and n==32 */
-#define BITMASK(n) ((1U << n) - 1)
+#define BITMASK(n) ((1U << (n)) - 1)
 #define BDS_WORD_SUBFR_MASK BITMASK(BDS_WORD_SUBFR)
 
 static const u16 bch_table[16] = {[0b0000] = 0b000000000000000,
@@ -68,7 +68,7 @@ static bool subframes123_from_same_frame(const nav_msg_bds_t *n);
 static void dw30_1bit_pushr(u32 *words, u8 numel, bool bitval);
 static void pack_buffer(nav_msg_bds_t *n);
 //~ static void dump_navmsg(const nav_msg_bds_t *n, const u8 subfr);
-static void deint(u32 *hi, u32 *lo, const u32 dw);
+static void deint(u32 *hi, u32 *lo, u32 dw);
 static bool bch1511(u32 *pdw);
 
 static void process_d1_fraid1(const nav_msg_bds_t *n,
@@ -333,34 +333,32 @@ bool bds_nav_msg_update(nav_msg_bds_t *n, bool bit_val) {
                           : BIT_POLARITY_INVERTED;
     pack_buffer(n);
     return true;
-
-  } else { /* aligned with subframe */
-    if (n->bit_index !=
-        (u16)(n->subfr_bit_index + 300)) { /* it's not the subframe start */
-      return false;
-    } else { /* should be the subframe start */
-      /* check if it repeats (including polarity) on second TLM */
-      if (pream_candidate_prev != pream_candidate_last) {
-        /* reset subframe sync and polarity */
-        n->subfr_sync = false;
-        n->bit_polarity = BIT_POLARITY_UNKNOWN;
-        log_debug_mesid(n->mesid,
-                        "lost sync prev %" PRIx32 " last %" PRIx32,
-                        pream_candidate_prev,
-                        pream_candidate_last);
-        return false;
-      }
-      /* check that there are no bit errors */
-      if (!crc_check(n)) {
-        return false;
-      }
-      /* subframe start confirmed */
-      n->subfr_bit_index = n->bit_index;
-      pack_buffer(n);
-      return true;
-    }
   }
-  return false;
+  /* aligned with subframe */
+  if (n->bit_index !=
+      (u16)(n->subfr_bit_index + 300)) { /* it's not the subframe start */
+    return false;
+  }
+  /* should be the subframe start */
+  /* check if it repeats (including polarity) on second TLM */
+  if (pream_candidate_prev != pream_candidate_last) {
+    /* reset subframe sync and polarity */
+    n->subfr_sync = false;
+    n->bit_polarity = BIT_POLARITY_UNKNOWN;
+    log_debug_mesid(n->mesid,
+                    "lost sync prev %" PRIx32 " last %" PRIx32,
+                    pream_candidate_prev,
+                    pream_candidate_last);
+    return false;
+  }
+  /* check that there are no bit errors */
+  if (!crc_check(n)) {
+    return false;
+  }
+  /* subframe start confirmed */
+  n->subfr_bit_index = n->bit_index;
+  pack_buffer(n);
+  return true;
 }
 
 /*
@@ -562,10 +560,10 @@ static void process_d1_fraid1(const nav_msg_bds_t *n,
 
   /* IONO params */
   i->toa.wn = e->toe.wn;
-  i->a0 = (double)(alpha[0] * C_1_2P30);
-  i->a1 = (double)(alpha[1] * C_1_2P27);
-  i->a2 = (double)(alpha[2] * C_1_2P24);
-  i->a3 = (double)(alpha[3] * C_1_2P24);
+  i->a0 = (alpha[0] * C_1_2P30);
+  i->a1 = (alpha[1] * C_1_2P27);
+  i->a2 = (alpha[2] * C_1_2P24);
+  i->a3 = (alpha[3] * C_1_2P24);
   i->b0 = (double)(beta[0] * C_2P11);
   i->b1 = (double)(beta[1] * C_2P14);
   i->b2 = (double)(beta[2] * C_2P16);
@@ -665,7 +663,9 @@ static void process_d1_common_alm(nav_msg_bds_t *n,
 static void process_d1_fraid4(nav_msg_bds_t *n, bds_d1_decoded_data_t *data) {
   u32 pnum = (((n->page_words[31]) >> 10) & 0x7f);
 
-  if ((pnum == 0) || (pnum > 24)) return;
+  if ((pnum == 0) || (pnum > 24)) {
+    return;
+  }
 
   process_d1_common_alm(n, data);
 }
@@ -673,7 +673,9 @@ static void process_d1_fraid4(nav_msg_bds_t *n, bds_d1_decoded_data_t *data) {
 static void process_d1_fraid5(nav_msg_bds_t *n, bds_d1_decoded_data_t *data) {
   u32 pnum = (((n->page_words[41]) >> 10) & 0x7f);
 
-  if ((pnum == 0) || (pnum > 24)) return;
+  if ((pnum == 0) || (pnum > 24)) {
+    return;
+  }
 
   if (pnum <= 6) {
     process_d1_common_alm(n, data);

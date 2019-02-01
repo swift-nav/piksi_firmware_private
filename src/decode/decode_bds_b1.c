@@ -82,5 +82,4 @@ static void decoder_bds_b1_process(const decoder_channel_info_t *channel_info,
         construct_bds_data_sync(&data->nav_msg, status);
     tracker_data_sync(channel, &from_decoder);
   }
-  return;
 }

@@ -239,9 +239,8 @@ s64 piksi_systime_sub_us(const piksi_systime_t *a, const piksi_systime_t *b) {
   if (ticks < 0) {
     /* Remove sign during conversion */
     return st2us(ticks * (-1)) * (-1);
-  } else {
-    return st2us(ticks);
   }
+  return st2us(ticks);
 }
 
 /** Carry out subtraction and return result as milliseconds.
@@ -259,9 +258,8 @@ s64 piksi_systime_sub_ms(const piksi_systime_t *a, const piksi_systime_t *b) {
   if (ticks < 0) {
     /* Remove sign during conversion */
     return st2ms(ticks * (-1)) * (-1);
-  } else {
-    return st2ms(ticks);
   }
+  return st2ms(ticks);
 }
 
 /** Carry out subtraction and return result as seconds.
@@ -279,9 +277,8 @@ s64 piksi_systime_sub_s(const piksi_systime_t *a, const piksi_systime_t *b) {
   if (ticks < 0) {
     /* Remove sign during conversion */
     return st2s(ticks * (-1)) * (-1);
-  } else {
-    return st2s(ticks);
   }
+  return st2s(ticks);
 }
 
 /** Get tick count since specific time.

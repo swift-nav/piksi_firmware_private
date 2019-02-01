@@ -104,7 +104,7 @@ typedef enum {
   NDB_CAND_BAD_PARAM         /**< Invalid SID */
 } ndb_cand_status_t;
 
-#define NDB_SBP_UPDATE_SIG_IDX_INIT -1
+#define NDB_SBP_UPDATE_SIG_IDX_INIT (-1)
 #define NDB_SBP_UPDATE_CYCLE_COUNT_INIT 0
 
 typedef bool (*tx_func_type)(gnss_signal_t);
@@ -135,7 +135,7 @@ void ndb_unlock(void);
 
 ndb_timestamp_t ndb_get_timestamp(void);
 gps_time_t ndb_get_GPS_timestamp(void);
-void ndb_load_data(ndb_file_t *f, bool erase);
+void ndb_load_data(ndb_file_t *file, bool erase);
 ndb_op_code_t ndb_update_with_src_sid(const void *data,
                                       ndb_data_source_t src,
                                       gnss_signal_t src_sid,
@@ -147,13 +147,13 @@ ndb_op_code_t ndb_erase(ndb_element_metadata_t *md);
 ndb_op_code_t ndb_retrieve(const ndb_element_metadata_t *md,
                            void *out,
                            size_t out_size,
-                           ndb_data_source_t *src);
+                           ndb_data_source_t *ds);
 ndb_op_code_t ndb_find_retrieve(ndb_file_t *file,
                                 ndb_entry_match_fn match_fn,
                                 void *cookie,
                                 void *out,
                                 size_t out_size,
-                                ndb_data_source_t *src);
+                                ndb_data_source_t *ds);
 ndb_op_code_t ndb_write_file_data(ndb_file_t *file,
                                   off_t off,
                                   const u8 *src,

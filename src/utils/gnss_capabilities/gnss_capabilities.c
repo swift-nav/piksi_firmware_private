@@ -168,7 +168,9 @@ void decode_l2c_capability(const u32 *subframe4_words, u32 *l2c_cpbl) {
        * refer pg. 115-116 of IS-200H for the criteria
        * uses an open upper bound to ensure we track L2C on future satellite
        * generations launched after ICD was updated */
-      if (sv_conf >= 2) *l2c_cpbl |= (1u << sv_id);
+      if (sv_conf >= 2) {
+        *l2c_cpbl |= (1u << sv_id);
+      }
 
       sv_id++;
     }

@@ -44,7 +44,7 @@
   do {                                                            \
     static piksi_systime_t previous = PIKSI_SYSTIME_INIT;         \
     if (piksi_systime_cmp(&PIKSI_SYSTIME_INIT, &previous) == 0 || \
-        piksi_systime_elapsed_since_ms(&previous) >= n) {         \
+        piksi_systime_elapsed_since_ms(&previous) >= (n)) {       \
       cmd;                                                        \
       piksi_systime_get(&previous);                               \
     }                                                             \

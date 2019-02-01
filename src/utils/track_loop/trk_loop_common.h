@@ -154,7 +154,7 @@ void tl_pll3_update_fpll(tl_pll3_state_t *s,
                          const correlation_t cs[3],
                          bool costas);
 
-void tl_pll3_adjust(tl_pll3_state_t *s, float carr_err);
+void tl_pll3_adjust(tl_pll3_state_t *s, float err);
 void tl_pll3_get_rates(const tl_pll3_state_t *s, tl_rates_t *rates);
 float tl_pll3_get_freq_error(const tl_pll3_state_t *s);
 

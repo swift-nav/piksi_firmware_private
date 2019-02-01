@@ -61,8 +61,8 @@ void tracker_set_carrier_phase_offset(const tracker_info_t *info,
                                       s32 carrier_phase_offset);
 void tracker_adjust_all_phase_offsets(double offset_s);
 
-tracker_t *tracker_get_by_mesid(const me_gnss_signal_t mesid);
-void tracker_drop_unhealthy(const me_gnss_signal_t mesid);
+tracker_t *tracker_get_by_mesid(me_gnss_signal_t mesid);
+void tracker_drop_unhealthy(me_gnss_signal_t mesid);
 
 bool handover_valid(double code_phase_chips, double max_chips);
 

@@ -24,20 +24,20 @@
 extern "C" {
 #endif /* __cplusplus */
 
-bool gps_l2c_active(const me_gnss_signal_t mesid);
+bool gps_l2c_active(me_gnss_signal_t mesid);
 
-bool glo_active(const gnss_signal_t sid);
-bool glo_l2of_active(const gnss_signal_t sid);
+bool glo_active(gnss_signal_t sid);
+bool glo_l2of_active(gnss_signal_t sid);
 
-bool sbas_active(const me_gnss_signal_t mesid);
+bool sbas_active(me_gnss_signal_t mesid);
 
-bool bds_active(const me_gnss_signal_t mesid);
-bool bds_d2nav(const me_gnss_signal_t mesid);
-bool bds_b2(const me_gnss_signal_t mesid);
+bool bds_active(me_gnss_signal_t mesid);
+bool bds_d2nav(me_gnss_signal_t mesid);
+bool bds_b2(me_gnss_signal_t mesid);
 
-bool qzss_active(const me_gnss_signal_t mesid);
+bool qzss_active(me_gnss_signal_t mesid);
 
-bool gal_active(const me_gnss_signal_t mesid);
+bool gal_active(me_gnss_signal_t mesid);
 
 void decode_l2c_capability(const u32 *subframe4_words, u32 *l2c_cpbl);
 

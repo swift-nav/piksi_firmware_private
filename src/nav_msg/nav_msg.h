@@ -140,7 +140,7 @@ s32 nav_msg_update(nav_msg_t *n, bool bit_val);
 u8 nav_parity(u32 *word);
 bool subframe_ready(const nav_msg_t *n);
 s8 process_subframe(nav_msg_t *n,
-                    const me_gnss_signal_t mesid,
+                    me_gnss_signal_t mesid,
                     gps_l1ca_decoded_data_t *data);
 
 #ifdef __cplusplus

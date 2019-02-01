@@ -17,4 +17,3 @@ void halInit(void);
 void chSysInit(void);
 
 #endif
-

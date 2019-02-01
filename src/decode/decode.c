@@ -84,8 +84,7 @@ static decoder_channel_t decoder_channels[NUM_DECODER_CHANNELS];
 static THD_WORKING_AREA(wa_decode_thread, DECODE_THREAD_STACK);
 
 static void decode_thread(void *arg);
-static const decoder_interface_t *decoder_interface_get(
-    const me_gnss_signal_t mesid);
+static const decoder_interface_t *decoder_interface_get(me_gnss_signal_t mesid);
 static decoder_channel_t *decoder_channel_get(u8 tracking_channel);
 static bool available_decoder_get(const decoder_interface_t *interface,
                                   decoder_t **decoder);
@@ -130,7 +129,9 @@ void decoder_interface_register(decoder_interface_list_element_t *element) {
   /* p_next = address of next pointer which must be updated */
   decoder_interface_list_element_t **p_next = &decoder_interface_list;
 
-  while (*p_next != 0) p_next = &(*p_next)->next;
+  while (*p_next != 0) {
+    p_next = &(*p_next)->next;
+  }
 
   element->next = 0;
   *p_next = element;

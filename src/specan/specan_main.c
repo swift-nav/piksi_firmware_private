@@ -77,7 +77,9 @@ void ThreadManageSpecan(void *arg) {
    * */
   while (true) {
     chThdSleepMilliseconds(500);
-    if (!run_spectrum) continue;
+    if (!run_spectrum) {
+      continue;
+    }
 
     pSampleBuf = GrabberGetBufferPt(&uBuffLen);
     if (NULL == pSampleBuf) {
@@ -108,8 +110,12 @@ void ThreadManageSpecan(void *arg) {
         /** find min and max amplitude */
         fMinAmpl = fMaxAmpl = pSpecTrace[um];
         for (k = 1; k < uNumPoints; k++) {
-          if (fMaxAmpl < pSpecTrace[um + k]) fMaxAmpl = pSpecTrace[um + k];
-          if (fMinAmpl > pSpecTrace[um + k]) fMinAmpl = pSpecTrace[um + k];
+          if (fMaxAmpl < pSpecTrace[um + k]) {
+            fMaxAmpl = pSpecTrace[um + k];
+          }
+          if (fMinAmpl > pSpecTrace[um + k]) {
+            fMinAmpl = pSpecTrace[um + k];
+          }
         }
         /** resulting minimum amplitude and amplitude step */
         p_head->amplitude_ref = fMinAmpl;
@@ -237,9 +243,15 @@ static void SpecanCore(uint8_t _uWhichBand) {
 
 static void Sca16AddAbssqTo(float *_fOut, sc16_t *_fIn, int _iSize) {
   int i;
-  if (NULL == _fOut) return;
-  if (NULL == _fIn) return;
-  if (_iSize <= 0) return;
+  if (NULL == _fOut) {
+    return;
+  }
+  if (NULL == _fIn) {
+    return;
+  }
+  if (_iSize <= 0) {
+    return;
+  }
 
   for (i = 0; i < _iSize; i++) {
     _fOut[i] +=

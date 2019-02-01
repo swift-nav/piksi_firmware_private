@@ -196,9 +196,8 @@ xcorr_match_res_t xcorr_match_alm_position(gnss_signal_t sid0,
   }
   if (xcorr_match_positions(sid, sid0, &alm_pos, pos)) {
     return XCORR_MATCH_RES_OK;
-  } else {
-    return XCORR_MATCH_RES_NO_MATCH;
   }
+  return XCORR_MATCH_RES_NO_MATCH;
 }
 
 /**
@@ -296,22 +295,20 @@ static bool xcorr_check_eph_to_eph(const ephemeris_t *e) {
         tracker_set_xcorr_flag(tc_test->mesid);
         return false; /* exit and notify that new ephemeris from real SV and
                          it can be stored in NDB */
-      } else {
-        /* new ephemeris is Ghost */
-        log_info_sid(e->sid,
-                     "Ephemeris to ephemeris x-corr suspect. "
-                     "Real is %s SV %d",
-                     gnss,
-                     test_e.sid.sat);
-        return true;
       }
-    } else {
-      /* stored SV is not tracked, remove it from NDB and mark new one as
-       * cross-correlated as well, because we actually don't know which one is
-       * ghost */
-      delete_ghost_ephe(test_e.sid);
+      /* new ephemeris is Ghost */
+      log_info_sid(e->sid,
+                   "Ephemeris to ephemeris x-corr suspect. "
+                   "Real is %s SV %d",
+                   gnss,
+                   test_e.sid.sat);
       return true;
     }
+    /* stored SV is not tracked, remove it from NDB and mark new one as
+     * cross-correlated as well, because we actually don't know which one is
+     * ghost */
+    delete_ghost_ephe(test_e.sid);
+    return true;
   }
   return false;
 }

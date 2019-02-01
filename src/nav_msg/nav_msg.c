@@ -433,8 +433,6 @@ static void seek_bit_polarity(nav_msg_t *n) {
   /* Subframe start index is reset,
    * because full subframe is not yet available. */
   n->subframe_start_index = 0;
-
-  return;
 }
 
 /** Navigation message decoding update.

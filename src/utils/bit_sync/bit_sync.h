@@ -27,7 +27,7 @@ extern "C" {
 /** \addtogroup bit_sync
  * \{ */
 
-#define BITSYNC_UNSYNCED -1
+#define BITSYNC_UNSYNCED (-1)
 
 #define BIT_LENGTH_MAX 100
 
@@ -49,7 +49,7 @@ typedef struct {
 
 /** \} */
 
-void bit_sync_init(bit_sync_t *b, const me_gnss_signal_t mesid);
+void bit_sync_init(bit_sync_t *b, me_gnss_signal_t mesid);
 void bit_sync_set(bit_sync_t *b, s8 bit_phase_ref);
 bool bit_sync_update(bit_sync_t *b,
                      s32 corr_prompt_real,

@@ -84,5 +84,4 @@ static void decoder_glo_l1of_process(const decoder_channel_info_t *channel_info,
     /* Sync tracker with decoder data */
     glo_data_sync(&data->nav_msg, mesid, channel, status);
   }
-  return;
 }

@@ -298,7 +298,9 @@ fifo_size_t fifo_remove(fifo_t *fifo, fifo_size_t length) {
  */
 fifo_size_t fifo_write(fifo_t *fifo, const u8 *buffer, fifo_size_t length) {
   fifo_size_t write_length = fifo_poke(fifo, buffer, length);
-  if (write_length == 0) return 0;
+  if (write_length == 0) {
+    return 0;
+  }
   write_length = fifo_add(fifo, write_length);
   return write_length;
 }

@@ -212,7 +212,7 @@ static acq_timer_t gal_acq_timer[NUM_SATS_GAL] = {0};
 /* The array keeps time when QZS SV was detected as unhealthy. */
 static acq_timer_t qzs_acq_timer[NUM_SATS_QZS] = {0};
 
-static u8 manage_track_new_acq(const me_gnss_signal_t mesid);
+static u8 manage_track_new_acq(me_gnss_signal_t mesid);
 static void manage_acq(void);
 
 static void tracking_startup_fifo_init(tracking_startup_fifo_t *fifo);
@@ -557,8 +557,8 @@ static u8 manage_track_new_acq(const me_gnss_signal_t mesid) {
     if (code_requires_decoder(mesid.code) && tracker_available(i, mesid) &&
         decoder_channel_available(i, mesid)) {
       return i;
-    } else if (!code_requires_decoder(mesid.code) &&
-               tracker_available(i, mesid)) {
+    }
+    if (!code_requires_decoder(mesid.code) && tracker_available(i, mesid)) {
       return i;
     }
   }

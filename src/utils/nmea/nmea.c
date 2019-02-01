@@ -104,10 +104,10 @@ typedef enum talker_id_e {
  * max_len = max possible length of the body of the message
  * (not including suffix)
  */
-#define NMEA_SENTENCE_START(max_len)            \
-  char sentence_buf[max_len + NMEA_SUFFIX_LEN]; \
-  char *sentence_bufp = sentence_buf;           \
-  char *const sentence_buf_end = sentence_buf + max_len;
+#define NMEA_SENTENCE_START(max_len)              \
+  char sentence_buf[(max_len) + NMEA_SUFFIX_LEN]; \
+  char *sentence_bufp = sentence_buf;             \
+  char *const sentence_buf_end = sentence_buf + (max_len);
 
 /** NMEA_SENTENCE_PRINTF: use like printf, can use multiple times
     within a sentence. */
@@ -414,7 +414,7 @@ bool send_nmea(u32 rate, u32 gps_tow_ms) {
    * message.
    * This way, we still send no_fix messages when receiver clock is drifting. */
   u32 soln_period_ms = (u32)(1.0 / soln_freq_setting * 1e3);
-  u32 output_period_ms = (u32)soln_period_ms * rate;
+  u32 output_period_ms = soln_period_ms * rate;
   if ((gps_tow_ms % output_period_ms) < (soln_period_ms / 2)) {
     return true;
   }

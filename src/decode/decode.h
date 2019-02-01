@@ -69,9 +69,8 @@ extern "C" {
 void decode_setup(void);
 void decoder_interface_register(decoder_interface_list_element_t *element);
 
-bool decoder_channel_available(u8 tracking_channel,
-                               const me_gnss_signal_t mesid);
-bool decoder_channel_init(u8 tracking_channel, const me_gnss_signal_t mesid);
+bool decoder_channel_available(u8 tracking_channel, me_gnss_signal_t mesid);
+bool decoder_channel_init(u8 tracking_channel, me_gnss_signal_t mesid);
 bool decoder_channel_disable(u8 tracking_channel);
 
 #ifdef __cplusplus

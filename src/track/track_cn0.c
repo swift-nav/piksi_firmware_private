@@ -13,10 +13,11 @@
 
 #include <assert.h>
 #include <board.h>
-#include <chconf.h>
 #include <math.h>
-#include <platform_cn0.h>
+#include <stdint.h>
 
+#include "chconf.h"
+#include "platform_cn0.h"
 #include "settings/settings_client.h"
 #include "track/tracker.h"
 

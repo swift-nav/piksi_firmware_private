@@ -183,7 +183,7 @@ void cnav_msg_decoder_init(cnav_msg_decoder_t *dec);
 bool cnav_msg_decoder_add_symbol(cnav_msg_decoder_t *dec,
                                  unsigned char symbol,
                                  cnav_msg_t *msg,
-                                 u32 *delay);
+                                 u32 *pdelay);
 bool cnav_33_to_utc(const cnav_msg_type_33_t *msg, utc_params_t *u);
 
 #ifdef __cplusplus

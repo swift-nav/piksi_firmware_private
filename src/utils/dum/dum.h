@@ -22,7 +22,7 @@ void dum_get_doppler_wndw(const gnss_signal_t *sid,
                           const gps_time_t *t,
                           const last_good_fix_t *lgf,
                           float speed,
-                          float *doppler_min,
-                          float *doppler_max);
+                          float *doppler_min_hz,
+                          float *doppler_max_hz);
 
 #endif /* SWIFTNAV_DUM_H */

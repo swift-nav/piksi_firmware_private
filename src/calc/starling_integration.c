@@ -82,22 +82,22 @@ static cache_ret_t cache_read_ephemeris(const gnss_signal_t sid,
   ndb_op_code_t ret = ndb_ephemeris_read(sid, eph);
   if (NDB_ERR_NONE == ret) {
     return CACHE_OK;
-  } else if (NDB_ERR_UNCONFIRMED_DATA == ret) {
-    return CACHE_OK_UNCONFIRMED_DATA;
-  } else {
-    return CACHE_ERROR;
   }
+  if (NDB_ERR_UNCONFIRMED_DATA == ret) {
+    return CACHE_OK_UNCONFIRMED_DATA;
+  }
+  return CACHE_ERROR;
 }
 
 static cache_ret_t cache_read_iono_corr(ionosphere_t *iono) {
   ndb_op_code_t ret = ndb_iono_corr_read(iono);
   if (NDB_ERR_NONE == ret) {
     return CACHE_OK;
-  } else if (NDB_ERR_UNCONFIRMED_DATA == ret) {
-    return CACHE_OK_UNCONFIRMED_DATA;
-  } else {
-    return CACHE_ERROR;
   }
+  if (NDB_ERR_UNCONFIRMED_DATA == ret) {
+    return CACHE_OK_UNCONFIRMED_DATA;
+  }
+  return CACHE_ERROR;
 }
 
 static double calc_heading(const double b_ned[3]) {
@@ -687,7 +687,7 @@ static void profile_low_latency_thread(enum ProfileDirective directive) {
   static float avg_diff_run_time_s = 0.0f;
   static float std_run_time_s = 0.1f;
   const float smooth_factor = 0.01f;
-  u32 nap_snapshot_begin = 0;
+  static u32 nap_snapshot_begin = 0;
   switch (directive) {
     case PROFILE_BEGIN:
       nap_snapshot_begin = NAP->TIMING_COUNT;

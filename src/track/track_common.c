@@ -809,7 +809,7 @@ static void tp_tracker_flag_outliers(tracker_t *tracker) {
                                code_to_tcxo_doppler_max(tracker->mesid.code);
 
   /* remove channels with a large positive Doppler outlier */
-  if (fabsf(tracker->doppler_hz) > doppler_max_hz) {
+  if (fabs(tracker->doppler_hz) > doppler_max_hz) {
     log_debug_mesid(
         tracker->mesid, "Doppler %.2f too high", tracker->doppler_hz);
     tracker_flag_drop(tracker, CH_DROP_REASON_OUTLIER);

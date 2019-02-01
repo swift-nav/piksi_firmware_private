@@ -25,7 +25,7 @@
 
 #define BIT_POLARITY_NORMAL 0
 #define BIT_POLARITY_INVERTED 1
-#define BIT_POLARITY_UNKNOWN -1
+#define BIT_POLARITY_UNKNOWN (-1)
 
 /* GLO fit intervals do not seem to overlap.
    P1 field from string 1 defines a fit interval.
@@ -666,8 +666,8 @@ static bool extract_string_5_components(nav_msg_glo_t *n) {
  * \param tow_age             TOW age in seconds.
  * \return TRUE, if time tags are ok, FALSE otherwise.
  */
-static bool find_tow_age(u32 string_receive_time_ms[GLO_STRINGS_TO_COLLECT],
-                         u32 *tow_age_s) {
+static bool find_tow_age(
+    const u32 string_receive_time_ms[GLO_STRINGS_TO_COLLECT], u32 *tow_age_s) {
   bool retval = false;
   u32 tow_tag_ms = string_receive_time_ms[0]; /* String 1 (TOW) time tag. */
   u32 max_tag_ms = 0; /* Max tag is for finding last decoded string time tag. */
@@ -784,7 +784,8 @@ static bool check_time_validity(const nav_msg_glo_t *n, u8 skip) {
     /* Check the second case where time diff of t_b and t_k
      * could indicate longer than nominal P1 ephemeris validity.
      * I.e. ephemeris validity of 45 or 60 min. */
-  } else if (time_diff_sec >= MIN_VALIDITY_WINDOW_S) {
+  }
+  if (time_diff_sec >= MIN_VALIDITY_WINDOW_S) {
     if (check_validity_window(n, tk_sec, skip)) {
       strings_valid = true;
     }
@@ -1007,9 +1008,9 @@ string_decode_status_t process_string_glo(nav_msg_glo_t *n, u32 time_tag_ms) {
 
   if (eph_ready && tow_ready) {
     return GLO_STRING_DECODE_EPH;
-  } else if (tow_ready) {
-    return GLO_STRING_DECODE_TOW;
-  } else {
-    return GLO_STRING_DECODE_STRING;
   }
+  if (tow_ready) {
+    return GLO_STRING_DECODE_TOW;
+  }
+  return GLO_STRING_DECODE_STRING;
 }

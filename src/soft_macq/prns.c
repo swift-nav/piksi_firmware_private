@@ -27,6 +27,7 @@ static const u8 glo_ca_codes[PRN_GLO_CODE_LENGTH_BYTES];
 
 /* Table of arrays of PRN codes indexed by code type */
 typedef const u8 (*prn_array_t)[PRN_CODE_LENGTH_BYTES];
+/* NOLINTNEXTLINE(cppcoreguidelines-interfaces-global-init) */
 static const prn_array_t prn_array_table[CODE_COUNT] = {
     [CODE_GPS_L1CA] = gps_l1ca_codes,
     [CODE_GPS_L2CM] = NULL,

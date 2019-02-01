@@ -181,7 +181,9 @@ ssize_t sbp_fileio_read(const char *filename,
     }
 
     ssize_t chunksize = MIN(closure.len - 4, (ssize_t)(size - s));
-    if (chunksize == 0) break;
+    if (chunksize == 0) {
+      break;
+    }
 
     MEMCPY_S(buf + s, size - s, closure.msg + 4, chunksize);
     s += chunksize;

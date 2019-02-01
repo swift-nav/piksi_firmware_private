@@ -338,10 +338,14 @@ u16 sid_to_constellation_index(gnss_signal_t sid) {
  */
 bool sid_supported(gnss_signal_t sid) {
   /* Verify general validity */
-  if (!sid_valid(sid)) return false;
+  if (!sid_valid(sid)) {
+    return false;
+  }
 
   /* Verify that the code is supported on this platform */
-  if (!code_supported(sid.code)) return false;
+  if (!code_supported(sid.code)) {
+    return false;
+  }
 
   return true;
 }
@@ -355,10 +359,14 @@ bool sid_supported(gnss_signal_t sid) {
  */
 bool code_supported(code_t code) {
   /* Verify general validity */
-  if (!code_valid(code)) return false;
+  if (!code_valid(code)) {
+    return false;
+  }
 
   /* Verify that the code is supported on this platform */
-  if (code_signal_counts[code] == 0) return false;
+  if (code_signal_counts[code] == 0) {
+    return false;
+  }
 
   return true;
 }

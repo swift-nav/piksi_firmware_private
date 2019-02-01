@@ -66,10 +66,18 @@ static time_quality_t clock_var_to_time_quality(double clock_var) {
   /* 3 sigma confidence limit for the clock error */
   double clock_confidence = 3 * sqrt(clock_var);
 
-  if (clock_confidence < TIME_FINEST_THRESHOLD_S) return TIME_FINEST;
-  if (clock_confidence < TIME_FINE_THRESHOLD_S) return TIME_FINE;
-  if (clock_confidence < TIME_PROPAGATED_THRESHOLD_S) return TIME_PROPAGATED;
-  if (clock_confidence < TIME_COARSE_THRESHOLD_S) return TIME_COARSE;
+  if (clock_confidence < TIME_FINEST_THRESHOLD_S) {
+    return TIME_FINEST;
+  }
+  if (clock_confidence < TIME_FINE_THRESHOLD_S) {
+    return TIME_FINE;
+  }
+  if (clock_confidence < TIME_PROPAGATED_THRESHOLD_S) {
+    return TIME_PROPAGATED;
+  }
+  if (clock_confidence < TIME_COARSE_THRESHOLD_S) {
+    return TIME_COARSE;
+  }
 
   return TIME_UNKNOWN;
 }

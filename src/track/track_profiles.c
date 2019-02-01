@@ -40,7 +40,7 @@
 #define DLL_BW_ADDON_HZ (5.0f)
 
 /** Unknown delay indicator */
-#define TP_DELAY_UNKNOWN -1
+#define TP_DELAY_UNKNOWN (-1)
 
 /** Indices of specific entries in gnss_track_profiles[] table below */
 typedef enum {
@@ -88,9 +88,10 @@ typedef enum {
 /** Time interval in ms for printing channel statistics (when DEBUG is
  * enabled)*/
 #define DEBUG_PRINT_TIME_INTERVAL_MS (20000)
-#define BW_DYN -1
+#define BW_DYN (-1)
 
 /** Describes single tracking profile */
+/* NOLINTNEXTLINE(clang-analyzer-optin.performance.Padding) */
 typedef struct tp_profile_entry {
   struct {
     float pll_bw;              /**< PLL bandwidth [Hz] */
@@ -965,11 +966,8 @@ bool tp_profile_has_new_profile(tracker_t *tracker) {
   if (0 != (flags & TP_USE_NEXT)) {
     assert(cur_profile->next != IDX_NONE);
     return profile_switch_requested(tracker, cur_profile->next, "next");
-  } else {
-    return profile_switch_requested(tracker, state->cur.index + 1, "next");
   }
-
-  return false;
+  return profile_switch_requested(tracker, state->cur.index + 1, "next");
 }
 
 /**
