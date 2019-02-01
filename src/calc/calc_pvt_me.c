@@ -797,7 +797,8 @@ static void me_calc_pvt_thread(void *arg) {
 
     /* Only send observations that are closely aligned with the desired
      * solution epoch to ensure they haven't been propagated too far. */
-    if (fabs(output_offset) < OBS_PROPAGATION_LIMIT) {
+    if (fabs(output_offset) < OBS_PROPAGATION_LIMIT &&
+        TIME_PROPAGATED <= time_quality) {
       log_debug("output offset %.4e, smoothed_drift %.3e",
                 output_offset,
                 smoothed_drift);
@@ -834,7 +835,7 @@ static void me_calc_pvt_thread(void *arg) {
         obs_array = NULL;
       }
     } else {
-      if (TIME_UNKNOWN != time_quality) {
+      if (TIME_PROPAGATED <= time_quality) {
         log_info("Observations suppressed because time jumps %.2f seconds",
                  output_offset);
       }

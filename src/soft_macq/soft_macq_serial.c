@@ -42,13 +42,13 @@
 #define FFT_SCALE_SCHED_INV (0x01111111)
 
 static bool get_bin_min_max(const me_gnss_signal_t mesid,
-                            float cf_min,
-                            float cf_max,
-                            float cf_bin_width,
+                            float df_min_hz,
+                            float df_max_hz,
+                            float df_bin_width_hz,
                             s16 *doppler_bin_min,
                             s16 *doppler_bin_max);
 static void ifft_operations(s16 doppler_bin,
-                            float cf_bin_width,
+                            float df_bin_width_hz,
                             u32 fft_len,
                             float fft_bin_width,
                             const sc16_t *code_fft,
@@ -81,9 +81,9 @@ float soft_acq_bin_width(void) { return FAU_BIN_WIDTH; }
 
 bool soft_acq_search(const sc16_t *_cSignal,
                      const me_gnss_signal_t mesid,
-                     float cf_min,
-                     float cf_max,
-                     float cf_bin_width,
+                     float df_min_hz,
+                     float df_max_hz,
+                     float df_bin_width_hz,
                      acq_result_t *acq_result) {
   /* Configuration */
   if (sFftConfig.N != FAU_FFTLEN) {
@@ -152,9 +152,9 @@ bool soft_acq_search(const sc16_t *_cSignal,
 
   /* Find minimum and maximum doppler bin index */
   if (!get_bin_min_max(mesid,
-                       cf_min,
-                       cf_max,
-                       cf_bin_width,
+                       df_min_hz,
+                       df_max_hz,
+                       df_bin_width_hz,
                        &doppler_bin_min,
                        &doppler_bin_max)) {
     return false;
@@ -189,7 +189,7 @@ bool soft_acq_search(const sc16_t *_cSignal,
 
     /* Multiply and do IFFT */
     ifft_operations(doppler_bin,
-                    cf_bin_width,
+                    df_bin_width_hz,
                     FAU_FFTLEN,
                     FAU_BIN_WIDTH,
                     code_fft,
@@ -239,7 +239,7 @@ bool soft_acq_search(const sc16_t *_cSignal,
 
   /* Set output */
   acq_result->cp = cp;
-  acq_result->cf = peak.doppler;
+  acq_result->df_hz = peak.doppler_hz;
   acq_result->cn0 = peak.cn0;
   return true;
 }
@@ -247,30 +247,30 @@ bool soft_acq_search(const sc16_t *_cSignal,
 /** Find dopper_bin_min and doppler_bin_max,
  *  given uncertainty range and bin_width.
  * \param[in]     mesid           ME signal id
- * \param[in]     cf_min          Uncertainty range minimum [Hz]
- * \param[in]     cf_max          Uncertainty range maximum [Hz]
- * \param[in]     cf_bin_width    Doppler bin width [Hz]
+ * \param[in]     df_min_hz       Uncertainty range minimum [Hz]
+ * \param[in]     df_max_hz       Uncertainty range maximum [Hz]
+ * \param[in]     df_bin_width_hz Doppler bin width [Hz]
  * \param[in,out] doppler_bin_min Minimum doppler bin
  * \param[in,out] doppler_bin_max Maximum doppler bin
  * \retval true  Success
  * \retval false Failure
  */
 static bool get_bin_min_max(const me_gnss_signal_t mesid,
-                            float cf_min,
-                            float cf_max,
-                            float cf_bin_width,
+                            float df_min_hz,
+                            float df_max_hz,
+                            float df_bin_width_hz,
                             s16 *doppler_bin_min,
                             s16 *doppler_bin_max) {
   /* Loop over Doppler bins */
-  *doppler_bin_min = (s16)floorf(cf_min / cf_bin_width);
-  *doppler_bin_max = (s16)floorf(cf_max / cf_bin_width);
+  *doppler_bin_min = (s16)floorf(df_min_hz / df_bin_width_hz);
+  *doppler_bin_max = (s16)floorf(df_max_hz / df_bin_width_hz);
 
   /* Check that bin_max >= bin_min. */
   if (*doppler_bin_min > *doppler_bin_max) {
     log_error_mesid(mesid,
                     "Acq_search: caught bogus dopp_hints (%lf, %lf)",
-                    cf_min,
-                    cf_max);
+                    df_min_hz,
+                    df_max_hz);
     return false;
   }
 
@@ -285,26 +285,27 @@ static bool get_bin_min_max(const me_gnss_signal_t mesid,
 }
 
 /** Multiply sample FFT by shifted conjugate code FFT. Perform inverse FFT.
- * \param[in]     mesid         ME signal id
- * \param[in]     doppler_bin   Current doppler bin
- * \param[in]     cf_bin_width  Doppler bin width [Hz]
- * \param[in]     fft_len       FFT length
- * \param[in]     fft_bin_width Doppler bin width [Hz]
- * \param[in]     _pCodeFft      Conjugate code FFT samples
- * \param[in]     _pSampleFft    Sample FFT
- * \param[in]     fft_len_log2  FFT length
- * \param[in,out] doppler       Actual doppler of current frequency bin [Hz]
+ * \param[in]     mesid            ME signal id
+ * \param[in]     doppler_bin      Current doppler bin
+ * \param[in]     df_bin_width_hz  Doppler bin width [Hz]
+ * \param[in]     fft_len          FFT length
+ * \param[in]     fft_bin_width    Doppler bin width [Hz]
+ * \param[in]     _pCodeFft        Conjugate code FFT samples
+ * \param[in]     _pSampleFft      Sample FFT
+ * \param[in]     fft_len_log2     FFT length
+ * \param[in,out] doppler_hz       Actual doppler of current frequency bin [Hz]
  */
 static void ifft_operations(s16 doppler_bin,
-                            float cf_bin_width,
+                            float df_bin_width_hz,
                             u32 fft_len,
                             float fft_bin_width,
                             const sc16_t *_pCodeFft,
                             const sc16_t *_pSampleFft,
-                            float *doppler) {
-  s32 sample_offset = (s32)round((doppler_bin * cf_bin_width) / fft_bin_width);
+                            float *doppler_hz) {
+  s32 sample_offset =
+      (s32)round((doppler_bin * df_bin_width_hz) / fft_bin_width);
   /* Actual computed Doppler */
-  *doppler = doppler_bin * cf_bin_width;
+  *doppler_hz = doppler_bin * df_bin_width_hz;
 
   /* Multiply sample FFT by shifted conjugate code FFT */
   for (u32 i = 0; i < fft_len; i++) {
@@ -330,7 +331,7 @@ static void ifft_operations(s16 doppler_bin,
  * \param[in]     mesid         ME signal id
  * \param[in]     c_array       Complex input array
  * \param[in]     array_sz      Array size
- * \param[in]     doppler       Actual doppler of current frequency bin [Hz]
+ * \param[in]     doppler_hz    Actual doppler of current frequency bin [Hz]
  * \param[in]     fft_len       FFT length
  * \param[in]     fft_bin_width Doppler bin width [Hz]
  * \param[in,out] peak          Max peak parameters
@@ -340,7 +341,7 @@ static void ifft_operations(s16 doppler_bin,
 static bool peak_search(const me_gnss_signal_t mesid,
                         sc16_t *c_array,
                         const u32 array_sz,
-                        const float doppler,
+                        const float doppler_hz,
                         const float fft_bin_width,
                         acq_peak_search_t *peak) {
   u32 k = 0, kmax = 0;
@@ -405,7 +406,7 @@ static bool peak_search(const me_gnss_signal_t mesid,
   if (cn0 > peak->cn0) {
     /* New max peak found */
     peak->cn0 = cn0;
-    peak->doppler = doppler;
+    peak->doppler_hz = doppler_hz;
     peak->sample_offset = peak_index;
   }
 

@@ -24,7 +24,7 @@ void track_gps_l2c_register(void);
 void do_l1ca_to_l2c_handover(u32 sample_count,
                              u16 sat,
                              double code_phase,
-                             double carrier_freq,
+                             double doppler_hz,
                              float cn0_init,
                              s32 TOW_ms);
 

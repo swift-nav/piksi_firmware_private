@@ -80,31 +80,31 @@ static s8 calc_sat_doppler_wndw(const ephemeris_t *e,
                                 const gps_time_t *t,
                                 const gnss_solution *lgf,
                                 float radius,
-                                float *doppler_min,
-                                float *doppler_max) {
+                                float *doppler_min_hz,
+                                float *doppler_max_hz) {
   double vel[3] = {0};
-  double doppler = 0;
+  double doppler_hz = 0;
 
   if ((NULL == e) || (NULL == t) || (NULL == lgf)) {
     assert(!"Bad input");
   }
 
-  if (0 > calc_sat_doppler(e, t, lgf->pos_ecef, vel, &doppler)) {
+  if (0 > calc_sat_doppler(e, t, lgf->pos_ecef, vel, &doppler_hz)) {
     return -1;
   }
-  doppler = -doppler;
+  doppler_hz = -doppler_hz;
 
   /* Add clock elements */
   /* TODO: Check sign of receiver frequency offset correction.
            There seems to be a sign flip somewhere in 'clock_drift'
            computation that gets compensated here */
   float tcxo_shift = -lgf->clock_drift * sid_to_carr_freq(e->sid);
-  doppler += tcxo_shift;
+  doppler_hz += tcxo_shift;
 
   /* Add distance uncertainty */
   float unc = radius * DUM_DIST_UNC_FACTOR;
-  *doppler_min = doppler - unc;
-  *doppler_max = doppler + unc;
+  *doppler_min_hz = doppler_hz - unc;
+  *doppler_max_hz = doppler_hz + unc;
 
   return 0;
 }
@@ -114,8 +114,8 @@ static s8 calc_sat_doppler_wndw(const ephemeris_t *e,
  * \param[in] t Current time estimate
  * \param[in] lgf Last Good Fix
  * \param[in] radius The radius of user location uncertainty [m]
- * \param[out] doppler_min Output Doppler window floor [Hz]
- * \param[out] doppler_max Output Doppler window ceiling [Hz]
+ * \param[out] doppler_min_hz Output Doppler window floor [Hz]
+ * \param[out] doppler_max_hz Output Doppler window ceiling [Hz]
  * \retval 0 Success
  * \retval -1 Failure
  */
@@ -123,8 +123,8 @@ static int get_doppler(const gnss_signal_t *sid,
                        const gps_time_t *t,
                        const last_good_fix_t *lgf,
                        float radius,
-                       float *doppler_min,
-                       float *doppler_max) {
+                       float *doppler_min_hz,
+                       float *doppler_max_hz) {
   if (NULL == t || TIME_UNKNOWN == get_time_quality() || NULL == lgf ||
       POSITION_UNKNOWN == lgf->position_quality) {
     return -1;
@@ -140,9 +140,12 @@ static int get_doppler(const gnss_signal_t *sid,
     return -1;
   }
 
-  if (0 !=
-      calc_sat_doppler_wndw(
-          &e, t, &lgf->position_solution, radius, doppler_min, doppler_max)) {
+  if (0 != calc_sat_doppler_wndw(&e,
+                                 t,
+                                 &lgf->position_solution,
+                                 radius,
+                                 doppler_min_hz,
+                                 doppler_max_hz)) {
     return -1;
   }
   return 0;
@@ -155,8 +158,8 @@ static int get_doppler(const gnss_signal_t *sid,
  * \param[in] t Current time estimate
  * \param[in] lgf Last Good Fix
  * \param[in] speed The predicted user speed [m/s]
- * \param[out] doppler_min Output Doppler window floor [Hz]
- * \param[out] doppler_max Output Doppler window ceiling [Hz]
+ * \param[out] doppler_min_hz Output Doppler window floor [Hz]
+ * \param[out] doppler_max_hz Output Doppler window ceiling [Hz]
  * \retval 0 Success
  * \retval -1 Failure
  */
@@ -164,12 +167,12 @@ static int get_doppler_by_lgf_propagation(const gnss_signal_t *sid,
                                           const gps_time_t *t,
                                           const last_good_fix_t *lgf,
                                           float speed,
-                                          float *doppler_min,
-                                          float *doppler_max) {
+                                          float *doppler_min_hz,
+                                          float *doppler_max_hz) {
   double diff_s = gpsdifftime(t, &lgf->position_solution.time);
   float radius = diff_s * speed;
 
-  return get_doppler(sid, t, lgf, radius, doppler_min, doppler_max);
+  return get_doppler(sid, t, lgf, radius, doppler_min_hz, doppler_max_hz);
 }
 
 /** Compute Doppler uncertainty using LGF and ephemeris.
@@ -178,19 +181,19 @@ static int get_doppler_by_lgf_propagation(const gnss_signal_t *sid,
  * \param[in] sid signal id pointer
  * \param[in] t Current time estimate
  * \param[in] lgf Last Good Fix
- * \param[out] doppler_min Output Doppler window floor [Hz]
- * \param[out] doppler_max Output Doppler window ceiling [Hz]
+ * \param[out] doppler_min_hz Output Doppler window floor [Hz]
+ * \param[out] doppler_max_hz Output Doppler window ceiling [Hz]
  * \retval 0 Success
  * \retval -1 Failure
  */
 static int get_doppler_by_lgf(const gnss_signal_t *sid,
                               const gps_time_t *t,
                               const last_good_fix_t *lgf,
-                              float *doppler_min,
-                              float *doppler_max) {
+                              float *doppler_min_hz,
+                              float *doppler_max_hz) {
   float radius = DUM_LGF_VICINITY_RADIUS_M;
 
-  return get_doppler(sid, t, lgf, radius, doppler_min, doppler_max);
+  return get_doppler(sid, t, lgf, radius, doppler_min_hz, doppler_max_hz);
 }
 
 /** Estimate a satellite specific Doppler search window center and width based
@@ -204,24 +207,24 @@ static int get_doppler_by_lgf(const gnss_signal_t *sid,
  * \param[in] t Current time estimate
  * \param[in] lgf Last Good Fix
  * \param[in] speed The predicted user speed [m/s]
- * \param[out] doppler_min Output window floor [Hz]
- * \param[out] doppler_max Output window ceiling [Hz]
+ * \param[out] doppler_min_hz Output window floor [Hz]
+ * \param[out] doppler_max_hz Output window ceiling [Hz]
  */
 void dum_get_doppler_wndw(const gnss_signal_t *sid,
                           const gps_time_t *t,
                           const last_good_fix_t *lgf,
                           float speed,
-                          float *doppler_min,
-                          float *doppler_max) {
+                          float *doppler_min_hz,
+                          float *doppler_max_hz) {
   assert(sid != NULL);
   assert(sid_valid(*sid));
   assert((CODE_GPS_L1CA == sid->code) || (CODE_GLO_L1OF == sid->code) ||
          (CODE_SBAS_L1CA == sid->code) || (CODE_BDS2_B1 == sid->code) ||
          (CODE_GAL_E1B == sid->code));
 
-  float default_doppler_min =
+  float default_doppler_min_hz =
       code_to_sv_doppler_min(sid->code) + code_to_tcxo_doppler_min(sid->code);
-  float default_doppler_max =
+  float default_doppler_max_hz =
       code_to_sv_doppler_max(sid->code) + code_to_tcxo_doppler_max(sid->code);
   int ret = -1;
   u32 i;
@@ -249,12 +252,12 @@ void dum_get_doppler_wndw(const gnss_signal_t *sid,
   for (j = 0; j < DUM_METHOD_NUM && (ret != 0); j++) {
     switch (method) {
       case DUM_LGF:
-        ret = get_doppler_by_lgf(sid, t, lgf, doppler_min, doppler_max);
+        ret = get_doppler_by_lgf(sid, t, lgf, doppler_min_hz, doppler_max_hz);
         break;
 
       case DUM_LGF_PROPAGATION:
         ret = get_doppler_by_lgf_propagation(
-            sid, t, lgf, speed, doppler_min, doppler_max);
+            sid, t, lgf, speed, doppler_min_hz, doppler_max_hz);
         break;
 
       case DUM_METHOD_NUM:
@@ -269,10 +272,12 @@ void dum_get_doppler_wndw(const gnss_signal_t *sid,
   *mt = method;
 
   if (-1 == ret) {
-    *doppler_min = default_doppler_min;
-    *doppler_max = default_doppler_max;
+    *doppler_min_hz = default_doppler_min_hz;
+    *doppler_max_hz = default_doppler_max_hz;
   } else {
-    *doppler_min = MAX(*doppler_min, default_doppler_min - ACQ_FULL_CF_STEP);
-    *doppler_max = MIN(*doppler_max, default_doppler_max + ACQ_FULL_CF_STEP);
+    *doppler_min_hz =
+        MAX(*doppler_min_hz, default_doppler_min_hz - ACQ_FULL_CF_STEP);
+    *doppler_max_hz =
+        MIN(*doppler_max_hz, default_doppler_max_hz + ACQ_FULL_CF_STEP);
   }
 }

@@ -125,14 +125,14 @@ void dum_get_doppler_wndw(const gnss_signal_t *sid,
                           const gps_time_t *t,
                           const last_good_fix_t *lgf,
                           float speed,
-                          float *doppler_min,
-                          float *doppler_max) {
+                          float *doppler_min_hz,
+                          float *doppler_max_hz) {
   (void)sid;
   (void)t;
   (void)lgf;
   (void)speed;
-  *doppler_min = 100;
-  *doppler_max = 200;
+  *doppler_min_hz = 100;
+  *doppler_max_hz = 200;
 }
 
 /*** SCHEDULER UNIT TESTS STUBS ***/
@@ -170,19 +170,19 @@ void dum_report_reacq_result(const gnss_signal_t *sid, bool res) {
 void acq_result_send(const me_gnss_signal_t mesid,
                      float cn0,
                      float cp,
-                     float cf) {
+                     float df_hz) {
   (void)mesid;
   (void)cn0;
   (void)cp;
-  (void)cf;
+  (void)df_hz;
 }
 
 bool soft_multi_acq_search(const me_gnss_signal_t mesid,
-                           float _fCarrFreqMin,
-                           float _fCarrFreqMax,
+                           float doppler_min_hz,
+                           float doppler_max_hz,
                            acq_result_t *p_acqres) {
-  (void)_fCarrFreqMin;
-  (void)_fCarrFreqMax;
+  (void)doppler_min_hz;
+  (void)doppler_max_hz;
   (void)p_acqres;
   u32 i = mesid_to_code_index(mesid);
   hw_has_run = true;
@@ -191,7 +191,7 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
   if (i <= MAX_ACQUIRED_SV_INDEX) {
     return false;
   }
-  p_acqres->cf = i * 100;
+  p_acqres->df_hz = i * 100;
   p_acqres->cn0 = 30.0f + (float)i;
   p_acqres->cp = i * 10;
   return true;
