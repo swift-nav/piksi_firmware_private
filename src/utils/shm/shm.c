@@ -10,17 +10,18 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "shm.h"
+
 #include <assert.h>
 #include <ch.h>
 #include <swiftnav/ephemeris.h>
 #include <swiftnav/logging.h>
 #include <swiftnav/shm.h>
 
+#include "hal/piksi_systime.h"
 #include "nav_msg/cnav_msg_storage.h"
 #include "nav_msg/nav_msg.h"
 #include "ndb/ndb.h"
-#include "piksi_systime.h"
-#include "shm.h"
 #include "signal_db/signal_db.h"
 
 static MUTEX_DECL(shm_data_access);

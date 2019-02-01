@@ -13,10 +13,10 @@
 #ifndef SWIFTNAV_DUM_H
 #define SWIFTNAV_DUM_H
 
-#include "position/position.h"
-
 #include <swiftnav/gnss_time.h>
 #include <swiftnav/signal.h>
+
+#include "position/position.h"
 
 void dum_get_doppler_wndw(const gnss_signal_t *sid,
                           const gps_time_t *t,

@@ -10,6 +10,8 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "fixed_fft_r2.h"
+
 #include <assert.h>
 #include <inttypes.h>
 #include <math.h>
@@ -17,8 +19,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <swiftnav/logging.h>
-
-#include "fixed_fft_r2.h"
 
 /*! \struct intFFTr2_t
  *  \brief generic size FFT when statically declared

@@ -2,7 +2,6 @@
 #define FIXED_FFT_R2_H_
 
 #include <stdint.h>
-
 #include <swiftnav/common.h>
 
 #define MAX_FFTR2_RANKS (14)

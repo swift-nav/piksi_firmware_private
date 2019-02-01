@@ -12,6 +12,7 @@
 
 /* Local headers */
 #include "track_gal_e1.h"
+
 #include "signal_db/signal_db.h"
 #include "track/track_api.h"
 #include "track/track_common.h"
@@ -20,7 +21,7 @@
 #include "track_gal_e7.h"
 
 /* Non-local headers */
-#include <manage.h>
+#include <acq/manage.h>
 #include <platform_track.h>
 
 /* Libraries */

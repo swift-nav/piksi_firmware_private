@@ -9,6 +9,8 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
+#include "nav_msg/nav_msg_glo.h"
+
 #include <assert.h>
 #include <inttypes.h>
 #include <math.h>
@@ -20,8 +22,6 @@
 #include <swiftnav/logging.h>
 
 #include "timing/timing.h"
-
-#include "nav_msg/nav_msg_glo.h"
 
 #define BIT_POLARITY_NORMAL 0
 #define BIT_POLARITY_INVERTED 1

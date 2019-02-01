@@ -9,10 +9,11 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
+#include "dum.h"
+
 #include <assert.h>
 
-#include "dum.h"
-#include "manage.h"
+#include "acq/manage.h"
 #include "ndb/ndb.h"
 #include "signal_db/signal_db.h"
 #include "timing/timing.h"

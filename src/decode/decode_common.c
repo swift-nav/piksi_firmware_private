@@ -10,16 +10,17 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "decode_common.h"
+
 #include <assert.h>
 #include <inttypes.h>
 #include <swiftnav/glo_map.h>
 #include <swiftnav/gnss_time.h>
 #include <swiftnav/signal.h>
 
-#include "decode_common.h"
+#include "hal/piksi_systime.h"
 #include "nav_msg/cons_time_storage.h"
 #include "ndb/ndb.h"
-#include "piksi_systime.h"
 #include "timing/timing.h"
 #include "track/track_decode.h"
 #include "track/track_sid_db.h"

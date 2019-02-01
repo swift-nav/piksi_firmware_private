@@ -15,7 +15,6 @@
 
 #include <ch.h>
 #include <stdbool.h>
-
 #include <swiftnav/ch_meas.h>
 #include <swiftnav/common.h>
 #include <swiftnav/ephemeris.h>

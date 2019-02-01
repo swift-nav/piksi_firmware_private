@@ -13,7 +13,8 @@
 #include <inttypes.h>
 #include <string.h>
 #include <swiftnav/glo_map.h>
-#include "manage.h"
+
+#include "acq/manage.h"
 #include "ndb/ndb_lgf.h"
 #include "position/position.h"
 #include "sbas_select/sbas_select.h"

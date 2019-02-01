@@ -11,6 +11,7 @@
  */
 
 #include "bmi160.h"
+
 #include <ch.h>
 #include <hal.h>
 #include <string.h>

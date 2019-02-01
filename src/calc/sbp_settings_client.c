@@ -14,11 +14,10 @@
 
 #include "sbp_settings_client.h"
 
-#include <starling/platform/semaphore.h>
-#include <swiftnav/logging.h>
-
 #include <assert.h>
+#include <starling/platform/semaphore.h>
 #include <stdlib.h>
+#include <swiftnav/logging.h>
 
 #define CLASS_PREFIX "Starling Settings Client: "
 

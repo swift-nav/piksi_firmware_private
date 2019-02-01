@@ -14,17 +14,16 @@
 #define SWIFTNAV_CNAV_MSG_H
 
 #include <libfec/fec.h>
-#include <swiftnav/bits.h>
-#include <swiftnav/common.h>
-#include <swiftnav/constants.h>
-#include <swiftnav/edc.h>
-#include <swiftnav/gnss_time.h>
-
 #include <limits.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <swiftnav/bits.h>
+#include <swiftnav/common.h>
+#include <swiftnav/constants.h>
+#include <swiftnav/edc.h>
+#include <swiftnav/gnss_time.h>
 
 #include "me_constants.h"
 

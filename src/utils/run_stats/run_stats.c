@@ -10,10 +10,10 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "run_stats.h"
+
 #include <math.h>
 #include <stdio.h>
-
-#include "run_stats.h"
 
 /** Running statistics initializaiton
  * \param p Running statistics state

@@ -2,10 +2,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-
 #include <swiftnav/constants.h>
 #include <swiftnav/logging.h>
+#include <unistd.h>
 
 #include "lib/fixed_fft_r2.h"
 #include "soft_macq_defines.h"

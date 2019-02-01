@@ -16,14 +16,13 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include "hal.h"
-#include "zynq7000.h"
-
 #include <swiftnav/logging.h>
 
 #include "board/v3/nt1065.h"
 #include "board/v3/xadc.h"
+#include "hal.h"
 #include "sbp.h"
+#include "zynq7000.h"
 
 /* Gain for channels not present is char MAX (127 or 0x7f) */
 #define CHAN_NOT_PRESENT_GAIN 0x7f

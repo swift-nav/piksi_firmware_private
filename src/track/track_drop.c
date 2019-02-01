@@ -10,8 +10,8 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "acq/manage.h"
 #include "decode/decode.h"
-#include "manage.h"
 #include "track/track_common.h"
 #include "track/track_flags.h"
 #include "track/track_state.h"

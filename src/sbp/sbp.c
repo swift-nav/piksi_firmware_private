@@ -10,24 +10,23 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "sbp.h"
+
+#include <ch.h>
 #include <errno.h>
+#include <hal.h>
+#include <libsbp/sbp.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include <ch.h>
-#include <hal.h>
-
-#include <libsbp/sbp.h>
 #include <swiftnav/logging.h>
 #include <swiftnav/memcpy_s.h>
 
 #include "error.h"
 #include "io_support.h"
-#include "main.h"
+#include "main/main.h"
 #include "peripherals/leds.h"
-#include "sbp.h"
 #include "sbp_utils.h"
 #include "settings/settings_client.h"
 #include "timing/timing.h"

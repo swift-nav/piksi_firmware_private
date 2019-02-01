@@ -11,6 +11,8 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
+#include "ephemeris.h"
+
 #include <assert.h>
 #include <ch.h>
 #include <inttypes.h>
@@ -20,10 +22,9 @@
 #include <swiftnav/linear_algebra.h>
 #include <swiftnav/logging.h>
 
-#include "ephemeris.h"
 #include "ndb/ndb.h"
-#include "sbp.h"
-#include "sbp_utils.h"
+#include "sbp/sbp.h"
+#include "sbp/sbp_utils.h"
 #include "signal_db/signal_db.h"
 #include "timing/timing.h"
 #include "track/track_flags.h"

@@ -11,12 +11,12 @@
  */
 
 #include "starling_sbp_settings.h"
-#include "sbp_settings_client.h"
 
+#include <assert.h>
 #include <libsettings/settings.h>
 #include <starling/starling.h>
 
-#include <assert.h>
+#include "sbp_settings_client.h"
 
 /********************************************************************************/
 #define DFLT_CORRECTION_AGE_MAX_S 30

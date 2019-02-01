@@ -11,6 +11,7 @@
  */
 
 #include "io_support.h"
+
 #include "remoteproc/rpmsg.h"
 
 void io_support_init(void) {}

@@ -18,7 +18,7 @@
 #include <swiftnav/common.h>
 #include <swiftnav/signal.h>
 
-#include "platform_signal.h"
+#include "board/v3/platform_signal.h"
 
 /** \addtogroup signal
  * \{ */

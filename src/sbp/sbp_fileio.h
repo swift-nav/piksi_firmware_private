@@ -13,6 +13,7 @@
 #ifndef SWIFTNAV_SBP_FILEIO_H
 #define SWIFTNAV_SBP_FILEIO_H
 
+#include <stdio.h>
 #include <swiftnav/common.h>
 
 void sbp_fileio_remove(const char *filename);

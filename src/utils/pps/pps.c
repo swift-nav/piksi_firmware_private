@@ -10,17 +10,16 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <math.h>
+#include "pps.h"
 
 #include <ch.h>
-
+#include <math.h>
 #include <swiftnav/gnss_time.h>
 #include <swiftnav/logging.h>
 
 #include "board/nap/nap_common.h"
 #include "calc/calc_pvt_me.h"
-#include "main.h"
-#include "pps.h"
+#include "main/main.h"
 #include "settings/settings_client.h"
 #include "timing/timing.h"
 
@@ -84,7 +83,7 @@ static void pps_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("PPS");
 
-  while (TRUE) {
+  while (true) {
     if (get_time_quality() > TIME_UNKNOWN && !nap_pps_armed()) {
       gps_time_t t = get_current_time();
       if (output_pps(&t)) {
@@ -109,16 +108,16 @@ static void pps_thread(void *arg) {
 static bool pps_config(u32 microseconds, u8 polarity) {
   if (microseconds < 1 || microseconds >= 1e6) {
     log_info("Invalid PPS width. Valid range: 1-999999\n");
-    return FALSE;
+    return false;
   }
 
   if (polarity > 1) {
     log_info("Invalid PPS polarity. Valid values: 0, 1\n");
-    return FALSE;
+    return false;
   }
 
   nap_pps_config(microseconds, polarity);
-  return TRUE;
+  return true;
 }
 
 /** Settings callback for PPS config.

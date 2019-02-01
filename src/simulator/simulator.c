@@ -18,7 +18,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include <swiftnav/almanac.h>
 #include <swiftnav/constants.h>
 #include <swiftnav/coord_system.h>
@@ -31,9 +30,8 @@
 #include "sbp/sbp.h"
 #include "sbp/sbp_utils.h"
 #include "settings/settings_client.h"
-#include "track/track_sid_db.h"
-
 #include "simulator_data.h"
+#include "track/track_sid_db.h"
 
 /** \addtogroup simulator
  * \{ */

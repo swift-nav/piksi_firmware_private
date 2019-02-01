@@ -41,6 +41,8 @@
 
 #define MS2ST(x) x
 
+#define THD_FUNCTION(tname, arg) tname(arg)
+
 typedef int binary_semaphore_t;
 typedef int mutex_t;
 typedef int systime_t;

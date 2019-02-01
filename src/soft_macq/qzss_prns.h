@@ -14,6 +14,7 @@
 #define QZSS_PRNS_H
 
 #include <swiftnav/common.h>
+#include <swiftnav/constants.h>
 #include <swiftnav/signal.h>
 
 #include "prns.h"

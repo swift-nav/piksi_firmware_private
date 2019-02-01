@@ -10,14 +10,15 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "ext_events.h"
+
 #include <libsbp/ext_events.h>
 #include <libsbp/navigation.h>
 #include <swiftnav/logging.h>
 
 #include "board/nap/nap_common.h"
-#include "ext_events.h"
-#include "sbp.h"
-#include "sbp_utils.h"
+#include "sbp/sbp.h"
+#include "sbp/sbp_utils.h"
 #include "settings/settings_client.h"
 #include "timing/timing.h"
 

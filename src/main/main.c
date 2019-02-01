@@ -10,38 +10,36 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include <hal.h>
+#include <libsbp/system.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include <libsbp/system.h>
 #include <swiftnav/gnss_time.h>
 #include <swiftnav/logging.h>
 
-#include <hal.h>
-#include "calc_pvt_me.h"
-
+#include "acq/manage.h"
 #include "board/frontend.h"
 #include "board/nap/track_channel.h"
-#include "calc_base_obs.h"
-#include "decode.h"
+#include "calc/calc_base_obs.h"
+#include "calc/calc_pvt_me.h"
+#include "calc/firmware_starling.h"
+#include "cfg/init.h"
+#include "decode/decode.h"
 #include "ephemeris/ephemeris.h"
 #include "ext_events/ext_events.h"
-#include "firmware_starling.h"
 #include "glo_map_setup/glo_map_setup.h"
 #include "hal/is_duro.h"
-#include "init.h"
 #include "io_support.h"
-#include "manage.h"
 #include "ndb/ndb.h"
 #include "nmea/nmea.h"
 #include "peripherals/can_termination.h"
 #include "peripherals/leds.h"
 #include "position/position.h"
 #include "pps/pps.h"
-#include "sbp.h"
-#include "sbp_utils.h"
+#include "sbp/sbp.h"
+#include "sbp/sbp_utils.h"
 #include "settings/settings_client.h"
-#include "simulator.h"
+#include "simulator/simulator.h"
 #include "specan/specan_main.h"
 #include "system_monitor/system_monitor.h"
 #include "timing/timing.h"

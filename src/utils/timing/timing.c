@@ -10,19 +10,19 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "timing.h"
+
 #include <assert.h>
+#include <libsbp/sbp.h>
 #include <math.h>
 #include <string.h>
-
-#include <libsbp/sbp.h>
 #include <swiftnav/logging.h>
 
-#include "board/nap/nap_common.h"
 #include "clock_filter/clock_filter.h"
-#include "main.h"
+#include "main/main.h"
+#include "nap/nap_common.h"
 #include "ndb/ndb_utc.h"
-#include "sbp.h"
-#include "timing.h"
+#include "sbp/sbp.h"
 
 /** \defgroup timing Timing
  * Maintains the time state of the receiver and provides time related

@@ -9,15 +9,15 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
-#include <assert.h>
-#include <stdio.h>
+#include "gnss_capabilities.h"
 
+#include <assert.h>
 #include <libsbp/observation.h>
+#include <stdio.h>
 #include <swiftnav/common.h>
 
-#include "gnss_capabilities.h"
 #include "ndb/ndb.h"
-#include "sbp_utils.h"
+#include "sbp/sbp_utils.h"
 
 /** \defgroup gnss_capabilities Constellation capabilities
  * Functions used in gnss capabilities

@@ -9,15 +9,14 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
-#include <board/nap/nap_common.h>
-#include "manage.h"
+#include "acq/manage.h"
+#include "board/nap/nap_common.h"
 #include "me_constants.h"
 #include "ndb/ndb.h"
 #include "search_manager_api.h"
 #include "shm/shm.h"
-#include "timing/timing.h"
-
 #include "sv_visibility/sv_visibility.h"
+#include "timing/timing.h"
 
 /* Ephemerides fit interval for the purpose of (re-)acq, two weeks, [s] */
 #define SM_FIT_INTERVAL_VALID (WEEK_SECS * 2)

@@ -9,6 +9,8 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
+#include "nav_msg/nav_msg.h"
+
 #include <assert.h>
 #include <inttypes.h>
 #include <math.h>
@@ -22,7 +24,6 @@
 #include <swiftnav/shm.h>
 
 #include "gnss_capabilities/gnss_capabilities.h"
-#include "nav_msg/nav_msg.h"
 
 /** Bad parity subframe mask for subframes 3-10 */
 #define GPS_LNAV_BAD_DATA_SFRAME_MASK UINT8_C(0xFF)

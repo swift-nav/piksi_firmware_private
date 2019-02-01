@@ -10,14 +10,13 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "fifo.h"
+
 #include <assert.h>
 #include <string.h>
-
 #include <swiftnav/common.h>
 #include <swiftnav/logging.h>
 #include <swiftnav/memcpy_s.h>
-
-#include "fifo.h"
 
 #define COMPILER_BARRIER() asm volatile("" : : : "memory")
 

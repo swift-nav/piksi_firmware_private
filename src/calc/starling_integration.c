@@ -10,38 +10,36 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "starling_integration.h"
+
 #include <assert.h>
 #include <ch.h>
-#include <string.h>
-
 #include <starling/integration/starling_input_bridge.h>
 #include <starling/platform/mutex.h>
 #include <starling/platform/thread.h>
 #include <starling/starling.h>
 #include <starling/starling_external_dependencies.h>
+#include <string.h>
 #include <swiftnav/coord_system.h>
 #include <swiftnav/linear_algebra.h>
 #include <swiftnav/memcpy_s.h>
 
+#include "board/v3/nap/nap_hw.h"
 #include "calc/calc_pvt_common.h"
 #include "calc/calc_pvt_me.h"
 #include "calc/sbp_settings_client.h"
-#include "calc/starling_integration.h"
 #include "calc/starling_sbp_link.h"
 #include "calc/starling_sbp_output.h"
 #include "calc/starling_sbp_settings.h"
 #include "cfg/init.h"
 #include "ndb/ndb.h"
+#include "nmea/nmea.h"
 #include "sbp/sbp.h"
 #include "sbp/sbp_utils.h"
 #include "shm/shm.h"
 #include "simulator/simulator.h"
-#include "track/track_sid_db.h"
-#include "utils/nmea/nmea.h"
-#include "utils/timing/timing.h"
-
-#include "board/v3/nap/nap_hw.h"
 #include "timing/timing.h"
+#include "track/track_sid_db.h"
 
 /*******************************************************************************
  * Constants

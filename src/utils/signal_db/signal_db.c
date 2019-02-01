@@ -12,11 +12,10 @@
  */
 
 #include "signal_db.h"
-#include <board.h>
 
 #include <assert.h>
+#include <board.h>
 #include <string.h>
-
 #include <swiftnav/constants.h>
 
 /** GPS L1 C/A carrier freq / code chipping rate

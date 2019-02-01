@@ -9,18 +9,18 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
+#include "nav_msg/nav_msg_gal.h"
+
 #include <assert.h>
 #include <inttypes.h>
 #include <libfec/fec.h>
-#include <limits.h>
 #include <string.h>
 #include <swiftnav/bits.h>
 #include <swiftnav/edc.h>
 
 #include "ephemeris/ephemeris.h"
 #include "nav_msg/nav_msg.h"
-#include "nav_msg/nav_msg_gal.h"
-#include "utils/timing/timing.h"
+#include "timing/timing.h"
 
 #define GAL_INAV_PREAMBLE_MASK 0x03ff
 #define GAL_INAV_PREAMBLE 0x0160

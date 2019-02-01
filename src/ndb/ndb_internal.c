@@ -10,6 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 #include "ndb_internal.h"
+
 #include <assert.h>
 #include <inttypes.h>
 #include <nap/nap_common.h>
@@ -18,6 +19,7 @@
 #include <swiftnav/edc.h>
 #include <swiftnav/logging.h>
 #include <swiftnav/memcpy_s.h>
+
 #include "libsbp/piksi.h"
 #include "ndb.h"
 #include "ndb_fs_access.h"

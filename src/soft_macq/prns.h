@@ -15,6 +15,7 @@
 
 #include <swiftnav/common.h>
 #include <swiftnav/signal.h>
+
 #include "signal_db/signal_db.h"
 
 #define INT_NUM_BYTES(arg) (((arg) + 7) / 8)

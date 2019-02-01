@@ -11,14 +11,14 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
+#include "prns.h"
+
 #include <assert.h>
 #include <stdlib.h>
-
 #include <swiftnav/constants.h>
 
 #include "bds2_prns.h"
 #include "gal_prns.h"
-#include "prns.h"
 #include "qzss_prns.h"
 
 static const u8 gps_l1ca_codes[][PRN_CODE_LENGTH_BYTES];

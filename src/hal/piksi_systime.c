@@ -10,14 +10,12 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "piksi_systime.h"
+
 #include <assert.h>
-
 #include <ch.h>
-
 #include <swiftnav/gnss_time.h>
 #include <swiftnav/logging.h>
-
-#include "piksi_systime.h"
 
 #define PIKSI_SYSTIME_CH_KERNEL_MAJOR 3
 #define PIKSI_SYSTIME_CH_KERNEL_MINOR 1

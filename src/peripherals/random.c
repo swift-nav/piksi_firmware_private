@@ -10,12 +10,12 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "random.h"
+
 #include <ch.h>
 #include <hal.h>
-
 #include <swiftnav/common.h>
 #include <swiftnav/logging.h>
-#include "random.h"
 
 #define RANDOM_MAX_TRIES 100
 

@@ -10,9 +10,10 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "track_decode.h"
+
 #include <string.h>
 
-#include "track_decode.h"
 #include "track_state.h"
 
 /** Read the next pending nav bit for a tracker channel.

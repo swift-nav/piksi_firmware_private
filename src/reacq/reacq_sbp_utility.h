@@ -13,7 +13,7 @@
 #ifndef SRC_REACQ_REACQ_SBP_UTILITY_H_
 #define SRC_REACQ_REACQ_SBP_UTILITY_H_
 
-#include <sbp.h>
+#include "sbp/sbp.h"
 
 void reacq_sbp_init(void);
 void reacq_sbp_data_process(const acq_sv_profile_t *profile);

@@ -5,5 +5,6 @@ Language:      Cpp
 BasedOnStyle:  Google
 Standard:      Cpp11
 BinPackParameters: false
-BinPackArguments: false 
+BinPackArguments: false
+IncludeBlocks: Regroup
 ...

@@ -11,7 +11,18 @@
  */
 
 #include "nap/track_channel.h"
+
+#include <assert.h>
+#include <ch.h>
+#include <inttypes.h>
+#include <string.h>
+#include <swiftnav/bits.h>
+#include <swiftnav/common.h>
+#include <swiftnav/constants.h>
+#include <swiftnav/signal.h>
+
 #include "filters/filter_common.h"
+#include "gnss_capabilities/gnss_capabilities.h"
 #include "main.h"
 #include "me_constants.h"
 #include "nap/nap_common.h"
@@ -21,18 +32,6 @@
 #include "soft_macq/gal_prns.h"
 #include "soft_macq/prns.h"
 #include "timing/timing.h"
-#include "utils/gnss_capabilities/gnss_capabilities.h"
-
-#include <ch.h>
-
-#include <swiftnav/bits.h>
-#include <swiftnav/common.h>
-#include <swiftnav/constants.h>
-#include <swiftnav/signal.h>
-
-#include <assert.h>
-#include <inttypes.h>
-#include <string.h>
 
 #define TIMING_COMPARE_DELTA_MIN (1e-3 * NAP_TRACK_SAMPLE_RATE_Hz)
 

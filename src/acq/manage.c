@@ -10,14 +10,15 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "manage.h"
+
 #include <assert.h>
 #include <inttypes.h>
+#include <libsbp/piksi.h>
 #include <math.h>
+#include <starling/starling.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include <libsbp/piksi.h>
-#include <starling/starling.h>
 #include <swiftnav/almanac.h>
 #include <swiftnav/constants.h>
 #include <swiftnav/coord_system.h>
@@ -29,20 +30,19 @@
 #include <swiftnav/signal.h>
 
 #include "board/nap/track_channel.h"
-#include "decode.h"
+#include "decode/decode.h"
 #include "dum/dum.h"
 #include "ephemeris/ephemeris.h"
 #include "gnss_capabilities/gnss_capabilities.h"
-#include "main.h"
-#include "manage.h"
+#include "hal/piksi_systime.h"
+#include "main/main.h"
 #include "ndb/ndb.h"
 #include "nmea/nmea.h"
-#include "piksi_systime.h"
 #include "position/position.h"
 #include "reacq/reacq_manage.h"
 #include "reacq/search_manager_utils.h"
-#include "sbp.h"
-#include "sbp_utils.h"
+#include "sbp/sbp.h"
+#include "sbp/sbp_utils.h"
 #include "settings/settings_client.h"
 #include "shm/shm.h"
 #include "signal_db/signal_db.h"

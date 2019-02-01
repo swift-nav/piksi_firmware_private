@@ -10,8 +10,9 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "nav_bit_fifo/nav_bit_fifo.h"
-#include "main.h"
+#include "nav_bit_fifo.h"
+
+#include "main/main.h"
 
 /** Return navigation data bit FIFO size for code_t
  * \param code code_t to retrieve the size for

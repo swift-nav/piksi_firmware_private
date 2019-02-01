@@ -11,9 +11,9 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <hal.h>
-
 #include "./watchdog.h"
+
+#include <hal.h>
 
 #define COUNT_LENGTH 12
 #define COUNT_MASK ((1 << COUNT_LENGTH) - 1)

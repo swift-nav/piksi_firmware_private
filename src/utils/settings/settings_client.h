@@ -13,10 +13,8 @@
 #ifndef SWIFTNAV_SETTINGS_CLIENT_H
 #define SWIFTNAV_SETTINGS_CLIENT_H
 
-#include <stdbool.h>
-
 #include <libsettings/settings.h>
-
+#include <stdbool.h>
 #include <swiftnav/common.h>
 
 struct setting {

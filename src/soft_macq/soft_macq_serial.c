@@ -19,15 +19,13 @@
 #include <swiftnav/logging.h>
 #include <swiftnav/memcpy_s.h>
 
-#include "system_monitor/system_monitor.h"
-
 #include "lib/fixed_fft_r2.h"
-
 #include "platform_cn0.h"
 #include "prns.h"
 #include "soft_macq_defines.h"
 #include "soft_macq_main.h"
 #include "soft_macq_utils.h"
+#include "system_monitor/system_monitor.h"
 
 #define FAU_SAMPLE_RATE_Hz (FAU_RAW_FS / FAU_DECFACT)
 #define CODE_SPMS (FAU_SAMPLE_RATE_Hz / 1000)

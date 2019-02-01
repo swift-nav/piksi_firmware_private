@@ -10,16 +10,14 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include <assert.h>
+#include <ch.h>
 #include <starling/platform/mq.h>
 #include <starling/platform/mutex.h>
 #include <starling/platform/semaphore.h>
 #include <starling/platform/thread.h>
 #include <starling/platform/watchdog.h>
-
-#include <assert.h>
 #include <string.h>
-
-#include <ch.h>
 
 /* Used for watchdog implementation. */
 #include "system_monitor/system_monitor.h"

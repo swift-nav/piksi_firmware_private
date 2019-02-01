@@ -16,7 +16,6 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <string.h>
-
 #include <swiftnav/common.h>
 
 typedef struct {

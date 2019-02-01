@@ -11,6 +11,7 @@
  */
 
 #include "platform_signal.h"
+
 #include "decode/decode_bds_b1.h"
 #include "decode/decode_bds_b2.h"
 #include "decode/decode_gal_e1.h"

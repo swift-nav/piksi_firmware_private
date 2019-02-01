@@ -9,13 +9,14 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
+#include "nav_msg/nav_msg_bds.h"
+
 #include <assert.h>
 #include <inttypes.h>
 #include <string.h>
 #include <swiftnav/bits.h>
 
 #include "ephemeris/ephemeris.h"
-#include "nav_msg/nav_msg_bds.h"
 #include "timing/timing.h"
 #include "track/track_decode.h"
 

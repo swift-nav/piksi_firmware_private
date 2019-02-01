@@ -10,13 +10,12 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <assert.h>
-#include <string.h>
+#include "spi_wrapper.h"
 
+#include <assert.h>
 #include <ch.h>
 #include <hal.h>
-
-#include "spi_wrapper.h"
+#include <string.h>
 
 typedef struct {
   SPIDriver *driver;

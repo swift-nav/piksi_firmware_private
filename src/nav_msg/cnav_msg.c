@@ -11,10 +11,11 @@
  */
 
 #include "nav_msg/cnav_msg.h"
-#include "nav_msg/nav_msg.h" /* For BIT_POLARITY_... constants */
 
 #include <limits.h>
 #include <string.h>
+
+#include "nav_msg/nav_msg.h" /* For BIT_POLARITY_... constants */
 
 /** \defgroup GPS_L2 GPS L2
  * GPS L2 operations

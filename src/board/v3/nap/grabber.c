@@ -9,17 +9,16 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
+#include "nap/grabber.h"
+
 #include <assert.h>
 #include <ch.h>
-
 #include <swiftnav/logging.h>
 
 #include "axi_dma.h"
+#include "nap/nap_common.h"
 #include "nap_constants.h"
 #include "nap_hw.h"
-
-#include "nap/grabber.h"
-#include "nap/nap_common.h"
 
 #define DATA_MEMORY_BARRIER() asm volatile("dmb" : : : "memory")
 

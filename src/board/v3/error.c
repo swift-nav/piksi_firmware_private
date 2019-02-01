@@ -11,21 +11,19 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <hal.h>
-#include "zynq7000.h"
+#include "error.h"
 
+#include <hal.h>
+#include <libsbp/sbp.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include <libsbp/sbp.h>
 #include <swiftnav/logging.h>
 
 #include "peripherals/leds.h"
 #include "piksi_systime.h"
-
-#include "error.h"
 #include "sbp.h"
+#include "zynq7000.h"
 
 /** \addtogroup error
  * System low-level error handling and reporting

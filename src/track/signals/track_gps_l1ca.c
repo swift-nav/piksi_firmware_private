@@ -12,6 +12,7 @@
 
 /* Local headers */
 #include "track_gps_l1ca.h"
+
 #include "filters/filter_common.h"
 #include "signal_db/signal_db.h"
 #include "track/track_api.h"
@@ -21,7 +22,7 @@
 #include "track_gps_l2c.h" /* for L1C/A to L2C tracking handover */
 
 /* Non-local headers */
-#include <manage.h>
+#include <acq/manage.h>
 #include <platform_track.h>
 
 /* Libraries */

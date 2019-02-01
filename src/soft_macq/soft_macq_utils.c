@@ -10,6 +10,8 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "soft_macq_utils.h"
+
 #include <inttypes.h>
 #include <math.h>
 #include <stdbool.h>
@@ -17,7 +19,6 @@
 #include <stdlib.h>
 
 #include "prns.h"
-#include "soft_macq_utils.h"
 
 /** baseband LUT conversion table, takes uint8_t with a signal sample
  *  and a phase argument and generates the rotated complex sample

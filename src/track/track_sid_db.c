@@ -11,15 +11,16 @@
  */
 
 #include "track_sid_db.h"
+
+#include <assert.h>
 #include <inttypes.h>
 #include <swiftnav/constants.h>
 #include <swiftnav/gnss_time.h>
+
 #include "signal_db/signal_db.h"
 #include "timing/timing.h"
 #include "track_api.h"
 #include "track_flags.h"
-
-#include <assert.h>
 
 /** Maximum interval for reusing cached ToW values [ms] */
 #define MAXIMUM_DB_CACHE_USE_INTERVAL_MS (3 * MINUTE_SECS * 1000)

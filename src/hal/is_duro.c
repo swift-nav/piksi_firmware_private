@@ -10,10 +10,13 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "is_duro.h"
+
 #include <hal.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "sbp_fileio.h"
+
+#include "sbp/sbp_fileio.h"
 
 #define DEVICE_IS_DURO_FILENAME "/etc/flags/is_duro"
 

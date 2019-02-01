@@ -11,10 +11,11 @@
  */
 
 #include <assert.h>
-#include <manage.h>
-#include <sbp_utils.h>
 #include <swiftnav/glo_map.h>
+
+#include "acq/manage.h"
 #include "reacq_sbp_utility.h"
+#include "sbp/sbp_utils.h"
 #include "search_manager_api.h"
 
 /** Populate acq_sv_profile message and send it out

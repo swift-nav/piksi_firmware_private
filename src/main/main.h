@@ -15,7 +15,7 @@
 
 #include <swiftnav/common.h>
 
-#include "piksi_systime.h"
+#include "hal/piksi_systime.h"
 
 #define COMPILER_BARRIER() asm volatile("" : : : "memory")
 

@@ -14,7 +14,6 @@
 #define SWIFTNAV_PIKSI_SYSTIME_H
 
 #include <ch.h>
-
 #include <swiftnav/common.h>
 
 #include "chconf.h"

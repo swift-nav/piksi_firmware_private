@@ -10,22 +10,20 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <stdint.h>
-#include <swiftnav/constants.h>
-
-#include <board.h>
-#include <chconf_board.h>
-#include <nap/nap_common.h>
-#include <nap/nap_hw.h>
-#include <platform_cn0.h>
-#include <platform_track.h>
-
 #include <assert.h>
 #include <math.h>
+#include <stdint.h>
 #include <string.h>
+#include <swiftnav/constants.h>
 
+#include "board.h"
+#include "board/nap/nap_common.h"
+#include "chconf_board.h"
 #include "gnss_capabilities/gnss_capabilities.h"
 #include "lock_detector/lock_detector.h"
+#include "nap/nap_hw.h"
+#include "platform_cn0.h"
+#include "platform_track.h"
 #include "signal_db/signal_db.h"
 #include "timing/timing.h"
 #include "track/track_cfg.h"

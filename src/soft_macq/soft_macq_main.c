@@ -16,15 +16,13 @@
 #include <math.h>
 #include <stdint.h>
 #include <string.h>
-
 #include <swiftnav/linear_algebra.h>
 #include <swiftnav/logging.h>
 
 #include "board/v3/nap/grabber.h"
+#include "lib/fixed_fft_r2.h"
 #include "nap/nap_common.h"
 #include "nap/nap_constants.h"
-
-#include "lib/fixed_fft_r2.h"
 #include "prns.h"
 #include "soft_macq_defines.h"
 #include "soft_macq_mdbzp.h"
