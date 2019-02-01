@@ -32,9 +32,9 @@ typedef struct event_config_s {
 } event_config_t;
 
 static event_config_t event_config[3] = {
-        [0] = {.pin = 0, .trigger = 0, .timeout_us = 0},
-        [1] = {.pin = 1, .trigger = 0, .timeout_us = 0},
-        [2] = {.pin = 2, .trigger = 0, .timeout_us = 0},
+    [0] = {.pin = 0, .trigger = 0, .timeout_us = 0},
+    [1] = {.pin = 1, .trigger = 0, .timeout_us = 0},
+    [2] = {.pin = 2, .trigger = 0, .timeout_us = 0},
 };
 
 /** Settings callback to inform NAP which trigger mode and timeout is desired */
