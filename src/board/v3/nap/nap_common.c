@@ -333,3 +333,13 @@ void nap_set_ext_event(u8 pin, ext_event_trigger_t trig, u32 timeout) {
       return;
   }
 }
+
+void nap_set_can_termination() {
+  u32 ctrl = NAP->CONTROL;
+  NAP->CONTROL = SET_NAP_CONTROL_CAN_TERM_ENABLE(ctrl, 1);
+}
+
+void nap_unset_can_termination() {
+  u32 ctrl = NAP->CONTROL;
+  NAP->CONTROL = SET_NAP_CONTROL_CAN_TERM_ENABLE(ctrl, 0);
+}
