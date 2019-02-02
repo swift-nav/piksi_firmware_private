@@ -28,11 +28,13 @@
 #include "ext_events/ext_events.h"
 #include "firmware_starling.h"
 #include "glo_map_setup/glo_map_setup.h"
+#include "hal/is_duro.h"
 #include "init.h"
 #include "io_support.h"
 #include "manage.h"
 #include "ndb/ndb.h"
 #include "nmea/nmea.h"
+#include "peripherals/can_termination.h"
 #include "peripherals/leds.h"
 #include "position/position.h"
 #include "pps/pps.h"
@@ -178,6 +180,10 @@ int main(void) {
   gnss_capb_send_over_sbp();
 
   SpecanStart();
+
+  if (device_is_duro()) {
+    can1_termination_init();
+  }
 
   while (1) {
     chThdSleepSeconds(60);
