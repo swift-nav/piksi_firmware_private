@@ -188,6 +188,7 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/utils/gnss_capabilities/gnss_capabilities.o \
         $(SWIFTNAV_ROOT)/src/utils/signal_db/signal_db.o \
         $(SWIFTNAV_ROOT)/src/hal/piksi_systime.o \
+        $(SWIFTNAV_ROOT)/src/hal/is_duro.o \
         $(SWIFTNAV_ROOT)/src/ndb/ndb_internal.o \
         $(SWIFTNAV_ROOT)/src/ndb/ndb_ephemeris.o \
         $(SWIFTNAV_ROOT)/src/ndb/ndb_almanac.o \
