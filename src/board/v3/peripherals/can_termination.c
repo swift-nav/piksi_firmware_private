@@ -14,7 +14,7 @@
 
 #include <board/nap/nap_common.h>
 
-#include "settings/settings_client.h"
+#include "settings/settings.h"
 
 /* Can termination will only work on a Duro where the can term gpio
  * is wired to a circuit to toggle the 120 ohm resistor.*/
@@ -29,16 +29,16 @@ static void can1_termination_configure(bool can_term) {
   }
 }
 
-static int can1_term_notify(void *ctx) {
-  (void)ctx;
+static bool can1_term_notify(struct setting *s, const char *val) {
+  bool res = s->type->from_string(s->type->priv, s->addr, s->len, val);
+  if (!res) {
+    return false;
+  }
   can1_termination_configure(can1_termination);
-  return SETTINGS_WR_OK;
+  return true;
 }
 
 void can1_termination_init(void) {
-  SETTING_NOTIFY("can1",
-                 "termination",
-                 can1_termination,
-                 SETTINGS_TYPE_BOOL,
-                 can1_term_notify);
+  SETTING_NOTIFY(
+      "can1", "termination", can1_termination, TYPE_BOOL, can1_term_notify);
 }
