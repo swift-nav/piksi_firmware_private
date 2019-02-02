@@ -87,6 +87,9 @@ void nap_pps(u32 count);
 void nap_pps_config(u32 microseconds, u8 active);
 bool nap_pps_armed(void);
 
+void nap_set_can_termination(void);
+void nap_unset_can_termination(void);
+
 #ifdef __cplusplus
 }
 #endif
