@@ -493,6 +493,18 @@ void nap_track_read_results(u8 channel,
                    corrs[4].I,
                    corrs[4].Q);
   }
+  DO_EVERY(1024,
+    log_info("corr: %3d %02d"
+             " %+6" PRIi32 " %+6" PRIi32 " %+6" PRIi32
+             " %+6" PRIi32 " %+6" PRIi32 " %+6" PRIi32,
+             s->mesid.sat,
+             s->mesid.code,
+             corrs[0].I,
+             corrs[0].Q,
+             corrs[1].I,
+             corrs[1].Q,
+             corrs[2].I,
+             corrs[2].Q););
 
   /* Check carrier phase reckoning */
   u8 sw_carr_phase = (s->sw_carr_phase >> 29) & 0x3F;
