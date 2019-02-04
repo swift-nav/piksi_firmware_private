@@ -68,9 +68,6 @@ static bool enable_glonass = true;
 static bool enable_galileo = true;
 static bool enable_beidou = true;
 
-static bool skylark_enabled = false;
-static bool orion_enabled = false;
-
 static dgnss_filter_t dgnss_filter_mode = FILTER_FIXED;
 static dgnss_solution_mode_t dgnss_soln_mode = STARLING_SOLN_MODE_LOW_LATENCY;
 
