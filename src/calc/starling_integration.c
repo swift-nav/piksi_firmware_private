@@ -607,30 +607,6 @@ static int set_glonass_downweight_factor(void *ctx) {
   return SETTINGS_WR_OK;
 }
 
-static int klobuchar_notify(void *ctx) {
-  (void)ctx;
-
-  typedef enum klobu_corr_state_e {
-    KLOBUCHAR_CORR_DISABLED = false,
-    KLOBUCHAR_CORR_ENABLED = true,
-    KLOBUCHAR_CORR_UNINIT,
-  } klobu_corr_state_t;
-
-  static klobu_corr_state_t klobuchar_enabled = KLOBUCHAR_CORR_UNINIT;
-
-  klobu_corr_state_t notified_state = (!skylark_enabled && !orion_enabled);
-
-  if (notified_state != klobuchar_enabled) {
-    /* Klobuchar state changed */
-    klobuchar_enabled = notified_state;
-    log_info("%s Klobuchar corrections",
-             klobuchar_enabled ? "Enabling" : "Disabling");
-    starling_set_is_time_matched_klobuchar_enabled(klobuchar_enabled);
-  }
-
-  return SETTINGS_WR_OK;
-}
-
 static void reset_filters_callback(u16 sender_id,
                                    u8 len,
                                    u8 msg[],
@@ -806,14 +782,6 @@ static void initialize_starling_settings(void) {
                  glonass_downweight_factor,
                  SETTINGS_TYPE_FLOAT,
                  set_glonass_downweight_factor);
-
-  SETTING_WATCH("skylark",
-                "enable",
-                skylark_enabled,
-                SETTINGS_TYPE_BOOL,
-                klobuchar_notify);
-  SETTING_WATCH(
-      "orion", "enable", orion_enabled, SETTINGS_TYPE_BOOL, klobuchar_notify);
 
   static const char *const dgnss_soln_mode_enum[] = {
       "Low Latency", "Time Matched", "No DGNSS", NULL};
