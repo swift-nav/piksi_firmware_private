@@ -27,30 +27,30 @@ test_case_t *test_case;
 test_case_t test_cases[] = {
     /* No SV tracked */
     {0, 0x0, 0x0, 0x0, 0, 0x0, 0x0},
-    {ACQ_FALLBACK_SEARCH_TIMEOUT_VIS_AND_UNKNOWN_MS + 10,
+    {ACQ_FALLBACK_SEARCH_TIMEOUT_UNKNOWN_MS + 10,
      0x1,
      0x1,
      0x0,
-     ACQ_FALLBACK_SEARCH_TIMEOUT_VIS_AND_UNKNOWN_MS + 9,
+     ACQ_FALLBACK_SEARCH_TIMEOUT_UNKNOWN_MS + 9,
      0x1,
-     0xffffffff}, /* not tracked, visible */
-    {ACQ_FALLBACK_SEARCH_TIMEOUT_VIS_AND_UNKNOWN_MS + 20,
+     0x00000000}, /* not tracked, visible */
+    {ACQ_FALLBACK_SEARCH_TIMEOUT_VISIBLE_MS + 20,
      0x0,
      0x1,
      0x0,
-     ACQ_FALLBACK_SEARCH_TIMEOUT_VIS_AND_UNKNOWN_MS + 9,
+     ACQ_FALLBACK_SEARCH_TIMEOUT_VISIBLE_MS + 9,
      0x0,
-     0xfffffffe}, /* not tracked, invisible, known */
-    {ACQ_FALLBACK_SEARCH_TIMEOUT_VIS_AND_UNKNOWN_MS + 30,
+     0x00000000}, /* not tracked, invisible, known */
+    {ACQ_FALLBACK_SEARCH_TIMEOUT_INVISIBLE_MS + 30,
      0x0,
      0x0,
      0x0,
-     ACQ_FALLBACK_SEARCH_TIMEOUT_VIS_AND_UNKNOWN_MS + 9,
+     ACQ_FALLBACK_SEARCH_TIMEOUT_INVISIBLE_MS + 9,
      0x0,
-     0xffffffff}, /* not tracked, unknown */
+     0x00000000}, /* not tracked, unknown */
     /* Timeouts */
     /* not tracked, visible */
-    {ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS + 1, 0x1, 0x1, 0x0, 0, 0x1, 0x0}};
+    {ACQ_LGF_TIMEOUT_VISIBLE_MS + 1, 0x1, 0x1, 0x0, 0, 0x1, 0x0}};
 
 /** Test program checking search manager operation
  *
@@ -85,7 +85,7 @@ TEST(search_manager_test, test_search_manager) {
     /* Fill bit masks of jobs which are flagged to run */
     memset(gps_run_mask, 0, sizeof(gps_run_mask));
     for (type = (u8)ACQ_JOB_DEEP_SEARCH; type < (u8)ACQ_NUM_JOB_TYPES; type++) {
-      for (i = 0; i < ACQ_NUM_SVS; i++) {
+      for (i = 0; i < NUM_SATS_GPS; i++) {
         if (data->jobs[type][i].needs_to_run &&
             (CODE_GPS_L1CA == data->jobs[type][i].sid.code)) {
           gps_run_mask[type] |=

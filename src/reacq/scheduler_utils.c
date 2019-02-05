@@ -34,7 +34,7 @@ void sch_send_acq_profile_msg(const acq_job_t *job,
   /* In Phase 1, task 0 covers full job search space range.
      If there were more tasks, they all together would cover job search
      space range */
-  const acq_task_search_params_t *acq_params = &job->task_data.task_array[0];
+  const acq_task_search_params_t *acq_params = &job->task_data;
 
   prof.job_type = (u8)job->job_type;
   prof.status = peak_found;

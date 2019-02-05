@@ -72,7 +72,7 @@ TEST(scheduler_test, test_sch_cost_init) {
 
   init_job->cost_hint = ACQ_COST_AVG;
   sch_initialize_cost(init_job, data);
-  EXPECT_EQ((70 + 100 + 110 + 101 + 120) / 5, init_job->cost);
+  EXPECT_EQ((100 + 70 + 110 + 101 + 120) / 5, init_job->cost);
 
   init_job->cost_hint = ACQ_COST_MAX_PLUS;
   sch_initialize_cost(init_job, data);
@@ -149,14 +149,11 @@ TEST(scheduler_test, test_sch_job_select) {
   /* Check enable running */
   data->jobs[1][2].needs_to_run = true;
   data->jobs[1][2].state = ACQ_STATE_IDLE;
-  data->jobs[1][2].task_data.task_index = 255;
-  data->jobs[1][2].task_data.task_index = 255;
   data->jobs[1][2].cost_hint = ACQ_COST_MIN;
   sel = sch_select_job(data);
   /* There are two jobs with minimum cost */
   EXPECT_TRUE(sel == &data->jobs[1][2] || sel == &data->jobs[1][1]);
   EXPECT_EQ(ACQ_STATE_WAIT, data->jobs[1][2].state);
-  EXPECT_EQ(ACQ_UNINITIALIZED_TASKS, data->jobs[1][2].task_data.task_index);
 }
 /** Run scheduler and check that HW ran expected code_index
  *

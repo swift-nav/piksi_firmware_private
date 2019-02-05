@@ -39,7 +39,7 @@
 #include "nmea/nmea.h"
 #include "piksi_systime.h"
 #include "position/position.h"
-#include "reacq/reacq_api.h"
+#include "reacq/reacq_manage.h"
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "settings/settings_client.h"
@@ -209,6 +209,7 @@ static bool tracking_startup_fifo_write(
 static bool tracking_startup_fifo_read(tracking_startup_fifo_t *fifo,
                                        tracking_startup_params_t *element);
 
+/* this is in search_manager_utils.c - meh */
 void sm_get_glo_visibility_flags(u16 sat, bool *visible, bool *known);
 
 static sbp_msg_callbacks_node_t almanac_callback_node;

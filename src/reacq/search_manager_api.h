@@ -17,27 +17,26 @@
 
 /* Search manager constants */
 
-/** Timeout (ms) defining period between fallback searches of
-    visible and unknown SVs */
-#define ACQ_FALLBACK_SEARCH_TIMEOUT_VIS_AND_UNKNOWN_MS 8000
-/** Timeout (ms) defining period between fallback searches of
-    known invisible SVs */
-#define ACQ_FALLBACK_SEARCH_TIMEOUT_INVIS_MS 16000
-/** Starts fallback searches when last good fix (LGF) is
+/** Timeout (ms) defining period between fall-back searches of
+ *  visible SVs */
+#define ACQ_FALLBACK_SEARCH_TIMEOUT_VISIBLE_MS 200
+/** Starts fall-back searches when last good fix (LGF) is
     older than timeout (ms) */
-#define ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS 1
-/** Starts fallback searches of invisible SVs when last good fix (LGF) is
+#define ACQ_LGF_TIMEOUT_VISIBLE_MS 100
+
+/** Timeout (ms) defining period between fall-back searches of
+    invisible SVs */
+#define ACQ_FALLBACK_SEARCH_TIMEOUT_INVISIBLE_MS 30000
+/** Starts fall-back searches of invisible SVs when last good fix (LGF) is
     older than timeout (ms) */
-#define ACQ_LGF_TIMEOUT_INVIS_MS 1
+#define ACQ_LGF_TIMEOUT_INVISIBLE_MS 15000
 
-/** Number of SVs whose search jobs are managed */
-#define ACQ_NUM_SVS (NUM_SATS_GPS)
-
-/** Maximum number of tasks. 1 when there is no splitter for
-    dividing jobs into smaller tasks */
-#define ACQ_MAX_NUM_TASKS 1
-/** Uninitialized task index */
-#define ACQ_UNINITIALIZED_TASKS -1
+/** Timeout (ms) defining period between fall-back searches of
+    unknown SVs */
+#define ACQ_FALLBACK_SEARCH_TIMEOUT_UNKNOWN_MS 10000
+/** Starts fall-back searches of unknown SVs when last good fix (LGF) is
+    older than timeout (ms) */
+#define ACQ_LGF_TIMEOUT_UNKNOWN_MS 5000
 
 /** Job cost delta used to avoid clustering of job with equal priority. */
 #define ACQ_COST_DELTA_VISIBLE_MS 30
@@ -55,7 +54,7 @@
 #define ACQ_COST_DELTA_MIN_MS 1
 
 /** Re-acq priority mask length in bits */
-#define REACQ_PRIORITY_CYCLE (30)
+#define REACQ_PRIORITY_CYCLE 32
 
 /** GPS will have high re-acq priority if less than limit SVs is tracked */
 #define LOW_GPS_L1CA_SV_LIMIT 6
@@ -105,14 +104,6 @@ typedef struct {
   u8 integration_time_ms;   /**< Coherent integration time (ms) */
 } acq_task_search_params_t;
 
-/** Search task defines smallest unit of search work which is passed
-    to hardware */
-typedef struct {
-  u16 number_of_tasks;
-  s16 task_index;
-  acq_task_search_params_t task_array[ACQ_MAX_NUM_TASKS];
-} acq_task_t;
-
 /** Search jobs */
 typedef struct {
   me_gnss_signal_t mesid;    /**< ME SV identifier */
@@ -128,8 +119,9 @@ typedef struct {
   bool oneshot;              /**< Oneshot jobs do not continue automatically
                                 when completed */
   acq_job_scheduling_state_e state; /**< Scheduling state */
-  bool needs_restart;   /**< Set if this job needs to be restarted */
-  acq_task_t task_data; /**< Search area is divided into smaller tasks */
+  bool needs_restart; /**< Set if this job needs to be restarted */
+  acq_task_search_params_t
+      task_data; /**< Search area is divided into smaller tasks */
 } acq_job_t;
 
 /** Container for all the jobs */

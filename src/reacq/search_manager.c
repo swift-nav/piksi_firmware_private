@@ -10,6 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 #include <assert.h>
+#include <inttypes.h>
 #include <string.h>
 #include <swiftnav/glo_map.h>
 #include "manage.h"
@@ -137,9 +138,7 @@ void sm_init(acq_jobs_state_t *data) {
       u16 idx = sm_constellation_to_start_index(gnss);
       u16 num_sv = constellation_to_sat_count(gnss);
       code_t code = constellation_to_l1_code(gnss);
-      if ((CODE_GAL_E1C == code) || (CODE_GAL_E1X == code)) {
-        code = CODE_GAL_E1B;
-      }
+
       acq_job_t *job = &data->jobs[type][idx];
       u16 first_prn = reacq_gnss[k].first_prn;
       for (i = 0; i < num_sv; i++) {
@@ -195,6 +194,9 @@ static void sm_deep_search_run(acq_jobs_state_t *jobs_data) {
 
   for (i = 0; i < num_sv; i++) {
     acq_job_t *deep_job = &jobs_data->jobs[ACQ_JOB_DEEP_SEARCH][idx + i];
+    assert(deep_job->job_type < ACQ_NUM_JOB_TYPES);
+
+    /* assume this job does not need to run */
     deep_job->needs_to_run = false;
 
     if ((CONSTELLATION_SBAS == con) && !((sbas_mask >> i) & 1)) {
@@ -202,24 +204,18 @@ static void sm_deep_search_run(acq_jobs_state_t *jobs_data) {
       continue;
     }
 
-    me_gnss_signal_t *mesid = &deep_job->mesid;
     gnss_signal_t sid = deep_job->sid;
+    assert(sid_valid(sid));
 
-    bool visible = false;
-    bool known = false;
-
+    me_gnss_signal_t *mesid = &deep_job->mesid;
     if (CONSTELLATION_GLO == con) {
       u16 glo_fcn = GLO_FCN_UNKNOWN;
       if (glo_map_valid(sid)) {
         glo_fcn = glo_map_get_fcn(sid);
         *mesid = construct_mesid(CODE_GLO_L1OF, glo_fcn);
-        sm_get_visibility_flags(sid, &visible, &known);
       }
     }
-
     assert(mesid_valid(*mesid));
-    assert(sid_valid(sid));
-    assert(deep_job->job_type < ACQ_NUM_JOB_TYPES);
 
     if (mesid_is_tracked(*mesid)) {
       continue;
@@ -228,9 +224,9 @@ static void sm_deep_search_run(acq_jobs_state_t *jobs_data) {
       continue;
     }
 
-    if (con != CONSTELLATION_GLO) {
-      sm_get_visibility_flags(sid, &visible, &known);
-    }
+    bool visible = false;
+    bool known = false;
+    sm_get_visibility_flags(sid, &visible, &known);
     visible = visible && known;
 
     if (CONSTELLATION_SBAS == con) {
@@ -291,6 +287,8 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
   for (i = 0; i < num_sv; i++) {
     acq_job_t *fallback_job;
     fallback_job = &jobs_data->jobs[ACQ_JOB_FALLBACK_SEARCH][idx + i];
+    assert(fallback_job->job_type < ACQ_NUM_JOB_TYPES);
+
     fallback_job->needs_to_run = false;
 
     if ((CONSTELLATION_SBAS == con) && !((sbas_mask >> i) & 1)) {
@@ -298,25 +296,18 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
       continue;
     }
 
-    me_gnss_signal_t *mesid = &fallback_job->mesid;
     gnss_signal_t sid = fallback_job->sid;
+    assert(sid_valid(sid));
 
-    bool visible = false;
-    bool known = false;
-    bool invisible = false;
-
+    me_gnss_signal_t *mesid = &fallback_job->mesid;
     if (CONSTELLATION_GLO == con) {
       u16 glo_fcn = GLO_FCN_UNKNOWN;
       if (glo_map_valid(sid)) {
         glo_fcn = glo_map_get_fcn(sid);
         *mesid = construct_mesid(CODE_GLO_L1OF, glo_fcn);
-        sm_get_visibility_flags(sid, &visible, &known);
       }
     }
-
     assert(mesid_valid(*mesid));
-    assert(sid_valid(sid));
-    assert(fallback_job->job_type < ACQ_NUM_JOB_TYPES);
 
     if (mesid_is_tracked(*mesid)) {
       continue;
@@ -325,35 +316,36 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
       continue;
     }
 
-    if (con != CONSTELLATION_GLO) {
-      sm_get_visibility_flags(sid, &visible, &known);
-    }
+    bool visible = false;
+    bool known = false;
+    bool invisible = false;
+
+    sm_get_visibility_flags(sid, &visible, &known);
     visible = visible && known;
-    invisible = !visible && known;
 
     if (CONSTELLATION_SBAS == con) {
       /* sbas_mask SVs are visible as they were selected by location. */
       visible = true;
     }
 
-    if (visible && lgf_age_ms >= ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS &&
-        now_ms - fallback_job->stop_time >
-            ACQ_FALLBACK_SEARCH_TIMEOUT_VIS_AND_UNKNOWN_MS) {
+    if (visible && (lgf_age_ms >= ACQ_LGF_TIMEOUT_VISIBLE_MS) &&
+        ((now_ms - fallback_job->stop_time) >
+         ACQ_FALLBACK_SEARCH_TIMEOUT_VISIBLE_MS)) {
       fallback_job->cost_hint = ACQ_COST_AVG;
       fallback_job->cost_delta = ACQ_COST_DELTA_VISIBLE_MS;
       fallback_job->needs_to_run = true;
       fallback_job->oneshot = true;
-    } else if ((!known && lgf_age_ms >= ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS &&
-                now_ms - fallback_job->stop_time >
-                    ACQ_FALLBACK_SEARCH_TIMEOUT_VIS_AND_UNKNOWN_MS) ||
+    } else if ((!known && (lgf_age_ms >= ACQ_LGF_TIMEOUT_UNKNOWN_MS) &&
+                ((now_ms - fallback_job->stop_time) >
+                 ACQ_FALLBACK_SEARCH_TIMEOUT_UNKNOWN_MS)) ||
                (CONSTELLATION_GLO == con && !glo_map_valid(sid))) {
       fallback_job->cost_hint = ACQ_COST_MAX_PLUS;
       fallback_job->cost_delta = ACQ_COST_DELTA_UNKNOWN_MS;
       fallback_job->needs_to_run = true;
       fallback_job->oneshot = true;
-    } else if (invisible && lgf_age_ms >= ACQ_LGF_TIMEOUT_INVIS_MS &&
-               now_ms - fallback_job->stop_time >
-                   ACQ_FALLBACK_SEARCH_TIMEOUT_INVIS_MS) {
+    } else if (invisible && (lgf_age_ms >= ACQ_LGF_TIMEOUT_INVISIBLE_MS) &&
+               ((now_ms - fallback_job->stop_time) >
+                ACQ_FALLBACK_SEARCH_TIMEOUT_INVISIBLE_MS)) {
       fallback_job->cost_hint = ACQ_COST_MAX_PLUS;
       fallback_job->cost_delta = ACQ_COST_DELTA_INVISIBLE_MS;
       fallback_job->needs_to_run = true;
@@ -499,8 +491,8 @@ void sm_run(acq_jobs_state_t *jobs_data) {
   if (sm_lgf_stamp(&lgf_ms) && (now_ms >= lgf_ms)) {
     lgf_age_ms = now_ms - lgf_ms;
   } else {
-    lgf_age_ms =
-        MAX(ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS, ACQ_LGF_TIMEOUT_INVIS_MS);
+    log_warn("now_ms %" PRIu64 " lgf_ms %" PRIu64, now_ms, lgf_ms);
+    lgf_age_ms = ACQ_LGF_TIMEOUT_INVISIBLE_MS;
   }
 
   if (CONSTELLATION_GLO == jobs_data->constellation) {

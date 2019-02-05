@@ -107,7 +107,7 @@ void sch_initialize_cost(acq_job_t *init_job,
 
 /** Limit job cost
  *
- *  Avoid continously increasing job costs by subtracting
+ *  Avoid continuously increasing job costs by subtracting
  *  minimum of costs from all the job costs. Only the
  *  difference between costs matters for scheduling,
  *  not the absolute value.
@@ -173,19 +173,14 @@ acq_job_t *sch_select_job(acq_jobs_state_t *jobs_data) {
   for (type = 0; type < ACQ_NUM_JOB_TYPES; type++) {
     acq_job_t *job = &jobs_data->jobs[type][idx];
     for (u8 i = 0; i < num_sats; i++, job++) {
-      acq_task_t *task = &job->task_data;
       assert(job->job_type < ACQ_NUM_JOB_TYPES);
       if (ACQ_STATE_WAIT == job->state && !job->needs_to_run) {
         job->state = ACQ_STATE_IDLE;
-      }
-      if (ACQ_STATE_WAIT == job->state && job->needs_restart) {
-        task->task_index = ACQ_UNINITIALIZED_TASKS;
       }
       if (ACQ_STATE_IDLE == job->state && job->needs_to_run &&
           ACQ_COST_MAX_PLUS != job->cost_hint) {
         job->state = ACQ_STATE_WAIT;
         sch_initialize_cost(job, jobs_data);
-        task->task_index = ACQ_UNINITIALIZED_TASKS;
       }
     }
   }
@@ -196,14 +191,12 @@ acq_job_t *sch_select_job(acq_jobs_state_t *jobs_data) {
   for (type = 0; type < ACQ_NUM_JOB_TYPES; type++) {
     acq_job_t *job = &jobs_data->jobs[type][idx];
     for (u8 i = 0; i < num_sats; i++, job++) {
-      acq_task_t *task = &job->task_data;
       assert(job->job_type < ACQ_NUM_JOB_TYPES);
       /* Triggers only on ACQ_COST_MAX_PLUS cost hint */
       if (ACQ_STATE_IDLE == job->state && job->needs_to_run &&
           ACQ_COST_MAX_PLUS == job->cost_hint) {
         sch_initialize_cost(job, jobs_data);
         job->state = ACQ_STATE_WAIT;
-        task->task_index = ACQ_UNINITIALIZED_TASKS;
       }
       /* Find minimum cost */
       if (ACQ_STATE_WAIT == job->state) {
@@ -254,8 +247,7 @@ static void sch_glo_fcn_set(acq_job_t *job) {
  * \param job pointer to job to run
  */
 static void sch_run_common(acq_jobs_state_t *jobs_data, acq_job_t *job) {
-  acq_task_t *task = &job->task_data;
-  acq_task_search_params_t *acq_param;
+  acq_task_search_params_t *acq_param = &job->task_data;
   acq_result_t acq_result;
   bool peak_found;
 
@@ -264,21 +256,8 @@ static void sch_run_common(acq_jobs_state_t *jobs_data, acq_job_t *job) {
     return;
   }
 
-  task->task_index++;
-  if (0 == task->task_index) {
-    tg_fill_task(job);
-  } else {
-    assert(!"Expecting only task index 0 in Phase 1");
-    task->task_index = 0;
-  }
-  /* Sanity check */
-  if (task->task_index > task->number_of_tasks ||
-      task->task_index > ACQ_MAX_NUM_TASKS) {
-    assert(!"Too many tasks");
-    task->task_index = 0;
-  }
+  tg_fill_task(job);
 
-  acq_param = &task->task_array[task->task_index];
   job->state = ACQ_STATE_RUN;
 
   assert(mesid_valid(job->mesid));
@@ -315,22 +294,15 @@ static void sch_run_common(acq_jobs_state_t *jobs_data, acq_job_t *job) {
         .chips_to_correlate = code_to_chip_count(mesid_trk.code),
         .cn0_init = acq_result.cn0,
         .glo_slot_id = glo_orbit_slot};
-    task->task_index = ACQ_UNINITIALIZED_TASKS;
     job->state = ACQ_STATE_IDLE;
 
     tracking_startup_request(&tracking_startup_params);
 
   } else { /* No peak */
-    if (task->task_index >= task->number_of_tasks - 1) {
-      /* No more tasks to run */
-      task->task_index = ACQ_UNINITIALIZED_TASKS;
-      if (job->oneshot) {
-        job->state = ACQ_STATE_IDLE;
-      } else {
-        job->state = ACQ_STATE_WAIT;
-      }
+    /* No more tasks to run */
+    if (job->oneshot) {
+      job->state = ACQ_STATE_IDLE;
     } else {
-      /* Task index is incremented when task is run on HW */
       job->state = ACQ_STATE_WAIT;
     }
   } /* No peak */

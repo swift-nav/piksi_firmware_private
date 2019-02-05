@@ -100,8 +100,7 @@ bool sm_lgf_stamp(u64 *lgf_stamp) {
  * The function calculates and stores visibility flags for all GLO SV
  *
  * Since work time of Runge-Kutta algorithm depends on GLO SV position
- * calcultion
- * period, due to iteration number
+ * calculation period, due to iteration number
  * (see modeling https://github.com/swift-nav/exafore_planning/issues/681)
  * we continuously calculate the position.
  */
