@@ -11,12 +11,8 @@
 #define T1 \
   { 1000.0, 1939 }
 #define TC1 1000
-#define CLOCK_STATE_1                       \
-  {                                         \
-    TC1, T1, T0, RX_DT_NOMINAL, 1 + 1e-6, { \
-      {1e-18, 0}, { 0, 1e-24 }              \
-    }                                       \
-  }
+#define CLOCK_STATE_1 \
+  { TC1, T1, T0, RX_DT_NOMINAL, 1 + 1e-6, {{1e-18, 0}, {0, 1e-24}}, 0.0 }
 
 TEST(clock_filter_tests, propagation) {
   clock_est_state_t init_clock_state = CLOCK_STATE_1;

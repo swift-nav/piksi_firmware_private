@@ -38,7 +38,8 @@ static volatile clock_est_state_t persistent_clock_state = {
     .tick_length_s = 0,
     .clock_rate = 0,
     .P = {{0, 0}, {0, 0}},
-};
+    .cumulative_offset_s = 0.0};
+
 static volatile time_quality_t current_time_quality = TIME_UNKNOWN;
 
 /** Mutex for guarding clock state access */
@@ -142,6 +143,7 @@ void update_time(u64 tc, const gnss_solution *sol) {
     clock_state.P[0][1] = 0.0;
     clock_state.P[1][0] = 0.0;
     clock_state.P[1][1] = sol->clock_drift_var;
+    clock_state.cumulative_offset_s = 0.0;
 
     time_quality_t time_quality =
         clock_var_to_time_quality(clock_state.P[0][0]);
@@ -421,20 +423,16 @@ double get_clock_drift() {
 
 /* Compute the sub-second portion of difference between NAP counter and gps time
  */
-double subsecond_cpo_correction(u64 ref_tc) {
-  /* Careful with numerical cancellation, we need this correction accurate to
-   * the 10th decimal place. */
-  gps_time_t ref_time = napcount2gpstime(ref_tc);
-  double time_subsecond = ref_time.tow - floor(ref_time.tow);
-  u64 tc_subsecond = ref_tc % (u64)NAP_FRONTEND_SAMPLE_RATE_Hz;
-  double cpo_correction = time_subsecond - RX_DT_NOMINAL * tc_subsecond;
-  double cpo_drift = cpo_correction - round(cpo_correction);
+double subsecond_cpo_correction(const u64 ref_tc) {
+  chMtxLock(&clock_mutex);
+  clock_est_state_t clock_state = persistent_clock_state;
+  chMtxUnlock(&clock_mutex);
 
-  log_debug("time_subsecond %e  tc_subsecond %e    cpo_drift %.9lf",
-            time_subsecond,
-            RX_DT_NOMINAL * tc_subsecond,
-            cpo_drift);
-  return cpo_drift;
+  propagate_clock_state(&clock_state, ref_tc);
+
+  double cumulative_offset_s = clock_state.cumulative_offset_s;
+
+  return -cumulative_offset_s;
 }
 
 /** \} */

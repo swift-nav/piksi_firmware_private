@@ -71,6 +71,9 @@ void propagate_clock_state(clock_est_state_t *clock_state, u64 tc) {
     P[1][1] = P[1][1] + Q[1][1];
   }
 
+  /* Update the cumulative difference to nominal time */
+  clock_state->cumulative_offset_s += dt * (1 - x[1]);
+
   /* Write propagated values back to the state struct */
   clock_state->t_gps.tow = x[0];
   clock_state->clock_rate = x[1];

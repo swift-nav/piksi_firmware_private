@@ -24,6 +24,7 @@ typedef struct {
   double tick_length_s; /** The nominal length of the tick in seconds */
   double clock_rate;    /**< Clock rate estimate wrt to the nominal tick */
   double P[2][2];       /**< State covariance matrix. */
+  double cumulative_offset_s; /**< Cumulative offset from nominal time. */
 } clock_est_state_t;
 
 #ifdef __cplusplus
