@@ -9,14 +9,18 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
-#define DEBUG 0
 #include <assert.h>
 #include <math.h>
 #include <string.h>
 
+#define DEBUG 0
+
 #include <swiftnav/gnss_time.h>
 #include "signal_db/signal_db.h"
 #include "sv_visibility.h"
+#include "manage.h"
+
+
 /**
  * The function will compute visibility and visibility known status for a SV
  *
@@ -123,19 +127,20 @@ void sv_visibility_status_get(const sv_vis_config_t *config,
   elevation_lgf *= R2D;
   double elevation_delta = elevation_lgf - elevation_user;
 
-  if (elevation_user > 0) {
+  double elev_mask = get_solution_elevation_mask();
+  if (elevation_user > elev_mask) {
     *visible = true;
     *known = true;
     return;
   }
 
-  if (elevation_user <= 0 && elevation_delta <= SV_VIS_MAX_UNKNOWN_ANGLE) {
+  if ((elevation_user <= elev_mask) && elevation_delta <= SV_VIS_MAX_UNKNOWN_ANGLE) {
     *visible = false;
     *known = true;
     return;
   }
 
-  if (elevation_user <= 0 && elevation_delta > SV_VIS_MAX_UNKNOWN_ANGLE) {
+  if ((elevation_user <= elev_mask) && elevation_delta > SV_VIS_MAX_UNKNOWN_ANGLE) {
     *visible = false;
     *known = false;
     return;

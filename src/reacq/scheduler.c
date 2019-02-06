@@ -42,7 +42,7 @@ u16 sm_constellation_to_start_index(constellation_t gnss);
  * \return true if need to continue, false if it's OK
  *         to re-run the schedule after this round
  */
-static bool sch_select_job(acq_jobs_state_t *jobs_data, acq_job_t **job_to_run) {
+bool sch_select_job(acq_jobs_state_t *jobs_data, acq_job_t **job_to_run) {
   assert(job_to_run);
 
   (*job_to_run) = NULL;
@@ -55,6 +55,7 @@ static bool sch_select_job(acq_jobs_state_t *jobs_data, acq_job_t **job_to_run) 
   for (u8 i = 0; i < num_sats; i++, job++) {
     if ((ACQ_STATE_WAIT == job->state) && (VISIBLE == job->sky_status)) {
       (*job_to_run) = job;
+      log_debug("reacq: visible %3d %2d", job->mesid.sat, job->mesid.code);
       return true;
     }
   }
@@ -65,6 +66,7 @@ static bool sch_select_job(acq_jobs_state_t *jobs_data, acq_job_t **job_to_run) 
     /* Triggers only on ACQ_COST_MAX_PLUS cost hint */
     if ((ACQ_STATE_WAIT == job->state) && (UNKNOWN == job->sky_status)) {
       (*job_to_run) = job;
+      log_debug("reacq: unknown %3d %2d", job->mesid.sat, job->mesid.code);
       return false;
     }
   }
@@ -74,6 +76,7 @@ static bool sch_select_job(acq_jobs_state_t *jobs_data, acq_job_t **job_to_run) 
   for (u8 i = 0; i < num_sats; i++, job++) {
     if ((ACQ_STATE_WAIT == job->state) && (INVISIBLE == job->sky_status)) {
       (*job_to_run) = job;
+      log_debug("reacq: invisible %3d %2d", job->mesid.sat, job->mesid.code);
       return false;
     }
   }

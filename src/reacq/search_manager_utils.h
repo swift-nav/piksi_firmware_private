@@ -15,10 +15,17 @@
 #include "swiftnav/common.h"
 #include "swiftnav/signal.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
 bool sm_lgf_stamp(u64 *lgf_stamp);
 void sm_get_visibility_flags(gnss_signal_t sid, bool *visible, bool *known);
 void sm_calc_all_glo_visibility_flags(void);
 void sm_get_glo_visibility_flags(u16 sat, bool *visible, bool *known);
 
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
 
 #endif /* SWIFTNAV_SEARCH_MANAGER_UTILS_H */
