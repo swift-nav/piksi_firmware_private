@@ -101,6 +101,7 @@ BOARDSRC := \
         $(BOARDDIR)/remoteproc/remoteproc_env.o \
         $(BOARDDIR)/remoteproc/rpmsg.o \
         $(BOARDDIR)/peripherals/antenna.o \
+        $(BOARDDIR)/peripherals/can_termination.o \
         $(BOARDDIR)/peripherals/rf_clk.o \
         $(BOARDDIR)/peripherals/bmi160.o \
         $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l1ca.o \
