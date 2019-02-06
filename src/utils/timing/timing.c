@@ -143,7 +143,13 @@ void update_time(u64 tc, const gnss_solution *sol) {
     clock_state.P[0][1] = 0.0;
     clock_state.P[1][0] = 0.0;
     clock_state.P[1][1] = sol->clock_drift_var;
-    clock_state.cumulative_offset_s = 0.0;
+
+    gps_time_t ref_time = sol->time;
+    double time_subsecond = ref_time.tow - floor(ref_time.tow);
+    u64 tc_subsecond = tc % (u64)NAP_FRONTEND_SAMPLE_RATE_Hz;
+    double cpo_correction = time_subsecond - RX_DT_NOMINAL * tc_subsecond;
+    double cpo_drift = cpo_correction - round(cpo_correction);
+    clock_state.cumulative_offset_s = -cpo_drift;
 
     time_quality_t time_quality =
         clock_var_to_time_quality(clock_state.P[0][0]);
