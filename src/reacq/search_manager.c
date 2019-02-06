@@ -56,7 +56,7 @@ bool sm_lgf_stamp(u64 *lgf_stamp);
 void sm_get_visibility_flags(gnss_signal_t sid, bool *visible, bool *known);
 void sm_calc_all_glo_visibility_flags(void);
 void sm_get_glo_visibility_flags(u16 sat, bool *visible, bool *known);
-bool is_constellation_enabled(constellation_t con);
+static bool is_constellation_enabled(constellation_t con);
 
 /**
  * The function returns start job index according to gnss
@@ -119,8 +119,6 @@ acq_jobs_state_t acq_all_jobs_state_data;
 void sm_init(acq_jobs_state_t *data) {
   memset(data, 0, sizeof(acq_jobs_state_t));
 
-  acq_job_types_e type;
-
   struct init_struct {
     constellation_t gnss;
     u16 first_prn;
@@ -131,120 +129,29 @@ void sm_init(acq_jobs_state_t *data) {
                     {CONSTELLATION_QZS, QZS_FIRST_PRN},
                     {CONSTELLATION_GAL, GAL_FIRST_PRN}};
 
-  for (type = 0; type < ACQ_NUM_JOB_TYPES; type++) {
-    u32 i, k;
-    for (k = 0; k < ARRAY_SIZE(reacq_gnss); k++) {
-      constellation_t gnss = reacq_gnss[k].gnss;
-      u16 idx = sm_constellation_to_start_index(gnss);
-      u16 num_sv = constellation_to_sat_count(gnss);
-      code_t code = constellation_to_l1_code(gnss);
+  for (u32 k = 0; k < ARRAY_SIZE(reacq_gnss); k++) {
+    constellation_t gnss = reacq_gnss[k].gnss;
+    u16 idx = sm_constellation_to_start_index(gnss);
+    u16 num_sv = constellation_to_sat_count(gnss);
+    code_t code = constellation_to_l1_code(gnss);
 
-      acq_job_t *job = &data->jobs[type][idx];
-      u16 first_prn = reacq_gnss[k].first_prn;
-      for (i = 0; i < num_sv; i++) {
-        if (CONSTELLATION_GLO == gnss) {
-          /* NOTE: GLO MESID is initialized evenly with all FCNs, so that
-           * blind searches are immediately done with whole range of FCNs */
-          job[i].mesid = construct_mesid(code, first_prn + (i % GLO_MAX_FCN));
-        } else {
-          job[i].mesid = construct_mesid(code, first_prn + i);
-        }
-        job[i].sid = construct_sid(code, first_prn + i);
-        job[i].job_type = type;
+    acq_job_t *job = &data->jobs[idx];
+    u16 first_prn = reacq_gnss[k].first_prn;
+    for (u32 i = 0; i < num_sv; i++) {
+      if (CONSTELLATION_GLO == gnss) {
+        /* NOTE: GLO MESID is initialized evenly with all FCNs, so that
+         * blind searches are immediately done with whole range of FCNs */
+        job[i].mesid = construct_mesid(code, first_prn + (i % GLO_MAX_FCN));
+      } else {
+        job[i].mesid = construct_mesid(code, first_prn + i);
       }
+      job[i].sid = construct_sid(code, first_prn + i);
     }
   }
+
   /* When constellation is initialized with CONSTELLATION_INVALID,
    * sm_constellation_select() will choose GPS as the first constellation. */
   data->constellation = CONSTELLATION_INVALID;
-}
-
-/** Checks if deep searches need to run for SV
- *
- * \param jobs_data pointer to job data
- *
- * \return none
- */
-static void sm_deep_search_run(acq_jobs_state_t *jobs_data) {
-  assert(jobs_data != NULL);
-
-  constellation_t con = jobs_data->constellation;
-
-  if (!is_constellation_enabled(con)) {
-    return;
-  }
-
-  u32 i;
-  u16 idx = sm_constellation_to_start_index(con);
-  u16 num_sv = constellation_to_sat_count(con);
-
-  u32 sbas_mask = 0;
-  if (CONSTELLATION_SBAS == con) {
-    sbas_mask = sbas_limit_mask();
-    if ((0 == sbas_mask) ||
-        (constellation_track_count(CONSTELLATION_SBAS) >= SBAS_SV_NUM_LIMIT)) {
-      /* mark all SBAS SV as not needed to run*/
-      for (i = 0; i < num_sv; i++) {
-        jobs_data->jobs[ACQ_JOB_DEEP_SEARCH][idx + i].needs_to_run = false;
-      }
-      /* exit to prevent unnecessary reacq */
-      return;
-    }
-  }
-
-  for (i = 0; i < num_sv; i++) {
-    acq_job_t *deep_job = &jobs_data->jobs[ACQ_JOB_DEEP_SEARCH][idx + i];
-    assert(deep_job->job_type < ACQ_NUM_JOB_TYPES);
-
-    /* assume this job does not need to run */
-    deep_job->needs_to_run = false;
-
-    if ((CONSTELLATION_SBAS == con) && !((sbas_mask >> i) & 1)) {
-      /* don't set job for those SBAS SV which are not in our SBAS range */
-      continue;
-    }
-
-    gnss_signal_t sid = deep_job->sid;
-    assert(sid_valid(sid));
-
-    me_gnss_signal_t *mesid = &deep_job->mesid;
-    if (CONSTELLATION_GLO == con) {
-      u16 glo_fcn = GLO_FCN_UNKNOWN;
-      if (glo_map_valid(sid)) {
-        glo_fcn = glo_map_get_fcn(sid);
-        *mesid = construct_mesid(CODE_GLO_L1OF, glo_fcn);
-      }
-    }
-    assert(mesid_valid(*mesid));
-
-    if (mesid_is_tracked(*mesid)) {
-      continue;
-    }
-    if (!tracking_startup_ready(*mesid)) {
-      continue;
-    }
-
-    bool visible = false;
-    bool known = false;
-    sm_get_visibility_flags(sid, &visible, &known);
-    visible = visible && known;
-
-    if (CONSTELLATION_SBAS == con) {
-      /* sbas_mask SVs are visible as they were selected by location. */
-      visible = true;
-    }
-
-    if (visible) {
-      deep_job->cost_hint = ACQ_COST_MIN;
-      deep_job->cost_delta = 0;
-      deep_job->needs_to_run = true;
-      deep_job->oneshot = false;
-    }
-
-    if (CONSTELLATION_GLO == con && !glo_map_valid(sid)) {
-      deep_job->cost_hint = ACQ_COST_AVG;
-    }
-  } /* loop SVs */
 }
 
 /** Checks if fallback searches need to run for SV
@@ -277,7 +184,7 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
         (constellation_track_count(CONSTELLATION_SBAS) >= SBAS_SV_NUM_LIMIT)) {
       /* mark all SBAS SV as not needed to run */
       for (i = 0; i < num_sv; i++) {
-        jobs_data->jobs[ACQ_JOB_FALLBACK_SEARCH][idx + i].needs_to_run = false;
+        jobs_data->jobs[idx + i].needs_to_run = false;
       }
       /* exit to prevent unnecessary reacq */
       return;
@@ -286,8 +193,7 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
 
   for (i = 0; i < num_sv; i++) {
     acq_job_t *fallback_job;
-    fallback_job = &jobs_data->jobs[ACQ_JOB_FALLBACK_SEARCH][idx + i];
-    assert(fallback_job->job_type < ACQ_NUM_JOB_TYPES);
+    fallback_job = &jobs_data->jobs[idx + i];
 
     fallback_job->needs_to_run = false;
 
@@ -498,6 +404,5 @@ void sm_run(acq_jobs_state_t *jobs_data) {
   if (CONSTELLATION_GLO == jobs_data->constellation) {
     sm_calc_all_glo_visibility_flags();
   }
-  sm_deep_search_run(jobs_data);
   sm_fallback_search_run(jobs_data, now_ms, lgf_age_ms);
 }

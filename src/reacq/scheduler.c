@@ -43,7 +43,6 @@ u16 sm_constellation_to_start_index(constellation_t gnss);
  */
 void sch_initialize_cost(acq_job_t *init_job,
                          const acq_jobs_state_t *all_jobs_data) {
-  acq_job_types_e type;
   u32 min_cost = 0;
   u32 max_cost = 0;
   bool min_found = false;
@@ -53,25 +52,24 @@ void sch_initialize_cost(acq_job_t *init_job,
   u16 idx = sm_constellation_to_start_index(all_jobs_data->constellation);
   u16 num_sats = constellation_to_sat_count(all_jobs_data->constellation);
 
-  for (type = 0; type < ACQ_NUM_JOB_TYPES; type++) {
-    const acq_job_t *job = &all_jobs_data->jobs[type][idx];
-    for (u8 i = 0; i < num_sats; i++, job++) {
-      if (job->state != ACQ_STATE_WAIT) {
-        continue; /* Check only jobs which can run */
-      }
-      if (!max_found || job->cost > max_cost) {
-        max_cost = job->cost;
-        max_found = true;
-      }
-      if (!min_found || job->cost < min_cost) {
-        min_cost = job->cost;
-        min_found = true;
-      }
-      avg = avg + job->cost;
-      assert(avg >= job->cost);
-      num_jobs++;
+  const acq_job_t *job = &all_jobs_data->jobs[idx];
+  for (u8 i = 0; i < num_sats; i++, job++) {
+    if (job->state != ACQ_STATE_WAIT) {
+      continue; /* Check only jobs which can run */
     }
+    if (!max_found || job->cost > max_cost) {
+      max_cost = job->cost;
+      max_found = true;
+    }
+    if (!min_found || job->cost < min_cost) {
+      min_cost = job->cost;
+      min_found = true;
+    }
+    avg = avg + job->cost;
+    assert(avg >= job->cost);
+    num_jobs++;
   }
+
 
   if (0 != num_jobs) {
     avg = avg / num_jobs;
@@ -118,35 +116,31 @@ void sch_initialize_cost(acq_job_t *init_job,
  * \return none
  */
 static void sch_limit_costs(acq_jobs_state_t *all_jobs_data, u32 cost) {
-  acq_job_types_e type;
   u32 min_cost = cost;
 
   u16 idx = sm_constellation_to_start_index(all_jobs_data->constellation);
   u16 num_sats = constellation_to_sat_count(all_jobs_data->constellation);
 
-  for (type = 0; type < ACQ_NUM_JOB_TYPES; type++) {
-    acq_job_t *job = &all_jobs_data->jobs[type][idx];
+  acq_job_t *job = &all_jobs_data->jobs[idx];
+  for (u8 i = 0; i < num_sats; i++, job++) {
+    if (job->state != ACQ_STATE_WAIT) {
+      continue; /* Select only jobs which can run */
+    }
+    if (job->cost < min_cost) {
+      min_cost = job->cost;
+    }
+  }
+
+  if (min_cost != 0) {
+    job = &all_jobs_data->jobs[idx];
     for (u8 i = 0; i < num_sats; i++, job++) {
       if (job->state != ACQ_STATE_WAIT) {
         continue; /* Select only jobs which can run */
       }
       if (job->cost < min_cost) {
-        min_cost = job->cost;
-      }
-    }
-  }
-  if (min_cost != 0) {
-    for (type = 0; type < ACQ_NUM_JOB_TYPES; type++) {
-      acq_job_t *job = &all_jobs_data->jobs[type][idx];
-      for (u8 i = 0; i < num_sats; i++, job++) {
-        if (job->state != ACQ_STATE_WAIT) {
-          continue; /* Select only jobs which can run */
-        }
-        if (job->cost < min_cost) {
-          job->cost = 0;
-        } else {
-          job->cost -= min_cost;
-        }
+        job->cost = 0;
+      } else {
+        job->cost -= min_cost;
       }
     }
   }
@@ -163,46 +157,42 @@ static void sch_limit_costs(acq_jobs_state_t *all_jobs_data, u32 cost) {
  * \return job to be run or NULL if there is no job to run
  */
 acq_job_t *sch_select_job(acq_jobs_state_t *jobs_data) {
-  acq_job_types_e type;
   acq_job_t *job_to_run = NULL;
 
   u16 idx = sm_constellation_to_start_index(jobs_data->constellation);
   u16 num_sats = constellation_to_sat_count(jobs_data->constellation);
 
   /* Update state and initialize first cost with max, min, avg cost hints */
-  for (type = 0; type < ACQ_NUM_JOB_TYPES; type++) {
-    acq_job_t *job = &jobs_data->jobs[type][idx];
-    for (u8 i = 0; i < num_sats; i++, job++) {
-      assert(job->job_type < ACQ_NUM_JOB_TYPES);
-      if (ACQ_STATE_WAIT == job->state && !job->needs_to_run) {
-        job->state = ACQ_STATE_IDLE;
-      }
-      if (ACQ_STATE_IDLE == job->state && job->needs_to_run &&
-          ACQ_COST_MAX_PLUS != job->cost_hint) {
-        job->state = ACQ_STATE_WAIT;
-        sch_initialize_cost(job, jobs_data);
-      }
+  acq_job_t *job = &jobs_data->jobs[idx];
+  for (u8 i = 0; i < num_sats; i++, job++) {
+    if (ACQ_STATE_WAIT == job->state && !job->needs_to_run) {
+      job->state = ACQ_STATE_IDLE;
+    }
+    if (ACQ_STATE_IDLE == job->state && job->needs_to_run &&
+        ACQ_COST_MAX_PLUS != job->cost_hint) {
+      job->state = ACQ_STATE_WAIT;
+      sch_initialize_cost(job, jobs_data);
     }
   }
   /* Initialize the cost with max_plus cost hint only after jobs
      with max, min, or avg cost hints are initialized since
-     the intention of max_plus is to get high cost.
-     Select the job with minimum cost in the same loop. */
-  for (type = 0; type < ACQ_NUM_JOB_TYPES; type++) {
-    acq_job_t *job = &jobs_data->jobs[type][idx];
-    for (u8 i = 0; i < num_sats; i++, job++) {
-      assert(job->job_type < ACQ_NUM_JOB_TYPES);
-      /* Triggers only on ACQ_COST_MAX_PLUS cost hint */
-      if (ACQ_STATE_IDLE == job->state && job->needs_to_run &&
-          ACQ_COST_MAX_PLUS == job->cost_hint) {
-        sch_initialize_cost(job, jobs_data);
-        job->state = ACQ_STATE_WAIT;
-      }
-      /* Find minimum cost */
-      if (ACQ_STATE_WAIT == job->state) {
-        if (NULL == job_to_run || job->cost < job_to_run->cost) {
-          job_to_run = job;
-        }
+     the intention of max_plus is to get high cost. */
+  job = &jobs_data->jobs[idx];
+  for (u8 i = 0; i < num_sats; i++, job++) {
+    /* Triggers only on ACQ_COST_MAX_PLUS cost hint */
+    if (ACQ_STATE_IDLE == job->state && job->needs_to_run &&
+        ACQ_COST_MAX_PLUS == job->cost_hint) {
+      sch_initialize_cost(job, jobs_data);
+      job->state = ACQ_STATE_WAIT;
+    }
+  }
+
+  /* Select the job with minimum cost */
+  job = &jobs_data->jobs[idx];
+  for (u8 i = 0; i < num_sats; i++, job++) {
+    if (ACQ_STATE_WAIT == job->state) {
+      if (NULL == job_to_run || job->cost < job_to_run->cost) {
+        job_to_run = job;
       }
     }
   }

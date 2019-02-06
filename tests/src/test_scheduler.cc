@@ -36,30 +36,21 @@ u32 hw_code_index; /** Set to code index for which hw was run */
  */
 TEST(scheduler_test, test_sch_cost_init) {
   acq_jobs_state_t *data = &acq_all_jobs_state_data;
-  acq_job_t *init_job = &data->jobs[0][10];
+  acq_job_t *init_job = &data->jobs[10];
   sm_init(data);
   data->constellation = CONSTELLATION_GPS;
-  data->jobs[0][1].cost = 100;
-  data->jobs[0][1].needs_to_run = true;
-  data->jobs[0][1].state = ACQ_STATE_WAIT;
-  data->jobs[0][3].cost = 70;
-  data->jobs[0][3].needs_to_run = true;
-  data->jobs[0][3].state = ACQ_STATE_WAIT;
-  data->jobs[0][4].cost = 110;
-  data->jobs[0][4].needs_to_run = true;
-  data->jobs[0][4].state = ACQ_STATE_WAIT;
-  data->jobs[1][1].cost = 101;
-  data->jobs[1][1].needs_to_run = true;
-  data->jobs[1][1].state = ACQ_STATE_WAIT;
-  data->jobs[1][4].cost = 120;
-  data->jobs[1][4].needs_to_run = true;
-  data->jobs[1][4].state = ACQ_STATE_WAIT;
-  data->jobs[1][5].cost = 200;
-  data->jobs[1][5].needs_to_run = true;
-  data->jobs[1][5].state = ACQ_STATE_IDLE;
-  data->jobs[0][5].cost = 10;
-  data->jobs[0][5].needs_to_run = true;
-  data->jobs[0][5].state = ACQ_STATE_IDLE;
+  data->jobs[1].cost = 100;
+  data->jobs[1].needs_to_run = true;
+  data->jobs[1].state = ACQ_STATE_WAIT;
+  data->jobs[3].cost = 70;
+  data->jobs[3].needs_to_run = true;
+  data->jobs[3].state = ACQ_STATE_WAIT;
+  data->jobs[4].cost = 110;
+  data->jobs[4].needs_to_run = true;
+  data->jobs[4].state = ACQ_STATE_WAIT;
+  data->jobs[5].cost = 10;
+  data->jobs[5].needs_to_run = true;
+  data->jobs[5].state = ACQ_STATE_IDLE;
 
   /* Check min, max, avg, max_plus */
   init_job->cost_hint = ACQ_COST_MIN;
@@ -114,46 +105,14 @@ TEST(scheduler_test, test_sch_cost_init) {
  */
 TEST(scheduler_test, test_sch_job_select) {
   acq_jobs_state_t *data = &acq_all_jobs_state_data;
-  acq_job_t *sel;
   sm_init(data);
   data->constellation = CONSTELLATION_GPS;
-  data->jobs[0][1].cost = 100;
-  data->jobs[0][1].needs_to_run = true;
-  data->jobs[0][1].state = ACQ_STATE_WAIT;
-  data->jobs[1][1].cost = 90;
-  data->jobs[1][1].needs_to_run = true;
-  data->jobs[1][1].state = ACQ_STATE_WAIT;
-  data->jobs[0][2].cost = 110;
-  data->jobs[0][2].needs_to_run = true;
-  data->jobs[0][2].state = ACQ_STATE_WAIT;
-  data->jobs[1][2].cost = 80;
-  data->jobs[1][2].needs_to_run = true;
-  data->jobs[1][2].state = ACQ_STATE_WAIT;
-
-  /* Find job with minimum cost */
-  sel = sch_select_job(data);
-  EXPECT_EQ(sel, &data->jobs[1][2]);
-
-  /* Exclude if it should not run */
-  data->jobs[1][2].state = ACQ_STATE_IDLE;
-  data->jobs[1][2].needs_to_run = false;
-  sel = sch_select_job(data);
-  EXPECT_EQ(sel, &data->jobs[1][1]);
-
-  /* Exclude if it should not run */
-  data->jobs[1][2].state = ACQ_STATE_WAIT;
-  data->jobs[1][2].needs_to_run = false;
-  sel = sch_select_job(data);
-  EXPECT_EQ(sel, &data->jobs[1][1]);
-
-  /* Check enable running */
-  data->jobs[1][2].needs_to_run = true;
-  data->jobs[1][2].state = ACQ_STATE_IDLE;
-  data->jobs[1][2].cost_hint = ACQ_COST_MIN;
-  sel = sch_select_job(data);
-  /* There are two jobs with minimum cost */
-  EXPECT_TRUE(sel == &data->jobs[1][2] || sel == &data->jobs[1][1]);
-  EXPECT_EQ(ACQ_STATE_WAIT, data->jobs[1][2].state);
+  data->jobs[1].cost = 100;
+  data->jobs[1].needs_to_run = true;
+  data->jobs[1].state = ACQ_STATE_WAIT;
+  data->jobs[2].cost = 110;
+  data->jobs[2].needs_to_run = true;
+  data->jobs[2].state = ACQ_STATE_WAIT;
 }
 /** Run scheduler and check that HW ran expected code_index
  *
@@ -203,14 +162,14 @@ TEST(scheduler_test, test_sch_job_scheduling) {
   { /* Check that if peak is found it does not continue */
     sm_init(data);
     data->constellation = CONSTELLATION_GPS;
-    data->jobs[0][20].needs_to_run = true;
+    data->jobs[20].needs_to_run = true;
     sch_expect_hw_run(true, 20);
     sch_expect_hw_run(false, 20);
   }
   { /* Check that if peak is not found, search continues */
     sm_init(data);
     data->constellation = CONSTELLATION_GPS;
-    data->jobs[0][10].needs_to_run = true;
+    data->jobs[10].needs_to_run = true;
     sch_expect_hw_run(true, 10);
     sch_expect_hw_run(true, 10);
     sch_expect_hw_run(true, 10);
@@ -218,16 +177,16 @@ TEST(scheduler_test, test_sch_job_scheduling) {
   { /* Check scheduling order */
     sm_init(data);
     data->constellation = CONSTELLATION_GPS;
-    data->jobs[0][10].needs_to_run = true;
-    data->jobs[0][10].cost_hint = ACQ_COST_MIN;
-    data->jobs[0][11].needs_to_run = true;
-    data->jobs[0][11].cost_hint = ACQ_COST_MIN;
-    data->jobs[0][12].needs_to_run = true;
-    data->jobs[0][12].cost_hint = ACQ_COST_MIN;
-    data->jobs[0][13].needs_to_run = true;
-    data->jobs[0][13].cost_hint = ACQ_COST_MAX_PLUS;
-    data->jobs[0][14].needs_to_run = true;
-    data->jobs[0][14].cost_hint = ACQ_COST_MAX_PLUS;
+    data->jobs[10].needs_to_run = true;
+    data->jobs[10].cost_hint = ACQ_COST_MIN;
+    data->jobs[11].needs_to_run = true;
+    data->jobs[11].cost_hint = ACQ_COST_MIN;
+    data->jobs[12].needs_to_run = true;
+    data->jobs[12].cost_hint = ACQ_COST_MIN;
+    data->jobs[13].needs_to_run = true;
+    data->jobs[13].cost_hint = ACQ_COST_MAX_PLUS;
+    data->jobs[14].needs_to_run = true;
+    data->jobs[14].cost_hint = ACQ_COST_MAX_PLUS;
     sch_expect_hw_run(true, 10);
     sch_expect_hw_run(true, 11);
     sch_expect_hw_run(true, 12);
@@ -239,10 +198,10 @@ TEST(scheduler_test, test_sch_job_scheduling) {
         cost difference. */
     sm_init(data);
     data->constellation = CONSTELLATION_GPS;
-    data->jobs[0][20].needs_to_run = true;
-    data->jobs[0][20].cost_hint = ACQ_COST_MIN;
-    data->jobs[0][11].needs_to_run = true;
-    data->jobs[0][11].cost_hint = ACQ_COST_MAX_PLUS;
+    data->jobs[20].needs_to_run = true;
+    data->jobs[20].cost_hint = ACQ_COST_MIN;
+    data->jobs[11].needs_to_run = true;
+    data->jobs[11].cost_hint = ACQ_COST_MAX_PLUS;
     sch_expect_hw_run(true, 11);
     sch_expect_hw_run(true, 20);
   }

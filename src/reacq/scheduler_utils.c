@@ -36,7 +36,7 @@ void sch_send_acq_profile_msg(const acq_job_t *job,
      space range */
   const acq_task_search_params_t *acq_params = &job->task_data;
 
-  prof.job_type = (u8)job->job_type;
+  prof.job_type = 0;
   prof.status = peak_found;
   prof.cn0 = (u16)(10 * acq_result->cn0);
   prof.int_time = acq_params->integration_time_ms;

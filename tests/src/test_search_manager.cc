@@ -64,8 +64,7 @@ TEST(search_manager_test, test_search_manager) {
 
   for (test_ix = 0; test_ix < sizeof(test_cases) / sizeof(test_cases[0]);
        test_ix++) {
-    u32 gps_run_mask[ACQ_NUM_JOB_TYPES];
-    u8 type;
+    u32 gps_run_mask = 0;
     u32 i;
 
     test_case = &test_cases[test_ix];
@@ -83,27 +82,21 @@ TEST(search_manager_test, test_search_manager) {
     sm_run(data);
 
     /* Fill bit masks of jobs which are flagged to run */
-    memset(gps_run_mask, 0, sizeof(gps_run_mask));
-    for (type = (u8)ACQ_JOB_DEEP_SEARCH; type < (u8)ACQ_NUM_JOB_TYPES; type++) {
       for (i = 0; i < NUM_SATS_GPS; i++) {
-        if (data->jobs[type][i].needs_to_run &&
-            (CODE_GPS_L1CA == data->jobs[type][i].sid.code)) {
-          gps_run_mask[type] |=
-              1 << (data->jobs[type][i].sid.sat - GPS_FIRST_PRN);
+        if (data->jobs[i].needs_to_run &&
+            (CODE_GPS_L1CA == data->jobs[i].sid.code)) {
+          gps_run_mask |=
+              1 << (data->jobs[i].sid.sat - GPS_FIRST_PRN);
         }
       }
-    }
 #ifdef DBGOUT
     printf(
-        "Search gps deep=0x%08x fallback=0x%08x, expected::deep=0x%08x, "
+        "Search gps fallback=0x%08x, expected::deep=0x%08x, "
         "expected::fallback=0x%08x\n",
-        gps_run_mask[ACQ_JOB_DEEP_SEARCH],
-        gps_run_mask[ACQ_JOB_FALLBACK_SEARCH],
+        gps_run_mask,
         test_case->deep_mask,
         test_case->fallback_mask);
 #endif
-    EXPECT_TRUE(gps_run_mask[ACQ_JOB_DEEP_SEARCH] == test_case->deep_mask &&
-                gps_run_mask[ACQ_JOB_FALLBACK_SEARCH] ==
-                    test_case->fallback_mask);
+    EXPECT_TRUE(gps_run_mask == test_case->fallback_mask);
   } /* for */
 }

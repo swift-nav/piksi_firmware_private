@@ -72,13 +72,6 @@ typedef enum reacq_prio_level_e {
   REACQ_PRIO_COUNT,
 } reacq_prio_level_t;
 
-/** Search job types */
-typedef enum {
-  ACQ_JOB_DEEP_SEARCH,     /**< Deep job type */
-  ACQ_JOB_FALLBACK_SEARCH, /**< Fallback search job type */
-  ACQ_NUM_JOB_TYPES        /**< Number of job types */
-} acq_job_types_e;
-
 /** Cost hint for job scheduler */
 typedef enum {
   ACQ_COST_MIN,     /**< Initialize cost to minimum of all jobs */
@@ -108,7 +101,6 @@ typedef struct {
 typedef struct {
   me_gnss_signal_t mesid;    /**< ME SV identifier */
   gnss_signal_t sid;         /**< SV identifier, used to fetch ephemeris */
-  acq_job_types_e job_type;  /**< Job type */
   u64 start_time;            /**< HW millisecond when job started */
   u64 stop_time;             /**< HW millisecond when job finished */
   u32 cost;                  /**< Cost of job in terms of spent HW time
@@ -119,21 +111,20 @@ typedef struct {
   bool oneshot;              /**< Oneshot jobs do not continue automatically
                                 when completed */
   acq_job_scheduling_state_e state; /**< Scheduling state */
-  bool needs_restart; /**< Set if this job needs to be restarted */
   acq_task_search_params_t
       task_data; /**< Search area is divided into smaller tasks */
 } acq_job_t;
 
 /** Container for all the jobs */
 typedef struct {
-  /**< jobs for GPS, GLO and SBAS for each job type.
-   * Sequence of the job must be fixed: GPS, GLO, SBAS. New constellation
-   * must be added at the end.
+  /**< jobs for all constellations
+   * Sequence of the job must be fixed: GPS, GLO, SBAS, etc...
+   * New constellations must be added at the end.
    * Start index of any used GNSS can be obtain using function
    * sm_constellation_to_start_index() */
-  acq_job_t jobs[ACQ_NUM_JOB_TYPES][NUM_SATS_GPS + NUM_SATS_GLO +
-                                    NUM_SATS_SBAS + NUM_SATS_BDS +
-                                    NUM_SATS_QZS + NUM_SATS_GAL];
+  acq_job_t jobs[NUM_SATS_GPS + NUM_SATS_GLO +
+                 NUM_SATS_SBAS + NUM_SATS_BDS +
+                 NUM_SATS_QZS + NUM_SATS_GAL];
   constellation_t constellation;
   u8 priority_counter;
 } acq_jobs_state_t;

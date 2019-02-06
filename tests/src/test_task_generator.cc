@@ -40,16 +40,6 @@ TEST(task_genertor_test, test_task_generator) {
 
   memset(&job, 0, sizeof(job));
 
-  job.job_type = ACQ_JOB_FALLBACK_SEARCH;
-  tg_fill_task(&job);
-
-  EXPECT_EQ(EXPECTED_DOPPLER_BIN_SIZE_HZ, acq_param->freq_bin_size_hz);
-  EXPECT_EQ(EXPECTED_INTEGRATION_TIME_4MS, acq_param->integration_time_ms);
-  EXPECT_EQ(EXPECTED_PEAK_CN0_THRESHOLD_DBHZ, acq_param->cn0_threshold_dbhz);
-  EXPECT_EQ(doppler_min, acq_param->doppler_min_hz);
-  EXPECT_EQ(doppler_max, acq_param->doppler_max_hz);
-
-  job.job_type = ACQ_JOB_DEEP_SEARCH;
   tg_fill_task(&job);
 
   EXPECT_EQ(EXPECTED_DOPPLER_BIN_SIZE_HZ, acq_param->freq_bin_size_hz);
