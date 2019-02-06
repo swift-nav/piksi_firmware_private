@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2016 Swift Navigation Inc.
- * Contact: Perttu Salmela <psalmela@exafore.com>
+ * Contact: Swift Navigation <dev@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -13,45 +13,20 @@
 #define SWIFTNAV_SEARCH_MANAGER_API_H
 
 #include <stdbool.h>
+
+#include "search_manager_utils.h"
 #include "signal_db/signal_db.h"
 
 /* Search manager constants */
 
-/** Timeout (ms) defining period between fall-back searches of
- *  visible SVs */
-#define ACQ_FALLBACK_SEARCH_TIMEOUT_VISIBLE_MS 200
-/** Starts fall-back searches when last good fix (LGF) is
-    older than timeout (ms) */
-#define ACQ_LGF_TIMEOUT_VISIBLE_MS 100
+/** Minimum interval between searches of a visible SV (ms) */
+#define REACQ_MIN_SEARCH_INTERVAL_VISIBLE_MS 200
 
-/** Timeout (ms) defining period between fall-back searches of
-    invisible SVs */
-#define ACQ_FALLBACK_SEARCH_TIMEOUT_INVISIBLE_MS 30000
-/** Starts fall-back searches of invisible SVs when last good fix (LGF) is
-    older than timeout (ms) */
-#define ACQ_LGF_TIMEOUT_INVISIBLE_MS 15000
+/** Minimum interval between searches of an unknown SV (ms) */
+#define REACQ_MIN_SEARCH_INTERVAL_UNKNOWN_MS 10000
 
-/** Timeout (ms) defining period between fall-back searches of
-    unknown SVs */
-#define ACQ_FALLBACK_SEARCH_TIMEOUT_UNKNOWN_MS 10000
-/** Starts fall-back searches of unknown SVs when last good fix (LGF) is
-    older than timeout (ms) */
-#define ACQ_LGF_TIMEOUT_UNKNOWN_MS 5000
-
-/** Job cost delta used to avoid clustering of job with equal priority. */
-#define ACQ_COST_DELTA_VISIBLE_MS 30
-
-/** Job cost delta used to avoid clustering of job with equal priority. */
-#define ACQ_COST_DELTA_UNKNOWN_MS 50
-
-/** Job cost delta used to avoid clustering of job with equal priority. */
-#define ACQ_COST_DELTA_INVISIBLE_MS 100
-
-/** This job cost delta is added to the minimum cost computed across all jobs.
-    The resulting cost is assigned to the job, which has the hint ACQ_COST_MIN.
-    It lets other minimum cost jobs have chance to run as they will have
-    marginally smaller cost. */
-#define ACQ_COST_DELTA_MIN_MS 1
+/** Minimum interval between searches of an invisible SV (ms) */
+#define REACQ_MIN_SEARCH_INTERVAL_INVISIBLE_MS 30000
 
 /** Re-acq priority mask length in bits */
 #define REACQ_PRIORITY_CYCLE 32
@@ -64,6 +39,13 @@
 */
 #define LOW_SBAS_L1CA_SV_LIMIT 1
 
+/** Predicted status of satellite. */
+typedef enum {
+  INVISIBLE = -1,
+  UNKNOWN = 0,
+  VISIBLE = +1
+} visibility_t;
+
 /** Re-acq priority levels. */
 typedef enum reacq_prio_level_e {
   REACQ_NORMAL_PRIO,
@@ -72,20 +54,10 @@ typedef enum reacq_prio_level_e {
   REACQ_PRIO_COUNT,
 } reacq_prio_level_t;
 
-/** Cost hint for job scheduler */
-typedef enum {
-  ACQ_COST_MIN,     /**< Initialize cost to minimum of all jobs */
-  ACQ_COST_AVG,     /**< Initialize cost to average of all jobs */
-  ACQ_COST_MAX,     /**< Initialize cost to maximum of all jobs */
-  ACQ_COST_MAX_PLUS /**< Initialize cost to maximum of all jobs plus
-                       ACQ_COST_DELTA_MS */
-} acq_cost_hint_e;
-
 /** State of job in scheduling */
 typedef enum {
   ACQ_STATE_IDLE, /**< Job is idling */
   ACQ_STATE_WAIT, /**< Job waits to get running */
-  ACQ_STATE_RUN,  /**< Job is running */
 } acq_job_scheduling_state_e;
 
 /** Acquisition parameters which are passed to hardware */
@@ -101,18 +73,11 @@ typedef struct {
 typedef struct {
   me_gnss_signal_t mesid;    /**< ME SV identifier */
   gnss_signal_t sid;         /**< SV identifier, used to fetch ephemeris */
-  u64 start_time;            /**< HW millisecond when job started */
+  u64 start_time;             /**< HW millisecond when job finished */
   u64 stop_time;             /**< HW millisecond when job finished */
-  u32 cost;                  /**< Cost of job in terms of spent HW time
-                                (milliseconds) */
-  acq_cost_hint_e cost_hint; /**< Tells how the cost is initialized */
-  u32 cost_delta;            /**< Cost delta */
-  bool needs_to_run;         /**< Set when this job needs to run */
-  bool oneshot;              /**< Oneshot jobs do not continue automatically
-                                when completed */
+  visibility_t sky_status;   /**< Set when this job needs to run */
   acq_job_scheduling_state_e state; /**< Scheduling state */
-  acq_task_search_params_t
-      task_data; /**< Search area is divided into smaller tasks */
+  acq_task_search_params_t task_data; /**< Acquisition parameters */
 } acq_job_t;
 
 /** Container for all the jobs */

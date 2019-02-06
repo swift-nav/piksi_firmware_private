@@ -52,10 +52,6 @@ static const u32 reacq_sbas_high_prio[] = {
 
 /* Search manager functions which call other modules */
 
-bool sm_lgf_stamp(u64 *lgf_stamp);
-void sm_get_visibility_flags(gnss_signal_t sid, bool *visible, bool *known);
-void sm_calc_all_glo_visibility_flags(void);
-void sm_get_glo_visibility_flags(u16 sat, bool *visible, bool *known);
 static bool is_constellation_enabled(constellation_t con);
 
 /**
@@ -163,8 +159,7 @@ void sm_init(acq_jobs_state_t *data) {
  * \return none
  */
 static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
-                                   u64 now_ms,
-                                   u64 lgf_age_ms) {
+                                   u64 now_ms) {
   assert(jobs_data != NULL);
 
   constellation_t con = jobs_data->constellation;
@@ -184,10 +179,43 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
         (constellation_track_count(CONSTELLATION_SBAS) >= SBAS_SV_NUM_LIMIT)) {
       /* mark all SBAS SV as not needed to run */
       for (i = 0; i < num_sv; i++) {
-        jobs_data->jobs[idx + i].needs_to_run = false;
+        jobs_data->jobs[idx + i].state = ACQ_STATE_IDLE;
       }
       /* exit to prevent unnecessary reacq */
       return;
+    }
+  }
+
+  /* check if in this constellation there are visible satellites ready to be acquired */
+  for (i = 0; i < num_sv; i++) {
+    acq_job_t *waiting_job;
+    waiting_job = &jobs_data->jobs[idx + i];
+    if ((VISIBLE == waiting_job->sky_status) && (ACQ_STATE_WAIT == waiting_job->state)) {
+      /* don't change anything, the scheduler will consume all visible satellites */
+      return;
+    }
+  }
+
+  /* done searching the visible satellites, check if there are unknown satellites ready to be acquired */
+  bool any_unknown = false;
+  for (i = 0; i < num_sv; i++) {
+    acq_job_t *waiting_job;
+    waiting_job = &jobs_data->jobs[idx + i];
+    if ((UNKNOWN == waiting_job->sky_status) && (ACQ_STATE_WAIT == waiting_job->state)) {
+      /* just note that there are more unknown satellites to search */
+      any_unknown = true;
+      break;
+    }
+  }
+
+  bool any_invisible = false;
+  for (i = 0; i < num_sv; i++) {
+    acq_job_t *waiting_job;
+    waiting_job = &jobs_data->jobs[idx + i];
+    if ((INVISIBLE == waiting_job->sky_status) && (ACQ_STATE_WAIT == waiting_job->state)) {
+      /* just note that there are more invisible satellites to search */
+      any_invisible = true;
+      break;
     }
   }
 
@@ -195,7 +223,7 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
     acq_job_t *fallback_job;
     fallback_job = &jobs_data->jobs[idx + i];
 
-    fallback_job->needs_to_run = false;
+    fallback_job->state = ACQ_STATE_IDLE;
 
     if ((CONSTELLATION_SBAS == con) && !((sbas_mask >> i) & 1)) {
       /* don't set job for those SBAS SV which are not in our SBAS range */
@@ -234,28 +262,17 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
       visible = true;
     }
 
-    if (visible && (lgf_age_ms >= ACQ_LGF_TIMEOUT_VISIBLE_MS) &&
-        ((now_ms - fallback_job->stop_time) >
-         ACQ_FALLBACK_SEARCH_TIMEOUT_VISIBLE_MS)) {
-      fallback_job->cost_hint = ACQ_COST_AVG;
-      fallback_job->cost_delta = ACQ_COST_DELTA_VISIBLE_MS;
-      fallback_job->needs_to_run = true;
-      fallback_job->oneshot = true;
-    } else if ((!known && (lgf_age_ms >= ACQ_LGF_TIMEOUT_UNKNOWN_MS) &&
-                ((now_ms - fallback_job->stop_time) >
-                 ACQ_FALLBACK_SEARCH_TIMEOUT_UNKNOWN_MS)) ||
-               (CONSTELLATION_GLO == con && !glo_map_valid(sid))) {
-      fallback_job->cost_hint = ACQ_COST_MAX_PLUS;
-      fallback_job->cost_delta = ACQ_COST_DELTA_UNKNOWN_MS;
-      fallback_job->needs_to_run = true;
-      fallback_job->oneshot = true;
-    } else if (invisible && (lgf_age_ms >= ACQ_LGF_TIMEOUT_INVISIBLE_MS) &&
-               ((now_ms - fallback_job->stop_time) >
-                ACQ_FALLBACK_SEARCH_TIMEOUT_INVISIBLE_MS)) {
-      fallback_job->cost_hint = ACQ_COST_MAX_PLUS;
-      fallback_job->cost_delta = ACQ_COST_DELTA_INVISIBLE_MS;
-      fallback_job->needs_to_run = true;
-      fallback_job->oneshot = true;
+    fallback_job->sky_status = known ? (visible ? VISIBLE : INVISIBLE) : UNKNOWN;
+    if (visible && ((now_ms - fallback_job->stop_time) > REACQ_MIN_SEARCH_INTERVAL_VISIBLE_MS)) {
+      /* alwayes reset the visible satellites when the scheduler has searched them */
+      fallback_job->state = ACQ_STATE_WAIT;
+    } else if ((!known || (CONSTELLATION_GLO == con && !glo_map_valid(sid))) &&
+        ((now_ms - fallback_job->stop_time) > REACQ_MIN_SEARCH_INTERVAL_UNKNOWN_MS)) {
+      /* reset the state of unknown satellites if they were all searched for */
+      if (!any_unknown) fallback_job->state = ACQ_STATE_WAIT;
+    } else if (invisible && ((now_ms - fallback_job->stop_time) > REACQ_MIN_SEARCH_INTERVAL_INVISIBLE_MS)) {
+      /* reset the state of invisible satellites if they and the unknowns also were all searched for */
+      if (!any_unknown && !any_invisible) fallback_job->state = ACQ_STATE_WAIT;
     }
   } /* loop SVs */
 }
@@ -393,16 +410,8 @@ void sm_constellation_select(acq_jobs_state_t *jobs_data) {
  */
 void sm_run(acq_jobs_state_t *jobs_data) {
   u64 now_ms = timing_getms();
-  u64 lgf_ms, lgf_age_ms;
-  if (sm_lgf_stamp(&lgf_ms) && (now_ms >= lgf_ms)) {
-    lgf_age_ms = now_ms - lgf_ms;
-  } else {
-    log_warn("now_ms %" PRIu64 " lgf_ms %" PRIu64, now_ms, lgf_ms);
-    lgf_age_ms = ACQ_LGF_TIMEOUT_INVISIBLE_MS;
-  }
-
   if (CONSTELLATION_GLO == jobs_data->constellation) {
     sm_calc_all_glo_visibility_flags();
   }
-  sm_fallback_search_run(jobs_data, now_ms, lgf_age_ms);
+  sm_fallback_search_run(jobs_data, now_ms);
 }

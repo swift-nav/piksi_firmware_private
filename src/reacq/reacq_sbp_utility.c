@@ -41,7 +41,7 @@ void reacq_sbp_init(void) {
 }
 
 /**
- * The function process reacquisituon-related sbp message: store data into
+ * The function process reacquisition-related sbp message: store data into
  * buffer and send SBP when buffer is full or timer expired. Timer period is
  * #REACQ_SBP_PERIOD.
  * The function is called periodically from reacq manager.
@@ -54,7 +54,7 @@ void reacq_sbp_data_process(const acq_sv_profile_t *profile) {
   u64 cnt = nap_timing_count() * RX_DT_NOMINAL; /* get current time */
 
   if ((cnt - count) >= REACQ_SBP_PERIOD && amount > 0) {
-    /* timer expired and we have something to sent */
+    /* timer expired and we have something to send */
     reacq_sbp_send();
     count = cnt;
   }
