@@ -35,10 +35,8 @@ fprintf(1, 'E%02d\n', strfind(mask, '1'));
 /* as of June 2018 */
 static const gnss_capb_t gnss_capb_defaults = {
   .gps_active = (u64)0x0ffffffff,
-
   .gps_l2c = (u64)0x0f7814bfd,
-
-  .gps_l5 = (u64)0x0a78003a5,
+  .gps_l5 = (u64)0x0a78003ad,
 
   .glo_active = (u32)0x00fff7df,
   .glo_l2of = (u32)0x00fff7df,
@@ -52,15 +50,15 @@ static const gnss_capb_t gnss_capb_defaults = {
   Configuration compliant with to
   http://www.csno-tarc.cn/system/basicinfo
   retrieved on May 2nd*/
-  .bds_active = (u64)0x07fe0,
-  .bds_d2nav = (u64)0x1001f,
-  .bds_b2 = (u64)0x17fff,
-  .bds_b2a = (u64)0,
+  .bds_active = (u64)0x1fbffcbfe0,
+  .bds_d2nav = (u64)0x000000001f,
+  .bds_b2 = (u64)0x000000bfff,
+  .bds_b2a = (u64)0x1fbffc0000,
 
   .qzss_active = (u32)0x3ff,
 
-  .gal_active = (u64)0x0000000067940DDF,
-  .gal_e5 = (u64)0x0000000067940DDF,
+  .gal_active = (u64)0x067940ddf,
+  .gal_e5 = (u64)0x067940ddf,
 };
 /* clang-format on */
 
