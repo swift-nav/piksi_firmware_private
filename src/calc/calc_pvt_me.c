@@ -569,10 +569,10 @@ static s8 me_compute_pvt(const obs_array_t *obs_array,
 
   if (lgf->position_quality <= POSITION_GUESS) {
     /* This was the first fix. If GLO observations were involved, require RAIM
-     * to pass without exclusions. This is to protect against the case where
-     * initial leap second value is incorrect and GLO majority votes out the
-     * correct non-GLO observations. */
-    if (PVT_CONVERGED_RAIM_OK != pvt_ret && has_glo_obs) {
+     * to pass without exclusions (if it is enabled). This is to protect against
+     * the case where initial leap second value is incorrect and GLO majority
+     * votes out the correct non-GLO observations. */
+    if (!disable_raim && (PVT_CONVERGED_RAIM_OK != pvt_ret) && has_glo_obs) {
       log_info("Discarding first fix because of RAIM exclusions");
       *raim_removed_sids = *raim_sids;
       return PVT_INSUFFICENT_MEAS;
