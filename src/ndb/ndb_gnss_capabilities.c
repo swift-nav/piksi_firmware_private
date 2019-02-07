@@ -38,8 +38,8 @@ static const gnss_capb_t gnss_capb_defaults = {
   .gps_l2c = (u64)0x0f7814bfd,
   .gps_l5 = (u64)0x0a78003ad,
 
-  .glo_active = (u32)0x00fff7df,
-  .glo_l2of = (u32)0x00fff7df,
+  .glo_active = (u32)0x02ffffff,
+  .glo_l2of = (u32)0x02fff7df,
   .glo_l3 = (u32)0x00080100,
 
   .sbas_active = (u64)0x7ffff,
@@ -57,8 +57,8 @@ static const gnss_capb_t gnss_capb_defaults = {
 
   .qzss_active = (u32)0x3ff,
 
-  .gal_active = (u64)0x067940ddf,
-  .gal_e5 = (u64)0x067940ddf,
+  .gal_active = (u64)0x0967945ddf,
+  .gal_e5 = (u64) 0x0967945ddf,
 };
 /* clang-format on */
 
