@@ -581,9 +581,7 @@ void me_settings_setup(void) {
 /**
  * Expose the elevation mask setting
  */
-float get_solution_elevation_mask(void) {
-  return solution_elevation_mask;
-}
+float get_solution_elevation_mask(void) { return solution_elevation_mask; }
 
 /** Updates acq hints using last observed Doppler value */
 void update_acq_hints(tracker_t *tracker) {

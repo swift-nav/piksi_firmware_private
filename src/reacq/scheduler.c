@@ -42,7 +42,8 @@ u16 sm_constellation_to_start_index(constellation_t gnss);
  * \return true if need to continue, false if it's OK
  *         to re-run the schedule after this round
  */
-bool sch_select_job(acq_jobs_state_t *jobs_data, acq_job_t **job_to_run) {
+reacq_sched_ret_t sch_select_job(acq_jobs_state_t *jobs_data,
+                                 acq_job_t **job_to_run) {
   assert(job_to_run);
 
   (*job_to_run) = NULL;
@@ -55,8 +56,8 @@ bool sch_select_job(acq_jobs_state_t *jobs_data, acq_job_t **job_to_run) {
   for (u8 i = 0; i < num_sats; i++, job++) {
     if ((ACQ_STATE_WAIT == job->state) && (VISIBLE == job->sky_status)) {
       (*job_to_run) = job;
-      log_debug("reacq: visible %3d %2d", job->mesid.sat, job->mesid.code);
-      return true;
+      log_warn("reacq: %3d %2d +1", job->mesid.sat, job->mesid.code);
+      return REACQ_DONE_VISIBLE;
     }
   }
 
@@ -66,8 +67,8 @@ bool sch_select_job(acq_jobs_state_t *jobs_data, acq_job_t **job_to_run) {
     /* Triggers only on ACQ_COST_MAX_PLUS cost hint */
     if ((ACQ_STATE_WAIT == job->state) && (UNKNOWN == job->sky_status)) {
       (*job_to_run) = job;
-      log_debug("reacq: unknown %3d %2d", job->mesid.sat, job->mesid.code);
-      return false;
+      log_warn("reacq: %3d %2d  0", job->mesid.sat, job->mesid.code);
+      return REACQ_DONE_UNKNOWN;
     }
   }
 
@@ -76,12 +77,12 @@ bool sch_select_job(acq_jobs_state_t *jobs_data, acq_job_t **job_to_run) {
   for (u8 i = 0; i < num_sats; i++, job++) {
     if ((ACQ_STATE_WAIT == job->state) && (INVISIBLE == job->sky_status)) {
       (*job_to_run) = job;
-      log_debug("reacq: invisible %3d %2d", job->mesid.sat, job->mesid.code);
-      return false;
+      log_warn("reacq: %3d %2d -1", job->mesid.sat, job->mesid.code);
+      return REACQ_DONE_INVISIBLE;
     }
   }
 
-  return false;
+  return REACQ_DONE_NOTHING;
 }
 
 /** GLO specific function.
@@ -132,9 +133,9 @@ static void sch_run_common(acq_job_t *job) {
   acq_result_t acq_result;
   acq_task_search_params_t *acq_param = &job->task_data;
   bool peak_found = soft_multi_acq_search(job->mesid,
-                                     acq_param->doppler_min_hz,
-                                     acq_param->doppler_max_hz,
-                                     &acq_result);
+                                          acq_param->doppler_min_hz,
+                                          acq_param->doppler_max_hz,
+                                          &acq_result);
 
   job->stop_time = timing_getms();
   job->state = ACQ_STATE_IDLE;
@@ -170,20 +171,22 @@ static void sch_run_common(acq_job_t *job) {
 
 /* Search manager API functions */
 
-/** Run scheduler
+/** Schedule all visible satellites until one unknown or invisible is done
  *
  * \param jobs_data pointer to job data
  *
- * \return none
+ * \return which type of job was run last (including no job)
  */
-void sch_run(acq_jobs_state_t *jobs_data) {
+reacq_sched_ret_t sch_run(acq_jobs_state_t *jobs_data) {
   acq_job_t *job;
-  bool run = false;
+  reacq_sched_ret_t ret = REACQ_DONE_NOTHING;
   do {
-    run = sch_select_job(jobs_data, &job);
+    /* this can also do nothing and return NULL in `job` */
+    ret = sch_select_job(jobs_data, &job);
     if (CONSTELLATION_GLO == jobs_data->constellation) {
       sch_glo_fcn_set(job);
     }
     sch_run_common(job);
-  } while (run);
+  } while (REACQ_DONE_VISIBLE == ret);
+  return ret;
 }

@@ -31,20 +31,28 @@
 /** Re-acq priority mask length in bits */
 #define REACQ_PRIORITY_CYCLE 32
 
+/** Total number of re-acq slots */
+#define REACQ_NUM_SAT                                                          \
+  (NUM_SATS_GPS + NUM_SATS_GAL + NUM_SATS_SBAS + NUM_SATS_QZS + NUM_SATS_GLO + \
+   NUM_SATS_BDS)
+
 /** GPS will have high re-acq priority if less than limit SVs is tracked */
 #define LOW_GPS_L1CA_SV_LIMIT 6
-/**
-  SBAS will have high re-acq priority if less than limit SVs is tracked
-  and GPS is not already prioritized.
-*/
+
+/** SBAS will have high re-acq priority if less than limit SVs is tracked
+  and GPS is not already prioritized. */
 #define LOW_SBAS_L1CA_SV_LIMIT 1
 
 /** Predicted status of satellite. */
+typedef enum { INVISIBLE = -1, UNKNOWN = 0, VISIBLE = +1 } visibility_t;
+
+/** Scheduler return value. */
 typedef enum {
-  INVISIBLE = -1,
-  UNKNOWN = 0,
-  VISIBLE = +1
-} visibility_t;
+  REACQ_DONE_VISIBLE,
+  REACQ_DONE_UNKNOWN,
+  REACQ_DONE_INVISIBLE,
+  REACQ_DONE_NOTHING,
+} reacq_sched_ret_t;
 
 /** Re-acq priority levels. */
 typedef enum reacq_prio_level_e {
@@ -71,25 +79,21 @@ typedef struct {
 
 /** Search jobs */
 typedef struct {
-  me_gnss_signal_t mesid;    /**< ME SV identifier */
-  gnss_signal_t sid;         /**< SV identifier, used to fetch ephemeris */
-  u64 start_time;             /**< HW millisecond when job finished */
-  u64 stop_time;             /**< HW millisecond when job finished */
-  visibility_t sky_status;   /**< Set when this job needs to run */
-  acq_job_scheduling_state_e state; /**< Scheduling state */
+  me_gnss_signal_t mesid;  /**< ME SV identifier */
+  gnss_signal_t sid;       /**< SV identifier, used to fetch ephemeris */
+  u64 start_time;          /**< HW millisecond when job finished */
+  u64 stop_time;           /**< HW millisecond when job finished */
+  visibility_t sky_status; /**< Set when this job needs to run */
+  acq_job_scheduling_state_e state;   /**< Scheduling state */
   acq_task_search_params_t task_data; /**< Acquisition parameters */
 } acq_job_t;
 
 /** Container for all the jobs */
 typedef struct {
   /**< jobs for all constellations
-   * Sequence of the job must be fixed: GPS, GLO, SBAS, etc...
-   * New constellations must be added at the end.
    * Start index of any used GNSS can be obtain using function
    * sm_constellation_to_start_index() */
-  acq_job_t jobs[NUM_SATS_GPS + NUM_SATS_GLO +
-                 NUM_SATS_SBAS + NUM_SATS_BDS +
-                 NUM_SATS_QZS + NUM_SATS_GAL];
+  acq_job_t jobs[REACQ_NUM_SAT];
   constellation_t constellation;
   u8 priority_counter;
 } acq_jobs_state_t;
@@ -104,7 +108,7 @@ extern "C" {
 
 void sm_init(acq_jobs_state_t *data);
 void sm_constellation_select(acq_jobs_state_t *jobs_data);
-void sm_run(acq_jobs_state_t *jobs_data);
+void sm_run(acq_jobs_state_t *jobs_data, reacq_sched_ret_t type);
 
 #ifdef __cplusplus
 } /* extern "C" */

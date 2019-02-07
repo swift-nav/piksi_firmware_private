@@ -60,9 +60,7 @@ bool tracking_startup_ready(const me_gnss_signal_t mesid) {
   return true;
 }
 
-float get_solution_elevation_mask(void) {
-  return 0.0;
-}
+float get_solution_elevation_mask(void) { return 0.0; }
 
 bool is_glo_enabled(void) { return true; }
 
@@ -149,7 +147,7 @@ u16 get_orbit_slot(const u16 fcn) {
 void tracker_set_sbas_provider_change_flag(void) {}
 
 u8 tracking_startup_request(const tracking_startup_params_t *startup_params) {
-  (void) startup_params;
+  (void)startup_params;
   /* Remove from acquisition */
   acq_jobs_state_t *data = &acq_all_jobs_state_data;
   sm_constellation_to_start_index(data->constellation);

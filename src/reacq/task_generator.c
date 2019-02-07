@@ -41,7 +41,6 @@ void tg_fill_task(acq_job_t *job) {
   float default_doppler_max = code_to_sv_doppler_max(job->sid.code) +
                               code_to_tcxo_doppler_max(job->sid.code);
 
-
   last_good_fix_t lgf;
   gps_time_t now = get_current_time();
 

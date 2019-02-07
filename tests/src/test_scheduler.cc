@@ -17,5 +17,5 @@
 #include "scheduler_api.h"
 #include "soft_macq_main.h"
 
-bool hw_has_run; /** Set if acq_search is called */ 
+bool hw_has_run;   /** Set if acq_search is called */
 u32 hw_code_index; /** Set to code index for which hw was run */

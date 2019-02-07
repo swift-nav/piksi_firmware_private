@@ -459,7 +459,7 @@ TEST(cnav_tests, cnav_decode_ok_nok_ok) {
   u8 enc[((sizeof(prefix) + sizeof(suffix)) * CHAR_BIT + /* Prefix + suffix */
           GPS_CNAV_MSG_LENGTH +                          /* Message CRC_OK */
           GPS_CNAV_MSG_LENGTH +                          /* Messages CRC bad
-          */
+                                                          */
           GPS_CNAV_MSG_LENGTH                            /* Message CRC_OK */
           ) * 2 +
          1];

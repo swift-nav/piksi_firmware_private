@@ -63,17 +63,17 @@ u16 sm_constellation_to_start_index(constellation_t gnss) {
   switch ((s8)gnss) {
     case CONSTELLATION_GPS:
       return 0;
-    case CONSTELLATION_GLO:
+    case CONSTELLATION_GAL:
       return NUM_SATS_GPS;
     case CONSTELLATION_SBAS:
-      return NUM_SATS_GPS + NUM_SATS_GLO;
-    case CONSTELLATION_BDS:
-      return NUM_SATS_GPS + NUM_SATS_GLO + NUM_SATS_SBAS;
+      return NUM_SATS_GPS + NUM_SATS_GAL;
     case CONSTELLATION_QZS:
-      return NUM_SATS_GPS + NUM_SATS_GLO + NUM_SATS_SBAS + NUM_SATS_BDS;
-    case CONSTELLATION_GAL:
-      return NUM_SATS_GPS + NUM_SATS_GLO + NUM_SATS_SBAS + NUM_SATS_BDS +
-             NUM_SATS_QZS;
+      return NUM_SATS_GPS + NUM_SATS_GAL + NUM_SATS_SBAS;
+    case CONSTELLATION_GLO:
+      return NUM_SATS_GPS + NUM_SATS_GAL + NUM_SATS_SBAS + NUM_SATS_QZS;
+    case CONSTELLATION_BDS:
+      return NUM_SATS_GPS + NUM_SATS_GAL + NUM_SATS_SBAS + NUM_SATS_QZS +
+             NUM_SATS_GLO;
     default:
       assert(!"Incorrect constellation");
   }
@@ -119,11 +119,11 @@ void sm_init(acq_jobs_state_t *data) {
     constellation_t gnss;
     u16 first_prn;
   } reacq_gnss[] = {{CONSTELLATION_GPS, GPS_FIRST_PRN},
-                    {CONSTELLATION_GLO, GLO_FIRST_PRN},
+                    {CONSTELLATION_GAL, GAL_FIRST_PRN},
                     {CONSTELLATION_SBAS, SBAS_FIRST_PRN},
-                    {CONSTELLATION_BDS, BDS_FIRST_PRN},
                     {CONSTELLATION_QZS, QZS_FIRST_PRN},
-                    {CONSTELLATION_GAL, GAL_FIRST_PRN}};
+                    {CONSTELLATION_GLO, GLO_FIRST_PRN},
+                    {CONSTELLATION_BDS, BDS_FIRST_PRN}};
 
   for (u32 k = 0; k < ARRAY_SIZE(reacq_gnss); k++) {
     constellation_t gnss = reacq_gnss[k].gnss;
@@ -150,16 +150,23 @@ void sm_init(acq_jobs_state_t *data) {
   data->constellation = CONSTELLATION_INVALID;
 }
 
-/** Checks if fallback searches need to run for SV
+/** Categorizes satellites in "visible", "unknown" and "invisible" groups,
+ *  and resets their status to "ready for reacq" following the simple concept of
+ *  - do all visible until one unknown or invisible is done (note the loop in
+ * `sch_run()`)
+ *  - reset all visible to ready
+ *  - if there are no more unknowns reset all unknowns to ready
+ *  - if there are no more invisible reset all invisible to ready
  *
  * \param jobs_data pointer to job data
  * \param now_ms current time (ms)
- * \param lgf_age_ms age of the last good fix (ms)
+ * \param last_job_type last job type
  *
  * \return none
  */
-static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
-                                   u64 now_ms) {
+static void sm_restore_jobs(acq_jobs_state_t *jobs_data,
+                            u64 now_ms,
+                            reacq_sched_ret_t last_job_type) {
   assert(jobs_data != NULL);
 
   constellation_t con = jobs_data->constellation;
@@ -186,54 +193,28 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
     }
   }
 
-  /* check if in this constellation there are visible satellites ready to be acquired */
-  for (i = 0; i < num_sv; i++) {
-    acq_job_t *waiting_job;
-    waiting_job = &jobs_data->jobs[idx + i];
-    if ((VISIBLE == waiting_job->sky_status) && (ACQ_STATE_WAIT == waiting_job->state)) {
-      /* don't change anything, the scheduler will consume all visible satellites */
-      return;
-    }
-  }
-
-  /* done searching the visible satellites, check if there are unknown satellites ready to be acquired */
-  bool any_unknown = false;
-  for (i = 0; i < num_sv; i++) {
-    acq_job_t *waiting_job;
-    waiting_job = &jobs_data->jobs[idx + i];
-    if ((UNKNOWN == waiting_job->sky_status) && (ACQ_STATE_WAIT == waiting_job->state)) {
-      /* just note that there are more unknown satellites to search */
-      any_unknown = true;
-      break;
-    }
-  }
-
-  bool any_invisible = false;
-  for (i = 0; i < num_sv; i++) {
-    acq_job_t *waiting_job;
-    waiting_job = &jobs_data->jobs[idx + i];
-    if ((INVISIBLE == waiting_job->sky_status) && (ACQ_STATE_WAIT == waiting_job->state)) {
-      /* just note that there are more invisible satellites to search */
-      any_invisible = true;
-      break;
-    }
+  /* if the last job was a visible satellite, don't reset any of the reacq
+   * states as the scheduler will continue to consume visibles next time */
+  if (REACQ_DONE_VISIBLE == last_job_type) {
+    return;
   }
 
   for (i = 0; i < num_sv; i++) {
-    acq_job_t *fallback_job;
-    fallback_job = &jobs_data->jobs[idx + i];
+    acq_job_t *job_pt = &jobs_data->jobs[idx + i];
 
-    fallback_job->state = ACQ_STATE_IDLE;
+    /* assume by default this job does not need to be done */
+    job_pt->state = ACQ_STATE_IDLE;
 
     if ((CONSTELLATION_SBAS == con) && !((sbas_mask >> i) & 1)) {
-      /* don't set job for those SBAS SV which are not in our SBAS range */
+      /* don't set job for those SBAS SV which are not in our SBAS range,
+       * so move to the next job */
       continue;
     }
 
-    gnss_signal_t sid = fallback_job->sid;
+    gnss_signal_t sid = job_pt->sid;
     assert(sid_valid(sid));
 
-    me_gnss_signal_t *mesid = &fallback_job->mesid;
+    me_gnss_signal_t *mesid = &job_pt->mesid;
     if (CONSTELLATION_GLO == con) {
       u16 glo_fcn = GLO_FCN_UNKNOWN;
       if (glo_map_valid(sid)) {
@@ -243,9 +224,11 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
     }
     assert(mesid_valid(*mesid));
 
+    /* if this mesid is in track, no need for its job */
     if (mesid_is_tracked(*mesid)) {
       continue;
     }
+    /* if this mesid can't be tracked, no need for its job */
     if (!tracking_startup_ready(*mesid)) {
       continue;
     }
@@ -253,7 +236,6 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
     bool visible = false;
     bool known = false;
     bool invisible = false;
-
     sm_get_visibility_flags(sid, &visible, &known);
     visible = visible && known;
 
@@ -262,19 +244,33 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
       visible = true;
     }
 
-    fallback_job->sky_status = known ? (visible ? VISIBLE : INVISIBLE) : UNKNOWN;
-    if (visible && ((now_ms - fallback_job->stop_time) > REACQ_MIN_SEARCH_INTERVAL_VISIBLE_MS)) {
-      /* alwayes reset the visible satellites when the scheduler has searched them */
-      fallback_job->state = ACQ_STATE_WAIT;
-    } else if ((!known || (CONSTELLATION_GLO == con && !glo_map_valid(sid))) &&
-        ((now_ms - fallback_job->stop_time) > REACQ_MIN_SEARCH_INTERVAL_UNKNOWN_MS)) {
-      /* reset the state of unknown satellites if they were all searched for */
-      if (!any_unknown) fallback_job->state = ACQ_STATE_WAIT;
-    } else if (invisible && ((now_ms - fallback_job->stop_time) > REACQ_MIN_SEARCH_INTERVAL_INVISIBLE_MS)) {
-      /* reset the state of invisible satellites if they and the unknowns also were all searched for */
-      if (!any_unknown && !any_invisible) fallback_job->state = ACQ_STATE_WAIT;
+    /* save the job category into `sky_status` */
+    job_pt->sky_status = known ? (visible ? VISIBLE : INVISIBLE) : UNKNOWN;
+
+    if (invisible) {
+      log_info_sid(job_pt->sid, "deemed invisible");
     }
-  } /* loop SVs */
+
+    if (visible &&
+        ((now_ms - job_pt->stop_time) > REACQ_MIN_SEARCH_INTERVAL_VISIBLE_MS)) {
+      /* we should only arrive here once an unknown or invisible satellite has
+       * been tried */
+      job_pt->state = ACQ_STATE_WAIT;
+    } else if ((!known || (CONSTELLATION_GLO == con && !glo_map_valid(sid))) &&
+               ((now_ms - job_pt->stop_time) >
+                REACQ_MIN_SEARCH_INTERVAL_UNKNOWN_MS)) {
+      /* if the scheduler has done nothing or tried an invisible satellite it
+       * means that there were no more unknown satellites to search, so reset
+       * their status */
+      if (REACQ_DONE_INVISIBLE <= last_job_type) job_pt->state = ACQ_STATE_WAIT;
+    } else if (invisible && ((now_ms - job_pt->stop_time) >
+                             REACQ_MIN_SEARCH_INTERVAL_INVISIBLE_MS)) {
+      /* if the scheduler last time has done nothing then there were no ready
+       * satellites so it's time to put the invisible sats in the search queue
+       * again */
+      if (REACQ_DONE_NOTHING == last_job_type) job_pt->state = ACQ_STATE_WAIT;
+    }
+  } /* loop jobs */
 }
 
 /**
@@ -408,10 +404,10 @@ void sm_constellation_select(acq_jobs_state_t *jobs_data) {
  *
  * \return none
  */
-void sm_run(acq_jobs_state_t *jobs_data) {
+void sm_run(acq_jobs_state_t *jobs_data, reacq_sched_ret_t last_job_type) {
   u64 now_ms = timing_getms();
   if (CONSTELLATION_GLO == jobs_data->constellation) {
     sm_calc_all_glo_visibility_flags();
   }
-  sm_fallback_search_run(jobs_data, now_ms);
+  sm_restore_jobs(jobs_data, now_ms, last_job_type);
 }
