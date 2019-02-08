@@ -219,7 +219,7 @@ version :
 	@echo "Generating $@"
 	@echo "#define GIT_VERSION \"$(GIT_VERSION)\"" > stubs/version.h
 
-mesta : version ${obj.c} ${obj.cc}
+mesta : ${obj.c} ${obj.cc} | version
 	$(CXX) -o $@ $^ -lm
 
 ${obj.c} : % :
