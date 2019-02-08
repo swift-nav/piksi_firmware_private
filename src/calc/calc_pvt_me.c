@@ -461,7 +461,7 @@ static s8 me_compute_pvt(const obs_array_t *obs_array,
   if (!has_non_glo_obs && lgf->position_quality <= POSITION_GUESS) {
     /* Disallow first fix with only GLO observations to protect against
      * incorrect time solution in case leap second offset is invalid */
-    log_info("Discarding GLO-only first fix");
+    DO_EACH_MS(30 * SECS_MS, log_info("Discarding GLO-only first fix"));
     *raim_removed_sids = *raim_sids;
     return PVT_INSUFFICENT_MEAS;
   }
