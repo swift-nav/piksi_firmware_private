@@ -215,11 +215,13 @@ $(eval $(call SOURCES,${CSRC}))
 $(eval $(call SOURCES,${CXXSRC}))
 
 GIT_VERSION := $(shell git describe --tags --dirty --always)
-version :
+version.h :
 	@echo "Generating $@"
 	@echo "#define GIT_VERSION \"$(GIT_VERSION)\"" > stubs/version.h
 
-mesta : ${obj.c} ${obj.cc} | version
+$(SWIFTNAV_ROOT)/src/ndb/ndb_internal.c $(SWIFTNAV_ROOT)/src/main/main.c: version.h
+
+mesta : ${obj.c} ${obj.cc}
 	$(CXX) -o $@ $^ -lm
 
 ${obj.c} : % :

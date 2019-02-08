@@ -34,6 +34,7 @@ scripts/RELEASE-VERSION
 .pydevproject
 
 src/version.h
+mesta/stubs/version.h
 
 tests/run_tests
 *.gcno
