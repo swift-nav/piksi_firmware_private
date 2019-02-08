@@ -10,13 +10,16 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "decode_qzss_l1ca.h"
-#include "decode.h"
 
 #include <swiftnav/logging.h>
 
+#include "decode.h"
 #include "decode_common.h"
+#include "decode_qzss_l1ca.h"
+#include "ephemeris/ephemeris.h"
+#include "me_constants.h"
 #include "nav_msg/nav_msg.h"
+#include "ndb/ndb.h"
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "shm/shm.h"
@@ -24,6 +27,8 @@
 #include "timing/timing.h"
 #include "track/track_decode.h"
 #include "track/track_sid_db.h"
+#include "track/track_flags.h"
+#include "track/track_state.h"
 
 #include <assert.h>
 #include <string.h>
@@ -101,5 +106,83 @@ static void decoder_qzss_l1ca_process(
 
     from_decoder.bit_polarity = data->nav_msg.bit_polarity;
     tracker_data_sync(channel_info->tracking_channel, &from_decoder);
+  }
+
+  /* Decode nav data to temporary structure */
+  gps_l1ca_decoded_data_t dd;
+  s8 ret = process_subframe(&data->nav_msg, channel_info->mesid, &dd);
+
+  if (ret <= 0) {
+    return;
+  }
+
+  gnss_signal_t l1ca_sid =
+      construct_sid(channel_info->mesid.code, channel_info->mesid.sat);
+
+  if (dd.invalid_control_or_data) {
+    log_info_mesid(channel_info->mesid, "Invalid control or data element");
+
+    ndb_op_code_t c = ndb_ephemeris_erase(l1ca_sid);
+
+    if (NDB_ERR_NONE == c) {
+      log_info_mesid(channel_info->mesid, "ephemeris deleted (1/0)");
+    } else if (NDB_ERR_NO_CHANGE != c) {
+      log_warn_mesid(
+          channel_info->mesid, "error %d deleting ephemeris (1/0)", (int)c);
+    }
+    return;
+  }
+
+  shm_qzss_set_shi_lnav_how_alert(l1ca_sid.sat, !data->nav_msg.alert);
+
+  if (dd.shi_ephemeris_upd_flag) {
+    log_debug_mesid(
+        channel_info->mesid, "shi_ephemeris: 0x%" PRIx8, dd.shi_ephemeris);
+    shm_qzss_set_shi_ephemeris(l1ca_sid.sat, dd.shi_ephemeris);
+  }
+
+  // /* Health indicates CODE_NAV_STATE_INVALID for L2CM */
+  // gnss_signal_t l2cm_sid = construct_sid(CODE_QZS_L2CM, l1ca_sid.sat);
+  // if (shm_signal_unhealthy(l2cm_sid)) {
+  //   /* Clear CNAV data and TOW cache */
+  //   erase_cnav_data(l2cm_sid, l1ca_sid);
+  // }
+
+  /* Health indicates CODE_NAV_STATE_INVALID */
+  if (shm_signal_unhealthy(l1ca_sid)) {
+    /* Clear NDB and TOW cache */
+    erase_nav_data(l1ca_sid, l1ca_sid);
+    /* Clear decoded subframe data */
+    nav_msg_clear_decoded(&data->nav_msg);
+    return;
+  }
+
+  /* Do not use data from sv that is not declared as CODE_NAV_STATE_VALID. */
+  if (!shm_navigation_suitable(l1ca_sid)) {
+    return;
+  }
+
+  if (dd.ephemeris_upd_flag) {
+    /* Store new ephemeris to NDB */
+    log_debug_mesid(channel_info->mesid,
+                    "New ephemeris received [%" PRId16 ", %lf]",
+                    dd.ephemeris.toe.wn,
+                    dd.ephemeris.toe.tow);
+    eph_new_status_t r = ephemeris_new(&dd.ephemeris);
+
+    switch (r) {
+      case EPH_NEW_OK:
+      case EPH_NEW_ERR:
+        break;
+      case EPH_NEW_XCORR:
+      //   log_info_mesid(channel_info->mesid,
+      //                  "Channel cross-correlation detected "
+      //                  "(ephe/ephe or ephe/alm check)");
+      //   /* Ephemeris cross-correlates with almanac of another SV */
+      //   tracker_set_xcorr_flag(channel_info->mesid);
+        break;
+      default:
+        break;
+    }
   }
 }

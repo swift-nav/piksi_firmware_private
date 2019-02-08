@@ -41,6 +41,11 @@ void shm_gps_set_shi_page25(u16 sat, u8 new_value);
 void shm_gps_set_shi_lnav_how_alert(u16 sat, bool new_value);
 void shm_gps_set_shi_cnav_alert(u16 sat, bool new_value);
 
+void shm_qzss_set_shi_ephemeris(u16 sat, u8 new_value);
+void shm_qzss_set_shi_page25(u16 sat, u8 new_value);
+void shm_qzss_set_shi_lnav_how_alert(u16 sat, bool new_value);
+void shm_qzss_set_shi_cnav_alert(u16 sat, bool new_value);
+
 void shm_glo_set_shi(u16 sat, u8 new_value);
 void shm_bds_set_shi(u16 sat, u8 new_value);
 void shm_gal_set_shi(u16 sat, u8 new_value);
