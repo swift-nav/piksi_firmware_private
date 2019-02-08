@@ -19,7 +19,7 @@
 
 #include "soft_macq/soft_macq_main.h"
 
-/* Scheduler utils funcions */
+/* Scheduler utils functions */
 void sch_send_acq_profile_msg(const acq_job_t *job,
                               const acq_result_t *acq_result,
                               bool peak_found);
@@ -48,36 +48,33 @@ reacq_sched_ret_t sch_select_job(acq_jobs_state_t *jobs_data,
 
   (*job_to_run) = NULL;
 
-  u16 idx = sm_constellation_to_start_index(jobs_data->constellation);
-  u16 num_sats = constellation_to_sat_count(jobs_data->constellation);
-
   /* Run first ready and visible satellite */
-  acq_job_t *job = &jobs_data->jobs[idx];
-  for (u8 i = 0; i < num_sats; i++, job++) {
+  acq_job_t *job = &jobs_data->jobs[0];
+  for (u8 i = 0; i < REACQ_NUM_SAT; i++, job++) {
     if ((ACQ_STATE_WAIT == job->state) && (VISIBLE == job->sky_status)) {
       (*job_to_run) = job;
-      log_warn("reacq: %3d %2d +1", job->mesid.sat, job->mesid.code);
+      log_info("reacq: %3d %2d +1", job->mesid.sat, job->mesid.code);
       return REACQ_DONE_VISIBLE;
     }
   }
 
   /* Run first unknown satellite */
-  job = &jobs_data->jobs[idx];
-  for (u8 i = 0; i < num_sats; i++, job++) {
+  job = &jobs_data->jobs[0];
+  for (u8 i = 0; i < REACQ_NUM_SAT; i++, job++) {
     /* Triggers only on ACQ_COST_MAX_PLUS cost hint */
     if ((ACQ_STATE_WAIT == job->state) && (UNKNOWN == job->sky_status)) {
       (*job_to_run) = job;
-      log_warn("reacq: %3d %2d  0", job->mesid.sat, job->mesid.code);
+      log_info("reacq: %3d %2d  0", job->mesid.sat, job->mesid.code);
       return REACQ_DONE_UNKNOWN;
     }
   }
 
   /* Run first invisible satellite */
-  job = &jobs_data->jobs[idx];
-  for (u8 i = 0; i < num_sats; i++, job++) {
+  job = &jobs_data->jobs[0];
+  for (u8 i = 0; i < REACQ_NUM_SAT; i++, job++) {
     if ((ACQ_STATE_WAIT == job->state) && (INVISIBLE == job->sky_status)) {
       (*job_to_run) = job;
-      log_warn("reacq: %3d %2d -1", job->mesid.sat, job->mesid.code);
+      log_info("reacq: %3d %2d -1", job->mesid.sat, job->mesid.code);
       return REACQ_DONE_INVISIBLE;
     }
   }
@@ -183,7 +180,7 @@ reacq_sched_ret_t sch_run(acq_jobs_state_t *jobs_data) {
   do {
     /* this can also do nothing and return NULL in `job` */
     ret = sch_select_job(jobs_data, &job);
-    if (CONSTELLATION_GLO == jobs_data->constellation) {
+    if ((NULL != job) && IS_GLO(job->mesid)) {
       sch_glo_fcn_set(job);
     }
     sch_run_common(job);

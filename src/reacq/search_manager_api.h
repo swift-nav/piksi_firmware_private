@@ -36,13 +36,6 @@
   (NUM_SATS_GPS + NUM_SATS_GAL + NUM_SATS_SBAS + NUM_SATS_QZS + NUM_SATS_GLO + \
    NUM_SATS_BDS)
 
-/** GPS will have high re-acq priority if less than limit SVs is tracked */
-#define LOW_GPS_L1CA_SV_LIMIT 6
-
-/** SBAS will have high re-acq priority if less than limit SVs is tracked
-  and GPS is not already prioritized. */
-#define LOW_SBAS_L1CA_SV_LIMIT 1
-
 /** Predicted status of satellite. */
 typedef enum { INVISIBLE = -1, UNKNOWN = 0, VISIBLE = +1 } visibility_t;
 
@@ -57,8 +50,6 @@ typedef enum {
 /** Re-acq priority levels. */
 typedef enum reacq_prio_level_e {
   REACQ_NORMAL_PRIO,
-  REACQ_GPS_HIGH_PRIO,
-  REACQ_SBAS_HIGH_PRIO,
   REACQ_PRIO_COUNT,
 } reacq_prio_level_t;
 
@@ -94,8 +85,6 @@ typedef struct {
    * Start index of any used GNSS can be obtain using function
    * sm_constellation_to_start_index() */
   acq_job_t jobs[REACQ_NUM_SAT];
-  constellation_t constellation;
-  u8 priority_counter;
 } acq_jobs_state_t;
 
 /** Global data of all the jobs is shared between search manager

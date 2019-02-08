@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2016 Swift Navigation Inc.
- * Contact: Perttu Salmela <psalmela@exafore.com>
+ * Contact: Swift Navigation <dev@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -20,39 +20,46 @@
 #include "search_manager_api.h"
 #include "timing/timing.h"
 
-/** Re-acq normal priority masks. */
-static const u32 reacq_normal_prio[] = {
-    0b111111111111111111111111111111, /* GPS */
-    0b000000000100000000010000000001, /* SBAS */
-    0b111111111111111111111111111111, /* GLO */
-    0b101010101010101010101010101010, /* BDS2 */
-    0b010101010101010101010101010101, /* QZSS */
-    0b101010101010101010101010101010  /* GAL */
-};
+/**
+ * Check if given constellation is supported.
+ *
+ * \return true  if constellation is supported.
+ *         false otherwise
+ */
+static bool is_constellation_enabled(constellation_t con) {
+  switch (con) {
+    case CONSTELLATION_GPS:
+      return true;
+      break;
 
-/** Re-acq gps high priority masks. */
-static const u32 reacq_gps_high_prio[] = {
-    0b111111111111111111111111111111, /* GPS */
-    0b000000000000000000000000000001, /* SBAS */
-    0b000010000100001000010000100001, /* GLO */
-    0b000100001000010000100001000010, /* BDS2 */
-    0b001000010000100001000010000100, /* QZSS */
-    0b010000100001000010000100001000  /* GAL */
-};
+    case CONSTELLATION_SBAS:
+      return is_sbas_enabled();
+      break;
 
-/** Re-acq sbas high priority masks. */
-static const u32 reacq_sbas_high_prio[] = {
-    0b111111111111111111111111111111, /* GPS */
-    0b101010101010101010101010101010, /* SBAS */
-    0b000010000100001000010000100001, /* GLO */
-    0b000100001000010000100001000010, /* BDS2 */
-    0b001000010000100001000010000100, /* QZSS */
-    0b010000100001000010000100001000  /* GAL */
-};
+    case CONSTELLATION_GLO:
+      return is_glo_enabled();
+      break;
 
-/* Search manager functions which call other modules */
+    case CONSTELLATION_BDS:
+      return is_bds2_enabled();
+      break;
 
-static bool is_constellation_enabled(constellation_t con);
+    case CONSTELLATION_QZS:
+      return is_qzss_enabled();
+      break;
+
+    case CONSTELLATION_GAL:
+      return is_galileo_enabled();
+      break;
+
+    case CONSTELLATION_INVALID:
+    case CONSTELLATION_COUNT:
+    default:
+      assert(!"Unsupported reacq constellation!");
+      break;
+  }
+  return false;
+}
 
 /**
  * The function returns start job index according to gnss
@@ -76,6 +83,7 @@ u16 sm_constellation_to_start_index(constellation_t gnss) {
              NUM_SATS_GLO;
     default:
       assert(!"Incorrect constellation");
+      return 0;
   }
 }
 
@@ -125,15 +133,23 @@ void sm_init(acq_jobs_state_t *data) {
                     {CONSTELLATION_GLO, GLO_FIRST_PRN},
                     {CONSTELLATION_BDS, BDS_FIRST_PRN}};
 
-  for (u32 k = 0; k < ARRAY_SIZE(reacq_gnss); k++) {
+  for (u16 k = 0; k < ARRAY_SIZE(reacq_gnss); k++) {
     constellation_t gnss = reacq_gnss[k].gnss;
     u16 idx = sm_constellation_to_start_index(gnss);
     u16 num_sv = constellation_to_sat_count(gnss);
     code_t code = constellation_to_l1_code(gnss);
 
+    if (idx + num_sv > REACQ_NUM_SAT) {
+      log_error("idx + num_sv < REACQ_NUM_SAT: %d + %d < %d",
+                idx,
+                num_sv,
+                REACQ_NUM_SAT);
+      assert(0);
+    }
+
     acq_job_t *job = &data->jobs[idx];
     u16 first_prn = reacq_gnss[k].first_prn;
-    for (u32 i = 0; i < num_sv; i++) {
+    for (u16 i = 0; i < num_sv; i++) {
       if (CONSTELLATION_GLO == gnss) {
         /* NOTE: GLO MESID is initialized evenly with all FCNs, so that
          * blind searches are immediately done with whole range of FCNs */
@@ -144,10 +160,6 @@ void sm_init(acq_jobs_state_t *data) {
       job[i].sid = construct_sid(code, first_prn + i);
     }
   }
-
-  /* When constellation is initialized with CONSTELLATION_INVALID,
-   * sm_constellation_select() will choose GPS as the first constellation. */
-  data->constellation = CONSTELLATION_INVALID;
 }
 
 /** Categorizes satellites in "visible", "unknown" and "invisible" groups,
@@ -169,46 +181,36 @@ static void sm_restore_jobs(acq_jobs_state_t *jobs_data,
                             reacq_sched_ret_t last_job_type) {
   assert(jobs_data != NULL);
 
-  constellation_t con = jobs_data->constellation;
-
-  if (!is_constellation_enabled(con)) {
-    return;
-  }
-
-  u32 i;
-  u16 idx = sm_constellation_to_start_index(con);
-  u16 num_sv = constellation_to_sat_count(con);
-
-  u32 sbas_mask = 0;
-  if (CONSTELLATION_SBAS == con) {
-    sbas_mask = sbas_limit_mask();
-    if ((0 == sbas_mask) ||
-        (constellation_track_count(CONSTELLATION_SBAS) >= SBAS_SV_NUM_LIMIT)) {
-      /* mark all SBAS SV as not needed to run */
-      for (i = 0; i < num_sv; i++) {
-        jobs_data->jobs[idx + i].state = ACQ_STATE_IDLE;
-      }
-      /* exit to prevent unnecessary reacq */
-      return;
-    }
-  }
-
   /* if the last job was a visible satellite, don't reset any of the reacq
    * states as the scheduler will continue to consume visibles next time */
   if (REACQ_DONE_VISIBLE == last_job_type) {
+    log_warn("last_job_type is REACQ_DONE_VISIBLE");
     return;
   }
 
-  for (i = 0; i < num_sv; i++) {
-    acq_job_t *job_pt = &jobs_data->jobs[idx + i];
+  u32 sbas_mask = sbas_limit_mask();
+  u32 sbas_start_idx = sm_constellation_to_start_index(CONSTELLATION_SBAS);
 
-    /* assume by default this job does not need to be done */
-    job_pt->state = ACQ_STATE_IDLE;
+  for (u16 i = 0; i < REACQ_NUM_SAT; i++) {
+    acq_job_t *job_pt = &jobs_data->jobs[i];
+    constellation_t con = code_to_constellation(job_pt->mesid.code);
 
-    if ((CONSTELLATION_SBAS == con) && !((sbas_mask >> i) & 1)) {
-      /* don't set job for those SBAS SV which are not in our SBAS range,
-       * so move to the next job */
+    if (!is_constellation_enabled(con)) {
+      job_pt->state = ACQ_STATE_IDLE;
       continue;
+    }
+
+    if (CONSTELLATION_SBAS == con) {
+      assert(sbas_start_idx <= i);
+      u32 sbas_idx = i - sbas_start_idx;
+      /* don't set job for those SBAS SV which are not in our SBAS range,
+       * or if we already more than the limit */
+      if ((0 == ((sbas_mask >> sbas_idx) & 1)) ||
+          (constellation_track_count(CONSTELLATION_SBAS) >=
+           SBAS_SV_NUM_LIMIT)) {
+        job_pt->state = ACQ_STATE_IDLE;
+        continue;
+      }
     }
 
     gnss_signal_t sid = job_pt->sid;
@@ -226,10 +228,12 @@ static void sm_restore_jobs(acq_jobs_state_t *jobs_data,
 
     /* if this mesid is in track, no need for its job */
     if (mesid_is_tracked(*mesid)) {
+      job_pt->state = ACQ_STATE_IDLE;
       continue;
     }
     /* if this mesid can't be tracked, no need for its job */
     if (!tracking_startup_ready(*mesid)) {
+      job_pt->state = ACQ_STATE_IDLE;
       continue;
     }
 
@@ -248,7 +252,7 @@ static void sm_restore_jobs(acq_jobs_state_t *jobs_data,
     job_pt->sky_status = known ? (visible ? VISIBLE : INVISIBLE) : UNKNOWN;
 
     if (invisible) {
-      log_info_sid(job_pt->sid, "deemed invisible");
+      log_warn_sid(job_pt->sid, "deemed invisible");
     }
 
     if (visible &&
@@ -273,141 +277,17 @@ static void sm_restore_jobs(acq_jobs_state_t *jobs_data,
   } /* loop jobs */
 }
 
-/**
- * Check if constellation is scheduled for reacq, based on priority mask bit.
- *
- * The method extracts the scheduling bit from the priority mask.
- *
- * \return true  if constellation is scheduled (mask bit is 1).
- *         false otherwise
- */
-bool check_priority_mask(reacq_prio_level_t prio_level,
-                         acq_jobs_state_t *jobs_data) {
-  u32 priority_mask = 0;
-  switch (prio_level) {
-    case REACQ_NORMAL_PRIO:
-      assert((u8)jobs_data->constellation < ARRAY_SIZE(reacq_normal_prio));
-      priority_mask = reacq_normal_prio[jobs_data->constellation];
-      break;
-
-    case REACQ_GPS_HIGH_PRIO:
-      assert((u8)jobs_data->constellation < ARRAY_SIZE(reacq_gps_high_prio));
-      priority_mask = reacq_gps_high_prio[jobs_data->constellation];
-      break;
-
-    case REACQ_SBAS_HIGH_PRIO:
-      assert((u8)jobs_data->constellation < ARRAY_SIZE(reacq_sbas_high_prio));
-      priority_mask = reacq_sbas_high_prio[jobs_data->constellation];
-      break;
-
-    case REACQ_PRIO_COUNT:
-    default:
-      assert(!"Unsupported re-acq priority mask");
-  }
-
-  priority_mask >>= jobs_data->priority_counter;
-  priority_mask &= 0x1;
-  return priority_mask;
-}
-
-/**
- * Check if given constellation is supported.
- *
- * \return true  if constellation is supported.
- *         false otherwise
- */
-bool is_constellation_enabled(constellation_t con) {
-  switch (con) {
-    case CONSTELLATION_GPS:
-      return true;
-      break;
-
-    case CONSTELLATION_SBAS:
-      return is_sbas_enabled();
-      break;
-
-    case CONSTELLATION_GLO:
-      return is_glo_enabled();
-      break;
-
-    case CONSTELLATION_BDS:
-      return is_bds2_enabled();
-      break;
-
-    case CONSTELLATION_QZS:
-      return is_qzss_enabled();
-      break;
-
-    case CONSTELLATION_GAL:
-      return is_galileo_enabled();
-      break;
-
-    case CONSTELLATION_INVALID:
-    case CONSTELLATION_COUNT:
-    default:
-      assert(!"Unsupported reacq constellation!");
-      break;
-  }
-  return false;
-}
-
-static reacq_prio_level_t get_dynamic_prio(void) {
-  if (code_track_count(CODE_GPS_L1CA) < LOW_GPS_L1CA_SV_LIMIT) {
-    return REACQ_GPS_HIGH_PRIO;
-  }
-  if (code_track_count(CODE_SBAS_L1CA) < LOW_SBAS_L1CA_SV_LIMIT) {
-    return REACQ_SBAS_HIGH_PRIO;
-  }
-  return REACQ_NORMAL_PRIO;
-}
-
-/**
- * Check if current constellation is supported and scheduled for reacqusition.
- *
- * \return true  if constellation is supported and scheduled.
- *         false otherwise
- */
-bool reacq_scheduled(acq_jobs_state_t *jobs_data) {
-  reacq_prio_level_t prio_level = get_dynamic_prio();
-
-  return (is_constellation_enabled(jobs_data->constellation) &&
-          check_priority_mask(prio_level, jobs_data));
-}
-
-/**
- * Select constellation for reacqusition.
- *
- * The method selects next scheduled constellation for reacquisition.
- *
- * \return None
- */
-void sm_constellation_select(acq_jobs_state_t *jobs_data) {
-  while (true) {
-    if (CONSTELLATION_COUNT == ++jobs_data->constellation) {
-      jobs_data->constellation = CONSTELLATION_GPS;
-      if (REACQ_PRIORITY_CYCLE == ++jobs_data->priority_counter) {
-        jobs_data->priority_counter = 0;
-      }
-    }
-
-    if (reacq_scheduled(jobs_data)) {
-      return;
-    }
-  }
-}
-
 /** Run search manager
  *
  *  Decides when and which jobs need to be run
  *
  * \param jobs_data pointer to job data
+ * \param last_job_type what job type was run last
  *
  * \return none
  */
 void sm_run(acq_jobs_state_t *jobs_data, reacq_sched_ret_t last_job_type) {
   u64 now_ms = timing_getms();
-  if (CONSTELLATION_GLO == jobs_data->constellation) {
-    sm_calc_all_glo_visibility_flags();
-  }
+  sm_calc_all_glo_visibility_flags();
   sm_restore_jobs(jobs_data, now_ms, last_job_type);
 }

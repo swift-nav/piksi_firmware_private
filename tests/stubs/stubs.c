@@ -148,9 +148,6 @@ void tracker_set_sbas_provider_change_flag(void) {}
 
 u8 tracking_startup_request(const tracking_startup_params_t *startup_params) {
   (void)startup_params;
-  /* Remove from acquisition */
-  acq_jobs_state_t *data = &acq_all_jobs_state_data;
-  sm_constellation_to_start_index(data->constellation);
   return 0;
 }
 
