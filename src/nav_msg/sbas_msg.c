@@ -16,6 +16,8 @@
 #include "timing/timing.h"
 
 #include <starling/integration/starling_input_bridge.h>
+#include <starling/util/sbp/packers.h>
+#include <starling/util/sbp/unpackers.h>
 
 #include <limits.h>
 #include <string.h>

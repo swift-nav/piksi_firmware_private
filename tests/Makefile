@@ -110,7 +110,7 @@ lsnp :
 	      -DCMAKE_CXX_COMPILER=$(CXX_COMPILER) \
 	      -DENABLE_AUTOFORMAT=OFF \
 	      ../
-	$(MAKE) -C $(STARLING_BUILDDIR) starling --no-print-directory
+	$(MAKE) -C $(STARLING_BUILDDIR) starling starling-util --no-print-directory
 
 clean :
 	@printf "CLEAN   Starling\n"; \
@@ -216,7 +216,7 @@ $(OBJDIR)/%.o: %.cc
 
 OBJS += $(OBJDIR)/gtest_main.a
 
-LIBS = -lstarling -lswiftnav -lpthread -lfec
+LIBS = -lstarling -lstarling-util -lswiftnav -lpthread -lfec
 LIB_PATH = -L$(STARLING_SEARCHPATH)/src
 LIB_PATH += -L$(LIBSWIFTNAV_SEARCHPATH)
 LIB_PATH += -L$(STARLING_FEC_SEARCHPATH)
