@@ -53,7 +53,7 @@ reacq_sched_ret_t sch_select_job(acq_jobs_state_t *jobs_data,
   for (u8 i = 0; i < REACQ_NUM_SAT; i++, job++) {
     if ((ACQ_STATE_WAIT == job->state) && (VISIBLE == job->sky_status)) {
       (*job_to_run) = job;
-      log_info("reacq: %3d %2d +1", job->mesid.sat, job->mesid.code);
+      log_debug("reacq: %3d %2d +1", job->mesid.sat, job->mesid.code);
       return REACQ_DONE_VISIBLE;
     }
   }
@@ -64,7 +64,7 @@ reacq_sched_ret_t sch_select_job(acq_jobs_state_t *jobs_data,
     /* Triggers only on ACQ_COST_MAX_PLUS cost hint */
     if ((ACQ_STATE_WAIT == job->state) && (UNKNOWN == job->sky_status)) {
       (*job_to_run) = job;
-      log_info("reacq: %3d %2d  0", job->mesid.sat, job->mesid.code);
+      log_debug("reacq: %3d %2d  0", job->mesid.sat, job->mesid.code);
       return REACQ_DONE_UNKNOWN;
     }
   }
@@ -74,10 +74,12 @@ reacq_sched_ret_t sch_select_job(acq_jobs_state_t *jobs_data,
   for (u8 i = 0; i < REACQ_NUM_SAT; i++, job++) {
     if ((ACQ_STATE_WAIT == job->state) && (INVISIBLE == job->sky_status)) {
       (*job_to_run) = job;
-      log_info("reacq: %3d %2d -1", job->mesid.sat, job->mesid.code);
+      log_debug("reacq: %3d %2d -1", job->mesid.sat, job->mesid.code);
       return REACQ_DONE_INVISIBLE;
     }
   }
+
+  log_debug("sch_select_job() found nothing to do");
 
   return REACQ_DONE_NOTHING;
 }

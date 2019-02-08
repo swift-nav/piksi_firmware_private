@@ -241,6 +241,7 @@ static void sm_restore_jobs(acq_jobs_state_t *jobs_data,
     bool known = false;
     bool invisible = false;
     sm_get_visibility_flags(sid, &visible, &known);
+    invisible = !visible && known;
     visible = visible && known;
 
     if (CONSTELLATION_SBAS == con) {
@@ -250,10 +251,6 @@ static void sm_restore_jobs(acq_jobs_state_t *jobs_data,
 
     /* save the job category into `sky_status` */
     job_pt->sky_status = known ? (visible ? VISIBLE : INVISIBLE) : UNKNOWN;
-
-    if (invisible) {
-      log_warn_sid(job_pt->sid, "deemed invisible");
-    }
 
     if (visible &&
         ((now_ms - job_pt->stop_time) > REACQ_MIN_SEARCH_INTERVAL_VISIBLE_MS)) {
