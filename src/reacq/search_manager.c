@@ -263,13 +263,13 @@ static void sm_restore_jobs(acq_jobs_state_t *jobs_data,
       /* if the scheduler has done nothing or tried an invisible satellite it
        * means that there were no more unknown satellites to search, so reset
        * their status */
-      if (REACQ_DONE_INVISIBLE <= last_job_type) job_pt->state = ACQ_STATE_WAIT;
+      if (REACQ_DONE_UNKNOWN < last_job_type) job_pt->state = ACQ_STATE_WAIT;
     } else if (invisible && ((now_ms - job_pt->stop_time) >
                              REACQ_MIN_SEARCH_INTERVAL_INVISIBLE_MS)) {
       /* if the scheduler last time has done nothing then there were no ready
        * satellites so it's time to put the invisible sats in the search queue
        * again */
-      if (REACQ_DONE_NOTHING == last_job_type) job_pt->state = ACQ_STATE_WAIT;
+      if (REACQ_DONE_INVISIBLE < last_job_type) job_pt->state = ACQ_STATE_WAIT;
     }
   } /* loop jobs */
 }
