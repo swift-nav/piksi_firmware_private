@@ -75,20 +75,6 @@ static void tracker_gal_e7_update(tracker_t *tracker) {
 
   /* TOW manipulation on bit edge */
   tracker_tow_cache(tracker);
-
-  bool settled = (0 == (tracker->flags & TRACKER_FLAG_RECOVERY_MODE));
-  bool inlock = tracker_has_all_locks(tracker);
-
-  if (inlock && settled) {
-    tracker->bit_polarity = BIT_POLARITY_NORMAL;
-    tracker_update_bit_polarity_flags(tracker);
-
-    gal_e7_to_e1_handover(tracker->sample_count,
-                          tracker->mesid.sat,
-                          tracker->code_phase_prompt,
-                          tracker->doppler_hz,
-                          tracker->cn0);
-  }
 }
 
 /** Register GAL E7 tracker into the the interface & settings framework.
