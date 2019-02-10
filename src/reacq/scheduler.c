@@ -90,10 +90,6 @@ reacq_sched_ret_t sch_select_job(acq_jobs_state_t *jobs_data,
  * \param job pointer to job to run
  */
 static void sch_glo_fcn_set(acq_job_t *job) {
-  if (NULL == job) {
-    return;
-  }
-
   u16 slot_id1, slot_id2;
   if (!glo_map_valid(job->sid)) {
     bool next = true;
@@ -177,15 +173,13 @@ static void sch_run_common(acq_job_t *job) {
  * \return which type of job was run last (including no job)
  */
 reacq_sched_ret_t sch_run(acq_jobs_state_t *jobs_data) {
-  acq_job_t *job;
   reacq_sched_ret_t ret = REACQ_DONE_NOTHING;
-  do {
-    /* this can also do nothing and return NULL in `job` */
-    ret = sch_select_job(jobs_data, &job);
-    if ((NULL != job) && IS_GLO(job->mesid)) {
-      sch_glo_fcn_set(job);
-    }
-    sch_run_common(job);
-  } while (REACQ_DONE_VISIBLE == ret);
+  acq_job_t *job;
+  /* `sch_select_job()` can also do nothing and return NULL in `job` */
+  ret = sch_select_job(jobs_data, &job);
+  if ((NULL != job) && IS_GLO(job->mesid)) {
+    sch_glo_fcn_set(job);
+  }
+  sch_run_common(job);
   return ret;
 }

@@ -22,7 +22,6 @@ extern "C" {
 bool sm_lgf_stamp(u64 *lgf_stamp);
 void sm_get_visibility_flags(gnss_signal_t sid, bool *visible, bool *known);
 void sm_calc_all_glo_visibility_flags(void);
-void sm_get_glo_visibility_flags(u16 sat, bool *visible, bool *known);
 
 #ifdef __cplusplus
 }

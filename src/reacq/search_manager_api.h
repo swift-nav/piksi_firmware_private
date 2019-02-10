@@ -31,7 +31,8 @@
 /** Re-acq priority mask length in bits */
 #define REACQ_PRIORITY_CYCLE 32
 
-/** High priority GPS search happens below this number of reacquired satellites */
+/** High priority GPS search happens below this number of reacquired satellites
+ */
 #define LOW_GPS_L1CA_SV_LIMIT 6
 
 /** Total number of re-acq slots */
@@ -49,12 +50,6 @@ typedef enum {
   REACQ_DONE_INVISIBLE,
   REACQ_DONE_NOTHING,
 } reacq_sched_ret_t;
-
-/** Re-acq priority levels. */
-typedef enum reacq_prio_level_e {
-  REACQ_NORMAL_PRIO,
-  REACQ_PRIO_COUNT,
-} reacq_prio_level_t;
 
 /** State of job in scheduling */
 typedef enum {
@@ -99,8 +94,7 @@ extern "C" {
 #endif /* __cplusplus */
 
 void sm_init(acq_jobs_state_t *data);
-void sm_constellation_select(acq_jobs_state_t *jobs_data);
-void sm_run(acq_jobs_state_t *jobs_data, reacq_sched_ret_t type);
+void sm_restore_jobs(acq_jobs_state_t *jobs_data, reacq_sched_ret_t type);
 
 #ifdef __cplusplus
 } /* extern "C" */

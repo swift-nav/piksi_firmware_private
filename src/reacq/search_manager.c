@@ -171,22 +171,21 @@ void sm_init(acq_jobs_state_t *data) {
  *  - if there are no more invisible reset all invisible to ready
  *
  * \param jobs_data pointer to job data
- * \param now_ms current time (ms)
  * \param last_job_type last job type
  *
  * \return none
  */
-static void sm_restore_jobs(acq_jobs_state_t *jobs_data,
-                            u64 now_ms,
-                            reacq_sched_ret_t last_job_type) {
+void sm_restore_jobs(acq_jobs_state_t *jobs_data,
+                     reacq_sched_ret_t last_job_type) {
   assert(jobs_data != NULL);
 
   /* if the last job was a visible satellite, don't reset any of the reacq
    * states as the scheduler will continue to consume visibles next time */
   if (REACQ_DONE_VISIBLE == last_job_type) {
-    log_warn("last_job_type is REACQ_DONE_VISIBLE");
     return;
   }
+
+  u64 now_ms = timing_getms();
 
   /* count the number of GPS L1CA signals tracked */
   u16 num_gps_l1 = code_track_count(CODE_GPS_L1CA);
@@ -281,19 +280,4 @@ static void sm_restore_jobs(acq_jobs_state_t *jobs_data,
       if (REACQ_DONE_INVISIBLE < last_job_type) job->state = ACQ_STATE_WAIT;
     }
   } /* loop jobs */
-}
-
-/** Run search manager
- *
- *  Decides when and which jobs need to be run
- *
- * \param jobs_data pointer to job data
- * \param last_job_type what job type was run last
- *
- * \return none
- */
-void sm_run(acq_jobs_state_t *jobs_data, reacq_sched_ret_t last_job_type) {
-  u64 now_ms = timing_getms();
-  sm_calc_all_glo_visibility_flags();
-  sm_restore_jobs(jobs_data, now_ms, last_job_type);
 }

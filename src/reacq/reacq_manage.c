@@ -32,6 +32,6 @@ void init_reacq(void) { sm_init(&acq_all_jobs_state_data); }
  */
 void manage_reacq(void) {
   static reacq_sched_ret_t last_job_type = REACQ_DONE_NOTHING;
-  sm_run(&acq_all_jobs_state_data, last_job_type);
+  sm_restore_jobs(&acq_all_jobs_state_data, last_job_type);
   last_job_type = sch_run(&acq_all_jobs_state_data);
 }
