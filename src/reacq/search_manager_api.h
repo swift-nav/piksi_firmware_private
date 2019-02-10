@@ -20,7 +20,7 @@
 /* Search manager constants */
 
 /** Minimum interval between searches of a visible SV (ms) */
-#define REACQ_MIN_SEARCH_INTERVAL_VISIBLE_MS 200
+#define REACQ_MIN_SEARCH_INTERVAL_VISIBLE_MS 500
 
 /** Minimum interval between searches of an unknown SV (ms) */
 #define REACQ_MIN_SEARCH_INTERVAL_UNKNOWN_MS 10000
@@ -30,6 +30,9 @@
 
 /** Re-acq priority mask length in bits */
 #define REACQ_PRIORITY_CYCLE 32
+
+/** High priority GPS search happens below this number of reacquired satellites */
+#define LOW_GPS_L1CA_SV_LIMIT 6
 
 /** Total number of re-acq slots */
 #define REACQ_NUM_SAT                                                          \
