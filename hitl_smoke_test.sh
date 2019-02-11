@@ -24,6 +24,10 @@ if [ "$TESTENV" == "lint" ]; then
     exit
 fi
 
+if [ "$TESTENV" == "mesta" ]; then
+    exit
+fi
+
 if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
     exit
 fi
