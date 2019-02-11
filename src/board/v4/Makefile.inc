@@ -138,7 +138,7 @@ BOARDLIBS := -lopen_amp
 BOARDLIBDIR := $(OPENAMP_BUILDDIR)/lib
 
 # Define linker script file here
-LDSCRIPT= $(BOARDDIR)/ZYNQ7000.ld
+LDSCRIPT= $(BOARDDIR)/zynqmp.ld
 
 RULESPATH = $(CHIBIOS)/os/common/ports/ARM/compilers/GCC
 
