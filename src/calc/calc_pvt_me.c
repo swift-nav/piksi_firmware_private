@@ -201,14 +201,6 @@ static void me_send_failed_obs(obs_array_t *obs_array,
     return;
   }
 
-  u64 ref_tc = gpstime2napcount(&obs_array->t);
-
-  /* get the estimated clock drift value */
-  double clock_drift = get_clock_drift();
-
-  /* remove just the smoothed drift from observations */
-  remove_clock_offset(obs_array, &obs_array->t, clock_drift, ref_tc);
-
   for (u8 i = 0; i < obs_array->n; i++) {
     /* mark the measurement unusable to be on the safe side */
     /* TODO: could relax this in order to send also under-determined measurement
@@ -861,6 +853,10 @@ static void me_calc_pvt_thread(void *arg) {
         log_info("Observations suppressed because time jumps %.2f seconds",
                  output_offset);
       }
+      /* do not attempt to propagate the observations to solution epoch, remove
+       * just the solved clock drift */
+      remove_clock_offset(obs_array, &obs_array->t, smoothed_drift, cpo_drift);
+
       /* Send the observations, but marked unusable */
       me_send_failed_obs(obs_array,
                          e_meas); /* Transferring ownership of obs_array here */
