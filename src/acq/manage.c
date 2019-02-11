@@ -39,7 +39,8 @@
 #include "nmea/nmea.h"
 #include "piksi_systime.h"
 #include "position/position.h"
-#include "reacq/reacq_api.h"
+#include "reacq/reacq_manage.h"
+#include "reacq/search_manager_utils.h"
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "settings/settings_client.h"
@@ -78,6 +79,14 @@ typedef struct {
 
 static acq_status_t acq_status[PLATFORM_ACQ_TRACK_COUNT];
 static bool track_mask[ARRAY_SIZE(acq_status)];
+
+typedef struct {
+  bool visible; /** Visible flag */
+  bool known;   /** Known flag */
+} sm_glo_sv_vis_t;
+
+/* The array keeps latest visibility flags of each GLO SV */
+static sm_glo_sv_vis_t glo_sv_vis[NUM_SATS_GLO] = {0};
 
 #define DOPP_UNCERT_ALMANAC 4000
 #define DOPP_UNCERT_EPHEM 500
@@ -209,8 +218,6 @@ static bool tracking_startup_fifo_write(
 static bool tracking_startup_fifo_read(tracking_startup_fifo_t *fifo,
                                        tracking_startup_params_t *element);
 
-void sm_get_glo_visibility_flags(u16 sat, bool *visible, bool *known);
-
 static sbp_msg_callbacks_node_t almanac_callback_node;
 static void almanac_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
   (void)sender_id;
@@ -252,6 +259,28 @@ static void mask_sat_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
   }
 }
 
+/**
+ * The function calculates and stores visibility flags for all GLO SV
+ *
+ * Since work time of Runge-Kutta algorithm depends on GLO SV position
+ * calculation period, due to iteration number
+ * (see modeling https://github.com/swift-nav/exafore_planning/issues/681)
+ * we continuously calculate the position.
+ */
+static void calc_all_glo_visibility_flags(void) {
+  if (!is_glo_enabled()) {
+    return;
+  }
+
+  for (u16 glo_sat = 1; glo_sat <= NUM_SATS_GLO; glo_sat++) {
+    gnss_signal_t glo_sid = construct_sid(CODE_GLO_L1OF, glo_sat);
+    bool visible, known;
+    sm_get_visibility_flags(glo_sid, &visible, &known);
+    glo_sv_vis[glo_sat - 1].visible = visible;
+    glo_sv_vis[glo_sat - 1].known = known;
+  }
+}
+
 static THD_WORKING_AREA(wa_manage_acq_thread, MANAGE_ACQ_THREAD_STACK);
 static void manage_acq_thread(void *arg) {
   /* TODO: This should be trigged by a semaphore from the acq ISR code, not
@@ -265,16 +294,19 @@ static void manage_acq_thread(void *arg) {
   init_reacq();
 
   while (true) {
-    last_good_fix_t lgf;
-    bool have_fix;
+    DO_EACH_MS(10000, calc_all_glo_visibility_flags());
 
-    have_fix = (ndb_lgf_read(&lgf) == NDB_ERR_NONE) &&
-               lgf.position_solution.valid &&
-               (POSITION_FIX == lgf.position_quality) &&
-               ((TIME_COARSE <= get_time_quality()));
-    if (have_fix && !had_fix) {
-      had_fix = true;
-      log_info("Switching to re-acq mode");
+    if (!had_fix) {
+      /* do all this computation only if we never got a fix */
+      last_good_fix_t lgf;
+      bool have_fix = (ndb_lgf_read(&lgf) == NDB_ERR_NONE) &&
+                      lgf.position_solution.valid &&
+                      (POSITION_FIX == lgf.position_quality) &&
+                      ((TIME_COARSE <= get_time_quality()));
+      if (have_fix) {
+        had_fix = true;
+        log_info("Switching to re-acq mode");
+      }
     }
 
     if (had_fix) {
@@ -580,7 +612,7 @@ void me_settings_setup(void) {
 /**
  * Expose the elevation mask setting
  */
-float get_solution_elevation_mask() { return solution_elevation_mask; }
+float get_solution_elevation_mask(void) { return solution_elevation_mask; }
 
 /** Updates acq hints using last observed Doppler value */
 void update_acq_hints(tracker_t *tracker) {
@@ -681,6 +713,18 @@ void restore_acq(const tracker_t *tracker) {
     gal_acq_timer[index].status = acq;
     piksi_systime_get(&gal_acq_timer[index].tick); /* channel drop time */
   }
+}
+
+/** Get GLO SV visibility flags. Function simply copies previously calculated
+ * visibility flags for GLO SV
+ *
+ * \param[in] sat GLO SV orbital slot
+ * \param[out] visible is set if SV is visible. Valid only if known is set
+ * \param[out] known set if SV is known visible or known invisible
+ */
+void sm_get_glo_visibility_flags(u16 sat, bool *visible, bool *known) {
+  *visible = glo_sv_vis[sat - 1].visible;
+  *known = glo_sv_vis[sat - 1].known;
 }
 
 /** Initiates the drop of all GLO signals from tracker on leap second event */

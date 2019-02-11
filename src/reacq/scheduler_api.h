@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2016 Swift Navigation Inc.
- * Contact: Perttu Salmela <psalmela@exafore.com>
+ * Contact: Swift Navigation <dev@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -14,6 +14,6 @@
 
 #include "search_manager_api.h"
 
-void sch_run(acq_jobs_state_t *jobs_data);
+reacq_sched_ret_t sch_run(acq_jobs_state_t *jobs_data);
 
 #endif /* SWIFTNAV_SCHEDULER_API_H */
