@@ -10,7 +10,6 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-
 #include <swiftnav/logging.h>
 
 #include "decode.h"
@@ -26,8 +25,8 @@
 #include "signal_db/signal_db.h"
 #include "timing/timing.h"
 #include "track/track_decode.h"
-#include "track/track_sid_db.h"
 #include "track/track_flags.h"
+#include "track/track_sid_db.h"
 #include "track/track_state.h"
 
 #include <assert.h>
@@ -175,11 +174,11 @@ static void decoder_qzss_l1ca_process(
       case EPH_NEW_ERR:
         break;
       case EPH_NEW_XCORR:
-      //   log_info_mesid(channel_info->mesid,
-      //                  "Channel cross-correlation detected "
-      //                  "(ephe/ephe or ephe/alm check)");
-      //   /* Ephemeris cross-correlates with almanac of another SV */
-      //   tracker_set_xcorr_flag(channel_info->mesid);
+        //   log_info_mesid(channel_info->mesid,
+        //                  "Channel cross-correlation detected "
+        //                  "(ephe/ephe or ephe/alm check)");
+        //   /* Ephemeris cross-correlates with almanac of another SV */
+        //   tracker_set_xcorr_flag(channel_info->mesid);
         break;
       default:
         break;

@@ -54,14 +54,12 @@ static const tracker_interface_t tracker_interface_qzss_l1ca = {
  *  framework.
  */
 void track_qzss_l1ca_register(void) {
-
-    lp1_filter_compute_params(&qzss_l1ca_config.xcorr_f_params,
-                              qzss_l1ca_config.xcorr_cof,
-                              SECS_MS / QZS_L1CA_BIT_LENGTH_MS);
+  lp1_filter_compute_params(&qzss_l1ca_config.xcorr_f_params,
+                            qzss_l1ca_config.xcorr_cof,
+                            SECS_MS / QZS_L1CA_BIT_LENGTH_MS);
 
   tracker_interface_register(&tracker_interface_qzss_l1ca);
 }
-
 
 static void tracker_qzss_l1ca_init(tracker_t *tracker) {
   tp_tracker_init(tracker, &qzss_l1ca_config);

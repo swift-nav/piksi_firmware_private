@@ -203,7 +203,6 @@ static acq_timer_t gal_acq_timer[NUM_SATS_GAL] = {0};
 /* The array keeps time when QZS SV was detected as unhealthy. */
 static acq_timer_t qzs_acq_timer[NUM_SATS_QZS] = {0};
 
-
 static u8 manage_track_new_acq(const me_gnss_signal_t mesid);
 static void manage_acq(void);
 
