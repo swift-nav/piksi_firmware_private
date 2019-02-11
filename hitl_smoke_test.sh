@@ -50,12 +50,10 @@ TRAVIS_BUILD_URL="https://travis-ci.com/swift-nav/piksi_firmware_private/builds/
 SCENARIOS=\
 ("live-roof-650-townsend"
 "live-roof-650-townsend-dropouts-zero-baseline"
-"live-roof-650-townsend-skylark"
 )
 SCENARIO_LIST=$(join_by , ${SCENARIOS[@]})
 RUNS=\
 ("1"
-"1"
 "1"
 )
 
