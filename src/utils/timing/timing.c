@@ -413,22 +413,17 @@ double get_clock_drift() {
   return 1.0 - clock_rate;
 }
 
-/* Compute the sub-second portion of difference between NAP counter and gps time
- */
-double subsecond_cpo_correction(u64 ref_tc) {
-  /* Careful with numerical cancellation, we need this correction accurate to
-   * the 10th decimal place. */
-  gps_time_t ref_time = napcount2gpstime(ref_tc);
-  double time_subsecond = ref_time.tow - floor(ref_time.tow);
-  u64 tc_subsecond = ref_tc % (u64)NAP_FRONTEND_SAMPLE_RATE_Hz;
-  double cpo_correction = time_subsecond - RX_DT_NOMINAL * tc_subsecond;
-  double cpo_drift = cpo_correction - round(cpo_correction);
+/* Compute the sub-2ms difference between NAP counter and gps time */
+double sub_2ms_cpo_correction(const u64 tc) {
+  const gps_time_t ref_time = napcount2gpstime(tc);
+  double time_mod_2ms = ref_time.tow - floor(ref_time.tow * 500) / 500;
+  u64 tc_mod_2ms = tc % (u64)FCN_NCO_RESET_COUNT;
+  double cpo_correction_s = time_mod_2ms - RX_DT_NOMINAL * tc_mod_2ms;
+  cpo_correction_s -= round(cpo_correction_s * 500) / 500;
 
-  log_debug("time_subsecond %e  tc_subsecond %e    cpo_drift %.9lf",
-            time_subsecond,
-            RX_DT_NOMINAL * tc_subsecond,
-            cpo_drift);
-  return cpo_drift;
+  /* TODO: remove debug print */
+  DO_EACH_MS(10000, log_info("cpo_drift %.6f ms", cpo_correction_s * 1e3));
+  return cpo_correction_s;
 }
 
 /** \} */

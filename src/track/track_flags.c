@@ -126,17 +126,6 @@ void tracker_set_leap_second_flag(void) {
 }
 
 /**
- * Resets CPO for all trackers
- */
-void tracker_reset_all_phase_offsets(void) {
-  log_warn("periodic reset of all CPOs");
-  for (u8 i = 0; i < nap_track_n_channels; i++) {
-    tracker_t *tracker = tracker_get(i);
-    tracker->reset_cpo = true;
-  }
-}
-
-/**
  * Sets cross-correlation flag to a channel with a given ME signal identifier
  *
  * \param[in] mesid ME signal identifier for channel to set cross-correlation

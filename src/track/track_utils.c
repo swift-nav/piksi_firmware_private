@@ -194,6 +194,23 @@ tracker_t *tracker_get_by_mesid(const me_gnss_signal_t mesid) {
   return NULL;
 }
 
+/**
+ * Adjust the CPOs of all active trackers
+ */
+void tracker_adjust_all_phase_offsets(double offset_s) {
+  for (u8 i = 0; i < nap_track_n_channels; i++) {
+    tracker_t *tracker = tracker_get(i);
+    tracker_lock(tracker);
+    if (0 != (tracker->flags & TRACKER_FLAG_ACTIVE) &&
+        tracker->cpo.value != 0) {
+      /* adjust by integer cycles */
+      tracker->cpo.value +=
+          (s32)round(offset_s * mesid_to_carr_freq(tracker->mesid));
+    }
+    tracker_unlock(tracker);
+  }
+}
+
 /** Drop unhealthy signal.
  *
  *  Health information is independently decoded from multiple frequencies.

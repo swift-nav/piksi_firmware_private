@@ -858,7 +858,7 @@ static bool compute_cpo(u64 ref_tc,
   }
 
   /* remove subsecond part of the clock error */
-  double cpo_correction = subsecond_cpo_correction(ref_tc);
+  double cpo_correction = sub_2ms_cpo_correction(ref_tc);
   double pseudorange_circ =
       sid_to_carr_freq(meas->sid) * (raw_pseudorange / GPS_C - cpo_correction);
 
