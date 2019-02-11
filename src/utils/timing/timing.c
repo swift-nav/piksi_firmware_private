@@ -34,7 +34,6 @@
 static volatile clock_est_state_t persistent_clock_state = {
     .tc = 0,
     .t_gps = GPS_TIME_UNKNOWN,
-    .t0_gps = GPS_TIME_UNKNOWN,
     .tick_length_s = 0,
     .clock_rate = 0,
     .P = {{0, 0}, {0, 0}},
@@ -132,10 +131,6 @@ void update_time(u64 tc, const gnss_solution *sol) {
     /* Initialize clock state estimate with the given solution */
     clock_state.tc = tc;
     clock_state.t_gps = sol->time;
-    gps_time_t t0 = sol->time;
-    t0.tow -= RX_DT_NOMINAL * tc;
-    normalize_gps_time(&t0);
-    clock_state.t0_gps = t0;
     clock_state.clock_rate = 1 - sol->clock_drift;
     clock_state.tick_length_s = RX_DT_NOMINAL;
     clock_state.P[0][0] = sol->clock_offset_var;
@@ -319,7 +314,6 @@ void timing_setup(void) {
   /* initialize the clock state to unknown */
   chMtxLock(&clock_mutex);
   persistent_clock_state.t_gps = GPS_TIME_UNKNOWN;
-  persistent_clock_state.t0_gps = GPS_TIME_UNKNOWN;
   chMtxUnlock(&clock_mutex);
 }
 
