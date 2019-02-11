@@ -86,7 +86,7 @@ void do_glo_l1of_to_l2of_handover(u32 sample_count,
 
   if (!handover_valid(code_phase_chips, GLO_CA_CHIPS_NUM)) {
     log_warn_mesid(L2_mesid,
-                   "Unexpected L1CA to L2CA handover code phase: %f",
+                   "Unexpected L1OF to L2OF handover code phase: %f",
                    code_phase_chips);
     return;
   }
