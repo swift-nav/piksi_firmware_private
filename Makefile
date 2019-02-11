@@ -13,12 +13,12 @@ ifneq (,$(findstring W32,$(shell uname)))
 endif
 
 ifeq ($(PIKSI_HW),)
-  PIKSI_HW=v3
+  PIKSI_HW=v4
 endif
 
-ifeq ($(PIKSI_HW),v3)
+ifeq ($(PIKSI_HW),v4)
   ifeq ($(PIKSI_REV),)
-    PIKSI_REV=prod
+    PIKSI_REV=ultra96
   endif
 endif
 
@@ -80,6 +80,15 @@ CLANG_TIDY_INCLUDES = -I$(SWIFTNAV_ROOT)/include/ \
                       -I$(SWIFTNAV_ROOT)/src/board/v3/prod/ \
                       -isystem$(SWIFTNAV_ROOT)/mesta/stubs/
                       
+ifeq ($(PIKSI_HW),v4)
+  CMAKEFLAGS += -DCMAKE_SYSTEM_PROCESSOR=cortex-r5
+  CMAKEFLAGS += -DCMAKE_C_COMPILER:INTERNAL=arm-none-eabi-gcc
+  CMAKEFLAGS += -DCMAKE_CXX_COMPILER:INTERNAL=arm-none-eabi-g++
+  CMAKEFLAGS += -DCMAKE_C_COMPILER_ID:INTERNAL=GNU
+  CMAKEFLAGS += -DCMAKE_CXX_COMPILER_ID:INTERNAL=GNU
+  FW_DEPS += $(OPENAMP_BUILDDIR)/lib/libopen-amp.a
+endif
+
 ARM_NONE_EABI_GCC_VERSION = $(shell arm-none-eabi-gcc --version)
 $(info $$ARM_NONE_EABI_GCC_VERSION is [${ARM_NONE_EABI_GCC_VERSION}])
 
@@ -165,10 +174,6 @@ clean:
 	$(RM) -rf $(OPENAMP_BUILDDIR)
 	@printf "CLEAN   tests\n"; \
 	$(MAKE) -C tests clean
-
-docs:
-	$(MAKE) -C docs/diagrams
-	doxygen docs/Doxyfile
 
 clang-format-all:
 	@echo "Auto formatting all C files under src/"
