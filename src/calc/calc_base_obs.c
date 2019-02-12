@@ -16,7 +16,6 @@
 
 #include <starling/integration/starling_input_bridge.h>
 #include <starling/observation.h>
-#include <starling/platform/starling_platform.h>
 #include <starling/starling.h>
 #include <swiftnav/constants.h>
 #include <swiftnav/coord_system.h>

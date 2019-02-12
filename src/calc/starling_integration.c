@@ -15,7 +15,8 @@
 #include <string.h>
 
 #include <starling/integration/starling_input_bridge.h>
-#include <starling/platform/starling_platform.h>
+#include <starling/platform/mutex.h>
+#include <starling/platform/thread.h>
 #include <starling/starling.h>
 #include <starling/starling_external_dependencies.h>
 #include <swiftnav/coord_system.h>
