@@ -96,9 +96,6 @@ int main(void) {
   gps_time_t t0 = {.tow = 0, .wn = 0};
   set_time(0, &t0, 2e9);
 
-  ndb_setup();
-  ephemeris_setup();
-
   static char sender_id_str[5];
   sprintf(sender_id_str, "%04X", sender_id);
 
@@ -129,6 +126,9 @@ int main(void) {
 
   nap_auth_setup();
   nap_auth_check();
+
+  ndb_setup();
+  ephemeris_setup();
 
   frontend_setup();
   me_settings_setup();
