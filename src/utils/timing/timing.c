@@ -413,13 +413,20 @@ double get_clock_drift() {
   return 1.0 - clock_rate;
 }
 
-/* Compute the sub-2ms difference between NAP counter and gps time */
+/** Compute the sub-2ms difference between NAP counter and gps time
+ * \param tc NAP counter value
+ * \return correction in seconds, within [-1, 1) ms
+ */
 double sub_2ms_cpo_correction(const u64 tc) {
   const gps_time_t ref_time = napcount2gpstime(tc);
-  double time_mod_2ms = ref_time.tow - floor(ref_time.tow * 500) / 500;
-  u64 tc_mod_2ms = tc % (u64)FCN_NCO_RESET_COUNT;
+
+  /* This is ordered carefully to avoid numerical cancellation. The result
+   * needs to be accurate at least to the 10th decimal place */
+  double time_mod_2ms = fmod(ref_time.tow, 2e-3);
+  u64 tc_mod_2ms = tc % FCN_NCO_RESET_COUNT;
   double cpo_correction_s = time_mod_2ms - RX_DT_NOMINAL * tc_mod_2ms;
-  cpo_correction_s -= round(cpo_correction_s * 500) / 500;
+
+  cpo_correction_s -= round(cpo_correction_s / 2e-3) * 2e-3;
 
   return cpo_correction_s;
 }
