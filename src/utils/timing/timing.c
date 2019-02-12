@@ -421,8 +421,6 @@ double sub_2ms_cpo_correction(const u64 tc) {
   double cpo_correction_s = time_mod_2ms - RX_DT_NOMINAL * tc_mod_2ms;
   cpo_correction_s -= round(cpo_correction_s * 500) / 500;
 
-  /* TODO: remove debug print */
-  DO_EACH_MS(10000, log_info("cpo_drift %.6f ms", cpo_correction_s * 1e3));
   return cpo_correction_s;
 }
 

@@ -198,6 +198,7 @@ tracker_t *tracker_get_by_mesid(const me_gnss_signal_t mesid) {
  * Adjust the CPOs of all active trackers
  */
 void tracker_adjust_all_phase_offsets(double offset_s) {
+  log_info("Adjusting all phase offsets by %+0.1f ms", offset_s * SECS_MS);
   for (u8 i = 0; i < nap_track_n_channels; i++) {
     tracker_t *tracker = tracker_get(i);
     tracker_lock(tracker);

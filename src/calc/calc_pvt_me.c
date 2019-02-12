@@ -598,22 +598,19 @@ static void copy_raimed_obs(const obs_array_t *obs_array,
 }
 
 static double update_cpo_drift(const u64 current_tc) {
-  static double cpo_drift_prev = 0.0;
-
   if (TIME_UNKNOWN == get_time_quality()) {
     return 0.0;
   }
+  static double cpo_drift_prev = 0.0;
 
   double cpo_drift = sub_2ms_cpo_correction(current_tc);
   double cpo_drift_step = cpo_drift - cpo_drift_prev;
 
-  /* A step with magnitude greater than 1 ms indicates the correction has rolled
-   * over roll-over. Add the 2 ms step to each tracker's CPO to compensate. */
+  /* A step greater than 1 ms indicates that the correction has rolled over.
+   * Adjust all active trackers' CPO with the 2 ms step to compensate. */
   if (cpo_drift_step > 1e-3) {
-    log_warn("cpo drift step %.9f s, adjusting phase offsets", cpo_drift_step);
     tracker_adjust_all_phase_offsets(-2e-3);
   } else if (cpo_drift_step < -1e-3) {
-    log_warn("cpo drift step %.9f s, adjusting phase offsets", cpo_drift_step);
     tracker_adjust_all_phase_offsets(2e-3);
   }
 
