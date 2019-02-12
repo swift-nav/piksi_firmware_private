@@ -79,17 +79,11 @@ static void decoder_qzss_l2c_process(const decoder_channel_info_t *channel_info,
                                      decoder_data_t *decoder_data) {
   (void)decoder_data;
 
-  // qzss_l2c_decoder_data_t *data = decoder_data;
-  // gnss_signal_t l2c_sid =
-  //   construct_sid(channel_info->mesid.code, channel_info->mesid.sat);
-  //
-  //
-  //   /* Process incoming nav bits */
+  /* Process incoming nav bits */
   nav_bit_t nav_bit;
   while (tracker_nav_bit_received(channel_info->tracking_channel, &nav_bit)) {
   }
-  //============================================================== Mods start
-  //here
+
   if ((0 == nav_bit.data) || (nav_bit.cnt != data->bit_cnt)) {
     data->cnav_msg.bit_polarity = BIT_POLARITY_UNKNOWN;
     cnav_msg_decoder_init(&data->cnav_msg_decoder);
