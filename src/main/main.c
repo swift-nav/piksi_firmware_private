@@ -21,6 +21,7 @@
 #include "calc_pvt_me.h"
 
 #include "board/frontend.h"
+#include "board/nap/nap_common.h"
 #include "board/nap/track_channel.h"
 #include "calc_base_obs.h"
 #include "decode.h"
@@ -56,6 +57,15 @@ extern void ext_setup(void);
    https://stackoverflow.com/questions/34308720/where-is-dso-handle-defined */
 void *__dso_handle = NULL;
 
+void nap_try(int num_tries) {
+  int num_nap = 0;
+  while(num_nap<num_tries) {
+    nap_rd_dna(nap_dna);
+    nap_auth_check();
+    num_nap++;
+  }
+}
+
 int main(void) {
   halInit();
 
@@ -75,12 +85,15 @@ int main(void) {
   log_info("Piksi Starting...");
   log_info("pfwp_build_id: " GIT_VERSION "");
   log_info("pfwp_build_date: " __DATE__ " " __TIME__ "");
-
+  nap_auth_setup();
   firmware_starling_preinit();
-
   init();
+  log_info("got through init");
+  nap_try(50);
+
   signal_db_init();
 
+  log_info("got through signal_db_init");
   static u16 sender_id;
   sender_id = sender_id_get();
 
@@ -90,14 +103,20 @@ int main(void) {
   }
   /* We only need 16 bits for sender ID for sbp */
 
+  nap_try(50);
   sbp_sender_id_set(sender_id);
+  log_info("got through sender_id_set");
+  nap_try(50);
 
   /* Initialize receiver time to the Jan 1980 with large enough uncertainty */
   gps_time_t t0 = {.tow = 0, .wn = 0};
   set_time(0, &t0, 2e9);
+  
 
   ndb_setup();
+  
   ephemeris_setup();
+  
 
   static char sender_id_str[5];
   sprintf(sender_id_str, "%04X", sender_id);
@@ -126,30 +145,22 @@ int main(void) {
   static char hw_version_string[16] = {0};
   hw_version_string_get(hw_version_string);
   log_info("hw_version: %s", hw_version_string);
-
-  nap_auth_setup();
-  nap_auth_check();
+  
 
   frontend_setup();
   me_settings_setup();
-
   ext_event_setup();
   position_setup();
   glo_map_setup();
   track_setup();
   decode_setup();
-
   manage_acq_setup();
   system_monitor_setup();
-
   nmea_setup();
-
   firmware_starling_setup();
   me_calc_pvt_setup();
   base_obs_setup();
-
   simulator_setup();
-
   ext_setup();
   pps_setup();
 

@@ -165,7 +165,7 @@ void nap_auth_setup(void) { nap_unlock(factory_params.nap_key); }
  * set up, so that SBP messages can be sent and received.
  */
 void nap_auth_check(void) {
-  if (nap_locked()) {
+    static int failures = 0;
     /* Create strings for log_error */
     char dna[NAP_DNA_LENGTH * 2 + 1];
     char key[NAP_KEY_LENGTH * 2 + 1];
@@ -179,10 +179,14 @@ void nap_auth_check(void) {
       pnt += sprintf(pnt, "%02x", factory_params.nap_key[i]);
     }
     key[NAP_KEY_LENGTH * 2] = '\0';
-
+    log_info("NAP Verification attempt: DNA=%s, Key=%s", dna, key);
+  if (nap_locked()) {
+    failures++;
     log_error("NAP Verification Failed: DNA=%s, Key=%s", dna, key);
-    chThdSleepSeconds(1);
-    hard_reset();
+    if(failures > 100) {
+       chThdSleepSeconds(30);
+       hard_reset();
+    }
   }
 }
 
