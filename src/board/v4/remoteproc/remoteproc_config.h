@@ -18,7 +18,7 @@
 
 /* Resource table entries */
 #define NUM_TABLE_ENTRIES 2
-#define ELF_START 0x1B000000
+#define ELF_START 0x7B000000
 #define ELF_SIZE 0x02000000
 #define NUM_VRINGS 2
 #define VRING_ALIGN 0x00100000

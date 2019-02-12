@@ -25,6 +25,9 @@ MEMORY
     flash : org = 0x7b000000, len = 0x02000000
     vring : org = 0x7d000000, len = 0x00800000
     ram0  : org = 0x7d800000, len = 0x02800000
+    ocm   : org = 0xFFFF0000, len = 0x00010000
+    tcm0  : org = 0x00000000, len = 0x00010000
+    tcm1  : org = 0x00020000, len = 0x00010000
     ram1  : org = 0x00000000, len = 0
     ram2  : org = 0x00000000, len = 0
     ram3  : org = 0x00000000, len = 0
@@ -45,11 +48,10 @@ REGION_ALIAS("DATA_RAM", ram0);
 REGION_ALIAS("BSS_RAM", ram0);
 
 SECTIONS {
-    /* Duplicated here so that vectors remain at the start of flash */
-    startup : ALIGN(16) SUBALIGN(16)
+    tcm_startup : ALIGN(16) SUBALIGN(16)
     {
         KEEP(*(.vectors))
-    } > flash
+    } > tcm0
 
     .mmu_tbl : ALIGN(16k)
     {

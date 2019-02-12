@@ -43,15 +43,15 @@ resource_table = {
                    .status = 0,
                    .num_of_vrings = NUM_VRINGS,
                    .reserved = {0, 0}},
-    .rpmsg_vring0 = {.da = 0xffffffff,
+    .rpmsg_vring0 = {.da = 0x7d000000,
                      .align = VRING_ALIGN,
                      .num = VRING_SIZE,
-                     .notifyid = VRING0_IRQ,
+                     .notifyid = 1,
                      .reserved = 0},
-    .rpmsg_vring1 = {.da = 0xffffffff,
+    .rpmsg_vring1 = {.da = 0x7d400000,
                      .align = VRING_ALIGN,
                      .num = VRING_SIZE,
-                     .notifyid = VRING1_IRQ,
+                     .notifyid = 2,
                      .reserved = 0}};
 
 const struct hil_proc hil_proc = {
