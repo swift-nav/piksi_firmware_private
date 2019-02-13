@@ -14,8 +14,6 @@
 #include "libsbp/sbp.h"
 #include "manage.h"
 #include "nap/axi_dma.h"
-#include "platform/starling_platform.h"
-#include "platform/starling_platform_semaphore.h"
 #include "settings/settings_client.h"
 #include "simulator/simulator.h"
 #include "starling/platform/mq.h"

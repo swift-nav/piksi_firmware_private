@@ -59,6 +59,7 @@ u16 tracker_load_cc_data(tracker_cc_data_t *cc_data);
 
 void tracker_set_carrier_phase_offset(const tracker_info_t *info,
                                       s32 carrier_phase_offset);
+void tracker_adjust_all_phase_offsets(double offset_s);
 
 tracker_t *tracker_get_by_mesid(const me_gnss_signal_t mesid);
 void tracker_drop_unhealthy(const me_gnss_signal_t mesid);

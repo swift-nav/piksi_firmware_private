@@ -150,9 +150,11 @@ CSRC := $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l2c.c \
 	$(SWIFTNAV_ROOT)/src/board/v3/platform_signal.c \
 	$(SWIFTNAV_ROOT)/src/board/v3/ndb_fs_access.c \
 	$(SWIFTNAV_ROOT)/src/lib/fixed_fft_r2.c \
-	$(SWIFTNAV_ROOT)/starling/src/starling/platform/starling_platform.c \
-	$(SWIFTNAV_ROOT)/starling/src/starling/platform/starling_platform_mq.c \
-	$(SWIFTNAV_ROOT)/starling/src/starling/platform/starling_platform_semaphore.c \
+	$(SWIFTNAV_ROOT)/starling/src/starling/platform/watchdog.c \
+	$(SWIFTNAV_ROOT)/starling/src/starling/platform/mutex.c \
+	$(SWIFTNAV_ROOT)/starling/src/starling/platform/thread.c \
+	$(SWIFTNAV_ROOT)/starling/src/starling/platform/mq.c \
+	$(SWIFTNAV_ROOT)/starling/src/starling/platform/semaphore.c \
 	$(SWIFTNAV_ROOT)/starling/src/util/sbp/misc.c \
 	$(SWIFTNAV_ROOT)/starling/src/util/sbp/packers.c \
 	$(SWIFTNAV_ROOT)/starling/src/util/sbp/unpackers.c \
