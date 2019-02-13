@@ -17,7 +17,7 @@
 #include <stddef.h>
 
 /* Resource table entries */
-#define NUM_TABLE_ENTRIES 2
+#define NUM_TABLE_ENTRIES 3
 #define ELF_START 0x1B000000
 #define ELF_SIZE 0x02000000
 #define NUM_VRINGS 2
@@ -46,6 +46,8 @@ struct remote_resource_table {
   struct fw_rsc_vdev rpmsg_vdev;
   struct fw_rsc_vdev_vring rpmsg_vring0;
   struct fw_rsc_vdev_vring rpmsg_vring1;
+  /* trace buffer entry */
+  struct fw_rsc_trace trace_buffer;
 };
 
 #endif /* SWIFTNAV_REMOTEPROC_CONFIG_H */
