@@ -34,7 +34,6 @@
  * Convert to and from SBP message types and other useful functions.
  * \{ */
 
-
 void sbp_send_ndb_event(u8 event,
                         u8 obj_type,
                         u8 result,
