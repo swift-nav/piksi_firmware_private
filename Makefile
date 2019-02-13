@@ -97,7 +97,8 @@ $(LIBSETTINGS_BUILDDIR)/src/libsettings.a: $(LIBSBP_BUILDDIR)/src/libsbp.a
 	      $(CMAKEFLAGS) ../
 	$(MAKE) -C $(LIBSETTINGS_BUILDDIR) $(MAKEFLAGS) settings
 
-$(STARLING_BUILDDIR)/src/libstarling.a: .FORCE
+$(STARLING_BUILDDIR)/src/libstarling.a: .FORCE \
+                                        $(STARLING_BUILDDIR)/Makefile
 	@printf "BUILD   starling for target $(PIKSI_TARGET)\n"; \
 	$(MAKE) starling -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
 
