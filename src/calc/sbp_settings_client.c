@@ -23,6 +23,7 @@
 #include <starling/platform/semaphore.h>
 #include <swiftnav/logging.h>
 
+#include <assert.h>
 #include <stdlib.h>
 
 #define CLASS_PREFIX "Starling Settings Client: "
@@ -30,7 +31,7 @@
 /********************************************************************************/
 struct SbpSettingsClient {
   /* Underlying SBP link. */
-  const SbpDuplexLink *sbp_link;
+  SbpDuplexLink sbp_link;
 
   /* Semaphore for used for waiting on replies. */
   platform_sem_t *sem;
@@ -39,11 +40,10 @@ struct SbpSettingsClient {
   settings_t *settings_context;
 };
 
-
 /********************************************************************************/
 static int impl_send(void *ctx, uint16_t msg_type, uint8_t len, uint8_t *payload) {
   SbpSettingsClient *client = (SbpSettingsClient*)ctx;
-  return client->sbp_link->send(msg_type, len, payload);
+  return client->sbp_link.send(msg_type, len, payload);
 }
 
 /********************************************************************************/
@@ -53,7 +53,7 @@ static int impl_send_from(void *ctx,
                           uint8_t *payload,
                           uint16_t sender) {
   SbpSettingsClient *client = (SbpSettingsClient*)ctx;
-  return client->sbp_link->send_from(msg_type, len, payload, sender);
+  return client->sbp_link.send_from(msg_type, len, payload, sender);
 }
 
 /********************************************************************************/
@@ -76,13 +76,13 @@ static int impl_register_cb(void *ctx,
                             void *cb_context,
                             sbp_msg_callbacks_node_t **node) {
   SbpSettingsClient *client = (SbpSettingsClient*)ctx;
-  return client->sbp_link->register_cb(msg_type, cb, cb_context, node);
+  return client->sbp_link.register_cb(msg_type, cb, cb_context, node);
 }
 
 /********************************************************************************/
 static int impl_unregister_cb(void *ctx, sbp_msg_callbacks_node_t **node) {
   SbpSettingsClient *client = (SbpSettingsClient*)ctx;
-  return client->sbp_link->unregister_cb(node);
+  return client->sbp_link.unregister_cb(node);
 }
 
 /********************************************************************************/
@@ -111,11 +111,13 @@ SbpSettingsClient *sbp_settings_client_create(const SbpDuplexLink *sbp_link) {
     return NULL;
   }
 
-  settings_api_t impl = settings_api_for_client(client);
+  assert(sbp_link);
+  client->sbp_link = *sbp_link;
 
-  client->sbp_link = sbp_link;
-  if (!client->sbp_link) {
-    log_error(CLASS_PREFIX "bad SBP link");
+  settings_api_t impl = settings_api_for_client(client);
+  client->settings_context = settings_create(client->sbp_link.loc_sender_id, &impl);  
+  if (!client->settings_context) {
+    log_error(CLASS_PREFIX "unable to create settings context");
     goto FREE_AND_RETURN_NULL;
   }
 
@@ -124,14 +126,9 @@ SbpSettingsClient *sbp_settings_client_create(const SbpDuplexLink *sbp_link) {
     log_error(CLASS_PREFIX "unable to create semaphore");
     goto FREE_AND_RETURN_NULL;
   }
-
-  client->settings_context = settings_create(client->sbp_link->loc_sender_id, &impl);  
-  if (!client->settings_context) {
-    log_error(CLASS_PREFIX "unable to create settings context");
-    goto FREE_AND_RETURN_NULL;
-  }
-
+  
   return client;
+
 /* Cleanup and return on error. */
 FREE_AND_RETURN_NULL:
   if (client->sem) {

@@ -21,10 +21,10 @@
 // TODO(kevin, jangelo) replace with the SBP refactor interface.
 typedef struct SbpDuplexLink {
   /* Local sender id. */
-  const uint16_t loc_sender_id;
+  uint16_t loc_sender_id;
 
   /* Forward sender id. */
-  const uint16_t fwd_sender_id;
+  uint16_t fwd_sender_id;
 
   /* Send message using local sender ID. */
   int (*send)          (uint16_t msg_type, 
