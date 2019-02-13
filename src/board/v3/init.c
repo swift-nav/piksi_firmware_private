@@ -183,8 +183,8 @@ void nap_auth_check(void) {
   if (nap_locked()) {
     failures++;
     log_error("NAP Verification Failed: DNA=%s, Key=%s", dna, key);
-    if(failures > 100) {
-       chThdSleepSeconds(30);
+    if(failures > 4) {
+       chThdSleepSeconds(10);
        hard_reset();
     }
   }
