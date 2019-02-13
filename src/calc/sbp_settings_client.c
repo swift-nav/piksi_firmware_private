@@ -10,13 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-/* NOTE: Implementation based off of PFWP/src/util/settings/settings_client.c 
- *
- * TODO(kevin, jangelo) 
- * We should audit the dynamic memory allocation in this module. Perhaps there
- * is a better way to enforce that either it is all performed once at startup,
- * or use an object pool to ensure limitations on the number of objects.
- */ 
+/* NOTE: Implementation based off of PFWP/src/util/settings/settings_client.c */ 
 
 #include "sbp_settings_client.h"
 
@@ -92,7 +86,7 @@ static int impl_register_cb(void *ctx,
    *
    * TODO(kevin, jangelo) 
    * Audit this allocation and do one of:
-   *   A. make sure it only occurs at runtime
+   *   A. make sure it only occurs at startup 
    *   B. replace with an object pool
    */
   *node = malloc(sizeof(sbp_msg_callbacks_node_t));
