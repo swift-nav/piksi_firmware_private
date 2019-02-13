@@ -57,7 +57,7 @@ resource_table = {
                      .notifyid = VRING1_IRQ,
                      .reserved = 0},
     .trace_buffer = {.type = RSC_TRACE,
-                     .da = rproc_trace_buffer,
+                     .da = (uint32_t)rproc_trace_buffer,
                      .len = sizeof(rproc_trace_buffer),
                      .reserved = 0,
                      .name = "pfwp_trace_buf"}};
