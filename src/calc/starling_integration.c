@@ -783,6 +783,30 @@ void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
 /*******************************************************************************
  * Starling Initialization
  ******************************************************************************/
+static int impl_sbp_send(uint16_t msg_type, uint8_t len, uint8_t *payload) {
+  return (int)sbp_send_msg(msg_type, len, payload);
+}
+
+static int impl_sbp_send_from(uint16_t msg_type,
+                              uint8_t len,
+                              uint8_t *payload,
+                              uint16_t sender) {
+  return (int)sbp_send_msg_(msg_type, len, payload, sender);
+}
+
+static int impl_sbp_register_cb(uint16_t msg_type,
+                                sbp_msg_callback_t cb,
+                                sbp_msg_callbacks_node_t *node,
+                                void *context) {
+  sbp_register_cbk_with_closure(msg_type, cb, node, context);
+  return 0;
+}
+
+static int impl_sbp_unregister_cb(sbp_msg_callbacks_node_t *node) {
+  sbp_remove_cbk(node);
+  return 0;
+}
+
 static void init_settings_client(void) {
   if (settings_client) {
     log_error("Unexpected attempt to reinitialize settings client.");
@@ -792,10 +816,10 @@ static void init_settings_client(void) {
   const SbpDuplexLink sbp_link = {
     .loc_sender_id = sender_id_get(),
     .fwd_sender_id = MSG_FORWARD_SENDER_ID,
-    .send          = NULL,
-    .send_from     = NULL,
-    .register_cb   = NULL,
-    .unregister_cb = NULL,
+    .send          = impl_sbp_send,
+    .send_from     = impl_sbp_send_from,
+    .register_cb   = impl_sbp_register_cb,
+    .unregister_cb = impl_sbp_unregister_cb,
   };
 
   settings_client = sbp_settings_client_create(&sbp_link);

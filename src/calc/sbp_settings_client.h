@@ -40,11 +40,11 @@ typedef struct SbpDuplexLink {
   /* Register callback on incoming messages. */
   int (*register_cb)   (uint16_t msg_type, 
                         sbp_msg_callback_t cb, 
-                        void *cb_context, 
-                        sbp_msg_callbacks_node_t **node);
+                        sbp_msg_callbacks_node_t *node,
+                        void *cb_context);
 
   /* Unregister callback on incoming messages. */
-  int (*unregister_cb) (sbp_msg_callbacks_node_t **node);
+  int (*unregister_cb) (sbp_msg_callbacks_node_t *node);
 } SbpDuplexLink;
 
 typedef struct SbpSettingsClient SbpSettingsClient;

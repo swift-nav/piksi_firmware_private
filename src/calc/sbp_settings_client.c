@@ -43,6 +43,8 @@ struct SbpSettingsClient {
 /********************************************************************************/
 static int impl_send(void *ctx, uint16_t msg_type, uint8_t len, uint8_t *payload) {
   SbpSettingsClient *client = (SbpSettingsClient*)ctx;
+  assert(client);
+  assert(client->sbp_link.send);
   return client->sbp_link.send(msg_type, len, payload);
 }
 
@@ -53,12 +55,16 @@ static int impl_send_from(void *ctx,
                           uint8_t *payload,
                           uint16_t sender) {
   SbpSettingsClient *client = (SbpSettingsClient*)ctx;
+  assert(client);
+  assert(client->sbp_link.send_from);
   return client->sbp_link.send_from(msg_type, len, payload, sender);
 }
 
 /********************************************************************************/
 static int impl_wait(void *ctx, int timeout_ms) {
   SbpSettingsClient *client = (SbpSettingsClient*)ctx;
+  assert(client);
+  assert(client->sem);
   timeout_ms = timeout_ms > 0 ? timeout_ms : 0;
   return platform_sem_wait_timeout(client->sem, (unsigned long)timeout_ms);
 }
@@ -66,6 +72,8 @@ static int impl_wait(void *ctx, int timeout_ms) {
 /********************************************************************************/
 static void impl_signal(void *ctx) {
   SbpSettingsClient *client = (SbpSettingsClient*)ctx;
+  assert(client);
+  assert(client->sem);
   platform_sem_signal(client->sem);
 }
 
@@ -76,13 +84,50 @@ static int impl_register_cb(void *ctx,
                             void *cb_context,
                             sbp_msg_callbacks_node_t **node) {
   SbpSettingsClient *client = (SbpSettingsClient*)ctx;
-  return client->sbp_link.register_cb(msg_type, cb, cb_context, node);
+  assert(client);
+  assert(client->sbp_link.register_cb);
+  assert(node);
+
+  /* Apparently, we are supposed to allocate the node ourselves here?
+   *
+   * TODO(kevin, jangelo) 
+   * Audit this allocation and do one of:
+   *   A. make sure it only occurs at runtime
+   *   B. replace with an object pool
+   */
+  *node = malloc(sizeof(sbp_msg_callbacks_node_t));
+  if (!*node) {
+    log_error(CLASS_PREFIX "unable to alloc callback node");
+    return -1;
+  }
+
+  int ret = client->sbp_link.register_cb(msg_type, cb, *node, cb_context);
+  if (ret != 0) {
+    log_error(CLASS_PREFIX "unable to register callback node");
+  }
+  return ret;
 }
 
 /********************************************************************************/
 static int impl_unregister_cb(void *ctx, sbp_msg_callbacks_node_t **node) {
   SbpSettingsClient *client = (SbpSettingsClient*)ctx;
-  return client->sbp_link.unregister_cb(node);
+  assert(client);
+  assert(client->sbp_link.unregister_cb);
+  assert(node);
+
+  int ret = client->sbp_link.unregister_cb(*node);
+  if (ret == 0) {
+    free(*node);
+  } else {
+    log_error(CLASS_PREFIX "unable to unregister callback node");
+  }
+  return ret;
+}
+
+
+/********************************************************************************/
+static void impl_log(int priority, const char *fmt, ...) {
+  log_warn("Trying to log from libsettings: %d, %s", priority, fmt);
 }
 
 /********************************************************************************/
@@ -97,9 +142,7 @@ static settings_api_t settings_api_for_client(SbpSettingsClient *client) {
     .signal = impl_signal,
     .register_cb = impl_register_cb,
     .unregister_cb = impl_unregister_cb,
-
-    //TODO(kevin, jangelo) Restore the ability for libsettings to log.
-    .log = NULL,
+    .log = impl_log,
   };
   return impl;
 }
