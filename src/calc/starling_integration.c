@@ -26,7 +26,6 @@
 #include "calc/calc_pvt_common.h"
 #include "calc/calc_pvt_me.h"
 #include "calc/sbp_settings_client.h"
-#include "utils/settings/settings_client.h"
 #include "calc/starling_integration.h"
 #include "calc/starling_sbp_output.h"
 #include "cfg/init.h"
@@ -922,9 +921,23 @@ static void initialize_starling_settings(void) {
                                NULL);
 
   /* These two are outliers and require special treatment. */
-  SETTING("solution", "send_heading", send_heading, SETTINGS_TYPE_BOOL);
+  sbp_settings_client_register(settings_client,
+                               "solution", 
+                               "send_heading", 
+                               &send_heading, 
+                               sizeof(send_heading),
+                               SETTINGS_TYPE_BOOL,
+                               NULL,
+                               NULL);
 
-  SETTING("solution", "disable_raim", disable_raim, SETTINGS_TYPE_BOOL);
+  sbp_settings_client_register(settings_client, 
+                               "solution", 
+                               "disable_raim", 
+                               &disable_raim, 
+                               sizeof(disable_raim),
+                               SETTINGS_TYPE_BOOL,
+                               NULL,
+                               NULL);
 }
 
 static void profile_low_latency_thread(enum ProfileDirective directive) {
