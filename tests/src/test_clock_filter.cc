@@ -6,16 +6,14 @@
 #define TICK_FREQ 10000000
 #define RX_DT_NOMINAL (1.0 / TICK_FREQ)
 
-#define T0 \
-  { 0.0, 1939 }
 #define T1 \
   { 1000.0, 1939 }
 #define TC1 1000
-#define CLOCK_STATE_1                       \
-  {                                         \
-    TC1, T1, T0, RX_DT_NOMINAL, 1 + 1e-6, { \
-      {1e-18, 0}, { 0, 1e-24 }              \
-    }                                       \
+#define CLOCK_STATE_1                   \
+  {                                     \
+    TC1, T1, RX_DT_NOMINAL, 1 + 1e-6, { \
+      {1e-18, 0}, { 0, 1e-24 }          \
+    }                                   \
   }
 
 TEST(clock_filter_tests, propagation) {

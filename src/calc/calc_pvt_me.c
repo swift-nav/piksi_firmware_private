@@ -155,29 +155,9 @@ static void me_send_emptyobs(obs_array_t *obs_array) {
 static void remove_clock_offset(obs_array_t *obs_array,
                                 const gps_time_t *output_time,
                                 double clock_drift,
-                                u64 current_tc) {
-  bool reset_all_cpo = false;
-  static double cpo_drift_prev = 0.0;
-
+                                double cpo_drift) {
   /* amount of clock offset to remove */
   double clock_offset = gpsdifftime(output_time, &obs_array->t);
-  double cpo_drift = subsecond_cpo_correction(current_tc);
-
-  /* release v2.2 hack for handling second rollover */
-  /* cpo_drift is always expected to be bounded between -0.5 and +0.5,
-   * so the check below should never trigger accidentally when
-   * cpo_drift_prev == 0.0 */
-  double cpo_drift_step = (cpo_drift - cpo_drift_prev);
-  /* A step with magnitude greater than 0.5 indicates the roll-over
-   * of this correction so compensate it for this epoch
-   * and signal all trackers to reset their CPO */
-  if (cpo_drift_step > 0.5) {
-    cpo_drift -= 1.0;
-    reset_all_cpo = true;
-  } else if (cpo_drift_step < -0.5) {
-    cpo_drift += 1.0;
-    reset_all_cpo = true;
-  }
 
   for (u8 i = 0; i < obs_array->n; i++) {
     starling_obs_t *obs = &obs_array->observations[i];
@@ -200,16 +180,6 @@ static void remove_clock_offset(obs_array_t *obs_array,
     normalize_gps_time(&(obs->tot));
   }
 
-  /* Note that the function below is pretty dumb and does
-   * not check if trackers are active or not, just nukes all carrier phase
-   * offsets */
-  if (reset_all_cpo) {
-    tracker_reset_all_phase_offsets();
-    cpo_drift_prev = 0.0;
-  } else {
-    cpo_drift_prev = cpo_drift;
-  }
-
   /* update TOR of the observation set */
   obs_array->t = *output_time;
 }
@@ -230,14 +200,6 @@ static void me_send_failed_obs(obs_array_t *obs_array,
     obs_array = NULL;
     return;
   }
-
-  u64 ref_tc = gpstime2napcount(&obs_array->t);
-
-  /* get the estimated clock drift value */
-  double clock_drift = get_clock_drift();
-
-  /* remove just the smoothed drift from observations */
-  remove_clock_offset(obs_array, &obs_array->t, clock_drift, ref_tc);
 
   for (u8 i = 0; i < obs_array->n; i++) {
     /* mark the measurement unusable to be on the safe side */
@@ -635,6 +597,27 @@ static void copy_raimed_obs(const obs_array_t *obs_array,
   }
 }
 
+static double update_cpo_drift(const u64 current_tc) {
+  if (TIME_UNKNOWN == get_time_quality()) {
+    return 0.0;
+  }
+  static double cpo_drift_prev = 0.0;
+
+  double cpo_drift = sub_2ms_cpo_correction(current_tc);
+  double cpo_drift_step = cpo_drift - cpo_drift_prev;
+
+  /* A step greater than 1 ms indicates that the correction has rolled over.
+   * Adjust all active trackers' CPO with the 2 ms step to compensate. */
+  if (cpo_drift_step > 1e-3) {
+    tracker_adjust_all_phase_offsets(-2e-3);
+  } else if (cpo_drift_step < -1e-3) {
+    tracker_adjust_all_phase_offsets(2e-3);
+  }
+
+  cpo_drift_prev = cpo_drift;
+  return cpo_drift;
+}
+
 static void me_calc_pvt_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("me_calc_pvt");
@@ -723,6 +706,9 @@ static void me_calc_pvt_thread(void *arg) {
        * this adjustment to be somewhere between +-0.5 milliseconds */
       piksi_systime_add_us(&next_epoch, round(dt * SECS_US));
     }
+
+    /* update the CPO drift correction, and adjust channel CPOs on roll-over */
+    double cpo_drift = update_cpo_drift(current_tc);
 
     /* Collect measurements from trackers, load ephemerides and compute flags.
      * Reference the measurements to the current time. */
@@ -829,7 +815,7 @@ static void me_calc_pvt_thread(void *arg) {
                 smoothed_drift);
 
       /* Propagate the measurements to the output epoch */
-      remove_clock_offset(obs_array, &output_time, smoothed_drift, current_tc);
+      remove_clock_offset(obs_array, &output_time, smoothed_drift, cpo_drift);
 
       if (disable_raim) {
         /* Send all observations. */
@@ -864,6 +850,10 @@ static void me_calc_pvt_thread(void *arg) {
         log_info("Observations suppressed because time jumps %.2f seconds",
                  output_offset);
       }
+      /* do not attempt to propagate the observations to solution epoch, remove
+       * just the solved clock drift */
+      remove_clock_offset(obs_array, &obs_array->t, smoothed_drift, cpo_drift);
+
       /* Send the observations, but marked unusable */
       me_send_failed_obs(obs_array,
                          e_meas); /* Transferring ownership of obs_array here */
