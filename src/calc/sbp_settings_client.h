@@ -51,4 +51,17 @@ typedef struct SbpSettingsClient SbpSettingsClient;
 
 SbpSettingsClient *sbp_settings_client_create(const SbpDuplexLink *sbp_link);
 
+int sbp_settings_client_register_enum(SbpSettingsClient *client,
+                                      const char *const enum_names[], 
+                                      settings_type_t *type);
+
+int sbp_settings_client_register(SbpSettingsClient *client,
+                                 const char *section,
+                                 const char *name,
+                                 void *var,
+                                 size_t var_len,
+                                 settings_type_t type,
+                                 settings_notify_fn notify,
+                                 void *notify_context);
+
 #endif

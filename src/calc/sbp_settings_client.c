@@ -97,6 +97,8 @@ static settings_api_t settings_api_for_client(SbpSettingsClient *client) {
     .signal = impl_signal,
     .register_cb = impl_register_cb,
     .unregister_cb = impl_unregister_cb,
+
+    //TODO(kevin, jangelo) Restore the ability for libsettings to log.
     .log = NULL,
   };
   return impl;
@@ -142,3 +144,22 @@ FREE_AND_RETURN_NULL:
   return NULL;
 };
 
+/********************************************************************************/
+int sbp_settings_client_register_enum(SbpSettingsClient *client,
+                                      const char *const enum_names[], 
+                                      settings_type_t *type) {
+  return settings_register_enum(client->settings_context, enum_names, type);
+}
+
+/********************************************************************************/
+int sbp_settings_client_register(SbpSettingsClient *client,
+                                 const char *section,
+                                 const char *name,
+                                 void *var,
+                                 size_t var_len,
+                                 settings_type_t type,
+                                 settings_notify_fn notify,
+                                 void *notify_context) {
+  return settings_register_setting(client->settings_context, section, name, 
+                                   var, var_len, type, notify, notify_context);
+}
