@@ -89,7 +89,7 @@ int main(void) {
   firmware_starling_preinit();
   init();
   log_info("got through init");
-  nap_try(50);
+  //nap_try(50);
 
   signal_db_init();
 
@@ -103,10 +103,10 @@ int main(void) {
   }
   /* We only need 16 bits for sender ID for sbp */
 
-  nap_try(50);
+  //nap_try(50);
   sbp_sender_id_set(sender_id);
   log_info("got through sender_id_set");
-  nap_try(50);
+  //nap_try(50);
 
   /* Initialize receiver time to the Jan 1980 with large enough uncertainty */
   gps_time_t t0 = {.tow = 0, .wn = 0};
@@ -146,6 +146,7 @@ int main(void) {
   hw_version_string_get(hw_version_string);
   log_info("hw_version: %s", hw_version_string);
   
+  nap_try(10);
 
   frontend_setup();
   me_settings_setup();
