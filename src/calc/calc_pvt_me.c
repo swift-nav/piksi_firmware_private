@@ -643,6 +643,7 @@ static void me_calc_pvt_thread(void *arg) {
   ndb_op_code_t res = ndb_lgf_read(&lgf);
   if (NDB_ERR_NONE != res && NDB_ERR_GPS_TIME_MISSING != res) {
     lgf.position_solution.valid = false;
+    lgf.position_solution.time = GPS_TIME_UNKNOWN;
     lgf.position_quality = POSITION_UNKNOWN;
   }
 
