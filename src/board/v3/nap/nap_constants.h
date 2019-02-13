@@ -21,7 +21,7 @@
 /**
  * @brief   The sample rate decimation used by tracking channels
  */
-#define NAP_TRACK_DECIMATION_RATE (5)
+#define NAP_TRACK_DECIMATION_RATE (3)
 
 /**
  * @brief   The tracking channel sample rate after decimation
@@ -29,7 +29,6 @@
  */
 #define NAP_TRACK_SAMPLE_RATE_Hz \
   (NAP_FRONTEND_RAW_SAMPLE_RATE_Hz / NAP_TRACK_DECIMATION_RATE)
-
 /**
  * @brief   The sample rate used by the sample count for timing
  * @note    The sample count currently uses tracking samples
@@ -45,7 +44,7 @@
 #define NAP_PPS_TIMING_COUNT_OFFSET (-20)
 #define NAP_EXT_TIMING_COUNT_OFFSET (8)
 
-#define NAP_VEP_SPACING_SAMPLES 31
+#define NAP_VEP_SPACING_SAMPLES 33
 #define NAP_EPL_SPACING_SAMPLES 1
 
 #define NAP_KEY_LENGTH (16)
