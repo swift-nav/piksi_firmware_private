@@ -20,6 +20,8 @@
 
 extern struct hil_platform_ops proc_ops;
 
+char rproc_trace_buffer[4096] = "Hello from remoteproc";
+
 struct remote_resource_table __attribute__((section(".resource_table")))
 resource_table = {
     .version = 1,
@@ -55,11 +57,10 @@ resource_table = {
                      .notifyid = VRING1_IRQ,
                      .reserved = 0},
     .trace_buffer = {.type = RSC_TRACE,
-                     .da = 0xffffffff,
-                     .len = 512,
+                     .da = rproc_trace_buffer,
+                     .len = sizeof(rproc_trace_buffer),
                      .reserved = 0,
-                     .name = "pfwp_trace_buf"}
-};
+                     .name = "pfwp_trace_buf"}};
 
 const struct hil_proc hil_proc = {
     .cpu_id = MASTER_CPU_ID,

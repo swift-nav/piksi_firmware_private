@@ -34,6 +34,8 @@
 #define NUM_CHANNELS 1
 #define CHANNEL0_NAME "piksi"
 
+extern char rproc_trace_buffer[];
+
 /* Resource table for the given remote */
 struct remote_resource_table {
   unsigned int version;
