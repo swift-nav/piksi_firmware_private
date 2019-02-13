@@ -29,6 +29,7 @@
  */
 #define NAP_TRACK_SAMPLE_RATE_Hz \
   (NAP_FRONTEND_RAW_SAMPLE_RATE_Hz / NAP_TRACK_DECIMATION_RATE)
+  
 /**
  * @brief   The sample rate used by the sample count for timing
  * @note    The sample count currently uses tracking samples
