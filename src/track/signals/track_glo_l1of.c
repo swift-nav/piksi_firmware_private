@@ -71,7 +71,6 @@ static void tracker_glo_l1of_update(tracker_t *tracker) {
     return;
   }
 
-  bool l2of_healthy = true;
   if (glo_slot_id_is_valid(tracker->glo_orbit_slot)) {
     gnss_signal_t sid = mesid2sid(tracker->mesid, tracker->glo_orbit_slot);
     if (!glo_active(sid)) {
@@ -79,7 +78,6 @@ static void tracker_glo_l1of_update(tracker_t *tracker) {
       return;
     }
     if (!glo_l2of_active(sid)) {
-      l2of_healthy = false;
       return;
     }
   }
@@ -100,7 +98,7 @@ static void tracker_glo_l1of_update(tracker_t *tracker) {
   cn0_threshold_dbhz += TRACK_CN0_HYSTERESIS_THRES_DBHZ;
   bool cn0_high = (tracker->cn0 > cn0_threshold_dbhz);
 
-  if (inlock && settled && cn0_high && l2of_healthy) {
+  if (inlock && settled && cn0_high) {
     /* Start GLO L2CA tracker if not running */
     do_glo_l1of_to_l2of_handover(tracker->sample_count,
                                  tracker->mesid.sat,
