@@ -17,9 +17,11 @@
 #include <stddef.h>
 
 /* Resource table entries */
-#define NUM_TABLE_ENTRIES 3
+#define NUM_TABLE_ENTRIES 4
 #define ELF_START 0x1B000000
-#define ELF_SIZE 0x02000000
+#define ELF_SIZE 0x01FFF000
+#define TRACE_START 0x1CFFF000
+#define TRACE_SIZE 0x00001000
 #define NUM_VRINGS 2
 #define VRING_ALIGN 0x00100000
 /* Number of buffers per vring. Must be a power of 2. Max = 256. */
@@ -44,6 +46,8 @@ struct remote_resource_table {
   unsigned int offset[NUM_TABLE_ENTRIES];
   /* text carveout entry */
   struct fw_rsc_carveout elf_cout;
+  /* trace buffer carveout entry */
+  struct fw_rsc_carveout trace_cout;
   /* rpmsg vdev entry */
   struct fw_rsc_vdev rpmsg_vdev;
   struct fw_rsc_vdev_vring rpmsg_vring0;

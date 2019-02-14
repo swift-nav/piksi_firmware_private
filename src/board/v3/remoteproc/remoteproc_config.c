@@ -20,14 +20,13 @@
 
 extern struct hil_platform_ops proc_ops;
 
-char rproc_trace_buffer[4096] = "Hello from remoteproc";
-
 struct remote_resource_table __attribute__((section(".resource_table")))
 resource_table = {
     .version = 1,
     .num = NUM_TABLE_ENTRIES,
     .reserved = {0, 0},
     .offset = {offsetof(struct remote_resource_table, elf_cout),
+               offsetof(struct remote_resource_table, trace_cout),
                offsetof(struct remote_resource_table, rpmsg_vdev),
                offsetof(struct remote_resource_table, trace_buffer)},
     .elf_cout = {.type = RSC_CARVEOUT,
@@ -37,6 +36,13 @@ resource_table = {
                  .flags = 0,
                  .reserved = 0,
                  .name = "ELF_COUT"},
+    .trace_cout = {.type = RSC_CARVEOUT,
+                   .da = TRACE_START,
+                   .pa = TRACE_START,
+                   .len = TRACE_SIZE,
+                   .flags = 0,
+                   .reserved = 0,
+                   .name = "TRACE_COUT"},
     .rpmsg_vdev = {.type = RSC_VDEV,
                    .id = VIRTIO_ID_RPMSG,
                    .notifyid = 0,
@@ -57,10 +63,10 @@ resource_table = {
                      .notifyid = VRING1_IRQ,
                      .reserved = 0},
     .trace_buffer = {.type = RSC_TRACE,
-                     .da = (uint32_t)rproc_trace_buffer,
-                     .len = sizeof(rproc_trace_buffer),
+                     .da = TRACE_START,
+                     .len = TRACE_SIZE,
                      .reserved = 0,
-                     .name = "pfwp_trace_buf"}};
+                     .name = "RPROC_TRACE"}};
 
 const struct hil_proc hil_proc = {
     .cpu_id = MASTER_CPU_ID,
