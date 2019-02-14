@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2018 Swift Navigation Inc.
- * Contact: Kevin Dade <kevin@swiftnav.com>
+ * Contact: Swift Navigation <dev@swiftnav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -19,14 +19,14 @@
  * variables). Ultimately, this should be the only header including the
  * starling_threads.h.
  */
+
+#include "starling_sbp_settings.h"
+
 #include <starling/config.h>
 #include <starling/starling.h>
 #include <stdbool.h>
 
 #include "hal/piksi_systime.h"
-
-extern bool send_heading;
-extern bool disable_raim;
 
 typedef struct {
   piksi_systime_t systime;
