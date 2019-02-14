@@ -25,10 +25,10 @@
 
 #include "calc/calc_pvt_common.h"
 #include "calc/calc_pvt_me.h"
-#include "calc/sbp_settings_client.h"
 #include "calc/starling_integration.h"
-#include "calc/starling_sbp_output.h"
+#include "calc/starling_sbp_link.h"
 #include "calc/starling_sbp_settings.h"
+#include "calc/starling_sbp_output.h"
 #include "cfg/init.h"
 #include "ndb/ndb.h"
 #include "sbp/sbp.h"
@@ -71,8 +71,6 @@ static soln_dgnss_stats_t last_dgnss_stats = {.systime = PIKSI_SYSTIME_INIT,
  * in any RTK solutions. */
 static MUTEX_DECL(current_base_sender_id_lock);
 static u8 current_base_sender_id = STARLING_BASE_SENDER_ID_DEFAULT;
-
-static SbpDuplexLink *sbp_link = NULL;
 
 /*******************************************************************************
  * Output Callback Helpers
@@ -719,54 +717,6 @@ static void profile_low_latency_thread(enum ProfileDirective directive) {
 }
 
 /******************************************************************************/
-static int impl_sbp_send(uint16_t msg_type, uint8_t len, uint8_t *payload) {
-  return (int)sbp_send_msg(msg_type, len, payload);
-}
-
-static int impl_sbp_send_from(uint16_t msg_type,
-                              uint8_t len,
-                              uint8_t *payload,
-                              uint16_t sender) {
-  return (int)sbp_send_msg_(msg_type, len, payload, sender);
-}
-
-static int impl_sbp_register_cb(uint16_t msg_type,
-                                sbp_msg_callback_t cb,
-                                sbp_msg_callbacks_node_t *node,
-                                void *context) {
-  sbp_register_cbk_with_closure(msg_type, cb, node, context);
-  return 0;
-}
-
-static int impl_sbp_unregister_cb(sbp_msg_callbacks_node_t *node) {
-  sbp_remove_cbk(node);
-  return 0;
-}
-
-static void setup_sbp_link(void) {
-  if (sbp_link) {
-    log_error("unexpected attempt to reinitialize starling sbp link");
-    return;
-  }
-
-  sbp_link = malloc(sizeof(sbp_link));
-  if (!sbp_link) {
-    log_error("failed to alloc SBP link");
-  }
-
-  SbpDuplexLink implemented_sbp_link = {
-      .loc_sender_id = sender_id_get(),
-      .fwd_sender_id = MSG_FORWARD_SENDER_ID,
-      .send = impl_sbp_send,
-      .send_from = impl_sbp_send_from,
-      .register_cb = impl_sbp_register_cb,
-      .unregister_cb = impl_sbp_unregister_cb,
-  };
-
-  *sbp_link = implemented_sbp_link;
-}
-
-/******************************************************************************/
 static THD_FUNCTION(initialize_and_run_starling, arg) {
   (void)arg;
   chRegSetThreadName("starling");
@@ -806,7 +756,8 @@ static THD_FUNCTION(initialize_and_run_starling, arg) {
  ******************************************************************************/
 void starling_calc_pvt_setup() {
   /* Setup the Starling SBP link. */
-  setup_sbp_link();
+  starling_sbp_link_setup();
+  assert(sbp_link);
 
   /* Let Starling register all of its settings over SBP. */
   starling_register_sbp_settings(sbp_link);
