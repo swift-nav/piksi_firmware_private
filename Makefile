@@ -97,12 +97,8 @@ $(LIBSETTINGS_BUILDDIR)/src/libsettings.a: $(LIBSBP_BUILDDIR)/src/libsbp.a
 	      $(CMAKEFLAGS) ../
 	$(MAKE) -C $(LIBSETTINGS_BUILDDIR) $(MAKEFLAGS) settings
 
-<<<<<<< HEAD
-$(STARLING_BUILDDIR)/src/libstarling.a:
-=======
 $(STARLING_BUILDDIR)/src/libstarling.a: .FORCE \
                                         $(STARLING_BUILDDIR)/Makefile
->>>>>>> origin/master
 	@printf "BUILD   starling for target $(PIKSI_TARGET)\n"; \
 	$(MAKE) starling -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
 
@@ -115,14 +111,6 @@ $(STARLING_BUILDDIR)/src/libstarling-shim.a: .FORCE \
 	@printf "BUILD   libstarling-shim for target $(PIKSI_TARGET)\n"; \
 	$(MAKE) starling-shim -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
 
-<<<<<<< HEAD
-$(STARLING_BUILDDIR)/src/libstarling-integration.a: $(STARLING_BUILDDIR)/Makefile \
-                                           $(STARLING_BUILDDIR)/src/libstarling-shim.a
-	@printf "BUILD   libstarling-integration for target $(PIKSI_TARGET)\n"; \
-	$(MAKE) starling-integration -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
-
-$(STARLING_BUILDDIR)/src/libstarling-util.a: $(STARLING_BUILDDIR)/Makefile
-=======
 $(STARLING_BUILDDIR)/src/libstarling-integration.a: .FORCE \
                                                     $(STARLING_BUILDDIR)/Makefile \
                                                     $(STARLING_BUILDDIR)/src/libstarling-shim.a
@@ -131,7 +119,6 @@ $(STARLING_BUILDDIR)/src/libstarling-integration.a: .FORCE \
 
 $(STARLING_BUILDDIR)/src/libstarling-util.a: .FORCE \
                                              $(STARLING_BUILDDIR)/Makefile
->>>>>>> origin/master
 	@printf "BUILD   libstarling-util for target $(PIKSI_TARGET)\n"; \
 	$(MAKE) starling-util -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
 
