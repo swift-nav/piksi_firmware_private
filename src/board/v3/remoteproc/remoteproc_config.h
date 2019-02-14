@@ -17,7 +17,7 @@
 #include <stddef.h>
 
 /* Resource table entries */
-#define NUM_TABLE_ENTRIES 4
+#define NUM_TABLE_ENTRIES 3
 #define ELF_START 0x1B000000
 #define ELF_SIZE 0x01FFF000
 #define TRACE_START 0x1CFFF000

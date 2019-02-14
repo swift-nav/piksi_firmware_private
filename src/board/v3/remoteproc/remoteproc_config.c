@@ -27,8 +27,8 @@ resource_table = {
     .reserved = {0, 0},
     .offset = {offsetof(struct remote_resource_table, elf_cout),
                offsetof(struct remote_resource_table, trace_cout),
-               offsetof(struct remote_resource_table, rpmsg_vdev),
-               offsetof(struct remote_resource_table, trace_buffer)},
+               offsetof(struct remote_resource_table, rpmsg_vdev)/*,
+               offsetof(struct remote_resource_table, trace_buffer)*/},
     .elf_cout = {.type = RSC_CARVEOUT,
                  .da = ELF_START,
                  .pa = ELF_START,
@@ -61,12 +61,12 @@ resource_table = {
                      .align = VRING_ALIGN,
                      .num = VRING_SIZE,
                      .notifyid = VRING1_IRQ,
-                     .reserved = 0},
+                     .reserved = 0}/*,
     .trace_buffer = {.type = RSC_TRACE,
                      .da = TRACE_START,
                      .len = TRACE_SIZE,
                      .reserved = 0,
-                     .name = "RPROC_TRACE"}};
+                     .name = "RPROC_TRACE"}*/};
 
 const struct hil_proc hil_proc = {
     .cpu_id = MASTER_CPU_ID,
