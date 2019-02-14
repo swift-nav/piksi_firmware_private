@@ -25,6 +25,7 @@
 
 #include "calc/calc_pvt_common.h"
 #include "calc/calc_pvt_me.h"
+#include "calc/sbp_settings_client.h"
 #include "calc/starling_integration.h"
 #include "calc/starling_sbp_link.h"
 #include "calc/starling_sbp_output.h"
@@ -71,6 +72,8 @@ static soln_dgnss_stats_t last_dgnss_stats = {.systime = PIKSI_SYSTIME_INIT,
  * in any RTK solutions. */
 static MUTEX_DECL(current_base_sender_id_lock);
 static u8 current_base_sender_id = STARLING_BASE_SENDER_ID_DEFAULT;
+
+static SbpSettingsClient *settings_client = NULL;
 
 /*******************************************************************************
  * Output Callback Helpers
@@ -682,6 +685,50 @@ void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
 /*******************************************************************************
  * Starling Initialization
  ******************************************************************************/
+static int impl_sbp_send(uint16_t msg_type, uint8_t len, uint8_t *payload) {
+  return (int)sbp_send_msg(msg_type, len, payload);
+}
+
+static int impl_sbp_send_from(uint16_t msg_type,
+                              uint8_t len,
+                              uint8_t *payload,
+                              uint16_t sender) {
+  return (int)sbp_send_msg_(msg_type, len, payload, sender);
+}
+
+static int impl_sbp_register_cb(uint16_t msg_type,
+                                sbp_msg_callback_t cb,
+                                sbp_msg_callbacks_node_t *node,
+                                void *context) {
+  sbp_register_cbk_with_closure(msg_type, cb, node, context);
+  return 0;
+}
+
+static int impl_sbp_unregister_cb(sbp_msg_callbacks_node_t *node) {
+  sbp_remove_cbk(node);
+  return 0;
+}
+
+static void init_settings_client(void) {
+  if (settings_client) {
+    log_error("Unexpected attempt to reinitialize settings client.");
+    return;
+  }
+
+  const SbpDuplexLink sbp_link = {
+      .loc_sender_id = sender_id_get(),
+      .fwd_sender_id = MSG_FORWARD_SENDER_ID,
+      .send = impl_sbp_send,
+      .send_from = impl_sbp_send_from,
+      .register_cb = impl_sbp_register_cb,
+      .unregister_cb = impl_sbp_unregister_cb,
+  };
+
+  settings_client = sbp_settings_client_create(&sbp_link);
+  if (!settings_client) {
+    log_error("Unable to create settings client.");
+  }
+}
 
 static void profile_low_latency_thread(enum ProfileDirective directive) {
   static float avg_run_time_s = 0.1f;
