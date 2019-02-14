@@ -19,8 +19,8 @@
 #include <libsbp/sbp.h>
 #include <swiftnav/logging.h>
 
-#include <stdlib.h>
 #include <assert.h>
+#include <stdlib.h>
 
 /******************************************************************************/
 SbpDuplexLink *sbp_link = NULL;

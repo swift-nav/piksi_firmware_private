@@ -24,4 +24,4 @@ extern bool send_heading;
 extern bool disable_raim;
 extern double heading_offset;
 
-#endif // STARLING_SETTINGS_H_
+#endif  // STARLING_SETTINGS_H_

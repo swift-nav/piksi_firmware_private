@@ -13,7 +13,7 @@
 #ifndef SBP_DUPLEX_LINK_H_
 #define SBP_DUPLEX_LINK_H_
 
-/* Rudimentary bidirectional SBP interface. To be replaced by 
+/* Rudimentary bidirectional SBP interface. To be replaced by
  * C++ version when possible. */
 
 #include <libsbp/sbp.h>

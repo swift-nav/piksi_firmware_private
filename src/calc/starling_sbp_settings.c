@@ -106,8 +106,6 @@ static int set_glonass_downweight_factor(void *ctx) {
   return SETTINGS_WR_OK;
 }
 
-
-
 /********************************************************************************/
 static void init_settings_client(const SbpDuplexLink *sbp_link) {
   if (settings_client) {
