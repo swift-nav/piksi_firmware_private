@@ -42,6 +42,17 @@ bool glo_active(const gnss_signal_t sid) {
   return (0 != (capb & ((u32)1 << (sid.sat - GLO_FIRST_PRN))));
 }
 
+/** Returns true if Glonass satellite is active.
+ * \param sid   satellite identifier
+ */
+bool glo_l2of_active(const gnss_signal_t sid) {
+  assert(IS_GLO(sid));
+  const gnss_capb_t *gc = ndb_get_gnss_capb();
+  assert(gc);
+  u32 capb = gc->glo_l2of;
+  return (0 != (capb & ((u32)1 << (sid.sat - GLO_FIRST_PRN))));
+}
+
 /** Returns true if SBAS satellite is active.
  * \param mesid   satellite identifier
  */

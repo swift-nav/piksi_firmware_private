@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2016 Swift Navigation Inc.
- * Contact: Michele Bavaro <michele@swiftnav.com>
+ * Contact: Swift Navigation <dev@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -31,7 +31,7 @@ void init_reacq(void) { sm_init(&acq_all_jobs_state_data); }
  * \return None
  */
 void manage_reacq(void) {
-  sm_constellation_select(&acq_all_jobs_state_data);
-  sm_run(&acq_all_jobs_state_data);
-  sch_run(&acq_all_jobs_state_data);
+  static reacq_sched_ret_t last_job_type = REACQ_DONE_NOTHING;
+  sm_restore_jobs(&acq_all_jobs_state_data, last_job_type);
+  last_job_type = sch_run(&acq_all_jobs_state_data);
 }

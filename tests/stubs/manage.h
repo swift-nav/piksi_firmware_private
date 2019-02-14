@@ -53,6 +53,7 @@ typedef struct {
 extern "C" {
 #endif /* __cplusplus */
 
+float get_solution_elevation_mask(void);
 bool mesid_is_tracked(const me_gnss_signal_t mesid);
 bool tracking_startup_ready(const me_gnss_signal_t mesid);
 bool is_glo_enabled(void);
@@ -88,8 +89,9 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
                            float doppler_min_hz,
                            float doppler_max_hz,
                            acq_result_t *p_acqres);
-acq_job_t *sch_select_job(acq_jobs_state_t *jobs_data);
-void sch_run(acq_jobs_state_t *jobs_data);
+reacq_sched_ret_t sch_select_job(acq_jobs_state_t *jobs_data,
+                                 acq_job_t **job_to_run);
+reacq_sched_ret_t sch_run(acq_jobs_state_t *jobs_data);
 bool soft_multi_acq_search(const me_gnss_signal_t mesid,
                            float doppler_min_hz,
                            float doppler_max_hz,

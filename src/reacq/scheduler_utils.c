@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2016 Swift Navigation Inc.
- * Contact: Perttu Salmela <psalmela@exafore.com>
+ * Contact: Swift Navigation <dev@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -34,9 +34,9 @@ void sch_send_acq_profile_msg(const acq_job_t *job,
   /* In Phase 1, task 0 covers full job search space range.
      If there were more tasks, they all together would cover job search
      space range */
-  const acq_task_search_params_t *acq_params = &job->task_data.task_array[0];
+  const acq_task_search_params_t *acq_params = &job->task_data;
 
-  prof.job_type = (u8)job->job_type;
+  prof.job_type = 0;
   prof.status = peak_found;
   prof.cn0 = (u16)(10 * acq_result->cn0);
   prof.int_time = acq_params->integration_time_ms;

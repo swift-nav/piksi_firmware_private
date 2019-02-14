@@ -123,4 +123,4 @@ u8 code_track_count(code_t code);
 u8 constellation_track_count(constellation_t gnss);
 void manage_tracking_startup(void);
 
-#endif
+#endif /* SWIFTNAV_MANAGE_H */

@@ -55,7 +55,8 @@ FW_DEPS=$(LIBSBP_BUILDDIR)/src/libsbp.a \
         $(LIBSETTINGS_BUILDDIR)/src/libsettings.a \
         $(STARLING_BUILDDIR)/src/libstarling-shim.a \
         $(STARLING_BUILDDIR)/src/libstarling.a \
-        $(STARLING_BUILDDIR)/src/libstarling-integration.a 
+        $(STARLING_BUILDDIR)/src/libstarling-integration.a \
+        $(STARLING_BUILDDIR)/src/libstarling-util.a
 
 ifeq ($(PIKSI_HW),v3)
   CMAKEFLAGS += -DCMAKE_SYSTEM_PROCESSOR=cortex-a9
@@ -70,6 +71,7 @@ ARM_NONE_EABI_GCC_VERSION = $(shell arm-none-eabi-gcc --version)
 $(info $$ARM_NONE_EABI_GCC_VERSION is [${ARM_NONE_EABI_GCC_VERSION}])
 
 .PHONY: all tests firmware docs .FORCE
+.SUFFIXES:
 
 all: firmware
 	@printf "BUILDING For target $(PIKSI_TARGET)\n"
@@ -95,23 +97,30 @@ $(LIBSETTINGS_BUILDDIR)/src/libsettings.a: $(LIBSBP_BUILDDIR)/src/libsbp.a
 	      $(CMAKEFLAGS) ../
 	$(MAKE) -C $(LIBSETTINGS_BUILDDIR) $(MAKEFLAGS) settings
 
-$(STARLING_BUILDDIR)/src/libstarling.a: .PHONY
+$(STARLING_BUILDDIR)/src/libstarling.a: .FORCE \
+                                        $(STARLING_BUILDDIR)/Makefile
 	@printf "BUILD   starling for target $(PIKSI_TARGET)\n"; \
 	$(MAKE) starling -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
 
 # Make starling dependent of swiftnav because otherwise both
 # might build in parallel, and both trying to build swiftnav-common in parallel
 # which leads to occasional failures.
-$(STARLING_BUILDDIR)/src/libstarling-shim.a: $(STARLING_BUILDDIR)/Makefile \
-                                           $(STARLING_BUILDDIR)/src/libstarling.a
+$(STARLING_BUILDDIR)/src/libstarling-shim.a: .FORCE \
+                                             $(STARLING_BUILDDIR)/Makefile \
+                                             $(STARLING_BUILDDIR)/src/libstarling.a
 	@printf "BUILD   libstarling-shim for target $(PIKSI_TARGET)\n"; \
 	$(MAKE) starling-shim -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
 
-$(STARLING_BUILDDIR)/src/libstarling-integration.a: $(STARLING_BUILDDIR)/Makefile \
-                                           $(STARLING_BUILDDIR)/src/libstarling-shim.a \
-                                           .PHONY
-	@printf "BUILD   libstarling-shim for target $(PIKSI_TARGET)\n"; \
+$(STARLING_BUILDDIR)/src/libstarling-integration.a: .FORCE \
+                                                    $(STARLING_BUILDDIR)/Makefile \
+                                                    $(STARLING_BUILDDIR)/src/libstarling-shim.a
+	@printf "BUILD   libstarling-integration for target $(PIKSI_TARGET)\n"; \
 	$(MAKE) starling-integration -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
+
+$(STARLING_BUILDDIR)/src/libstarling-util.a: .FORCE \
+                                             $(STARLING_BUILDDIR)/Makefile
+	@printf "BUILD   libstarling-util for target $(PIKSI_TARGET)\n"; \
+	$(MAKE) starling-util -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
 
 $(STARLING_BUILDDIR)/Makefile:
 	@printf "Run cmake for target $(STARLING_BUILDDIR)\n"; \

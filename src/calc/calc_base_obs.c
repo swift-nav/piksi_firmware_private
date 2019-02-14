@@ -16,7 +16,6 @@
 
 #include <starling/integration/starling_input_bridge.h>
 #include <starling/observation.h>
-#include <starling/platform/starling_platform.h>
 #include <starling/starling.h>
 #include <swiftnav/constants.h>
 #include <swiftnav/coord_system.h>
@@ -296,7 +295,8 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
        i < obs_in_msg && obs_array->n < STARLING_MAX_CHANNEL_COUNT;
        ++i) {
     starling_obs_t *current_obs = &obs_array->observations[obs_array->n++];
-    unpack_obs_content(&msg_raw_obs[i], current_obs);
+    unpack_obs_content_into_starling_obs(&msg_raw_obs[i], current_obs);
+
     /* We must also compute the TOT using the TOR from the header. */
     current_obs->tot = obs_array->t;
     current_obs->tot.tow -= current_obs->pseudorange / GPS_C;

@@ -45,6 +45,10 @@ if [ "$TESTENV" == "lint" ]; then
     exit
 fi
 
+if [ "$TESTENV" == "mesta" ]; then
+    exit
+fi
+
 echo "---
 commit:
   sha: $TRAVIS_COMMIT

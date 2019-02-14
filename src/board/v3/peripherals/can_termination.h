@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Swift Navigation Inc.
+ * Copyright (C) 2019 Swift Navigation Inc.
  * Contact: Swift Navigation <dev@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -10,12 +10,9 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ifndef SRC_REACQ_REACQ_SBP_UTILITY_H_
-#define SRC_REACQ_REACQ_SBP_UTILITY_H_
+#ifndef SWIFTNAV_CAN_TERMINATION_H
+#define SWIFTNAV_CAN_TERMINATION_H
 
-#include <sbp.h>
+void can1_termination_init(void);
 
-void reacq_sbp_init(void);
-void reacq_sbp_data_process(const acq_sv_profile_t *profile);
-
-#endif /* SRC_REACQ_REACQ_SBP_UTILITY_H_ */
+#endif /* SWIFTNAV_CAN_TERMINATION_H */

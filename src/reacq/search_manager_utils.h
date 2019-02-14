@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Swift Navigation Inc.
+ * Copyright (C) 2018 Swift Navigation Inc.
  * Contact: Swift Navigation <dev@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -9,20 +9,22 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
-#ifndef SWIFTNAV_TASK_GENERATOR_API_H
-#define SWIFTNAV_TASK_GENERATOR_API_H
+#ifndef SWIFTNAV_SEARCH_MANAGER_UTILS_H
+#define SWIFTNAV_SEARCH_MANAGER_UTILS_H
 
-#include "search_manager_api.h"
+#include "swiftnav/common.h"
+#include "swiftnav/signal.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
 
-void tg_fill_task(acq_job_t *job);
-void tg_check_uncertainty_change(acq_job_t *job);
+bool sm_lgf_stamp(u64 *lgf_stamp);
+void sm_get_visibility_flags(gnss_signal_t sid, bool *visible, bool *known);
+void sm_calc_all_glo_visibility_flags(void);
 
 #ifdef __cplusplus
-} /* extern "C" */
+}
 #endif /* __cplusplus */
 
-#endif /* SWIFTNAV_TASK_GENERATOR_API_H */
+#endif /* SWIFTNAV_SEARCH_MANAGER_UTILS_H */

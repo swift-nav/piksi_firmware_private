@@ -34,6 +34,16 @@ matrix:
       addons:
         apt:
           sources:
+            - sourceline: 'deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-3.8 main'
+              key_url: 'http://apt.llvm.org/llvm-snapshot.gpg.key'
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-6
+      env: TESTENV=mesta GCCVER=6
+    - os: linux
+      addons:
+        apt:
+          sources:
             - llvm-toolchain-trusty-6.0
             - ubuntu-toolchain-r-test
           packages:
@@ -70,6 +80,8 @@ install:
   # the event type.
   - if [[ "$TESTENV" == "lint" ]]; then
       echo "lint";
+    elif [[ "$TESTENV" == "mesta" ]]; then
+      echo "mesta";
     elif [[ "$TRAVIS_EVENT_TYPE" == "cron" ]]; then
       ANSIBLE_SUDO_OPTION="" bash setup.sh -s origin/master -x install;
     else

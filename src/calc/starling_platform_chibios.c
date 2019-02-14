@@ -11,8 +11,10 @@
  */
 
 #include <starling/platform/mq.h>
-#include <starling/platform/starling_platform.h>
-#include <starling/platform/starling_platform_semaphore.h>
+#include <starling/platform/mutex.h>
+#include <starling/platform/semaphore.h>
+#include <starling/platform/thread.h>
+#include <starling/platform/watchdog.h>
 
 #include <assert.h>
 #include <string.h>

@@ -8,7 +8,8 @@
 TEST(bit_sync_test, test_bit_sync_single_update_20ms) {
   bit_sync_t bit_sync_gps;
   me_gnss_signal_t mesid_gps = {
-      .sat = 1, .code = CODE_GPS_L1CA,
+      .sat = 1,
+      .code = CODE_GPS_L1CA,
   };
 
   bit_sync_init(&bit_sync_gps, mesid_gps);
@@ -31,7 +32,8 @@ TEST(bit_sync_test, test_bit_sync_single_update_20ms) {
 TEST(bit_sync_test, test_bit_sync_single_update_10ms) {
   bit_sync_t bit_sync_gps;
   me_gnss_signal_t mesid_gps = {
-      .sat = 32, .code = CODE_GPS_L1CA,
+      .sat = 32,
+      .code = CODE_GPS_L1CA,
   };
 
   bit_sync_init(&bit_sync_gps, mesid_gps);
@@ -52,7 +54,8 @@ TEST(bit_sync_test, test_bit_sync_single_update_10ms) {
 
   bit_sync_t bit_sync_glo;
   me_gnss_signal_t mesid_glo = {
-      .sat = 14, .code = CODE_GLO_L1OF,
+      .sat = 14,
+      .code = CODE_GLO_L1OF,
   };
 
   bit_sync_init(&bit_sync_glo, mesid_glo);
@@ -75,7 +78,8 @@ TEST(bit_sync_test, test_bit_sync_single_update_10ms) {
 TEST(bit_sync_test, test_bit_sync_multi_update_10ms) {
   bit_sync_t bit_sync_gps;
   me_gnss_signal_t mesid_gps = {
-      .sat = 32, .code = CODE_GPS_L1CA,
+      .sat = 32,
+      .code = CODE_GPS_L1CA,
   };
 
   bit_sync_init(&bit_sync_gps, mesid_gps);
@@ -107,7 +111,8 @@ TEST(bit_sync_test, test_bit_sync_multi_update_10ms) {
 
   bit_sync_t bit_sync_glo;
   me_gnss_signal_t mesid_glo = {
-      .sat = 14, .code = CODE_GLO_L1OF,
+      .sat = 14,
+      .code = CODE_GLO_L1OF,
   };
 
   bit_sync_init(&bit_sync_glo, mesid_glo);

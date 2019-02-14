@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2016 Swift Navigation Inc.
- * Contact: Swift Navigation <dev@swift-nav.com>
+ * Copyright (C) 2019 Swift Navigation Inc.
+ * Contact: Dennis Zollo <dzollo@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -10,12 +10,9 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ifndef SRC_REACQ_REACQ_SBP_UTILITY_H_
-#define SRC_REACQ_REACQ_SBP_UTILITY_H_
+#ifndef SWIFTNAV_IS_DURO_H
+#define SWIFTNAV_IS_DURO_H
 
-#include <sbp.h>
+bool device_is_duro(void);
 
-void reacq_sbp_init(void);
-void reacq_sbp_data_process(const acq_sv_profile_t *profile);
-
-#endif /* SRC_REACQ_REACQ_SBP_UTILITY_H_ */
+#endif /* SWIFTNAV_PIKSI_IS_DURO_H */

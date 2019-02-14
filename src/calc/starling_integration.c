@@ -15,7 +15,8 @@
 #include <string.h>
 
 #include <starling/integration/starling_input_bridge.h>
-#include <starling/platform/starling_platform.h>
+#include <starling/platform/mutex.h>
+#include <starling/platform/thread.h>
 #include <starling/starling.h>
 #include <starling/starling_external_dependencies.h>
 #include <swiftnav/coord_system.h>
@@ -67,9 +68,6 @@ bool disable_raim = false;
 static bool enable_glonass = true;
 static bool enable_galileo = true;
 static bool enable_beidou = true;
-
-static bool skylark_enabled = false;
-static bool orion_enabled = false;
 
 static dgnss_filter_t dgnss_filter_mode = FILTER_FIXED;
 static dgnss_solution_mode_t dgnss_soln_mode = STARLING_SOLN_MODE_LOW_LATENCY;
@@ -173,6 +171,37 @@ static bool dgnss_timeout(piksi_systime_t *_last_dgnss,
   return (piksi_systime_elapsed_since_ms(_last_dgnss) > DGNSS_TIMEOUT_MS);
 }
 
+typedef struct {
+  const utc_params_t *utc_params;
+  u8 flags;
+} utc_details;
+
+// A helper function that attempts to read the UTC parameters from NDB
+// In the return value it sets all of the flags needed to make an SBP UTC time
+// message and a pointer to the read UTC params. If the reading fails the
+// pointer in the return value is set to NULL.
+static utc_details get_utc_info(utc_params_t *utc_params, const u8 time_qual) {
+  utc_details result;
+  bool is_nv;
+
+  result.flags = (sbp_get_time_quality_flags(time_qual) & 0x7);
+  result.utc_params = NULL;
+
+  if (TIME_UNKNOWN != time_qual &&
+      NDB_ERR_NONE == ndb_utc_params_read(utc_params, &is_nv)) {
+    result.utc_params = utc_params;
+    if (is_nv) {
+      result.flags |= (NVM_UTC << 3);
+    } else {
+      result.flags |= (DECODED_UTC << 3);
+    }
+  } else {
+    result.flags |= (DEFAULT_UTC << 3);
+  }
+
+  return result;
+}
+
 void starling_integration_sbp_messages_init(sbp_messages_t *sbp_messages,
                                             const gps_time_t *epoch_time,
                                             u8 time_qual) {
@@ -184,7 +213,12 @@ void starling_integration_sbp_messages_init(sbp_messages_t *sbp_messages,
    * time quality */
   u8 sbp_time_qual = (TIME_PROPAGATED <= time_qual) ? TIME_PROPAGATED : 0;
   sbp_init_gps_time(&sbp_messages->gps_time, t, sbp_time_qual);
-  sbp_init_utc_time(&sbp_messages->utc_time, t, sbp_time_qual);
+
+  utc_params_t utc_params;
+  utc_details details = get_utc_info(&utc_params, time_qual);
+  sbp_init_utc_time(
+      &sbp_messages->utc_time, t, details.utc_params, details.flags);
+
   sbp_init_pos_llh(&sbp_messages->pos_llh, t);
   sbp_init_pos_ecef(&sbp_messages->pos_ecef, t);
   sbp_init_vel_ned(&sbp_messages->vel_ned, t);
@@ -227,7 +261,14 @@ static void solution_make_sbp(const pvt_engine_result_t *soln,
                               u8 time_qual) {
   if (soln && soln->valid) {
     sbp_make_gps_time(&sbp_messages->gps_time, &soln->time, time_qual);
-    sbp_make_utc_time(&sbp_messages->utc_time, &soln->time, time_qual);
+
+    utc_params_t utc_params;
+    utc_details details = get_utc_info(&utc_params, time_qual);
+    sbp_make_utc_time(&sbp_messages->utc_time,
+                      &soln->time,
+                      details.utc_params,
+                      details.flags);
+
     /* In SPP, `baseline` is actually absolute position in ECEF. */
     double pos_ecef[3], pos_llh[3];
     memcpy(pos_ecef, soln->baseline, 3 * sizeof(double));
@@ -607,30 +648,6 @@ static int set_glonass_downweight_factor(void *ctx) {
   return SETTINGS_WR_OK;
 }
 
-static int klobuchar_notify(void *ctx) {
-  (void)ctx;
-
-  typedef enum klobu_corr_state_e {
-    KLOBUCHAR_CORR_DISABLED = false,
-    KLOBUCHAR_CORR_ENABLED = true,
-    KLOBUCHAR_CORR_UNINIT,
-  } klobu_corr_state_t;
-
-  static klobu_corr_state_t klobuchar_enabled = KLOBUCHAR_CORR_UNINIT;
-
-  klobu_corr_state_t notified_state = (!skylark_enabled && !orion_enabled);
-
-  if (notified_state != klobuchar_enabled) {
-    /* Klobuchar state changed */
-    klobuchar_enabled = notified_state;
-    log_info("%s Klobuchar corrections",
-             klobuchar_enabled ? "Enabling" : "Disabling");
-    starling_set_is_time_matched_klobuchar_enabled(klobuchar_enabled);
-  }
-
-  return SETTINGS_WR_OK;
-}
-
 static void reset_filters_callback(u16 sender_id,
                                    u8 len,
                                    u8 msg[],
@@ -806,14 +823,6 @@ static void initialize_starling_settings(void) {
                  glonass_downweight_factor,
                  SETTINGS_TYPE_FLOAT,
                  set_glonass_downweight_factor);
-
-  SETTING_WATCH("skylark",
-                "enable",
-                skylark_enabled,
-                SETTINGS_TYPE_BOOL,
-                klobuchar_notify);
-  SETTING_WATCH(
-      "orion", "enable", orion_enabled, SETTINGS_TYPE_BOOL, klobuchar_notify);
 
   static const char *const dgnss_soln_mode_enum[] = {
       "Low Latency", "Time Matched", "No DGNSS", NULL};

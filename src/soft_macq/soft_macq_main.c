@@ -152,8 +152,7 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
    * DBZP is slower in this case, but should give more chances of successful
    * acquisition
    * */
-  if (is_gal(mesid.code) || is_bds2(mesid.code) ||
-      ((doppler_max_hz - doppler_min_hz) > 5000)) {
+  if (((doppler_max_hz - doppler_min_hz) > 5000)) {
     bool ret = SoftMacqMdbzp(mesid, &sLocalResult);
     p_acqres->cp =
         (1.0f - sLocalResult.fCodeDelay) * code_to_chip_count(mesid.code);

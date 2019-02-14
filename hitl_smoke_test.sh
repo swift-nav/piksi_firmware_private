@@ -24,6 +24,10 @@ if [ "$TESTENV" == "lint" ]; then
     exit
 fi
 
+if [ "$TESTENV" == "mesta" ]; then
+    exit
+fi
+
 if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
     exit
 fi
@@ -50,12 +54,10 @@ TRAVIS_BUILD_URL="https://travis-ci.com/swift-nav/piksi_firmware_private/builds/
 SCENARIOS=\
 ("live-roof-650-townsend"
 "live-roof-650-townsend-dropouts-zero-baseline"
-"live-roof-650-townsend-skylark"
 )
 SCENARIO_LIST=$(join_by , ${SCENARIOS[@]})
 RUNS=\
 ("1"
-"1"
 "1"
 )
 

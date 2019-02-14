@@ -22,6 +22,10 @@ if [ "$TESTENV" == "lint" ]; then
     exit
 fi
 
+if [ "$TESTENV" == "mesta" ]; then
+    exit
+fi
+
 REPO="${PWD##*/}"
 BUCKET="${BUCKET:-swiftnav-artifacts}"
 PRS_BUCKET="${PRS_BUCKET:-swiftnav-artifacts-pull-requests}"

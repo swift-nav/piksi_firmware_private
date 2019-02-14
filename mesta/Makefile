@@ -150,9 +150,14 @@ CSRC := $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l2c.c \
 	$(SWIFTNAV_ROOT)/src/board/v3/platform_signal.c \
 	$(SWIFTNAV_ROOT)/src/board/v3/ndb_fs_access.c \
 	$(SWIFTNAV_ROOT)/src/lib/fixed_fft_r2.c \
-	$(SWIFTNAV_ROOT)/starling/src/starling/starling_platform.c \
-	$(SWIFTNAV_ROOT)/starling/src/starling/starling_platform_mq.c \
-	$(SWIFTNAV_ROOT)/starling/src/starling/starling_platform_semaphore.c \
+	$(SWIFTNAV_ROOT)/starling/src/starling/platform/watchdog.c \
+	$(SWIFTNAV_ROOT)/starling/src/starling/platform/mutex.c \
+	$(SWIFTNAV_ROOT)/starling/src/starling/platform/thread.c \
+	$(SWIFTNAV_ROOT)/starling/src/starling/platform/mq.c \
+	$(SWIFTNAV_ROOT)/starling/src/starling/platform/semaphore.c \
+	$(SWIFTNAV_ROOT)/starling/src/util/sbp/misc.c \
+	$(SWIFTNAV_ROOT)/starling/src/util/sbp/packers.c \
+	$(SWIFTNAV_ROOT)/starling/src/util/sbp/unpackers.c \
 	$(SWIFTNAV_ROOT)/starling/src/observation.c \
 	$(SWIFTNAV_ROOT)/starling/src/cycle_slip.c \
 	$(SWIFTNAV_ROOT)/starling/libfec/src/viterbi27.c \
@@ -178,8 +183,6 @@ CSRC := $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l2c.c \
 	$(SWIFTNAV_ROOT)/starling/third_party/libswiftnav/src/signal.c \
 	$(SWIFTNAV_ROOT)/starling/third_party/libswiftnav/src/single_epoch_solver.c \
 	$(SWIFTNAV_ROOT)/starling/third_party/libswiftnav/src/troposphere.c \
-	$(SWIFTNAV_ROOT)/libsettings/src/settings.c \
-	$(SWIFTNAV_ROOT)/libsettings/src/settings_util.c \
 	$(SWIFTNAV_ROOT)/libsettings/src/request_state.c \
 	$(SWIFTNAV_ROOT)/libsettings/src/setting_data.c \
 	$(SWIFTNAV_ROOT)/libsettings/src/setting_type.c \
@@ -187,6 +190,8 @@ CSRC := $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l2c.c \
 	$(SWIFTNAV_ROOT)/libsettings/src/setting_type_float.c \
 	$(SWIFTNAV_ROOT)/libsettings/src/setting_type_int.c \
 	$(SWIFTNAV_ROOT)/libsettings/src/setting_type_str.c \
+	$(SWIFTNAV_ROOT)/libsettings/src/settings_util.c \
+	$(SWIFTNAV_ROOT)/libsettings/src/settings.c \
 	$(SWIFTNAV_ROOT)/mesta/stubs/stubs.c \
 	$(SWIFTNAV_ROOT)/mesta/stubs/starling_platform_stubs.c \
 	$(SWIFTNAV_ROOT)/mesta/main.c \
@@ -194,7 +199,7 @@ CSRC := $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l2c.c \
 
 CXXSRC := $(SWIFTNAV_ROOT)/starling/src/starling/integration/starling_input_bridge.cc \
           $(SWIFTNAV_ROOT)/starling/src/starling/util/Mutex.cc \
-          $(SWIFTNAV_ROOT)/starling/src/starling/util/ObsFifo.cc \
+          $(SWIFTNAV_ROOT)/starling/src/starling/util/ObsFifo.cc 
 
 CXXFLAGS := -std=c++11
 
@@ -213,6 +218,13 @@ endef
 
 $(eval $(call SOURCES,${CSRC}))
 $(eval $(call SOURCES,${CXXSRC}))
+
+GIT_VERSION := $(shell git describe --tags --dirty --always)
+version.h :
+	@echo "Generating $@"
+	@echo "#define GIT_VERSION \"$(GIT_VERSION)\"" > stubs/version.h
+
+$(SWIFTNAV_ROOT)/src/ndb/ndb_internal.c $(SWIFTNAV_ROOT)/src/main/main.c: version.h
 
 mesta : ${obj.c} ${obj.cc}
 	$(CXX) -o $@ $^ -lm

@@ -35,28 +35,28 @@ typedef struct {
 
 static sv_vis_tests_case_t t_cases[8] = {
     /*LGF time is same as ephemeris time.
-    * User did not move.Calc visibility at same place */
+     * User did not move.Calc visibility at same place */
     {TOW, WN, 0., 0, true, true},  // 0
     /*LGF time is 1 year later than ephemeris time.
-    * User did not move.Calc visibility at same place */
+     * User did not move.Calc visibility at same place */
     {201600., WN + 52, 0., 0, true, true},  // 1
     /*LGF time is one week later than ephemeris time.
-    * User did not move.Calc visibility at same place */
+     * User did not move.Calc visibility at same place */
     {TOW, 1900, 0., 0, true, true},  // 2
     /*LGF time is nine days later than ephemeris time.
-    * User did not move. Calc visibility at same place */
+     * User did not move. Calc visibility at same place */
     {TOW + 172800., 1900, 0., 0, true, true},  // 3
     /*LGF time is nine days later than ephemeris time.
-    * User moved 200 km/h during 1 hour. */
+     * User moved 200 km/h during 1 hour. */
     {TOW + 172800., 1900, 200. * 1000. / 3600., 3600, true, true},  // 4
     /*LGF time is nine days later than ephemeris time.
-    * User moved 850 km/h during 1 hour. */
+     * User moved 850 km/h during 1 hour. */
     {TOW + 172800., 1900, 850. * 1000. / 3600., 3600, true, true},  // 5
     /*LGF time is nine days later than ephemeris time.
-    * User moved 850 km/h during 12 hour. */
+     * User moved 850 km/h during 12 hour. */
     {TOW + 172800., 1900, 850. * 1000. / 3600., 3600 * 12, false, false},  // 6
     /*LGF time is nine days later than ephemeris time.
-    * User moved 850 km/h during 3 hour. */
+     * User moved 850 km/h during 3 hour. */
     {TOW + 172800., 1900, 850. * 1000. / 3600., 3600 * 3, false, false},  // 7
 };
 
@@ -149,25 +149,25 @@ static ephemeris_t ep_glo;
 
 static sv_vis_tests_case_t t_cases_glo[7] = {
     /*LGF time is same as ephemeris time.
-    * User did not move.Calc visibility at same place */
+     * User did not move.Calc visibility at same place */
     {TOW, WN, 0., 0, true, true},  // 0
     /*LGF time is 15 mins later than ephemeris time.
-    * User did not move.Calc visibility at same place */
+     * User did not move.Calc visibility at same place */
     {TOW + 15 * 60, WN, 0., 0, true, true},  // 1
     /*LGF time is one GLO period later than ephemeris time.
-    * User did not move. Calc visibility at same place */
+     * User did not move. Calc visibility at same place */
     {TOW + 40544, WN, 0., 0, true, true},  // 2
     /*LGF time is 19 hours later than ephemeris time.
-    * User's moving 100 km/h during 17 minutes  */
+     * User's moving 100 km/h during 17 minutes  */
     {TOW + 280800, WN, 100. * 1000. / 3600., 60 * 17, true, true},  // 3
     /*LGF time is 15 mins later than ephemeris time.
-    * User moved 850 km/h during 3 hour. */
+     * User moved 850 km/h during 3 hour. */
     {TOW + 900, WN, 850. * 1000. / 3600., 3600 * 3, false, true},  // 4
     /*LGF time is one hour later than ephemeris time.
-    * User moved 850 km/h during 1 hour. */
+     * User moved 850 km/h during 1 hour. */
     {TOW + 3600, WN, 850. * 1000. / 3600., 3600, false, true},  // 5
     /*LGF time is 5 mins later than ephemeris time.
-    * User moved 60 km/h during 5 mins. */
+     * User moved 60 km/h during 5 mins. */
     {TOW + 300, WN, 60. * 1000. / 3600., 300, true, true},  // 6
 };
 
@@ -252,25 +252,25 @@ static ephemeris_t ep_sbas;
 
 static sv_vis_tests_case_t t_cases_sbas[7] = {
     /*LGF time is same as ephemeris time.
-    * User did not move.Calc visibility at same place */
+     * User did not move.Calc visibility at same place */
     {TOW, WN, 0., 0, true, true},  // 0
     /*LGF time is 15 mins later than ephemeris time.
-    * User did not move.Calc visibility at same place */
+     * User did not move.Calc visibility at same place */
     {TOW + 15 * 60, WN, 0., 0, true, true},  // 1
     /*LGF time is one GLO period later than ephemeris time.
-    * User did not move. Calc visibility at same place */
+     * User did not move. Calc visibility at same place */
     {TOW + 40544, WN, 0., 0, true, true},  // 2
     /*LGF time is 19 hours later than ephemeris time.
-    * User's moving 100 km/h during 17 minutes */
+     * User's moving 100 km/h during 17 minutes */
     {TOW + 280800, WN, 100. * 1000. / 3600., 60 * 17, true, true},  // 3
     /*LGF time is 15 mins later than ephemeris time.
-    * User moved 850 km/h during 3 hour. */
+     * User moved 850 km/h during 3 hour. */
     {TOW + 900, WN, 850. * 1000. / 3600., 3600 * 3, true, true},  // 4
     /*LGF time is one hour later than ephemeris time.
-    * User moved 850 km/h during 5 hours. */
+     * User moved 850 km/h during 5 hours. */
     {TOW + 3600, WN, 850. * 1000. / 3600., 3600 * 5, false, false},  // 5
     /*LGF time is 5 mins later than ephemeris time.
-    * User moved 60 km/h during 5 mins. */
+     * User moved 60 km/h during 5 mins. */
     {TOW + 300, WN, 60. * 1000. / 3600., 300, true, true},  // 6
 };
 
