@@ -813,12 +813,12 @@ static void init_settings_client(void) {
   }
 
   const SbpDuplexLink sbp_link = {
-    .loc_sender_id = sender_id_get(),
-    .fwd_sender_id = MSG_FORWARD_SENDER_ID,
-    .send          = impl_sbp_send,
-    .send_from     = impl_sbp_send_from,
-    .register_cb   = impl_sbp_register_cb,
-    .unregister_cb = impl_sbp_unregister_cb,
+      .loc_sender_id = sender_id_get(),
+      .fwd_sender_id = MSG_FORWARD_SENDER_ID,
+      .send = impl_sbp_send,
+      .send_from = impl_sbp_send_from,
+      .register_cb = impl_sbp_register_cb,
+      .unregister_cb = impl_sbp_unregister_cb,
   };
 
   settings_client = sbp_settings_client_create(&sbp_link);
@@ -835,17 +835,14 @@ static void initialize_starling_settings(void) {
   /* Prepare enums we will use for Starling settings. */
   static const char *const dgnss_filter_enum[] = {"Float", "Fixed", NULL};
   settings_type_t dgnss_filter_setting;
-  sbp_settings_client_register_enum(settings_client,
-                                    dgnss_filter_enum, 
-                                    &dgnss_filter_setting);
+  sbp_settings_client_register_enum(
+      settings_client, dgnss_filter_enum, &dgnss_filter_setting);
 
   static const char *const dgnss_soln_mode_enum[] = {
       "Low Latency", "Time Matched", "No DGNSS", NULL};
   settings_type_t dgnss_soln_mode_setting;
-  sbp_settings_client_register_enum(settings_client, 
-                                    dgnss_soln_mode_enum, 
-                                    &dgnss_soln_mode_setting);
-
+  sbp_settings_client_register_enum(
+      settings_client, dgnss_soln_mode_enum, &dgnss_soln_mode_setting);
 
   /* Register actual settings. */
   sbp_settings_client_register(settings_client,
@@ -922,18 +919,18 @@ static void initialize_starling_settings(void) {
 
   /* These two are outliers and require special treatment. */
   sbp_settings_client_register(settings_client,
-                               "solution", 
-                               "send_heading", 
-                               &send_heading, 
+                               "solution",
+                               "send_heading",
+                               &send_heading,
                                sizeof(send_heading),
                                SETTINGS_TYPE_BOOL,
                                NULL,
                                NULL);
 
-  sbp_settings_client_register(settings_client, 
-                               "solution", 
-                               "disable_raim", 
-                               &disable_raim, 
+  sbp_settings_client_register(settings_client,
+                               "solution",
+                               "disable_raim",
+                               &disable_raim,
                                sizeof(disable_raim),
                                SETTINGS_TYPE_BOOL,
                                NULL,

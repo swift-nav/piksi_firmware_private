@@ -10,7 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-/* NOTE: Implementation based off of PFWP/src/util/settings/settings_client.c */ 
+/* NOTE: Implementation based off of PFWP/src/util/settings/settings_client.c */
 
 #include "sbp_settings_client.h"
 
@@ -29,26 +29,29 @@ struct SbpSettingsClient {
 
   /* Semaphore for used for waiting on replies. */
   platform_sem_t *sem;
-  
+
   /* Settings context object. */
   settings_t *settings_context;
 };
 
 /********************************************************************************/
-static int impl_send(void *ctx, uint16_t msg_type, uint8_t len, uint8_t *payload) {
-  SbpSettingsClient *client = (SbpSettingsClient*)ctx;
+static int impl_send(void *ctx,
+                     uint16_t msg_type,
+                     uint8_t len,
+                     uint8_t *payload) {
+  SbpSettingsClient *client = (SbpSettingsClient *)ctx;
   assert(client);
   assert(client->sbp_link.send);
   return client->sbp_link.send(msg_type, len, payload);
 }
 
 /********************************************************************************/
-static int impl_send_from(void *ctx, 
-                          uint16_t msg_type, 
-                          uint8_t len, 
+static int impl_send_from(void *ctx,
+                          uint16_t msg_type,
+                          uint8_t len,
                           uint8_t *payload,
                           uint16_t sender) {
-  SbpSettingsClient *client = (SbpSettingsClient*)ctx;
+  SbpSettingsClient *client = (SbpSettingsClient *)ctx;
   assert(client);
   assert(client->sbp_link.send_from);
   return client->sbp_link.send_from(msg_type, len, payload, sender);
@@ -56,7 +59,7 @@ static int impl_send_from(void *ctx,
 
 /********************************************************************************/
 static int impl_wait(void *ctx, int timeout_ms) {
-  SbpSettingsClient *client = (SbpSettingsClient*)ctx;
+  SbpSettingsClient *client = (SbpSettingsClient *)ctx;
   assert(client);
   assert(client->sem);
   timeout_ms = timeout_ms > 0 ? timeout_ms : 0;
@@ -65,7 +68,7 @@ static int impl_wait(void *ctx, int timeout_ms) {
 
 /********************************************************************************/
 static void impl_signal(void *ctx) {
-  SbpSettingsClient *client = (SbpSettingsClient*)ctx;
+  SbpSettingsClient *client = (SbpSettingsClient *)ctx;
   assert(client);
   assert(client->sem);
   platform_sem_signal(client->sem);
@@ -77,16 +80,16 @@ static int impl_register_cb(void *ctx,
                             sbp_msg_callback_t cb,
                             void *cb_context,
                             sbp_msg_callbacks_node_t **node) {
-  SbpSettingsClient *client = (SbpSettingsClient*)ctx;
+  SbpSettingsClient *client = (SbpSettingsClient *)ctx;
   assert(client);
   assert(client->sbp_link.register_cb);
   assert(node);
 
   /* Apparently, we are supposed to allocate the node ourselves here?
    *
-   * TODO(kevin, jangelo) 
+   * TODO(kevin, jangelo)
    * Audit this allocation and do one of:
-   *   A. make sure it only occurs at startup 
+   *   A. make sure it only occurs at startup
    *   B. replace with an object pool
    */
   *node = malloc(sizeof(sbp_msg_callbacks_node_t));
@@ -104,7 +107,7 @@ static int impl_register_cb(void *ctx,
 
 /********************************************************************************/
 static int impl_unregister_cb(void *ctx, sbp_msg_callbacks_node_t **node) {
-  SbpSettingsClient *client = (SbpSettingsClient*)ctx;
+  SbpSettingsClient *client = (SbpSettingsClient *)ctx;
   assert(client);
   assert(client->sbp_link.unregister_cb);
   assert(node);
@@ -118,7 +121,6 @@ static int impl_unregister_cb(void *ctx, sbp_msg_callbacks_node_t **node) {
   return ret;
 }
 
-
 /********************************************************************************/
 static void impl_log(int priority, const char *fmt, ...) {
   log_warn("Trying to log from libsettings: %d, %s", priority, fmt);
@@ -127,16 +129,16 @@ static void impl_log(int priority, const char *fmt, ...) {
 /********************************************************************************/
 static settings_api_t settings_api_for_client(SbpSettingsClient *client) {
   settings_api_t impl = {
-    .ctx = client,
-    .send = impl_send,
-    .send_from = impl_send_from,
-    .wait_init = NULL,
-    .wait = impl_wait,
-    .wait_deinit = NULL,
-    .signal = impl_signal,
-    .register_cb = impl_register_cb,
-    .unregister_cb = impl_unregister_cb,
-    .log = impl_log,
+      .ctx = client,
+      .send = impl_send,
+      .send_from = impl_send_from,
+      .wait_init = NULL,
+      .wait = impl_wait,
+      .wait_deinit = NULL,
+      .signal = impl_signal,
+      .register_cb = impl_register_cb,
+      .unregister_cb = impl_unregister_cb,
+      .log = impl_log,
   };
   return impl;
 }
@@ -152,7 +154,8 @@ SbpSettingsClient *sbp_settings_client_create(const SbpDuplexLink *sbp_link) {
   client->sbp_link = *sbp_link;
 
   settings_api_t impl = settings_api_for_client(client);
-  client->settings_context = settings_create(client->sbp_link.loc_sender_id, &impl);  
+  client->settings_context =
+      settings_create(client->sbp_link.loc_sender_id, &impl);
   if (!client->settings_context) {
     log_error(CLASS_PREFIX "unable to create settings context");
     goto FREE_AND_RETURN_NULL;
@@ -163,7 +166,7 @@ SbpSettingsClient *sbp_settings_client_create(const SbpDuplexLink *sbp_link) {
     log_error(CLASS_PREFIX "unable to create semaphore");
     goto FREE_AND_RETURN_NULL;
   }
-  
+
   return client;
 
 /* Cleanup and return on error. */
@@ -180,7 +183,7 @@ FREE_AND_RETURN_NULL:
 
 /********************************************************************************/
 int sbp_settings_client_register_enum(SbpSettingsClient *client,
-                                      const char *const enum_names[], 
+                                      const char *const enum_names[],
                                       settings_type_t *type) {
   return settings_register_enum(client->settings_context, enum_names, type);
 }
@@ -194,6 +197,12 @@ int sbp_settings_client_register(SbpSettingsClient *client,
                                  settings_type_t type,
                                  settings_notify_fn notify,
                                  void *notify_context) {
-  return settings_register_setting(client->settings_context, section, name, 
-                                   var, var_len, type, notify, notify_context);
+  return settings_register_setting(client->settings_context,
+                                   section,
+                                   name,
+                                   var,
+                                   var_len,
+                                   type,
+                                   notify,
+                                   notify_context);
 }

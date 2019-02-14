@@ -27,24 +27,22 @@ typedef struct SbpDuplexLink {
   uint16_t fwd_sender_id;
 
   /* Send message using local sender ID. */
-  int (*send)          (uint16_t msg_type, 
-                        uint8_t len, 
-                        uint8_t *payload);
+  int (*send)(uint16_t msg_type, uint8_t len, uint8_t *payload);
 
   /* Send message using given sender ID. */
-  int (*send_from)     (uint16_t msg_type, 
-                        uint8_t len, 
-                        uint8_t *payload,
-                        uint16_t sender);
+  int (*send_from)(uint16_t msg_type,
+                   uint8_t len,
+                   uint8_t *payload,
+                   uint16_t sender);
 
   /* Register callback on incoming messages. */
-  int (*register_cb)   (uint16_t msg_type, 
-                        sbp_msg_callback_t cb, 
-                        sbp_msg_callbacks_node_t *node,
-                        void *cb_context);
+  int (*register_cb)(uint16_t msg_type,
+                     sbp_msg_callback_t cb,
+                     sbp_msg_callbacks_node_t *node,
+                     void *cb_context);
 
   /* Unregister callback on incoming messages. */
-  int (*unregister_cb) (sbp_msg_callbacks_node_t *node);
+  int (*unregister_cb)(sbp_msg_callbacks_node_t *node);
 } SbpDuplexLink;
 
 typedef struct SbpSettingsClient SbpSettingsClient;
@@ -52,7 +50,7 @@ typedef struct SbpSettingsClient SbpSettingsClient;
 SbpSettingsClient *sbp_settings_client_create(const SbpDuplexLink *sbp_link);
 
 int sbp_settings_client_register_enum(SbpSettingsClient *client,
-                                      const char *const enum_names[], 
+                                      const char *const enum_names[],
                                       settings_type_t *type);
 
 int sbp_settings_client_register(SbpSettingsClient *client,
