@@ -144,6 +144,20 @@ static settings_api_t settings_api_for_client(SbpSettingsClient *client) {
 }
 
 /********************************************************************************/
+static void sbp_settings_client_destroy(SbpSettingsClient *client) {
+  if (!client) {
+    return;
+  }
+  if (client->sem) {
+    platform_sem_destroy(&client->sem);
+  }
+  if (client->settings_context) {
+    settings_destroy(&client->settings_context);
+  }
+  free(client);
+}
+
+/********************************************************************************/
 SbpSettingsClient *sbp_settings_client_create(const SbpDuplexLink *sbp_link) {
   SbpSettingsClient *client = malloc(sizeof(SbpSettingsClient));
   if (!client) {
@@ -158,27 +172,18 @@ SbpSettingsClient *sbp_settings_client_create(const SbpDuplexLink *sbp_link) {
       settings_create(client->sbp_link.loc_sender_id, &impl);
   if (!client->settings_context) {
     log_error(CLASS_PREFIX "unable to create settings context");
-    goto FREE_AND_RETURN_NULL;
+    sbp_settings_client_destroy(client);
+    return NULL;
   }
 
   client->sem = platform_sem_create();
   if (!client->sem) {
     log_error(CLASS_PREFIX "unable to create semaphore");
-    goto FREE_AND_RETURN_NULL;
+    sbp_settings_client_destroy(client);
+    return NULL;
   }
 
   return client;
-
-/* Cleanup and return on error. */
-FREE_AND_RETURN_NULL:
-  if (client->sem) {
-    platform_sem_destroy(&client->sem);
-  }
-  if (client->settings_context) {
-    settings_destroy(&client->settings_context);
-  }
-  free(client);
-  return NULL;
 };
 
 /********************************************************************************/
