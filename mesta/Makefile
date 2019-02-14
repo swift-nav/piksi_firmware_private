@@ -150,9 +150,11 @@ CSRC := $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l2c.c \
 	$(SWIFTNAV_ROOT)/src/board/v3/platform_signal.c \
 	$(SWIFTNAV_ROOT)/src/board/v3/ndb_fs_access.c \
 	$(SWIFTNAV_ROOT)/src/lib/fixed_fft_r2.c \
-	$(SWIFTNAV_ROOT)/starling/src/starling/platform/starling_platform.c \
-	$(SWIFTNAV_ROOT)/starling/src/starling/platform/starling_platform_mq.c \
-	$(SWIFTNAV_ROOT)/starling/src/starling/platform/starling_platform_semaphore.c \
+	$(SWIFTNAV_ROOT)/starling/src/starling/platform/watchdog.c \
+	$(SWIFTNAV_ROOT)/starling/src/starling/platform/mutex.c \
+	$(SWIFTNAV_ROOT)/starling/src/starling/platform/thread.c \
+	$(SWIFTNAV_ROOT)/starling/src/starling/platform/mq.c \
+	$(SWIFTNAV_ROOT)/starling/src/starling/platform/semaphore.c \
 	$(SWIFTNAV_ROOT)/starling/src/util/sbp/misc.c \
 	$(SWIFTNAV_ROOT)/starling/src/util/sbp/packers.c \
 	$(SWIFTNAV_ROOT)/starling/src/util/sbp/unpackers.c \
@@ -181,8 +183,6 @@ CSRC := $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l2c.c \
 	$(SWIFTNAV_ROOT)/starling/third_party/libswiftnav/src/signal.c \
 	$(SWIFTNAV_ROOT)/starling/third_party/libswiftnav/src/single_epoch_solver.c \
 	$(SWIFTNAV_ROOT)/starling/third_party/libswiftnav/src/troposphere.c \
-	$(SWIFTNAV_ROOT)/libsettings/src/settings.c \
-	$(SWIFTNAV_ROOT)/libsettings/src/settings_util.c \
 	$(SWIFTNAV_ROOT)/libsettings/src/request_state.c \
 	$(SWIFTNAV_ROOT)/libsettings/src/setting_data.c \
 	$(SWIFTNAV_ROOT)/libsettings/src/setting_type.c \
@@ -190,6 +190,8 @@ CSRC := $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l2c.c \
 	$(SWIFTNAV_ROOT)/libsettings/src/setting_type_float.c \
 	$(SWIFTNAV_ROOT)/libsettings/src/setting_type_int.c \
 	$(SWIFTNAV_ROOT)/libsettings/src/setting_type_str.c \
+	$(SWIFTNAV_ROOT)/libsettings/src/settings_util.c \
+	$(SWIFTNAV_ROOT)/libsettings/src/settings.c \
 	$(SWIFTNAV_ROOT)/mesta/stubs/stubs.c \
 	$(SWIFTNAV_ROOT)/mesta/stubs/starling_platform_stubs.c \
 	$(SWIFTNAV_ROOT)/mesta/main.c \

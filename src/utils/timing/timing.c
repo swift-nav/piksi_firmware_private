@@ -34,7 +34,6 @@
 static volatile clock_est_state_t persistent_clock_state = {
     .tc = 0,
     .t_gps = GPS_TIME_UNKNOWN,
-    .t0_gps = GPS_TIME_UNKNOWN,
     .tick_length_s = 0,
     .clock_rate = 0,
     .P = {{0, 0}, {0, 0}},
@@ -132,10 +131,6 @@ void update_time(u64 tc, const gnss_solution *sol) {
     /* Initialize clock state estimate with the given solution */
     clock_state.tc = tc;
     clock_state.t_gps = sol->time;
-    gps_time_t t0 = sol->time;
-    t0.tow -= RX_DT_NOMINAL * tc;
-    normalize_gps_time(&t0);
-    clock_state.t0_gps = t0;
     clock_state.clock_rate = 1 - sol->clock_drift;
     clock_state.tick_length_s = RX_DT_NOMINAL;
     clock_state.P[0][0] = sol->clock_offset_var;
@@ -319,7 +314,6 @@ void timing_setup(void) {
   /* initialize the clock state to unknown */
   chMtxLock(&clock_mutex);
   persistent_clock_state.t_gps = GPS_TIME_UNKNOWN;
-  persistent_clock_state.t0_gps = GPS_TIME_UNKNOWN;
   chMtxUnlock(&clock_mutex);
 }
 
@@ -419,22 +413,22 @@ double get_clock_drift() {
   return 1.0 - clock_rate;
 }
 
-/* Compute the sub-second portion of difference between NAP counter and gps time
+/** Compute the sub-2ms difference between NAP counter and gps time
+ * \param tc NAP counter value
+ * \return correction in seconds, within [-1, 1) ms
  */
-double subsecond_cpo_correction(u64 ref_tc) {
-  /* Careful with numerical cancellation, we need this correction accurate to
-   * the 10th decimal place. */
-  gps_time_t ref_time = napcount2gpstime(ref_tc);
-  double time_subsecond = ref_time.tow - floor(ref_time.tow);
-  u64 tc_subsecond = ref_tc % (u64)NAP_FRONTEND_SAMPLE_RATE_Hz;
-  double cpo_correction = time_subsecond - RX_DT_NOMINAL * tc_subsecond;
-  double cpo_drift = cpo_correction - round(cpo_correction);
+double sub_2ms_cpo_correction(const u64 tc) {
+  const gps_time_t ref_time = napcount2gpstime(tc);
 
-  log_debug("time_subsecond %e  tc_subsecond %e    cpo_drift %.9lf",
-            time_subsecond,
-            RX_DT_NOMINAL * tc_subsecond,
-            cpo_drift);
-  return cpo_drift;
+  /* This is ordered carefully to avoid numerical cancellation. The result
+   * needs to be accurate at least to the 10th decimal place */
+  double time_mod_2ms = fmod(ref_time.tow, 2e-3);
+  u64 tc_mod_2ms = tc % FCN_NCO_RESET_COUNT;
+  double cpo_correction_s = time_mod_2ms - RX_DT_NOMINAL * tc_mod_2ms;
+
+  cpo_correction_s -= round(cpo_correction_s / 2e-3) * 2e-3;
+
+  return cpo_correction_s;
 }
 
 /** \} */

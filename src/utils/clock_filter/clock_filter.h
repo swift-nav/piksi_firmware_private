@@ -20,7 +20,6 @@
 typedef struct {
   u64 tc;               /**< NAP tick of the estimate */
   gps_time_t t_gps;     /**< GPS time estimate at tc. */
-  gps_time_t t0_gps;    /**< GPS time estimate at tc=0. */
   double tick_length_s; /** The nominal length of the tick in seconds */
   double clock_rate;    /**< Clock rate estimate wrt to the nominal tick */
   double P[2][2];       /**< State covariance matrix. */
