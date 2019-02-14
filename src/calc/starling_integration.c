@@ -25,12 +25,13 @@
 
 #include "calc/calc_pvt_common.h"
 #include "calc/calc_pvt_me.h"
+#include "calc/sbp_settings_client.h"
 #include "calc/starling_integration.h"
 #include "calc/starling_sbp_output.h"
+#include "cfg/init.h"
 #include "ndb/ndb.h"
 #include "sbp/sbp.h"
 #include "sbp/sbp_utils.h"
-#include "settings/settings_client.h"
 #include "shm/shm.h"
 #include "simulator/simulator.h"
 #include "track/track_sid_db.h"
@@ -91,6 +92,8 @@ static soln_dgnss_stats_t last_dgnss_stats = {.systime = PIKSI_SYSTIME_INIT,
  * in any RTK solutions. */
 static MUTEX_DECL(current_base_sender_id_lock);
 static u8 current_base_sender_id = STARLING_BASE_SENDER_ID_DEFAULT;
+
+static SbpSettingsClient *settings_client = NULL;
 
 /*******************************************************************************
  * Output Callback Helpers
@@ -779,67 +782,159 @@ void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
 /*******************************************************************************
  * Starling Initialization
  ******************************************************************************/
+static int impl_sbp_send(uint16_t msg_type, uint8_t len, uint8_t *payload) {
+  return (int)sbp_send_msg(msg_type, len, payload);
+}
+
+static int impl_sbp_send_from(uint16_t msg_type,
+                              uint8_t len,
+                              uint8_t *payload,
+                              uint16_t sender) {
+  return (int)sbp_send_msg_(msg_type, len, payload, sender);
+}
+
+static int impl_sbp_register_cb(uint16_t msg_type,
+                                sbp_msg_callback_t cb,
+                                sbp_msg_callbacks_node_t *node,
+                                void *context) {
+  sbp_register_cbk_with_closure(msg_type, cb, node, context);
+  return 0;
+}
+
+static int impl_sbp_unregister_cb(sbp_msg_callbacks_node_t *node) {
+  sbp_remove_cbk(node);
+  return 0;
+}
+
+static void init_settings_client(void) {
+  if (settings_client) {
+    log_error("Unexpected attempt to reinitialize settings client.");
+    return;
+  }
+
+  const SbpDuplexLink sbp_link = {
+      .loc_sender_id = sender_id_get(),
+      .fwd_sender_id = MSG_FORWARD_SENDER_ID,
+      .send = impl_sbp_send,
+      .send_from = impl_sbp_send_from,
+      .register_cb = impl_sbp_register_cb,
+      .unregister_cb = impl_sbp_unregister_cb,
+  };
+
+  settings_client = sbp_settings_client_create(&sbp_link);
+  if (!settings_client) {
+    log_error("Unable to create settings client.");
+  }
+}
 
 static void initialize_starling_settings(void) {
+  /* Make sure we have the client prepared. */
+  init_settings_client();
+  assert(settings_client);
+
+  /* Prepare enums we will use for Starling settings. */
   static const char *const dgnss_filter_enum[] = {"Float", "Fixed", NULL};
   settings_type_t dgnss_filter_setting;
-  settings_api_register_enum(dgnss_filter_enum, &dgnss_filter_setting);
-
-  /* The base obs can optionally enable RAIM exclusion algorithm. */
-  SETTING("solution", "disable_raim", disable_raim, SETTINGS_TYPE_BOOL);
-
-  SETTING_NOTIFY("solution",
-                 "dgnss_filter",
-                 dgnss_filter_mode,
-                 dgnss_filter_setting,
-                 enable_fix_mode);
-
-  SETTING_NOTIFY("solution",
-                 "correction_age_max",
-                 corr_age_max,
-                 SETTINGS_TYPE_INT,
-                 set_max_age);
-
-  SETTING_NOTIFY("solution",
-                 "enable_glonass",
-                 enable_glonass,
-                 SETTINGS_TYPE_BOOL,
-                 set_is_glonass_enabled);
-
-  SETTING_NOTIFY("solution",
-                 "enable_galileo",
-                 enable_galileo,
-                 SETTINGS_TYPE_BOOL,
-                 set_is_galileo_enabled);
-
-  SETTING_NOTIFY("solution",
-                 "enable_beidou",
-                 enable_beidou,
-                 SETTINGS_TYPE_BOOL,
-                 set_is_beidou_enabled);
-
-  SETTING_NOTIFY("solution",
-                 "glonass_measurement_std_downweight_factor",
-                 glonass_downweight_factor,
-                 SETTINGS_TYPE_FLOAT,
-                 set_glonass_downweight_factor);
+  sbp_settings_client_register_enum(
+      settings_client, dgnss_filter_enum, &dgnss_filter_setting);
 
   static const char *const dgnss_soln_mode_enum[] = {
       "Low Latency", "Time Matched", "No DGNSS", NULL};
   settings_type_t dgnss_soln_mode_setting;
-  settings_api_register_enum(dgnss_soln_mode_enum, &dgnss_soln_mode_setting);
-  SETTING_NOTIFY("solution",
-                 "dgnss_solution_mode",
-                 dgnss_soln_mode,
-                 dgnss_soln_mode_setting,
-                 set_dgnss_soln_mode);
+  sbp_settings_client_register_enum(
+      settings_client, dgnss_soln_mode_enum, &dgnss_soln_mode_setting);
 
-  SETTING("solution", "send_heading", send_heading, SETTINGS_TYPE_BOOL);
-  SETTING_NOTIFY("solution",
-                 "heading_offset",
-                 heading_offset,
-                 SETTINGS_TYPE_FLOAT,
-                 heading_offset_changed);
+  /* Register actual settings. */
+  sbp_settings_client_register(settings_client,
+                               "solution",
+                               "dgnss_filter",
+                               &dgnss_filter_mode,
+                               sizeof(dgnss_filter_mode),
+                               dgnss_filter_setting,
+                               enable_fix_mode,
+                               NULL);
+
+  sbp_settings_client_register(settings_client,
+                               "solution",
+                               "correction_age_max",
+                               &corr_age_max,
+                               sizeof(corr_age_max),
+                               SETTINGS_TYPE_INT,
+                               set_max_age,
+                               NULL);
+
+  sbp_settings_client_register(settings_client,
+                               "solution",
+                               "enable_glonass",
+                               &enable_glonass,
+                               sizeof(enable_glonass),
+                               SETTINGS_TYPE_BOOL,
+                               set_is_glonass_enabled,
+                               NULL);
+
+  sbp_settings_client_register(settings_client,
+                               "solution",
+                               "enable_galileo",
+                               &enable_galileo,
+                               sizeof(enable_galileo),
+                               SETTINGS_TYPE_BOOL,
+                               set_is_galileo_enabled,
+                               NULL);
+
+  sbp_settings_client_register(settings_client,
+                               "solution",
+                               "enable_beidou",
+                               &enable_beidou,
+                               sizeof(enable_beidou),
+                               SETTINGS_TYPE_BOOL,
+                               set_is_beidou_enabled,
+                               NULL);
+
+  sbp_settings_client_register(settings_client,
+                               "solution",
+                               "glonass_measurement_std_downweight_factor",
+                               &glonass_downweight_factor,
+                               sizeof(glonass_downweight_factor),
+                               SETTINGS_TYPE_FLOAT,
+                               set_glonass_downweight_factor,
+                               NULL);
+
+  sbp_settings_client_register(settings_client,
+                               "solution",
+                               "dgnss_solution_mode",
+                               &dgnss_soln_mode,
+                               sizeof(dgnss_soln_mode),
+                               dgnss_soln_mode_setting,
+                               set_dgnss_soln_mode,
+                               NULL);
+
+  sbp_settings_client_register(settings_client,
+                               "solution",
+                               "heading_offset",
+                               &heading_offset,
+                               sizeof(heading_offset),
+                               SETTINGS_TYPE_FLOAT,
+                               heading_offset_changed,
+                               NULL);
+
+  /* These two are outliers and require special treatment. */
+  sbp_settings_client_register(settings_client,
+                               "solution",
+                               "send_heading",
+                               &send_heading,
+                               sizeof(send_heading),
+                               SETTINGS_TYPE_BOOL,
+                               NULL,
+                               NULL);
+
+  sbp_settings_client_register(settings_client,
+                               "solution",
+                               "disable_raim",
+                               &disable_raim,
+                               sizeof(disable_raim),
+                               SETTINGS_TYPE_BOOL,
+                               NULL,
+                               NULL);
 }
 
 static void profile_low_latency_thread(enum ProfileDirective directive) {
@@ -912,7 +1007,6 @@ static THD_FUNCTION(initialize_and_run_starling, arg) {
 /*******************************************************************************
  * Starling Integration API
  ******************************************************************************/
-
 void starling_calc_pvt_setup() {
   /* Connect the missing external dependencies for the Starling engine. */
   external_functions_t extfns = {
