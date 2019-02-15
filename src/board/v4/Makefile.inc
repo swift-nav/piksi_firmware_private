@@ -130,7 +130,6 @@ BOARDSRC := \
 BOARDASM := \
         $(REVASM) \
         $(BOARDDIR)/cpu_init.s \
-        $(BOARDDIR)/mmu_table.s \
         $(BOARDDIR)/error_asm.s \
 
 BOARDLIBS := -lopen_amp

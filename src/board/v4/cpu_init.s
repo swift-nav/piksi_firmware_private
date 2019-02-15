@@ -11,7 +11,7 @@
  */
 
     .text
-    .fpu    neon
+    .fpu    vfp3
     .code   32
     .balign 4
 
@@ -25,16 +25,13 @@ __early_init:
     .code   32
 #endif
 
-    /* Invalidate caches and TLBs */
+    /* Invalidate caches */
     mov r0, #0                      /* r0 = 0 */
-    mcr p15, 0, r0, c8, c7, 0       /* invalidate TLBs */
     mcr p15, 0, r0, c7, c5, 0       /* invalidate icache */
     mcr p15, 0, r0, c7, c5, 6       /* invalidate branch predictor array */
-    b invalidate_dcache             /* invalidate dcache */
+    mcr p15, 0, r0, c15, c5, 0      /* invalidate dcache */
 
-invalidate_dcache_ret:
-
-    /* Disable MMU */
+    /* Disable MPU */
     mrc p15, 0, r0, c1, c0, 0       /* read SCTLR */
     bic r0, r0, #0x1                /* clear M bit */
     mcr p15, 0, r0, c1, c0, 0       /* write SCTLR */
@@ -59,7 +56,6 @@ __late_init:
     bx  r0
     .code   32
 #endif
-
     /*
      * Cached text initialization.
      * NOTE: It assumes that the size is a multiple of 4.
@@ -73,6 +69,7 @@ cached_text_loop:
     strlo   r0, [r2], #4
     blo     cached_text_loop
 
+#if 0
     /* Set MMU TTB0 base */
     ldr r0, =MMUTable               /* load MMU translation table base */
     orr r0, r0, #0x2                /* shareable, non-cacheable */
@@ -82,20 +79,15 @@ cached_text_loop:
     mov r0, #0xffffffff             /* all ones = manager, permissions ignored */
     mcr p15, 0, r0, c3, c0, 0       /* write DACR */
 
-    /* Enable mmu, icache and dcache */
+    /* Enable mpu, icache and dcache */
     mrc p15, 0, r0, c1, c0, 0       /* read SCTLR */
     orr r0, r0, #(0x1 << 12)        /* set I bit */
     orr r0, r0, #(0x1 << 2)         /* set C bit */
-    orr r0, r0, #(0x1 << 0)         /* set M bit */
+    //orr r0, r0, #(0x1 << 0)         /* set M bit */
     mcr p15, 0, r0, c1, c0, 0       /* write SCTLR */
-    dsb                             /* allow the MMU to start up */
+    dsb                             /* allow the MPU to start up */
     isb                             /* flush prefetch buffer */
-
-    /* Set SMP and FW bits */
-    mrc p15, 0, r0, c1, c0, 1       /* read ACTLR */
-    orr r0, r0, #(0x1 << 6)         /* set SMP bit */
-    orr r0, r0, #(0x1 << 0)         /* set FW bit */
-    mcr p15, 0, r0, c1, c0, 1       /* write ACTLR */
+#endif
 
     /* Allow full access to coprocessors */
     mrc p15, 0, r0, c1, c0, 2       /* read CPACR  */
@@ -111,12 +103,6 @@ cached_text_loop:
     mrc p15, 0, r0, c1, c0, 0       /* read SCTLR */
     orr r0, r0, #(0x1 << 11)        /* set Z bit */
     mcr p15, 0, r0, c1, c0, 0       /* write SCTLR */
-
-    /* Enable Dside prefetch and L2 prefetch hint */
-    mrc p15, 0, r0, c1, c0, 1       /* read ACTLR */
-    orr r0, r0, #(0x1 << 2)         /* enable Dside prefetch */
-    orr r0, r0, #(0x1 << 1)         /* enable L2 Prefetch hint */
-    mcr p15, 0, r0, c1, c0, 1       /* write ACTLR */
 
     /* Enable unaligned data access */
     mrc p15, 0, r0, c1, c0, 0       /* read SCTLR */
@@ -138,59 +124,5 @@ cached_text_loop:
 #else
     bx lr
 #endif
-
-/*
- *************************************************************************
- *
- * invalidate_dcache - invalidate the entire d-cache by set/way
- *
- * Note: for Cortex-A9, there is no cp instruction for invalidating
- * the whole D-cache. Need to invalidate each line.
- *
- *************************************************************************
- */
-invalidate_dcache:
-    mrc p15, 1, r0, c0, c0, 1       /* read CLIDR */
-    ands r3, r0, #0x7000000
-    mov r3, r3, lsr #23             /* cache level value (naturally aligned) */
-    beq finished
-    mov r10, #0                     /* start with level 0 */
-loop1:
-    add r2, r10, r10, lsr #1        /* work out 3xcachelevel */
-    mov r1, r0, lsr r2              /* bottom 3 bits are the Cache type for this level */
-    and r1, r1, #7                  /* get those 3 bits alone */
-    cmp r1, #2
-    blt skip                        /* no cache or only instruction cache at this level */
-    mcr p15, 2, r10, c0, c0, 0      /* write the Cache Size selection register */
-    isb                             /* isb to sync the change to the CacheSizeID reg */
-    mrc p15, 1, r1, c0, c0, 0       /* reads current Cache Size ID register */
-    and r2, r1, #7                  /* extract the line length field */
-    add r2, r2, #4                  /* add 4 for the line length offset (log2 16 bytes) */
-    ldr r4, =0x3ff
-    ands r4, r4, r1, lsr #3         /* r4 is the max number on the way size (right aligned) */
-    clz r5, r4                      /* r5 is the bit position of the way size increment */
-    ldr r7, =0x7fff
-    ands r7, r7, r1, lsr #13        /* r7 is the max number of the index size (right aligned) */
-loop2:
-    mov r9, r4                      /* r9 working copy of the max way size (right aligned) */
-loop3:
-    orr r11, r10, r9, lsl r5        /* factor in the way number and cache number into r11 */
-    orr r11, r11, r7, lsl r2        /* factor in the index number */
-    mcr p15, 0, r11, c7, c6, 2      /* invalidate by set/way */
-    subs r9, r9, #1                 /* decrement the way number */
-    bge loop3
-    subs r7, r7, #1                 /* decrement the index */
-    bge loop2
-skip:
-    add r10, r10, #2                /* increment the cache number */
-    cmp r3, r10
-    bgt loop1
-
-finished:
-    mov r10, #0                     /* swith back to cache level 0 */
-    mcr p15, 2, r10, c0, c0, 0      /* select current cache level in cssr */
-    dsb
-    isb
-    b invalidate_dcache_ret
 
 .end
