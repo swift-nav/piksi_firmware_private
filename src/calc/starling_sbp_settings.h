@@ -13,7 +13,7 @@
 #ifndef STARLING_SBP_SETTINGS_H_
 #define STARLING_SBP_SETTINGS_H_
 
-#include "sbp_settings_client.h"
+#include "sbp_duplex_link.h"
 
 /* Given an SBP link, this function will try to connect a bunch of
  * settings relevant for the Starling engine. */
