@@ -42,10 +42,8 @@ static const double glo_l2_isc[GLO_MAX_FCN] =
   {-2.9,-2.3,-1.8,-1.2,-1.2,-1.2,-0.8,+0.0,+0.2,-0.2,+0.8,+0.8,+0.9,+1.0};
 
 /* GLO carrier biases per FCN (cycles) */
-static const double glo_l1_carrier_corr[GLO_MAX_FCN] =
-  {+0.51,+0.44,+0.36,+0.30,+0.22,+0.14,+0.07,-0.00,-0.07,-0.14,-0.21,-0.27,-0.34,-0.38};
-static const double glo_l2_carrier_corr[GLO_MAX_FCN] =
-  {+0.33,+0.28,+0.24,+0.20,+0.14,+0.09,+0.05,+0.00,-0.05,-0.10,-0.14,-0.19,-0.23,-0.26};
+static const double glo_l1_carrier_corr = +0.004;
+static const double glo_l2_carrier_corr = +0.011;
 
 /* clang-format on */
 
@@ -69,14 +67,14 @@ void apply_isc_table(obs_array_t *obs_array) {
       case CODE_GLO_L1OF: {
         u8 fcn_index = glo_map_get_fcn(obs->sid) - GLO_MIN_FCN;
         pseudorange_corr = glo_l1_isc[fcn_index];
-        carrier_phase_corr = glo_l1_carrier_corr[fcn_index];
+        carrier_phase_corr = glo_l1_carrier_corr * fcn_index;
         break;
       }
 
       case CODE_GLO_L2OF: {
         u8 fcn_index = glo_map_get_fcn(obs->sid) - GLO_MIN_FCN;
         pseudorange_corr = glo_l2_isc[fcn_index];
-        carrier_phase_corr = glo_l2_carrier_corr[fcn_index];
+        carrier_phase_corr = glo_l2_carrier_corr * fcn_index;
         break;
       }
 
