@@ -25,7 +25,6 @@
 #include "error.h"
 #include "factory_data.h"
 #include "frontend.h"
-#include "hal/piksi_systime.h"
 #include "imu.h"
 #include "main.h"
 #include "manage_pv.h"
@@ -161,15 +160,17 @@ static void nap_version_check(void) {
   }
 }
 
-void nap_auth_setup(void) { nap_unlock(factory_params.nap_key); }
+void nap_auth_setup(void) {
+  nap_unlock(factory_params.nap_key);
+  /* Sleep to allow the NAP time to process the AES encrypt operation */
+  chThdSleep(MS2ST(NAP_CHECK_SLEEP_MS));
+}
 
 /* Check NAP authentication status. Print error message if authentication
  * has failed. This must be done after the USARTs and SBP subsystems are
  * set up, so that SBP messages can be sent and received.
  */
 void nap_auth_check(void) {
-  /* Sleep to allow the NAP time to process the AES encrypt operation */
-  chThdSleep(MS2ST(NAP_CHECK_SLEEP_MS));
   if (nap_locked()) {
     /* Create strings for log_error */
     char dna[NAP_DNA_LENGTH * 2 + 1];
