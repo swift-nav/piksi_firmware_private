@@ -35,7 +35,6 @@ static bds_sat_health_indicators_t bds_shis[NUM_SATS_BDS];
 static gal_sat_health_indicators_t gal_shis[NUM_SATS_GAL];
 static gps_sat_health_indicators_t qzs_shis[NUM_SATS_QZS];
 
-
 static void bool_shi_2_str(bool set, bool shi, char* str) {
   str[0] = set ? (shi ? 'Y' : 'N') : '?';
   str[1] = 0;
@@ -242,7 +241,7 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
 
       if ((shi_qzs.shi_ephemeris_set &&
            check_6bit_health_word(shi_qzs.shi_ephemeris, sid.code)) &&
-          (shi_qzs.shi_lnav_how_alert_set && shi_qzs.shi_lnav_how_alert) ) {
+          (shi_qzs.shi_lnav_how_alert_set && shi_qzs.shi_lnav_how_alert)) {
         return CODE_NAV_STATE_VALID;
       }
       return CODE_NAV_STATE_UNKNOWN;
@@ -340,7 +339,6 @@ void shm_qzss_set_shi_ephemeris(u16 sat, u8 new_value) {
   qzs_shis[sat - QZS_FIRST_PRN].shi_ephemeris_set = true;
   chMtxUnlock(&shm_data_access);
 }
-
 
 /** Update shi_page25 for GPS satellite.
  *  Refer to swiftnav/shm.h for details of SHIs.

@@ -10,7 +10,6 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-
 #include <swiftnav/logging.h>
 
 #include "decode.h"
@@ -26,8 +25,8 @@
 #include "signal_db/signal_db.h"
 #include "timing/timing.h"
 #include "track/track_decode.h"
-#include "track/track_sid_db.h"
 #include "track/track_flags.h"
+#include "track/track_sid_db.h"
 #include "track/track_state.h"
 
 #include <assert.h>
@@ -141,13 +140,6 @@ static void decoder_qzss_l1ca_process(
     shm_qzss_set_shi_ephemeris(l1ca_sid.sat, dd.shi_ephemeris);
   }
 
-  // /* Health indicates CODE_NAV_STATE_INVALID for L2CM */
-  // gnss_signal_t l2cm_sid = construct_sid(CODE_QZS_L2CM, l1ca_sid.sat);
-  // if (shm_signal_unhealthy(l2cm_sid)) {
-  //   /* Clear CNAV data and TOW cache */
-  //   erase_cnav_data(l2cm_sid, l1ca_sid);
-  // }
-
   /* Health indicates CODE_NAV_STATE_INVALID */
   if (shm_signal_unhealthy(l1ca_sid)) {
     /* Clear NDB and TOW cache */
@@ -168,21 +160,6 @@ static void decoder_qzss_l1ca_process(
                     "New ephemeris received [%" PRId16 ", %lf]",
                     dd.ephemeris.toe.wn,
                     dd.ephemeris.toe.tow);
-    eph_new_status_t r = ephemeris_new(&dd.ephemeris);
 
-    switch (r) {
-      case EPH_NEW_OK:
-      case EPH_NEW_ERR:
-        break;
-      case EPH_NEW_XCORR:
-      //   log_info_mesid(channel_info->mesid,
-      //                  "Channel cross-correlation detected "
-      //                  "(ephe/ephe or ephe/alm check)");
-      //   /* Ephemeris cross-correlates with almanac of another SV */
-      //   tracker_set_xcorr_flag(channel_info->mesid);
-        break;
-      default:
-        break;
-    }
   }
 }
