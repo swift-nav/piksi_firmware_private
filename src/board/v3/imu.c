@@ -157,6 +157,21 @@ static void imu_thread(void *arg) {
       timeout = MS2ST(200) / (1 << (max_rate - 4));
     }
     s32 ret = chBSemWaitTimeout(&imu_irq_sem, timeout);
+
+    /*                              */
+    /*         WDT TESTING          */
+    /*                              */
+    static int count = 0;
+    for(int i=0; i<count; i++) {
+      for(int k=0; k<1000000; k++) {
+        nap_sample_time_to_count(nap_tc);
+      }
+    }
+    count++;
+    /*                              */
+    /*         WDT TESTING          */
+    /*                              */
+
     if (ret == MSG_TIMEOUT) {
       if (!rate_change_in_progress) {
         log_info("IMU IRQ not received before timeout.");

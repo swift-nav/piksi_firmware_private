@@ -76,6 +76,17 @@ int main(void) {
   log_info("pfwp_build_id: " GIT_VERSION "");
   log_info("pfwp_build_date: " __DATE__ " " __TIME__ "");
 
+  /*                              */
+  /*         WDT TESTING          */
+  /*                              */
+  unsigned int reboot_state = (*(volatile unsigned int *)0xF8000258);
+  static char reboot_state_string[64] = {0};
+  sprintf(reboot_state_string, "%X", reboot_state);
+  log_info("reboot_state: %s", reboot_state_string);
+  /*                              */
+  /*         WDT TESTING          */
+  /*                              */
+
   firmware_starling_preinit();
 
   init();
@@ -141,6 +152,17 @@ int main(void) {
 
   manage_acq_setup();
   system_monitor_setup();
+
+  /*                              */
+  /*         WDT TESTING          */
+  /*                              */
+  unsigned int wdg_reset_state = (*(volatile unsigned int *)0xF800024C);
+  static char wdg_reset_state_string[64] = {0};
+  sprintf(wdg_reset_state_string, "%X", wdg_reset_state);
+  log_info("wdg_reset_state: %s", wdg_reset_state_string);
+  /*                              */
+  /*         WDT TESTING          */
+  /*                              */
 
   nmea_setup();
 
