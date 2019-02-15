@@ -60,7 +60,7 @@ void starling_sbp_link_setup(void) {
     return;
   }
 
-  sbp_link = malloc(sizeof(sbp_link));
+  sbp_link = malloc(sizeof(*sbp_link));
   if (!sbp_link) {
     log_error("failed to alloc SBP link");
   }
