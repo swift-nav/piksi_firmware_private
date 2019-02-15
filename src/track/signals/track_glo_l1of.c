@@ -80,7 +80,6 @@ static void tracker_glo_l1of_update(tracker_t *tracker) {
     }
     if (!glo_l2of_active(sid)) {
       l2of_healthy = false;
-      return;
     }
   }
 
