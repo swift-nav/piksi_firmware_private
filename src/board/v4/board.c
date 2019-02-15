@@ -29,9 +29,6 @@
 #define CHAN_NOT_PRESENT_GAIN 0x7f
 
 const PALConfig pal_default_config;
-const WDGConfig board_wdg_config = {
-    .period_ms = 30000,
-};
 
 static void cycle_counter_init(void) {
   /* Set up TTC0_2 with period of ZYNQ7000_CPU_1x_FREQUENCY_Hz / 2^10 */

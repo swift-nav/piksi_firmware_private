@@ -37,7 +37,6 @@
 #include "simulator/simulator.h"
 
 #define WATCHDOG_THREAD_PERIOD_MS 15000
-extern const WDGConfig board_wdg_config;
 
 #define WATCHDOG_NOTIFY_FLAG(id) (1UL << (id))
 #define WATCHDOG_NOTIFY_FLAG_ALL \
@@ -196,8 +195,6 @@ static void watchdog_thread(void *arg) {
      take a little while to get going */
   chThdSleepMilliseconds(WATCHDOG_THREAD_PERIOD_MS);
 
-  if (use_wdt) wdgStart(&WDGD1, &board_wdg_config);
-
   while (TRUE) {
     /* Wait for all threads to set a flag indicating they are still
        alive and performing their function */
@@ -216,13 +213,11 @@ static void watchdog_thread(void *arg) {
           (unsigned int)threads_dead,
           use_wdt ? "imminent" : "disabled");
       debug_threads();
-    } else {
-      if (use_wdt) wdgReset(&WDGD1);
     }
   }
 }
 
-void system_monitor_pre_init(void) { wdgStart(&WDGD1, &board_wdg_config); }
+void system_monitor_pre_init(void) { }
 
 void system_monitor_setup(void) {
   SETTING("system_monitor",
