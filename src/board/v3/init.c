@@ -57,7 +57,7 @@
 #define IMAGE_HARDWARE_V3_EVT2 0x00000012
 #define IMAGE_HARDWARE_V3_PROD 0x00000013
 
-#define NAP_CHECK_SLEEP_US 4711
+#define NAP_CHECK_SLEEP_MS 1
 
 static struct {
   uint32_t hardware;
@@ -168,7 +168,8 @@ void nap_auth_setup(void) { nap_unlock(factory_params.nap_key); }
  * set up, so that SBP messages can be sent and received.
  */
 void nap_auth_check(void) {
-  piksi_systime_sleep_us_s(NAP_CHECK_SLEEP_US);
+  /* Sleep to allow the NAP time to process the AES encrypt operation */
+  chThdSleep(MS2ST(NAP_CHECK_SLEEP_MS));
   if (nap_locked()) {
     /* Create strings for log_error */
     char dna[NAP_DNA_LENGTH * 2 + 1];
