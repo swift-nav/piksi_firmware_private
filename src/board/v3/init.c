@@ -25,7 +25,6 @@
 #include "error.h"
 #include "factory_data.h"
 #include "frontend.h"
-#include "hal/piksi_systime.h"
 #include "imu.h"
 #include "main.h"
 #include "manage_pv.h"
@@ -169,7 +168,7 @@ void nap_auth_setup(void) { nap_unlock(factory_params.nap_key); }
  */
 void nap_auth_check(void) {
   /* Sleep to allow the NAP time to process the AES encrypt operation */
-  chThdSleep(MS2ST(NAP_CHECK_SLEEP_MS));
+  chThdSleepMilliseconds(NAP_CHECK_SLEEP_MS);
   if (nap_locked()) {
     /* Create strings for log_error */
     char dna[NAP_DNA_LENGTH * 2 + 1];
