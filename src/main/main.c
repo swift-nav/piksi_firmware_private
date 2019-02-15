@@ -46,6 +46,8 @@
 #include "track/track_state.h"
 #include "version.h"
 
+#include "fault_fuzz/fault_fuzz.h"
+
 extern void ext_setup(void);
 
 /* References:
@@ -150,6 +152,10 @@ int main(void) {
 
   ext_setup();
   pps_setup();
+
+#if !defined(NDEBUG)
+  fault_fuzz_setup();
+#endif
 
   SETTING_READONLY(
       "system_info", "sbp_sender_id", sender_id_str, SETTINGS_TYPE_STRING);
