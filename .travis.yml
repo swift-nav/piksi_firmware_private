@@ -3,7 +3,7 @@ sudo: required
 
 language: cpp
 git:
-  depth: 1500
+  depth: 1200
 notifications:
   slack:
     rooms:
