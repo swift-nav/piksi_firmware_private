@@ -79,8 +79,7 @@ static void decoder_qzss_l2c_process(const decoder_channel_info_t *channel_info,
                                      decoder_data_t *decoder_data) {
   (void)decoder_data;
 
-  //   /* Process incoming nav bits */
+  /* Process incoming nav bits */
   nav_bit_t nav_bit;
-  while (tracker_nav_bit_received(channel_info->tracking_channel, &nav_bit)) {
-  }
+  while (tracker_nav_bit_received(channel_info->tracking_channel, &nav_bit)) {}
 }
