@@ -56,6 +56,8 @@
 #define IMAGE_HARDWARE_V3_EVT2 0x00000012
 #define IMAGE_HARDWARE_V3_PROD 0x00000013
 
+#define NAP_CHECK_SLEEP_MS 1
+
 static struct {
   uint32_t hardware;
   uint32_t timestamp;
@@ -158,7 +160,11 @@ static void nap_version_check(void) {
   }
 }
 
-void nap_auth_setup(void) { nap_unlock(factory_params.nap_key); }
+void nap_auth_setup(void) {
+  nap_unlock(factory_params.nap_key);
+  /* Sleep to allow the NAP time to process the AES encrypt operation */
+  chThdSleepMilliseconds(NAP_CHECK_SLEEP_MS);
+}
 
 /* Check NAP authentication status. Print error message if authentication
  * has failed. This must be done after the USARTs and SBP subsystems are
