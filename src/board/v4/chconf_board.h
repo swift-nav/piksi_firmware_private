@@ -75,7 +75,7 @@ extern uint64_t g_ctime;
 /**
  * @brief   FPU configuration
  */
-#define ARM_FPU neon
+#define ARM_FPU vfp3
 
 #define _CCM
 #define WORKING_AREA_CCM(s, n) THD_WORKING_AREA(s, n) _CCM
