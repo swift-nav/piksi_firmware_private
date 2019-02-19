@@ -751,8 +751,8 @@ static THD_FUNCTION(initialize_and_run_starling, arg) {
 
 static void setup_solution_handlers(void) {
   static SolutionHandler handler = {
-    .handle_low_latency = send_solution_low_latency,
-    .handle_time_matched = send_solution_time_matched,
+      .handle_low_latency = send_solution_low_latency,
+      .handle_time_matched = send_solution_time_matched,
   };
   starling_add_solution_handler(&handler);
 }
