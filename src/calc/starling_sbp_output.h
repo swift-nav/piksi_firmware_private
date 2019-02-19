@@ -15,6 +15,14 @@
 
 #include <starling/starling.h>
 
+/* Provide an SBP duplex implementation and Starling will proceed to transmit
+ * solutions over it. At the moment, only a single output connection is
+ * supported at a time. 
+ *
+ * TODO(kevin) Once in Starling C++, multiple outputs can be supported because
+ * the linked-list implementation is available: "llstack". */
+//void starling_connect_sbp_output(const SbpDuplexLink *sbp_output_link);
+
 /* Set of messages sent by the Piksi Multi integration of Starling. */
 typedef struct {
   msg_gps_time_t gps_time;
