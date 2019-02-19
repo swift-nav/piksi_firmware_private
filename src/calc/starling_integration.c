@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2018 Swift Navigation Inc.
- * Contact: Kevin Dade <kevin@swiftnav.com>
+ * Contact: Swift Navigation <dev@swiftnav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -27,7 +27,9 @@
 #include "calc/calc_pvt_me.h"
 #include "calc/sbp_settings_client.h"
 #include "calc/starling_integration.h"
+#include "calc/starling_sbp_link.h"
 #include "calc/starling_sbp_output.h"
+#include "calc/starling_sbp_settings.h"
 #include "cfg/init.h"
 #include "ndb/ndb.h"
 #include "sbp/sbp.h"
@@ -53,31 +55,9 @@
 
 #define STARLING_BASE_SENDER_ID_DEFAULT 0
 
-#define DFLT_CORRECTION_AGE_MAX_S 30
-
-/*******************************************************************************
- * Globals
- ******************************************************************************/
-bool send_heading = false;
-
-/* TODO(kevin) what to do about this? */
-bool disable_raim = false;
-
 /*******************************************************************************
  * Locals
  ******************************************************************************/
-static bool enable_glonass = true;
-static bool enable_galileo = true;
-static bool enable_beidou = true;
-
-static dgnss_filter_t dgnss_filter_mode = FILTER_FIXED;
-static dgnss_solution_mode_t dgnss_soln_mode = STARLING_SOLN_MODE_LOW_LATENCY;
-
-static double heading_offset = 0.0;
-static float glonass_downweight_factor = 4.0;
-
-static u32 corr_age_max = DFLT_CORRECTION_AGE_MAX_S;
-
 static MUTEX_DECL(last_sbp_lock);
 static gps_time_t last_dgnss;
 static gps_time_t last_spp;
@@ -92,8 +72,6 @@ static soln_dgnss_stats_t last_dgnss_stats = {.systime = PIKSI_SYSTIME_INIT,
  * in any RTK solutions. */
 static MUTEX_DECL(current_base_sender_id_lock);
 static u8 current_base_sender_id = STARLING_BASE_SENDER_ID_DEFAULT;
-
-static SbpSettingsClient *settings_client = NULL;
 
 /*******************************************************************************
  * Output Callback Helpers
@@ -574,83 +552,6 @@ bool starling_integration_simulation_enabled(void) {
  * Settings Update Helpers
  ******************************************************************************/
 
-/* Check that -180.0 <= new heading_offset setting value <= 180.0. */
-static int heading_offset_changed(void *ctx) {
-  (void)ctx;
-
-  if (fabs(heading_offset) > 180.0) {
-    log_error(
-        "Invalid heading offset setting of %3.1f, max is %3.1f, min is %3.1f",
-        heading_offset,
-        180.0,
-        -180.0);
-    return SETTINGS_WR_VALUE_REJECTED;
-  }
-
-  return SETTINGS_WR_OK;
-}
-
-static int enable_fix_mode(void *ctx) {
-  (void)ctx;
-
-  starling_set_is_fix_enabled(FILTER_FIXED == dgnss_filter_mode);
-
-  return SETTINGS_WR_OK;
-}
-
-static int set_dgnss_soln_mode(void *ctx) {
-  (void)ctx;
-
-  starling_set_solution_mode(dgnss_soln_mode);
-
-  return SETTINGS_WR_OK;
-}
-
-static int set_max_age(void *ctx) {
-  (void)ctx;
-
-  if (0 >= corr_age_max) {
-    log_error("Invalid correction age max value %" PRIu32, corr_age_max);
-    return SETTINGS_WR_SETTING_REJECTED;
-  }
-
-  starling_set_max_correction_age(corr_age_max);
-
-  return SETTINGS_WR_OK;
-}
-
-static int set_is_glonass_enabled(void *ctx) {
-  (void)ctx;
-
-  starling_set_is_glonass_enabled(enable_glonass);
-
-  return SETTINGS_WR_OK;
-}
-
-static int set_is_galileo_enabled(void *ctx) {
-  (void)ctx;
-
-  starling_set_is_galileo_enabled(enable_galileo);
-
-  return SETTINGS_WR_OK;
-}
-
-static int set_is_beidou_enabled(void *ctx) {
-  (void)ctx;
-
-  starling_set_is_beidou_enabled(enable_beidou);
-
-  return SETTINGS_WR_OK;
-}
-
-static int set_glonass_downweight_factor(void *ctx) {
-  (void)ctx;
-
-  starling_set_glonass_downweight_factor(glonass_downweight_factor);
-
-  return SETTINGS_WR_OK;
-}
-
 static void reset_filters_callback(u16 sender_id,
                                    u8 len,
                                    u8 msg[],
@@ -782,161 +683,6 @@ void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
 /*******************************************************************************
  * Starling Initialization
  ******************************************************************************/
-static int impl_sbp_send(uint16_t msg_type, uint8_t len, uint8_t *payload) {
-  return (int)sbp_send_msg(msg_type, len, payload);
-}
-
-static int impl_sbp_send_from(uint16_t msg_type,
-                              uint8_t len,
-                              uint8_t *payload,
-                              uint16_t sender) {
-  return (int)sbp_send_msg_(msg_type, len, payload, sender);
-}
-
-static int impl_sbp_register_cb(uint16_t msg_type,
-                                sbp_msg_callback_t cb,
-                                sbp_msg_callbacks_node_t *node,
-                                void *context) {
-  sbp_register_cbk_with_closure(msg_type, cb, node, context);
-  return 0;
-}
-
-static int impl_sbp_unregister_cb(sbp_msg_callbacks_node_t *node) {
-  sbp_remove_cbk(node);
-  return 0;
-}
-
-static void init_settings_client(void) {
-  if (settings_client) {
-    log_error("Unexpected attempt to reinitialize settings client.");
-    return;
-  }
-
-  const SbpDuplexLink sbp_link = {
-      .loc_sender_id = sender_id_get(),
-      .fwd_sender_id = MSG_FORWARD_SENDER_ID,
-      .send = impl_sbp_send,
-      .send_from = impl_sbp_send_from,
-      .register_cb = impl_sbp_register_cb,
-      .unregister_cb = impl_sbp_unregister_cb,
-  };
-
-  settings_client = sbp_settings_client_create(&sbp_link);
-  if (!settings_client) {
-    log_error("Unable to create settings client.");
-  }
-}
-
-static void initialize_starling_settings(void) {
-  /* Make sure we have the client prepared. */
-  init_settings_client();
-  assert(settings_client);
-
-  /* Prepare enums we will use for Starling settings. */
-  static const char *const dgnss_filter_enum[] = {"Float", "Fixed", NULL};
-  settings_type_t dgnss_filter_setting;
-  sbp_settings_client_register_enum(
-      settings_client, dgnss_filter_enum, &dgnss_filter_setting);
-
-  static const char *const dgnss_soln_mode_enum[] = {
-      "Low Latency", "Time Matched", "No DGNSS", NULL};
-  settings_type_t dgnss_soln_mode_setting;
-  sbp_settings_client_register_enum(
-      settings_client, dgnss_soln_mode_enum, &dgnss_soln_mode_setting);
-
-  /* Register actual settings. */
-  sbp_settings_client_register(settings_client,
-                               "solution",
-                               "dgnss_filter",
-                               &dgnss_filter_mode,
-                               sizeof(dgnss_filter_mode),
-                               dgnss_filter_setting,
-                               enable_fix_mode,
-                               NULL);
-
-  sbp_settings_client_register(settings_client,
-                               "solution",
-                               "correction_age_max",
-                               &corr_age_max,
-                               sizeof(corr_age_max),
-                               SETTINGS_TYPE_INT,
-                               set_max_age,
-                               NULL);
-
-  sbp_settings_client_register(settings_client,
-                               "solution",
-                               "enable_glonass",
-                               &enable_glonass,
-                               sizeof(enable_glonass),
-                               SETTINGS_TYPE_BOOL,
-                               set_is_glonass_enabled,
-                               NULL);
-
-  sbp_settings_client_register(settings_client,
-                               "solution",
-                               "enable_galileo",
-                               &enable_galileo,
-                               sizeof(enable_galileo),
-                               SETTINGS_TYPE_BOOL,
-                               set_is_galileo_enabled,
-                               NULL);
-
-  sbp_settings_client_register(settings_client,
-                               "solution",
-                               "enable_beidou",
-                               &enable_beidou,
-                               sizeof(enable_beidou),
-                               SETTINGS_TYPE_BOOL,
-                               set_is_beidou_enabled,
-                               NULL);
-
-  sbp_settings_client_register(settings_client,
-                               "solution",
-                               "glonass_measurement_std_downweight_factor",
-                               &glonass_downweight_factor,
-                               sizeof(glonass_downweight_factor),
-                               SETTINGS_TYPE_FLOAT,
-                               set_glonass_downweight_factor,
-                               NULL);
-
-  sbp_settings_client_register(settings_client,
-                               "solution",
-                               "dgnss_solution_mode",
-                               &dgnss_soln_mode,
-                               sizeof(dgnss_soln_mode),
-                               dgnss_soln_mode_setting,
-                               set_dgnss_soln_mode,
-                               NULL);
-
-  sbp_settings_client_register(settings_client,
-                               "solution",
-                               "heading_offset",
-                               &heading_offset,
-                               sizeof(heading_offset),
-                               SETTINGS_TYPE_FLOAT,
-                               heading_offset_changed,
-                               NULL);
-
-  /* These two are outliers and require special treatment. */
-  sbp_settings_client_register(settings_client,
-                               "solution",
-                               "send_heading",
-                               &send_heading,
-                               sizeof(send_heading),
-                               SETTINGS_TYPE_BOOL,
-                               NULL,
-                               NULL);
-
-  sbp_settings_client_register(settings_client,
-                               "solution",
-                               "disable_raim",
-                               &disable_raim,
-                               sizeof(disable_raim),
-                               SETTINGS_TYPE_BOOL,
-                               NULL,
-                               NULL);
-}
-
 static void profile_low_latency_thread(enum ProfileDirective directive) {
   static float avg_run_time_s = 0.1f;
   static float diff_run_time_s = 0.1f;
@@ -970,6 +716,7 @@ static void profile_low_latency_thread(enum ProfileDirective directive) {
   }
 }
 
+/******************************************************************************/
 static THD_FUNCTION(initialize_and_run_starling, arg) {
   (void)arg;
   chRegSetThreadName("starling");
@@ -1014,6 +761,13 @@ static void setup_solution_handlers(void) {
  * Starling Integration API
  ******************************************************************************/
 void starling_calc_pvt_setup() {
+  /* Setup the Starling SBP link. */
+  starling_sbp_link_setup();
+  assert(sbp_link);
+
+  /* Let Starling register all of its settings over SBP. */
+  starling_register_sbp_settings(sbp_link);
+
   /* Connect the missing external dependencies for the Starling engine. */
   external_functions_t extfns = {
       .cache_read_ephemeris = cache_read_ephemeris,
@@ -1029,9 +783,6 @@ void starling_calc_pvt_setup() {
   starling_set_external_functions_implementation(&extfns);
 
   setup_solution_handlers();
-
-  /* Init settings here in the main thread to avoid thread safety issues */
-  initialize_starling_settings();
 
   /* Start main starling thread. */
   platform_thread_create(THREAD_ID_STARLING, initialize_and_run_starling);
