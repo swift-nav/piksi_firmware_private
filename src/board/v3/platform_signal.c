@@ -20,7 +20,6 @@
 #include "decode/decode_gps_l1ca.h"
 #include "decode/decode_gps_l2c.h"
 #include "decode/decode_qzss_l1ca.h"
-#include "decode/decode_qzss_l2c.h"
 #include "decode/decode_sbas_l1.h"
 #include "ndb/ndb.h"
 #include "track/track_sid_db.h"
@@ -47,7 +46,6 @@ void platform_track_setup(void) {
   track_qzss_l1ca_register();
 #endif
 #if defined CODE_QZSS_L2C_SUPPORT && CODE_QZSS_L2C_SUPPORT > 0
-  track_qzss_l2c_register();
 #endif
 #if defined CODE_BDS2_B1_SUPPORT && CODE_BDS2_B1_SUPPORT > 0
   track_bds2_b11_register();
