@@ -2,6 +2,8 @@ dist: trusty
 sudo: required
 
 language: cpp
+git:
+  depth: 1200
 notifications:
   slack:
     rooms:
