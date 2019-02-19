@@ -12,7 +12,7 @@
 #include <assert.h>
 #include <string.h>
 
-#include <libswiftnav/logging.h>
+#include <swiftnav/logging.h>
 
 #include "decode.h"
 #include "decode_common.h"
@@ -76,7 +76,7 @@ static void decoder_gal_e5_process(const decoder_channel_info_t *channel_info,
   nav_bit_t nav_bit;
   u8 channel = channel_info->tracking_channel;
 
-  while (tracker_nav_bit_get(channel, &nav_bit)) {
+  while (tracker_nav_bit_received(channel, &nav_bit)) {
     ;
   } /* while (tracker_nav_bit_get(channel, &nav_bit)) */
 }

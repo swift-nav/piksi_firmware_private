@@ -24,9 +24,9 @@
 #include <platform_track.h>
 
 /* Libraries */
-#include <libswiftnav/constants.h>
-#include <libswiftnav/logging.h>
-#include <libswiftnav/signal.h>
+#include <swiftnav/constants.h>
+#include <swiftnav/logging.h>
+#include <swiftnav/signal.h>
 
 /* STD headers */
 #include <assert.h>
@@ -86,7 +86,7 @@ void do_qzss_l1_to_l5_handover(u32 sample_count,
       .mesid = mesid_L5,
       .sample_count = sample_count,
       /* recalculate L5 Doppler freq from L1 */
-      .carrier_freq = carrier_freq * QZS_L5_HZ / QZS_L1_HZ,
+      .doppler_hz = carrier_freq * QZS_L5_HZ / QZS_L1_HZ,
       .code_phase = fmod(code_phase * code_to_chip_rate(CODE_QZS_L5I) /
                              code_to_chip_rate(CODE_QZS_L1CA),
                          code_to_chip_count(CODE_QZS_L5I)),

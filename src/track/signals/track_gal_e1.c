@@ -94,7 +94,7 @@ static void tracker_gal_e1_update(tracker_t *tracker) {
     gal_e1_to_e5_handover(tracker->sample_count,
                           tracker->mesid.sat,
                           tracker->code_phase_prompt,
-                          tracker->carrier_freq,
+                          tracker->doppler_hz,
                           tracker->cn0);
   }
 }

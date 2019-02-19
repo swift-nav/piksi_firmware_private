@@ -13,15 +13,10 @@
 #ifndef BDS_PRNS_H
 #define BDS_PRNS_H
 
-<<<<<<< HEAD:src/soft_macq/bds2_prns.h
 #include <swiftnav/common.h>
 #include <swiftnav/constants.h>
 #include <swiftnav/signal.h>
-=======
-#include <libswiftnav/common.h>
-#include <libswiftnav/constants.h>
-#include <libswiftnav/signal.h>
->>>>>>> 9199706e... squashed:src/soft_macq/bds_prns.h
+#include <swiftnav/constants.h>
 
 #include "prns.h"
 

@@ -22,7 +22,6 @@
 #include "signals/track_glo_l1of.h"
 #include "signals/track_glo_l2of.h"
 #include "signals/track_gps_l1ca.h"
-#include "signals/track_gps_l1ca_aux.h"
 #include "signals/track_gps_l2c.h"
 #include "signals/track_gps_l5.h"
 #include "signals/track_qzss_l1ca.h"

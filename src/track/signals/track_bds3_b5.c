@@ -24,9 +24,9 @@
 #include <platform_track.h>
 
 /* Libraries */
-#include <libswiftnav/constants.h>
-#include <libswiftnav/logging.h>
-#include <libswiftnav/signal.h>
+#include <swiftnav/constants.h>
+#include <swiftnav/logging.h>
+#include <swiftnav/signal.h>
 
 /* STD headers */
 #include <assert.h>
@@ -123,7 +123,7 @@ void bds_b1_to_b5_handover(u32 sample_count,
       .mesid = mesid_B5,
       .sample_count = sample_count,
       /* recalculate doppler freq for B2a from B1I */
-      .carrier_freq = carrier_freq * GPS_L5_HZ / BDS2_B11_HZ,
+      .doppler_hz = carrier_freq * GPS_L5_HZ / BDS2_B11_HZ,
       .code_phase = fmod(code_phase * code_to_chip_rate(CODE_GPS_L5I) /
                              code_to_chip_rate(CODE_BDS2_B1),
                          code_to_chip_count(CODE_GPS_L5I)),

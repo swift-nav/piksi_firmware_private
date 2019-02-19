@@ -636,7 +636,7 @@ u32 mesid_to_lfsr0_init(const me_gnss_signal_t mesid) {
       ret = bds3_b2a_prns_init_values[mesid.sat - BDS_FIRST_PRN] & 0x1FFF;
       break;
     case CODE_GPS_L5I:
-      ret = 0xFFFFFFFF; /* 13 bit, all 1's */
+      ret = gps_l5i_prns_init_values[mesid.sat - GPS_FIRST_PRN] & 0x1FFF;
       break;
     case CODE_GAL_E5I:
       ret = gal_e5i_prns_init_values[mesid.sat - GAL_FIRST_PRN] & 0x3FFF;

@@ -24,9 +24,9 @@
 #include <platform_track.h>
 
 /* Libraries */
-#include <libswiftnav/constants.h>
-#include <libswiftnav/logging.h>
-#include <libswiftnav/signal.h>
+#include <swiftnav/constants.h>
+#include <swiftnav/logging.h>
+#include <swiftnav/signal.h>
 
 /* STD headers */
 #include <assert.h>
@@ -90,7 +90,7 @@ void do_l1ca_to_l5_handover(u32 sample_count,
       .mesid = mesid_L5,
       .sample_count = sample_count,
       /* recalculate doppler freq for L2 from L1 */
-      .carrier_freq = carrier_freq * GPS_L5_HZ / GPS_L1_HZ,
+      .doppler_hz = carrier_freq * GPS_L5_HZ / GPS_L1_HZ,
       .code_phase = fmod(code_phase * code_to_chip_rate(CODE_GPS_L5I) /
                              code_to_chip_rate(CODE_GPS_L1CA),
                          code_to_chip_count(CODE_GPS_L5I)),

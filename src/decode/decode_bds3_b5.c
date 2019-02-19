@@ -64,7 +64,7 @@ static void decoder_bds3_b5_init(const decoder_channel_info_t *channel_info,
   bds3_b5_decoder_data_t *data = decoder_data;
 
   memset(data, 0, sizeof(*data));
-  bds_nav_msg_init(&data->nav_msg, channel_info->mesid.sat);
+  bds_nav_msg_init(&data->nav_msg, &channel_info->mesid);
 }
 
 static void decoder_bds3_b5_process(const decoder_channel_info_t *channel_info,
@@ -76,7 +76,7 @@ static void decoder_bds3_b5_process(const decoder_channel_info_t *channel_info,
   nav_bit_t nav_bit;
   u8 channel = channel_info->tracking_channel;
 
-  while (tracker_nav_bit_get(channel, &nav_bit)) {
+  while (tracker_nav_bit_received(channel, &nav_bit)) {
     ;
   }
 }

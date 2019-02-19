@@ -105,7 +105,6 @@ BOARDSRC := \
         $(BOARDDIR)/peripherals/rf_clk.o \
         $(BOARDDIR)/peripherals/bmi160.o \
         $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l1ca.o \
-        $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l1ca_aux.o \
         $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l2c.o \
         $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l5.o \
         $(SWIFTNAV_ROOT)/src/track/signals/track_glo_l1of.o \
@@ -122,12 +121,10 @@ BOARDSRC := \
         $(SWIFTNAV_ROOT)/src/track/signals/track_gal_e5.o \
         $(SWIFTNAV_ROOT)/src/decode/decode_gps_l1ca.o \
         $(SWIFTNAV_ROOT)/src/decode/decode_gps_l2c.o \
-        $(SWIFTNAV_ROOT)/src/decode/decode_gps_l5.o \
         $(SWIFTNAV_ROOT)/src/decode/decode_glo_l1of.o \
         $(SWIFTNAV_ROOT)/src/decode/decode_glo_l2of.o \
         $(SWIFTNAV_ROOT)/src/decode/decode_sbas_l1.o \
         $(SWIFTNAV_ROOT)/src/decode/decode_qzss_l1ca.o \
-        $(SWIFTNAV_ROOT)/src/decode/decode_qzss_l5.o \
         $(SWIFTNAV_ROOT)/src/decode/decode_bds_b1.o \
         $(SWIFTNAV_ROOT)/src/decode/decode_bds_b2.o \
         $(SWIFTNAV_ROOT)/src/decode/decode_bds3_b5.o \
