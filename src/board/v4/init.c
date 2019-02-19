@@ -112,7 +112,7 @@ void init(void) {
   nap_timing_count();
 
   random_init();
-  xadc_init();
+  //xadc_init();
   antenna_init();
   manage_pv_setup();
   imu_init();

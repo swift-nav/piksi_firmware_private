@@ -86,7 +86,6 @@ BOARDSRC := \
         $(BOARDDIR)/clk_dac.o \
         $(BOARDDIR)/init.o \
         $(BOARDDIR)/io_support.o \
-        $(BOARDDIR)/xadc.o \
         $(BOARDDIR)/factory_data.o \
         $(BOARDDIR)/manage_pv.o \
         $(BOARDDIR)/imu.o \

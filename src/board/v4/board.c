@@ -58,12 +58,12 @@ void board_send_state(void) {
     fe_temp = -99.99;
   }
   dev_mon_msg.fe_temperature = (s16)(fe_temp * 100);
-
+#if 0
   dev_mon_msg.dev_vin = (s16)(xadc_vin_get() * 1000);
   dev_mon_msg.cpu_vint = (s16)(xadc_vccint_get() * 1000);
   dev_mon_msg.cpu_vaux = (s16)(xadc_vccaux_get() * 1000);
   dev_mon_msg.cpu_temperature = (s16)(xadc_die_temp_get() * 100);
-
+#endif
   sbp_send_msg(SBP_MSG_DEVICE_MONITOR, sizeof(dev_mon_msg), (u8*)&dev_mon_msg);
   nt1065_get_agc(gain_msg.rf_gain, gain_msg.if_gain);
   sbp_send_msg(SBP_MSG_FRONT_END_GAIN, sizeof(gain_msg), (u8*)&gain_msg);
