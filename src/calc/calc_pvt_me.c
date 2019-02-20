@@ -323,7 +323,7 @@ static void collect_measurements(u64 rec_tc,
 
       } else {
         gnss_signal_t sid = meas[n_collected].sid;
-        if (sid.code == CODE_BDS3_B5I) {
+        if ((sid.code == CODE_BDS3_B5I) || (sid.code == CODE_GPS_L5I)) {
           log_info_sid(sid,
                        "NAV_SUITABLE %d ELEVATION %d TOW_VALID %d HAS_EPHE %d "
                        "CN0_USABLE "

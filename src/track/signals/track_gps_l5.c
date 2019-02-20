@@ -141,11 +141,10 @@ static void tracker_gps_l5_update(tracker_t *tracker) {
   /* TOW manipulation on bit edge */
   tracker_tow_cache(tracker);
 
-  bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
-  bool in_phase_lock = (0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) &&
-                       (0 != (tracker->flags & TRACKER_FLAG_HAS_FLOCK));
+  bool settled = (0 == (tracker->flags & TRACKER_FLAG_RECOVERY_MODE));
+  bool inlock = tracker_has_all_locks(tracker);
 
-  if (in_phase_lock && confirmed) {
+  if (inlock && settled && (TOW_UNKNOWN != (tracker->TOW_ms))) {
     /* naturally synched as we track */
     tracker->bit_polarity = BIT_POLARITY_NORMAL;
     tracker_update_bit_polarity_flags(tracker);
