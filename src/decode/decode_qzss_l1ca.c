@@ -160,6 +160,5 @@ static void decoder_qzss_l1ca_process(
                     "New ephemeris received [%" PRId16 ", %lf]",
                     dd.ephemeris.toe.wn,
                     dd.ephemeris.toe.tow);
-
   }
 }
