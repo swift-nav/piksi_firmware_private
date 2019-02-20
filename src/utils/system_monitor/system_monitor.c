@@ -155,6 +155,12 @@ static void system_monitor_thread(void *arg) {
           log_warn(
               "Invalid surveyed position coordinates. No base position message "
               "will be sent.");
+          log_warn(
+              "Set Position X: %f, Calculated Position X: %f",base_ecef[0],lgf.position_solution.pos_ecef[0]);
+          log_warn(
+              "Set Position Y: %f, Calculated Position Y: %f",base_ecef[1],lgf.position_solution.pos_ecef[1]);
+          log_warn(
+              "Set Position Z: %f, Calculated Position Z: %f",base_ecef[2],lgf.position_solution.pos_ecef[2]);
         } else {
           sbp_send_msg(SBP_MSG_BASE_POS_ECEF,
                        sizeof(msg_base_pos_ecef_t),
