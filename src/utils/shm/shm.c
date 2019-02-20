@@ -227,6 +227,10 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
       }
       return CODE_NAV_STATE_UNKNOWN;
 
+    case CODE_BDS3_B5I:
+      return CODE_NAV_STATE_VALID;
+      break;
+
     case CODE_SBAS_L1CA:
       return CODE_NAV_STATE_UNKNOWN;
 

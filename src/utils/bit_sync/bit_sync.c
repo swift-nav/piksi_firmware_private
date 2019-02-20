@@ -18,8 +18,8 @@
 #include <math.h>
 #include <string.h>
 #include <swiftnav/bits.h>
-#include "soft_macq/gal_prns.h"
 #include "soft_macq/bds_prns.h"
+#include "soft_macq/gal_prns.h"
 
 
 #include "soft_macq/gal_prns.h"

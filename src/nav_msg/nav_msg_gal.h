@@ -137,7 +137,6 @@ typedef struct {
   u16 bit_cnt; /**< For navbit data integrity checks */
 } nav_msg_gal_inav_t;
 
-
 /**
  * Galileo F/NAV message decoder object.
  *
@@ -152,7 +151,6 @@ typedef struct {
   /**< Polarity of the data */
   s8 bit_polarity;
 } nav_msg_gal_fnav_t;
-
 
 typedef enum _inav_data_type_e {
   INAV_INCOMPLETE = -1,

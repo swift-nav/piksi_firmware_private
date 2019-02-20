@@ -172,7 +172,6 @@ void nap_track_init(u8 channel,
          (mesid.code == CODE_GAL_E1B) || (mesid.code == CODE_GAL_E7I) ||
          (mesid.code == CODE_GAL_E5I));
 
-
   swiftnap_tracking_wr_t *t = &NAP->TRK_CH_WR[channel];
   struct nap_ch_state *s = &nap_ch_desc[channel];
 

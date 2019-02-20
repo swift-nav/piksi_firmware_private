@@ -971,10 +971,6 @@ u32 get_tracking_channel_meas(u8 i,
     /* TTFF shortcut: accept also unconfirmed ephemeris candidate when there
      * is no confirmed candidate */
     if ((NDB_ERR_NONE != res) && (NDB_ERR_UNCONFIRMED_DATA != res)) {
-      if (CODE_GAL_E1B == sid.code) {
-        log_info_sid(sid, "e %08lx e->toe %lf e->fit_interval %ld",
-            (u32) ephe, ephe->toe.tow, ephe->fit_interval);
-      }
       ephe = NULL;
     }
 

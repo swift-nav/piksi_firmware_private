@@ -27,7 +27,9 @@
 #include "track/track_sid_db.h"
 
 /** BDS3 B2a decoder data */
-typedef struct { nav_msg_bds_t nav_msg; } bds3_b5_decoder_data_t;
+typedef struct {
+  nav_msg_bds_t nav_msg;
+} bds3_b5_decoder_data_t;
 
 static decoder_t bds3_b5_decoders[NUM_BDS3_B5_DECODERS];
 static bds3_b5_decoder_data_t

@@ -19,8 +19,8 @@
 #include "track/track_common.h"
 #include "track/track_interface.h"
 #include "track/track_utils.h"
-#include "track_gps_l2c.h"      /* for L1C/A to L2C tracking handover */
-#include "track_gps_l5.h"       /* for L1C/A to L5 tracking handover */
+#include "track_gps_l2c.h" /* for L1C/A to L2C tracking handover */
+#include "track_gps_l5.h"  /* for L1C/A to L5 tracking handover */
 
 /* Non-local headers */
 #include <acq/manage.h>

@@ -16,7 +16,6 @@
 #include <swiftnav/common.h>
 #include <swiftnav/constants.h>
 #include <swiftnav/signal.h>
-#include <swiftnav/constants.h>
 
 #include "prns.h"
 

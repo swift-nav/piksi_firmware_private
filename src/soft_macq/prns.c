@@ -674,9 +674,6 @@ u32 mesid_to_lfsr1_init(const me_gnss_signal_t mesid, const u8 index) {
     case CODE_GPS_L5I:
       ret = gps_l5q_prns_init_values[mesid.sat - GPS_FIRST_PRN] & 0x1FFF;
       break;
-    case CODE_BDS3_B5I:
-      ret = bds3_b2a_prns_init_values[mesid.sat - BDS_FIRST_PRN] & 0x1FFF;
-      break;
     case CODE_SBAS_L1CA:
       ret = sbas_l1ca_prns_init_values[mesid.sat - SBAS_FIRST_PRN] & 0x3FF;
       break;
@@ -694,6 +691,9 @@ u32 mesid_to_lfsr1_init(const me_gnss_signal_t mesid, const u8 index) {
     case CODE_BDS2_B1:
     case CODE_BDS2_B2:
       ret = bds2_prns_init_values[mesid.sat - BDS_FIRST_PRN] & 0x7FF;
+      break;
+    case CODE_BDS3_B5I:
+      ret = bds3_b2a_prns_init_values[mesid.sat - BDS_FIRST_PRN] & 0x1FFF;
       break;
     case CODE_GAL_E5I:
       ret = gal_e5q_prns_init_values[mesid.sat - GAL_FIRST_PRN] & 0x3FFF;
@@ -719,16 +719,20 @@ u32 mesid_to_lfsr0_last(me_gnss_signal_t mesid) {
   assert(mesid_valid(mesid));
 
   switch ((s8)mesid.code) {
+    case CODE_GPS_L1CA:
+    case CODE_SBAS_L1CA:
+    case CODE_QZS_L1CA:
+      ret = 0x1FF;
+      break;
     case CODE_GPS_L2CM:
       ret = gps_l2cm_prns_last_values[mesid.sat - GPS_FIRST_PRN] & 0x7FFFFFF;
       break;
     case CODE_QZS_L2CM:
       ret = qzss_l2cm_prns_last_values[mesid.sat - QZS_FIRST_PRN] & 0x7FFFFFF;
       break;
-    case CODE_GPS_L1CA:
-    case CODE_SBAS_L1CA:
-    case CODE_QZS_L1CA:
-      ret = 0x1FF;
+    case CODE_GPS_L5I:
+      ret = 0x17FF; /* should be 1 1111 1111 1101 as per IS-GPS-705D
+                       but need to work around NAP logic */
       break;
     case CODE_GLO_L1OF:
     case CODE_GLO_L2OF:
@@ -740,10 +744,6 @@ u32 mesid_to_lfsr0_last(me_gnss_signal_t mesid) {
       break;
     case CODE_BDS3_B5I:
       ret = 0x1FFF; /* does not matter really */
-      break;
-    case CODE_GPS_L5I:
-      ret = 0x17FF; /* should be 1 1111 1111 1101 as per IS-GPS-705D
-                       but need to work around NAP logic */
       break;
     case CODE_GAL_E5I:
       ret = gal_e5i_prns_last_values[mesid.sat - GAL_FIRST_PRN] & 0x3FFF;

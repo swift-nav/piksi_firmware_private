@@ -43,7 +43,6 @@ bool gps_l5_active(const me_gnss_signal_t mesid) {
   return (0 != (capb & ((u64)1 << (mesid.sat - GPS_FIRST_PRN))));
 }
 
-
 /** Returns true if Glonass satellite is active.
  * \param sid   satellite identifier
  */
