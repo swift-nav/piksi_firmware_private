@@ -93,3 +93,8 @@ void solution_send_pos_messages(const sbp_messages_t *sbp_messages) {
     }
   }
 }
+
+/******************************************************************************/
+// void starling_connect_sbp_output(const SbpDuplexLink *sbp_output_link) {
+//
+//}

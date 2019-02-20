@@ -733,8 +733,6 @@ static THD_FUNCTION(initialize_and_run_starling, arg) {
   StarlingIoFunctionTable io_functions = {
       .wait = starling_wait,
       .poll_for_data = starling_poll_for_data,
-      .handle_solution_low_latency = send_solution_low_latency,
-      .handle_solution_time_matched = send_solution_time_matched,
   };
 
   StarlingDebugFunctionTable debug_functions = {
@@ -749,6 +747,14 @@ static THD_FUNCTION(initialize_and_run_starling, arg) {
   assert(0);
 
   __builtin_unreachable();
+}
+
+static void setup_solution_handlers(void) {
+  static SolutionHandler handler = {
+      .handle_low_latency = send_solution_low_latency,
+      .handle_time_matched = send_solution_time_matched,
+  };
+  starling_add_solution_handler(&handler);
 }
 
 /*******************************************************************************
@@ -775,6 +781,8 @@ void starling_calc_pvt_setup() {
       .disable_raim = is_raim_disabled,
   };
   starling_set_external_functions_implementation(&extfns);
+
+  setup_solution_handlers();
 
   /* Start main starling thread. */
   platform_thread_create(THREAD_ID_STARLING, initialize_and_run_starling);
