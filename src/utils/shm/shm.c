@@ -33,6 +33,7 @@ static gps_sat_health_indicators_t gps_shis[NUM_SATS_GPS];
 static glo_sat_health_indicators_t glo_shis[NUM_SATS_GLO];
 static bds_sat_health_indicators_t bds_shis[NUM_SATS_BDS];
 static gal_sat_health_indicators_t gal_shis[NUM_SATS_GAL];
+static gps_sat_health_indicators_t qzs_shis[NUM_SATS_QZS];
 
 static void bool_shi_2_str(bool set, bool shi, char* str) {
   str[0] = set ? (shi ? 'Y' : 'N') : '?';
@@ -96,6 +97,7 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
   glo_sat_health_indicators_t shi = glo_shis[sid.sat - GLO_FIRST_PRN];
   bds_sat_health_indicators_t shi_bds = bds_shis[sid.sat - BDS_FIRST_PRN];
   gal_sat_health_indicators_t shi_gal = gal_shis[sid.sat - GAL_FIRST_PRN];
+  gps_sat_health_indicators_t shi_qzs = qzs_shis[sid.sat - QZS_FIRST_PRN];
   chMtxUnlock(&shm_data_access);
 
   /* Check common GPS */
@@ -231,6 +233,20 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
       }
       return CODE_NAV_STATE_UNKNOWN;
 
+    case CODE_QZS_L1CA:
+    case CODE_QZS_L2CM: {
+      if (shi_qzs.shi_lnav_how_alert_set && !shi_qzs.shi_lnav_how_alert) {
+        return CODE_NAV_STATE_INVALID;
+      }
+
+      if ((shi_qzs.shi_ephemeris_set &&
+           check_6bit_health_word(shi_qzs.shi_ephemeris, sid.code)) &&
+          (shi_qzs.shi_lnav_how_alert_set && shi_qzs.shi_lnav_how_alert)) {
+        return CODE_NAV_STATE_VALID;
+      }
+      return CODE_NAV_STATE_UNKNOWN;
+    }
+
     case CODE_INVALID:
     case CODE_COUNT:
       assert(!"Invalid code");
@@ -310,6 +326,20 @@ void shm_gps_set_shi_ephemeris(u16 sat, u8 new_value) {
   shm_log_sat_state("shi_ephemeris", sat);
 }
 
+/** Update shi_ephemeris for QZSS satellite.
+ *  Refer to swiftnav/shm.h for details of SHIs.
+ *
+ * \param sat QZSS satellite ID
+ * \param new_value value to set shi_ephemeris to
+ */
+void shm_qzss_set_shi_ephemeris(u16 sat, u8 new_value) {
+  assert(sat >= QZS_FIRST_PRN && sat < QZS_FIRST_PRN + NUM_SATS_QZS);
+  chMtxLock(&shm_data_access);
+  qzs_shis[sat - QZS_FIRST_PRN].shi_ephemeris = new_value;
+  qzs_shis[sat - QZS_FIRST_PRN].shi_ephemeris_set = true;
+  chMtxUnlock(&shm_data_access);
+}
+
 /** Update shi_page25 for GPS satellite.
  *  Refer to swiftnav/shm.h for details of SHIs.
  *
@@ -331,6 +361,27 @@ void shm_gps_set_shi_page25(u16 sat, u8 new_value) {
   chMtxUnlock(&shm_data_access);
 }
 
+/** Update shi_page25 for QZSS satellite.
+ *  Refer to swiftnav/shm.h for details of SHIs.
+ *
+ * \param sat QZSS satellite ID
+ * \param new_value value to set shi_page25 to
+ */
+void shm_qzss_set_shi_page25(u16 sat, u8 new_value) {
+  assert(sat >= QZS_FIRST_PRN && sat < QZS_FIRST_PRN + NUM_SATS_QZS);
+  if (0 == new_value) {
+    return;
+  }
+  piksi_systime_t now;
+  piksi_systime_get(&now);
+  u32 timetag_s = piksi_systime_to_s(&now);
+  chMtxLock(&shm_data_access);
+  qzs_shis[sat - QZS_FIRST_PRN].shi_page25 = new_value;
+  qzs_shis[sat - QZS_FIRST_PRN].shi_page25_set = true;
+  qzs_shis[sat - QZS_FIRST_PRN].shi_page25_timetag_s = timetag_s;
+  chMtxUnlock(&shm_data_access);
+}
+
 /** Update shi_lnav_how_alert for GPS satellite.
  *  Refer to swiftnav/shm.h for details of SHIs.
  *
@@ -346,6 +397,20 @@ void shm_gps_set_shi_lnav_how_alert(u16 sat, bool new_value) {
   shm_log_sat_state("shi_lnav_how_alert", sat);
 }
 
+/** Update shi_lnav_how_alert for QZSS satellite.
+ *  Refer to swiftnav/shm.h for details of SHIs.
+ *
+ * \param sat QZSS satellite ID
+ * \param new_value value to set shi_lnav_how_alert to
+ */
+void shm_qzss_set_shi_lnav_how_alert(u16 sat, bool new_value) {
+  assert(sat >= QZS_FIRST_PRN && sat < QZS_FIRST_PRN + NUM_SATS_QZS);
+  chMtxLock(&shm_data_access);
+  qzs_shis[sat - QZS_FIRST_PRN].shi_lnav_how_alert = new_value;
+  qzs_shis[sat - QZS_FIRST_PRN].shi_lnav_how_alert_set = true;
+  chMtxUnlock(&shm_data_access);
+}
+
 /** Update shi_cnav_alert for GPS satellite.
  *  Refer to swiftnav/shm.h for details of SHIs.
  *
@@ -359,6 +424,20 @@ void shm_gps_set_shi_cnav_alert(u16 sat, bool new_value) {
   gps_shis[sat - GPS_FIRST_PRN].shi_cnav_alert_set = true;
   chMtxUnlock(&shm_data_access);
   shm_log_sat_state("shi_cnav_alert", sat);
+}
+
+/** Update shi_cnav_alert for QZSS satellite.
+ *  Refer to swiftnav/shm.h for details of SHIs.
+ *
+ * \param sat QZSS satellite ID
+ * \param new_value value to set shi_cnav_alert to
+ */
+void shm_qzss_set_shi_cnav_alert(u16 sat, bool new_value) {
+  assert(sat >= QZS_FIRST_PRN && sat < QZS_FIRST_PRN + NUM_SATS_QZS);
+  chMtxLock(&shm_data_access);
+  qzs_shis[sat - QZS_FIRST_PRN].shi_cnav_alert = new_value;
+  qzs_shis[sat - QZS_FIRST_PRN].shi_cnav_alert_set = true;
+  chMtxUnlock(&shm_data_access);
 }
 
 /** Update SHI for GLO satellite.

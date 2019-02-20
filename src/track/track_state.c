@@ -51,7 +51,6 @@ static int track_iq_output_notify(void *ctx) {
     tracker_t *tracker = tracker_get(i);
     tracker->output_iq = (iq_output_mask & (1 << i)) != 0;
   }
-
   return SETTINGS_WR_OK;
 }
 
