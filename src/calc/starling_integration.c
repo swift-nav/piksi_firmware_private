@@ -591,7 +591,7 @@ void handle_solution_time_matched(const StarlingFilterSolution *solution,
    */
   chMtxLock(&last_sbp_lock);
   const bool is_after_last_low_latency =
-      gpsdifftime(&last_sbp_dgnss, &last_sbp_low_latency);
+      gpsdifftime(&last_sbp_dgnss, &last_sbp_low_latency) > 0.;
   chMtxUnlock(&last_sbp_lock);
   if (is_after_last_low_latency) {
     solution_send_pos_messages(&sbp_messages);
