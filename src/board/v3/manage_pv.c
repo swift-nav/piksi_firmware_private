@@ -47,12 +47,12 @@ static THD_WORKING_AREA(wa_manage_pv_thread, MANAGE_PV_THREAD_STACK);
  * \return Device state.
  */
 static device_state_t get_device_state(void) {
-  piksi_solution_info_t soln_info = {0}; 
+  piksi_solution_info_t soln_info = {0};
   piksi_solution_info_get(&soln_info);
 
   /* Check for DGNSS. */
-  bool has_any_rtk = piksi_systime_cmp(&PIKSI_SYSTIME_INIT, 
-                                       &soln_info.last_time_rtk);
+  bool has_any_rtk =
+      piksi_systime_cmp(&PIKSI_SYSTIME_INIT, &soln_info.last_time_rtk);
   if (has_any_rtk) {
     u32 elapsed = piksi_systime_elapsed_since_ms(&soln_info.last_time_rtk);
     if (elapsed < PV_MODE_TIMEOUT_MS) {
@@ -61,8 +61,8 @@ static device_state_t get_device_state(void) {
   }
 
   /* Check for SPS */
-  bool has_any_spp = piksi_systime_cmp(&PIKSI_SYSTIME_INIT,
-                                       &soln_info.last_time_spp);
+  bool has_any_spp =
+      piksi_systime_cmp(&PIKSI_SYSTIME_INIT, &soln_info.last_time_spp);
 
   if (has_any_spp) {
     u32 elapsed = piksi_systime_elapsed_since_ms(&soln_info.last_time_spp);

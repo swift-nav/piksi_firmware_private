@@ -34,8 +34,8 @@ void starling_calc_pvt_setup(void);
 typedef struct piksi_solution_info_t {
   piksi_systime_t last_time_spp;
   piksi_systime_t last_time_rtk;
-  bool            was_last_rtk_fix;
-  size_t          num_spp_signals;
+  bool was_last_rtk_fix;
+  size_t num_spp_signals;
 } piksi_solution_info_t;
 
 void piksi_solution_info_get(piksi_solution_info_t *info);

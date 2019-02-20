@@ -65,9 +65,9 @@ static gps_time_t last_sbp_low_latency = GPS_TIME_UNKNOWN;
 /*******************************************************************************/
 static MUTEX_DECL(piksi_solution_info_lock);
 static piksi_solution_info_t piksi_solution_info = {
-  .last_time_spp = PIKSI_SYSTIME_INIT,
-  .last_time_rtk = PIKSI_SYSTIME_INIT,
-  .was_last_rtk_fix = false,
+    .last_time_spp = PIKSI_SYSTIME_INIT,
+    .last_time_rtk = PIKSI_SYSTIME_INIT,
+    .was_last_rtk_fix = false,
 };
 
 /*******************************************************************************/
@@ -178,16 +178,15 @@ void starling_integration_sbp_messages_init(sbp_messages_t *sbp_messages,
   sbp_init_vel_ned_cov(&sbp_messages->vel_ned_cov, t);
 }
 
-static void send_low_latency_messages (
-    const gps_time_t *time_of_solution,
-    const sbp_messages_t *sbp_messages) {
+static void send_low_latency_messages(const gps_time_t *time_of_solution,
+                                      const sbp_messages_t *sbp_messages) {
   dgnss_solution_mode_t mode = starling_get_solution_mode();
 
   /* This is ridiculously confusing, allow me to explain:
    *
    * When in "TIME-MATCHED" mode, we want to recognize when the
    * solution hasn't been sent in a while and allow the "LOW-LATENCY"
-   * messages through. On the other hand, if there has been a 
+   * messages through. On the other hand, if there has been a
    * sufficiently recent "TIME-MATCHED" output, we do not want
    * to send any "LOW-LATENCY" messages.
    *
@@ -196,7 +195,8 @@ static void send_low_latency_messages (
   chMtxLock(&last_sbp_lock);
   const gps_time_t last_dgnss_time = last_sbp_dgnss;
   chMtxUnlock(&last_sbp_lock);
-  const double elapsed_time_sec = gpsdifftime(time_of_solution, &last_dgnss_time);
+  const double elapsed_time_sec =
+      gpsdifftime(time_of_solution, &last_dgnss_time);
   if (STARLING_SOLN_MODE_TIME_MATCHED == mode &&
       elapsed_time_sec < LOW_LATENCY_RESUME_AFTER_SEC) {
     return;
@@ -580,18 +580,18 @@ void handle_solution_time_matched(const StarlingFilterSolution *solution,
   }
 
   /* There is an edge case when switching into time-matched mode where
-   * a solution may be posted after the most recent low-latency solution 
+   * a solution may be posted after the most recent low-latency solution
    * was already transmitted. We detect this case and make sure to avoid
-   * outputting anachronous solutions. 
+   * outputting anachronous solutions.
    *
-   * If there was a valid solution this epoch, then `last_dgnss` will 
+   * If there was a valid solution this epoch, then `last_dgnss` will
    * have been set while making the baseline SBP messages. We check
    * this value to make sure it occurs after the most recent low latency
    * output.
    */
   chMtxLock(&last_sbp_lock);
-  const bool is_after_last_low_latency = gpsdifftime(&last_sbp_dgnss, 
-                                                     &last_sbp_low_latency);
+  const bool is_after_last_low_latency =
+      gpsdifftime(&last_sbp_dgnss, &last_sbp_low_latency);
   chMtxUnlock(&last_sbp_lock);
   if (is_after_last_low_latency) {
     solution_send_pos_messages(&sbp_messages);
@@ -729,22 +729,22 @@ static void update_piksi_solution_info(const StarlingFilterSolution *soln) {
   piksi_systime_get(&now_systime);
   /* Check the position mode and update the corresponding info. */
   const uint8_t pos_mode = soln->result.flags.position_mode;
-  const uint8_t is_fixed = (pos_mode == POSITION_MODE_FIXED); 
+  const uint8_t is_fixed = (pos_mode == POSITION_MODE_FIXED);
   chMtxLock(&piksi_solution_info_lock);
   switch (pos_mode) {
-    case POSITION_MODE_SPP: //fallthru
+    case POSITION_MODE_SPP:  // fallthru
     case POSITION_MODE_SBAS:
-      piksi_solution_info.last_time_spp = now_systime; 
+      piksi_solution_info.last_time_spp = now_systime;
       piksi_solution_info.num_spp_signals = soln->result.num_sigs_used;
       break;
-    case POSITION_MODE_DGNSS: //fallthru
-    case POSITION_MODE_FLOAT: //fallthru
+    case POSITION_MODE_DGNSS:  // fallthru
+    case POSITION_MODE_FLOAT:  // fallthru
     case POSITION_MODE_FIXED:
       piksi_solution_info.last_time_rtk = now_systime;
       piksi_solution_info.was_last_rtk_fix = is_fixed;
       break;
-    case POSITION_MODE_NONE: //fallthru
-    case POSITION_MODE_DEAD_RECKONING: //fallthru
+    case POSITION_MODE_NONE:            // fallthru
+    case POSITION_MODE_DEAD_RECKONING:  // fallthru
     default:
       break;
   }
@@ -782,8 +782,8 @@ static void setup_solution_handlers(void) {
 
   /* This one keeps stats on the solutions which are used by the LEDs. */
   static SolutionHandler handler_info = {
-    .handle_low_latency = update_solution_info_low_latency,
-    .handle_time_matched = update_solution_info_time_matched,
+      .handle_low_latency = update_solution_info_low_latency,
+      .handle_time_matched = update_solution_info_time_matched,
   };
   starling_add_solution_handler(&handler_info);
 }
