@@ -59,8 +59,8 @@
  * Locals
  ******************************************************************************/
 static MUTEX_DECL(last_sbp_lock);
-static gps_time_t last_dgnss;
-static gps_time_t last_spp;
+static gps_time_t last_dgnss = GPS_TIME_UNKNOWN;
+static gps_time_t last_spp = GPS_TIME_UNKNOWN;
 
 /* Keeps track of the which base sent us the most recent base
  * observations so we can appropriately identify who was involved
@@ -78,9 +78,9 @@ static piksi_solution_info_t piksi_solution_info = {
 
 /*******************************************************************************/
 void piksi_solution_info_get(piksi_solution_info_t *info) {
-  chMtxLock(solution_time_info_lock);
+  chMtxLock(&piksi_solution_info_lock);
   *info = piksi_solution_info;
-  chMtxUnlock(solution_time_info_lock);
+  chMtxUnlock(&piksi_solution_info_lock);
 }
 
 /*******************************************************************************
@@ -209,7 +209,7 @@ void starling_integration_sbp_messages_init(sbp_messages_t *sbp_messages,
 }
 
 static void starling_integration_solution_send_low_latency_output(
-    const gps_time_t *time_of_solution;
+    const gps_time_t *time_of_solution,
     const sbp_messages_t *sbp_messages) {
   dgnss_solution_mode_t mode = starling_get_solution_mode();
 
@@ -234,7 +234,7 @@ static void starling_integration_solution_send_low_latency_output(
 
   solution_send_pos_messages(sbp_messages);
   chMtxLock(&last_sbp_lock);
-  *last_spp = *time_of_solution;
+  last_spp = *time_of_solution;
   chMtxUnlock(&last_sbp_lock);
 }
 
@@ -346,10 +346,6 @@ static void solution_make_sbp(const pvt_engine_result_t *soln,
                     sbp_messages->pos_llh.tow,
                     soln->flags.position_mode);
     }
-
-    /* Update stats */
-    piksi_systime_get(&last_pvt_stats.systime);
-    last_pvt_stats.signals_used = soln->num_sigs_used;
   }
 }
 
@@ -460,12 +456,6 @@ static void solution_make_baseline_sbp(const pvt_engine_result_t *result,
   last_dgnss.wn = result->time.wn;
   last_dgnss.tow = result->time.tow;
   chMtxUnlock(&last_sbp_lock);
-
-  /* Update stats */
-  piksi_systime_get(&last_dgnss_stats.systime);
-  last_dgnss_stats.mode = (result->flags.position_mode == POSITION_MODE_FIXED)
-                              ? FILTER_FIXED
-                              : FILTER_FLOAT;
 }
 
 /*******************************************************************************
@@ -680,7 +670,8 @@ void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
                                  &sbp_messages);
     }
   }
-  starling_integration_solution_send_low_latency_output(&sbp_messages);
+  starling_integration_solution_send_low_latency_output(&epoch_time, 
+      &sbp_messages);
 }
 
 /*******************************************************************************
@@ -767,13 +758,13 @@ static void update_piksi_solution_info(const StarlingFilterSolution *soln) {
   switch (pos_mode) {
     case POSITION_MODE_SPP: //fallthru
     case POSITION_MODE_SBAS:
-      piksi_solution_info.last_spp_time = now_systime; 
+      piksi_solution_info.last_time_spp = now_systime; 
       piksi_solution_info.num_spp_signals = soln->result.num_sigs_used;
       break;
     case POSITION_MODE_DGNSS: //fallthru
     case POSITION_MODE_FLOAT: //fallthru
     case POSITION_MODE_FIXED:
-      piksi_solution_info.last_rtk_time = now_systime;
+      piksi_solution_info.last_time_rtk = now_systime;
       piksi_solution_info.was_last_rtk_fix = is_fixed;
       break;
     case POSITION_MODE_NONE: //fallthru
