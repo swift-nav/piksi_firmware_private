@@ -194,7 +194,7 @@ void nap_track_init(u8 channel,
   s->mesid = mesid;
 
   /* Set correlator spacing */
-  s->spacing = NAP_EPL_SPACING_SAMPLES - 1;
+  s->spacing = IS_GLO(s->mesid) ? 1 : 0;
 
   /* code and carrier frequency */
   double carrier_hz = mesid_to_carr_freq(mesid);
