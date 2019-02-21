@@ -12,6 +12,7 @@
 
 /* Local headers */
 #include "track_gps_l1ca.h"
+
 #include "filters/filter_common.h"
 #include "signal_db/signal_db.h"
 #include "track/track_api.h"
@@ -21,7 +22,7 @@
 #include "track_gps_l2c.h" /* for L1C/A to L2C tracking handover */
 
 /* Non-local headers */
-#include <manage.h>
+#include <acq/manage.h>
 #include <platform_track.h>
 
 /* Libraries */
@@ -110,8 +111,8 @@ static void check_L1_entry(tracker_t *tracker,
   sat_active[index] = true;
   float cn0 = tracker->cn0;
   float entry_cn0 = entry->cn0;
-  float error = fabsf(
-      remainder(entry->freq_hz - tracker->xcorr_freq_hz, L1CA_XCORR_FREQ_STEP));
+  float error = fabsf(remainderf(entry->freq_hz - tracker->xcorr_freq_hz,
+                                 L1CA_XCORR_FREQ_STEP));
 
   s32 max_time_cnt =
       (s32)(10.0f * gps_l1ca_config.xcorr_time * XCORR_UPDATE_RATE);
@@ -156,8 +157,8 @@ static void check_L1_entry(tracker_t *tracker,
  */
 static void check_L1_xcorr_flags(tracker_t *tracker,
                                  u16 idx,
-                                 bool xcorr_flags[],
-                                 float xcorr_cn0_diffs[],
+                                 const bool xcorr_flags[],
+                                 const float xcorr_cn0_diffs[],
                                  bool *xcorr_suspect) {
   gps_l1ca_tracker_data_t *data = &tracker->gps_l1ca;
 

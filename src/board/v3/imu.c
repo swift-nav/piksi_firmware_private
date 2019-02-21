@@ -12,20 +12,20 @@
 
 #include "imu.h"
 
-#include "settings/settings_client.h"
-#include "timing/timing.h"
-
-#include <board/nap/nap_common.h>
-#include <board/v3/peripherals/bmi160.h>
-#include <ch.h>
-#include <hal.h>
 #include <libsbp/imu.h>
 #include <libsbp/mag.h>
 #include <math.h>
-#include <sbp.h>
 #include <starling/integration/starling_input_bridge.h>
 #include <swiftnav/gnss_time.h>
 #include <swiftnav/logging.h>
+
+#include "board/nap/nap_common.h"
+#include "board/v3/peripherals/bmi160.h"
+#include "ch.h"
+#include "hal.h"
+#include "sbp/sbp.h"
+#include "settings/settings_client.h"
+#include "timing/timing.h"
 
 #define IMU_THREAD_PRIO (HIGHPRIO - 1)
 #define IMU_THREAD_STACK (2 * 1024)

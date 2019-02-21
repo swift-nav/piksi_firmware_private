@@ -10,14 +10,13 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <swiftnav/coord_system.h>
-#include <swiftnav/linear_algebra.h>
-#include <swiftnav/signal.h>
-
 #include "sbas_select.h"
 
 #include <assert.h>
 #include <math.h>
+#include <swiftnav/coord_system.h>
+#include <swiftnav/linear_algebra.h>
+#include <swiftnav/signal.h>
 
 /* Hysteresis for SBAS coverage area borders to avoid switching SBAS systems
  * back and forth if user's position is closed to a border in degrees */

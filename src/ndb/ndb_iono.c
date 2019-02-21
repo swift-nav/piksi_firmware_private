@@ -13,11 +13,12 @@
 #include <libsbp/sbp.h>
 #include <string.h>
 #include <swiftnav/logging.h>
+
 #include "ndb.h"
 #include "ndb_fs_access.h"
 #include "ndb_internal.h"
-#include "sbp.h"
-#include "sbp_utils.h"
+#include "sbp/sbp.h"
+#include "sbp/sbp_utils.h"
 #include "settings/settings_client.h"
 
 /** Ionospheric corrections file name */
@@ -109,7 +110,10 @@ ndb_op_code_t ndb_iono_corr_store(const gnss_signal_t *sid,
   return res;
 }
 
-static void iono_msg_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
+static void iono_msg_callback(u16 sender_id,
+                              u8 len,
+                              u8 msg[], /* NOLINT */
+                              void *context) {
   (void)len;
   (void)context;
 

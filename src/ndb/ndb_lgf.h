@@ -13,8 +13,7 @@
 #ifndef SRC_NDB_LGF_H_
 #define SRC_NDB_LGF_H_
 
-#include <ndb/ndb_common.h>
-
+#include "ndb_common.h"
 #include "position/position.h"
 
 void ndb_lgf_init(void);

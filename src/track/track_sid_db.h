@@ -46,23 +46,22 @@ void track_sid_db_init(void);
 void track_sid_db_clear_glo_tow(void);
 s32 tp_tow_compute(s32 old_TOW_ms, u64 delta_tk, u8 ms_align, double *error_ms);
 bool tp_tow_is_sane(s32 tow_ms);
-void track_sid_db_load_tow(const gnss_signal_t sid, tp_tow_entry_t *tow_entry);
-void track_sid_db_update_tow(const gnss_signal_t sid,
+void track_sid_db_load_tow(gnss_signal_t sid, tp_tow_entry_t *tow_entry);
+void track_sid_db_update_tow(gnss_signal_t sid,
                              const tp_tow_entry_t *tow_entry);
-void track_sid_db_azel_degrees_set(const gnss_signal_t sid,
+void track_sid_db_azel_degrees_set(gnss_signal_t sid,
                                    double azimuth,
                                    double elevation,
                                    u64 timestamp);
-bool track_sid_db_azimuth_degrees_get(const gnss_signal_t sid, double *azimuth);
-bool track_sid_db_elevation_degrees_get(const gnss_signal_t sid,
-                                        double *elevation);
+bool track_sid_db_azimuth_degrees_get(gnss_signal_t sid, double *result);
+bool track_sid_db_elevation_degrees_get(gnss_signal_t sid, double *result);
 
-bool track_sid_db_load_positions(const gnss_signal_t sid,
+bool track_sid_db_load_positions(gnss_signal_t sid,
                                  xcorr_positions_t *position_entry);
-bool track_sid_db_update_positions(const gnss_signal_t sid,
+bool track_sid_db_update_positions(gnss_signal_t sid,
                                    const xcorr_positions_t *position_entry);
 void update_tow_in_sid_db(tracker_t *tracker);
 void propagate_tow_from_sid_db(tracker_t *tracker);
-void clear_tow_in_sid_db(const gnss_signal_t sid);
+void clear_tow_in_sid_db(gnss_signal_t sid);
 
 #endif /* SWIFTNAV_TRACK_SID_DB_H_ */

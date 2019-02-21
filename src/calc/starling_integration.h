@@ -20,13 +20,12 @@
  * starling_threads.h.
  */
 
-#include "starling_sbp_settings.h"
-
 #include <starling/config.h>
 #include <starling/starling.h>
 #include <stdbool.h>
 
 #include "hal/piksi_systime.h"
+#include "starling_sbp_settings.h"
 
 typedef struct {
   piksi_systime_t systime;

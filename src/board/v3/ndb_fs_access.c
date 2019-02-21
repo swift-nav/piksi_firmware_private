@@ -10,13 +10,13 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "ndb/ndb_fs_access.h"
+
 #include <stdbool.h>
 #include <stdio.h>
-
-#include "ndb/ndb_fs_access.h"
-#include "sbp_fileio.h"
-
 #include <swiftnav/common.h>
+
+#include "sbp_fileio.h"
 
 /**
  * Checks if NDB persistence is available.

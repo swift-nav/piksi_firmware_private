@@ -9,13 +9,14 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
+#include "nav_msg/nav_msg_bds.h"
+
 #include <assert.h>
 #include <inttypes.h>
 #include <string.h>
 #include <swiftnav/bits.h>
 
 #include "ephemeris/ephemeris.h"
-#include "nav_msg/nav_msg_bds.h"
 #include "timing/timing.h"
 #include "track/track_decode.h"
 
@@ -26,7 +27,7 @@
 #define BDS_PREAMBLE_INV (0x07680000)
 #define BDS_WORD_BITMASK (0x3fffffff)
 /* this bit mask does not work for n==0 and n==32 */
-#define BITMASK(n) ((1U << n) - 1)
+#define BITMASK(n) ((1U << (n)) - 1)
 #define BDS_WORD_SUBFR_MASK BITMASK(BDS_WORD_SUBFR)
 
 static const u16 bch_table[16] = {[0b0000] = 0b000000000000000,
@@ -67,7 +68,7 @@ static bool subframes123_from_same_frame(const nav_msg_bds_t *n);
 static void dw30_1bit_pushr(u32 *words, u8 numel, bool bitval);
 static void pack_buffer(nav_msg_bds_t *n);
 //~ static void dump_navmsg(const nav_msg_bds_t *n, const u8 subfr);
-static void deint(u32 *hi, u32 *lo, const u32 dw);
+static void deint(u32 *hi, u32 *lo, u32 dw);
 static bool bch1511(u32 *pdw);
 
 static void process_d1_fraid1(const nav_msg_bds_t *n,
@@ -106,52 +107,6 @@ void bds_nav_msg_init(nav_msg_bds_t *n, const me_gnss_signal_t *mesid) {
  */
 void bds_nav_msg_clear_decoded(nav_msg_bds_t *n) {
   memset(n->page_words, 0, sizeof(n->page_words));
-}
-
-static void bds_eph_debug(const nav_msg_bds_t *n,
-                          const bds_d1_decoded_data_t *data,
-                          s32 TOW_s) {
-  utc_tm date;
-  const ephemeris_t *e = &(data->ephemeris);
-  const ephemeris_kepler_t *k = &(data->ephemeris.kepler);
-  make_utc_tm(&(k->toc), &date);
-  log_debug_mesid(n->mesid,
-                  "%4" PRIu16 " %2" PRIu8 " %2" PRIu8 " %2" PRIu8 " %2" PRIu8
-                  " %2" PRIu8 "%19.11E%19.11E%19.11E  ",
-                  date.year,
-                  date.month,
-                  date.month_day,
-                  date.hour,
-                  date.minute,
-                  date.second_int,
-                  k->af0,
-                  k->af1,
-                  k->af2);
-  log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
-            (double)k->iode,
-            k->crs,
-            k->dn,
-            k->m0);
-  log_debug(
-      "    %19.11E%19.11E%19.11E%19.11E  ", k->cuc, k->ecc, k->cus, k->sqrta);
-  log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
-            (double)e->toe.tow,
-            k->cic,
-            k->omega0,
-            k->cis);
-  log_debug(
-      "    %19.11E%19.11E%19.11E%19.11E  ", k->inc, k->crc, k->w, k->omegadot);
-  log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
-            k->inc_dot,
-            0.0,
-            (double)e->toe.wn - BDS_WEEK_TO_GPS_WEEK,
-            0.0);
-  log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
-            e->ura,
-            (double)e->health_bits,
-            k->tgd.bds_s[0],
-            k->tgd.bds_s[1]);
-  log_debug("    %19.11E%19.11E ", rint(TOW_s), (double)k->iodc);
 }
 
 static void bds_eph_store(const nav_msg_bds_t *n, bds_d1_decoded_data_t *data) {
@@ -248,7 +203,6 @@ bds_decode_status_t bds_d1_processing(nav_msg_bds_t *n,
     process_d1_fraid2(n, data);
     process_d1_fraid3(n, data);
     /* debug information */
-    bds_eph_debug(n, data, TOW_s);
     bds_eph_store(n, data);
     n->goodwords_mask = 0;
     n->health = shm_ephe_healthy(&data->ephemeris, n->mesid.code)
@@ -379,34 +333,32 @@ bool bds_nav_msg_update(nav_msg_bds_t *n, bool bit_val) {
                           : BIT_POLARITY_INVERTED;
     pack_buffer(n);
     return true;
-
-  } else { /* aligned with subframe */
-    if (n->bit_index !=
-        (u16)(n->subfr_bit_index + 300)) { /* it's not the subframe start */
-      return false;
-    } else { /* should be the subframe start */
-      /* check if it repeats (including polarity) on second TLM */
-      if (pream_candidate_prev != pream_candidate_last) {
-        /* reset subframe sync and polarity */
-        n->subfr_sync = false;
-        n->bit_polarity = BIT_POLARITY_UNKNOWN;
-        log_debug_mesid(n->mesid,
-                        "lost sync prev %" PRIx32 " last %" PRIx32,
-                        pream_candidate_prev,
-                        pream_candidate_last);
-        return false;
-      }
-      /* check that there are no bit errors */
-      if (!crc_check(n)) {
-        return false;
-      }
-      /* subframe start confirmed */
-      n->subfr_bit_index = n->bit_index;
-      pack_buffer(n);
-      return true;
-    }
   }
-  return false;
+  /* aligned with subframe */
+  if (n->bit_index !=
+      (u16)(n->subfr_bit_index + 300)) { /* it's not the subframe start */
+    return false;
+  }
+  /* should be the subframe start */
+  /* check if it repeats (including polarity) on second TLM */
+  if (pream_candidate_prev != pream_candidate_last) {
+    /* reset subframe sync and polarity */
+    n->subfr_sync = false;
+    n->bit_polarity = BIT_POLARITY_UNKNOWN;
+    log_debug_mesid(n->mesid,
+                    "lost sync prev %" PRIx32 " last %" PRIx32,
+                    pream_candidate_prev,
+                    pream_candidate_last);
+    return false;
+  }
+  /* check that there are no bit errors */
+  if (!crc_check(n)) {
+    return false;
+  }
+  /* subframe start confirmed */
+  n->subfr_bit_index = n->bit_index;
+  pack_buffer(n);
+  return true;
 }
 
 /*
@@ -608,10 +560,10 @@ static void process_d1_fraid1(const nav_msg_bds_t *n,
 
   /* IONO params */
   i->toa.wn = e->toe.wn;
-  i->a0 = (double)(alpha[0] * C_1_2P30);
-  i->a1 = (double)(alpha[1] * C_1_2P27);
-  i->a2 = (double)(alpha[2] * C_1_2P24);
-  i->a3 = (double)(alpha[3] * C_1_2P24);
+  i->a0 = (alpha[0] * C_1_2P30);
+  i->a1 = (alpha[1] * C_1_2P27);
+  i->a2 = (alpha[2] * C_1_2P24);
+  i->a3 = (alpha[3] * C_1_2P24);
   i->b0 = (double)(beta[0] * C_2P11);
   i->b1 = (double)(beta[1] * C_2P14);
   i->b2 = (double)(beta[2] * C_2P16);
@@ -711,7 +663,9 @@ static void process_d1_common_alm(nav_msg_bds_t *n,
 static void process_d1_fraid4(nav_msg_bds_t *n, bds_d1_decoded_data_t *data) {
   u32 pnum = (((n->page_words[31]) >> 10) & 0x7f);
 
-  if ((pnum == 0) || (pnum > 24)) return;
+  if ((pnum == 0) || (pnum > 24)) {
+    return;
+  }
 
   process_d1_common_alm(n, data);
 }
@@ -719,7 +673,9 @@ static void process_d1_fraid4(nav_msg_bds_t *n, bds_d1_decoded_data_t *data) {
 static void process_d1_fraid5(nav_msg_bds_t *n, bds_d1_decoded_data_t *data) {
   u32 pnum = (((n->page_words[41]) >> 10) & 0x7f);
 
-  if ((pnum == 0) || (pnum > 24)) return;
+  if ((pnum == 0) || (pnum > 24)) {
+    return;
+  }
 
   if (pnum <= 6) {
     process_d1_common_alm(n, data);

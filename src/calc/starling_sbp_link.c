@@ -12,15 +12,14 @@
 
 #include "starling_sbp_link.h"
 
+#include <assert.h>
+#include <libsbp/sbp.h>
+#include <stdlib.h>
+#include <swiftnav/logging.h>
+
 #include "cfg/init.h"
 #include "sbp/sbp.h"
 #include "sbp/sbp_utils.h"
-
-#include <libsbp/sbp.h>
-#include <swiftnav/logging.h>
-
-#include <assert.h>
-#include <stdlib.h>
 
 /******************************************************************************/
 SbpDuplexLink *sbp_link = NULL;

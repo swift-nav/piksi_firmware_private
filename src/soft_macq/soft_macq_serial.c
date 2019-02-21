@@ -19,15 +19,13 @@
 #include <swiftnav/logging.h>
 #include <swiftnav/memcpy_s.h>
 
-#include "system_monitor/system_monitor.h"
-
 #include "lib/fixed_fft_r2.h"
-
 #include "platform_cn0.h"
 #include "prns.h"
 #include "soft_macq_defines.h"
 #include "soft_macq_main.h"
 #include "soft_macq_utils.h"
+#include "system_monitor/system_monitor.h"
 
 #define FAU_SAMPLE_RATE_Hz (FAU_RAW_FS / FAU_DECFACT)
 #define CODE_SPMS (FAU_SAMPLE_RATE_Hz / 1000)
@@ -41,7 +39,7 @@
 #define FFT_SCALE_SCHED_SAMPLES (0x01111111)
 #define FFT_SCALE_SCHED_INV (0x01111111)
 
-static bool get_bin_min_max(const me_gnss_signal_t mesid,
+static bool get_bin_min_max(me_gnss_signal_t mesid,
                             float df_min_hz,
                             float df_max_hz,
                             float df_bin_width_hz,
@@ -51,17 +49,17 @@ static void ifft_operations(s16 doppler_bin,
                             float df_bin_width_hz,
                             u32 fft_len,
                             float fft_bin_width,
-                            const sc16_t *code_fft,
-                            const sc16_t *sample_fft,
-                            float *doppler);
-static bool peak_search(const me_gnss_signal_t mesid,
+                            const sc16_t *_pCodeFft,
+                            const sc16_t *_pSampleFft,
+                            float *doppler_hz);
+static bool peak_search(me_gnss_signal_t mesid,
                         sc16_t *c_array,
-                        const u32 array_size,
-                        const float doppler,
-                        const float fft_bin_width,
+                        u32 array_sz,
+                        float doppler_hz,
+                        float fft_bin_width,
                         acq_peak_search_t *peak);
 
-static void GetFourMaxes(const u32 *_pcVec, u32 _uSize);
+static void GetFourMaxes(const u32 *_puVec, u32 _uSize);
 
 static s8 code_resamp[INTFFT_MAXSIZE] __attribute__((aligned(32)));
 
@@ -165,7 +163,6 @@ bool soft_acq_search(const sc16_t *_cSignal,
    * If even number of bins, start from (mid + 0.5) bin. [ ][ ][x][ ]
    */
   s16 start_bin = doppler_bin_min + (doppler_bin_max - doppler_bin_min + 1) / 2;
-  s16 doppler_bin = start_bin;
   s8 ind1 = 1;                      /* Used to flip between +1 and -1 */
   s16 ind2 = 1;                     /* Used to compute bin index with (ind2 / 2)
                                      * resulting in sequence
@@ -177,7 +174,7 @@ bool soft_acq_search(const sc16_t *_cSignal,
 
   while (loop_index <= doppler_bin_max) {
     watchdog_notify(WD_NOTIFY_ACQ_MGMT);
-    doppler_bin = start_bin + ind1 * (ind2 / 2);
+    s16 doppler_bin = start_bin + ind1 * (ind2 / 2);
     ind1 *= -1;
     ind2 += 1;
 
@@ -303,7 +300,7 @@ static void ifft_operations(s16 doppler_bin,
                             const sc16_t *_pSampleFft,
                             float *doppler_hz) {
   s32 sample_offset =
-      (s32)round((doppler_bin * df_bin_width_hz) / fft_bin_width);
+      (s32)roundf((doppler_bin * df_bin_width_hz) / fft_bin_width);
   /* Actual computed Doppler */
   *doppler_hz = doppler_bin * df_bin_width_hz;
 
@@ -368,7 +365,9 @@ static bool peak_search(const me_gnss_signal_t mesid,
     for (u32 m = 1; m < non_coh; m++) {
       for (u32 h = 0; h < CODE_SPMS; h++) {
         u32 src_idx = m * CODE_SPMS + h;
-        if (src_idx >= array_sz) break;
+        if (src_idx >= array_sz) {
+          break;
+        }
         result_mag[h] += result_mag[src_idx];
       }
     }
@@ -421,8 +420,12 @@ static bool peak_search(const me_gnss_signal_t mesid,
 static void GetFourMaxes(const u32 *_puVec, u32 _uSize) {
   u32 k, uTmpMag, uSz4th;
 
-  if (NULL == _puVec) return;
-  if (_uSize == 0) return;
+  if (NULL == _puVec) {
+    return;
+  }
+  if (_uSize == 0) {
+    return;
+  }
 
   memset(puMaxIdx, 0, 4 * sizeof(u32));
   memset(puMaxVal, 0, 4 * sizeof(u32));

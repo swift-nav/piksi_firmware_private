@@ -10,7 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "nav_data_sync/nav_data_sync.h"
+#include "nav_data_sync.h"
 
 /** Initialize a nav_data_sync_t struct.
  *

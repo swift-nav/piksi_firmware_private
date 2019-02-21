@@ -12,14 +12,13 @@
 
 #include "antenna.h"
 
+#include <assert.h>
 #include <ch.h>
 #include <hal.h>
+#include <string.h>
 #include <swiftnav/logging.h>
 
 #include "settings/settings_client.h"
-
-#include <assert.h>
-#include <string.h>
 
 typedef enum { ANTENNA_MODE_PRIMARY, ANTENNA_MODE_SECONDARY } antenna_mode_t;
 

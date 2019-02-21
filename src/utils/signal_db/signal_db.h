@@ -18,7 +18,7 @@
 #include <swiftnav/common.h>
 #include <swiftnav/signal.h>
 
-#include "platform_signal.h"
+#include "board/v3/platform_signal.h"
 
 /** \addtogroup signal
  * \{ */
@@ -127,10 +127,10 @@ extern "C" {
 
 void signal_db_init(void);
 gnss_signal_t sid_from_global_index(u16 global_index);
-me_gnss_signal_t mesid_from_global_index(u16 global_index);
+me_gnss_signal_t mesid_from_global_index(u16 me_global_index);
 gnss_signal_t sid_from_constellation_index(constellation_t constellation,
                                            u16 constellation_index);
-u16 mesid_to_global_index(const me_gnss_signal_t mesid);
+u16 mesid_to_global_index(me_gnss_signal_t mesid);
 u16 sid_to_constellation_index(gnss_signal_t sid);
 bool sid_supported(gnss_signal_t sid);
 bool code_supported(code_t code);
@@ -140,19 +140,19 @@ float code_to_tcxo_doppler_max(code_t code);
 
 gnss_signal_t sv_index_to_sid(u16 sv_index);
 u16 sid_to_sv_index(gnss_signal_t sid);
-double mesid_to_carr_fcn_hz(const me_gnss_signal_t mesid);
+double mesid_to_carr_fcn_hz(me_gnss_signal_t mesid);
 
-constellation_t mesid_to_constellation(const me_gnss_signal_t mesid);
-int mesid_compare(const me_gnss_signal_t a, const me_gnss_signal_t b);
-bool mesid_is_equal(const me_gnss_signal_t a, const me_gnss_signal_t b);
+constellation_t mesid_to_constellation(me_gnss_signal_t mesid);
+int mesid_compare(me_gnss_signal_t a, me_gnss_signal_t b);
+bool mesid_is_equal(me_gnss_signal_t a, me_gnss_signal_t b);
 me_gnss_signal_t construct_mesid(code_t code, u16 sat);
-gnss_signal_t mesid2sid(const me_gnss_signal_t mesid, u16 glo_slot_id);
-int mesid_to_string(char *s, int n, const me_gnss_signal_t mesid);
-bool mesid_valid(const me_gnss_signal_t mesid);
-me_gnss_signal_t mesid_from_code_index(code_t code, u16 code_index);
-double mesid_to_carr_freq(const me_gnss_signal_t mesid);
-double mesid_to_carr_to_code(const me_gnss_signal_t mesid);
-u16 mesid_to_code_index(const me_gnss_signal_t mesid);
+gnss_signal_t mesid2sid(me_gnss_signal_t mesid, u16 glo_slot_id);
+int mesid_to_string(char *s, int n, me_gnss_signal_t mesid);
+bool mesid_valid(me_gnss_signal_t mesid);
+me_gnss_signal_t mesid_from_code_index(code_t code, u16 me_code_index);
+double mesid_to_carr_freq(me_gnss_signal_t mesid);
+double mesid_to_carr_to_code(me_gnss_signal_t mesid);
+u16 mesid_to_code_index(me_gnss_signal_t mesid);
 
 #ifdef __cplusplus
 } /* extern "C" */

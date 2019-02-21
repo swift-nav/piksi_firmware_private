@@ -13,12 +13,11 @@
 #ifndef SWIFTNAV_TRACK_CN0_H
 #define SWIFTNAV_TRACK_CN0_H
 
-#include "filters/filter_common.h"
-
 #include <swiftnav/signal.h>
 
-#include <cn0_est/cn0_est_common.h>
-#include <nap/nap_constants.h>
+#include "cn0_est/cn0_est_common.h"
+#include "filters/filter_common.h"
+#include "nap/nap_constants.h"
 
 /* Configure C/N0 value filter algorithm */
 #define cn0_filter_params_t lp1_filter_params_t

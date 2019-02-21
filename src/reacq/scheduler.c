@@ -11,13 +11,13 @@
  */
 #include <assert.h>
 #include <swiftnav/glo_map.h>
+
+#include "acq/manage.h"
 #include "dum/dum.h"
-#include "manage.h"
 #include "scheduler_api.h"
+#include "soft_macq/soft_macq_main.h"
 #include "task_generator_api.h"
 #include "timing/timing.h"
-
-#include "soft_macq/soft_macq_main.h"
 
 /* Scheduler utils functions */
 void sch_send_acq_profile_msg(const acq_job_t *job,

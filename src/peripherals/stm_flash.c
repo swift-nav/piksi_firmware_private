@@ -10,15 +10,14 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <hal.h>
+#include "stm_flash.h"
 
+#include <hal.h>
 #include <libsbp/flash.h>
 
 #include "../error.h"
 #include "../flash.h"
 #include "../main.h"
-
-#include "stm_flash.h"
 
 void flash_erase_sector(uint8_t sector);
 static void flash_program(u32 addr, const u8 *data, u8 len);

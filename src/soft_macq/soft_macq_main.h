@@ -36,10 +36,10 @@ typedef struct {
   u32 sample_offset;
 } acq_peak_search_t;
 
-bool soft_multi_acq_search(const me_gnss_signal_t _sMeSid,
+bool soft_multi_acq_search(me_gnss_signal_t mesid,
                            float doppler_min_hz,
                            float doppler_max_hz,
-                           acq_result_t *_psAcqResult);
+                           acq_result_t *p_acqres);
 
 float soft_multi_acq_bin_width(void);
 

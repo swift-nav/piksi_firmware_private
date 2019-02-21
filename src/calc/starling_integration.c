@@ -10,38 +10,36 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "starling_integration.h"
+
 #include <assert.h>
 #include <ch.h>
-#include <string.h>
-
 #include <starling/integration/starling_input_bridge.h>
 #include <starling/platform/mutex.h>
 #include <starling/platform/thread.h>
 #include <starling/starling.h>
 #include <starling/starling_external_dependencies.h>
+#include <string.h>
 #include <swiftnav/coord_system.h>
 #include <swiftnav/linear_algebra.h>
 #include <swiftnav/memcpy_s.h>
 
+#include "board/v3/nap/nap_hw.h"
 #include "calc/calc_pvt_common.h"
 #include "calc/calc_pvt_me.h"
 #include "calc/sbp_settings_client.h"
-#include "calc/starling_integration.h"
 #include "calc/starling_sbp_link.h"
 #include "calc/starling_sbp_output.h"
 #include "calc/starling_sbp_settings.h"
 #include "cfg/init.h"
 #include "ndb/ndb.h"
+#include "nmea/nmea.h"
 #include "sbp/sbp.h"
 #include "sbp/sbp_utils.h"
 #include "shm/shm.h"
 #include "simulator/simulator.h"
-#include "track/track_sid_db.h"
-#include "utils/nmea/nmea.h"
-#include "utils/timing/timing.h"
-
-#include "board/v3/nap/nap_hw.h"
 #include "timing/timing.h"
+#include "track/track_sid_db.h"
 
 /*******************************************************************************
  * Constants
@@ -84,22 +82,22 @@ static cache_ret_t cache_read_ephemeris(const gnss_signal_t sid,
   ndb_op_code_t ret = ndb_ephemeris_read(sid, eph);
   if (NDB_ERR_NONE == ret) {
     return CACHE_OK;
-  } else if (NDB_ERR_UNCONFIRMED_DATA == ret) {
-    return CACHE_OK_UNCONFIRMED_DATA;
-  } else {
-    return CACHE_ERROR;
   }
+  if (NDB_ERR_UNCONFIRMED_DATA == ret) {
+    return CACHE_OK_UNCONFIRMED_DATA;
+  }
+  return CACHE_ERROR;
 }
 
 static cache_ret_t cache_read_iono_corr(ionosphere_t *iono) {
   ndb_op_code_t ret = ndb_iono_corr_read(iono);
   if (NDB_ERR_NONE == ret) {
     return CACHE_OK;
-  } else if (NDB_ERR_UNCONFIRMED_DATA == ret) {
-    return CACHE_OK_UNCONFIRMED_DATA;
-  } else {
-    return CACHE_ERROR;
   }
+  if (NDB_ERR_UNCONFIRMED_DATA == ret) {
+    return CACHE_OK_UNCONFIRMED_DATA;
+  }
+  return CACHE_ERROR;
 }
 
 static double calc_heading(const double b_ned[3]) {
@@ -554,7 +552,7 @@ bool starling_integration_simulation_enabled(void) {
 
 static void reset_filters_callback(u16 sender_id,
                                    u8 len,
-                                   u8 msg[],
+                                   u8 msg[], /* NOLINT */
                                    void *context) {
   (void)sender_id;
   (void)len;
@@ -689,7 +687,7 @@ static void profile_low_latency_thread(enum ProfileDirective directive) {
   static float avg_diff_run_time_s = 0.0f;
   static float std_run_time_s = 0.1f;
   const float smooth_factor = 0.01f;
-  u32 nap_snapshot_begin = 0;
+  static u32 nap_snapshot_begin = 0;
   switch (directive) {
     case PROFILE_BEGIN:
       nap_snapshot_begin = NAP->TIMING_COUNT;
@@ -717,7 +715,7 @@ static void profile_low_latency_thread(enum ProfileDirective directive) {
 }
 
 /******************************************************************************/
-static THD_FUNCTION(initialize_and_run_starling, arg) {
+static THD_FUNCTION(initialize_and_run_starling, arg) { /* NOLINT */
   (void)arg;
   chRegSetThreadName("starling");
 

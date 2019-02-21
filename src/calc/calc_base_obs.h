@@ -14,13 +14,12 @@
 #define SWIFTNAV_BASE_OBS_H
 
 #include <ch.h>
+#include <starling/pvt_engine/firmware_binding.h>
 #include <stdbool.h>
 #include <swiftnav/common.h>
 #include <swiftnav/constants.h>
 #include <swiftnav/gnss_time.h>
 #include <swiftnav/single_epoch_solver.h>
-
-#include <starling/pvt_engine/firmware_binding.h>
 
 /** \addtogroup base_obs Base station observation handling
  * \{ */

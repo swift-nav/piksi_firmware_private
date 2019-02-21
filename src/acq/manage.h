@@ -15,7 +15,6 @@
 
 #include <ch.h>
 #include <stdbool.h>
-
 #include <swiftnav/ch_meas.h>
 #include <swiftnav/common.h>
 #include <swiftnav/ephemeris.h>
@@ -87,26 +86,23 @@ void manage_acq_setup(void);
 void me_settings_setup(void);
 
 float get_solution_elevation_mask(void);
-void acq_result_send(const me_gnss_signal_t mesid,
-                     float cn0,
-                     float cp,
-                     float cf);
+void acq_result_send(me_gnss_signal_t mesid, float cn0, float cp, float df_hz);
 
 u32 get_tracking_channel_meas(u8 i,
                               u64 ref_tc,
                               channel_measurement_t *meas,
                               ephemeris_t *ephe);
-u32 get_tracking_channel_sid_flags(const gnss_signal_t sid,
+u32 get_tracking_channel_sid_flags(gnss_signal_t sid,
                                    s32 tow_ms,
                                    const ephemeris_t *pephe);
 u8 tracking_channels_ready(u32 required_flags);
 
-bool tracking_startup_ready(const me_gnss_signal_t mesid);
+bool tracking_startup_ready(me_gnss_signal_t mesid);
 u8 tracking_startup_request(const tracking_startup_params_t *startup_params);
 
 bool l1ca_l2cm_handover_reserve(u8 sat);
 void l1ca_l2cm_handover_release(u8 sat);
-bool mesid_is_tracked(const me_gnss_signal_t mesid);
+bool mesid_is_tracked(me_gnss_signal_t mesid);
 bool is_glo_enabled(void);
 bool is_sbas_enabled(void);
 bool is_bds2_enabled(void);
@@ -118,7 +114,7 @@ void sanitize_tracker(tracker_t *tracker);
 void restore_acq(const tracker_t *tracker);
 void update_acq_hints(tracker_t *tracker);
 void check_clear_unhealthy(void);
-u16 get_orbit_slot(const u16 fcn);
+u16 get_orbit_slot(u16 fcn);
 u8 code_track_count(code_t code);
 u8 constellation_track_count(constellation_t gnss);
 void manage_tracking_startup(void);

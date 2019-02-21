@@ -10,10 +10,10 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "filter_common.h"
-
 #include <math.h>
 #include <string.h>
+
+#include "filter_common.h"
 
 /** \defgroup track Tracking
  * Functions used in tracking.

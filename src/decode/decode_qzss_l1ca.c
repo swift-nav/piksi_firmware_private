@@ -10,17 +10,18 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "decode_qzss_l1ca.h"
+
 #include <swiftnav/logging.h>
 
-#include "decode.h"
-#include "decode_common.h"
-#include "decode_qzss_l1ca.h"
+#include "decode/decode.h"
+#include "decode/decode_common.h"
 #include "ephemeris/ephemeris.h"
 #include "me_constants.h"
 #include "nav_msg/nav_msg.h"
 #include "ndb/ndb.h"
-#include "sbp.h"
-#include "sbp_utils.h"
+#include "sbp/sbp.h"
+#include "sbp/sbp_utils.h"
 #include "shm/shm.h"
 #include "signal_db/signal_db.h"
 #include "timing/timing.h"
@@ -28,9 +29,6 @@
 #include "track/track_flags.h"
 #include "track/track_sid_db.h"
 #include "track/track_state.h"
-
-#include <assert.h>
-#include <string.h>
 
 /** QZSS L1 C/A decoder data */
 typedef struct {

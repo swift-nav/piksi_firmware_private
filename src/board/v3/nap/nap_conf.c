@@ -11,17 +11,16 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "nap_conf.h"
+
 #include <ctype.h>
+#include <hal.h>
 #include <stdio.h>
 #include <string.h>
-
 #include <swiftnav/common.h>
 #include <swiftnav/constants.h>
 #include <swiftnav/logging.h>
 
-#include <hal.h>
-
-#include "nap_conf.h"
 #include "nap_constants.h"
 #include "nap_hw.h"
 

@@ -13,6 +13,9 @@
 #ifndef SWIFTNAV_EXT_EVENTS_H
 #define SWIFTNAV_EXT_EVENTS_H
 
+#include <stdint.h>
+#include <swiftnav/common.h>
+
 typedef enum {
   TRIG_NONE = 0x00,
   TRIG_RISING = 0x01,

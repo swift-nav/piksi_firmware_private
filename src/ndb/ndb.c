@@ -10,6 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 #include "ndb.h"
+
 #include "ndb/ndb_internal.h"
 #include "signal_db/signal_db.h"
 

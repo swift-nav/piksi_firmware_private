@@ -10,14 +10,14 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "position.h"
+
 #include <math.h>
 #include <string.h>
-
 #include <swiftnav/logging.h>
 
 #include "board/nap/nap_common.h"
 #include "ndb/ndb.h"
-#include "position.h"
 #include "timing/timing.h"
 
 /** Get last saved position from NDB.

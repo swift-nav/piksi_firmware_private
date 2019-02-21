@@ -11,12 +11,10 @@
  */
 
 #include <hal.h>
-
 #include <inttypes.h>
+#include <libsbp/sbp.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include <libsbp/sbp.h>
 #include <swiftnav/logging.h>
 #include <swiftnav/memcpy_s.h>
 

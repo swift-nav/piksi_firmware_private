@@ -13,14 +13,18 @@
 #ifndef SWIFTNAV_NAV_MSG_GAL_H
 #define SWIFTNAV_NAV_MSG_GAL_H
 
+#include <libfec/fec.h>
+#include <limits.h>
 #include <stdbool.h>
 #include <swiftnav/almanac.h>
 #include <swiftnav/common.h>
+#include <swiftnav/constants.h>
 #include <swiftnav/ephemeris.h>
 #include <swiftnav/ionosphere.h>
 
 #include "cons_time_storage.h"
 #include "nav_data_sync/nav_data_sync.h"
+#include "signal_db/signal_db.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -76,8 +76,6 @@ void propagate_clock_state(clock_est_state_t *clock_state, u64 tc) {
   clock_state->clock_rate = x[1];
   matrix_copy(2, 2, (const double *)P, (double *)clock_state->P);
   clock_state->tc = tc;
-
-  return;
 }
 
 /** Kalman filter update step.
@@ -172,6 +170,4 @@ void update_clock_state(clock_est_state_t *clock_state,
   clock_state->t_gps.tow = x[0];
   clock_state->clock_rate = x[1];
   matrix_copy(2, 2, (const double *)P, (double *)clock_state->P);
-
-  return;
 }

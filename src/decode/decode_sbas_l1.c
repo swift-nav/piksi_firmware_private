@@ -11,24 +11,22 @@
  */
 
 #include "decode_sbas_l1.h"
-#include "decode.h"
 
+#include <assert.h>
+#include <string.h>
 #include <swiftnav/logging.h>
 
+#include "decode.h"
+#include "decode_common.h"
 #include "nav_msg/nav_msg.h"
 #include "nav_msg/sbas_msg.h"
-
-#include "decode_common.h"
-#include "sbp.h"
-#include "sbp_utils.h"
+#include "sbp/sbp.h"
+#include "sbp/sbp_utils.h"
 #include "shm/shm.h"
 #include "signal_db/signal_db.h"
 #include "timing/timing.h"
 #include "track/track_decode.h"
 #include "track/track_sid_db.h"
-
-#include <assert.h>
-#include <string.h>
 
 /** SBAS L1 decoder data */
 typedef struct {

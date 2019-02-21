@@ -10,14 +10,13 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "fifo.h"
+
 #include <assert.h>
 #include <string.h>
-
 #include <swiftnav/common.h>
 #include <swiftnav/logging.h>
 #include <swiftnav/memcpy_s.h>
-
-#include "fifo.h"
 
 #define COMPILER_BARRIER() asm volatile("" : : : "memory")
 
@@ -299,7 +298,9 @@ fifo_size_t fifo_remove(fifo_t *fifo, fifo_size_t length) {
  */
 fifo_size_t fifo_write(fifo_t *fifo, const u8 *buffer, fifo_size_t length) {
   fifo_size_t write_length = fifo_poke(fifo, buffer, length);
-  if (write_length == 0) return 0;
+  if (write_length == 0) {
+    return 0;
+  }
   write_length = fifo_add(fifo, write_length);
   return write_length;
 }

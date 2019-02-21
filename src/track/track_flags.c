@@ -11,6 +11,7 @@
  */
 
 #include "track_flags.h"
+
 #include "board/nap/track_channel.h"
 #include "platform_signal.h"
 #include "track_api.h"

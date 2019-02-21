@@ -18,9 +18,9 @@
 #include <swiftnav/gnss_time.h>
 
 void ndb_utc_params_init(void);
-ndb_op_code_t ndb_utc_params_read(utc_params_t *utc_params, bool *is_nv);
+ndb_op_code_t ndb_utc_params_read(utc_params_t *utc_params_p, bool *is_nv);
 ndb_op_code_t ndb_utc_params_store(const gnss_signal_t *sid,
-                                   const utc_params_t *utc_params,
+                                   const utc_params_t *utc_params_p,
                                    ndb_data_source_t src,
                                    u16 sender_id);
 

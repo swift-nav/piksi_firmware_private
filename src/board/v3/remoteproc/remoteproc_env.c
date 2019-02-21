@@ -16,15 +16,13 @@
 #pragma GCC diagnostic pop
 
 #include <assert.h>
+#include <ch.h>
+#include <hal.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include <ch.h>
-#include <hal.h>
-
-#include "remoteproc_env.h"
-
 #include "gic.h"
+#include "remoteproc_env.h"
 
 static bool env_initialized = false;
 

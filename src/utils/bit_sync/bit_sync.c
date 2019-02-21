@@ -11,15 +11,15 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "bit_sync.h"
+
 #include <assert.h>
 #include <inttypes.h>
 #include <math.h>
 #include <string.h>
-
 #include <swiftnav/bits.h>
-#include "soft_macq/gal_prns.h"
 
-#include "bit_sync.h"
+#include "soft_macq/gal_prns.h"
 
 /* Approx number of nav bit edges needed to accept bit sync for a
    strong signal (sync will take longer on a weak signal) */

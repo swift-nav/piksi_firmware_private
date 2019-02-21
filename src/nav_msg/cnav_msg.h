@@ -14,17 +14,16 @@
 #define SWIFTNAV_CNAV_MSG_H
 
 #include <libfec/fec.h>
-#include <swiftnav/bits.h>
-#include <swiftnav/common.h>
-#include <swiftnav/constants.h>
-#include <swiftnav/edc.h>
-#include <swiftnav/gnss_time.h>
-
 #include <limits.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <swiftnav/bits.h>
+#include <swiftnav/common.h>
+#include <swiftnav/constants.h>
+#include <swiftnav/edc.h>
+#include <swiftnav/gnss_time.h>
 
 #include "me_constants.h"
 
@@ -184,7 +183,7 @@ void cnav_msg_decoder_init(cnav_msg_decoder_t *dec);
 bool cnav_msg_decoder_add_symbol(cnav_msg_decoder_t *dec,
                                  unsigned char symbol,
                                  cnav_msg_t *msg,
-                                 u32 *delay);
+                                 u32 *pdelay);
 bool cnav_33_to_utc(const cnav_msg_type_33_t *msg, utc_params_t *u);
 
 #ifdef __cplusplus

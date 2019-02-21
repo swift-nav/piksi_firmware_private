@@ -10,8 +10,9 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "nav_bit_fifo/nav_bit_fifo.h"
-#include "main.h"
+#include "nav_bit_fifo.h"
+
+#include "main/main.h"
 
 /** Return navigation data bit FIFO size for code_t
  * \param code code_t to retrieve the size for
@@ -21,15 +22,20 @@ static u8 code_to_nav_bit_fifo_size(const code_t code) {
   if ((CODE_GPS_L1CA == code) || (CODE_GPS_L2CM == code) ||
       (CODE_GPS_L5I == code)) {
     return 20;
-  } else if ((CODE_GLO_L1OF == code) || (CODE_GLO_L2OF == code)) {
+  }
+  if ((CODE_GLO_L1OF == code) || (CODE_GLO_L2OF == code)) {
     return 40;
-  } else if (CODE_SBAS_L1CA == code) {
+  }
+  if (CODE_SBAS_L1CA == code) {
     return 200;
-  } else if ((CODE_BDS2_B1 == code) || (CODE_BDS2_B2 == code)) {
+  }
+  if ((CODE_BDS2_B1 == code) || (CODE_BDS2_B2 == code)) {
     return 20;
-  } else if ((CODE_GAL_E1B == code) || (CODE_GAL_E7I == code)) {
+  }
+  if ((CODE_GAL_E1B == code) || (CODE_GAL_E7I == code)) {
     return 100;
-  } else if ((CODE_GAL_E5I == code)) {
+  }
+  if (CODE_GAL_E5I == code) {
     return 20;
   }
   log_error("unknown code %d in code_to_nav_bit_fifo_size()", code);

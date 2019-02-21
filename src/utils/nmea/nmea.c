@@ -10,15 +10,16 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "nmea.h"
+
 #include <assert.h>
 #include <inttypes.h>
 #include <math.h>
+#include <starling/pvt_engine/firmware_binding.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include <starling/pvt_engine/firmware_binding.h>
 #include <swiftnav/array_tools.h>
 #include <swiftnav/constants.h>
 #include <swiftnav/coord_system.h>
@@ -26,15 +27,14 @@
 #include <swiftnav/logging.h>
 
 #include "board/nap/track_channel.h"
-#include "calc_pvt_me.h"
+#include "calc/calc_pvt_me.h"
+#include "calc/starling_integration.h"
+#include "hal/piksi_systime.h"
 #include "io_support.h"
-#include "main.h"
-#include "nmea.h"
-#include "piksi_systime.h"
-#include "sbp.h"
-#include "sbp_utils.h"
+#include "main/main.h"
+#include "sbp/sbp.h"
+#include "sbp/sbp_utils.h"
 #include "settings/settings_client.h"
-#include "starling_integration.h"
 #include "timing/timing.h"
 #include "track/track_sid_db.h"
 
@@ -104,10 +104,10 @@ typedef enum talker_id_e {
  * max_len = max possible length of the body of the message
  * (not including suffix)
  */
-#define NMEA_SENTENCE_START(max_len)            \
-  char sentence_buf[max_len + NMEA_SUFFIX_LEN]; \
-  char *sentence_bufp = sentence_buf;           \
-  char *const sentence_buf_end = sentence_buf + max_len;
+#define NMEA_SENTENCE_START(max_len)              \
+  char sentence_buf[(max_len) + NMEA_SUFFIX_LEN]; \
+  char *sentence_bufp = sentence_buf;             \
+  char *const sentence_buf_end = sentence_buf + (max_len);
 
 /** NMEA_SENTENCE_PRINTF: use like printf, can use multiple times
     within a sentence. */
@@ -414,7 +414,7 @@ bool send_nmea(u32 rate, u32 gps_tow_ms) {
    * message.
    * This way, we still send no_fix messages when receiver clock is drifting. */
   u32 soln_period_ms = (u32)(1.0 / soln_freq_setting * 1e3);
-  u32 output_period_ms = (u32)soln_period_ms * rate;
+  u32 output_period_ms = soln_period_ms * rate;
   if ((gps_tow_ms % output_period_ms) < (soln_period_ms / 2)) {
     return true;
   }

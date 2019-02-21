@@ -18,6 +18,6 @@
 
 void ndb_gnss_capb_init(void);
 const gnss_capb_t* ndb_get_gnss_capb(void);
-ndb_op_code_t ndb_store_gps_l2c_capb(u64 capb, const gnss_signal_t* src_sid);
+ndb_op_code_t ndb_store_gps_l2c_capb(u64 capb, const gnss_signal_t* sid);
 
 #endif /* SRC_NDB_GNSS_CAPB_H_ */

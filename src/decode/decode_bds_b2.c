@@ -9,12 +9,12 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
+#include "decode_bds_b2.h"
+
 #include <assert.h>
 #include <string.h>
-
 #include <swiftnav/logging.h>
 
-#include "decode_bds_b2.h"
 #include "decode_common.h"
 #include "gnss_capabilities/gnss_capabilities.h"
 #include "nav_msg/nav_msg_bds.h"
@@ -82,5 +82,4 @@ static void decoder_bds_b2_process(const decoder_channel_info_t *channel_info,
         construct_bds_data_sync(&data->nav_msg, status);
     tracker_data_sync(channel, &from_decoder);
   }
-  return;
 }

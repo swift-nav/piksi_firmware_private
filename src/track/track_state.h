@@ -24,24 +24,24 @@ void track_setup(void);
 tracker_t *tracker_get(u8 id);
 
 /* State management interface */
-bool tracker_available(const u8 id, const me_gnss_signal_t mesid);
-bool tracker_init(const u8 id,
-                  const me_gnss_signal_t mesid,
+bool tracker_available(u8 id, me_gnss_signal_t mesid);
+bool tracker_init(u8 id,
+                  me_gnss_signal_t mesid,
                   u16 glo_orbit_slot,
                   u64 ref_sample_count,
                   double code_phase,
                   float doppler_hz,
                   u32 chips_to_correlate,
                   float cn0_init);
-void tracker_disable(const u8 id);
+void tracker_disable(u8 id);
 
 void tracker_get_state(u8 id,
                        tracker_info_t *info,
                        tracker_freq_info_t *freq_info);
 
 /* Update interface */
-void trackers_update(u32 channels_mask, const u8 start_chan);
-void trackers_missed(u32 channels_mask, const u8 start_chan);
+void trackers_update(u32 channels_mask, u8 c0);
+void trackers_missed(u32 channels_mask, u8 c0);
 void stale_trackers_cleanup(void);
 
 /* Send state */

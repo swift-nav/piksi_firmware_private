@@ -10,19 +10,19 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "track_api.h"
+
 #include <assert.h>
 #include <ch.h>
 #include <inttypes.h>
-
 #include <swiftnav/constants.h>
 #include <swiftnav/logging.h>
 
 #include "board/nap/track_channel.h"
-#include "decode.h"
-#include "sbp.h"
-#include "sbp_utils.h"
+#include "decode/decode.h"
+#include "sbp/sbp.h"
+#include "sbp/sbp_utils.h"
 #include "signal_db/signal_db.h"
-#include "track_api.h"
 #include "track_flags.h"
 
 #define GPS_WEEK_LENGTH_ms (1000 * WEEK_SECS)

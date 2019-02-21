@@ -13,12 +13,13 @@
 #include <libsbp/sbp.h>
 #include <string.h>
 #include <swiftnav/logging.h>
+
 #include "ndb.h"
 #include "ndb_internal.h"
-#include "sbp.h"
-#include "sbp_utils.h"
+#include "sbp/sbp.h"
+#include "sbp/sbp_utils.h"
 #include "settings/settings_client.h"
-#include "utils/timing/timing.h"
+#include "timing/timing.h"
 
 #define UTC_PARAMS_FILE_NAME "persistent/ndb/utc_params"
 #define UTC_PARAMS_FILE_TYPE "utc parameters"

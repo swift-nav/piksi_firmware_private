@@ -94,10 +94,11 @@ float cn0_est_snv_update(cn0_est_snv_state_t *s,
     float nsr_db;
 
     /* Ensure the NSR is within the limit */
-    if (P_s < P_n * CN0_SNV_NSR_MIN_MULTIPLIER)
+    if (P_s < P_n * CN0_SNV_NSR_MIN_MULTIPLIER) {
       nsr = CN0_SNV_NSR_MIN;
-    else
+    } else {
       nsr = P_n / P_s;
+    }
 
     nsr_db = 10.f * log10f(nsr);
     /* Compute and store updated CN0 */

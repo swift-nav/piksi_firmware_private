@@ -10,12 +10,13 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
+#include "frontend.h"
+
 #include <ch.h>
 #include <hal.h>
 #include <math.h>
 #include <swiftnav/logging.h>
 
-#include "frontend.h"
 #include "nt1065.h"
 #include "system_monitor/system_monitor.h"
 

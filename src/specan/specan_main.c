@@ -4,27 +4,26 @@
  *  Created on: Feb 15, 2017
  *      Author: mic
  */
+#include "specan_main.h"
+
 #include <assert.h>
+#include <ch.h>
+#include <libsbp/piksi.h>
 #include <math.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include <ch.h>
 #include <swiftnav/common.h>
 #include <swiftnav/logging.h>
 #include <swiftnav/memcpy_s.h>
 
-#include <libsbp/piksi.h>
-#include <sbp.h>
 #include "board/v3/nap/grabber.h"
 #include "board/v3/nap/nap_constants.h"
+#include "lib/fixed_fft_r2.h"
+#include "sbp/sbp.h"
 #include "settings/settings_client.h"
 #include "system_monitor/system_monitor.h"
 #include "timing/timing.h"
-
-#include "lib/fixed_fft_r2.h"
-#include "specan_main.h"
 
 #define SPECAN_THREAD_STACK (4 * 1024)
 #define SPECAN_THREAD_PRIORITY (LOWPRIO + 2)
@@ -76,9 +75,11 @@ void ThreadManageSpecan(void *arg) {
    * be interfered with, later on they will have to contend the CPU as
    * they both are low priority tasks
    * */
-  while (TRUE) {
+  while (true) {
     chThdSleepMilliseconds(500);
-    if (!run_spectrum) continue;
+    if (!run_spectrum) {
+      continue;
+    }
 
     pSampleBuf = GrabberGetBufferPt(&uBuffLen);
     if (NULL == pSampleBuf) {
@@ -109,8 +110,12 @@ void ThreadManageSpecan(void *arg) {
         /** find min and max amplitude */
         fMinAmpl = fMaxAmpl = pSpecTrace[um];
         for (k = 1; k < uNumPoints; k++) {
-          if (fMaxAmpl < pSpecTrace[um + k]) fMaxAmpl = pSpecTrace[um + k];
-          if (fMinAmpl > pSpecTrace[um + k]) fMinAmpl = pSpecTrace[um + k];
+          if (fMaxAmpl < pSpecTrace[um + k]) {
+            fMaxAmpl = pSpecTrace[um + k];
+          }
+          if (fMinAmpl > pSpecTrace[um + k]) {
+            fMinAmpl = pSpecTrace[um + k];
+          }
         }
         /** resulting minimum amplitude and amplitude step */
         p_head->amplitude_ref = fMinAmpl;
@@ -238,9 +243,15 @@ static void SpecanCore(uint8_t _uWhichBand) {
 
 static void Sca16AddAbssqTo(float *_fOut, sc16_t *_fIn, int _iSize) {
   int i;
-  if (NULL == _fOut) return;
-  if (NULL == _fIn) return;
-  if (_iSize <= 0) return;
+  if (NULL == _fOut) {
+    return;
+  }
+  if (NULL == _fIn) {
+    return;
+  }
+  if (_iSize <= 0) {
+    return;
+  }
 
   for (i = 0; i < _iSize; i++) {
     _fOut[i] +=

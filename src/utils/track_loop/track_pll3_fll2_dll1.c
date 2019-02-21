@@ -10,11 +10,11 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "trk_loop_common.h"
-
 #include <assert.h>
 #include <math.h>
 #include <string.h>
+
+#include "trk_loop_common.h"
 
 /**
  * Helper method to compute filter coefficients.

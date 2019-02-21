@@ -16,6 +16,7 @@
 #include <stdbool.h>
 #include <swiftnav/common.h>
 #include <swiftnav/ephemeris.h>
+
 #include "signal_db/signal_db.h"
 
 #ifdef __cplusplus

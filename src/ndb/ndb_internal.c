@@ -10,6 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 #include "ndb_internal.h"
+
 #include <assert.h>
 #include <inttypes.h>
 #include <nap/nap_common.h>
@@ -18,6 +19,7 @@
 #include <swiftnav/edc.h>
 #include <swiftnav/logging.h>
 #include <swiftnav/memcpy_s.h>
+
 #include "libsbp/piksi.h"
 #include "ndb.h"
 #include "ndb_fs_access.h"
@@ -29,7 +31,7 @@
 #define NDB_THREAD_STACK (4 * 1024)
 
 static THD_WORKING_AREA(ndb_thread_wa, NDB_THREAD_STACK);
-static void ndb_service_thread(void *);
+static void ndb_service_thread(void * /*p*/);
 
 u8 ndb_file_version[MAX_NDB_FILE_VERSION_LEN];
 u8 ndb_file_end_mark = 0xb6;
@@ -43,10 +45,10 @@ static ndb_element_metadata_t *ndb_wq_get(void);
 
 static ndb_op_code_t ndb_create_file(const ndb_file_t *file);
 static ndb_op_code_t ndb_open_file(const ndb_file_t *file);
-static ndb_op_code_t ndb_read(const ndb_file_t *f,
-                              off_t o,
-                              void *data,
-                              size_t s);
+static ndb_op_code_t ndb_read(const ndb_file_t *file,
+                              off_t off,
+                              void *dst,
+                              size_t size);
 static ndb_op_code_t ndb_wq_process(void);
 
 /**
@@ -435,9 +437,8 @@ static bool ndb_file_verion_match(
     const char version[MAX_NDB_FILE_VERSION_LEN]) {
   if (ndb_fs_is_real()) {
     return memcmp(version, ndb_file_version, sizeof(ndb_file_version)) == 0;
-  } else {
-    return true;
   }
+  return true;
 }
 
 /**
@@ -542,9 +543,9 @@ static ndb_op_code_t ndb_open_file(const ndb_file_t *file) {
         if (em == ndb_file_end_mark) {
           /* Both version end end marks are OK */
           return NDB_ERR_NONE;
-        } else {
-          log_warn("NDB %s: end mark is incorrect", file->type);
         }
+        log_warn("NDB %s: end mark is incorrect", file->type);
+
       } else {
         log_warn("NDB %s: end mark length is incorrect", file->type);
       }

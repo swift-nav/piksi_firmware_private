@@ -17,6 +17,7 @@
 #include <swiftnav/gnss_time.h>
 #include <swiftnav/signal.h>
 #include <swiftnav/single_epoch_solver.h>
+
 #include "nap/nap_constants.h"
 #include "signal_db/signal_db.h"
 
@@ -33,7 +34,7 @@ gps_time_t get_current_time(void);
 void set_time(u64 tc, const gps_time_t* t, double accuracy);
 void update_time(u64 tc, const gnss_solution* sol);
 time_quality_t get_time_quality(void);
-gps_time_t napcount2gpstime(const double tc);
+gps_time_t napcount2gpstime(double tc);
 u64 gpstime2napcount(const gps_time_t* t);
 u64 timing_getms(void);
 gps_time_t glo2gps_with_utc_params(const glo_time_t* glo_time,

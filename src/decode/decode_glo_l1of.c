@@ -10,17 +10,17 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "decode_glo_l1of.h"
+
 #include <assert.h>
 #include <string.h>
-
 #include <swiftnav/glo_map.h>
 #include <swiftnav/logging.h>
 
 #include "decode.h"
 #include "decode_common.h"
-#include "decode_glo_l1of.h"
-#include "sbp.h"
-#include "sbp_utils.h"
+#include "sbp/sbp.h"
+#include "sbp/sbp_utils.h"
 #include "shm/shm.h"
 #include "signal_db/signal_db.h"
 #include "timing/timing.h"
@@ -84,5 +84,4 @@ static void decoder_glo_l1of_process(const decoder_channel_info_t *channel_info,
     /* Sync tracker with decoder data */
     glo_data_sync(&data->nav_msg, mesid, channel, status);
   }
-  return;
 }

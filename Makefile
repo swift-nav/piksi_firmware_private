@@ -67,6 +67,19 @@ ifeq ($(PIKSI_HW),v3)
   FW_DEPS += $(OPENAMP_BUILDDIR)/lib/libopen-amp.a
 endif
 
+CLANG_TIDY_INCLUDES = -I$(SWIFTNAV_ROOT)/include/ \
+                      -I$(SWIFTNAV_ROOT)/src/ \
+                      -I$(SWIFTNAV_ROOT)/src/utils/ \
+                      -I$(SWIFTNAV_ROOT)/starling/include/ \
+                      -I$(SWIFTNAV_ROOT)/starling/third_party/libswiftnav/include/ \
+                      -I$(SWIFTNAV_ROOT)/libsbp/c/include/ \
+                      -I$(SWIFTNAV_ROOT)/starling/libfec/include/ \
+                      -I$(SWIFTNAV_ROOT)/libsettings/include/ \
+                      -I$(SWIFTNAV_ROOT)/src/board/ \
+                      -I$(SWIFTNAV_ROOT)/src/board/v3/ \
+                      -I$(SWIFTNAV_ROOT)/src/board/v3/prod/ \
+                      -isystem$(SWIFTNAV_ROOT)/mesta/stubs/
+                      
 ARM_NONE_EABI_GCC_VERSION = $(shell arm-none-eabi-gcc --version)
 $(info $$ARM_NONE_EABI_GCC_VERSION is [${ARM_NONE_EABI_GCC_VERSION}])
 
@@ -168,6 +181,12 @@ clang-format-head:
 clang-format-diff:
 	@echo "Autoformatting all lines which differ from master"
 	git-clang-format-6.0 master
+
+clang-tidy-all:
+	@echo "Checking all C files under src/"
+	git ls-files -- 'src/*.[ch]' \
+		| grep -E -v 'board|chibios|peripherals|system_monitor|syscalls|chconf' \
+		| xargs -P 1 -I file clang-tidy-6.0 file -- $(CLANG_TIDY_FLAGS) $(CLANG_TIDY_INCLUDES)
 
 run_tests:
 	$(MAKE) -C tests

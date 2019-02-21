@@ -16,13 +16,10 @@
 #include <math.h>
 
 #include "board.h"
-
+#include "gic.h"
+#include "nap/nap_constants.h"
 #include "xadc_if_regs.h"
 #include "xadc_regs.h"
-
-#include "nap/nap_constants.h"
-
-#include "gic.h"
 #include "zynq7000.h"
 
 #define TEMP_CRIT_UPPER_C 125.0f

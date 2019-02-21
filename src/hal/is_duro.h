@@ -13,6 +13,8 @@
 #ifndef SWIFTNAV_IS_DURO_H
 #define SWIFTNAV_IS_DURO_H
 
+#include <stdbool.h>
+
 bool device_is_duro(void);
 
 #endif /* SWIFTNAV_PIKSI_IS_DURO_H */

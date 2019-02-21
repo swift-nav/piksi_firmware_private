@@ -80,7 +80,7 @@ bool xcorr_match_positions(gnss_signal_t sid0,
                            const xcorr_positions_t *pos1);
 xcorr_match_res_t xcorr_match_alm_position(gnss_signal_t sid0,
                                            gnss_signal_t sid,
-                                           const xcorr_positions_t *eph_pos);
+                                           const xcorr_positions_t *pos);
 s8 update_azel_from_ephemeris(const ephemeris_t *e,
                               const gps_time_t *t,
                               const double pos_ecef[]);

@@ -98,10 +98,11 @@ float cn0_est_rscn_update(cn0_est_rscn_state_t *s,
     float nsr_db;
 
     /* Ensure the NSR is within the limit */
-    if (P_d < Q_sum * CN0_RSCN_NSR_MIN_MULTIPLIER)
+    if (P_d < Q_sum * CN0_RSCN_NSR_MIN_MULTIPLIER) {
       nsr = CN0_RSCN_NSR_MIN;
-    else
+    } else {
       nsr = Q_sum / P_d;
+    }
 
     nsr_db = 10.f * log10f(nsr);
     /* Compute and store updated CN0 */

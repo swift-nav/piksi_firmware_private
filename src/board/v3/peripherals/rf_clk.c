@@ -10,17 +10,15 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "antenna.h"
-
+#include <assert.h>
 #include <ch.h>
 #include <hal.h>
+#include <string.h>
 #include <swiftnav/logging.h>
 
-#include "settings/settings_client.h"
-
-#include <assert.h>
-#include <string.h>
+#include "antenna.h"
 #include "clk_dac.h"
+#include "settings/settings_client.h"
 
 static bool rf_clk_ext = false;
 
