@@ -25,6 +25,8 @@
 #include "sbp.h"
 #include "sbp_utils.h"
 
+#define MAX_FILENAME_LEN 256
+
 #define SBP_FILEIO_TIMEOUT MS2ST(5000)
 #define SBP_FILEIO_TRIES 5
 
@@ -87,7 +89,7 @@ ssize_t sbp_fileio_write(const char *filename,
   u8 payload_offset = sizeof(msg_fileio_write_req_t) + strlen(filename) + 1;
   ssize_t chunksize = 255 - payload_offset;
   struct sbp_fileio_closure closure;
-  msg_fileio_write_req_t *msg = alloca(256);
+  msg_fileio_write_req_t *msg = alloca(MAX_FILENAME_LEN);
   char dbg_filename[100];
   chBSemObjectInit(&closure.sem, true);
   u8 *msg_pt;
@@ -103,7 +105,13 @@ ssize_t sbp_fileio_write(const char *filename,
   while (s < size) {
     msg->sequence = closure.seq = next_seq();
     msg->offset = offset + s;
-    strcpy(msg->filename, filename);
+    if (strlen(filename) >= MAX_FILENAME_LEN) {
+      log_error("Filename string too large for buffer (size of intended string: %d)",
+                strlen(filename));
+      s = -1;
+      break;
+    }
+    strncpy(msg->filename, filename, sizeof(msg->filename));
     msg_pt = (u8 *)msg;
     chunksize = MIN(chunksize, (ssize_t)(size - s));
     MEMCPY_S(msg_pt + payload_offset, 256 - payload_offset, buf + s, chunksize);
@@ -150,7 +158,7 @@ ssize_t sbp_fileio_read(const char *filename,
                         size_t size) {
   size_t s = 0;
   struct sbp_fileio_closure closure;
-  msg_fileio_read_req_t *msg = alloca(256);
+  msg_fileio_read_req_t *msg = alloca(MAX_FILENAME_LEN);
   chBSemObjectInit(&closure.sem, true);
 
   sbp_msg_callbacks_node_t node;
@@ -161,6 +169,12 @@ ssize_t sbp_fileio_read(const char *filename,
     msg->sequence = closure.seq = next_seq();
     msg->offset = offset + s;
     msg->chunk_size = MIN(255, size - s);
+    if (strlen(filename) >= MAX_FILENAME_LEN) {
+      log_error("Filename string too large for buffer (size of intended string: %d)",
+                strlen(filename));
+      s = -1;
+      break;
+    }
     strcpy(msg->filename, filename);
 
     u8 tries = 0;
