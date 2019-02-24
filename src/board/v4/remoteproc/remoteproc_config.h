@@ -17,15 +17,15 @@
 #include <stddef.h>
 
 /* Resource table entries */
-#define NUM_TABLE_ENTRIES 2
+#define NUM_TABLE_ENTRIES 3
 #define ELF_START 0x7B000000
 #define ELF_SIZE 0x02000000
 #define NUM_VRINGS 2
-#define VRING_ALIGN 0x00100000
+#define VRING_ALIGN 0x001000
 /* Number of buffers per vring. Must be a power of 2. Max = 256. */
 #define VRING_SIZE 256
-#define VRING0_IRQ 15
-#define VRING1_IRQ 14
+#define VRING0_IRQ 0xffffffff
+#define VRING1_IRQ IRQ_ID_IPI_CH1
 #define VRING0_IRQ_PRIO 4
 #define VRING1_IRQ_PRIO 4
 #define RPMSG_IPU_C0_FEATURES (1 << VIRTIO_RPMSG_F_NS)
@@ -42,10 +42,17 @@ struct remote_resource_table {
   unsigned int offset[NUM_TABLE_ENTRIES];
   /* text carveout entry */
   struct fw_rsc_carveout elf_cout;
+  /* rproc memory entry */
+  struct fw_rsc_rproc_mem rproc_mem;
   /* rpmsg vdev entry */
   struct fw_rsc_vdev rpmsg_vdev;
   struct fw_rsc_vdev_vring rpmsg_vring0;
   struct fw_rsc_vdev_vring rpmsg_vring1;
+};
+
+struct ipi_info {
+        uint32_t ipi_base_addr;
+        uint32_t ipi_chn_mask;
 };
 
 #endif /* SWIFTNAV_REMOTEPROC_CONFIG_H */

@@ -26,6 +26,7 @@ resource_table = {
     .num = NUM_TABLE_ENTRIES,
     .reserved = {0, 0},
     .offset = {offsetof(struct remote_resource_table, elf_cout),
+               offsetof(struct remote_resource_table, rproc_mem),
                offsetof(struct remote_resource_table, rpmsg_vdev)},
     .elf_cout = {.type = RSC_CARVEOUT,
                  .da = ELF_START,
@@ -34,6 +35,11 @@ resource_table = {
                  .flags = 0,
                  .reserved = 0,
                  .name = "ELF_COUT"},
+    .rproc_mem = {.type = RSC_RPROC_MEM,
+                  .da = 0x7d000000,
+                  .pa = 0x7d000000,
+                  .len = 0x800000,
+                  .reserved = 0},
     .rpmsg_vdev = {.type = RSC_VDEV,
                    .id = VIRTIO_ID_RPMSG,
                    .notifyid = 0,
@@ -43,16 +49,21 @@ resource_table = {
                    .status = 0,
                    .num_of_vrings = NUM_VRINGS,
                    .reserved = {0, 0}},
-    .rpmsg_vring0 = {.da = 0x7d000000,
+    .rpmsg_vring0 = {.da = 0xffffffff,
                      .align = VRING_ALIGN,
                      .num = VRING_SIZE,
-                     .notifyid = 1,
+                     .notifyid = 0,
                      .reserved = 0},
-    .rpmsg_vring1 = {.da = 0x7d400000,
+    .rpmsg_vring1 = {.da = 0xffffffff,
                      .align = VRING_ALIGN,
                      .num = VRING_SIZE,
-                     .notifyid = 2,
+                     .notifyid = 0,
                      .reserved = 0}};
+
+#define IPI_BASEADDR                      0xff310000
+/* IPI channel bit mask APU<->RPU0 */
+#define IPI_CHN_BITMASK                   0x01000000
+static struct ipi_info chn_ipi_info = { IPI_BASEADDR, IPI_CHN_BITMASK };
 
 const struct hil_proc hil_proc = {
     .cpu_id = MASTER_CPU_ID,
@@ -70,8 +81,8 @@ const struct hil_proc hil_proc = {
                     .align = 0,
                     .intr_info = {.vect_id = VRING0_IRQ,
                                   .priority = VRING0_IRQ_PRIO,
-                                  .trigger_type = IRQ_SENSITIVITY_EDGE,
-                                  .data = NULL},
+                                  .trigger_type = IRQ_SENSITIVITY_LEVEL,
+                                  .data = &chn_ipi_info},
                 },
             .vring_info[1] =
                 {
@@ -81,8 +92,8 @@ const struct hil_proc hil_proc = {
                     .align = 0,
                     .intr_info = {.vect_id = VRING1_IRQ,
                                   .priority = VRING1_IRQ_PRIO,
-                                  .trigger_type = IRQ_SENSITIVITY_EDGE,
-                                  .data = NULL},
+                                  .trigger_type = IRQ_SENSITIVITY_LEVEL,
+                                  .data = &chn_ipi_info},
                 },
         },
     .num_chnls = NUM_CHANNELS,

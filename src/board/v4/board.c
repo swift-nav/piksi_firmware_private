@@ -43,6 +43,8 @@ static void cycle_counter_init(void) {
  * Board-specific initialization code.
  */
 void boardInit(void) {
+  /* Disable all IPI interrupts */
+  *(volatile uint32_t *)0xff31001c = -1;
   boardRevInit();
   cycle_counter_init();
 }

@@ -23,6 +23,7 @@
 #include <hal.h>
 
 #include "remoteproc_env.h"
+#include "remoteproc_config.h"
 
 #include "gic.h"
 
@@ -48,6 +49,17 @@ static int _enable_interrupt(struct proc_vring *vring_hw);
 static void _notify(int cpu_id, struct proc_intr *intr_info);
 static int _boot_cpu(int cpu_id, unsigned int load_addr);
 static void _shutdown_cpu(int cpu_id);
+
+/* Registers */
+typedef struct {
+  volatile uint32_t TRIG;
+  volatile uint32_t OBS;
+  const uint32_t reserved[2];
+  volatile uint32_t ISR;
+  volatile uint32_t IMR;
+  volatile uint32_t IER;
+  volatile uint32_t IDR;
+} ipi_reg_t;
 
 /* Global proc_ops struct */
 struct hil_platform_ops proc_ops = {
@@ -290,7 +302,8 @@ int platform_get_processor_for_fw(char *fw_name) {
 
 static int _enable_interrupt(struct proc_vring *vring_hw) {
   void *context = NULL;
-
+  if (vring_hw->intr_info.vect_id == 0xffffffff)
+    return -1;
   /* Find an unallocated irq_status structure */
   for (int i = 0; i < IRQ_STATUS_COUNT; i++) {
     irq_status_t *s = &irq_status[i];
@@ -307,19 +320,26 @@ static int _enable_interrupt(struct proc_vring *vring_hw) {
     return 1;
   }
 
-  /* Configure and enable ISR */
+  /* Configure and enable ISR in GIC */
   irq_id_t irq_id = vring_hw->intr_info.vect_id;
   gic_handler_register(irq_id, rproc_virtio_irq_handler, context);
   gic_irq_sensitivity_set(irq_id, vring_hw->intr_info.trigger_type);
   gic_irq_priority_set(irq_id, vring_hw->intr_info.priority);
   gic_irq_enable(irq_id);
 
+  /* Enable IRQ in IPI */
+  struct ipi_info *ipi_info = vring_hw->intr_info.data;
+  ipi_reg_t *ipi = (ipi_reg_t *)ipi_info->ipi_base_addr;
+  ipi->IER = ipi_info->ipi_chn_mask;
+
   return 0;
 }
 
 static void _notify(int cpu_id, struct proc_intr *intr_info) {
-  /* Trigger SGI to cpu_id */
-  GIC_ICD->ICDSGIR = ((1 << cpu_id) << 16) | (intr_info->vect_id << 0);
+  (void)cpu_id;
+  struct ipi_info *ipi_info = intr_info->data;
+  ipi_reg_t *ipi = (ipi_reg_t *)ipi_info->ipi_base_addr;
+  ipi->TRIG = ipi_info->ipi_chn_mask;
 }
 
 static int _boot_cpu(int cpu_id, unsigned int load_addr) {
@@ -336,9 +356,18 @@ static void _shutdown_cpu(int cpu_id) {
 
 static void rproc_virtio_irq_handler(void *context) {
   irq_status_t *s = (irq_status_t *)context;
+  struct ipi_info *ipi_info = s->vring_hw->intr_info.data;
+  ipi_reg_t *ipi = (ipi_reg_t *)ipi_info->ipi_base_addr;
+  uint32_t isr = ipi->ISR;
+
+  if (!(isr & ipi_info->ipi_chn_mask))
+    return;
+
   s->pending = true;
 
   if (irq_callback != NULL) {
     irq_callback();
   }
+
+  ipi->ISR = ipi_info->ipi_chn_mask;
 }
