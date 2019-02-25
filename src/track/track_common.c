@@ -417,9 +417,8 @@ static void tp_tracker_update_correlators(tracker_t *tracker, u32 cycle_flags) {
   }
 
   const code_t code = mesid.code;
-  bool pilot_sync =
-      tracker_has_bit_sync(tracker) &&
-      (is_gal(code) || (CODE_BDS3_B5I == code));
+  bool pilot_sync = tracker_has_bit_sync(tracker) &&
+                    (is_gal(code) || (CODE_BDS3_B5I == code));
   if ((CODE_GPS_L2CM == code) || pilot_sync) {
     /* Galileo, GPS L2/L5 and BDS B2a have data on the 5th correlator */
     cycle_flags |= TPF_BIT_PILOT;
@@ -969,8 +968,7 @@ static bool should_update_tow_cache(const tracker_t *tracker) {
 
   if ((CODE_GPS_L1CA == mesid.code) || (CODE_GLO_L1OF == mesid.code) ||
       (CODE_SBAS_L1CA == mesid.code) || (CODE_QZS_L1CA == mesid.code) ||
-      (CODE_BDS2_B1 == mesid.code) || (CODE_GAL_E1B == mesid.code) ||
-      (CODE_GAL_E7I == mesid.code)) {
+      (CODE_BDS2_B1 == mesid.code) || (CODE_GAL_E1B == mesid.code)) {
     responsible_for_update = true;
   } else {
     me_gnss_signal_t mesid_L1;
@@ -989,6 +987,8 @@ static bool should_update_tow_cache(const tracker_t *tracker) {
     } else if (CODE_BDS3_B5I == mesid.code) {
       mesid_L1 = construct_mesid(CODE_BDS2_B1, mesid.sat);
     } else if (CODE_GAL_E5I == mesid.code) {
+      mesid_L1 = construct_mesid(CODE_GAL_E1B, mesid.sat);
+    } else if (CODE_GAL_E7I == mesid.code) {
       mesid_L1 = construct_mesid(CODE_GAL_E1B, mesid.sat);
     } else {
       assert(!"Unsupported TOW cache code");
