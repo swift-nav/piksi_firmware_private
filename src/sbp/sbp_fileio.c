@@ -106,8 +106,9 @@ ssize_t sbp_fileio_write(const char *filename,
     msg->sequence = closure.seq = next_seq();
     msg->offset = offset + s;
     if (strlen(filename) >= MAX_FILENAME_LEN) {
-      log_error("Filename string too large for buffer (size of intended string: %d)",
-                strlen(filename));
+      log_error(
+          "Filename string too large for buffer (size of intended string: %d)",
+          strlen(filename));
       s = -1;
       break;
     }
@@ -170,8 +171,9 @@ ssize_t sbp_fileio_read(const char *filename,
     msg->offset = offset + s;
     msg->chunk_size = MIN(255, size - s);
     if (strlen(filename) >= MAX_FILENAME_LEN) {
-      log_error("Filename string too large for buffer (size of intended string: %d)",
-                strlen(filename));
+      log_error(
+          "Filename string too large for buffer (size of intended string: %d)",
+          strlen(filename));
       s = -1;
       break;
     }
