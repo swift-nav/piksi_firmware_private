@@ -11,12 +11,13 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "signal_db.h"
+
 #include <assert.h>
 #include <board.h>
 #include <string.h>
 #include <swiftnav/constants.h>
 
-#include "signal_db.h"
 #include "board/v3/nap/nap_constants.h"
 
 /** GPS L1 C/A carrier freq / code chipping rate
