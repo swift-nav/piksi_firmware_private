@@ -246,7 +246,14 @@ static void nap_rd_dna_callback(u16 sender_id,
 }
 
 void nap_dna_callback_register(void) {
-  nap_rd_dna(nap_dna);
+  u8 nap_dna_tmp[NAP_DNA_LENGTH];
+  nap_rd_dna(nap_dna_tmp);
+  /* nap_dna is initilized to 0s */
+  while (memcmp(nap_dna_tmp, nap_dna, NAP_DNA_LENGTH) == 0)
+  {
+     nap_rd_dna(nap_dna_tmp);
+  }
+  memcpy(nap_dna, nap_dna_tmp, NAP_DNA_LENGTH);
 
   static sbp_msg_callbacks_node_t nap_dna_node;
 

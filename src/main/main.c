@@ -122,8 +122,7 @@ int main(void) {
   hw_version_string_get(hw_version_string);
   log_info("hw_version: %s", hw_version_string);
 
-  nap_auth_setup();
-  nap_auth_check();
+  nap_auth_check_loop(); /* peforms hard_reset on failure */
 
   ndb_setup();
   ephemeris_setup();

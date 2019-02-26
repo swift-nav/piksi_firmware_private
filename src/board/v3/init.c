@@ -55,7 +55,7 @@
 #define IMAGE_HARDWARE_V3_PROD 0x00000013
 
 #define NAP_CHECK_SLEEP_MS 1
-
+#define NUM_NAP_RESET_SEND_KEY_ATTEMPTS 10
 static struct {
   uint32_t hardware;
   uint32_t timestamp;
@@ -168,9 +168,8 @@ void nap_auth_setup(void) {
  * has failed. This must be done after the USARTs and SBP subsystems are
  * set up, so that SBP messages can be sent and received.
  */
-void nap_auth_check(void) {
-  if (nap_locked()) {
-    /* Create strings for log_error */
+
+static void nap_print_dna_diagnostic(void) {
     char dna[NAP_DNA_LENGTH * 2 + 1];
     char key[NAP_KEY_LENGTH * 2 + 1];
     char *pnt = dna;
@@ -185,9 +184,24 @@ void nap_auth_check(void) {
     key[NAP_KEY_LENGTH * 2] = '\0';
 
     log_error("NAP Verification Failed: DNA=%s, Key=%s", dna, key);
-    chThdSleepSeconds(1);
-    hard_reset();
+}
+
+void nap_auth_check_loop(void)
+{
+  for(int i = 0; i < NUM_NAP_RESET_SEND_KEY_ATTEMPTS; i++) {
+    nap_auth_setup();
+    if(nap_locked()) {
+      /* nap is still locked, retry*/
+      nap_print_dna_diagnostic();
+      chThdSleepMilliseconds(NAP_CHECK_SLEEP_MS);
+      continue;
+    }
+    else {
+      /* succesfull unlock */
+      return;
+    }
   }
+  hard_reset();
 }
 
 static bool factory_params_read(void) {

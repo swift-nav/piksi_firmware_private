@@ -29,6 +29,6 @@ u8 mfg_id_string_get(char *mfg_id_string, size_t size);
 u8 mac_address_string_get(char *mac_string);
 
 void nap_auth_setup(void);
-void nap_auth_check(void);
+void nap_auth_check_loop(void);
 
 #endif

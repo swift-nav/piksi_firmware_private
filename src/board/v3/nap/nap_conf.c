@@ -119,6 +119,12 @@ bool nap_locked(void) {
   return GET_NAP_STATUS_LOCKED(NAP->STATUS) ? true : false;
 }
 
+static void nap_rsa_aes_reset(void) {
+  NAP->RESET_N_AES_RSA = 1;
+  COMPILER_BARRIER();          /* make sure reset is released before auth. */
+  chThdSleepMicroseconds(100); /* allow FPGA logic to release reset */
+}
+
 void nap_unlock(const u8 key[]) {
   /* Linux has access to the NAP->AUTHENTICATE register as well.
    * It can potentially access it, while nap_unlock() is writing the key,
@@ -133,11 +139,7 @@ void nap_unlock(const u8 key[]) {
   while (GET_NAP_STATUS_AUTH_BUSY(NAP->STATUS)) {
     log_error("Linux interrupted writing of NAP->AUTHENTICATE. Count=%i", n);
   }
-
-  NAP->RESET_N_AES_RSA = 1;
-  COMPILER_BARRIER();          /* make sure reset is released before auth. */
-  chThdSleepMicroseconds(100); /* allow FPGA logic to release reset */
-
+  nap_rsa_aes_reset();
   chSysLock();
   for (u32 i = 0; i < NAP_KEY_LENGTH; ++i) {
     NAP->AUTHENTICATION = SET_NAP_AUTHENTICATION_OPERATION(0, 0) |
