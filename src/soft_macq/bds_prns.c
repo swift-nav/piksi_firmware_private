@@ -10,7 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "bds2_prns.h"
+#include "bds_prns.h"
 
 #include <swiftnav/constants.h>
 
