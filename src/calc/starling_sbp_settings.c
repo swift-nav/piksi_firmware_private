@@ -139,7 +139,8 @@ void starling_register_sbp_settings(const SbpDuplexLink *sbp_link) {
   sbp_settings_client_register_enum(
       settings_client, dgnss_filter_enum, &dgnss_filter_setting);
 
-  static const char *const process_noise_enum[] = {"High Dynamics", "High Horizontal Dynamics", "Low Dynamics", NULL};
+  static const char *const process_noise_enum[] = {
+      "High Dynamics", "High Horizontal Dynamics", "Low Dynamics", NULL};
   settings_type_t process_noise_setting;
   sbp_settings_client_register_enum(
       settings_client, process_noise_enum, &process_noise_setting);
