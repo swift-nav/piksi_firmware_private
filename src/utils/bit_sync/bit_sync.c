@@ -292,12 +292,11 @@ static void histogram_update(bit_sync_t *b,
 
   } else if (CODE_GAL_E1B == b->mesid.code) {
     /* Galileo E1C has a SC25 secondary code */
-    s8 hist_head = b->histogram[0];
     /* rotate the histogram left */
     memmove(
         &(b->histogram[0]), &(b->histogram[1]), sizeof(s8) * (GAL_CS25_MS - 1));
     /* if there was a transition subtract 1 */
-    hist_head = SIGN(dot_prod_real);
+    s8 hist_head = SIGN(dot_prod_real);
     b->histogram[(GAL_CS25_MS - 1)] = hist_head;
     s32 sum = 0;
     /* cross-correlate transitions at the current symbol */
