@@ -42,6 +42,8 @@ INCDIR = $(SWIFTNAV_ROOT) \
 	 $(SWIFTNAV_ROOT)/starling/src \
 	 $(SWIFTNAV_ROOT)/starling/ \
 	 $(SWIFTNAV_ROOT)/starling/third_party/libswiftnav/include \
+	 $(SWIFTNAV_ROOT)/starling/third_party/Optional/ \
+	 $(SWIFTNAV_ROOT)/starling/third_party/eigen/ \
 	 $(SWIFTNAV_ROOT)/libsettings/include \
 	 $(SWIFTNAV_ROOT)/libsbp \
 	 $(SWIFTNAV_ROOT)/libsbp/c/include/libsbp

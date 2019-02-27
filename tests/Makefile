@@ -78,6 +78,7 @@ INCLUDE_DIRS += -I$(USER_SRC_DIR)/board/v3/
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/board/v3/prod/
 INCLUDE_DIRS += -I../starling/include
 INCLUDE_DIRS += -I../starling/third_party/libswiftnav/include
+INCLUDE_DIRS += -I../starling/third_party/Optional
 INCLUDE_DIRS += -I../starling/libfec/include
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/utils
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/hal

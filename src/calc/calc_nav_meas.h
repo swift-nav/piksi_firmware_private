@@ -13,7 +13,7 @@
 #ifndef SWIFTNAV_NAV_MEAS_CALC_H
 #define SWIFTNAV_NAV_MEAS_CALC_H
 
-#include <starling/starling.h>
+#include <starling/observation.h>
 #include <swiftnav/common.h>
 #include <swiftnav/ephemeris.h>
 #include <swiftnav/ionosphere.h>

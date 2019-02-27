@@ -12,7 +12,7 @@
 #ifndef SWIFTNAV_OBSERVATION_BIASES_CALIBRATION_H
 #define SWIFTNAV_OBSERVATION_BIASES_CALIBRATION_H
 
-#include <starling/starling.h>
+#include <starling/observation.h>
 #include <swiftnav/nav_meas.h>
 
 /* Send the glonass bias message every 5 observations message */

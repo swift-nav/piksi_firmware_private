@@ -14,7 +14,7 @@
 
 #include <assert.h>
 #include <starling/cycle_slip.h>
-#include <starling/starling.h>
+#include <starling/observation.h>
 #include <string.h>
 #include <swiftnav/coord_system.h>
 #include <swiftnav/ionosphere.h>
