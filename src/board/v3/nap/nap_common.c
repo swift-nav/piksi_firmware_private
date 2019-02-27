@@ -249,9 +249,8 @@ void nap_dna_callback_register(void) {
   u8 nap_dna_tmp[NAP_DNA_LENGTH];
   nap_rd_dna(nap_dna_tmp);
   /* nap_dna is initilized to 0s */
-  while (memcmp(nap_dna_tmp, nap_dna, NAP_DNA_LENGTH) == 0)
-  {
-     nap_rd_dna(nap_dna_tmp);
+  while (memcmp(nap_dna_tmp, nap_dna, NAP_DNA_LENGTH) == 0) {
+    nap_rd_dna(nap_dna_tmp);
   }
   memcpy(nap_dna, nap_dna_tmp, NAP_DNA_LENGTH);
 

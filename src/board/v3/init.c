@@ -170,33 +170,31 @@ void nap_auth_setup(void) {
  */
 
 static void nap_print_dna_diagnostic(void) {
-    char dna[NAP_DNA_LENGTH * 2 + 1];
-    char key[NAP_KEY_LENGTH * 2 + 1];
-    char *pnt = dna;
-    for (int i = NAP_DNA_LENGTH - 1; i >= 0; i--) {
-      pnt += sprintf(pnt, "%02x", nap_dna[i]);
-    }
-    dna[NAP_DNA_LENGTH * 2] = '\0';
-    pnt = key;
-    for (int i = NAP_KEY_LENGTH - 1; i >= 0; i--) {
-      pnt += sprintf(pnt, "%02x", factory_params.nap_key[i]);
-    }
-    key[NAP_KEY_LENGTH * 2] = '\0';
+  char dna[NAP_DNA_LENGTH * 2 + 1];
+  char key[NAP_KEY_LENGTH * 2 + 1];
+  char *pnt = dna;
+  for (int i = NAP_DNA_LENGTH - 1; i >= 0; i--) {
+    pnt += sprintf(pnt, "%02x", nap_dna[i]);
+  }
+  dna[NAP_DNA_LENGTH * 2] = '\0';
+  pnt = key;
+  for (int i = NAP_KEY_LENGTH - 1; i >= 0; i--) {
+    pnt += sprintf(pnt, "%02x", factory_params.nap_key[i]);
+  }
+  key[NAP_KEY_LENGTH * 2] = '\0';
 
-    log_error("NAP Verification Failed: DNA=%s, Key=%s", dna, key);
+  log_error("NAP Verification Failed: DNA=%s, Key=%s", dna, key);
 }
 
-void nap_auth_check_loop(void)
-{
-  for(int i = 0; i < NUM_NAP_RESET_SEND_KEY_ATTEMPTS; i++) {
+void nap_auth_check_loop(void) {
+  for (int i = 0; i < NUM_NAP_RESET_SEND_KEY_ATTEMPTS; i++) {
     nap_auth_setup();
-    if(nap_locked()) {
+    if (nap_locked()) {
       /* nap is still locked, retry*/
       nap_print_dna_diagnostic();
       chThdSleepMilliseconds(NAP_CHECK_SLEEP_MS);
       continue;
-    }
-    else {
+    } else {
       /* succesfull unlock */
       return;
     }
