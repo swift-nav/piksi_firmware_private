@@ -44,3 +44,4 @@ tests/run_tests
 GPATH
 GRTAGS
 GTAGS
+/fixes.yaml
