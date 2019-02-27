@@ -13,4 +13,7 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+#define MAX_CHANNELS 73
+#define STARLING_MAX_CHANNEL_COUNT 250
+
 #endif /* CONFIG_H */

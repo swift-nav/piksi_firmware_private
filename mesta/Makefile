@@ -12,7 +12,7 @@ clean:
 
 UDEF = '-Wno-unused' \
        '-DMAX_CHANNELS=73' \
-       '-DSTARLING_MAX_CHANNEL_COUNT=150' \
+       '-DSTARLING_MAX_CHANNEL_COUNT=250' \
        '-DMESTA_BUILD' \
        '-DPIKSI_RELEASE'
 
