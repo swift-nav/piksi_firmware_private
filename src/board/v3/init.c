@@ -110,6 +110,8 @@ void init(void) {
 
   frontend_configure();
 
+  chThdSleepMilliseconds(100);
+
   /* Initialize rollover counter */
   nap_timing_count();
 
