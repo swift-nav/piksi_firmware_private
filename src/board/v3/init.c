@@ -92,6 +92,9 @@ static void random_init(void) {
 }
 
 void init(void) {
+  fault_handling_setup(); /* THIS FUNCTION IS EMPTY */
+  factory_params_read();
+
   /* Only boards after we started tracking HW version have working clk mux */
   bool allow_ext_clk = factory_params.hardware_version > 0;
   rf_clk_init(allow_ext_clk);
@@ -99,9 +102,6 @@ void init(void) {
   log_warn("(MW) Frontend config starting");
   frontend_configure();
   chThdSleepMilliseconds(100);
-
-  fault_handling_setup();
-  factory_params_read();
 
   /* Make sure FPGA is configured - required for EMIO usage */
   nap_conf_check();
