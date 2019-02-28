@@ -16,5 +16,6 @@
 #include <stdbool.h>
 
 bool device_is_duro(void);
+bool ins_is_active(void);
 
 #endif /* SWIFTNAV_PIKSI_IS_DURO_H */

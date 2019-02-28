@@ -19,6 +19,7 @@
 #include "sbp/sbp_fileio.h"
 
 #define DEVICE_IS_DURO_FILENAME "/etc/flags/is_duro"
+#define INS_ACTIVE_FILENAME "/etc/flags/ins_active"
 
 /* If /etc/flags/is_duro exists and is 1, it means we have a Duro.
  * see package/common_init/overlay/etc/init.d/copy_duro_eeprom.sh
@@ -31,6 +32,22 @@ bool device_is_duro(void) {
   unsigned char value = '0';
   ssize_t n =
       sbp_fileio_read(DEVICE_IS_DURO_FILENAME, 0, &value, sizeof(value));
+  if (n == sizeof(value) && value == '1') {
+    return true;
+  }
+  return false;
+}
+
+/* If /etc/flags/ins_active exists and is 1, it means we are running
+ * in inertial mode, see package/common_init/overlay/etc/init.d/S20flags
+ * in buildroot for more info.
+ * This has a dependence on boot order so the above script must always be
+ * run previous to ChibiOS booting.
+ */
+
+bool ins_is_active(void) {
+  unsigned char value = '0';
+  ssize_t n = sbp_fileio_read(INS_ACTIVE_FILENAME, 0, &value, sizeof(value));
   if (n == sizeof(value) && value == '1') {
     return true;
   }
