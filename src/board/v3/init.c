@@ -110,8 +110,6 @@ void init(void) {
 
   frontend_configure();
 
-  log_warn("(MW) Frontend config done");
-
   /* Initialize rollover counter */
   nap_timing_count();
 
