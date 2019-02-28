@@ -106,16 +106,24 @@ void init(void) {
   bool allow_ext_clk = factory_params.hardware_version > 0;
   rf_clk_init(allow_ext_clk);
 
+  log_warn("(MW) Frontend config starting");
+
   frontend_configure();
+
+  log_warn("(MW) Frontend config done");
 
   /* Initialize rollover counter */
   nap_timing_count();
+
+  log_warn("(MW) NAP timing count done");
 
   random_init();
   xadc_init();
   antenna_init();
   manage_pv_setup();
   imu_init();
+
+  log_warn("(MW) fcn init() done");
 }
 
 static void nap_conf_check(void) {
