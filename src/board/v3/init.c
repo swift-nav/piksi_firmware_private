@@ -92,6 +92,14 @@ static void random_init(void) {
 }
 
 void init(void) {
+  /* Only boards after we started tracking HW version have working clk mux */
+  bool allow_ext_clk = factory_params.hardware_version > 0;
+  rf_clk_init(allow_ext_clk);
+
+  log_warn("(MW) Frontend config starting");
+  frontend_configure();
+  chThdSleepMilliseconds(100);
+
   fault_handling_setup();
   factory_params_read();
 
@@ -102,19 +110,8 @@ void init(void) {
   nap_dna_callback_register();
   nap_setup();
 
-  /* Only boards after we started tracking HW version have working clk mux */
-  bool allow_ext_clk = factory_params.hardware_version > 0;
-  rf_clk_init(allow_ext_clk);
-
-  log_warn("(MW) Frontend config starting");
-
-  frontend_configure();
-
-  chThdSleepMilliseconds(100);
-
   /* Initialize rollover counter */
   nap_timing_count();
-
   log_warn("(MW) NAP timing count done");
 
   random_init();
