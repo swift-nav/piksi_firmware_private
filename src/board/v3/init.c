@@ -102,6 +102,13 @@ void init(void) {
   bool allow_ext_clk = factory_params.hardware_version > 0;
   rf_clk_init(allow_ext_clk);
 
+  /* NOTE:
+   * No interaction with the FPGA is allowed prior to programming the frontend.
+   * As of NAP v4.12.3, the FPGA is directly clocked by the NT1065. The NT1065's
+   * clock becomes valid after we programmed it.
+   * The following delay is necessary to allow the FPGA PLL to adjust to the
+   * frequency change.
+   */
   frontend_configure();
   chThdSleepMilliseconds(100);
 
