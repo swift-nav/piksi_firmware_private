@@ -92,7 +92,7 @@ static void random_init(void) {
 }
 
 void init(void) {
-  fault_handling_setup(); /* THIS FUNCTION IS EMPTY */
+  fault_handling_setup();
   factory_params_read();
 
   /* Make sure FPGA is configured - required for EMIO usage */
@@ -101,9 +101,6 @@ void init(void) {
   /* Only boards after we started tracking HW version have working clk mux */
   bool allow_ext_clk = factory_params.hardware_version > 0;
   rf_clk_init(allow_ext_clk);
-
-  log_warn("(MW) Frontend config starting");
-  chThdSleepMilliseconds(100);
 
   frontend_configure();
   chThdSleepMilliseconds(100);
@@ -114,15 +111,12 @@ void init(void) {
 
   /* Initialize rollover counter */
   nap_timing_count();
-  log_warn("(MW) NAP timing count done");
 
   random_init();
   xadc_init();
   antenna_init();
   manage_pv_setup();
   imu_init();
-
-  log_warn("(MW) fcn init() done");
 }
 
 static void nap_conf_check(void) {
