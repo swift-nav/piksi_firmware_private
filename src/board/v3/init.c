@@ -103,6 +103,8 @@ void init(void) {
   rf_clk_init(allow_ext_clk);
 
   log_warn("(MW) Frontend config starting");
+  chThdSleepMilliseconds(100);
+
   frontend_configure();
   chThdSleepMilliseconds(100);
 
