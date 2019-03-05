@@ -445,7 +445,10 @@ gnss_signal_t sv_index_to_sid(u16 sv_index) {
  * \return SV index in [0, NUM_SATS).
  */
 u16 sid_to_sv_index(gnss_signal_t sid) {
-  assert(sid_valid(sid));
+  if (!sid_valid(sid)) {
+    log_error("sid %d:%d is invalid", sid.sat, sid.code);
+    assert(0);
+  }
   constellation_t cons = sid_to_constellation(sid);
   u16 sv_index = constellation_table[cons].start_index + sid.sat -
                  constellation_table[cons].sat_start;
