@@ -125,14 +125,14 @@ ssize_t sbp_fileio_write(const char *filename,
 
     if (!success) {
       log_error("sbp_fileio_write(): fn %s  offset %" PRIi32
-                " buf %p  size %zu  tries %" PRIu8 "  chunksize %zd   s %zu",
+                " buf %p  size %lu  tries %" PRIu8 "  chunksize %ld   s %lu",
                 dbg_filename,
                 (int32_t)offset,
                 buf,
-                size,
+                (unsigned long)size,
                 tries,
-                chunksize,
-                s);
+                (long)chunksize,
+                (unsigned long)s);
       s = -1;
       break;
     }
