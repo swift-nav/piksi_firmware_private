@@ -79,7 +79,7 @@ CLANG_TIDY_INCLUDES = -I$(SWIFTNAV_ROOT)/include/ \
                       -I$(SWIFTNAV_ROOT)/src/board/v3/ \
                       -I$(SWIFTNAV_ROOT)/src/board/v3/prod/ \
                       -isystem$(SWIFTNAV_ROOT)/mesta/stubs/
-                      
+
 ARM_NONE_EABI_GCC_VERSION = $(shell arm-none-eabi-gcc --version)
 $(info $$ARM_NONE_EABI_GCC_VERSION is [${ARM_NONE_EABI_GCC_VERSION}])
 
@@ -140,7 +140,7 @@ $(STARLING_BUILDDIR)/Makefile:
     mkdir -p $(STARLING_BUILDDIR); cd $(STARLING_BUILDDIR); \
     cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
           -DCMAKE_TOOLCHAIN_FILE=../cmake/Toolchain-gcc-arm-embedded.cmake \
-          -DMAX_CHANNELS=73 \
+          -DMAX_CHANNELS=79 \
           $(CMAKEFLAGS) ../
 
 $(OPENAMP_BUILDDIR)/lib/libopen-amp.a:
