@@ -48,19 +48,19 @@ static u32 gpgsv_msg_rate = 10;
  * \{ */
 
 /* SBAS NMEA SV IDs are from 33 to 54 */
-#define NMEA_SV_ID_OFFSET_SBAS (-87)
+#define NMEA_SV_ID_OFFSET_SBAS (33 - SBAS_FIRST_PRN)
 
 /* GLO NMEA SV IDs are from 65 to 96 */
-#define NMEA_SV_ID_OFFSET_GLO (64)
+#define NMEA_SV_ID_OFFSET_GLO (65 - GLO_FIRST_PRN)
 
 /* QZSS NMEA SV IDs are from 193 to 97 */
-#define NMEA_SV_ID_OFFSET_QZS (193)
+#define NMEA_SV_ID_OFFSET_QZS (193 - QZS_FIRST_PRN)
 
 /* GAL NMEA SV IDs are from 301 to 336 */
-#define NMEA_SV_ID_OFFSET_GAL (300)
+#define NMEA_SV_ID_OFFSET_GAL (301 - GAL_FIRST_PRN)
 
 /* BDS NMEA SV IDs are from 401 to 437 */
-#define NMEA_SV_ID_OFFSET_BDS2 (400)
+#define NMEA_SV_ID_OFFSET_BDS2 (401 - BDS_FIRST_PRN)
 
 /* Max SVs reported per GSA message */
 #define GSA_MAX_SV 12
@@ -210,7 +210,7 @@ static u16 nmea_get_id(const gnss_signal_t sid) {
       id = NMEA_SV_ID_OFFSET_SBAS + sid.sat;
       break;
     case CONSTELLATION_QZS:
-      id = sid.sat;
+      id = NMEA_SV_ID_OFFSET_QZS + sid.sat;
       break;
     case CONSTELLATION_COUNT:
     case CONSTELLATION_INVALID:
@@ -250,9 +250,9 @@ static talker_id_t sid_to_talker_id(const gnss_signal_t sid) {
       return TALKER_ID_GB;
     case CONSTELLATION_GLO:
       return TALKER_ID_GL;
-    case CONSTELLATION_GPS:
     case CONSTELLATION_QZS:
       return TALKER_ID_QZ;
+    case CONSTELLATION_GPS:
     case CONSTELLATION_SBAS:
       return TALKER_ID_GP;
     case CONSTELLATION_INVALID:
