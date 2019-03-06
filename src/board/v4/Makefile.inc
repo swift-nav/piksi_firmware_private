@@ -70,7 +70,7 @@ endif
 include $(SWIFTNAV_ROOT)/src/board/v4/$(PIKSI_REV)/Makefile.inc
 
 include $(CHIBIOS)/os/common/ports/ARM/compilers/GCC/mk/startup_zynq7000.mk
-include $(CHIBIOS)/os/hal/ports/ZYNQ7000/platform.mk
+include $(CHIBIOS)/os/hal/ports/ZYNQ/zynqmp/platform.mk
 include $(CHIBIOS)/os/rt/ports/ARM/compilers/GCC/mk/port_generic.mk
 
 BOARDDIR := $(SWIFTNAV_ROOT)/src/board/v4

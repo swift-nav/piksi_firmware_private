@@ -38,7 +38,7 @@ resource_table = {
     .rproc_mem = {.type = RSC_RPROC_MEM,
                   .da = 0x7d000000,
                   .pa = 0x7d000000,
-                  .len = 0x800000,
+                  .len =  0x100000,
                   .reserved = 0},
     .rpmsg_vdev = {.type = RSC_VDEV,
                    .id = VIRTIO_ID_RPMSG,

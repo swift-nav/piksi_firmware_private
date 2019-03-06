@@ -58,7 +58,7 @@ typedef struct {
 #define AXI_DMA_INT_ERROR_Msk (0x1U << AXI_DMA_INT_ERROR_Pos)
 
 /* Instances */
-#define AXI_DMA0 ((axi_dma_t *)0x40400000)
+#define AXI_DMA0 ((axi_dma_t *)0x80000000)
 #define IRQ_ID_AXI_DMA0_MM2S IRQ_ID_FPGA0
 #define IRQ_ID_AXI_DMA0_S2MM IRQ_ID_FPGA1
 

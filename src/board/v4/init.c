@@ -119,6 +119,7 @@ void init(void) {
 }
 
 static void nap_conf_check(void) {
+  return;
   while (!(DEV_CFG_INT_STS & DEV_CFG_INT_STS_PCFG_DONE_Msk)) {
     log_error("Waiting for NAP");
     chThdSleepSeconds(2);

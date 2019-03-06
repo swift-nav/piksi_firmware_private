@@ -19,6 +19,6 @@
 #include "swiftnap.h"
 
 /* Instances */
-#define NAP ((swiftnap_t *)0xa4000000)
+#define NAP ((swiftnap_t *)0x80001000)
 
 #endif /* SWIFTNAV_NAP_REGS_H */
