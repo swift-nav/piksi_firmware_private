@@ -2,7 +2,9 @@
 #define SOFT_MACQ_DEFINES_H_
 
 #include <math.h>
+#include <stdbool.h>
 #include <stdint.h>
+
 #include "lib/fixed_fft_r2.h"
 
 #define TWOPI (2.0 * M_PI)

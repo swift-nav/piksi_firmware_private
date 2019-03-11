@@ -159,8 +159,8 @@ void cn0_est_basic_init(cn0_est_basic_state_t *s,
                         float q0);
 float cn0_est_basic_update(cn0_est_basic_state_t *s,
                            const cn0_est_params_t *p,
-                           float I,
-                           float Q,
+                           float p_I,
+                           float p_Q,
                            float ve_I,
                            float ve_Q);
 

@@ -16,15 +16,13 @@
 #include <math.h>
 #include <stdint.h>
 #include <string.h>
-
 #include <swiftnav/linear_algebra.h>
 #include <swiftnav/logging.h>
 
 #include "board/v3/nap/grabber.h"
+#include "lib/fixed_fft_r2.h"
 #include "nap/nap_common.h"
 #include "nap/nap_constants.h"
-
-#include "lib/fixed_fft_r2.h"
 #include "prns.h"
 #include "soft_macq_defines.h"
 #include "soft_macq_mdbzp.h"
@@ -62,15 +60,14 @@ static bool bModuleInit;
 /********************************
  * STATIC FUNCTION DECLARATIONS
  *********************************/
-static bool BbMixAndDecimate(const me_gnss_signal_t mesid);
+static bool BbMixAndDecimate(me_gnss_signal_t mesid);
 
-static bool SoftMacqSerial(const me_gnss_signal_t mesid,
+static bool SoftMacqSerial(me_gnss_signal_t mesid,
                            float doppler_min_hz,
                            float doppler_max_hz,
-                           acq_result_t *_sAcqResult);
+                           acq_result_t *_psLegacyResult);
 
-static bool SoftMacqMdbzp(const me_gnss_signal_t mesid,
-                          acqResults_t *_sAcqResult);
+static bool SoftMacqMdbzp(me_gnss_signal_t mesid, acqResults_t *pacq_res);
 
 /*********************************
  *      EXPOSED INTERFACES
@@ -213,7 +210,9 @@ static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
             (carr_nco >> (32 - BBNCO_CARRPH_BITS)) & BBNCO_CARRPH_MASK;
 
         h = k / FAU_DECFACT;
-        if (FAU_BASEBAND_SIZE == h) break;
+        if (FAU_BASEBAND_SIZE == h) {
+          break;
+        }
 
         baseband[h].r += bbConvTable[(sample_bitmap | phase_bitmap)].r;
         baseband[h].i += bbConvTable[(sample_bitmap | phase_bitmap)].i;
@@ -233,7 +232,9 @@ static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
             (carr_nco >> (32 - BBNCO_CARRPH_BITS)) & BBNCO_CARRPH_MASK;
 
         h = k / FAU_DECFACT;
-        if (FAU_BASEBAND_SIZE == h) break;
+        if (FAU_BASEBAND_SIZE == h) {
+          break;
+        }
 
         baseband[h].r += bbConvTable[(sample_bitmap | phase_bitmap)].r;
         baseband[h].i += bbConvTable[(sample_bitmap | phase_bitmap)].i;
@@ -251,7 +252,9 @@ static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
             (carr_nco >> (32 - BBNCO_CARRPH_BITS)) & BBNCO_CARRPH_MASK;
 
         h = k / FAU_DECFACT;
-        if (FAU_BASEBAND_SIZE == h) break;
+        if (FAU_BASEBAND_SIZE == h) {
+          break;
+        }
 
         baseband[h].r += bbConvTable[(sample_bitmap | phase_bitmap)].r;
         baseband[h].i += bbConvTable[(sample_bitmap | phase_bitmap)].i;
@@ -269,7 +272,9 @@ static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
             (carr_nco >> (32 - BBNCO_CARRPH_BITS)) & BBNCO_CARRPH_MASK;
 
         h = k / FAU_DECFACT;
-        if (FAU_BASEBAND_SIZE == h) break;
+        if (FAU_BASEBAND_SIZE == h) {
+          break;
+        }
 
         baseband[h].r += bbConvTable[(sample_bitmap | phase_bitmap)].r;
         baseband[h].i += bbConvTable[(sample_bitmap | phase_bitmap)].i;

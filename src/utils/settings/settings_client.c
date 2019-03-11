@@ -10,18 +10,17 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "settings_client.h"
+
 #include <assert.h>
+#include <ch.h>
+#include <libsbp/settings.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include <ch.h>
-
-#include <libsbp/settings.h>
 #include <swiftnav/logging.h>
 
-#include "init.h"
-#include "sbp.h"
-#include "settings/settings_client.h"
+#include "cfg/init.h"
+#include "sbp/sbp.h"
 
 static settings_t *settings = NULL;
 

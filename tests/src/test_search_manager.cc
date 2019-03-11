@@ -12,8 +12,9 @@
 
 #include <stdio.h>
 #include <string.h>
+
+#include "acq/manage.h"
 #include "gtest/gtest.h"
-#include "manage.h"
 #include "search_manager_api.h"
 
 /* #define DBGOUT */

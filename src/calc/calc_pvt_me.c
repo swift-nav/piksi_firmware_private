@@ -9,17 +9,18 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
+#include "calc_pvt_me.h"
+
 #include <assert.h>
 #include <float.h>
 #include <inttypes.h>
-#include <stdio.h>
-#include <string.h>
-
 #include <libsbp/sbp.h>
 #include <starling/integration/starling_input_bridge.h>
 #include <starling/observation.h>
 #include <starling/pvt_engine/firmware_binding.h>
 #include <starling/starling.h>
+#include <stdio.h>
+#include <string.h>
 #include <swiftnav/constants.h>
 #include <swiftnav/correct_iono_tropo.h>
 #include <swiftnav/ephemeris.h>
@@ -33,7 +34,6 @@
 #include "board/nap/track_channel.h"
 #include "calc_nav_meas.h"
 #include "calc_pvt_common.h"
-#include "calc_pvt_me.h"
 #include "main/main.h"
 #include "ndb/ndb.h"
 #include "nmea/nmea.h"
@@ -44,13 +44,13 @@
 #include "sbp/sbp_utils.h"
 #include "settings/settings_client.h"
 #include "shm/shm.h"
+#include "signal_db/signal_db.h"
 #include "simulator/simulator.h"
 #include "starling_integration.h"
 #include "system_monitor/system_monitor.h"
 #include "timing/timing.h"
 #include "track/track_sid_db.h"
 #include "track/track_utils.h"
-#include "utils/signal_db/signal_db.h"
 
 /** Minimum number of satellites to use with PVT */
 #define MINIMUM_SV_COUNT 5

@@ -29,20 +29,21 @@
 #define CN0_BL_DB_MIN (0.f)
 
 static float limit_cn0(float cn0) {
-  if (cn0 > CN0_BL_DB_MAX)
+  if (cn0 > CN0_BL_DB_MAX) {
     return CN0_BL_DB_MAX;
-  else if (cn0 < CN0_BL_DB_MIN)
+  }
+  if (cn0 < CN0_BL_DB_MIN) {
     return CN0_BL_DB_MIN;
-  else
-    return cn0;
+  }
+  return cn0;
 }
 
 static float compute_nsr(float P_s, float P_n) {
   /* Ensure the NSR is within the limit */
-  if (P_s < P_n * CN0_BL_NSR_MIN_MULTIPLIER)
+  if (P_s < P_n * CN0_BL_NSR_MIN_MULTIPLIER) {
     return CN0_BL_NSR_MIN;
-  else
-    return P_n / P_s;
+  }
+  return P_n / P_s;
 }
 
 /**

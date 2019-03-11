@@ -10,14 +10,15 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "manage.h"
+
 #include <assert.h>
 #include <inttypes.h>
+#include <libsbp/piksi.h>
 #include <math.h>
+#include <starling/starling.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include <libsbp/piksi.h>
-#include <starling/starling.h>
 #include <swiftnav/almanac.h>
 #include <swiftnav/constants.h>
 #include <swiftnav/coord_system.h>
@@ -29,20 +30,19 @@
 #include <swiftnav/signal.h>
 
 #include "board/nap/track_channel.h"
-#include "decode.h"
+#include "decode/decode.h"
 #include "dum/dum.h"
 #include "ephemeris/ephemeris.h"
 #include "gnss_capabilities/gnss_capabilities.h"
-#include "main.h"
-#include "manage.h"
+#include "hal/piksi_systime.h"
+#include "main/main.h"
 #include "ndb/ndb.h"
 #include "nmea/nmea.h"
-#include "piksi_systime.h"
 #include "position/position.h"
 #include "reacq/reacq_manage.h"
 #include "reacq/search_manager_utils.h"
-#include "sbp.h"
-#include "sbp_utils.h"
+#include "sbp/sbp.h"
+#include "sbp/sbp_utils.h"
 #include "settings/settings_client.h"
 #include "shm/shm.h"
 #include "signal_db/signal_db.h"
@@ -209,7 +209,10 @@ static acq_timer_t bds2_acq_timer[NUM_SATS_BDS] = {0};
 /* The array keeps time when GAL SV was detected as unhealthy. */
 static acq_timer_t gal_acq_timer[NUM_SATS_GAL] = {0};
 
-static u8 manage_track_new_acq(const me_gnss_signal_t mesid);
+/* The array keeps time when QZS SV was detected as unhealthy. */
+static acq_timer_t qzs_acq_timer[NUM_SATS_QZS] = {0};
+
+static u8 manage_track_new_acq(me_gnss_signal_t mesid);
 static void manage_acq(void);
 
 static void tracking_startup_fifo_init(tracking_startup_fifo_t *fifo);
@@ -219,7 +222,10 @@ static bool tracking_startup_fifo_read(tracking_startup_fifo_t *fifo,
                                        tracking_startup_params_t *element);
 
 static sbp_msg_callbacks_node_t almanac_callback_node;
-static void almanac_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
+static void almanac_callback(u16 sender_id,
+                             u8 len,
+                             u8 msg[], /* NOLINT */
+                             void *context) {
   (void)sender_id;
   (void)len;
   (void)context;
@@ -551,8 +557,8 @@ static u8 manage_track_new_acq(const me_gnss_signal_t mesid) {
     if (code_requires_decoder(mesid.code) && tracker_available(i, mesid) &&
         decoder_channel_available(i, mesid)) {
       return i;
-    } else if (!code_requires_decoder(mesid.code) &&
-               tracker_available(i, mesid)) {
+    }
+    if (!code_requires_decoder(mesid.code) && tracker_available(i, mesid)) {
       return i;
     }
   }
@@ -596,6 +602,10 @@ void check_clear_unhealthy(void) {
   if (is_galileo_enabled()) {
     revert_expired_unhealthiness(
         gal_acq_timer, ARRAY_SIZE(gal_acq_timer), ACQ_UNHEALTHY_TIMEOUT_SEC);
+  }
+  if (is_qzss_enabled()) {
+    revert_expired_unhealthiness(
+        qzs_acq_timer, ARRAY_SIZE(qzs_acq_timer), ACQ_UNHEALTHY_TIMEOUT_SEC);
   }
 }
 
@@ -712,6 +722,14 @@ void restore_acq(const tracker_t *tracker) {
     assert(index < ARRAY_SIZE(gal_acq_timer));
     gal_acq_timer[index].status = acq;
     piksi_systime_get(&gal_acq_timer[index].tick); /* channel drop time */
+  } else if (IS_QZSS(mesid)) {
+    mesid = construct_mesid(CODE_QZS_L1CA, mesid.sat);
+    acq = &acq_status[mesid_to_global_index(mesid)];
+    acq->state = ACQ_PRN_UNHEALTHY;
+    u16 index = tracker->mesid.sat - QZS_FIRST_PRN;
+    assert(index < ARRAY_SIZE(qzs_acq_timer));
+    qzs_acq_timer[index].status = acq;
+    piksi_systime_get(&qzs_acq_timer[index].tick); /* channel drop time */
   }
 }
 

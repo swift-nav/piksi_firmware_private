@@ -18,6 +18,7 @@
 #define _BOARD_H_
 
 #include <gic.h>
+
 #include "board_rev.h"
 
 #define IRQ_ID_NAP IRQ_ID_FPGA2

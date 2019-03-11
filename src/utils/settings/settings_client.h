@@ -13,10 +13,8 @@
 #ifndef SWIFTNAV_SETTINGS_CLIENT_H
 #define SWIFTNAV_SETTINGS_CLIENT_H
 
-#include <stdbool.h>
-
 #include <libsettings/settings.h>
-
+#include <stdbool.h>
 #include <swiftnav/common.h>
 
 struct setting {
@@ -65,11 +63,12 @@ struct setting {
 
 void settings_api_setup(void);
 
-int settings_api_register_enum(const char *const enumnames[],
+int settings_api_register_enum(const char *const enum_names[],
                                settings_type_t *type);
 
-int settings_api_register(struct setting *s, settings_type_t type);
-int settings_api_register_readonly(struct setting *s, settings_type_t type);
-int settings_api_watch(struct setting *s, settings_type_t type);
+int settings_api_register(struct setting *setting, settings_type_t type);
+int settings_api_register_readonly(struct setting *setting,
+                                   settings_type_t type);
+int settings_api_watch(struct setting *setting, settings_type_t type);
 
 #endif /* SWIFTNAV_SETTINGS_CLIENT_H */

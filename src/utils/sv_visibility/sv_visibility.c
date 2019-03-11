@@ -16,7 +16,8 @@
 #define DEBUG 0
 
 #include <swiftnav/gnss_time.h>
-#include "manage.h"
+
+#include "acq/manage.h"
 #include "signal_db/signal_db.h"
 #include "sv_visibility.h"
 

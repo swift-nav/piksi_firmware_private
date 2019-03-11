@@ -10,17 +10,20 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "decode_gps_l1ca.h"
+
+#include <assert.h>
+#include <string.h>
 #include <swiftnav/logging.h>
 
 #include "decode.h"
 #include "decode_common.h"
-#include "decode_gps_l1ca.h"
 #include "ephemeris/ephemeris.h"
 #include "me_constants.h"
 #include "nav_msg/nav_msg.h"
 #include "ndb/ndb.h"
-#include "sbp.h"
-#include "sbp_utils.h"
+#include "sbp/sbp.h"
+#include "sbp/sbp_utils.h"
 #include "shm/shm.h"
 #include "signal_db/signal_db.h"
 #include "timing/timing.h"
@@ -28,9 +31,6 @@
 #include "track/track_flags.h"
 #include "track/track_sid_db.h"
 #include "track/track_state.h"
-
-#include <assert.h>
-#include <string.h>
 
 #define IONO_HYSTERESIS_MS 1000
 
@@ -205,10 +205,9 @@ static bool check_iono_timestamp(gnss_signal_t sid, ionosphere_t *iono) {
     /* Check if decoded data is not older that the one stored in NDB. */
     double age = gpsdifftime(&existing_a.toa, &existing_i.toa);
     return age >= 0.0f;
-  } else {
-    /* If NDB has no previously saved data, or contains aged data */
-    return true;
   }
+  /* If NDB has no previously saved data, or contains aged data */
+  return true;
 }
 
 /**

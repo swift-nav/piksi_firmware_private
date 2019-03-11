@@ -11,26 +11,25 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <inttypes.h>
-#include <swiftnav/bits.h>
-#include <swiftnav/constants.h>
-#include <swiftnav/gnss_time.h>
-
-#include "lock_detector/lock_detector.h"
-#include "manage.h"
-#include "signal_db/signal_db.h"
-#include "timing/timing.h"
-#include "track_api.h"
-#include "track_cfg.h"
 #include "track_common.h"
-#include "track_flags.h"
-#include "track_sid_db.h"
-#include "track_utils.h"
 
 #include <assert.h>
 #include <inttypes.h>
 #include <math.h>
 #include <string.h>
+#include <swiftnav/bits.h>
+#include <swiftnav/constants.h>
+#include <swiftnav/gnss_time.h>
+
+#include "acq/manage.h"
+#include "lock_detector/lock_detector.h"
+#include "signal_db/signal_db.h"
+#include "timing/timing.h"
+#include "track_api.h"
+#include "track_cfg.h"
+#include "track_flags.h"
+#include "track_sid_db.h"
+#include "track_utils.h"
 
 /**
  * Computes number of chips in the integration interval
@@ -670,7 +669,7 @@ static void tp_tracker_update_locks(tracker_t *tracker, u32 cycle_flags) {
   bool outp = tracker->ld_phase.outp || tracker->ld_freq.outp;
 
   bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
-  if (!outp_prev && outp && confirmed) {
+  if (DEBUG && !outp_prev && outp && confirmed) {
     u64 unlocked_ms = tracker_timer_ms(&tracker->unlocked_timer);
     log_debug_mesid(tracker->mesid, "Lock after %" PRIu64 "ms", unlocked_ms);
   }
@@ -810,7 +809,7 @@ static void tp_tracker_flag_outliers(tracker_t *tracker) {
                                code_to_tcxo_doppler_max(tracker->mesid.code);
 
   /* remove channels with a large positive Doppler outlier */
-  if (fabsf(tracker->doppler_hz) > doppler_max_hz) {
+  if (fabs(tracker->doppler_hz) > doppler_max_hz) {
     log_debug_mesid(
         tracker->mesid, "Doppler %.2f too high", tracker->doppler_hz);
     tracker_flag_drop(tracker, CH_DROP_REASON_OUTLIER);

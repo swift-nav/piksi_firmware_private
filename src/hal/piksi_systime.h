@@ -14,7 +14,6 @@
 #define SWIFTNAV_PIKSI_SYSTIME_H
 
 #include <ch.h>
-
 #include <swiftnav/common.h>
 
 #include "chconf.h"
@@ -61,7 +60,7 @@ s64 piksi_systime_sub_s(const piksi_systime_t *a, const piksi_systime_t *b);
 
 void piksi_systime_sleep_us_s(u32 len_us);
 
-void piksi_systime_sleep_ms(u32 len_us);
+void piksi_systime_sleep_ms(u32 len_ms);
 
 u32 piksi_systime_sleep_until_us(const piksi_systime_t *t);
 

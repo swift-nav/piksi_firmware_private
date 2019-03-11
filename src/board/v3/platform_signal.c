@@ -11,6 +11,7 @@
  */
 
 #include "platform_signal.h"
+
 #include "decode/decode_bds_b1.h"
 #include "decode/decode_bds_b2.h"
 #include "decode/decode_gal_e1.h"
@@ -46,7 +47,6 @@ void platform_track_setup(void) {
   track_qzss_l1ca_register();
 #endif
 #if defined CODE_QZSS_L2C_SUPPORT && CODE_QZSS_L2C_SUPPORT > 0
-  track_qzss_l2c_register();
 #endif
 #if defined CODE_BDS2_B1_SUPPORT && CODE_BDS2_B1_SUPPORT > 0
   track_bds2_b11_register();
@@ -80,6 +80,8 @@ void platform_decode_setup(void) {
 #endif
 #if defined CODE_QZSS_L1CA_SUPPORT && CODE_QZSS_L1CA_SUPPORT > 0
   decode_qzss_l1ca_register();
+#endif
+#if defined CODE_QZSS_L2C_SUPPORT && CODE_QZSS_L2C_SUPPORT > 0
 #endif
 #if defined CODE_BDS2_B1_SUPPORT && CODE_BDS2_B1_SUPPORT > 0
   decode_bds_b1_register();

@@ -12,15 +12,16 @@
 
 #include <assert.h>
 #include <inttypes.h>
-#include <sbp.h>
-#include <sbp_utils.h>
 #include <string.h>
 #include <swiftnav/constants.h>
 #include <swiftnav/gnss_time.h>
 #include <swiftnav/logging.h>
+
 #include "ndb.h"
 #include "ndb_fs_access.h"
 #include "ndb_internal.h"
+#include "sbp/sbp.h"
+#include "sbp/sbp_utils.h"
 #include "settings/settings_client.h"
 #include "signal_db/signal_db.h"
 #include "timing/timing.h"

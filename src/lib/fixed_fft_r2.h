@@ -2,7 +2,6 @@
 #define FIXED_FFT_R2_H_
 
 #include <stdint.h>
-
 #include <swiftnav/common.h>
 
 #define MAX_FFTR2_RANKS (14)
@@ -29,17 +28,17 @@ typedef struct _sc32 {
     u32 *tmpBRX;                                                       \
     u16 *BR;                                                           \
     u8 uFftMem[(SIZE) * (sizeof(sc16_t) + sizeof(u32) + sizeof(u16))]; \
-  } NAME;
+  }(NAME);
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void InitIntFFTr2(void *_pIntFFT, u32 _N);
+void InitIntFFTr2(void *_pFFT, u32 _N);
 
-void DoFwdIntFFTr2(void *_pIntFFT, sc16_t *_x, u32 _uScale, int _iShuf);
+void DoFwdIntFFTr2(void *_pFFT, sc16_t *_x, u32 _uScale, int _iShuf);
 
-void DoBwdIntFFTr2(void *_pIntFFT, sc16_t *_x, u32 _uScale, int _iShuf);
+void DoBwdIntFFTr2(void *_pFFT, sc16_t *_x, u32 _uScale, int _iShuf);
 
 #ifdef __cplusplus
 }

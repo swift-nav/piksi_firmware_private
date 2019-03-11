@@ -12,6 +12,7 @@
 
 /* Local headers */
 #include "track_qzss_l1ca.h"
+
 #include "signal_db/signal_db.h"
 #include "track/track_api.h"
 #include "track/track_common.h"
@@ -20,7 +21,7 @@
 #include "track_qzss_l2c.h" /* for L1C/A to L2C tracking handover */
 
 /* Non-local headers */
-#include <manage.h>
+#include <acq/manage.h>
 #include <platform_track.h>
 
 /* Libraries */
@@ -32,7 +33,8 @@
 #include <string.h>
 
 /** QZSS L1 C/A parameter section name */
-#define QZSS_L1CA_TRACK_SETTING_SECTION "qzss_l1ca_track"
+//#define QZSS_L1CA_TRACK_SETTING_SECTION "qzss_l1ca_track"
+#define L1CA_TRACK_SETTING_SECTION "l1ca_track"
 
 /** QZSS L1 C/A configuration container */
 static tp_tracker_config_t qzss_l1ca_config = TP_TRACKER_DEFAULT_CONFIG;
@@ -53,6 +55,10 @@ static const tracker_interface_t tracker_interface_qzss_l1ca = {
  *  framework.
  */
 void track_qzss_l1ca_register(void) {
+  lp1_filter_compute_params(&qzss_l1ca_config.xcorr_f_params,
+                            qzss_l1ca_config.xcorr_cof,
+                            SECS_MS / QZS_L1CA_BIT_LENGTH_MS);
+
   tracker_interface_register(&tracker_interface_qzss_l1ca);
 }
 
@@ -65,7 +71,6 @@ static void tracker_qzss_l1ca_update(tracker_t *tracker) {
 
   bool bit_aligned =
       ((0 != (cflags & TPF_BSYNC_UPD)) && tracker_bit_aligned(tracker));
-
   if (!bit_aligned) {
     return;
   }

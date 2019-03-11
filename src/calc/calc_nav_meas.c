@@ -10,21 +10,21 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <assert.h>
-#include <string.h>
-
 #include "calc_nav_meas.h"
-#include "me_constants.h"
-#include "nav_msg/cnav_msg_storage.h"
-#include "nav_msg/cons_time_storage.h"
-#include "track/track_sid_db.h"
 
+#include <assert.h>
 #include <starling/cycle_slip.h>
 #include <starling/starling.h>
+#include <string.h>
 #include <swiftnav/coord_system.h>
 #include <swiftnav/ionosphere.h>
 #include <swiftnav/linear_algebra.h>
 #include <swiftnav/troposphere.h>
+
+#include "me_constants.h"
+#include "nav_msg/cnav_msg_storage.h"
+#include "nav_msg/cons_time_storage.h"
+#include "track/track_sid_db.h"
 
 /* Convert a single channel measurement into a single navigation measurement. */
 static s8 convert_channel_measurement_to_starling_obs(

@@ -41,6 +41,8 @@
 
 #define MS2ST(x) x
 
+#define THD_FUNCTION(tname, arg) __attribute__((noreturn)) void tname(void *arg)
+
 typedef int binary_semaphore_t;
 typedef int mutex_t;
 typedef int systime_t;
@@ -65,6 +67,7 @@ void chRegSetThreadNameX(thread_t *tp, const char *name);
 void chRegSetThreadName(const char *name);
 
 systime_t chThdSleepMilliseconds(systime_t time);
+void chThdSleepSeconds(systime_t time);
 
 void chSysLock(void);
 void chSysUnlock(void);

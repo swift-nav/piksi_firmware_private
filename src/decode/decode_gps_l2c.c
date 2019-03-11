@@ -10,6 +10,8 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "decode_gps_l2c.h"
+
 #include <assert.h>
 #include <inttypes.h>
 #include <string.h>
@@ -19,11 +21,10 @@
 
 #include "decode.h"
 #include "decode_common.h"
-#include "decode_gps_l2c.h"
 #include "nav_msg/nav_msg.h" /* For BIT_POLARITY_... constants */
 #include "ndb/ndb_utc.h"
-#include "sbp.h"
-#include "sbp_utils.h"
+#include "sbp/sbp.h"
+#include "sbp/sbp_utils.h"
 #include "shm/shm.h"
 #include "signal_db/signal_db.h"
 #include "track/track_decode.h"

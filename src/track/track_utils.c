@@ -10,8 +10,9 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <string.h>
+#include "track_utils.h"
 
+#include <string.h>
 #include <swiftnav/nav_meas.h>
 
 #include "board/nap/track_channel.h"
@@ -20,7 +21,6 @@
 #include "track_api.h"
 #include "track_flags.h"
 #include "track_state.h"
-#include "track_utils.h"
 
 /**
  * Converts tracking channel data blocks into channel measurement structure.

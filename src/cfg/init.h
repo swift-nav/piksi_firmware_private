@@ -13,6 +13,9 @@
 #ifndef SWIFTNAV_INIT_H
 #define SWIFTNAV_INIT_H
 
+#include <stdio.h>
+#include <swiftnav/common.h>
+
 void pre_init(void);
 void init(void);
 

@@ -10,13 +10,14 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <math.h>
-#include <stdlib.h>
-#include <string.h>
+#include "calc_base_obs.h"
 
+#include <math.h>
 #include <starling/integration/starling_input_bridge.h>
 #include <starling/observation.h>
 #include <starling/starling.h>
+#include <stdlib.h>
+#include <string.h>
 #include <swiftnav/constants.h>
 #include <swiftnav/coord_system.h>
 #include <swiftnav/correct_iono_tropo.h>
@@ -28,9 +29,8 @@
 #include <swiftnav/sid_set.h>
 #include <swiftnav/signal.h>
 
-#include "calc_base_obs.h"
-#include "calc_pvt_me.h"
-#include "manage.h"
+#include "acq/manage.h"
+#include "calc/calc_pvt_me.h"
 #include "nav_msg/cnav_msg_storage.h"
 #include "ndb/ndb.h"
 #include "nmea/nmea.h"
@@ -41,7 +41,7 @@
 #include "settings/settings_client.h"
 #include "shm/shm.h"
 #include "signal_db/signal_db.h"
-#include "simulator.h"
+#include "simulator/simulator.h"
 #include "starling_integration.h"
 #include "timing/timing.h"
 
@@ -329,7 +329,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
  * Just logs a deprecation warning. */
 static void deprecated_callback(u16 sender_id,
                                 u8 len,
-                                u8 msg[],
+                                u8 msg[], /* NOLINT */
                                 void *context) {
   (void)context;
   (void)len;
@@ -340,9 +340,11 @@ static void deprecated_callback(u16 sender_id,
       "Piksi.");
 }
 
-/** SBP callback for Group delay message
- */
-static void ics_msg_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
+/** SBP callback for Group delay message */
+static void ics_msg_callback(u16 sender_id,
+                             u8 len,
+                             u8 msg[], /* NOLINT */
+                             void *context) {
   (void)sender_id;
   (void)len;
   (void)context;

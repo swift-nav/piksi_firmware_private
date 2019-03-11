@@ -10,6 +10,8 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "soft_macq_utils.h"
+
 #include <inttypes.h>
 #include <math.h>
 #include <stdbool.h>
@@ -17,7 +19,6 @@
 #include <stdlib.h>
 
 #include "prns.h"
-#include "soft_macq_utils.h"
 
 /** baseband LUT conversion table, takes uint8_t with a signal sample
  *  and a phase argument and generates the rotated complex sample
@@ -92,10 +93,18 @@ uint32_t CirclesToUint32(double dCircles) {
  * if the array length can be inferred
  */
 void Sc16ArrayMulX(sc16_t *_pr, sc16_t *_pa, sc16_t *_pb, u32 _iSize) {
-  if (_iSize <= 0) return;
-  if (NULL == _pr) return;
-  if (NULL == _pa) return;
-  if (NULL == _pb) return;
+  if (_iSize <= 0) {
+    return;
+  }
+  if (NULL == _pr) {
+    return;
+  }
+  if (NULL == _pa) {
+    return;
+  }
+  if (NULL == _pb) {
+    return;
+  }
 
 #if defined __ARM_NEON__
 
@@ -160,9 +169,15 @@ void Sc16ArrayMulX(sc16_t *_pr, sc16_t *_pa, sc16_t *_pb, u32 _iSize) {
  * array
  *  */
 void Sc16ArrayAddAbsTo(float *_fOut, sc16_t *_fIn, u32 _iSize) {
-  if (NULL == _fOut) return;
-  if (NULL == _fIn) return;
-  if (_iSize <= 0) return;
+  if (NULL == _fOut) {
+    return;
+  }
+  if (NULL == _fIn) {
+    return;
+  }
+  if (_iSize <= 0) {
+    return;
+  }
 
   for (u32 i = 0; i < _iSize; i++) {
     _fOut[i] +=
@@ -265,8 +280,8 @@ bool IsAcquired3D(const float *vec,
 
     /* quadratic fit on freq (it's a sinc actually) */
     u32 max_code_idx = _iFreqSh * (imax / _iFreqSh);
-    float ea = (float)vec[max_code_idx + ((max_freq_index - 1) % _iFreqSh)];
-    float la = (float)vec[max_code_idx + ((max_freq_index + 1) % _iFreqSh)];
+    float ea = vec[max_code_idx + ((max_freq_index - 1) % _iFreqSh)];
+    float la = vec[max_code_idx + ((max_freq_index + 1) % _iFreqSh)];
     float freq_delta = 0.0f;
     if ((0.0f != ea) && (0.0f != la)) {
       freq_delta = 0.5f * (la - ea) / (la + ea);

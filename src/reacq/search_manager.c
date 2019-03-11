@@ -13,7 +13,8 @@
 #include <inttypes.h>
 #include <string.h>
 #include <swiftnav/glo_map.h>
-#include "manage.h"
+
+#include "acq/manage.h"
 #include "ndb/ndb_lgf.h"
 #include "position/position.h"
 #include "sbas_select/sbas_select.h"
@@ -98,15 +99,14 @@ static u32 sbas_limit_mask(void) {
     /* cannot read LGF for some reason, so set mask for all possible SBAS SV*/
     return sbas_select_prn_mask(SBAS_WAAS) | sbas_select_prn_mask(SBAS_EGNOS) |
            sbas_select_prn_mask(SBAS_GAGAN) | sbas_select_prn_mask(SBAS_MSAS);
-  } else {
-    static sbas_system_t sbas_provider = SBAS_NONE;
-    sbas_system_t new_provider = sbas_select_provider(&lgf);
-    if ((sbas_provider != new_provider) && (SBAS_NONE != sbas_provider)) {
-      tracker_set_sbas_provider_change_flag();
-    }
-    sbas_provider = new_provider;
-    return sbas_select_prn_mask(sbas_provider);
   }
+  static sbas_system_t sbas_provider = SBAS_NONE;
+  sbas_system_t new_provider = sbas_select_provider(&lgf);
+  if ((sbas_provider != new_provider) && (SBAS_NONE != sbas_provider)) {
+    tracker_set_sbas_provider_change_flag();
+  }
+  sbas_provider = new_provider;
+  return sbas_select_prn_mask(sbas_provider);
 }
 
 /** Global search job data */
@@ -271,13 +271,17 @@ void sm_restore_jobs(acq_jobs_state_t *jobs_data,
       /* if the scheduler has done nothing or tried an invisible satellite it
        * means that there were no more unknown satellites to search, so reset
        * their status */
-      if (REACQ_DONE_UNKNOWN < last_job_type) job->state = ACQ_STATE_WAIT;
+      if (REACQ_DONE_UNKNOWN < last_job_type) {
+        job->state = ACQ_STATE_WAIT;
+      }
     } else if (invisible && ((now_ms - job->stop_time) >
                              REACQ_MIN_SEARCH_INTERVAL_INVISIBLE_MS)) {
       /* if the scheduler last time has done nothing then there were no ready
        * satellites so it's time to put the invisible sats in the search queue
        * again */
-      if (REACQ_DONE_INVISIBLE < last_job_type) job->state = ACQ_STATE_WAIT;
+      if (REACQ_DONE_INVISIBLE < last_job_type) {
+        job->state = ACQ_STATE_WAIT;
+      }
     }
   } /* loop jobs */
 }

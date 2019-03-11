@@ -10,15 +10,16 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "nmea.h"
+
 #include <assert.h>
 #include <inttypes.h>
 #include <math.h>
+#include <starling/pvt_engine/firmware_binding.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include <starling/pvt_engine/firmware_binding.h>
 #include <swiftnav/array_tools.h>
 #include <swiftnav/constants.h>
 #include <swiftnav/coord_system.h>
@@ -26,15 +27,14 @@
 #include <swiftnav/logging.h>
 
 #include "board/nap/track_channel.h"
-#include "calc_pvt_me.h"
+#include "calc/calc_pvt_me.h"
+#include "calc/starling_integration.h"
+#include "hal/piksi_systime.h"
 #include "io_support.h"
-#include "main.h"
-#include "nmea.h"
-#include "piksi_systime.h"
-#include "sbp.h"
-#include "sbp_utils.h"
+#include "main/main.h"
+#include "sbp/sbp.h"
+#include "sbp/sbp_utils.h"
 #include "settings/settings_client.h"
-#include "starling_integration.h"
 #include "timing/timing.h"
 #include "track/track_sid_db.h"
 
@@ -48,16 +48,19 @@ static u32 gpgsv_msg_rate = 10;
  * \{ */
 
 /* SBAS NMEA SV IDs are from 33 to 54 */
-#define NMEA_SV_ID_OFFSET_SBAS (-87)
+#define NMEA_SV_ID_OFFSET_SBAS (33 - SBAS_FIRST_PRN)
 
 /* GLO NMEA SV IDs are from 65 to 96 */
-#define NMEA_SV_ID_OFFSET_GLO (64)
+#define NMEA_SV_ID_OFFSET_GLO (65 - GLO_FIRST_PRN)
+
+/* QZSS NMEA SV IDs are from 193 to 97 */
+#define NMEA_SV_ID_OFFSET_QZS (193 - QZS_FIRST_PRN)
 
 /* GAL NMEA SV IDs are from 301 to 336 */
-#define NMEA_SV_ID_OFFSET_GAL (300)
+#define NMEA_SV_ID_OFFSET_GAL (301 - GAL_FIRST_PRN)
 
 /* BDS NMEA SV IDs are from 401 to 437 */
-#define NMEA_SV_ID_OFFSET_BDS2 (400)
+#define NMEA_SV_ID_OFFSET_BDS2 (401 - BDS_FIRST_PRN)
 
 /* Max SVs reported per GSA message */
 #define GSA_MAX_SV 12
@@ -86,7 +89,8 @@ typedef enum talker_id_e {
   TALKER_ID_GL = 1,
   TALKER_ID_GA = 2,
   TALKER_ID_GB = 3,
-  TALKER_ID_COUNT = 4
+  TALKER_ID_QZ = 4,
+  TALKER_ID_COUNT = 5
 } talker_id_t;
 
 #define NMEA_SUFFIX_LEN                    \
@@ -100,10 +104,10 @@ typedef enum talker_id_e {
  * max_len = max possible length of the body of the message
  * (not including suffix)
  */
-#define NMEA_SENTENCE_START(max_len)            \
-  char sentence_buf[max_len + NMEA_SUFFIX_LEN]; \
-  char *sentence_bufp = sentence_buf;           \
-  char *const sentence_buf_end = sentence_buf + max_len;
+#define NMEA_SENTENCE_START(max_len)              \
+  char sentence_buf[(max_len) + NMEA_SUFFIX_LEN]; \
+  char *sentence_bufp = sentence_buf;             \
+  char *const sentence_buf_end = sentence_buf + (max_len);
 
 /** NMEA_SENTENCE_PRINTF: use like printf, can use multiple times
     within a sentence. */
@@ -206,6 +210,8 @@ static u16 nmea_get_id(const gnss_signal_t sid) {
       id = NMEA_SV_ID_OFFSET_SBAS + sid.sat;
       break;
     case CONSTELLATION_QZS:
+      id = NMEA_SV_ID_OFFSET_QZS + sid.sat;
+      break;
     case CONSTELLATION_COUNT:
     case CONSTELLATION_INVALID:
     default:
@@ -226,6 +232,8 @@ static const char *talker_id_to_str(const talker_id_t id) {
       return "GL";
     case TALKER_ID_GP:
       return "GP";
+    case TALKER_ID_QZ:
+      return "QZ";
     case TALKER_ID_COUNT:
     case TALKER_ID_INVALID:
     default:
@@ -242,8 +250,9 @@ static talker_id_t sid_to_talker_id(const gnss_signal_t sid) {
       return TALKER_ID_GB;
     case CONSTELLATION_GLO:
       return TALKER_ID_GL;
-    case CONSTELLATION_GPS:
     case CONSTELLATION_QZS:
+      return TALKER_ID_QZ;
+    case CONSTELLATION_GPS:
     case CONSTELLATION_SBAS:
       return TALKER_ID_GP;
     case CONSTELLATION_INVALID:
@@ -405,7 +414,7 @@ bool send_nmea(u32 rate, u32 gps_tow_ms) {
    * message.
    * This way, we still send no_fix messages when receiver clock is drifting. */
   u32 soln_period_ms = (u32)(1.0 / soln_freq_setting * 1e3);
-  u32 output_period_ms = (u32)soln_period_ms * rate;
+  u32 output_period_ms = soln_period_ms * rate;
   if ((gps_tow_ms % output_period_ms) < (soln_period_ms / 2)) {
     return true;
   }

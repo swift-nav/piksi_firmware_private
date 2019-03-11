@@ -65,8 +65,8 @@ float cn0_est_ch_update(cn0_est_ch_state_t *s,
                         const cn0_est_params_t *p,
                         float I,
                         float Q) {
-  float I_abs = fabs(I);
-  float Q_abs = fabs(Q);
+  float I_abs = fabsf(I);
+  float Q_abs = fabsf(Q);
   float N = (I_abs - Q_abs) * (I_abs - Q_abs);
 
   if (s->cnt >= 1) {
@@ -90,10 +90,11 @@ float cn0_est_ch_update(cn0_est_ch_state_t *s,
     float nsr_db;
 
     /* Ensure the NSR is within the limit */
-    if (P_d < N_tot * CN0_RSCN_NSR_MIN_MULTIPLIER)
+    if (P_d < N_tot * CN0_RSCN_NSR_MIN_MULTIPLIER) {
       nsr = CN0_RSCN_NSR_MIN;
-    else
+    } else {
       nsr = N_tot / P_d;
+    }
 
     nsr_db = 10.f * log10f(nsr);
     /* Compute and store updated CN0 */

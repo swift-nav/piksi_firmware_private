@@ -10,9 +10,9 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <swiftnav/constants.h>
-
 #include "gal_prns.h"
+
+#include <swiftnav/constants.h>
 
 /* Galileo SC25 secondary code used by E1C */
 const u8 gal_e1c_sec25[4] = {0x38, 0x0A, 0xD9, 0x00};

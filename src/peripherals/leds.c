@@ -10,9 +10,9 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <hal.h>
-
 #include "leds.h"
+
+#include <hal.h>
 
 /** \defgroup board Board
  * Interfaces for interacting with the rest of the Piksi hardware.

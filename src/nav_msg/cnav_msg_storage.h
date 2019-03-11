@@ -13,9 +13,9 @@
 #ifndef LIBSWIFTNAV_CNAV_MSG_STORAGE_H
 #define LIBSWIFTNAV_CNAV_MSG_STORAGE_H
 
-#include "nav_msg/cnav_msg.h"
-
 #include <swiftnav/signal.h>
+
+#include "nav_msg/cnav_msg.h"
 
 #ifdef __cplusplus
 extern "C" {

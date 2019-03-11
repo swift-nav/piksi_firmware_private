@@ -10,22 +10,20 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <stdint.h>
-#include <swiftnav/constants.h>
-
-#include <board.h>
-#include <chconf_board.h>
-#include <nap/nap_common.h>
-#include <nap/nap_hw.h>
-#include <platform_cn0.h>
-#include <platform_track.h>
-
 #include <assert.h>
 #include <math.h>
+#include <stdint.h>
 #include <string.h>
+#include <swiftnav/constants.h>
 
+#include "board.h"
+#include "board/nap/nap_common.h"
+#include "chconf_board.h"
 #include "gnss_capabilities/gnss_capabilities.h"
 #include "lock_detector/lock_detector.h"
+#include "nap/nap_hw.h"
+#include "platform_cn0.h"
+#include "platform_track.h"
 #include "signal_db/signal_db.h"
 #include "timing/timing.h"
 #include "track/track_cfg.h"
@@ -42,7 +40,7 @@
 #define DLL_BW_ADDON_HZ (5.0f)
 
 /** Unknown delay indicator */
-#define TP_DELAY_UNKNOWN -1
+#define TP_DELAY_UNKNOWN (-1)
 
 /** Indices of specific entries in gnss_track_profiles[] table below */
 typedef enum {
@@ -90,9 +88,10 @@ typedef enum {
 /** Time interval in ms for printing channel statistics (when DEBUG is
  * enabled)*/
 #define DEBUG_PRINT_TIME_INTERVAL_MS (20000)
-#define BW_DYN -1
+#define BW_DYN (-1)
 
 /** Describes single tracking profile */
+/* NOLINTNEXTLINE(clang-analyzer-optin.performance.Padding) */
 typedef struct tp_profile_entry {
   struct {
     float pll_bw;              /**< PLL bandwidth [Hz] */
@@ -733,34 +732,37 @@ static const char *get_ctrl_str(tp_ctrl_e v) {
  * \return None
  */
 static void log_switch(tracker_t *tracker, const char *reason) {
-  const me_gnss_signal_t mesid = tracker->mesid;
-  const tp_profile_t *state = &tracker->profile;
-  const tp_profile_entry_t *cur_profile = &state->profiles[state->cur.index];
-  const tp_profile_entry_t *next_profile = &state->profiles[state->next.index];
-  tp_tm_e cur_track_mode = get_track_mode(mesid, cur_profile);
-  tp_tm_e next_track_mode = get_track_mode(mesid, next_profile);
-
   /* To help debugging report tracking mode each 5 minutes */
   DO_EACH_MS(5 * 60 * 1000,
              log_info("Tracking mode: %s",
                       tp_is_rover_mode() ? "rover" : "base station"));
 
-  log_debug_mesid(mesid,
-                  "%s:"
-                  " cn0=%.1f "
-                  "(mode,pll,fll,ctrl): (%s,%.1f,%.1f,%s)->(%s,%.1f,%.1f,%s)",
-                  reason,
-                  state->filt_cn0,
-                  /* old state */
-                  tp_get_mode_str(cur_track_mode),
-                  state->cur.pll_bw,
-                  state->cur.fll_bw,
-                  get_ctrl_str(cur_profile->profile.controller_type),
-                  /* new state */
-                  tp_get_mode_str(next_track_mode),
-                  state->next.pll_bw,
-                  state->next.fll_bw,
-                  get_ctrl_str(next_profile->profile.controller_type));
+  if (DEBUG) {
+    const me_gnss_signal_t mesid = tracker->mesid;
+    const tp_profile_t *state = &tracker->profile;
+    const tp_profile_entry_t *cur_profile = &state->profiles[state->cur.index];
+    const tp_profile_entry_t *next_profile =
+        &state->profiles[state->next.index];
+    tp_tm_e cur_track_mode = get_track_mode(mesid, cur_profile);
+    tp_tm_e next_track_mode = get_track_mode(mesid, next_profile);
+
+    log_debug_mesid(mesid,
+                    "%s:"
+                    " cn0=%.1f "
+                    "(mode,pll,fll,ctrl): (%s,%.1f,%.1f,%s)->(%s,%.1f,%.1f,%s)",
+                    reason,
+                    state->filt_cn0,
+                    /* old state */
+                    tp_get_mode_str(cur_track_mode),
+                    state->cur.pll_bw,
+                    state->cur.fll_bw,
+                    get_ctrl_str(cur_profile->profile.controller_type),
+                    /* new state */
+                    tp_get_mode_str(next_track_mode),
+                    state->next.pll_bw,
+                    state->next.fll_bw,
+                    get_ctrl_str(next_profile->profile.controller_type));
+  }
 }
 
 static bool pll_bw_changed(tracker_t *tracker, profile_indices_t index) {
@@ -964,11 +966,8 @@ bool tp_profile_has_new_profile(tracker_t *tracker) {
   if (0 != (flags & TP_USE_NEXT)) {
     assert(cur_profile->next != IDX_NONE);
     return profile_switch_requested(tracker, cur_profile->next, "next");
-  } else {
-    return profile_switch_requested(tracker, state->cur.index + 1, "next");
   }
-
-  return false;
+  return profile_switch_requested(tracker, state->cur.index + 1, "next");
 }
 
 /**

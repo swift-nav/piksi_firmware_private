@@ -13,10 +13,10 @@
 #ifndef STARLING_SBP_SETTINGS_CLIENT_H_
 #define STARLING_SBP_SETTINGS_CLIENT_H_
 
-#include "sbp_duplex_link.h"
-
 #include <libsettings/settings.h>
 #include <stddef.h>
+
+#include "sbp_duplex_link.h"
 
 typedef struct SbpSettingsClient SbpSettingsClient;
 

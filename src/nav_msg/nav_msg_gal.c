@@ -9,18 +9,18 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
+#include "nav_msg/nav_msg_gal.h"
+
 #include <assert.h>
 #include <inttypes.h>
 #include <libfec/fec.h>
-#include <limits.h>
 #include <string.h>
 #include <swiftnav/bits.h>
 #include <swiftnav/edc.h>
 
 #include "ephemeris/ephemeris.h"
 #include "nav_msg/nav_msg.h"
-#include "nav_msg/nav_msg_gal.h"
-#include "utils/timing/timing.h"
+#include "timing/timing.h"
 
 #define GAL_INAV_PREAMBLE_MASK 0x03ff
 #define GAL_INAV_PREAMBLE 0x0160
@@ -45,15 +45,15 @@ static void inav_buffer_1bit_pushr(u32 buff[static GAL_INAV_DECODE_BUFF_SIZE],
 static void deint8x30(u8 out[static GAL_INAV_PAGE_SYMB],
                       const nav_msg_gal_inav_t *nav_msg,
                       u16 offset);
-static void inav_buffer_store(nav_msg_gal_inav_t *nav_msg, const u8 val);
+static void inav_buffer_store(nav_msg_gal_inav_t *nav_msg, u8 val);
 static void symb_buffer_copy_saturate(u8 *out,
                                       const nav_msg_gal_inav_t *nav_msg,
-                                      const u16 offset,
-                                      const u16 size);
-static void flip_odd(u8 inout[static GAL_INAV_PAGE_SYMB], const u16 size);
+                                      u16 offset,
+                                      u16 size);
+static void flip_odd(u8 inout[static GAL_INAV_PAGE_SYMB], u16 size);
 static u32 gal_inav_compute_crc(const u8 even[static GAL_INAV_PAGE_BYTE],
                                 const u8 odd[static GAL_INAV_PAGE_BYTE],
-                                const int inv);
+                                int inv);
 static u32 gal_inav_extract_crc(const u8 odd[static GAL_INAV_PAGE_BYTE],
                                 int inv);
 static void extract_inav_content(u8 content[static GAL_INAV_CONTENT_BYTE],
@@ -249,56 +249,8 @@ bool gal_inav_msg_update(nav_msg_gal_inav_t *n, s8 bit_val) {
   return true;
 }
 
-static void gal_eph_debug(const nav_msg_gal_inav_t *n,
-                          const gal_inav_decoded_t *data,
-                          const gps_time_t *t) {
-  const ephemeris_t *e = &(data->ephemeris);
-  const ephemeris_kepler_t *k = &(data->ephemeris.kepler);
-  utc_tm date;
-  make_utc_tm(&(k->toc), &date);
-  log_debug_mesid(n->mesid,
-                  "%4" PRIu16 " %2" PRIu8 " %2" PRIu8 " %2" PRIu8 " %2" PRIu8
-                  " %2" PRIu8 "%19.11E%19.11E%19.11E  ",
-                  date.year,
-                  date.month,
-                  date.month_day,
-                  date.hour,
-                  date.minute,
-                  date.second_int,
-                  k->af0,
-                  k->af1,
-                  k->af2);
-  log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
-            (double)k->iode,
-            k->crs,
-            k->dn,
-            k->m0);
-  log_debug(
-      "    %19.11E%19.11E%19.11E%19.11E  ", k->cuc, k->ecc, k->cus, k->sqrta);
-  log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
-            (double)e->toe.tow,
-            k->cic,
-            k->omega0,
-            k->cis);
-  log_debug(
-      "    %19.11E%19.11E%19.11E%19.11E  ", k->inc, k->crc, k->w, k->omegadot);
-  log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
-            k->inc_dot,
-            1.0,
-            (double)e->toe.wn,
-            0.0);
-  log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
-            e->ura,
-            (double)e->health_bits,
-            k->tgd.gal_s[0],
-            k->tgd.gal_s[1]);
-  log_debug("    %19.11E%19.11E ", rint(t->tow), 0.0);
-}
-
 static void gal_eph_store(const nav_msg_gal_inav_t *n,
-                          gal_inav_decoded_t *data,
-                          const gps_time_t *t) {
-  gal_eph_debug(n, data, t);
+                          gal_inav_decoded_t *data) {
   ephemeris_t *e = &(data->ephemeris);
   /* Always mark GAL ephemeris as if it was coming from E1. */
   e->sid.code = CODE_GAL_E1B;
@@ -322,7 +274,9 @@ inav_data_type_t parse_inav_word(nav_msg_gal_inav_t *nav_msg,
   u8 word_type = getbitu(content, 0, 6);
   if (0 == word_type) {
     u32 tflag = getbitu(content, 6, 2);
-    if (tflag != 0b10) return INAV_INCOMPLETE;
+    if (tflag != 0b10) {
+      return INAV_INCOMPLETE;
+    }
     t_dec = parse_inav_w0tow(content);
     log_debug_mesid(nav_msg->mesid, "WN %d TOW %.3f", t_dec.wn, t_dec.tow);
     nav_msg->TOW_ms = (s32)rint(t_dec.tow * 1000) + 2000;
@@ -362,7 +316,7 @@ inav_data_type_t parse_inav_word(nav_msg_gal_inav_t *nav_msg,
     parse_inav_health6(content, dd);
     t_dec = parse_inav_w5tow(content);
     parse_inav_eph(nav_msg, dd, &t_dec);
-    gal_eph_store(nav_msg, dd, &t_dec);
+    gal_eph_store(nav_msg, dd);
     nav_msg->TOW_ms = (s32)rint(t_dec.tow * 1000) + 2000;
     nav_msg->health = shm_ephe_healthy(&dd->ephemeris, nav_msg->mesid.code)
                           ? SV_HEALTHY
@@ -685,9 +639,15 @@ static void symb_buffer_copy_saturate(u8 *out,
                                       const nav_msg_gal_inav_t *nav_msg,
                                       const u16 offset,
                                       const u16 size) {
-  if (NULL == out) return;
-  if (NULL == nav_msg) return;
-  if (0 == size) return;
+  if (NULL == out) {
+    return;
+  }
+  if (NULL == nav_msg) {
+    return;
+  }
+  if (0 == size) {
+    return;
+  }
 
   const u8 *buff = nav_msg->decoder_buffer;
   for (u8 k = 0; k < size; k++) {
@@ -698,7 +658,9 @@ static void symb_buffer_copy_saturate(u8 *out,
 
 /** Shifts bytes properly in the array */
 static void inav_buffer_store(nav_msg_gal_inav_t *nav_msg, const u8 val) {
-  if (NULL == nav_msg) return;
+  if (NULL == nav_msg) {
+    return;
+  }
   nav_msg->decoder_buffer[nav_msg->bit_index] = val;
   nav_msg->bit_index = (nav_msg->bit_index + 1) % GAL_INAV_DECODE_BUFF_SIZE;
 }

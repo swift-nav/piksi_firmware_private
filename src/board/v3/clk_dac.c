@@ -11,6 +11,7 @@
  */
 
 #include "clk_dac.h"
+
 #include <assert.h>
 #include <hal.h>
 

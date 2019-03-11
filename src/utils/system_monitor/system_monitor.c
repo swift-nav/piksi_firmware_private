@@ -10,31 +10,31 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "system_monitor.h"
+
 #include <hal.h>
 #include <inttypes.h>
-#include <string.h>
-
 #include <libsbp/system.h>
 #include <libsbp/version.h>
+#include <string.h>
 #include <swiftnav/constants.h>
 #include <swiftnav/coord_system.h>
 #include <swiftnav/linear_algebra.h>
 #include <swiftnav/logging.h>
 
+#include "acq/manage.h"
 #include "board.h"
-#include "board/nap/nap_common.h"
-#include "calc_base_obs.h"
-#include "main.h"
-#include "manage.h"
+#include "calc/calc_base_obs.h"
+#include "hal/piksi_systime.h"
+#include "main/main.h"
+#include "nap/nap_common.h"
 #include "ndb/ndb.h"
 #include "nt1065.h"
 #include "peripherals/antenna.h"
-#include "piksi_systime.h"
 #include "position/position.h"
-#include "sbp.h"
+#include "sbp/sbp.h"
 #include "settings/settings_client.h"
-#include "simulator.h"
-#include "system_monitor.h"
+#include "simulator/simulator.h"
 
 #define WATCHDOG_THREAD_PERIOD_MS 15000
 extern const WDGConfig board_wdg_config;

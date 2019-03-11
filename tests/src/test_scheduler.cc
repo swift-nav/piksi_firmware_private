@@ -12,8 +12,9 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+
+#include "acq/manage.h"
 #include "gtest/gtest.h"
-#include "manage.h"
 #include "scheduler_api.h"
 #include "soft_macq_main.h"
 

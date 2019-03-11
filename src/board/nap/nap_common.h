@@ -16,7 +16,6 @@
 
 #include <ch.h>
 #include <stdbool.h>
-
 #include <swiftnav/common.h>
 
 #include "ext_events/ext_events.h"

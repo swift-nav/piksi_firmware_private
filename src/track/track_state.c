@@ -11,13 +11,15 @@
  */
 
 #include "track_state.h"
+
 #include <inttypes.h>
+
 #include "acq/manage.h"
 #include "board/nap/track_channel.h"
 #include "ndb/ndb.h"
 #include "platform_signal.h"
 #include "position/position.h"
-#include "sbp_utils.h"
+#include "sbp/sbp_utils.h"
 #include "settings/settings_client.h"
 #include "signal_db/signal_db.h"
 #include "simulator/simulator.h"
@@ -51,7 +53,6 @@ static int track_iq_output_notify(void *ctx) {
     tracker_t *tracker = tracker_get(i);
     tracker->output_iq = (iq_output_mask & (1 << i)) != 0;
   }
-
   return SETTINGS_WR_OK;
 }
 

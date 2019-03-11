@@ -10,10 +10,10 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "lock_detector.h"
+
 #include <math.h>
 #include <string.h>
-
-#include "lock_detector.h"
 
 /* FLL saturation threshold in [Hz]. When signal is lost, filtered frequency
  * error can grow fast.

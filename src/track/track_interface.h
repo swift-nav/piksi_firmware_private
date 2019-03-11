@@ -36,7 +36,7 @@ extern "C" {
 
 void tracker_interface_register(const tracker_interface_t *element);
 
-const tracker_interface_t *tracker_interface_lookup(const code_t code);
+const tracker_interface_t *tracker_interface_lookup(code_t code);
 
 #ifdef __cplusplus
 } /* extern "C" */

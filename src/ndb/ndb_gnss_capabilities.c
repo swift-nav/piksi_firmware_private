@@ -14,10 +14,11 @@
 #include <libsbp/sbp.h>
 #include <string.h>
 #include <swiftnav/logging.h>
+
 #include "ndb.h"
 #include "ndb_internal.h"
-#include "sbp.h"
-#include "sbp_utils.h"
+#include "sbp/sbp.h"
+#include "sbp/sbp_utils.h"
 #include "settings/settings_client.h"
 
 /* one can use a simple Matlab script to generate these:

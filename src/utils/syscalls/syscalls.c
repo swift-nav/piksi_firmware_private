@@ -10,14 +10,12 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include <ch.h>
 #include <errno.h>
 #include <limits.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-#include <ch.h>
-
 #include <swiftnav/common.h>
 #include <swiftnav/logging.h>
 

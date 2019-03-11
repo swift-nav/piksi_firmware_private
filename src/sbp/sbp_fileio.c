@@ -10,20 +10,19 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "sbp_fileio.h"
+
 #include <alloca.h>
 #include <assert.h>
+#include <ch.h>
 #include <inttypes.h>
+#include <libsbp/file_io.h>
 #include <stdio.h>
 #include <string.h>
-
-#include <ch.h>
-
-#include <libsbp/file_io.h>
 #include <swiftnav/logging.h>
 #include <swiftnav/memcpy_s.h>
 
 #include "sbp.h"
-#include "sbp_fileio.h"
 #include "sbp_utils.h"
 
 #define SBP_FILEIO_TIMEOUT MS2ST(5000)
@@ -126,14 +125,14 @@ ssize_t sbp_fileio_write(const char *filename,
 
     if (!success) {
       log_error("sbp_fileio_write(): fn %s  offset %" PRIi32
-                " buf %p  size %zu  tries %" PRIu8 "  chunksize %zd   s %zu",
+                " buf %p  size %lu  tries %" PRIu8 "  chunksize %ld   s %lu",
                 dbg_filename,
                 (int32_t)offset,
                 buf,
-                size,
+                (unsigned long)size,
                 tries,
-                chunksize,
-                s);
+                (long)chunksize,
+                (unsigned long)s);
       s = -1;
       break;
     }
@@ -182,7 +181,9 @@ ssize_t sbp_fileio_read(const char *filename,
     }
 
     ssize_t chunksize = MIN(closure.len - 4, (ssize_t)(size - s));
-    if (chunksize == 0) break;
+    if (chunksize == 0) {
+      break;
+    }
 
     MEMCPY_S(buf + s, size - s, closure.msg + 4, chunksize);
     s += chunksize;

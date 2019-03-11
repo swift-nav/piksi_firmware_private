@@ -11,16 +11,16 @@
  */
 
 #include "nav_msg/sbas_msg.h"
-#include "nav_msg/nav_msg.h" /* For BIT_POLARITY_... constants */
-#include "sbp_utils.h"
-#include "timing/timing.h"
 
+#include <limits.h>
 #include <starling/integration/starling_input_bridge.h>
 #include <starling/util/sbp/packers.h>
 #include <starling/util/sbp/unpackers.h>
-
-#include <limits.h>
 #include <string.h>
+
+#include "nav_msg/nav_msg.h" /* For BIT_POLARITY_... constants */
+#include "sbp/sbp_utils.h"
+#include "timing/timing.h"
 
 /*
  * Block Viterbi decoding parameters.

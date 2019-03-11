@@ -10,18 +10,17 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <swiftnav/constants.h>
-#include <swiftnav/coord_system.h>
-#include <swiftnav/ephemeris.h>
-#include <swiftnav/signal.h>
+#include "trk_loop_common.h"
 
 #include <assert.h>
 #include <float.h>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "trk_loop_common.h"
+#include <swiftnav/constants.h>
+#include <swiftnav/coord_system.h>
+#include <swiftnav/ephemeris.h>
+#include <swiftnav/signal.h>
 
 /** \defgroup track Tracking
  * Functions used in tracking.

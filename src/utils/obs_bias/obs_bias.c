@@ -10,9 +10,11 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 #include "obs_bias.h"
+
 #include <assert.h>
 #include <swiftnav/glo_map.h>
 #include <swiftnav/glonass_phase_biases.h>
+
 #include "sbp/sbp_utils.h"
 
 /* exported setting */

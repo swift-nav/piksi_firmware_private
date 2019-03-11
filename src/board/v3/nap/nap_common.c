@@ -11,26 +11,25 @@
  */
 
 #include "nap/nap_common.h"
-#include "board.h"
-#include "ext_events/ext_events.h"
-#include "nap/track_channel.h"
-#include "piksi_systime.h"
-#include "sbp.h"
+
+#include <math.h>
+#include <string.h>
 
 #include "axi_dma.h"
-#include "nap_constants.h"
-#include "nap_hw.h"
-
+#include "board.h"
+#include "ext_events/ext_events.h"
 #include "main.h"
 #include "manage.h"
+#include "nap/track_channel.h"
+#include "nap_constants.h"
+#include "nap_hw.h"
+#include "piksi_systime.h"
+#include "sbp.h"
 #include "system_monitor/system_monitor.h"
 #include "track/track_common.h"
 #include "track/track_sid_db.h"
 #include "track/track_state.h"
 #include "track/track_timer.h"
-
-#include <math.h>
-#include <string.h>
 
 #define PROCESS_PERIOD_MS (500)
 

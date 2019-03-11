@@ -2,10 +2,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-
 #include <swiftnav/constants.h>
 #include <swiftnav/logging.h>
+#include <unistd.h>
 
 #include "lib/fixed_fft_r2.h"
 #include "soft_macq_defines.h"
@@ -42,7 +41,7 @@ float pFreqCodeMat[FAU_CODE_SIZE * MDBZP_FREQ_FFTLEN * GAL_E1C_PRN_PERIOD_MS];
  * \param _pRes acquisition results
  *  */
 bool mdbzp_static(sc16_t *_cSignal,
-                  s8 *_piCode,
+                  const s8 *_piCode,
                   sFauParams_t *_pPar,
                   acqResults_t *_pRes) {
   const u32 code_slices = _pPar->iNumCodeSlices;

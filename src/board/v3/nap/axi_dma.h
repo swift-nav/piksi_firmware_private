@@ -13,12 +13,11 @@
 #ifndef SWIFTNAV_AXI_DMA_H
 #define SWIFTNAV_AXI_DMA_H
 
-#include <stdbool.h>
-#include <stdint.h>
-
 #include <board.h>
 #include <halconf.h>
 #include <osal.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 /* Note: callbacks are executed from interrupt context */
 typedef void (*axi_dma_callback_t)(bool success);

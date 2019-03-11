@@ -11,12 +11,12 @@
  */
 
 #include "starling_sbp_settings.h"
-#include "sbp_settings_client.h"
 
+#include <assert.h>
 #include <libsettings/settings.h>
 #include <starling/starling.h>
 
-#include <assert.h>
+#include "sbp_settings_client.h"
 
 /********************************************************************************/
 #define DFLT_CORRECTION_AGE_MAX_S 30
@@ -32,6 +32,7 @@ static dgnss_filter_t dgnss_filter_mode = FILTER_FIXED;
 static dgnss_solution_mode_t dgnss_soln_mode = STARLING_SOLN_MODE_LOW_LATENCY;
 static float glonass_downweight_factor = 4.0;
 static u32 corr_age_max = DFLT_CORRECTION_AGE_MAX_S;
+static PROCESS_NOISE_MOTION_TYPE dynamic_motion_model = HIGH_DYNAMICS;
 
 /* TODO(kevin) make this non global. */
 bool send_heading = false;
@@ -100,6 +101,13 @@ static int set_is_beidou_enabled(void *ctx) {
 }
 
 /********************************************************************************/
+static int set_dynamic_motion_model(void *ctx) {
+  (void)ctx;
+  starling_set_process_noise_motion(dynamic_motion_model);
+  return SETTINGS_WR_OK;
+}
+
+/********************************************************************************/
 static int set_glonass_downweight_factor(void *ctx) {
   (void)ctx;
   starling_set_glonass_downweight_factor(glonass_downweight_factor);
@@ -131,6 +139,12 @@ void starling_register_sbp_settings(const SbpDuplexLink *sbp_link) {
   sbp_settings_client_register_enum(
       settings_client, dgnss_filter_enum, &dgnss_filter_setting);
 
+  static const char *const process_noise_enum[] = {
+      "High Dynamics", "High Horizontal Dynamics", "Low Dynamics", NULL};
+  settings_type_t process_noise_setting;
+  sbp_settings_client_register_enum(
+      settings_client, process_noise_enum, &process_noise_setting);
+
   static const char *const dgnss_soln_mode_enum[] = {
       "Low Latency", "Time Matched", "No DGNSS", NULL};
   settings_type_t dgnss_soln_mode_setting;
@@ -145,6 +159,15 @@ void starling_register_sbp_settings(const SbpDuplexLink *sbp_link) {
                                sizeof(dgnss_filter_mode),
                                dgnss_filter_setting,
                                enable_fix_mode,
+                               NULL);
+
+  sbp_settings_client_register(settings_client,
+                               "solution",
+                               "dynamic_motion_model",
+                               &dynamic_motion_model,
+                               sizeof(dynamic_motion_model),
+                               process_noise_setting,
+                               set_dynamic_motion_model,
                                NULL);
 
   sbp_settings_client_register(settings_client,

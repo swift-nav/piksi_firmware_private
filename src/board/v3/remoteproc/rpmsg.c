@@ -16,12 +16,10 @@
 #pragma GCC diagnostic pop
 
 #include <assert.h>
-
-#include <swiftnav/common.h>
-#include <swiftnav/logging.h>
-
 #include <ch.h>
 #include <hal.h>
+#include <swiftnav/common.h>
+#include <swiftnav/logging.h>
 
 #include "lib/fifo.h"
 #include "remoteproc_config.h"

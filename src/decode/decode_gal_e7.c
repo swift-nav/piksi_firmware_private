@@ -9,13 +9,13 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
+#include "decode_gal_e7.h"
+
 #include <assert.h>
 #include <string.h>
-
 #include <swiftnav/logging.h>
 
 #include "decode_common.h"
-#include "decode_gal_e7.h"
 #include "nav_msg/nav_msg_gal.h"
 #include "signal_db/signal_db.h"
 #include "track/track_decode.h"

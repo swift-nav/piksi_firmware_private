@@ -11,14 +11,14 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
+#include "prns.h"
+
 #include <assert.h>
 #include <stdlib.h>
-
 #include <swiftnav/constants.h>
 
 #include "bds2_prns.h"
 #include "gal_prns.h"
-#include "prns.h"
 #include "qzss_prns.h"
 
 static const u8 gps_l1ca_codes[][PRN_CODE_LENGTH_BYTES];
@@ -27,6 +27,7 @@ static const u8 glo_ca_codes[PRN_GLO_CODE_LENGTH_BYTES];
 
 /* Table of arrays of PRN codes indexed by code type */
 typedef const u8 (*prn_array_t)[PRN_CODE_LENGTH_BYTES];
+/* NOLINTNEXTLINE(cppcoreguidelines-interfaces-global-init) */
 static const prn_array_t prn_array_table[CODE_COUNT] = {
     [CODE_GPS_L1CA] = gps_l1ca_codes,
     [CODE_GPS_L2CM] = NULL,

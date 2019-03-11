@@ -10,6 +10,8 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "fixed_fft_r2.h"
+
 #include <assert.h>
 #include <inttypes.h>
 #include <math.h>
@@ -17,8 +19,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <swiftnav/logging.h>
-
-#include "fixed_fft_r2.h"
 
 /*! \struct intFFTr2_t
  *  \brief generic size FFT when statically declared
@@ -37,17 +37,15 @@ static void InitW(intFFTr2_t *pIntFFT);
 static void InitBR(intFFTr2_t *pIntFFT);
 static void DoShuffle(intFFTr2_t *pIntFFT, sc16_t *_x);
 
-static void RankF2p(
-    sc16_t *_A, sc16_t *_B, sc16_t *_W, u32 _nblocks, u32 _bsize);
+static void RankF2p(sc16_t *_A, sc16_t *_B, sc16_t *_W, u32 _nblks, u32 _bsize);
 
 static void RankF2pN(
-    sc16_t *_A, sc16_t *_B, sc16_t *_W, u32 _nblocks, u32 _bsize);
+    sc16_t *_A, sc16_t *_B, sc16_t *_W, u32 _nblks, u32 _bsize);
 
-static void RankB2p(
-    sc16_t *_A, sc16_t *_B, sc16_t *_W, u32 _nblocks, u32 _bsize);
+static void RankB2p(sc16_t *_A, sc16_t *_B, sc16_t *_W, u32 _nblks, u32 _bsize);
 
 static void RankB2pN(
-    sc16_t *_A, sc16_t *_B, sc16_t *_W, u32 _nblocks, u32 _bsize);
+    sc16_t *_A, sc16_t *_B, sc16_t *_W, u32 _nblks, u32 _bsize);
 
 static void RankF1(sc16_t *_A, sc16_t *_B, u32 _nblocks);
 

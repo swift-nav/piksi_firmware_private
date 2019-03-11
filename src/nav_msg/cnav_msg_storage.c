@@ -11,10 +11,12 @@
  */
 
 #include "cnav_msg_storage.h"
+
 #include <assert.h>
 #include <ch.h>
 #include <string.h>
 #include <swiftnav/signal.h>
+
 #include "shm/shm.h"
 
 static MUTEX_DECL(cnav_msg_mutex);

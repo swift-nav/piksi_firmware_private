@@ -12,13 +12,12 @@
 
 #include "cons_time_storage.h"
 
-#include <math.h>
-
 #include <ch.h>
+#include <math.h>
 #include <swiftnav/gnss_time.h>
 #include <swiftnav/signal.h>
 
-#include "utils/timing/timing.h"
+#include "timing/timing.h"
 
 static MUTEX_DECL(cons_time_mutex);
 

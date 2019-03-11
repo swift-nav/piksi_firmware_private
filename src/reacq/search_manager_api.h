@@ -94,7 +94,8 @@ extern "C" {
 #endif /* __cplusplus */
 
 void sm_init(acq_jobs_state_t *data);
-void sm_restore_jobs(acq_jobs_state_t *jobs_data, reacq_sched_ret_t type);
+void sm_restore_jobs(acq_jobs_state_t *jobs_data,
+                     reacq_sched_ret_t last_job_type);
 
 #ifdef __cplusplus
 } /* extern "C" */

@@ -10,15 +10,16 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 #include "track_cn0.h"
-#include "settings/settings_client.h"
-#include "track/tracker.h"
 
 #include <assert.h>
-#include <math.h>
-
 #include <board.h>
-#include <chconf.h>
-#include <platform_cn0.h>
+#include <math.h>
+#include <stdint.h>
+
+#include "chconf.h"
+#include "platform_cn0.h"
+#include "settings/settings_client.h"
+#include "track/tracker.h"
 
 /** C/N0 estimator IIR averaging coefficient:
  * See http://www.insidegnss.com/auto/IGM_gnss-sol-janfeb10.pdf p. 22

@@ -14,10 +14,11 @@
 #include <swiftnav/constants.h>
 #include <swiftnav/linear_algebra.h>
 #include <swiftnav/logging.h>
+
 #include "ndb.h"
 #include "ndb_fs_access.h"
 #include "ndb_internal.h"
-#include "sbp_utils.h"
+#include "sbp/sbp_utils.h"
 #include "settings/settings_client.h"
 
 /** Default NDB LGF interval update threshold [s] */

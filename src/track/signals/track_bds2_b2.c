@@ -12,6 +12,7 @@
 
 /* Local headers */
 #include "track_bds2_b2.h"
+
 #include "gnss_capabilities/gnss_capabilities.h"
 #include "signal_db/signal_db.h"
 #include "track/track_api.h"
@@ -20,7 +21,7 @@
 #include "track/track_utils.h"
 
 /* Non-local headers */
-#include <manage.h>
+#include <acq/manage.h>
 #include <platform_track.h>
 
 /* Libraries */

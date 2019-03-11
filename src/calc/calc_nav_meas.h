@@ -13,13 +13,13 @@
 #ifndef SWIFTNAV_NAV_MEAS_CALC_H
 #define SWIFTNAV_NAV_MEAS_CALC_H
 
-#include "nav_msg/cnav_msg.h"
-
 #include <starling/starling.h>
 #include <swiftnav/common.h>
 #include <swiftnav/ephemeris.h>
 #include <swiftnav/ionosphere.h>
 #include <swiftnav/nav_meas.h>
+
+#include "nav_msg/cnav_msg.h"
 
 #ifdef __cplusplus
 extern "C" {
