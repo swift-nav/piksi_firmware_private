@@ -46,7 +46,7 @@ typedef struct {
   piksi_systime_t received_at;
 } ephemeris_candidate_t;
 
-#define EPHE_CAND_LIST_LEN (NUM_SATS_GPS + NUM_SATS_GLO)
+#define EPHE_CAND_LIST_LEN (NUM_SATS)
 #define MAX_EPHE_CANDIDATE_AGE 92 /* seconds */
 static ephemeris_candidate_t ephe_candidates[EPHE_CAND_LIST_LEN];
 static MUTEX_DECL(cand_list_access);

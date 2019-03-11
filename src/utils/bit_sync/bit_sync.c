@@ -19,6 +19,7 @@
 #include <string.h>
 #include <swiftnav/bits.h>
 
+#include "soft_macq/bds_prns.h"
 #include "soft_macq/gal_prns.h"
 
 /* Approx number of nav bit edges needed to accept bit sync for a
@@ -50,6 +51,9 @@ static s8 e5q_xans[NUM_SATS_GAL][GAL_CS100_MS];
 /* Galileo E5bQ transitions array, built per satellite */
 static s8 e7q_xans[NUM_SATS_GAL][GAL_CS100_MS];
 
+/* Beidou3 B2aQ transitions array, built per satellite */
+static s8 c5q_xans[NUM_SATS_BDS][BDS3_B5Q_SC_MS];
+
 static void histogram_update(bit_sync_t *b,
                              s32 corr_prompt_real,
                              s32 corr_prompt_imag);
@@ -75,9 +79,11 @@ void bit_sync_init(bit_sync_t *b, const me_gnss_signal_t mesid) {
 
   switch ((s8)mesid.code) {
     case CODE_GPS_L1CA:
+    case CODE_AUX_GPS:
     case CODE_GPS_L2CM:
     case CODE_GPS_L5I:
     case CODE_QZS_L1CA:
+    case CODE_AUX_QZS:
     case CODE_QZS_L2CM:
     case CODE_QZS_L5I:
       bit_length = GPS_L1CA_SYMBOL_LENGTH_MS;
@@ -138,8 +144,19 @@ void bit_sync_init(bit_sync_t *b, const me_gnss_signal_t mesid) {
       }
       break;
 
+    case CODE_BDS3_B5I:
+      bit_length = 20; /* TODO: changeme! */
+      prev_chip = getbitu(bds3_b2aq_sec_codes[sat], BDS3_B5Q_SC_MS - 1, 1);
+      for (u8 sec_chip_idx = 0; sec_chip_idx < BDS3_B5Q_SC_MS; sec_chip_idx++) {
+        curr_chip = getbitu(bds3_b2aq_sec_codes[sat], sec_chip_idx, 1);
+        c5q_xans[sat][sec_chip_idx] = (curr_chip != prev_chip) ? -1 : +1;
+        prev_chip = curr_chip;
+      }
+      break;
+
     default:
-      assert(!"Unsupported code type");
+      log_error("Unsupported code type %d", mesid.code);
+      assert(0);
       break;
   }
 
@@ -211,16 +228,14 @@ static void histogram_update(bit_sync_t *b,
    * (to check if the angle has changed by more than PI/2) */
   s64 dot_prod_real =
       ((b->prev_real) * corr_prompt_real) + ((b->prev_imag) * corr_prompt_imag);
+  const code_t c = b->mesid.code;
 
-  if ((IS_BDS2(b->mesid) && !bds_d2nav(b->mesid)) ||
-      (CODE_GPS_L5I == b->mesid.code) || (CODE_GPS_L5Q == b->mesid.code)) {
+  if ((((CODE_BDS2_B1 == c) || (CODE_BDS2_B2 == c)) && !bds_d2nav(b->mesid)) ||
+      (CODE_GPS_L5I == c)) {
     /* Codes with NH20 are a little special */
-
-    /* FIXME: resetting the histogram is a bit brutal.. */
     if (ABS(b->histogram[0]) > 12) {
       memset(b->histogram, 0, sizeof(b->histogram));
     }
-    /* rotate the histogram left */
     s8 hist_head = b->histogram[0];
     memmove(&(b->histogram[0]),
             &(b->histogram[1]),
@@ -239,50 +254,39 @@ static void histogram_update(bit_sync_t *b,
       b->bit_phase_ref = (b->bit_phase + 2) % b->bit_length;
     }
 
-  } else if (CODE_GAL_E7I == b->mesid.code) {
+  } else if (CODE_GAL_E7I == c) {
     /* Galileo E7Q has a SC100 secondary code */
     if (ABS(b->histogram[0]) > 3) {
       memset(b->histogram, 0, sizeof(b->histogram));
     }
     s8 hist_head = b->histogram[0];
-    /* rotate the histogram left */
     memmove(&(b->histogram[0]),
             &(b->histogram[1]),
             sizeof(s8) * (GAL_CS100_MS - 1));
-    /* if there was a transition subtract 1 */
     hist_head += SIGN(dot_prod_real);
     b->histogram[(GAL_CS100_MS - 1)] = hist_head;
     s32 sum = 0;
     u8 sat = b->mesid.sat - 1;
-    /* cross-correlate transitions at the current symbol */
-    /* FPGA is working on new bit already: need to anticipate by 1 */
     for (u8 i = 2; i < GAL_CS100_MS; i++) {
       sum += b->histogram[i] * (e7q_xans[sat][i - 2]);
     }
     if (sum >= (2 * GAL_CS100_MS)) {
-      /* We are synchronized! */
-      /* might be a +2 or a -2.. we'll know when we do the same for NH20s */
       b->bit_phase_ref = (b->bit_phase + 2) % b->bit_length;
     }
 
-  } else if (CODE_GAL_E5I == b->mesid.code) {
-    /* TODO: this is untested */
+  } else if (CODE_GAL_E5I == c) {
     /* Galileo E5Q has a SC100 secondary code */
     if (ABS(b->histogram[0]) > 3) {
       memset(b->histogram, 0, sizeof(b->histogram));
     }
     s8 hist_head = b->histogram[0];
-    /* rotate the histogram left */
     memmove(&(b->histogram[0]),
             &(b->histogram[1]),
             sizeof(s8) * (GAL_CS100_MS - 1));
-    /* if there was a transition subtract 1 */
     hist_head += SIGN(dot_prod_real);
     b->histogram[(GAL_CS100_MS - 1)] = hist_head;
     s32 sum = 0;
     u8 sat = b->mesid.sat - 1;
-    /* cross-correlate transitions at the current symbol */
-    /* transitions on the first element do count: it's a pure pilot channel */
     for (u8 i = 2; i < GAL_CS100_MS; i++) {
       sum += b->histogram[i] * (e5q_xans[sat][i - 2]);
     }
@@ -290,7 +294,7 @@ static void histogram_update(bit_sync_t *b,
       b->bit_phase_ref = (b->bit_phase + 2) % b->bit_length;
     }
 
-  } else if (CODE_GAL_E1B == b->mesid.code) {
+  } else if (CODE_GAL_E1B == c) {
     /* Galileo E1C has a SC25 secondary code */
     /* rotate the histogram left */
     memmove(
@@ -308,6 +312,27 @@ static void histogram_update(bit_sync_t *b,
     if (sum == GAL_CS25_MS) {
       b->bit_phase_ref = (b->bit_phase + 2) % b->bit_length;
     }
+
+  } else if (CODE_BDS3_B5I == c) {
+    /* Beidou3 B2aQ has a SC100 secondary code */
+    if (ABS(b->histogram[0]) > 3) {
+      memset(b->histogram, 0, sizeof(b->histogram));
+    }
+    s8 hist_head = b->histogram[0];
+    memmove(&(b->histogram[0]),
+            &(b->histogram[1]),
+            sizeof(s8) * (BDS3_B5Q_SC_MS - 1));
+    hist_head += SIGN(dot_prod_real);
+    b->histogram[(BDS3_B5Q_SC_MS - 1)] = hist_head;
+    s32 sum = 0;
+    u8 sat = b->mesid.sat - 1;
+    for (u8 i = 2; i < BDS3_B5Q_SC_MS; i++) {
+      sum += b->histogram[i] * (c5q_xans[sat][i - 2]);
+    }
+    if (sum >= (2 * BDS3_B5Q_SC_MS)) {
+      b->bit_phase_ref = (b->bit_phase + 2) % b->bit_length;
+    }
+
   } else {
     /* check one in the histogram if the above is negative */
     if (dot_prod_real < 0) {

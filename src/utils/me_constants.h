@@ -28,6 +28,12 @@
 /** GPS L2C symbol length [ms] */
 #define GPS_L2C_SYMBOL_LENGTH_MS 20
 
+/** GPS L5Q symbol length [ms] */
+#define GPS_L5I_SYMBOL_LENGTH_MS 10
+
+/** GPS L5Q symbol length [ms] */
+#define GPS_L5Q_SYMBOL_LENGTH_MS 20
+
 /** GPS L1 C/A symbol length [ms] */
 #define GPS_L1CA_SYMBOL_LENGTH_MS 20
 
