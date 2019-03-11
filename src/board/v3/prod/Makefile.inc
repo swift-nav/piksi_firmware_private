@@ -6,7 +6,6 @@ REVDIR := $(SWIFTNAV_ROOT)/src/board/v3/prod
 
 REVINC := $(REVDIR)
 
-REVSRC := $(REVDIR)/board_rev.o
 
 REVASM :=
 
