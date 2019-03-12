@@ -47,34 +47,32 @@ static THD_WORKING_AREA(wa_manage_pv_thread, MANAGE_PV_THREAD_STACK);
  * \return Device state.
  */
 static device_state_t get_device_state(void) {
-  /* Check for FIXED */
-  soln_dgnss_stats_t stats = solution_last_dgnss_stats_get();
-  s8 fix = piksi_systime_cmp(&PIKSI_SYSTIME_INIT, &stats.systime);
+  piksi_solution_info_t soln_info = {0};
+  piksi_solution_info_get(&soln_info);
 
-  if (fix) {
-    u32 elapsed = piksi_systime_elapsed_since_ms(&stats.systime);
+  /* Check for DGNSS. */
+  bool has_any_rtk =
+      piksi_systime_cmp(&PIKSI_SYSTIME_INIT, &soln_info.last_time_rtk);
+  if (has_any_rtk) {
+    u32 elapsed = piksi_systime_elapsed_since_ms(&soln_info.last_time_rtk);
     if (elapsed < PV_MODE_TIMEOUT_MS) {
-      return (FILTER_FIXED == stats.mode) ? DEV_FIXED : DEV_FLOAT;
+      return (soln_info.was_last_rtk_fix) ? DEV_FIXED : DEV_FLOAT;
     }
   }
 
   /* Check for SPS */
-  piksi_systime_t t = solution_last_pvt_stats_get().systime;
-  fix = piksi_systime_cmp(&PIKSI_SYSTIME_INIT, &t);
+  bool has_any_spp =
+      piksi_systime_cmp(&PIKSI_SYSTIME_INIT, &soln_info.last_time_spp);
 
-  if (fix) {
-    u32 elapsed = piksi_systime_elapsed_since_ms(&t);
-
-    /* PVT available */
+  if (has_any_spp) {
+    u32 elapsed = piksi_systime_elapsed_since_ms(&soln_info.last_time_spp);
     if (elapsed < PV_MODE_TIMEOUT_MS) {
       return DEV_SPS;
     }
   }
 
   /* Blink according to signals tracked */
-  u8 signals_tracked = solution_last_stats_get().signals_tracked;
-
-  if (signals_tracked >= 4) {
+  if (soln_info.num_spp_signals >= 4) {
     return DEV_TRK_AT_LEAST_FOUR;
   }
 

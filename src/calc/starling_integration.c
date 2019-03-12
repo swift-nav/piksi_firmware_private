@@ -45,8 +45,8 @@
  * Constants
  ******************************************************************************/
 
-/** Number of milliseconds before SPP resumes in pseudo-absolute mode */
-#define DGNSS_TIMEOUT_MS 5000
+/* Number of seconds of no time-matched after which low-latency will resume. */
+#define LOW_LATENCY_RESUME_AFTER_SEC 5.0
 
 /* Size of an spp solution in ECEF. */
 #define SPP_ECEF_SIZE 3
@@ -57,19 +57,23 @@
  * Locals
  ******************************************************************************/
 static MUTEX_DECL(last_sbp_lock);
-static gps_time_t last_dgnss;
-static gps_time_t last_spp;
+static gps_time_t last_sbp_dgnss = GPS_TIME_UNKNOWN;
+static gps_time_t last_sbp_low_latency = GPS_TIME_UNKNOWN;
 
-static soln_pvt_stats_t last_pvt_stats = {.systime = PIKSI_SYSTIME_INIT,
-                                          .signals_used = 0};
-static soln_dgnss_stats_t last_dgnss_stats = {.systime = PIKSI_SYSTIME_INIT,
-                                              .mode = 0};
+/*******************************************************************************/
+static MUTEX_DECL(piksi_solution_info_lock);
+static piksi_solution_info_t piksi_solution_info = {
+    .last_time_spp = PIKSI_SYSTIME_INIT,
+    .last_time_rtk = PIKSI_SYSTIME_INIT,
+    .was_last_rtk_fix = false,
+};
 
-/* Keeps track of the which base sent us the most recent base
- * observations so we can appropriately identify who was involved
- * in any RTK solutions. */
-static MUTEX_DECL(current_base_sender_id_lock);
-static u8 current_base_sender_id = STARLING_BASE_SENDER_ID_DEFAULT;
+/*******************************************************************************/
+void piksi_solution_info_get(piksi_solution_info_t *info) {
+  chMtxLock(&piksi_solution_info_lock);
+  *info = piksi_solution_info;
+  chMtxUnlock(&piksi_solution_info_lock);
+}
 
 /*******************************************************************************
  * Output Callback Helpers
@@ -106,48 +110,6 @@ static double calc_heading(const double b_ned[3]) {
     heading += 2 * M_PI;
   }
   return heading * R2D;
-}
-
-/** Determine if we have had a SPP timeout.
- *
- * \param _last_spp. Last time of SPP solution
- * \param _dgnss_soln_mode.  Enumeration of the DGNSS solution mode
- *
- */
-static bool spp_timeout(const gps_time_t *_last_spp,
-                        const gps_time_t *_last_dgnss,
-                        dgnss_solution_mode_t _dgnss_soln_mode) {
-  /* Because this function is used only on the time-matched thread,
-   * the time-matched output can be considered "indefinitely timed-out"
-   * when in low-latency mode. */
-  if (_dgnss_soln_mode == STARLING_SOLN_MODE_LOW_LATENCY) {
-    return false;
-  }
-  chMtxLock(&last_sbp_lock);
-  double time_diff = gpsdifftime(_last_dgnss, _last_spp);
-  chMtxUnlock(&last_sbp_lock);
-
-  /* Need to compare timeout threshold in MS to system time elapsed (in system
-   * ticks) */
-  return (time_diff > 0.0);
-}
-
-/** Determine if we have had a DGNSS timeout.
- *
- * \param _last_dgnss. Last time of DGNSS solution
- * \param _dgnss_soln_mode.  Enumeration of the DGNSS solution mode
- *
- */
-static bool dgnss_timeout(piksi_systime_t *_last_dgnss,
-                          dgnss_solution_mode_t _dgnss_soln_mode) {
-  /* No timeout needed in low latency mode */
-  if (STARLING_SOLN_MODE_LOW_LATENCY == _dgnss_soln_mode) {
-    return false;
-  }
-
-  /* Need to compare timeout threshold in MS to system time elapsed (in system
-   * ticks) */
-  return (piksi_systime_elapsed_since_ms(_last_dgnss) > DGNSS_TIMEOUT_MS);
 }
 
 typedef struct {
@@ -214,24 +176,34 @@ void starling_integration_sbp_messages_init(sbp_messages_t *sbp_messages,
   sbp_init_vel_ned_cov(&sbp_messages->vel_ned_cov, t);
 }
 
-static void starling_integration_solution_send_low_latency_output(
-    const sbp_messages_t *sbp_messages) {
+static void send_low_latency_messages(const gps_time_t *time_of_solution,
+                                      const sbp_messages_t *sbp_messages) {
   dgnss_solution_mode_t mode = starling_get_solution_mode();
-  /* Work out if we need to wait for a certain period of no time matched
-   * positions before we output a SBP position */
-  bool wait_for_timeout = false;
-  if (!(dgnss_timeout(&last_dgnss_stats.systime, mode)) &&
-      STARLING_SOLN_MODE_TIME_MATCHED == mode) {
-    wait_for_timeout = true;
+
+  /* This is ridiculously confusing, allow me to explain:
+   *
+   * When in "TIME-MATCHED" mode, we want to recognize when the
+   * solution hasn't been sent in a while and allow the "LOW-LATENCY"
+   * messages through. On the other hand, if there has been a
+   * sufficiently recent "TIME-MATCHED" output, we do not want
+   * to send any "LOW-LATENCY" messages.
+   *
+   * In "LOW-LATENCY" mode, all of this is moot.
+   */
+  chMtxLock(&last_sbp_lock);
+  const gps_time_t last_dgnss_time = last_sbp_dgnss;
+  chMtxUnlock(&last_sbp_lock);
+  const double elapsed_time_sec =
+      gpsdifftime(time_of_solution, &last_dgnss_time);
+  if (STARLING_SOLN_MODE_TIME_MATCHED == mode &&
+      elapsed_time_sec < LOW_LATENCY_RESUME_AFTER_SEC) {
+    return;
   }
 
-  if (!wait_for_timeout) {
-    solution_send_pos_messages(sbp_messages);
-    chMtxLock(&last_sbp_lock);
-    last_spp.wn = sbp_messages->gps_time.wn;
-    last_spp.tow = sbp_messages->gps_time.tow * 0.001;
-    chMtxUnlock(&last_sbp_lock);
-  }
+  solution_send_pos_messages(sbp_messages);
+  chMtxLock(&last_sbp_lock);
+  last_sbp_low_latency = *time_of_solution;
+  chMtxUnlock(&last_sbp_lock);
 }
 
 static void solution_make_sbp(const pvt_engine_result_t *soln,
@@ -342,10 +314,6 @@ static void solution_make_sbp(const pvt_engine_result_t *soln,
                     sbp_messages->pos_llh.tow,
                     soln->flags.position_mode);
     }
-
-    /* Update stats */
-    piksi_systime_get(&last_pvt_stats.systime);
-    last_pvt_stats.signals_used = soln->num_sigs_used;
   }
 }
 
@@ -453,15 +421,8 @@ static void solution_make_baseline_sbp(const pvt_engine_result_t *result,
                 result->flags.position_mode);
 
   chMtxLock(&last_sbp_lock);
-  last_dgnss.wn = result->time.wn;
-  last_dgnss.tow = result->time.tow;
+  last_sbp_dgnss = result->time;
   chMtxUnlock(&last_sbp_lock);
-
-  /* Update stats */
-  piksi_systime_get(&last_dgnss_stats.systime);
-  last_dgnss_stats.mode = (result->flags.position_mode == POSITION_MODE_FIXED)
-                              ? FILTER_FIXED
-                              : FILTER_FLOAT;
 }
 
 /*******************************************************************************
@@ -539,7 +500,7 @@ void starling_integration_simulation_run(const obss_t *obss) {
   sbp_messages_t sbp_messages;
   starling_integration_sbp_messages_init(&sbp_messages, &epoch_time, time_qual);
   starling_integration_solution_simulation(&sbp_messages);
-  starling_integration_solution_send_low_latency_output(&sbp_messages);
+  send_low_latency_messages(&epoch_time, &sbp_messages);
 }
 
 bool starling_integration_simulation_enabled(void) {
@@ -581,11 +542,15 @@ static void reset_filters_callback(u16 sender_id,
  * NOTE: The pointers are only valid within the enclosing scope.
  *       Any copies of the data must be deep copies.
  */
-void send_solution_time_matched(const StarlingFilterSolution *solution,
-                                const obss_t *obss_base,
-                                const obss_t *obss_rover) {
+void handle_solution_time_matched(const StarlingFilterSolution *solution,
+                                  const obss_t *obss_base,
+                                  const obss_t *obss_rover) {
   assert(obss_base);
   assert(obss_rover);
+
+  if (STARLING_SOLN_MODE_TIME_MATCHED != starling_get_solution_mode()) {
+    return;
+  }
 
   /* Fill in the output messages. We always use the SPP message first.
    * Then if there is a successful time-matched result, we will
@@ -612,18 +577,23 @@ void send_solution_time_matched(const StarlingFilterSolution *solution,
                                &sbp_messages);
   }
 
-  /* Only send time-matched output if we are not in low-latency mode
-   * and our current time-matched result occurs after the most recent
-   * SPP output. */
-  if (spp_timeout(&last_spp, &last_dgnss, starling_get_solution_mode())) {
+  /* There is an edge case when switching into time-matched mode where
+   * a solution may be posted after the most recent low-latency solution
+   * was already transmitted. We detect this case and make sure to avoid
+   * outputting anachronous solutions.
+   *
+   * If there was a valid solution this epoch, then `last_dgnss` will
+   * have been set while making the baseline SBP messages. We check
+   * this value to make sure it occurs after the most recent low latency
+   * output.
+   */
+  chMtxLock(&last_sbp_lock);
+  const bool is_after_last_low_latency =
+      gpsdifftime(&last_sbp_dgnss, &last_sbp_low_latency) > 0.;
+  chMtxUnlock(&last_sbp_lock);
+  if (is_after_last_low_latency) {
     solution_send_pos_messages(&sbp_messages);
   }
-
-  /* Always keep track of which base station is sending in the
-   * base observations. */
-  chMtxLock(&current_base_sender_id_lock);
-  current_base_sender_id = obss_base->sender_id;
-  chMtxUnlock(&current_base_sender_id_lock);
 }
 
 /**
@@ -637,9 +607,9 @@ void send_solution_time_matched(const StarlingFilterSolution *solution,
  * NOTE: The pointers are only valid within the enclosing scope.
  *       Any copies of the data must be deep copies.
  */
-void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
-                               const StarlingFilterSolution *rtk_solution,
-                               const gps_time_t *solution_epoch_time) {
+void handle_solution_low_latency(const StarlingFilterSolution *spp_solution,
+                                 const StarlingFilterSolution *rtk_solution,
+                                 const gps_time_t *solution_epoch_time) {
   assert(solution_epoch_time);
 
   /* Check if observations do not have valid time. We may have locally a
@@ -675,7 +645,7 @@ void send_solution_low_latency(const StarlingFilterSolution *spp_solution,
                                  &sbp_messages);
     }
   }
-  starling_integration_solution_send_low_latency_output(&sbp_messages);
+  send_low_latency_messages(&epoch_time, &sbp_messages);
 }
 
 /*******************************************************************************
@@ -720,8 +690,8 @@ static THD_FUNCTION(initialize_and_run_starling, arg) { /* NOLINT */
   chRegSetThreadName("starling");
 
   /* Set time of last differential solution in the past. */
-  last_dgnss = GPS_TIME_UNKNOWN;
-  last_spp = GPS_TIME_UNKNOWN;
+  last_sbp_dgnss = GPS_TIME_UNKNOWN;
+  last_sbp_low_latency = GPS_TIME_UNKNOWN;
 
   /* Register a reset callback. */
   static sbp_msg_callbacks_node_t reset_filters_node;
@@ -747,12 +717,73 @@ static THD_FUNCTION(initialize_and_run_starling, arg) { /* NOLINT */
   __builtin_unreachable();
 }
 
+/*******************************************************************************/
+static void update_piksi_solution_info(const StarlingFilterSolution *soln) {
+  /* Ignore non-existant or invalid solutions. */
+  if (NULL == soln || !soln->result.valid) {
+    return;
+  }
+  piksi_systime_t now_systime = PIKSI_SYSTIME_INIT;
+  piksi_systime_get(&now_systime);
+  /* Check the position mode and update the corresponding info. */
+  const uint8_t pos_mode = soln->result.flags.position_mode;
+  const uint8_t is_fixed = (pos_mode == POSITION_MODE_FIXED);
+  chMtxLock(&piksi_solution_info_lock);
+  switch (pos_mode) {
+    case POSITION_MODE_SPP:  // fallthru
+    case POSITION_MODE_SBAS:
+      piksi_solution_info.last_time_spp = now_systime;
+      piksi_solution_info.num_spp_signals = soln->result.num_sigs_used;
+      break;
+    case POSITION_MODE_DGNSS:  // fallthru
+    case POSITION_MODE_FLOAT:  // fallthru
+    case POSITION_MODE_FIXED:
+      piksi_solution_info.last_time_rtk = now_systime;
+      piksi_solution_info.was_last_rtk_fix = is_fixed;
+      break;
+    case POSITION_MODE_NONE:            // fallthru
+    case POSITION_MODE_DEAD_RECKONING:  // fallthru
+    default:
+      break;
+  }
+  chMtxUnlock(&piksi_solution_info_lock);
+}
+
+/*******************************************************************************/
+static void update_solution_info_low_latency(
+    const StarlingFilterSolution *spp_solution,
+    const StarlingFilterSolution *rtk_solution,
+    const gps_time_t *solution_epoch_time) {
+  (void)solution_epoch_time;
+  update_piksi_solution_info(spp_solution);
+  update_piksi_solution_info(rtk_solution);
+}
+
+/*******************************************************************************/
+static void update_solution_info_time_matched(
+    const StarlingFilterSolution *solution,
+    const obss_t *obss_base,
+    const obss_t *obss_rover) {
+  (void)obss_base;
+  (void)obss_rover;
+  update_piksi_solution_info(solution);
+}
+
+/*******************************************************************************/
 static void setup_solution_handlers(void) {
-  static SolutionHandler handler = {
-      .handle_low_latency = send_solution_low_latency,
-      .handle_time_matched = send_solution_time_matched,
+  /* This solution handler manages all of the SBP message transmission. */
+  static SolutionHandler handler_sbp = {
+      .handle_low_latency = handle_solution_low_latency,
+      .handle_time_matched = handle_solution_time_matched,
   };
-  starling_add_solution_handler(&handler);
+  starling_add_solution_handler(&handler_sbp);
+
+  /* This one keeps stats on the solutions which are used by the LEDs. */
+  static SolutionHandler handler_info = {
+      .handle_low_latency = update_solution_info_low_latency,
+      .handle_time_matched = update_solution_info_time_matched,
+  };
+  starling_add_solution_handler(&handler_info);
 }
 
 /*******************************************************************************
@@ -785,9 +816,3 @@ void starling_calc_pvt_setup() {
   /* Start main starling thread. */
   platform_thread_create(THREAD_ID_STARLING, initialize_and_run_starling);
 }
-
-soln_dgnss_stats_t solution_last_dgnss_stats_get(void) {
-  return last_dgnss_stats;
-}
-
-soln_pvt_stats_t solution_last_pvt_stats_get(void) { return last_pvt_stats; }

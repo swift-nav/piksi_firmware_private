@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2018 Swift Navigation Inc.
- * Contact: Kevin Dade <kevin@swiftnav.com>
+ * Contact: Swift Navigation <dev@swiftnav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -18,9 +18,7 @@
 /* Provide an SBP duplex implementation and Starling will proceed to transmit
  * solutions over it. At the moment, only a single output connection is
  * supported at a time.
- *
- * TODO(kevin) Once in Starling C++, multiple outputs can be supported because
- * the linked-list implementation is available: "llstack". */
+ */
 // void starling_connect_sbp_output(const SbpDuplexLink *sbp_output_link);
 
 /* Set of messages sent by the Piksi Multi integration of Starling. */

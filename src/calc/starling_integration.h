@@ -27,18 +27,16 @@
 #include "hal/piksi_systime.h"
 #include "starling_sbp_settings.h"
 
-typedef struct {
-  piksi_systime_t systime;
-  dgnss_filter_t mode;
-} soln_dgnss_stats_t;
-
-typedef struct {
-  piksi_systime_t systime;
-  u8 signals_used;
-} soln_pvt_stats_t;
-
 void starling_calc_pvt_setup(void);
-soln_dgnss_stats_t solution_last_dgnss_stats_get(void);
-soln_pvt_stats_t solution_last_pvt_stats_get(void);
+
+/* Hold information about the system time and type of most recent solutions. */
+typedef struct piksi_solution_info_t {
+  piksi_systime_t last_time_spp;
+  piksi_systime_t last_time_rtk;
+  bool was_last_rtk_fix;
+  size_t num_spp_signals;
+} piksi_solution_info_t;
+
+void piksi_solution_info_get(piksi_solution_info_t *info);
 
 #endif
