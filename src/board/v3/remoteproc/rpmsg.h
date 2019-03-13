@@ -14,6 +14,7 @@
 #define SWIFTNAV_RPMSG_H
 
 #include <ch.h>
+#include <stdbool.h>
 #include <swiftnav/common.h>
 
 typedef enum {
