@@ -33,8 +33,6 @@
  * Generate a pulse-per-second in alignment with GPS time.
  * \{ */
 
-/** HW platform selector */
-static bool is_base = false;
 /** Number of microseconds the PPS will remain active */
 static u32 pps_width_us = 2000;
 /** Logic level on output pin when the PPS is active */
@@ -139,12 +137,6 @@ static int pps_config_changed(void *ctx) {
   return SETTINGS_WR_OK;
 }
 
-static int platform_config_changed(void *ctx) {
-  (void)ctx;
-  NAP->CONTROL = SET_NAP_CONTROL_HARDWARE_IS_BASE(NAP->CONTROL, (u8)is_base);
-  return SETTINGS_WR_OK;
-}
-
 /** Settings callback for PPS frequency.
  * Updates the PPS frequency and period whenever the setting is changed.
  *
@@ -205,12 +197,6 @@ void pps_setup(void) {
           "propagation_timeout",
           pps_propagation_timeout,
           SETTINGS_TYPE_FLOAT);
-
-  SETTING_NOTIFY("my_random_setting_group",
-                 "is_base",
-                 is_base,
-                 SETTINGS_TYPE_BOOL,
-                 platform_config_changed);
 
   chThdCreateStatic(wa_pps_thread,
                     sizeof(wa_pps_thread),
