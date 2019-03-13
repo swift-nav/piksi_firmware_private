@@ -193,7 +193,8 @@ static void panic_dead_thread(u32 threads_dead) {
   thread_t *tp = chRegFirstThread();
   while (tp) {
     if (threads_dead & WATCHDOG_NOTIFY_FLAG(thd_cnt)) {
-      log_error("Thread Died: %s (%u: %s): prio: %" PRIu32 ", flags: %u, wtobjp: %p",
+      log_error("Thread Died: %s (%u: %s): prio: %" PRIu32
+								", flags: %u, wtobjp: %p",
                 tp->p_name,
                 tp->p_state,
                 state[tp->p_state],
