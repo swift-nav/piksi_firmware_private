@@ -140,8 +140,7 @@ bool rpmsg_halt_manual_send(rpmsg_endpoint_t rpmsg_endpoint,
   }
 
   if (rpmsg_trysendto(
-        d->rpmsg_endpoint->rp_chnl, buffer, buffer_length, d->addr) !=
-      0) {
+          d->rpmsg_endpoint->rp_chnl, buffer, buffer_length, d->addr) != 0) {
     return false;
   }
 
