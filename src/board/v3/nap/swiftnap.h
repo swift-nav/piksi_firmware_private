@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2017 Swift Navigation Inc.
+ * Copyright (C) 2011-2019 Swift Navigation Inc.
  * Author: Awesome Register Script Engine (ARSE)
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -10,7 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-/* SwiftNAP v4.13.0 register map */
+/* SwiftNAP v4.14.0 register map */
 
 #ifndef SWIFTNAP_H
 #define SWIFTNAP_H
@@ -18,7 +18,7 @@
 #include <swiftnav/common.h>
 
 /* Version */
-#define NAP_VERSION (0x040d0000)
+#define NAP_VERSION (0x040e0000)
 
 /* Number of tracking channels */
 #define NAP_NUM_TRACKING_CHANNELS (79U)
@@ -339,6 +339,17 @@ typedef struct {
 #define SET_NAP_CONTROL_CAN_TERM_ENABLE(REG, VAL) \
   (((REG) & ~NAP_CONTROL_CAN_TERM_ENABLE_Msk) |   \
    ((VAL) << NAP_CONTROL_CAN_TERM_ENABLE_Pos))
+
+#define NAP_CONTROL_HARDWARE_IS_BASE_Pos (14U)
+#define NAP_CONTROL_HARDWARE_IS_BASE_Len (1U)
+#define NAP_CONTROL_HARDWARE_IS_BASE_Rst (0x0U)
+#define NAP_CONTROL_HARDWARE_IS_BASE_Msk \
+  (0x1U << NAP_CONTROL_HARDWARE_IS_BASE_Pos)
+#define GET_NAP_CONTROL_HARDWARE_IS_BASE(REG) \
+  (((REG)&NAP_CONTROL_HARDWARE_IS_BASE_Msk) >> NAP_CONTROL_HARDWARE_IS_BASE_Pos)
+#define SET_NAP_CONTROL_HARDWARE_IS_BASE(REG, VAL) \
+  (((REG) & ~NAP_CONTROL_HARDWARE_IS_BASE_Msk) |   \
+   ((VAL) << NAP_CONTROL_HARDWARE_IS_BASE_Pos))
 
 /* Register: NAP_AUTHENTICATION */
 #define NAP_AUTHENTICATION_OPERATION_Pos (16U)
