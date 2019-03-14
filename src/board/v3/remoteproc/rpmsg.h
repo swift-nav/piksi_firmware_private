@@ -18,7 +18,7 @@
 typedef enum {
   RPMSG_ENDPOINT_A,
   RPMSG_ENDPOINT_B,
-  RPMSG_ENDPOINT_C,
+  RPMSG_ENDPOINT_STATS,
   RPMSG_ENDPOINT__COUNT
 } rpmsg_endpoint_t;
 

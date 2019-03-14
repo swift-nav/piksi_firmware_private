@@ -19,12 +19,12 @@
 #include <ch.h>
 #include <hal.h>
 #include <swiftnav/common.h>
-#include <swiftnav/logging.h>
 
 #include "lib/fifo.h"
 #include "remoteproc_config.h"
 #include "remoteproc_env.h"
 #include "rpmsg.h"
+#include "rpmsg_stats.h"
 
 #define ENDPOINT_FIFO_SIZE 4096
 #define RPMSG_BUFFER_SIZE_MAX 512
@@ -33,10 +33,12 @@
 #define RPMSG_THD_STACK_SIZE 4096
 #define RPMSG_THD_PERIOD_ms 10
 
+#define RPMSG_STATS_PERIOD_ms 500
+
 static const u32 endpoint_addr_config[RPMSG_ENDPOINT__COUNT] = {
     [RPMSG_ENDPOINT_A] = 100,
     [RPMSG_ENDPOINT_B] = 101,
-    [RPMSG_ENDPOINT_C] = 102,
+    [RPMSG_ENDPOINT_STATS] = 102,
 };
 
 typedef struct {
@@ -50,6 +52,9 @@ typedef struct {
 static endpoint_data_t endpoint_data[RPMSG_ENDPOINT__COUNT];
 
 static u32 rpmsg_buffer_size = 0;
+
+static rpmsg_stats_t rpmsg_stats_empty = RPMSG_STATS_INIT;
+static rpmsg_stats_t rpmsg_stats = RPMSG_STATS_INIT;
 
 extern struct remote_resource_table resource_table;
 static struct remote_proc *remote_proc = NULL;
@@ -115,13 +120,19 @@ u32 rpmsg_tx_fifo_space(rpmsg_endpoint_t rpmsg_endpoint) {
 u32 rpmsg_rx_fifo_read(rpmsg_endpoint_t rpmsg_endpoint,
                        u8 *buffer,
                        u32 length) {
-  return fifo_read(&endpoint_data[rpmsg_endpoint].rx_fifo, buffer, length);
+  u32 n = fifo_read(&endpoint_data[rpmsg_endpoint].rx_fifo, buffer, length);
+  rpmsg_stats.read_bytes += n;
+  rpmsg_stats.read_count++;
+  return n;
 }
 
 u32 rpmsg_tx_fifo_write(rpmsg_endpoint_t rpmsg_endpoint,
                         const u8 *buffer,
                         u32 length) {
   u32 n = fifo_write(&endpoint_data[rpmsg_endpoint].tx_fifo, buffer, length);
+  rpmsg_stats.write_bytes += n;
+  rpmsg_stats.write_count++;
+  rpmsg_stats.dropped_bytes += (length - n);
   chBSemSignal(&rpmsg_thd_bsem);
   return n;
 }
@@ -182,10 +193,25 @@ static THD_FUNCTION(rpmsg_thread, arg) {
   (void)arg;
   chRegSetThreadName("rpmsg");
 
+  systime_t stats_report_time = chVTGetSystemTimeX();
+
   while (1) {
-    chBSemWaitTimeout(&rpmsg_thd_bsem, MS2ST(RPMSG_THD_PERIOD_ms));
+
+    msg_t msg = chBSemWaitTimeout(&rpmsg_thd_bsem, MS2ST(RPMSG_THD_PERIOD_ms));
+
+    rpmsg_stats.sem_timeouts += (msg == MSG_TIMEOUT ? 1 : 0);
+    rpmsg_stats.sem_wakeups += (msg != MSG_TIMEOUT ? 1 : 0);
 
     remoteproc_env_irq_process();
+
+    systime_t stats_report_since = chVTTimeElapsedSinceX(stats_report_time);
+    if (ST2MS(stats_report_since) >= RPMSG_STATS_PERIOD_ms) {
+      stats_report_time = chVTGetSystemTimeX();
+      endpoint_data_t *d = &endpoint_data[RPMSG_ENDPOINT_STATS];
+      struct rpmsg_endpoint *ept = d->rpmsg_endpoint;
+      rpmsg_trysendto(ept->rp_chnl, &rpmsg_stats, sizeof(rpmsg_stats), d->addr);
+      rpmsg_stats = rpmsg_stats_empty;
+    }
 
     for (u32 i = 0; i < RPMSG_ENDPOINT__COUNT; i++) {
       endpoint_data_t *d = &endpoint_data[i];
@@ -207,6 +233,7 @@ static THD_FUNCTION(rpmsg_thread, arg) {
         if (rpmsg_trysendto(
                 d->rpmsg_endpoint->rp_chnl, buffer, buffer_length, d->addr) !=
             0) {
+          rpmsg_stats.send_fails++;
           break;
         }
 
