@@ -187,6 +187,27 @@ static void debug_threads(void) {
   }
 }
 
+static void panic_dead_thread(u32 threads_dead) {
+  const char *state[] = {CH_STATE_NAMES};
+  u32 thd_cnt = 0;
+  thread_t *tp = chRegFirstThread();
+  while (tp) {
+    if (threads_dead & WATCHDOG_NOTIFY_FLAG(thd_cnt)) {
+      log_error("Thread Died: %s (%u: %s): prio: %" PRIu32
+                ", flags: %u, wtobjp: %p",
+                tp->p_name,
+                tp->p_state,
+                state[tp->p_state],
+                tp->p_prio,
+                tp->p_flags,
+                tp->p_u.wtobjp);
+    }
+    tp = chRegNextThread(tp);
+    thd_cnt++;
+  }
+  chSysHalt("Forced halt due to dead or starved thread.");
+}
+
 static THD_WORKING_AREA(wa_watchdog_thread, WATCHDOG_THREAD_STACK);
 static void watchdog_thread(void *arg) {
   (void)arg;
@@ -216,6 +237,9 @@ static void watchdog_thread(void *arg) {
           (unsigned int)threads_dead,
           use_wdt ? "imminent" : "disabled");
       debug_threads();
+      if (use_wdt) {
+        panic_dead_thread(threads_dead);
+      }
     } else {
       if (use_wdt) wdgReset(&WDGD1);
     }
