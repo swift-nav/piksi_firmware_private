@@ -142,7 +142,7 @@ $(STARLING_BUILDDIR)/Makefile:
     mkdir -p $(STARLING_BUILDDIR); cd $(STARLING_BUILDDIR); \
     cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
           -DCMAKE_TOOLCHAIN_FILE=../cmake/Toolchain-gcc-arm-embedded.cmake \
-          -DMAX_CHANNELS=79 \
+          -DMAX_CHANNELS=81 \
           $(CMAKEFLAGS) ../
 
 $(OPENAMP_BUILDDIR)/lib/libopen-amp.a:
