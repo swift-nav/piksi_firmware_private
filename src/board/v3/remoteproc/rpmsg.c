@@ -196,7 +196,6 @@ static THD_FUNCTION(rpmsg_thread, arg) {
   systime_t stats_report_time = chVTGetSystemTimeX();
 
   while (1) {
-
     msg_t msg = chBSemWaitTimeout(&rpmsg_thd_bsem, MS2ST(RPMSG_THD_PERIOD_ms));
 
     rpmsg_stats.sem_timeouts += (msg == MSG_TIMEOUT ? 1 : 0);

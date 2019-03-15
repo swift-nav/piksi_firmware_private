@@ -32,9 +32,10 @@ typedef struct __attribute__((packed)) rpmsg_stats {
   u32 eom;
 } rpmsg_stats_t;
 
-#define RPMSG_STATS_INIT { \
-  .signature = RPMSG_STATS_SIGNATURE, \
-  .version = 1, \
-  .eom = RPMSG_STATS_EOM_SIGNATURE, }
+#define RPMSG_STATS_INIT                              \
+  {                                                   \
+    .signature = RPMSG_STATS_SIGNATURE, .version = 1, \
+    .eom = RPMSG_STATS_EOM_SIGNATURE,                 \
+  }
 
 #endif /* SWIFTNAV_RPMSG_STATS_H */
