@@ -220,32 +220,34 @@ static THD_FUNCTION(rpmsg_thread, arg) {
   while (1) {
     chBSemWaitTimeout(&rpmsg_thd_bsem, MS2ST(RPMSG_THD_PERIOD_ms));
 
-    remoteproc_env_irq_process();
+    if (!fw_panic) {
+      remoteproc_env_irq_process();
 
-    for (u32 i = 0; i < RPMSG_ENDPOINT__COUNT; i++) {
-      endpoint_data_t *d = &endpoint_data[i];
+      for (u32 i = 0; i < RPMSG_ENDPOINT__COUNT; i++) {
+        endpoint_data_t *d = &endpoint_data[i];
 
-      if (d->rpmsg_endpoint == NULL) {
-        continue;
-      }
-
-      fifo_t *fifo = &d->tx_fifo;
-      while (1) {
-        u8 buffer[RPMSG_BUFFER_SIZE_MAX];
-        u32 buffer_length =
-            fifo_peek(fifo, buffer, MIN(rpmsg_buffer_size, sizeof(buffer)));
-
-        if (buffer_length == 0) {
-          break;
+        if (d->rpmsg_endpoint == NULL) {
+          continue;
         }
 
-        if (rpmsg_trysendto(
-                d->rpmsg_endpoint->rp_chnl, buffer, buffer_length, d->addr) !=
-            0) {
-          break;
-        }
+        fifo_t *fifo = &d->tx_fifo;
+        while (1) {
+          u8 buffer[RPMSG_BUFFER_SIZE_MAX];
+          u32 buffer_length =
+              fifo_peek(fifo, buffer, MIN(rpmsg_buffer_size, sizeof(buffer)));
 
-        fifo_remove(fifo, buffer_length);
+          if (buffer_length == 0) {
+            break;
+          }
+
+          if (rpmsg_trysendto(
+                  d->rpmsg_endpoint->rp_chnl, buffer, buffer_length, d->addr) !=
+              0) {
+            break;
+          }
+
+          fifo_remove(fifo, buffer_length);
+        }
       }
     }
 

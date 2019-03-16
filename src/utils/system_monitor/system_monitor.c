@@ -189,6 +189,8 @@ static void debug_threads(void) {
 }
 
 static void panic_dead_thread(u32 threads_dead) {
+  char panic_msg[250] = " ";
+  char dead_threads[250] = "";
   const char *state[] = {CH_STATE_NAMES};
   u32 thd_cnt = 0;
   thread_t *tp = chRegFirstThread();
@@ -202,11 +204,13 @@ static void panic_dead_thread(u32 threads_dead) {
                 tp->p_prio,
                 tp->p_flags,
                 tp->p_u.wtobjp);
+      snprintf(dead_threads, 250, "%s%s ", dead_threads, tp->p_name);
     }
     tp = chRegNextThread(tp);
     thd_cnt++;
   }
-  chSysHalt("Forced halt due to dead or starved thread.");
+  snprintf(panic_msg, 250, "Forced halt due to dead or starved thread. [%s]", dead_threads);
+  chSysHalt(panic_msg);
 }
 
 static void declare_panic(void) {
