@@ -122,7 +122,7 @@ static void nmea_output(char *s, size_t size) {
   msg_wrapped_nmea_gsv_dep_t *msg = NULL;
   size_t msg_payload_len = size;
   if (size > SBP_FRAMING_MAX_PAYLOAD_SIZE) {
-    log_warn("NMEA output truncasted in SBP wrapper");
+    log_warn("NMEA GSV output truncated in SBP wrapper");
     msg_payload_len = SBP_FRAMING_MAX_PAYLOAD_SIZE;
   }
   size_t len = sizeof(*msg) + msg_payload_len;
