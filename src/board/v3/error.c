@@ -44,8 +44,9 @@ static s32 fallback_write_rpmsg(u8 *buff, u32 n, void *context) {
 
 /** Error message.
  * Halts the program while continually sending a fixed error message in SBP
- * message format to the FTDI USART, in a way that should get the message
- * through to the Python console even if it's interrupting another transmission.
+ * message format to the sbp rpmsg endpoint, in a way that should get the
+ * message through to the Python console even if it's interrupting another
+ * transmission.
  *
  * \param fmt C string that contains the text to be written
  * \param ... Variadic arguments
