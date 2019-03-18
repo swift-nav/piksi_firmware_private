@@ -25,6 +25,7 @@
 #include <swiftnav/coord_system.h>
 #include <swiftnav/gnss_time.h>
 #include <swiftnav/logging.h>
+#include <swiftnav/memcpy_s.h>
 
 #include "board/nap/track_channel.h"
 #include "calc/calc_pvt_me.h"
@@ -118,12 +119,15 @@ typedef enum talker_id_e {
  * \param size This is the C-string size, not including the null character
  */
 static void nmea_output(char *s, size_t size) {
-  static MUTEX_DECL(send_mutex);
-  chMtxLock(&send_mutex);
-
-  io_support_write(SD_NMEA, (u8 *)s, size);
-
-  chMtxUnlock(&send_mutex);
+  size_t msg_payload_len = size;
+  if (size > SBP_FRAMING_MAX_PAYLOAD_SIZE) {
+    log_warn("NMEA output truncasted in SBP wrapper");
+    size = SBP_FRAMING_MAX_PAYLOAD_SIZE;
+  }
+  msg_wrapped_nmea_gsv_dep_t *msg = alloca(SBP_FRAMING_MAX_PAYLOAD_SIZE);
+  u8 len = sizeof(*msg) + SBP_FRAMING_MAX_PAYLOAD_SIZE;
+  memcpy(msg->gsv_sentence, s, msg_payload_len);
+  sbp_send_msg(SBP_MSG_WRAPPED_NMEA_GSV_DEP, len, (u8 *)msg);
 }
 
 void nmea_setup(void) {
