@@ -119,15 +119,16 @@ typedef enum talker_id_e {
  * \param size This is the C-string size, not including the null character
  */
 static void nmea_output(char *s, size_t size) {
+  msg_wrapped_nmea_gsv_dep_t *msg = NULL;
   size_t msg_payload_len = size;
   if (size > SBP_FRAMING_MAX_PAYLOAD_SIZE) {
     log_warn("NMEA output truncasted in SBP wrapper");
-    size = SBP_FRAMING_MAX_PAYLOAD_SIZE;
+    msg_payload_len = SBP_FRAMING_MAX_PAYLOAD_SIZE;
   }
-  msg_wrapped_nmea_gsv_dep_t *msg = alloca(SBP_FRAMING_MAX_PAYLOAD_SIZE);
-  u8 len = sizeof(*msg) + SBP_FRAMING_MAX_PAYLOAD_SIZE;
+  size_t len = sizeof(*msg) + msg_payload_len;
+  msg = alloca(len);
   memcpy(msg->gsv_sentence, s, msg_payload_len);
-  sbp_send_msg(SBP_MSG_WRAPPED_NMEA_GSV_DEP, len, (u8 *)msg);
+  sbp_send_msg(SBP_MSG_WRAPPED_NMEA_GSV_DEP, (u8)len, (u8 *)msg);
 }
 
 void nmea_setup(void) {
