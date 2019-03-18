@@ -30,7 +30,5 @@
 
 void nmea_setup(void);
 void nmea_send_gsv(u8 n_used, const channel_measurement_t *ch_meas);
-char get_nmea_status(u8 flags);
-char get_nmea_mode_indicator(u8 flags);
-u8 get_nmea_quality_indicator(u8 flags);
+
 #endif /* SWIFTNAV_NMEA_H */

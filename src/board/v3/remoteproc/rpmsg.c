@@ -30,6 +30,7 @@
 #define RPMSG_BUFFER_SIZE_MAX 512
 
 #define RPMSG_THD_PRIO (HIGHPRIO - 21)
+#define RPMSG_THD_PANIC_PRIO (HIGHPRIO - 1)
 #define RPMSG_THD_STACK_SIZE 4096
 #define RPMSG_THD_PERIOD_ms 10
 
@@ -189,11 +190,23 @@ static void rpmsg_endpoint_rx(struct rpmsg_channel *rpmsg_channel,
   fifo_write(&d->rx_fifo, data, len);
 }
 
+static MUTEX_DECL(rpmsg_panic_mtx);
+static bool fw_panic = false;
+
+mutex_t *rpmsg_fw_panic(void) {
+  if (fw_panic) {
+    return NULL;
+  }
+  fw_panic = true;
+  return &rpmsg_panic_mtx;
+}
+
 static THD_FUNCTION(rpmsg_thread, arg) {
   (void)arg;
   chRegSetThreadName("rpmsg");
 
   systime_t stats_report_time = chVTGetSystemTimeX();
+  chMtxLock(&rpmsg_panic_mtx);
 
   while (1) {
     msg_t msg = chBSemWaitTimeout(&rpmsg_thd_bsem, MS2ST(RPMSG_THD_PERIOD_ms));
@@ -238,6 +251,11 @@ static THD_FUNCTION(rpmsg_thread, arg) {
 
         fifo_remove(fifo, buffer_length);
       }
+    }
+
+    if (fw_panic && chThdGetSelfX()->p_realprio < RPMSG_THD_PANIC_PRIO) {
+      chThdSetPriority(RPMSG_THD_PANIC_PRIO);
+      chMtxUnlock(&rpmsg_panic_mtx);
     }
   }
 }

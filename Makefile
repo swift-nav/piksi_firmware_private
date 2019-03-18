@@ -1,5 +1,6 @@
 SWIFTNAV_ROOT := $(shell pwd)
 MAKEFLAGS += SWIFTNAV_ROOT=$(SWIFTNAV_ROOT)
+PFWP_COMPILER := arm-none-eabi-
 
 # Be silent per default, but 'make V=1' will show all compiler calls.
 ifneq ($(V),1)
@@ -51,7 +52,8 @@ MAKEFLAGS += STARLING_BUILDDIR=$(STARLING_BUILDDIR)
 MAKEFLAGS += LIBSWIFTNAV_BUILDDIR=$(LIBSWIFTNAV_BUILDDIR)
 MAKEFLAGS += OPENAMP_BUILDDIR=$(OPENAMP_BUILDDIR)
 
-FW_DEPS=$(LIBSBP_BUILDDIR)/src/libsbp.a \
+FW_DEPS=compiler-version \
+        $(LIBSBP_BUILDDIR)/src/libsbp.a \
         $(LIBSETTINGS_BUILDDIR)/src/libsettings.a \
         $(STARLING_BUILDDIR)/src/libstarling-shim.a \
         $(STARLING_BUILDDIR)/src/libstarling.a \
@@ -60,8 +62,8 @@ FW_DEPS=$(LIBSBP_BUILDDIR)/src/libsbp.a \
 
 ifeq ($(PIKSI_HW),v3)
   CMAKEFLAGS += -DCMAKE_SYSTEM_PROCESSOR=cortex-a9
-  CMAKEFLAGS += -DCMAKE_C_COMPILER:INTERNAL=arm-none-eabi-gcc
-  CMAKEFLAGS += -DCMAKE_CXX_COMPILER:INTERNAL=arm-none-eabi-g++
+  CMAKEFLAGS += -DCMAKE_C_COMPILER:INTERNAL=${PFWP_COMPILER}gcc
+  CMAKEFLAGS += -DCMAKE_CXX_COMPILER:INTERNAL=${PFWP_COMPILER}g++
   CMAKEFLAGS += -DCMAKE_C_COMPILER_ID:INTERNAL=GNU
   CMAKEFLAGS += -DCMAKE_CXX_COMPILER_ID:INTERNAL=GNU
   FW_DEPS += $(OPENAMP_BUILDDIR)/lib/libopen-amp.a
@@ -80,14 +82,14 @@ CLANG_TIDY_INCLUDES = -I$(SWIFTNAV_ROOT)/include/ \
                       -I$(SWIFTNAV_ROOT)/src/board/v3/prod/ \
                       -isystem$(SWIFTNAV_ROOT)/mesta/stubs/
 
-ARM_NONE_EABI_GCC_VERSION = $(shell arm-none-eabi-gcc --version)
-$(info $$ARM_NONE_EABI_GCC_VERSION is [${ARM_NONE_EABI_GCC_VERSION}])
-
 .PHONY: all tests firmware docs .FORCE
 .SUFFIXES:
 
 all: firmware
-	@printf "BUILDING For target $(PIKSI_TARGET)\n"
+	@printf "BUILD finished for target $(PIKSI_TARGET)\n"
+
+compiler-version:
+	@printf "$(shell ${PFWP_COMPILER}gcc --version)\n"
 
 firmware: $(FW_DEPS)
 	@printf "BUILD   src for target $(PIKSI_TARGET)\n"; \
