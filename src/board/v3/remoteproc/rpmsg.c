@@ -38,8 +38,7 @@
 
 static const u32 endpoint_addr_config[RPMSG_ENDPOINT__COUNT] = {
     [RPMSG_ENDPOINT_A] = 100,
-    [RPMSG_ENDPOINT_B] = 101,
-    [RPMSG_ENDPOINT_STATS] = 102,
+    [RPMSG_ENDPOINT_STATS] = 101,
 };
 
 typedef struct {
