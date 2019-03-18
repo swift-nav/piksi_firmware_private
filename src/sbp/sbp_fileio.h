@@ -17,13 +17,38 @@
 #include <swiftnav/common.h>
 
 void sbp_fileio_remove(const char *fn);
+
+/**
+ * @brief   Write to non-volatile memory
+ *
+ * @note    Function is neither reentrant nor thread-safe
+ *
+ * @param[in] filename      Name of the file to write to
+ * @param[in] offset        Offset into the file [bytes]
+ * @param[in] buf           Buffer to write from
+ * @param[in] size          Size of the buffer
+ *
+ * @return                  Number of bytes written
+ * @retval -1               Error
+ */
 ssize_t sbp_fileio_write(const char *filename,
-                         off_t offset,
+                         u32 offset,
                          const u8 *buf,
                          size_t size);
-ssize_t sbp_fileio_read(const char *filename,
-                        off_t offset,
-                        u8 *buf,
-                        size_t size);
+
+/**
+ * @brief   Read from non-volatile memory
+ *
+ * @note    Function is neither reentrant nor thread-safe
+ *
+ * @param[in] filename      Name of the file to read from
+ * @param[in] offset        Offset into the file [bytes]
+ * @param[in] buf           Buffer to write into
+ * @param[in] size          Size of the buffer
+ *
+ * @return                  Number of bytes read
+ * @retval -1               Error
+ */
+ssize_t sbp_fileio_read(const char *filename, u32 offset, u8 *buf, size_t size);
 
 #endif
