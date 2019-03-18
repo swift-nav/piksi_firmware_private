@@ -62,27 +62,6 @@ static u32 gpgsv_msg_rate = 10;
 /* BDS NMEA SV IDs are from 401 to 437 */
 #define NMEA_SV_ID_OFFSET_BDS2 (401 - BDS_FIRST_PRN)
 
-/* Max SVs reported per GSA message */
-#define GSA_MAX_SV 12
-
-/* Number of decimals in NMEA time stamp (valid values 1-4) */
-#define NMEA_UTC_S_DECIMALS 2
-#define NMEA_UTC_S_FRAC_DIVISOR pow(10, NMEA_UTC_S_DECIMALS)
-
-/* Adequate until end of year 999999.
-   Worst case: "%02d%02d%05.2f,%02d,%02d,%lu" */
-#define NMEA_TS_MAX_LEN (21 + NMEA_UTC_S_DECIMALS)
-
-/* Accuracy of Course Over Ground */
-#define NMEA_COG_DECIMALS 1
-#define NMEA_COG_FRAC_DIVISOR pow(10, NMEA_COG_DECIMALS)
-
-/* Based on testing calculated Course Over Ground starts deviating noticeably
- * below this limit. */
-#define NMEA_COG_STATIC_LIMIT_MS 0.1f
-#define NMEA_COG_STATIC_LIMIT_KNOTS MS2KNOTS(NMEA_COG_STATIC_LIMIT_MS, 0, 0)
-#define NMEA_COG_STATIC_LIMIT_KPH MS2KMHR(NMEA_COG_STATIC_LIMIT_MS, 0, 0)
-
 typedef enum talker_id_e {
   TALKER_ID_INVALID = -1,
   TALKER_ID_GP = 0,
@@ -402,66 +381,6 @@ static void nmea_gsv(u8 n_used, const channel_measurement_t *ch_meas) {
  */
 void nmea_send_gsv(u8 n_used, const channel_measurement_t *ch_meas) {
   DO_EVERY(gpgsv_msg_rate, nmea_gsv(n_used, ch_meas));
-}
-
-bool send_nmea(u32 rate, u32 gps_tow_ms) {
-  if (rate == 0) {
-    return false;
-  }
-
-  /* If the modulo of latest gps time estimate time with configured
-   * output period is less than 1/2 the solution period we should send the NMEA
-   * message.
-   * This way, we still send no_fix messages when receiver clock is drifting. */
-  u32 soln_period_ms = (u32)(1.0 / soln_freq_setting * 1e3);
-  u32 output_period_ms = soln_period_ms * rate;
-  if ((gps_tow_ms % output_period_ms) < (soln_period_ms / 2)) {
-    return true;
-  }
-  return false;
-}
-
-/** Convert the SBP status flag into NMEA Status field.
- * Ref: NMEA-0183 version 2.30 pp.42,43
- *
- * \param flags        u8 sbp_pos_llh->flags
- */
-char get_nmea_status(u8 flags) {
-  switch (flags & POSITION_MODE_MASK) {
-    case POSITION_MODE_NONE:
-      return 'V';
-    case POSITION_MODE_SPP: /* autonomous mode */
-    case POSITION_MODE_DGNSS:
-    case POSITION_MODE_SBAS:
-    case POSITION_MODE_FLOAT:
-    case POSITION_MODE_FIXED:
-      return 'A';
-    default:
-      assert(!"Unsupported position type indicator");
-      return 'V';
-  }
-}
-
-/** Convert the SBP status flag into NMEA Mode Indicator field:
- * Ref: NMEA-0183 version 2.30 pp.42,43
- *
- * \param flags        u8 sbp_pos_llh->flags
- */
-char get_nmea_mode_indicator(u8 flags) {
-  switch (flags & POSITION_MODE_MASK) {
-    case POSITION_MODE_NONE:
-      return 'N';
-    case POSITION_MODE_SPP: /* autonomous mode */
-      return 'A';
-    case POSITION_MODE_DGNSS: /* differential mode */
-    case POSITION_MODE_SBAS:
-    case POSITION_MODE_FLOAT:
-    case POSITION_MODE_FIXED:
-      return 'D';
-    default:
-      assert(!"Unsupported position type indicator");
-      return 'N';
-  }
 }
 
 /** \} */
