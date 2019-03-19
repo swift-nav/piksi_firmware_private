@@ -77,10 +77,6 @@ static bool almanacs_enabled = false;
 
 void ndb_ephemeris_init(void) {
   SETTING("ndb",
-          "erase_ephemeris",
-          ndb_ephe_config.erase_ephemeris,
-          SETTINGS_TYPE_BOOL);
-  SETTING("ndb",
           "valid_alm_acc",
           ndb_ephe_config.valid_alm_accuracy,
           SETTINGS_TYPE_INT);
@@ -432,7 +428,7 @@ ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e) {
   assert(idx < ARRAY_SIZE(ndb_ephemeris_md));
   ndb_op_code_t res = ndb_retrieve(&ndb_ephemeris_md[idx], e, sizeof(*e), NULL);
 
-  if (NDB_ERR_NONE != res) {
+  if (NDB_ERR_NONE != res && TIME_UNKNOWN != get_time_quality()) {
     /* If there is a data loading error, check for unconfirmed candidate */
     chMtxLock(&cand_list_access);
     s16 cand_idx = ndb_ephe_find_candidate(sid);
