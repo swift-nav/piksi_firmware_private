@@ -438,17 +438,12 @@ ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e) {
     s16 cand_idx = ndb_ephe_find_candidate(sid);
     if (cand_idx >= 0) {
       *e = ephe_candidates[cand_idx].ephe;
-      res = ndb_check_age(&e->toe, ndb_eph_age);
-      if (NDB_ERR_AGED_DATA != res) {
-        /* Found unconfirmed candidate that is recent enough, return it
-         * with an appropriate error code */
-        res = NDB_ERR_UNCONFIRMED_DATA;
-      }
+      res = NDB_ERR_UNCONFIRMED_DATA;
     }
     chMtxUnlock(&cand_list_access);
   }
 
-  /* Patch SID to be accurate for GPS L1/L2 */
+  /* Patch SID to be accurate for primary/secondary signals */
   e->sid = sid;
   return res;
 }
