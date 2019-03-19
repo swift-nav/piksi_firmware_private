@@ -432,33 +432,6 @@ ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e) {
   assert(idx < ARRAY_SIZE(ndb_ephemeris_md));
   ndb_op_code_t res = ndb_retrieve(&ndb_ephemeris_md[idx], e, sizeof(*e), NULL);
 
-  double ndb_eph_age;
-  if (IS_GPS(sid)) {
-    ndb_eph_age = NDB_NV_GPS_EPHEMERIS_AGE_SECS;
-  } else if (IS_GLO(sid)) {
-    ndb_eph_age = NDB_NV_GLO_EPHEMERIS_AGE_SECS;
-  } else if (IS_SBAS(sid)) {
-    ndb_eph_age = NDB_NV_SBAS_EPHEMERIS_AGE_SECS;
-  } else if (IS_BDS2(sid)) {
-    ndb_eph_age = NDB_NV_BDS2_EPHEMERIS_AGE_SECS;
-  } else if (IS_QZSS(sid)) {
-    ndb_eph_age = NDB_NV_QZSS_EPHEMERIS_AGE_SECS;
-  } else if (IS_GAL(sid)) {
-    ndb_eph_age = NDB_NV_GAL_EPHEMERIS_AGE_SECS;
-  } else {
-    assert(!"Constellation is not supported");
-  }
-
-  if (NDB_ERR_NONE == res) {
-    /* If NDB read was successful, check that data has not aged out */
-    res = ndb_check_age(&e->toe, ndb_eph_age);
-  } else if (NDB_ERR_BAD_PARAM == res) {
-    /* Handle the situation when ndb_retrieve returns NDB_ERR_BAD_PARAM.
-     * This may happen when we've already read ephemerides during startup from
-     * NV RAM, so check that locally stored ephemeris not aged out */
-    res = ndb_check_age(&ndb_ephemeris[idx].toe, ndb_eph_age);
-  }
-
   if (NDB_ERR_NONE != res) {
     /* If there is a data loading error, check for unconfirmed candidate */
     chMtxLock(&cand_list_access);
