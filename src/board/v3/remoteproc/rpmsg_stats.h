@@ -18,6 +18,8 @@
 #define RPMSG_STATS_SIGNATURE 0x53574654
 #define RPMSG_STATS_EOM_SIGNATURE 0x54465753
 
+#define RPMSG_STATS_VERSION 1
+
 typedef struct __attribute__((packed)) rpmsg_stats {
   u32 signature;
   u32 version;
@@ -32,10 +34,9 @@ typedef struct __attribute__((packed)) rpmsg_stats {
   u32 eom;
 } rpmsg_stats_t;
 
-#define RPMSG_STATS_INIT                              \
-  {                                                   \
-    .signature = RPMSG_STATS_SIGNATURE, .version = 1, \
-    .eom = RPMSG_STATS_EOM_SIGNATURE,                 \
-  }
+#define RPMSG_STATS_INIT { \
+  .signature = RPMSG_STATS_SIGNATURE, \
+  .version = RPMSG_STATS_VERSION, \
+  .eom = RPMSG_STATS_EOM_SIGNATURE, }
 
 #endif /* SWIFTNAV_RPMSG_STATS_H */
