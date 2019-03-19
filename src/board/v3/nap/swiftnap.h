@@ -10,7 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-/* SwiftNAP v4.14.0 register map */
+/* SwiftNAP v4.15.0 register map */
 
 #ifndef SWIFTNAP_H
 #define SWIFTNAP_H
@@ -18,7 +18,7 @@
 #include <swiftnav/common.h>
 
 /* Version */
-#define NAP_VERSION (0x040e0000)
+#define NAP_VERSION (0x040f0000)
 
 /* Number of tracking channels */
 #define NAP_NUM_TRACKING_CHANNELS (81U)
@@ -42,16 +42,12 @@
 #define NAP_FIRST_GPS_L1_CHANNEL (0U)
 #define NAP_FIRST_SBAS_L1_CHANNEL (17U)
 #define NAP_FIRST_GPS_L2_CHANNEL (18U)
-#define NAP_FIRST_GPS_L5_CHANNEL (29U)
 #define NAP_FIRST_GLO_G1_CHANNEL (29U)
 #define NAP_FIRST_GLO_G2_CHANNEL (39U)
 #define NAP_FIRST_BDS_B1_CHANNEL (49U)
 #define NAP_FIRST_BDS_B2_CHANNEL (58U)
-#define NAP_FIRST_BDS_L5_CHANNEL (67U)
 #define NAP_FIRST_GAL_E1_CHANNEL (67U)
 #define NAP_FIRST_GAL_E7_CHANNEL (74U)
-#define NAP_FIRST_GAL_E5_CHANNEL (81U)
-#define NAP_FIRST_AUX_L1_CHANNEL (81U)
 
 /* Number of readable tracking channel registers */
 #define NAP_NUM_TRACKING_READABLE (3U)
