@@ -434,18 +434,35 @@ ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e) {
   assert(idx < ARRAY_SIZE(ndb_ephemeris_md));
   ndb_op_code_t res = ndb_retrieve(&ndb_ephemeris_md[idx], e, sizeof(*e), NULL);
 
-  if (NDB_ERR_NONE != res && TIME_UNKNOWN != get_time_quality()) {
+  double ndb_eph_age = NDB_NV_WARM_START_LIMIT_SECS;
+
+  if (NDB_ERR_NONE == res) {
+    /* If NDB read was successful, check that data has not aged out */
+    res = ndb_check_age(&e->toe, ndb_eph_age);
+  } else if (NDB_ERR_BAD_PARAM == res) {
+    /* Handle the situation when ndb_retrieve returns NDB_ERR_BAD_PARAM.
+     * This may happen when we've already read ephemerides during startup from
+     * NV RAM, so check that locally stored ephemeris not aged out */
+    res = ndb_check_age(&ndb_ephemeris[idx].toe, ndb_eph_age);
+  }
+
+  if (NDB_ERR_NONE != res) {
     /* If there is a data loading error, check for unconfirmed candidate */
     chMtxLock(&cand_list_access);
     s16 cand_idx = ndb_ephe_find_candidate(sid);
     if (cand_idx >= 0) {
       *e = ephe_candidates[cand_idx].ephe;
-      res = NDB_ERR_UNCONFIRMED_DATA;
+      res = ndb_check_age(&e->toe, ndb_eph_age);
+      if (NDB_ERR_AGED_DATA != res) {
+        /* Found unconfirmed candidate that is recent enough, return it
+         * with an appropriate error code */
+        res = NDB_ERR_UNCONFIRMED_DATA;
+      }
     }
     chMtxUnlock(&cand_list_access);
   }
 
-  /* Patch SID to be accurate for primary/secondary signals */
+  /* Patch SID to be accurate for GPS L1/L2 */
   e->sid = sid;
   return res;
 }
