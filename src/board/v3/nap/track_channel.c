@@ -316,22 +316,27 @@ void nap_track_init(u8 channel,
 #if defined CODE_GAL_E1_SUPPORT && CODE_GAL_E1_SUPPORT > 0
   if (mesid.code == CODE_GAL_E1B) {
     u16 chip_bytes;
+    u32 channel_addr_one_hot;
+    u32 bram_addr;
+    u32 bram_data;
+
     index = mesid.sat - 1;
 
     for (u16 k = 0; k < GAL_E1B_PRN_BYTES; k++) {
       chip_bytes = bytes_interleave_tmp(&gal_e1c_codes[index][k],
                                         &gal_e1b_codes[index][k]);
 
-      NAP->TRK_GAL_E1_MEMCFG = (1 << (NAP_TRK_GAL_E1_MEMCFG_CHANNEL_NR_Pos +
-                                      channel - NAP_FIRST_GAL_E1_CHANNEL)) |
-                               ((k * 2) << NAP_TRK_GAL_E1_MEMCFG_DATA_IDX_Pos) |
-                               ((chip_bytes >> 8) & 0xFF);
+      channel_addr_one_hot = (1 << (NAP_TRK_GAL_E1_MEMCFG_CHANNEL_NR_Pos +
+                                    channel - NAP_FIRST_GAL_E1_CHANNEL));
+      bram_addr = ((k * 2) << NAP_TRK_GAL_E1_MEMCFG_DATA_IDX_Pos);
+      bram_data = ((chip_bytes >> 8) & 0xFF);
+      NAP->TRK_GAL_E1_MEMCFG = channel_addr_one_hot | bram_addr | bram_data;
 
-      NAP->TRK_GAL_E1_MEMCFG =
-          (1 << (NAP_TRK_GAL_E1_MEMCFG_CHANNEL_NR_Pos + channel -
-                 NAP_FIRST_GAL_E1_CHANNEL)) |
-          ((k * 2 + 1) << NAP_TRK_GAL_E1_MEMCFG_DATA_IDX_Pos) |
-          (chip_bytes & 0xFF);
+      channel_addr_one_hot = (1 << (NAP_TRK_GAL_E1_MEMCFG_CHANNEL_NR_Pos +
+                                    channel - NAP_FIRST_GAL_E1_CHANNEL));
+      bram_addr = ((k * 2 + 1) << NAP_TRK_GAL_E1_MEMCFG_DATA_IDX_Pos);
+      bram_data = (chip_bytes & 0xFF);
+      NAP->TRK_GAL_E1_MEMCFG = channel_addr_one_hot | bram_addr | bram_data;
     }
   } else {
 #endif /* CODE_GAL_E1_SUPPORT */
