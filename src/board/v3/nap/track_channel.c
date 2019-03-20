@@ -80,11 +80,11 @@ static struct nap_ch_state {
  * As soon as the starling pointer for PFWP is updated, the function
  * here should be removed and calls replaced with the one in libswiftnav.
  */
-u16 bytes_interleave_tmp(const u8 *x, const u8 *y) {
+u16 bytes_interleave_tmp(const u8 x, const u8 y) {
   u16 z = 0;
 
   for (u8 i = 0; i < 8; i++) {
-    z |= (*x & 1U << i) << i | (*y & 1U << i) << (i + 1);
+    z |= (x & 1U << i) << i | (y & 1U << i) << (i + 1);
   }
   return z;
 }
@@ -321,19 +321,17 @@ void nap_track_init(u8 channel,
     u32 bram_data;
 
     index = mesid.sat - 1;
+    channel_addr_one_hot = (1 << (NAP_TRK_GAL_E1_MEMCFG_CHANNEL_NR_Pos +
+                                  channel - NAP_FIRST_GAL_E1_CHANNEL));
 
     for (u16 k = 0; k < GAL_E1B_PRN_BYTES; k++) {
-      chip_bytes = bytes_interleave_tmp(&gal_e1c_codes[index][k],
-                                        &gal_e1b_codes[index][k]);
+      chip_bytes = bytes_interleave_tmp(gal_e1c_codes[index][k],
+                                        gal_e1b_codes[index][k]);
 
-      channel_addr_one_hot = (1 << (NAP_TRK_GAL_E1_MEMCFG_CHANNEL_NR_Pos +
-                                    channel - NAP_FIRST_GAL_E1_CHANNEL));
       bram_addr = ((k * 2) << NAP_TRK_GAL_E1_MEMCFG_DATA_IDX_Pos);
       bram_data = ((chip_bytes >> 8) & 0xFF);
       NAP->TRK_GAL_E1_MEMCFG = channel_addr_one_hot | bram_addr | bram_data;
 
-      channel_addr_one_hot = (1 << (NAP_TRK_GAL_E1_MEMCFG_CHANNEL_NR_Pos +
-                                    channel - NAP_FIRST_GAL_E1_CHANNEL));
       bram_addr = ((k * 2 + 1) << NAP_TRK_GAL_E1_MEMCFG_DATA_IDX_Pos);
       bram_data = (chip_bytes & 0xFF);
       NAP->TRK_GAL_E1_MEMCFG = channel_addr_one_hot | bram_addr | bram_data;
