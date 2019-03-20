@@ -85,17 +85,21 @@ static void tracker_gal_e1_update(tracker_t *tracker) {
     tracker->bit_polarity = BIT_POLARITY_NORMAL;
     tracker_update_bit_polarity_flags(tracker);
 
-    gal_e1_to_e7_handover(tracker->sample_count,
-                          tracker->mesid.sat,
-                          tracker->code_phase_prompt,
-                          tracker->doppler_hz,
-                          tracker->cn0);
+    if (CODE_GAL_E7_SUPPORT) {
+      gal_e1_to_e7_handover(tracker->sample_count,
+                            tracker->mesid.sat,
+                            tracker->code_phase_prompt,
+                            tracker->doppler_hz,
+                            tracker->cn0);
+    }
 
-    gal_e1_to_e5_handover(tracker->sample_count,
-                          tracker->mesid.sat,
-                          tracker->code_phase_prompt,
-                          tracker->doppler_hz,
-                          tracker->cn0);
+    if (CODE_GAL_E5_SUPPORT) {
+      gal_e1_to_e5_handover(tracker->sample_count,
+                            tracker->mesid.sat,
+                            tracker->code_phase_prompt,
+                            tracker->doppler_hz,
+                            tracker->cn0);
+    }
   }
 }
 

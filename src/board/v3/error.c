@@ -59,7 +59,7 @@ void _screaming_death(const char *fmt, ...) {
 
 #define SPEAKING_MSG_N 222 /* Maximum length of error message */
 
-  static char err_msg[SPEAKING_MSG_N] = " ERROR: ";
+  static char err_msg[SPEAKING_MSG_N] = " ";
 
   va_list args;
   va_start(args, fmt);
@@ -68,6 +68,7 @@ void _screaming_death(const char *fmt, ...) {
   vsnprintf(err_msg + len, sizeof(err_msg) - len - 1 - 1, fmt, args);
   va_end(args);
   /* Accommodate null char (-1) */
+
   strncat(err_msg, "\n", SPEAKING_MSG_N - strlen(err_msg) - 1);
 
   len = strlen(err_msg);

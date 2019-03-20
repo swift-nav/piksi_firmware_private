@@ -80,17 +80,21 @@ static void tracker_bds2_b11_update(tracker_t *tracker) {
   bool inlock = tracker_has_all_locks(tracker);
 
   if (inlock && settled) {
-    /* Start B2 tracker if not running */
-    bds_b11_to_b2_handover(tracker->sample_count,
-                           tracker->mesid.sat,
-                           tracker->code_phase_prompt,
-                           tracker->doppler_hz,
-                           tracker->cn0);
-    bds_b1_to_b5_handover(tracker->sample_count,
-                          tracker->mesid.sat,
-                          tracker->code_phase_prompt,
-                          tracker->doppler_hz,
-                          tracker->cn0);
+    if (CODE_BDS2_B2_SUPPORT) {
+      bds_b11_to_b2_handover(tracker->sample_count,
+                             tracker->mesid.sat,
+                             tracker->code_phase_prompt,
+                             tracker->doppler_hz,
+                             tracker->cn0);
+    }
+
+    if (CODE_BDS3_B5_SUPPORT) {
+      bds_b1_to_b5_handover(tracker->sample_count,
+                            tracker->mesid.sat,
+                            tracker->code_phase_prompt,
+                            tracker->doppler_hz,
+                            tracker->cn0);
+    }
   }
 }
 

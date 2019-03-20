@@ -446,19 +446,23 @@ static void tracker_gps_l1ca_update(tracker_t *tracker) {
   bool cn0_high = (tracker->cn0 > cn0_threshold_dbhz);
 
   if (inlock && settled && tow_valid && cn0_high) {
-    /* Start L2C tracker if not running */
-    do_l1ca_to_l2c_handover(tracker->sample_count,
-                            tracker->mesid.sat,
-                            tracker->code_phase_prompt,
-                            tracker->doppler_hz,
-                            tracker->cn0,
-                            tracker->TOW_ms);
+    if (CODE_GPS_L2C_SUPPORT) {
+      /* Start L2C tracker if not running */
+      do_l1ca_to_l2c_handover(tracker->sample_count,
+                              tracker->mesid.sat,
+                              tracker->code_phase_prompt,
+                              tracker->doppler_hz,
+                              tracker->cn0,
+                              tracker->TOW_ms);
+    }
 
-    /* Start L5 tracker if not running */
-    do_l1ca_to_l5_handover(tracker->sample_count,
-                           tracker->mesid.sat,
-                           tracker->code_phase_prompt,
-                           tracker->doppler_hz,
-                           tracker->cn0);
+    if (CODE_GPS_L5_SUPPORT) {
+      /* Start L5 tracker if not running */
+      do_l1ca_to_l5_handover(tracker->sample_count,
+                             tracker->mesid.sat,
+                             tracker->code_phase_prompt,
+                             tracker->doppler_hz,
+                             tracker->cn0);
+    }
   }
 }
