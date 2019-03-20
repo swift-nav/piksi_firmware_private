@@ -48,6 +48,9 @@ static ndb_file_t lgf_file = {.name = LGF_FILE_NAME,
 
 void ndb_lgf_init(void) {
   static bool erase_lgf = true;
+#if defined NDB_USE_NV_LGF && NDB_USE_NV_LGF > 0
+  SETTING("ndb", "erase_lgf", erase_lgf, SETTINGS_TYPE_BOOL);
+#endif
   SETTING("ndb", "lgf_update_s", lgf_update_s, SETTINGS_TYPE_INT);
   SETTING("ndb", "lgf_update_m", lgf_update_m, SETTINGS_TYPE_INT);
 

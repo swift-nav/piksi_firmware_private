@@ -76,6 +76,12 @@ static piksi_systime_t ephemeris_send_time[NUM_SATS];
 static bool almanacs_enabled = false;
 
 void ndb_ephemeris_init(void) {
+#if defined NDB_USE_NV_EPHEMERIS && NDB_USE_NV_EPHEMERIS > 0
+  SETTING("ndb",
+          "erase_ephemeris",
+          ndb_ephe_config.erase_ephemeris,
+          SETTINGS_TYPE_BOOL);
+#endif
   SETTING("ndb",
           "valid_alm_acc",
           ndb_ephe_config.valid_alm_accuracy,
