@@ -305,13 +305,13 @@ void nap_track_init(u8 channel,
       NAP->TRK_GAL_E1_MEMCFG = (1 << (NAP_TRK_GAL_E1_MEMCFG_CHANNEL_NR_Pos +
                                       channel - NAP_FIRST_GAL_E1_CHANNEL)) |
                                ((k * 2) << NAP_TRK_GAL_E1_MEMCFG_DATA_IDX_Pos) |
-                               reverse_bit_order(((chip_bytes >> 8) & 0xFF));
+                               ((chip_bytes >> 8) & 0xFF);
 
       NAP->TRK_GAL_E1_MEMCFG =
           (1 << (NAP_TRK_GAL_E1_MEMCFG_CHANNEL_NR_Pos + channel -
                  NAP_FIRST_GAL_E1_CHANNEL)) |
           ((k * 2 + 1) << NAP_TRK_GAL_E1_MEMCFG_DATA_IDX_Pos) |
-          reverse_bit_order((chip_bytes & 0xFF));
+          (chip_bytes & 0xFF);
     }
   } else {
 #endif /* CODE_GAL_E1_SUPPORT */
