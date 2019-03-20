@@ -76,10 +76,12 @@ static piksi_systime_t ephemeris_send_time[NUM_SATS];
 static bool almanacs_enabled = false;
 
 void ndb_ephemeris_init(void) {
+#if defined NDB_USE_NV_EPHEMERIS && NDB_USE_NV_EPHEMERIS > 0
   SETTING("ndb",
           "erase_ephemeris",
           ndb_ephe_config.erase_ephemeris,
           SETTINGS_TYPE_BOOL);
+#endif
   SETTING("ndb",
           "valid_alm_acc",
           ndb_ephe_config.valid_alm_accuracy,
@@ -432,22 +434,7 @@ ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e) {
   assert(idx < ARRAY_SIZE(ndb_ephemeris_md));
   ndb_op_code_t res = ndb_retrieve(&ndb_ephemeris_md[idx], e, sizeof(*e), NULL);
 
-  double ndb_eph_age;
-  if (IS_GPS(sid)) {
-    ndb_eph_age = NDB_NV_GPS_EPHEMERIS_AGE_SECS;
-  } else if (IS_GLO(sid)) {
-    ndb_eph_age = NDB_NV_GLO_EPHEMERIS_AGE_SECS;
-  } else if (IS_SBAS(sid)) {
-    ndb_eph_age = NDB_NV_SBAS_EPHEMERIS_AGE_SECS;
-  } else if (IS_BDS2(sid)) {
-    ndb_eph_age = NDB_NV_BDS2_EPHEMERIS_AGE_SECS;
-  } else if (IS_QZSS(sid)) {
-    ndb_eph_age = NDB_NV_QZSS_EPHEMERIS_AGE_SECS;
-  } else if (IS_GAL(sid)) {
-    ndb_eph_age = NDB_NV_GAL_EPHEMERIS_AGE_SECS;
-  } else {
-    assert(!"Constellation is not supported");
-  }
+  double ndb_eph_age = NDB_NV_WARM_START_LIMIT_SECS;
 
   if (NDB_ERR_NONE == res) {
     /* If NDB read was successful, check that data has not aged out */

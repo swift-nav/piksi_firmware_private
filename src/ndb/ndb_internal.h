@@ -51,15 +51,8 @@ typedef struct {
 
 /** Maximum age of NV data elements in seconds */
 #define NDB_NV_IONO_AGE_SECS WEEK_SECS
-#define NDB_NV_LGF_AGE_SECS (4 * HOUR_SECS)
 #define NDB_NV_ALMANAC_AGE_SECS WEEK_SECS
-#define NDB_NV_GPS_EPHEMERIS_AGE_SECS (2 * HOUR_SECS)
-#define NDB_NV_GLO_EPHEMERIS_AGE_SECS (30 * MINUTE_SECS)
-#define NDB_NV_SBAS_EPHEMERIS_AGE_SECS \
-  (0) /* Currently we don't decode SBAS ephemeris */
-#define NDB_NV_BDS2_EPHEMERIS_AGE_SECS (2 * HOUR_SECS)
-#define NDB_NV_QZSS_EPHEMERIS_AGE_SECS (2 * HOUR_SECS)
-#define NDB_NV_GAL_EPHEMERIS_AGE_SECS (2 * HOUR_SECS)
+#define NDB_NV_WARM_START_LIMIT_SECS (30 * HOUR_SECS)
 
 /** Volatile flag: IE needs to be written to NVM */
 #define NDB_VFLAG_IE_DIRTY (1 << 0)
