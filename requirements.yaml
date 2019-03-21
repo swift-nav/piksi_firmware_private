@@ -16,7 +16,8 @@
       bucket: swiftnav-artifacts-pull-requests
       prefix: piksi_fpga/v2.1.0-develop-2019031522-34-g4617473
       files:
-        - piksi_prod_fpga.bit-
+        - piksi_prod_fpga.bit
+-
   name: base
   resources:
     -
@@ -30,7 +31,7 @@
       files:
         - uImage.piksiv3_prod
     -
-      bucket: swiftnav-artifacts-pull-requests
+      bucket: swiftnav-artifacts
       prefix: piksi_fpga/v2.1.0-develop-2019031522-3-g4ae665b
       files:
         - piksi_prod_fpga.bit
