@@ -492,7 +492,9 @@ static tp_tm_e get_track_mode(me_gnss_signal_t mesid,
       track_mode = entry->profile.tm_20ms;
     }
   } else if (IS_GAL(mesid)) {
-    if ((CODE_GAL_E1B == mesid.code) || (CODE_GAL_E7I == mesid.code)) {
+    if (CODE_GAL_E5I == mesid.code) {
+      track_mode = entry->profile.tm_20ms;
+    } else {
       track_mode = entry->profile.tm_sc4;
     }
   } else {
@@ -563,7 +565,8 @@ static float compute_fll_bw(float cn0, u8 T_ms) {
 
 static bool code_requires_init_profile(code_t code) {
   bool ret = false;
-  if (code_requires_direct_acq(code) || is_gal(code) || is_bds2(code)) {
+  if (code_requires_direct_acq(code) || is_gal(code) || is_bds2(code) ||
+      (CODE_GPS_L5I == code)) {
     /* signals from ACQ always go through init profiles,
      * and also if they are Galileo or Beidou, as right now
      * the NAP secondary code stripping still has problems with FW */

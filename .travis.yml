@@ -98,6 +98,7 @@ after_success:
   - ./travis_pr_describe.sh || travis_terminate 1
   - ./publish.sh requirements.yaml || travis_terminate 1
   - PRODUCT_VERSION=v3 ./publish.sh build_v3_prod/piksi_firmware_v3_prod*.elf || travis_terminate 1
+  - PRODUCT_VERSION=v3 ./publish.sh build_v3_base/piksi_firmware_v3_base*.elf || travis_terminate 1
   # These tokens are in plaintext so Swift developers can make PR's from their
   # personal forks. We may want to revisit this at some point.
   - GITHUB_COMMENT_TOKEN=29ff16b8acbf635fad0c702d3189c04a997b9719 SLACK_CHANNEL=github ./comment.sh || travis_terminate 1

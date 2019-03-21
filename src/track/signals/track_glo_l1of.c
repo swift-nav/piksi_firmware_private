@@ -72,16 +72,20 @@ static void tracker_glo_l1of_update(tracker_t *tracker) {
     return;
   }
 
+#if defined CODE_GLO_L2OF_SUPPORT && CODE_GLO_L2OF_SUPPORT > 0
   bool l2of_healthy = true;
+#endif
   if (glo_slot_id_is_valid(tracker->glo_orbit_slot)) {
     gnss_signal_t sid = mesid2sid(tracker->mesid, tracker->glo_orbit_slot);
     if (!glo_active(sid)) {
       tracker_drop_unhealthy(tracker->mesid);
       return;
     }
+#if defined CODE_GLO_L2OF_SUPPORT && CODE_GLO_L2OF_SUPPORT > 0
     if (!glo_l2of_active(sid)) {
       l2of_healthy = false;
     }
+#endif
   }
 
   bool bit_aligned =
@@ -94,8 +98,10 @@ static void tracker_glo_l1of_update(tracker_t *tracker) {
   /* TOW manipulation on bit edge */
   tracker_tow_cache(tracker);
 
+#if defined CODE_GLO_L2OF_SUPPORT && CODE_GLO_L2OF_SUPPORT > 0
   bool settled = (0 == (tracker->flags & TRACKER_FLAG_RECOVERY_MODE));
   bool inlock = tracker_has_all_locks(tracker);
+
   double cn0_threshold_dbhz = TP_DEFAULT_CN0_USE_THRESHOLD_DBHZ;
   cn0_threshold_dbhz += TRACK_CN0_HYSTERESIS_THRES_DBHZ;
   bool cn0_high = (tracker->cn0 > cn0_threshold_dbhz);
@@ -108,4 +114,5 @@ static void tracker_glo_l1of_update(tracker_t *tracker) {
                                  tracker->doppler_hz,
                                  tracker->cn0);
   }
+#endif /* CODE_GLO_L2OF_SUPPORT */
 }

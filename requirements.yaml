@@ -17,3 +17,21 @@
       prefix: piksi_fpga/v2.1.0-develop-2019031522-3-g4ae665b
       files:
         - piksi_prod_fpga.bit
+-
+  name: base
+  resources:
+    -
+      prefix: v3
+      files:
+        - piksi_firmware_v3_base.stripped.elf
+  artifacts:
+    -
+      bucket: swiftnav-artifacts
+      prefix: piksi_buildroot/v2.1.0-develop-2019030823/v3/prod
+      files:
+        - uImage.piksiv3_prod
+    -
+      bucket: swiftnav-artifacts-pull-requests
+      prefix: piksi_fpga/v2.1.0-develop-2019031522-3-g4ae665b
+      files:
+        - piksi_prod_fpga.bit

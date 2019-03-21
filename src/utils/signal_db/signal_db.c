@@ -98,6 +98,7 @@ static code_db_element_t code_db[CODE_COUNT] = {
     [CODE_GPS_L1CA] = {.carr_to_code = GPS_L1CA_CARR_TO_CODE},
     [CODE_GPS_L2CM] = {.carr_to_code = GPS_L2C_CARR_TO_CODE},
     [CODE_GPS_L2CL] = {.carr_to_code = GPS_L2C_CARR_TO_CODE},
+    [CODE_GPS_L5I] = {.carr_to_code = GPS_L5_CARR_TO_CODE},
 
     /** SBAS */
     [CODE_SBAS_L1CA] = {.carr_to_code = SBAS_L1CA_CARR_TO_CODE},
@@ -110,12 +111,15 @@ static code_db_element_t code_db[CODE_COUNT] = {
     /** Beidou */
     [CODE_BDS2_B1] = {.carr_to_code = BDS2_B11_CARR_TO_CODE},
     [CODE_BDS2_B2] = {.carr_to_code = BDS2_B2_CARR_TO_CODE},
+    [CODE_BDS3_B5I] = {.carr_to_code = GPS_L5_CARR_TO_CODE},
 
     /** QZS L1C/A has all the same characteristics as GPS L1 C/A */
     [CODE_QZS_L1CA] = {.carr_to_code = QZS_L1CA_CARR_TO_CODE},
     [CODE_AUX_QZS] = {.carr_to_code = QZS_L1CA_CARR_TO_CODE},
     [CODE_QZS_L2CM] = {.carr_to_code = QZS_L2C_CARR_TO_CODE},
-    [CODE_QZS_L2CL] = {.carr_to_code = QZS_L2C_CARR_TO_CODE}};
+    [CODE_QZS_L2CL] = {.carr_to_code = QZS_L2C_CARR_TO_CODE},
+    [CODE_QZS_L5I] = {.carr_to_code = GPS_L5_CARR_TO_CODE},
+};
 
 /** Table of sv constellation indexes. */
 typedef struct {
@@ -140,17 +144,17 @@ static constellation_table_element_t constellation_table[CONSTELLATION_COUNT] =
 static const u16 code_signal_counts[CODE_COUNT] = {
     [CODE_GPS_L1CA] = PLATFORM_SIGNAL_COUNT_GPS_L1CA,
     [CODE_GPS_L2CM] = PLATFORM_SIGNAL_COUNT_GPS_L2C,
-    [CODE_GPS_L5X] = PLATFORM_SIGNAL_COUNT_GPS_L5,
-    [CODE_GPS_L1P] = PLATFORM_SIGNAL_COUNT_GPS_L1P,
-    [CODE_GPS_L2P] = PLATFORM_SIGNAL_COUNT_GPS_L2P,
+    [CODE_GPS_L5I] = PLATFORM_SIGNAL_COUNT_GPS_L5,
+    [CODE_AUX_GPS] = PLATFORM_SIGNAL_COUNT_GPS_AUX,
     [CODE_SBAS_L1CA] = PLATFORM_SIGNAL_COUNT_SBAS_L1CA,
     [CODE_GLO_L1OF] = PLATFORM_SIGNAL_COUNT_GLO_L1OF,
     [CODE_GLO_L2OF] = PLATFORM_SIGNAL_COUNT_GLO_L2OF,
-    [CODE_BDS2_B1] = PLATFORM_SIGNAL_COUNT_BDS2_B1,
-    [CODE_BDS2_B2] = PLATFORM_SIGNAL_COUNT_BDS2_B2,
+    [CODE_BDS2_B1] = PLATFORM_SIGNAL_COUNT_BDS_B1I,
+    [CODE_BDS2_B2] = PLATFORM_SIGNAL_COUNT_BDS_B2I,
+    [CODE_BDS3_B5I] = PLATFORM_SIGNAL_COUNT_BDS_B5,
     [CODE_QZS_L1CA] = PLATFORM_SIGNAL_COUNT_QZS_L1CA,
     [CODE_QZS_L2CM] = PLATFORM_SIGNAL_COUNT_QZS_L2C,
-    [CODE_QZS_L5X] = PLATFORM_SIGNAL_COUNT_QZS_L5,
+    [CODE_QZS_L5I] = PLATFORM_SIGNAL_COUNT_QZS_L5,
     [CODE_GAL_E1B] = PLATFORM_SIGNAL_COUNT_GAL_E1,
     [CODE_GAL_E5I] = PLATFORM_SIGNAL_COUNT_GAL_E5,
     [CODE_GAL_E7I] = PLATFORM_SIGNAL_COUNT_GAL_E7};
@@ -160,17 +164,17 @@ static const u16 code_signal_counts[CODE_COUNT] = {
 static const u16 me_code_signal_counts[CODE_COUNT] = {
     [CODE_GPS_L1CA] = PLATFORM_SIGNAL_COUNT_GPS_L1CA,
     [CODE_GPS_L2CM] = PLATFORM_SIGNAL_COUNT_GPS_L2C,
-    [CODE_GPS_L5X] = PLATFORM_SIGNAL_COUNT_GPS_L5,
-    [CODE_GPS_L1P] = PLATFORM_SIGNAL_COUNT_GPS_L1P,
-    [CODE_GPS_L2P] = PLATFORM_SIGNAL_COUNT_GPS_L2P,
+    [CODE_GPS_L5I] = PLATFORM_SIGNAL_COUNT_GPS_L5,
+    [CODE_AUX_GPS] = PLATFORM_SIGNAL_COUNT_GPS_AUX,
     [CODE_SBAS_L1CA] = PLATFORM_SIGNAL_COUNT_SBAS_L1CA,
     [CODE_GLO_L1OF] = PLATFORM_FREQ_COUNT_GLO_L1OF,
     [CODE_GLO_L2OF] = PLATFORM_FREQ_COUNT_GLO_L2OF,
-    [CODE_BDS2_B1] = PLATFORM_SIGNAL_COUNT_BDS2_B1,
-    [CODE_BDS2_B2] = PLATFORM_SIGNAL_COUNT_BDS2_B2,
+    [CODE_BDS2_B1] = PLATFORM_SIGNAL_COUNT_BDS_B1I,
+    [CODE_BDS2_B2] = PLATFORM_SIGNAL_COUNT_BDS_B2I,
+    [CODE_BDS3_B5I] = PLATFORM_SIGNAL_COUNT_BDS_B5,
     [CODE_QZS_L1CA] = PLATFORM_SIGNAL_COUNT_QZS_L1CA,
     [CODE_QZS_L2CM] = PLATFORM_SIGNAL_COUNT_QZS_L2C,
-    [CODE_QZS_L5X] = PLATFORM_SIGNAL_COUNT_QZS_L5,
+    [CODE_QZS_L5I] = PLATFORM_SIGNAL_COUNT_QZS_L5,
     [CODE_GAL_E1B] = PLATFORM_SIGNAL_COUNT_GAL_E1,
     [CODE_GAL_E5I] = PLATFORM_SIGNAL_COUNT_GAL_E5,
     [CODE_GAL_E7Q] = PLATFORM_SIGNAL_COUNT_GAL_E7};
@@ -310,7 +314,10 @@ gnss_signal_t sid_from_constellation_index(constellation_t constellation,
  * \return Global ME signal index in [0, PLATFORM_ACQ_TRACK_COUNT).
  */
 u16 mesid_to_global_index(const me_gnss_signal_t mesid) {
-  assert(code_supported(mesid.code));
+  if (!code_supported(mesid.code)) {
+    log_error_mesid(mesid, "unsupported");
+    assert(0);
+  }
   return code_db[mesid.code].me_global_start_index + mesid_to_code_index(mesid);
 }
 
@@ -325,7 +332,10 @@ u16 mesid_to_global_index(const me_gnss_signal_t mesid) {
  *         [0, PLATFORM_SIGNAL_COUNT_\<constellation\>).
  */
 u16 sid_to_constellation_index(gnss_signal_t sid) {
-  assert(code_supported(sid.code));
+  if (!code_supported(sid.code)) {
+    log_error_sid(sid, "unsupported");
+    assert(0);
+  }
   return code_db[sid.code].constellation_start_index + sid_to_code_index(sid);
 }
 

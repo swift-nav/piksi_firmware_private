@@ -2,11 +2,11 @@
 # Project, sources and paths
 #
 
-REVDIR := $(SWIFTNAV_ROOT)/src/board/v3/microzed
+REVDIR := $(SWIFTNAV_ROOT)/src/board/v3/base
 
 REVINC := $(REVDIR)
 
-REVSRC := $(REVDIR)/board_rev.o
+REVSRC :=
 
 REVASM :=
 
