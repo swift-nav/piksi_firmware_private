@@ -358,7 +358,7 @@ static int cons_enable_notify(void *ctx) {
       acq_status[i].masked = true;
       continue;
     }
-    
+
     acq_status[i].masked = false;
   }
 
