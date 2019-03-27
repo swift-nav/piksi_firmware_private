@@ -31,9 +31,11 @@ static u8 code_to_nav_bit_fifo_size(const code_t code) {
   }
   if ((CODE_BDS2_B1 == code) || (CODE_BDS2_B2 == code)) {
     return 20;
-  } else if (CODE_BDS3_B5I == code) {
+  }
+  if (CODE_BDS3_B5I == code) {
     return 80;
-  } else if ((CODE_GAL_E1B == code) || (CODE_GAL_E7I == code)) {
+  }
+  if ((CODE_GAL_E1B == code) || (CODE_GAL_E7I == code)) {
     return 100;
   }
   if (CODE_GAL_E5I == code) {
