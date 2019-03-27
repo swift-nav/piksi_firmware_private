@@ -55,17 +55,11 @@ MAKEFLAGS += OPENAMP_BUILDDIR=$(OPENAMP_BUILDDIR)
 FW_DEPS=compiler-version \
         $(LIBSBP_BUILDDIR)/src/libsbp.a \
         $(LIBSETTINGS_BUILDDIR)/src/libsettings.a \
-        $(STARLING_BUILDDIR)/src/libstarling-shim.a \
+        $(STARLING_BUILDDIR)/src/libpvt-engine.a \
         $(STARLING_BUILDDIR)/src/libstarling.a \
-        $(STARLING_BUILDDIR)/src/libstarling-integration.a \
         $(STARLING_BUILDDIR)/src/libstarling-util.a
 
 ifeq ($(PIKSI_HW),v3)
-  CMAKEFLAGS += -DCMAKE_SYSTEM_PROCESSOR=cortex-a9
-  CMAKEFLAGS += -DCMAKE_C_COMPILER:INTERNAL=${PFWP_COMPILER}gcc
-  CMAKEFLAGS += -DCMAKE_CXX_COMPILER:INTERNAL=${PFWP_COMPILER}g++
-  CMAKEFLAGS += -DCMAKE_C_COMPILER_ID:INTERNAL=GNU
-  CMAKEFLAGS += -DCMAKE_CXX_COMPILER_ID:INTERNAL=GNU
   FW_DEPS += $(OPENAMP_BUILDDIR)/lib/libopen-amp.a
 endif
 
@@ -99,7 +93,7 @@ $(LIBSBP_BUILDDIR)/src/libsbp.a:
 	@printf "BUILD   libsbp for target $(PIKSI_TARGET)\n"; \
 	mkdir -p $(LIBSBP_BUILDDIR); cd $(LIBSBP_BUILDDIR); \
 	cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-	      -DCMAKE_TOOLCHAIN_FILE=../cmake/Toolchain-gcc-arm-embedded.cmake \
+	      -DCMAKE_TOOLCHAIN_FILE=../../piksi-toolchain.cmake \
 	      $(CMAKEFLAGS) ../
 	$(MAKE) -C $(LIBSBP_BUILDDIR) $(MAKEFLAGS)
 
@@ -107,30 +101,24 @@ $(LIBSETTINGS_BUILDDIR)/src/libsettings.a: $(LIBSBP_BUILDDIR)/src/libsbp.a
 	@printf "BUILD   libsettings for target $(PIKSI_TARGET)\n"; \
 	mkdir -p $(LIBSETTINGS_BUILDDIR); cd $(LIBSETTINGS_BUILDDIR); \
 	cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-	      -DCMAKE_TOOLCHAIN_FILE=../cmake/Toolchain-gcc-arm-embedded.cmake \
+	      -DCMAKE_TOOLCHAIN_FILE=../../piksi-toolchain.cmake \
 	      -DLIBSBP_SEARCH_PATH=$(SWIFTNAV_ROOT)/libsbp/c/ \
 	      $(CMAKEFLAGS) ../
 	$(MAKE) -C $(LIBSETTINGS_BUILDDIR) $(MAKEFLAGS) settings
 
-$(STARLING_BUILDDIR)/src/libstarling.a: .FORCE \
+$(STARLING_BUILDDIR)/src/libpvt-engine.a: .FORCE \
                                         $(STARLING_BUILDDIR)/Makefile
-	@printf "BUILD   starling for target $(PIKSI_TARGET)\n"; \
-	$(MAKE) starling -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
+	@printf "BUILD   pvt-engine for target $(PIKSI_TARGET)\n"; \
+	$(MAKE) pvt-engine -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
 
 # Make starling dependent of swiftnav because otherwise both
 # might build in parallel, and both trying to build swiftnav-common in parallel
 # which leads to occasional failures.
-$(STARLING_BUILDDIR)/src/libstarling-shim.a: .FORCE \
+$(STARLING_BUILDDIR)/src/libstarling.a: .FORCE \
                                              $(STARLING_BUILDDIR)/Makefile \
-                                             $(STARLING_BUILDDIR)/src/libstarling.a
-	@printf "BUILD   libstarling-shim for target $(PIKSI_TARGET)\n"; \
-	$(MAKE) starling-shim -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
-
-$(STARLING_BUILDDIR)/src/libstarling-integration.a: .FORCE \
-                                                    $(STARLING_BUILDDIR)/Makefile \
-                                                    $(STARLING_BUILDDIR)/src/libstarling-shim.a
-	@printf "BUILD   libstarling-integration for target $(PIKSI_TARGET)\n"; \
-	$(MAKE) starling-integration -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
+                                             $(STARLING_BUILDDIR)/src/libpvt-engine.a
+	@printf "BUILD   libstarling for target $(PIKSI_TARGET)\n"; \
+	$(MAKE) starling -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
 
 $(STARLING_BUILDDIR)/src/libstarling-util.a: .FORCE \
                                              $(STARLING_BUILDDIR)/Makefile
@@ -141,7 +129,7 @@ $(STARLING_BUILDDIR)/Makefile:
 	@printf "Run cmake for target $(STARLING_BUILDDIR)\n"; \
     mkdir -p $(STARLING_BUILDDIR); cd $(STARLING_BUILDDIR); \
     cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-          -DCMAKE_TOOLCHAIN_FILE=../cmake/Toolchain-gcc-arm-embedded.cmake \
+          -DCMAKE_TOOLCHAIN_FILE=../../piksi-toolchain.cmake \
           -DMAX_CHANNELS=81 \
           $(CMAKEFLAGS) ../
 
@@ -149,7 +137,7 @@ $(OPENAMP_BUILDDIR)/lib/libopen-amp.a:
 	@printf "BUILD   open-amp for target $(PIKSI_TARGET)\n"; \
 	mkdir -p $(OPENAMP_BUILDDIR) ; cd $(OPENAMP_BUILDDIR); \
 	cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-	      -DCMAKE_TOOLCHAIN_FILE=../cmake/platforms/Toolchain-gcc-arm-embedded.cmake \
+	      -DCMAKE_TOOLCHAIN_FILE=../../piksi-toolchain.cmake \
 	      -DMACHINE=custom \
 	      $(CMAKEFLAGS) ../
 	$(MAKE) -C $(OPENAMP_BUILDDIR) $(MAKEFLAGS)
