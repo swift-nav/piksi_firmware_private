@@ -110,15 +110,9 @@ void bit_sync_init(bit_sync_t *b, const me_gnss_signal_t mesid) {
     case CODE_GAL_E1B:
       bit_length = 4;
       /* TODO: add GAL_CS100_MS to constants.h in LSNP, or me_constants.h */
-      prev_chip = getbitu(gal_e1c_sec25, GAL_CS25_LEN - 1, 1);
       for (u8 sec_chip_idx = 0; sec_chip_idx < GAL_CS25_LEN; sec_chip_idx++) {
         curr_chip = getbitu(gal_e1c_sec25, sec_chip_idx, 1);
-        e1c_xans[sec_chip_idx * GAL_E1C_PRN_PERIOD_MS + 0] =
-            (curr_chip != prev_chip) ? -1 : +1;
-        e1c_xans[sec_chip_idx * GAL_E1C_PRN_PERIOD_MS + 1] = +1;
-        e1c_xans[sec_chip_idx * GAL_E1C_PRN_PERIOD_MS + 2] = +1;
-        e1c_xans[sec_chip_idx * GAL_E1C_PRN_PERIOD_MS + 3] = +1;
-        prev_chip = curr_chip;
+        e1c_xans[sec_chip_idx * GAL_E1C_PRN_PERIOD_MS + 0] = curr_chip ? 1 : -1;
       }
       break;
 
@@ -159,7 +153,6 @@ void bit_sync_init(bit_sync_t *b, const me_gnss_signal_t mesid) {
       assert(0);
       break;
   }
-
   b->bit_length = bit_length;
 }
 
@@ -299,20 +292,16 @@ static void histogram_update(bit_sync_t *b,
     /* rotate the histogram left */
     memmove(
         &(b->histogram[0]), &(b->histogram[1]), sizeof(s8) * (GAL_CS25_MS - 1));
-    /* if there was a transition subtract 1 */
-    s8 hist_head = SIGN(dot_prod_real);
+    s8 hist_head = SIGN(corr_prompt_real);
     b->histogram[(GAL_CS25_MS - 1)] = hist_head;
     s32 sum = 0;
-    /* cross-correlate transitions at the current symbol */
-    /* transitions on the first element do count: it's a pure pilot channel
-     */
+    /* cross-correlate with the secondary code at the current symbol */
     for (u8 i = 0; i < GAL_CS25_MS; i++) {
-      sum += b->histogram[i] * (e1c_xans[(i - 2 + GAL_CS25_MS) % GAL_CS25_MS]);
+      sum += b->histogram[i] * (e1c_xans[i]);
     }
-    if (sum == GAL_CS25_MS) {
+    if (sum >= GAL_CS25_MS/2) {
       b->bit_phase_ref = (b->bit_phase + 2) % b->bit_length;
-    }
-
+    }  
   } else if (CODE_BDS3_B5I == c) {
     /* Beidou3 B2aQ has a SC100 secondary code */
     if (ABS(b->histogram[0]) > 3) {
