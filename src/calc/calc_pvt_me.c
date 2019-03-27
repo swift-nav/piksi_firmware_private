@@ -61,13 +61,6 @@
 #define ME_CALC_PVT_THREAD_PRIORITY (HIGHPRIO - 3)
 #define ME_CALC_PVT_THREAD_STACK (3 * 10 * 1024)
 
-/* Limits the sets of possible solution frequencies (in increasing order) */
-static const double valid_soln_freqs_hz[] = {1.0, 2.0, 4.0, 5.0, 10.0, 20.0};
-
-#define SOLN_FREQ_SETTING_MIN (valid_soln_freqs_hz[0])
-#define SOLN_FREQ_SETTING_MAX \
-  (valid_soln_freqs_hz[ARRAY_SIZE(valid_soln_freqs_hz) - 1])
-
 double soln_freq_setting = 10.0;
 u32 obs_output_divisor = 10;
 
@@ -881,48 +874,15 @@ static void me_calc_pvt_thread(void *arg) {
 
 soln_stats_t solution_last_stats_get(void) { return last_stats; }
 
-static double validate_soln_freq(double requested_freq_hz) {
-  /* Loop over valid frequencies, start from highest frequency */
-  for (s8 i = ARRAY_SIZE(valid_soln_freqs_hz) - 1; i >= 0; --i) {
-    double freq = valid_soln_freqs_hz[i];
-
-    /* Equal */
-    if (fabs(freq - requested_freq_hz) < DBL_EPSILON) {
-      log_info("Solution frequency validated to %.2f Hz", freq);
-      return freq;
-    }
-
-    /* No match available, floor to closest valid frequency */
-    if (freq < requested_freq_hz) {
-      log_info("Solution frequency floored to %.2f Hz", freq);
-      return freq;
-    }
-  }
-
-  log_warn(
-      "Input solution frequency %.2f Hz couldn't be validated, "
-      "defaulting to %.2f Hz",
-      requested_freq_hz,
-      SOLN_FREQ_SETTING_MIN);
-  return SOLN_FREQ_SETTING_MIN;
-}
-
 /* Update the solution frequency used by the ME and by Starling. */
 static int soln_freq_setting_notify(void *ctx) {
   (void)ctx;
 
   /* Certain values are disallowed. */
-  if (soln_freq_setting < (SOLN_FREQ_SETTING_MIN - DBL_EPSILON) ||
-      soln_freq_setting > (SOLN_FREQ_SETTING_MAX + DBL_EPSILON)) {
-    log_warn(
-        "Solution frequency setting outside acceptable range: [%.2f, %.2f] Hz.",
-        SOLN_FREQ_SETTING_MIN,
-        SOLN_FREQ_SETTING_MAX);
+  if (!starling_set_solution_frequency(soln_freq_setting)) {
     return SETTINGS_WR_VALUE_REJECTED;
   }
 
-  soln_freq_setting = validate_soln_freq(soln_freq_setting);
-  starling_set_solution_frequency(soln_freq_setting);
   return SETTINGS_WR_OK;
 }
 
