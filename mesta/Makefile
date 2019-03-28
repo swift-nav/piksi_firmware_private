@@ -11,7 +11,7 @@ clean:
 	@rm mesta
 
 UDEF = '-Wno-unused' \
-       '-DMAX_CHANNELS=73' \
+       '-DMAX_CHANNELS=81' \
        '-DSTARLING_MAX_CHANNEL_COUNT=250' \
        '-DMESTA_BUILD' \
        '-DPIKSI_RELEASE'
