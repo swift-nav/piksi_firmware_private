@@ -125,7 +125,7 @@ static tracking_startup_fifo_t tracking_startup_fifo;
 static MUTEX_DECL(tracking_startup_mutex);
 
 /* Elevation mask for tracking, degrees */
-static float tracking_elevation_mask = 0.0;
+static float tracking_elevation_mask = 10.0;
 /* Elevation mask for solution, degrees */
 static float solution_elevation_mask = 10.0;
 
@@ -1024,6 +1024,28 @@ u32 get_tracking_channel_meas(u8 i,
   return flags;
 }
 
+static void mark_masked_channel_for_drop(const gnss_signal_t sid) {
+  if (!sid_valid(sid)) return;
+
+  me_gnss_signal_t mesid = {.code = CODE_INVALID};
+  constellation_t con = code_to_constellation(sid.code);
+  if (CONSTELLATION_GLO == con) {
+    u16 glo_fcn = GLO_FCN_UNKNOWN;
+    if (glo_map_valid(sid)) {
+      glo_fcn = glo_map_get_fcn(sid);
+      mesid = construct_mesid(CODE_GLO_L1OF, glo_fcn);
+    }
+  } else {
+    mesid = construct_mesid(sid.code, sid.sat);
+  }
+  if (code_valid(mesid.code)) {
+    chSysLock();
+    tracker_t *tracker = tracker_get_by_mesid(mesid);
+    tracker_flag_drop(tracker, CH_DROP_REASON_MASKED);
+    chSysUnlock();
+  }
+}
+
 /**
  * Compute extended tracking flags for GNSS signal.
  *
@@ -1044,8 +1066,15 @@ static u32 get_tracking_channel_sid_flags(const gnss_signal_t sid,
 
   /* Satellite elevation is either unknown or above the solution mask. */
   double elevation;
-  if (!track_sid_db_elevation_degrees_get(sid, &elevation) ||
-      elevation >= solution_elevation_mask) {
+  bool has_elevation = track_sid_db_elevation_degrees_get(sid, &elevation);
+
+  /* satellite dropped under the tracking mask */
+  if (has_elevation && (elevation < tracking_elevation_mask)) {
+    mark_masked_channel_for_drop(sid);
+    return flags;
+  }
+
+  if (!has_elevation || elevation >= solution_elevation_mask) {
     flags |= TRACKER_FLAG_ELEVATION;
   }
 
