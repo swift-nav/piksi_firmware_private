@@ -281,9 +281,9 @@ static void send_sbp_az_el(const u8 n_used,
       continue;
     }
     if (elevation < 0) {
-      if (sid_set_contains(&tracked_sids, sid)) {
-        log_info_sid(sid, "sending negative elevation");
-      } else {
+      /* do not send negative elevation unless the satellite is actually being
+       * tracked (except in simulation mode) */
+      if (!sid_set_contains(&tracked_sids, sid) || simulation_enabled()) {
         continue;
       }
     }
@@ -722,7 +722,7 @@ static void me_calc_pvt_thread(void *arg) {
     time_quality_t time_quality = get_time_quality();
 
     if (TIME_UNKNOWN != time_quality && lgf.position_solution.valid &&
-        lgf.position_quality >= POSITION_GUESS) {
+        lgf.position_quality >= POSITION_GUESS && !simulation_enabled()) {
       /* Update the satellite elevation angles so that they stay current
        * (currently once every 30 seconds) */
       DO_EACH_MS(MAX_AZ_EL_AGE_SEC * SECS_MS / 2,
@@ -791,11 +791,10 @@ static void me_calc_pvt_thread(void *arg) {
     collect_measurements(
         current_tc, meas, in_view, e_meas, &n_ready, &n_inview, &n_total);
 
-    /* Send SBP az/el message for visible satellites plus the ones in track */
-    if (!simulation_enabled()) {
-      DO_EACH_MS(SBP_SV_AZ_EL_PERIOD_S * SECS_MS,
-                 send_sbp_az_el(n_inview, in_view));
-    }
+    /* Periodically send SBP az/el message for all either tracked or visible
+     * satellites */
+    DO_EACH_MS(SBP_SV_AZ_EL_PERIOD_S * SECS_MS,
+               send_sbp_az_el(n_inview, in_view));
 
     log_debug("Selected %" PRIu8 " measurement(s) out of %" PRIu8
               " in view "
