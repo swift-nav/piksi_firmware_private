@@ -182,7 +182,6 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/simulator/simulator.o \
         $(SWIFTNAV_ROOT)/src/simulator/simulator_data.o \
         $(SWIFTNAV_ROOT)/src/utils/syscalls/syscalls.o \
-        $(SWIFTNAV_ROOT)/src/utils/nmea/nmea.o \
         $(SWIFTNAV_ROOT)/src/utils/system_monitor/system_monitor.o \
         $(SWIFTNAV_ROOT)/src/utils/ephemeris/ephemeris.o \
         $(SWIFTNAV_ROOT)/src/utils/pps/pps.o \

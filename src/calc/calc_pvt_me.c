@@ -36,7 +36,6 @@
 #include "calc_pvt_common.h"
 #include "main/main.h"
 #include "ndb/ndb.h"
-#include "nmea/nmea.h"
 #include "obs_bias/obs_bias.h"
 #include "peripherals/leds.h"
 #include "position/position.h"
@@ -244,6 +243,55 @@ static void update_sat_azel(const double rcv_pos[3], const gps_time_t t) {
     if (NDB_ERR_NONE == ndb_almanac_read(sid, &almanac)) {
       update_azel_from_almanac(&almanac, &t, rcv_pos);
     }
+  }
+}
+
+/** Generate SBP az-el message for all satellites that are either above horizon
+ * (or below it but being tracked) and send it
+ */
+static void send_sbp_az_el(const u8 n_used,
+                           const channel_measurement_t *ch_meas) {
+  sv_az_el_t azel_array[SBP_MAX_AZEL_ELEMENTS];
+  u8 n_azel = 0;
+
+  /* list the tracked satellites */
+  gnss_sid_set_t tracked_sids;
+  sid_set_init(&tracked_sids);
+  for (u8 i = 0; i < n_used; i++) {
+    gnss_signal_t sid = ch_meas[i].sid;
+    sid.code = sid_to_l1_code(sid);
+    sid_set_add(&tracked_sids, sid);
+  }
+
+  /* loop through all possible satellites  */
+  for (u16 sv_index = 0; sv_index < NUM_SATS && n_azel < SBP_MAX_AZEL_ELEMENTS;
+       sv_index++) {
+    /* form a SID with the first code for the constellation */
+    gnss_signal_t sid = sv_index_to_sid(sv_index);
+    if (!sid_valid(sid)) {
+      continue;
+    }
+    double azimuth;
+    double elevation;
+    if (!track_sid_db_azimuth_degrees_get(sid, &azimuth) ||
+        !track_sid_db_elevation_degrees_get(sid, &elevation)) {
+      continue;
+    }
+    if (elevation < 0) {
+      if (sid_set_contains(&tracked_sids, sid)) {
+        log_info_sid(sid, "sending negative elevation");
+      } else {
+        continue;
+      }
+    }
+    azel_array[n_azel].sid = sid_to_sbp(sid);
+    azel_array[n_azel].az = (u8)round(azimuth / 2);
+    azel_array[n_azel].el = (s8)round(elevation);
+    n_azel++;
+  }
+  /* send out the message if any satellites found */
+  if (n_azel > 0) {
+    sbp_send_az_el(n_azel, azel_array);
   }
 }
 
@@ -740,9 +788,9 @@ static void me_calc_pvt_thread(void *arg) {
     collect_measurements(
         current_tc, meas, in_view, e_meas, &n_ready, &n_inview, &n_total);
 
-    /* Send GSV messages for all satellites in track */
+    /* Send SBP az/el message for visible satellites plus the ones in track */
     if (!simulation_enabled()) {
-      nmea_send_gsv(n_inview, in_view);
+      send_sbp_az_el(n_inview, in_view);
     }
 
     log_debug("Selected %" PRIu8 " measurement(s) out of %" PRIu8

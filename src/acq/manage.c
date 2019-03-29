@@ -37,7 +37,6 @@
 #include "hal/piksi_systime.h"
 #include "main/main.h"
 #include "ndb/ndb.h"
-#include "nmea/nmea.h"
 #include "position/position.h"
 #include "reacq/reacq_manage.h"
 #include "reacq/search_manager_utils.h"
