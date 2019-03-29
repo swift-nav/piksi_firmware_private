@@ -170,5 +170,15 @@ void sbp_send_group_delay(const cnav_msg_t *cnav) {
   sbp_send_msg(SBP_MSG_GROUP_DELAY, sizeof(msg_group_delay_t), (u8 *)&msg_cnav);
 }
 
+/**
+ * This is helper function packs and sends azimuths and elevations over SBP
+ * \param[in] n_sats      size of azel_array
+ * \param[in] azel_array  array of azimuth/elevation data elements
+ */
+void sbp_send_az_el(u8 n_sats, const sv_az_el_t *azel_array) {
+  /* send data over sbp */
+  sbp_send_msg(SBP_MSG_SV_AZ_EL, n_sats * sizeof(sv_az_el_t), (u8 *)azel_array);
+}
+
 /** \} */
 /** \} */

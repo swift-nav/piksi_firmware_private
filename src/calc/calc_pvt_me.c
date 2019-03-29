@@ -36,7 +36,6 @@
 #include "calc_pvt_common.h"
 #include "main/main.h"
 #include "ndb/ndb.h"
-#include "nmea/nmea.h"
 #include "obs_bias/obs_bias.h"
 #include "peripherals/leds.h"
 #include "position/position.h"
@@ -57,6 +56,9 @@
 
 /* Maximum time to maintain POSITION_FIX after last successful solution */
 #define POSITION_FIX_TIMEOUT_S 60
+
+/* Minimum time between SBP_SV_AZ_EL messages */
+#define SBP_SV_AZ_EL_PERIOD_S 1
 
 #define ME_CALC_PVT_THREAD_PRIORITY (HIGHPRIO - 3)
 #define ME_CALC_PVT_THREAD_STACK (3 * 10 * 1024)
@@ -244,6 +246,68 @@ static void update_sat_azel(const double rcv_pos[3], const gps_time_t t) {
     if (NDB_ERR_NONE == ndb_almanac_read(sid, &almanac)) {
       update_azel_from_almanac(&almanac, &t, rcv_pos);
     }
+  }
+}
+
+/* pack values into SBP sv_az_el_t array element */
+static void pack_azel(gnss_signal_t sid,
+                      double azimuth,
+                      double elevation,
+                      sv_az_el_t *azel) {
+  assert(sid_valid(sid));
+  assert(elevation >= -90 && elevation <= 90);
+  assert(azimuth >= 0 && azimuth < 360);
+  azel->sid = sid_to_sbp(sid);
+  azel->az = round(azimuth / 2); /* in [0 .. 180] */
+  if (180 == azel->az) {
+    azel->az = 0; /* clamp to [0 .. 179] as per specification */
+  }
+  azel->el = round(elevation); /* in [-90 .. 90] */
+}
+
+/** Generate SBP az-el message for all satellites that are either above horizon
+ * (or below it but being tracked) and send it
+ */
+static void send_sbp_az_el(const u8 n_used,
+                           const channel_measurement_t *ch_meas) {
+  sv_az_el_t azel_array[SBP_MAX_AZEL_ELEMENTS];
+  u8 n_azel = 0;
+
+  /* list the tracked satellites */
+  gnss_sid_set_t tracked_sids;
+  sid_set_init(&tracked_sids);
+  for (u8 i = 0; i < n_used; i++) {
+    gnss_signal_t sid = ch_meas[i].sid;
+    sid.code = sid_to_l1_code(sid);
+    sid_set_add(&tracked_sids, sid);
+  }
+
+  /* loop through all possible satellites  */
+  for (u16 sv_index = 0; sv_index < NUM_SATS && n_azel < SBP_MAX_AZEL_ELEMENTS;
+       sv_index++) {
+    /* form a SID with the first code for the constellation */
+    gnss_signal_t sid = sv_index_to_sid(sv_index);
+    if (!sid_valid(sid)) {
+      continue;
+    }
+    double azimuth;
+    double elevation;
+    if (!track_sid_db_azimuth_degrees_get(sid, &azimuth) ||
+        !track_sid_db_elevation_degrees_get(sid, &elevation)) {
+      continue;
+    }
+    if (elevation < 0) {
+      /* do not send negative elevation unless the satellite is actually being
+       * tracked (except in simulation mode) */
+      if (!sid_set_contains(&tracked_sids, sid) || simulation_enabled()) {
+        continue;
+      }
+    }
+    pack_azel(sid, azimuth, elevation, &azel_array[n_azel++]);
+  }
+  /* send out the message if any satellites found */
+  if (n_azel > 0) {
+    sbp_send_az_el(n_azel, azel_array);
   }
 }
 
@@ -671,7 +735,7 @@ static void me_calc_pvt_thread(void *arg) {
     time_quality_t time_quality = get_time_quality();
 
     if (TIME_UNKNOWN != time_quality && lgf.position_solution.valid &&
-        lgf.position_quality >= POSITION_GUESS) {
+        lgf.position_quality >= POSITION_GUESS && !simulation_enabled()) {
       /* Update the satellite elevation angles so that they stay current
        * (currently once every 30 seconds) */
       DO_EACH_MS(MAX_AZ_EL_AGE_SEC * SECS_MS / 2,
@@ -740,10 +804,10 @@ static void me_calc_pvt_thread(void *arg) {
     collect_measurements(
         current_tc, meas, in_view, e_meas, &n_ready, &n_inview, &n_total);
 
-    /* Send GSV messages for all satellites in track */
-    if (!simulation_enabled()) {
-      nmea_send_gsv(n_inview, in_view);
-    }
+    /* Periodically send SBP az/el message for all either tracked or visible
+     * satellites */
+    DO_EACH_MS(SBP_SV_AZ_EL_PERIOD_S * SECS_MS,
+               send_sbp_az_el(n_inview, in_view));
 
     log_debug("Selected %" PRIu8 " measurement(s) out of %" PRIu8
               " in view "

@@ -31,7 +31,6 @@
 #include "hal/is_duro.h"
 #include "io_support.h"
 #include "ndb/ndb.h"
-#include "nmea/nmea.h"
 #include "peripherals/can_termination.h"
 #include "peripherals/leds.h"
 #include "position/position.h"
@@ -139,8 +138,6 @@ int main(void) {
 
   manage_acq_setup();
   system_monitor_setup();
-
-  nmea_setup();
 
   firmware_starling_setup();
   me_calc_pvt_setup();

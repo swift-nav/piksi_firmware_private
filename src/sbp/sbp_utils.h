@@ -78,9 +78,13 @@ void sbp_ephe_reg_cbks(void (*ephemeris_msg_callback)(u16, u8, u8 *, void *));
 /** Value defining maximum SBP packet size */
 #define SBP_FRAMING_MAX_PAYLOAD_SIZE 255
 
+#define SBP_MAX_AZEL_ELEMENTS \
+  (SBP_FRAMING_MAX_PAYLOAD_SIZE / sizeof(sv_az_el_t))
+
 void sbp_send_iono(const ionosphere_t *iono);
 void sbp_send_gnss_capb(const gnss_capb_t *gc);
 void sbp_send_group_delay(const cnav_msg_t *cnav);
+void sbp_send_az_el(u8 n_sats, const sv_az_el_t *azel_array);
 
 #ifdef __cplusplus
 }

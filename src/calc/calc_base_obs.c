@@ -33,7 +33,6 @@
 #include "calc/calc_pvt_me.h"
 #include "nav_msg/cnav_msg_storage.h"
 #include "ndb/ndb.h"
-#include "nmea/nmea.h"
 #include "peripherals/leds.h"
 #include "position/position.h"
 #include "sbp/sbp.h"

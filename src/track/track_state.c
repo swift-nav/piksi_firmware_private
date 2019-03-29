@@ -402,7 +402,7 @@ void trackers_missed(u32 channels_mask, const u8 c0) {
 /** Send measurement state SBP message.
  * Send information on each tracking channel to host.
  */
-static void tracking_send_state_85(void) {
+void tracking_send_state(void) {
   static bool odd_run = false;
   measurement_state_t meas_states[nap_track_n_channels];
 
@@ -456,13 +456,6 @@ static void tracking_send_state_85(void) {
   sbp_send_msg(
       SBP_MSG_MEASUREMENT_STATE, sizeof(meas_states), (u8 *)meas_states);
 }
-
-/** Send either MSG_TRACKING_STATE or MSG_MEASUREMENT_STATE message.
- * Send information on each tracking channel to host,
- * calls the legacy function if the number of channels is lower than 63
- * so that we can incrementally move to 85 channels.
- */
-void tracking_send_state(void) { tracking_send_state_85(); }
 
 /** Goes through all the NAP tracker channels and cleans the stale ones
  * (there should NEVER be any!)
