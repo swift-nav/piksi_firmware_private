@@ -977,7 +977,7 @@ u32 get_tracking_channel_meas(u8 i,
      * This can return that the satellite is actually below the tracking mask
      * */
     flags |= get_tracking_channel_sid_flags(sid, info.tow_ms, ephe);
-    if (0 != (flags & TRACKER_FLAG_MASKED)) return flags;
+    if (0 != (flags & TRACKER_FLAG_MASKED)) { return flags; }
 
     tracker_measurement_get(ref_tc, &info, &freq_info, meas);
 
@@ -1024,7 +1024,7 @@ u32 get_tracking_channel_meas(u8 i,
 }
 
 static void mark_masked_channel_for_drop(const gnss_signal_t sid) {
-  if (!sid_valid(sid)) return;
+  if (!sid_valid(sid)) { return; }
 
   me_gnss_signal_t mesid = {.code = CODE_INVALID};
   constellation_t con = code_to_constellation(sid.code);
