@@ -5,6 +5,7 @@ set -o pipefail
 
 if [ "$TESTENV" == "lint" ]; then
   ./scripts/ci/travis-clang-format-check.sh
+  ./scripts/ci/travis-clang-tidy-check.sh
 elif [ "$TESTENV" == "mesta" ]; then
   make -r -C mesta
   ./mesta/mesta

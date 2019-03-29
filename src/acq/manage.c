@@ -220,7 +220,7 @@ static bool tracking_startup_fifo_write(
     tracking_startup_fifo_t *fifo, const tracking_startup_params_t *element);
 static bool tracking_startup_fifo_read(tracking_startup_fifo_t *fifo,
                                        tracking_startup_params_t *element);
-static u32 get_tracking_channel_sid_flags(const gnss_signal_t sid,
+static u32 get_tracking_channel_sid_flags(gnss_signal_t sid,
                                           s32 tow_ms,
                                           const ephemeris_t *pephe);
 

@@ -50,6 +50,7 @@ matrix:
             - ubuntu-toolchain-r-test
           packages:
             - clang-format-6.0
+            - clang-tidy-6.0
       env: TESTENV=lint
     - os: osx
       osx_image: xcode10

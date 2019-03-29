@@ -34,7 +34,6 @@ scripts/RELEASE-VERSION
 .pydevproject
 
 src/version.h
-mesta/stubs/version.h
 
 tests/run_tests
 *.gcno
@@ -45,3 +44,4 @@ tests/run_tests
 GPATH
 GRTAGS
 GTAGS
+/fixes.yaml

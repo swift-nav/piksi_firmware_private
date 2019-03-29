@@ -104,7 +104,7 @@ all : lsnp run_tests
 lsnp :
 	@printf "BUILD Starling\n"; \
 	mkdir -p $(STARLING_BUILDDIR); cd $(STARLING_BUILDDIR); \
-	cmake -DMAX_CHANNELS=45 \
+	cmake -DMAX_CHANNELS=81 \
 	      -DPIKSI_MULTI_UNIT_TEST=ON \
 	      -DCMAKE_C_COMPILER=$(C_COMPILER) \
 	      -DCMAKE_CXX_COMPILER=$(CXX_COMPILER) \

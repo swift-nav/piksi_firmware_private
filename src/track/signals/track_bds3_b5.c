@@ -21,7 +21,7 @@
 #include "track/track_utils.h"
 
 /* Non-local headers */
-#include <manage.h>
+#include <acq/manage.h>
 #include <platform_track.h>
 
 /* Libraries */

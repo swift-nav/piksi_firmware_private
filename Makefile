@@ -176,7 +176,7 @@ clang-tidy-all:
 	@echo "Checking all C files under src/"
 	git ls-files -- 'src/*.[ch]' \
 		| grep -E -v 'board|chibios|peripherals|system_monitor|syscalls|chconf' \
-		| xargs -P 1 -I file clang-tidy-6.0 file -- $(CLANG_TIDY_FLAGS) $(CLANG_TIDY_INCLUDES)
+		| xargs -P 1 -I file clang-tidy-6.0 -quiet -export-fixes=fixes.yaml file -- $(CLANG_TIDY_FLAGS) $(CLANG_TIDY_INCLUDES)
 
 run_tests:
 	$(MAKE) -C tests

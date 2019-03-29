@@ -72,7 +72,7 @@ static void sbp_fileio_callback(u16 sender_id,
 
   assert(NULL != context);
   sbp_fileio_closure_t *closure = context;
-  u32 seq = (u32)(*(u32 *)msg_raw);
+  u32 seq = (*(u32 *)msg_raw);
 
   if (seq == closure->seq) {
     MEMCPY_S(closure->msg, SBP_FRAMING_MAX_PAYLOAD_SIZE, msg_raw, len);

@@ -11,8 +11,8 @@ clean:
 	@rm mesta
 
 UDEF = '-Wno-unused' \
-       '-DMAX_CHANNELS=73' \
-       '-DSTARLING_MAX_CHANNEL_COUNT=150' \
+       '-DMAX_CHANNELS=81' \
+       '-DSTARLING_MAX_CHANNEL_COUNT=250' \
        '-DMESTA_BUILD' \
        '-DPIKSI_RELEASE'
 
@@ -219,13 +219,6 @@ endef
 
 $(eval $(call SOURCES,${CSRC}))
 $(eval $(call SOURCES,${CXXSRC}))
-
-GIT_VERSION := $(shell git describe --tags --dirty --always)
-version.h :
-	@echo "Generating $@"
-	@echo "#define GIT_VERSION \"$(GIT_VERSION)\"" > stubs/version.h
-
-$(SWIFTNAV_ROOT)/src/ndb/ndb_internal.c $(SWIFTNAV_ROOT)/src/main/main.c: version.h
 
 mesta : ${obj.c} ${obj.cc}
 	$(CXX) -o $@ $^ -lm

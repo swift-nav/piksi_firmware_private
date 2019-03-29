@@ -21,7 +21,7 @@
 #include "track_gal_e1.h"
 
 /* Non-local headers */
-#include <manage.h>
+#include <acq/manage.h>
 #include <platform_track.h>
 
 /* Libraries */
