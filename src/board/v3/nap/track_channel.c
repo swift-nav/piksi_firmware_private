@@ -104,66 +104,104 @@ static u32 calc_length_samples(u32 chips_to_correlate,
   return samples;
 }
 
+static void assert_code(const swiftnap_code_t code) {
+  log_error("NAP code %d is invalid", code);
+  assert(0);
+}
+
 /** Look-up NAP constellation and band code for the given ME signal ID.
  * \param mesid ME signal ID.
  * \return NAP constellation and band code.
  */
 static u8 mesid_to_nap_code(const me_gnss_signal_t mesid) {
-  u8 ret = ~0;
+  u8 ret = 255;
   switch ((s8)mesid.code) {
     case CODE_GPS_L1CA:
     case CODE_QZS_L1CA:
       ret = NAP_TRK_CODE_GPS_L1;
       break;
     case CODE_SBAS_L1CA:
+#if defined CODE_SBAS_L1CA_SUPPORT && CODE_SBAS_L1CA_SUPPORT > 0
       ret = NAP_TRK_CODE_SBAS_L1;
+#else
+      assert_code(NAP_TRK_CODE_SBAS_L1);
+#endif
       break;
     case CODE_GPS_L2CM:
     case CODE_QZS_L2CM:
+#if defined CODE_GPS_L2C_SUPPORT && CODE_GPS_L2C_SUPPORT > 0
       ret = NAP_TRK_CODE_GPS_L2;
+#else
+      assert_code(NAP_TRK_CODE_GPS_L2);
+#endif
       break;
     case CODE_GPS_L5I:
     case CODE_QZS_L5I:
+#if defined CODE_GPS_L5_SUPPORT && CODE_GPS_L5_SUPPORT > 0
       ret = NAP_TRK_CODE_GPS_L5;
+#else
+      assert_code(NAP_TRK_CODE_GPS_L5);
+#endif
       break;
     case CODE_GLO_L1OF:
 #if defined CODE_GLO_L1OF_SUPPORT && CODE_GLO_L1OF_SUPPORT > 0
       ret = NAP_TRK_CODE_GLO_G1;
 #else
-      assert(!"Invalid code");
-#endif /* CODE_GLO_L1OF_SUPPORT */
+      assert_code(NAP_TRK_CODE_GLO_G1);
+#endif
       break;
     case CODE_GLO_L2OF:
 #if defined CODE_GLO_L2OF_SUPPORT && CODE_GLO_L2OF_SUPPORT > 0
       ret = NAP_TRK_CODE_GLO_G2;
 #else
-      assert(!"Invalid code");
-#endif /* CODE_GLO_L2OF_SUPPORT */
+      assert_code(NAP_TRK_CODE_GLO_G2);
+#endif
       break;
     case CODE_BDS2_B1:
+#if defined CODE_BDS2_B1_SUPPORT && CODE_BDS2_B1_SUPPORT > 0
       ret = NAP_TRK_CODE_BDS_B1;
+#else
+      assert_code(NAP_TRK_CODE_BDS_B1);
+#endif
       break;
     case CODE_BDS2_B2:
+#if defined CODE_BDS2_B2_SUPPORT && CODE_BDS2_B2_SUPPORT > 0
       ret = NAP_TRK_CODE_BDS_B2;
+#else
+      assert_code(NAP_TRK_CODE_BDS_B2);
+#endif
       break;
     case CODE_BDS3_B5I:
+#if defined CODE_BDS3_B5_SUPPORT && CODE_BDS3_B5_SUPPORT > 0
       ret = NAP_TRK_CODE_BDS_L5;
+#else
+      assert_code(NAP_TRK_CODE_BDS_L5);
+#endif
       break;
     case CODE_GAL_E1B:
 #if defined CODE_GAL_E1_SUPPORT && CODE_GAL_E1_SUPPORT > 0
       ret = NAP_TRK_CODE_GAL_E1;
 #else
-      assert(!"Invalid code");
-#endif /* CODE_GAL_E1_SUPPORT*/
+      assert_code(NAP_TRK_CODE_GAL_E1);
+#endif
       break;
     case CODE_GAL_E7I:
+#if defined CODE_GAL_E7_SUPPORT && CODE_GAL_E7_SUPPORT > 0
       ret = NAP_TRK_CODE_GAL_E7;
+#else
+      assert_code(NAP_TRK_CODE_GAL_E7);
+#endif
       break;
     case CODE_GAL_E5I:
+#if defined CODE_GAL_E5_SUPPORT && CODE_GAL_E5_SUPPORT > 0
       ret = NAP_TRK_CODE_GAL_E5;
+#else
+      assert_code(NAP_TRK_CODE_GAL_E5);
+#endif
       break;
     default:
-      assert(!"Invalid code");
+      log_error("signal code %d is invalid", mesid.code);
+      assert(0);
       break;
   }
   return ret;
@@ -447,29 +485,19 @@ void nap_track_update(u8 channel,
   t->CARR_PINC = carr_pinc;
 }
 
-#define BUILD_BUG_ON(condition) ((void)sizeof(char[1 - 2 * !!(condition)]))
-
-/* see if not enforcing `const volatile` leads to better compiler optimization
- * below */
-typedef struct {
-  u32 STATUS;
-  u32 TIMING_SNAPSHOT;
-  s16 CORR16[12];
-} tracking_rd_t;
-
 void nap_track_read_results(u8 channel,
                             u32 *count_snapshot,
                             corr_t corrs[],
                             double *code_phase_prompt,
                             double *carrier_phase) {
-  tracking_rd_t trk_ch;
+  assert(count_snapshot);
+  assert(code_phase_prompt);
+  assert(carrier_phase);
   swiftnap_tracking_rd_t *t = &NAP->TRK_CH_RD[channel];
   struct nap_ch_state *s = &nap_ch_desc[channel];
 
-  trk_ch.STATUS = t->STATUS;
-
-  trk_ch.TIMING_SNAPSHOT = t->TIMING_SNAPSHOT;
-  *count_snapshot = trk_ch.TIMING_SNAPSHOT;
+  const u32 nap_status = t->STATUS;
+  (*count_snapshot) = t->TIMING_SNAPSHOT;
 
   /* pilot/data correlator values in sequence E-P-L-E-P-L */
   volatile u32 corr_val = 0;
@@ -523,7 +551,7 @@ void nap_track_read_results(u8 channel,
               corrs[4].Q >> 6);
   }
 
-  if (GET_NAP_TRK_CH_STATUS_CORR_OVERFLOW(trk_ch.STATUS)) {
+  if (GET_NAP_TRK_CH_STATUS_CORR_OVERFLOW(nap_status)) {
     log_warn_mesid(s->mesid,
                    "Tracking correlator overflow VE:[%+7" PRIi32 ":%+7" PRIi32
                    "] E:[%+7" PRIi32 ":%+7" PRIi32 "] P:[%+7" PRIi32
@@ -543,9 +571,9 @@ void nap_track_read_results(u8 channel,
 
   /* Check carrier phase reckoning */
   u8 sw_carr_phase = (s->sw_carr_phase >> 29) & 0x3F;
-  u8 hw_carr_phase = GET_NAP_TRK_CH_STATUS_CARR_PHASE_INT(trk_ch.STATUS)
+  u8 hw_carr_phase = GET_NAP_TRK_CH_STATUS_CARR_PHASE_INT(nap_status)
                          << NAP_TRK_CH_STATUS_CARR_PHASE_FRAC_Len |
-                     GET_NAP_TRK_CH_STATUS_CARR_PHASE_FRAC(trk_ch.STATUS);
+                     GET_NAP_TRK_CH_STATUS_CARR_PHASE_FRAC(nap_status);
   if (sw_carr_phase != hw_carr_phase) {
     log_error_mesid(s->mesid,
                     "Carrier reckoning: SW=%" PRIu8 ".%" PRIu8 ", HW=%" PRIu8
@@ -558,9 +586,9 @@ void nap_track_read_results(u8 channel,
 
   /* Check code phase reckoning */
   u8 sw_code_phase = (s->sw_code_phase >> 29) & 0x3F;
-  u8 hw_code_phase = GET_NAP_TRK_CH_STATUS_CODE_PHASE_INT(trk_ch.STATUS)
+  u8 hw_code_phase = GET_NAP_TRK_CH_STATUS_CODE_PHASE_INT(nap_status)
                          << NAP_TRK_CH_STATUS_CODE_PHASE_FRAC_Len |
-                     GET_NAP_TRK_CH_STATUS_CODE_PHASE_FRAC(trk_ch.STATUS);
+                     GET_NAP_TRK_CH_STATUS_CODE_PHASE_FRAC(nap_status);
   if (sw_code_phase != hw_code_phase) {
     log_error_mesid(s->mesid,
                     "Code reckoning: SW=%" PRIu8 ".%" PRIu8 ", HW=%" PRIu8

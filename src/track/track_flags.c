@@ -18,6 +18,7 @@
 #include "track_state.h"
 
 void tracker_flag_drop(tracker_t *tracker, ch_drop_reason_t reason) {
+  if (NULL == tracker) return;
   tracker->flags |= TRACKER_FLAG_DROP_CHANNEL;
   tracker->ch_drop_reason = reason;
 }
@@ -168,6 +169,7 @@ void tracker_set_xcorr_flag(const me_gnss_signal_t mesid) {
 void tracker_set_xcorr_suspect_flag(tracker_t *tracker,
                                     bool xcorr_suspect,
                                     bool sensitivity_mode) {
+  if (NULL == tracker) return;
   if (CODE_GPS_L1CA == tracker->mesid.code) {
     gps_l1ca_tracker_data_t *data = &tracker->gps_l1ca;
     if ((data->xcorr_flag) == xcorr_suspect) {
@@ -205,6 +207,7 @@ void tracker_set_xcorr_suspect_flag(tracker_t *tracker,
  * \param[in,out] tracker Tracker data.
  */
 void tracker_update_bit_polarity_flags(tracker_t *tracker) {
+  if (NULL == tracker) return;
   if ((BIT_POLARITY_UNKNOWN != tracker->bit_polarity) &&
       (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) {
     /* Nav bit polarity is known, i.e. half-cycles have been resolved.
@@ -234,6 +237,7 @@ void tracker_update_bit_polarity_flags(tracker_t *tracker) {
  * \return    TRUE if PRN fail flag is set, otherwise FAIL
  */
 bool tracker_get_prn_fail_flag(tracker_t *tracker) {
+  if (NULL == tracker) return false;
   return tracker->prn_check_fail;
 }
 
@@ -247,4 +251,7 @@ bool tracker_get_prn_fail_flag(tracker_t *tracker) {
  *
  * \return Cross-correlation flag value-
  */
-bool tracker_get_xcorr_flag(tracker_t *tracker) { return tracker->xcorr_flag; }
+bool tracker_get_xcorr_flag(tracker_t *tracker) {
+  if (NULL == tracker) return false;
+  return tracker->xcorr_flag;
+}

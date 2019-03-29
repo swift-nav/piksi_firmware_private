@@ -271,6 +271,7 @@ bool nap_pps_armed(void) {
 }
 
 u32 nap_get_ext_event(u8 pin, ext_event_trigger_t *trig) {
+  assert(trig);
   switch (pin) {
     case 0:
       *trig = GET_NAP_STATUS_EXT_EVENT_EDGE0(NAP->STATUS);

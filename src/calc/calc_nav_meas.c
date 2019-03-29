@@ -31,6 +31,10 @@ static s8 convert_channel_measurement_to_starling_obs(
     const gps_time_t *rec_time,
     const channel_measurement_t *meas,
     starling_obs_t *obs) {
+  assert(rec_time);
+  assert(meas);
+  assert(obs);
+
   obs->sid = meas->sid;
 
   u32 code_length = code_to_chip_count(meas->sid.code);
@@ -137,6 +141,9 @@ s8 calc_navigation_measurement(u8 n_channels,
                                const channel_measurement_t meas[],
                                obs_array_t *obs_array,
                                const gps_time_t *rec_time) {
+  assert(meas);
+  assert(obs_array);
+  assert(rec_time);
   /* initialize the obs array */
   obs_array->sender = 0;
   obs_array->t = *rec_time;
@@ -217,6 +224,9 @@ static bool get_isc_corr(const code_t code,
 void apply_gps_cnav_isc(u8 n_channels,
                         navigation_measurement_t *nav_meas[],
                         const ephemeris_t ephe[]) {
+  assert(nav_meas);
+  assert(ephe);
+
   u8 i = 0;
   for (i = 0; i < n_channels; i++) {
     double isc;
@@ -240,6 +250,8 @@ void apply_gps_cnav_isc(u8 n_channels,
  */
 void apply_cons_time_offsets(const u8 n_channels,
                              navigation_measurement_t *nav_meas[]) {
+  assert(nav_meas);
+
   for (u8 i = 0; i < n_channels; i++) {
     cons_time_params_t params;
     /* get system time offset from static store */
