@@ -147,7 +147,7 @@ static cons_cfg_t cons_cfg[CONSTELLATION_COUNT] = {
             .name = "GPS",
             .enabled = true,
             .supported = true,
-            .is_applicable = NULL,
+            .is_applicable = is_gps,
             .sid_active = NULL,
         },
     [CONSTELLATION_SBAS] =
@@ -358,6 +358,8 @@ static int cons_enable_notify(void *ctx) {
       acq_status[i].masked = true;
       continue;
     }
+
+    acq_status[i].masked = false;
   }
 
   return SETTINGS_WR_OK;
