@@ -26,10 +26,7 @@
 #define REACQ_MIN_SEARCH_INTERVAL_UNKNOWN_MS 10000
 
 /** Minimum interval between searches of an invisible SV (ms) */
-#define REACQ_MIN_SEARCH_INTERVAL_INVISIBLE_MS 30000
-
-/** Re-acq priority mask length in bits */
-#define REACQ_PRIORITY_CYCLE 32
+#define REACQ_MIN_SEARCH_INTERVAL_INVISIBLE_MS 60000
 
 /** High priority GPS search happens below this number of reacquired satellites
  */
