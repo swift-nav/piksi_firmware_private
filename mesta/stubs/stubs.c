@@ -170,7 +170,10 @@ double nominal_pseudorange(const double sat_pos[3],
 
 void starling_set_elevation_mask(float elevation_mask) { (void)elevation_mask; }
 
-void starling_set_solution_frequency(double frequency) { (void)frequency; }
+bool starling_set_solution_frequency(double frequency) {
+  (void)frequency;
+  return true;
+}
 
 bool simulation_enabled(void) { return true; }
 
