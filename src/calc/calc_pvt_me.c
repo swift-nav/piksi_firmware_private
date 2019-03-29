@@ -57,6 +57,9 @@
 /* Maximum time to maintain POSITION_FIX after last successful solution */
 #define POSITION_FIX_TIMEOUT_S 60
 
+/* Minimum time between SBP_SV_AZ_EL messages */
+#define SBP_SV_AZ_EL_PERIOD_S 1
+
 #define ME_CALC_PVT_THREAD_PRIORITY (HIGHPRIO - 3)
 #define ME_CALC_PVT_THREAD_STACK (3 * 10 * 1024)
 
@@ -790,7 +793,8 @@ static void me_calc_pvt_thread(void *arg) {
 
     /* Send SBP az/el message for visible satellites plus the ones in track */
     if (!simulation_enabled()) {
-      send_sbp_az_el(n_inview, in_view);
+      DO_EACH_MS(SBP_SV_AZ_EL_PERIOD_S * SECS_MS,
+                 send_sbp_az_el(n_inview, in_view));
     }
 
     log_debug("Selected %" PRIu8 " measurement(s) out of %" PRIu8
