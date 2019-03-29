@@ -249,6 +249,22 @@ static void update_sat_azel(const double rcv_pos[3], const gps_time_t t) {
   }
 }
 
+/* pack values into SBP sv_az_el_t array element */
+static void pack_azel(gnss_signal_t sid,
+                      double azimuth,
+                      double elevation,
+                      sv_az_el_t *azel) {
+  assert(sid_valid(sid));
+  assert(elevation >= -90 && elevation <= 90);
+  assert(azimuth >= 0 && azimuth < 360);
+  azel->sid = sid_to_sbp(sid);
+  azel->az = round(azimuth / 2); /* in [0 .. 180] */
+  if (180 == azel->az) {
+    azel->az = 0; /* clamp to [0 .. 179] as per specification */
+  }
+  azel->el = round(elevation); /* in [-90 .. 90] */
+}
+
 /** Generate SBP az-el message for all satellites that are either above horizon
  * (or below it but being tracked) and send it
  */
@@ -287,10 +303,7 @@ static void send_sbp_az_el(const u8 n_used,
         continue;
       }
     }
-    azel_array[n_azel].sid = sid_to_sbp(sid);
-    azel_array[n_azel].az = (u8)round(azimuth / 2);
-    azel_array[n_azel].el = (s8)round(elevation);
-    n_azel++;
+    pack_azel(sid, azimuth, elevation, &azel_array[n_azel++]);
   }
   /* send out the message if any satellites found */
   if (n_azel > 0) {
