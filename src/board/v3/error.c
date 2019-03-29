@@ -22,6 +22,7 @@
 
 #include "peripherals/leds.h"
 #include "piksi_systime.h"
+#include "remoteproc/rpmsg.h"
 #include "sbp.h"
 #include "zynq7000.h"
 
@@ -32,24 +33,19 @@
 /** \addtogroup io
  * \{ */
 
-/** A simple DMA/interrupt-free UART write function, for use by screaming_death
+/** A direct write function to rpmsg, for use by screaming_death
  */
-/* TODO: Move to peripherals/usart.c? */
-static s32 fallback_write_ftdi(u8 *buff, u32 n, void *context) {
+#define PANIC_RPMSG_ENDPOINT RPMSG_ENDPOINT_A /* SBP rpmsg endpoint */
+static s32 fallback_write_rpmsg(u8 *buff, u32 n, void *context) {
   (void)context;
-  for (u8 i = 0; i < n; i++) {
-    while (UART1->SR & UART_SR_TXFULL_Msk)
-      ;
-    UART1->FIFO = buff[i];
-  }
-  return n;
+  return rpmsg_halt_manual_send(PANIC_RPMSG_ENDPOINT, buff, n) ? n : 0;
 }
 /** \} */
 
 /** Error message.
  * Halts the program while continually sending a fixed error message in SBP
- * message format to the FTDI USART, in a way that should get the message
- * through to the Python console even if it's interrupting another transmission.
+ * message format to the sbp rpmsg endpoint, in a way that should get the
+ * message through to any ports serving SBP
  *
  * \param fmt C string that contains the text to be written
  * \param ... Variadic arguments
@@ -83,9 +79,8 @@ void _screaming_death(const char *fmt, ...) {
     for (u32 d = 0; d < APPROX_ONE_SEC; d++) {
       __asm__("nop");
     }
-    /* TODO: Send to other UARTs? */
     sbp_send_message(
-        &sbp_state, SBP_MSG_LOG, 0, len, (u8 *)err_msg, &fallback_write_ftdi);
+        &sbp_state, SBP_MSG_LOG, 0, len, (u8 *)err_msg, &fallback_write_rpmsg);
   }
 }
 
@@ -106,11 +101,6 @@ void __assert_func(const char *_file,
   if (NULL == name) {
     name = "unknown";
   }
-
-  log_error(
-      "%s:%s:%s():%d assertion '%s' failed", name, _file, _func, _line, _expr);
-
-  piksi_systime_sleep_ms(3000);
 
   _screaming_death(
       "%s:%s:%s():%d assertion '%s' failed", name, _file, _func, _line, _expr);

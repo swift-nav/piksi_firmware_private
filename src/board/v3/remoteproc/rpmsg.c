@@ -127,6 +127,26 @@ u32 rpmsg_tx_fifo_write(rpmsg_endpoint_t rpmsg_endpoint,
   return n;
 }
 
+bool rpmsg_halt_manual_send(rpmsg_endpoint_t rpmsg_endpoint,
+                            u8 *buffer,
+                            u32 buffer_length) {
+  if (rpmsg_endpoint >= RPMSG_ENDPOINT__COUNT) {
+    return false;
+  }
+  endpoint_data_t *d = &endpoint_data[rpmsg_endpoint];
+
+  if (d->rpmsg_endpoint == NULL) {
+    return false;
+  }
+
+  if (rpmsg_trysendto(
+          d->rpmsg_endpoint->rp_chnl, buffer, buffer_length, d->addr) != 0) {
+    return false;
+  }
+
+  return true;
+}
+
 static void remoteproc_env_irq_callback(void) {
   chSysLockFromISR();
   chBSemSignalI(&rpmsg_thd_bsem);
