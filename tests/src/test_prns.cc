@@ -58,7 +58,7 @@ TEST(test_prns_ca_code, code) {
     EXPECT_TRUE(NULL != ptr);
   }
 
-  for (u8 k = 0; k < 50; k++) {
+  for (u8 k = 0; k < 36; k++) {
     mesid = construct_mesid(CODE_GAL_E1B, k + GAL_FIRST_PRN);
     ptr = ca_code(mesid);
     EXPECT_TRUE(NULL != ptr);
