@@ -1,4 +1,4 @@
-SWIFTNAV_ROOT := $(shell pwd)
+SWIFTNAV_ROOT := $(CURDIR)
 MAKEFLAGS += SWIFTNAV_ROOT=$(SWIFTNAV_ROOT)
 PFWP_COMPILER := arm-none-eabi-
 
@@ -176,7 +176,7 @@ clang-tidy-all:
 	@echo "Checking all C files under src/"
 	git ls-files -- 'src/*.[ch]' \
 		| grep -E -v 'board|chibios|peripherals|system_monitor|syscalls|chconf' \
-		| xargs -P 1 -I file clang-tidy-6.0 -quiet -export-fixes=fixes.yaml file -- $(CLANG_TIDY_FLAGS) $(CLANG_TIDY_INCLUDES)
+		| xargs -P 1 -I file ./scripts/ci/docker-clang-tidy.sh -quiet -export-fixes=fixes.yaml file -- $(CLANG_TIDY_FLAGS) $(CLANG_TIDY_INCLUDES)
 
 run_tests:
 	$(MAKE) -C tests
