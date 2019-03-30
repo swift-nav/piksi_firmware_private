@@ -23,6 +23,7 @@
 #include "board/v3/peripherals/bmi160.h"
 #include "ch.h"
 #include "hal.h"
+#include "hal/is_duro.h"
 #include "sbp/sbp.h"
 #include "settings/settings_client.h"
 #include "timing/timing.h"
@@ -442,6 +443,9 @@ static int gyr_range_changed(void *ctx) {
 
 void imu_init(void) {
   bmi160_init();
+
+  /* try to grab runtime mode from Linux, and turn on if ins */
+  raw_imu_output = (device_is_duro() && ins_is_active());
 
   SETTING_NOTIFY("imu",
                  "imu_raw_output",
