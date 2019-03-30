@@ -125,7 +125,7 @@ static tracking_startup_fifo_t tracking_startup_fifo;
 static MUTEX_DECL(tracking_startup_mutex);
 
 /* Elevation mask for tracking, degrees */
-static float tracking_elevation_mask = 0.0;
+static float tracking_elevation_mask = 9.0;
 /* Elevation mask for solution, degrees */
 static float solution_elevation_mask = 10.0;
 
@@ -950,15 +950,13 @@ u32 get_tracking_channel_meas(u8 i,
                               u64 ref_tc,
                               channel_measurement_t *meas,
                               ephemeris_t *ephe) {
-  memset(meas, 0, sizeof(*meas));
-
   tracker_info_t info;
   tracker_freq_info_t freq_info;
 
+  memset(meas, 0, sizeof(*meas));
   tracker_get_state(i, &info, &freq_info);
   u32 flags = info.flags;
   if (IS_GLO(info.mesid) && !glo_slot_id_is_valid(info.glo_orbit_slot)) {
-    memset(meas, 0, sizeof(*meas));
     return flags | TRACKER_FLAG_MASKED;
   }
 
@@ -975,14 +973,19 @@ u32 get_tracking_channel_meas(u8 i,
       ephe = NULL;
     }
 
-    /* Load information from SID cache */
+    /* Load information from SID cache.
+     * This can return that the satellite is actually below the tracking mask
+     * */
     flags |= get_tracking_channel_sid_flags(sid, info.tow_ms, ephe);
+    if (0 != (flags & TRACKER_FLAG_MASKED)) {
+      return flags;
+    }
 
     tracker_measurement_get(ref_tc, &info, &freq_info, meas);
 
     /* Adjust for half phase ambiguity */
-    if ((0 != (info.flags & TRACKER_FLAG_BIT_POLARITY_KNOWN)) &&
-        (0 != (info.flags & TRACKER_FLAG_BIT_INVERTED))) {
+    if ((0 != (flags & TRACKER_FLAG_BIT_POLARITY_KNOWN)) &&
+        (0 != (flags & TRACKER_FLAG_BIT_INVERTED))) {
       meas->carrier_phase += 0.5;
     }
 
@@ -1017,11 +1020,35 @@ u32 get_tracking_channel_meas(u8 i,
       meas->carrier_phase += (double)carrier_phase_offset;
     }
     meas->flags = compute_meas_flags(flags, info.mesid);
-  } else {
-    memset(meas, 0, sizeof(*meas));
   }
 
   return flags;
+}
+
+static void mark_masked_channel_for_drop(const gnss_signal_t sid) {
+  if (!sid_valid(sid)) {
+    return;
+  }
+
+  me_gnss_signal_t mesid = {.code = CODE_INVALID};
+  constellation_t con = code_to_constellation(sid.code);
+  if (CONSTELLATION_GLO == con) {
+    u16 glo_fcn = GLO_FCN_UNKNOWN;
+    if (glo_map_valid(sid)) {
+      glo_fcn = glo_map_get_fcn(sid);
+      mesid = construct_mesid(sid.code, glo_fcn);
+    }
+  } else {
+    mesid = construct_mesid(sid.code, sid.sat);
+  }
+  if (code_valid(mesid.code)) {
+    chSysLock();
+    tracker_t *tracker = tracker_get_by_mesid(mesid);
+    if (NULL != tracker) {
+      tracker_flag_drop(tracker, CH_DROP_REASON_MASKED);
+    }
+    chSysUnlock();
+  }
 }
 
 /**
@@ -1044,8 +1071,15 @@ static u32 get_tracking_channel_sid_flags(const gnss_signal_t sid,
 
   /* Satellite elevation is either unknown or above the solution mask. */
   double elevation;
-  if (!track_sid_db_elevation_degrees_get(sid, &elevation) ||
-      elevation >= solution_elevation_mask) {
+  bool has_elevation = track_sid_db_elevation_degrees_get(sid, &elevation);
+
+  /* satellite dropped under the tracking mask */
+  if (has_elevation && (elevation < tracking_elevation_mask)) {
+    mark_masked_channel_for_drop(sid);
+    return TRACKER_FLAG_MASKED;
+  }
+
+  if (!has_elevation || elevation >= solution_elevation_mask) {
     flags |= TRACKER_FLAG_ELEVATION;
   }
 
