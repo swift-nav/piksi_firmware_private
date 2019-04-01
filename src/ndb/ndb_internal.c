@@ -677,6 +677,7 @@ static ndb_op_code_t ndb_retrieve_int(ndb_file_t *file,
                                       void *out,
                                       size_t out_size,
                                       ndb_data_source_t *ds) {
+  assert(out);
   ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
 
   assert(idx < file->block_count);
@@ -941,6 +942,7 @@ ndb_op_code_t ndb_check_age(const gps_time_t *t, double age_limit) {
 static s32 get_next_idx_to_send(gnss_signal_t *sid, s32 prev_idx) {
   s32 i = prev_idx != NDB_SBP_UPDATE_SIG_IDX_INIT ? prev_idx + 1 : 0;
   assert(i >= 0);
+  assert(sid);
 
   while (i < PLATFORM_SIGNAL_COUNT) {
     *sid = sid_from_global_index(i);
@@ -956,6 +958,7 @@ static s32 get_next_idx_to_send(gnss_signal_t *sid, s32 prev_idx) {
 }
 
 void ndb_sbp_update(ndb_sbp_update_info_t *info) {
+  assert(info);
   /* increment call counter */
   info->count++;
 

@@ -33,6 +33,7 @@
  * \param tc NAP tick counter of the current epoch
  */
 void propagate_clock_state(clock_est_state_t *clock_state, u64 tc) {
+  assert(clock_state);
   u64 ref_tc = clock_state->tc;
 
   if (tc < ref_tc) {
@@ -88,6 +89,7 @@ void propagate_clock_state(clock_est_state_t *clock_state, u64 tc) {
  */
 void update_clock_state(clock_est_state_t *clock_state,
                         const gnss_solution *sol) {
+  assert(clock_state);
   /* a priori state estimate */
   double xm[2];
   /* a priori state covariance matrix */

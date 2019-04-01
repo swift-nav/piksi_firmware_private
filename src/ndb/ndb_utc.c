@@ -81,6 +81,9 @@ ndb_op_code_t ndb_utc_params_store(const gnss_signal_t *sid,
                                    const utc_params_t *utc_params_p,
                                    ndb_data_source_t src,
                                    u16 sender_id) {
+  assert(sid);
+  assert(utc_params_p);
+
   ndb_op_code_t res;
   utc_params_t current;
   bool is_nv;

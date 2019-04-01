@@ -222,6 +222,7 @@ static u32 get_tracking_channel_sid_flags(gnss_signal_t sid,
                                           const ephemeris_t *pephe);
 
 static sbp_msg_callbacks_node_t almanac_callback_node;
+//NOLINTNEXTLINE
 static void almanac_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
   (void)sender_id;
   (void)len;

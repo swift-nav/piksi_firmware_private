@@ -228,7 +228,8 @@ static void me_send_failed_obs(obs_array_t *obs_array,
  * \param rcv_pos Approximate receiver position
  * \param t Approximate time
  */
-static void update_sat_azel(const double rcv_pos[static 3], const gps_time_t t) {
+static void update_sat_azel(const double rcv_pos[static 3],
+                            const gps_time_t t) {
   ephemeris_t ephemeris;
   almanac_t almanac;
 

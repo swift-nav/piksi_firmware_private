@@ -176,6 +176,7 @@ static s16 ndb_alma_candidate_find(gnss_signal_t sid, s16 prev_idx) {
  * \internal
  */
 static void ndb_alma_candidate_add(const almanac_t *alma) {
+  assert(alma);
   ndb_timestamp_t now = ndb_get_timestamp();
   ndb_timestamp_t max_age = 0;
   ndb_ie_index_t max_age_idx = ARRAY_SIZE(alma_candidates);
@@ -282,6 +283,7 @@ static void ndb_alma_candidate_cleanup(void) {
  * \internal
  */
 static ndb_cand_status_t ndb_alma_candidate_update(const almanac_t *alma) {
+  assert(alma);
   ndb_cand_status_t r = NDB_CAND_MISMATCH;
   almanac_t existing;
 
@@ -399,6 +401,8 @@ static bool ndb_alma_wn_match(const void *data,
                               const ndb_element_metadata_t *md,
                               void *cookie) {
   (void)md; /* Unused */
+  assert(data);
+  assert(cookie);
 
   u32 toa = *(const u32 *)cookie;
   const ndb_alma_wn_t *alma_wn = data;
