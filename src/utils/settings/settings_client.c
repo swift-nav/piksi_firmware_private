@@ -128,9 +128,14 @@ void settings_api_setup(void) {
       api.wait = wait_wrap,
       api.wait_deinit = wait_deinit_wrap,
       api.signal = signal_wrap,
+      api.wait_thd = NULL,
+      api.signal_thd = NULL,
+      api.lock = NULL,
+      api.unlock = NULL,
       api.register_cb = reg_cb_wrap,
       api.unregister_cb = unreg_cb_wrap,
-      api.log = log_,
+      api.log = NULL,
+      api.log_preformat = false,
   };
 
   settings = settings_create(sender_id_get(), &api);
