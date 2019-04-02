@@ -32,6 +32,7 @@
 #include "track/track_timer.h"
 
 #include <math.h>
+#include <stdlib.h>
 #include <string.h>
 
 #define PROCESS_PERIOD_MS (500)
@@ -75,6 +76,12 @@ u64 nap_timing_count(void) {
   static MUTEX_DECL(timing_count_mutex);
   static u32 rollover_count = 0;
   static u32 prev_count = 0;
+
+  /* initialize rollover to random value, corresponding to 0-7 days uptime */
+  if (0 == rollover_count) {
+    rollover_count = (u32)rand() % 3000;
+    log_warn("Initializing NAP rollover_count %ld", rollover_count);
+  }
 
   chMtxLock(&timing_count_mutex);
 

@@ -108,10 +108,11 @@ void init(void) {
 
   frontend_configure();
 
+  random_init();
+
   /* Initialize rollover counter */
   nap_timing_count();
 
-  random_init();
   xadc_init();
   antenna_init();
   manage_pv_setup();
