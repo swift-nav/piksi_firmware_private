@@ -3,18 +3,17 @@
 set -euo pipefail
 
 D=$( (cd "$(dirname "$0")" || exit 1 >/dev/null; pwd -P) )
+ROOT=$( (cd "$(dirname "$0")/../.." || exit 1 >/dev/null; pwd -P) )
 
 VERSION_TAG=$(cat "$D/docker_version_tag")
 DOCKER_REPO_NAME=swiftnav/clang-tidy
 DOCKER_TAG=$DOCKER_REPO_NAME:$VERSION_TAG
 
 if [[ -z "${NON_INTERACTIVE_BUILD:-}" ]]; then
-  INTERACTIVE_ARGS=$(tty &>/dev/null && echo "--tty --interactive")
+  INTERACTIVE_ARGS=$({ tty &>/dev/null && echo "--tty --interactive"; } || echo)
 else
   INTERACTIVE_ARGS=
 fi
-
-ROOT=$( (cd "$(dirname "$0")/../.." || exit 1 >/dev/null; pwd -P) )
 
 find_sysroot() {
   echo '#include <assert.h>' | \
@@ -26,6 +25,8 @@ find_sysroot() {
 }
 
 sysroot=$(find_sysroot)
+
+docker rm -f swiftnav-clang-tidy &>/dev/null || :
 
 docker run \
   -v "$PWD:/work" \

@@ -65,6 +65,7 @@ endif
 
 CLANG_TIDY_INCLUDES = -I$(SWIFTNAV_ROOT)/include/ \
                       -I$(SWIFTNAV_ROOT)/src/ \
+                      -I$(SWIFTNAV_ROOT)/src/cfg/ \
                       -I$(SWIFTNAV_ROOT)/src/utils/ \
                       -I$(SWIFTNAV_ROOT)/starling/include/ \
                       -I$(SWIFTNAV_ROOT)/starling/third_party/libswiftnav/include/ \
@@ -176,7 +177,7 @@ clang-tidy-all:
 	@echo "Checking all C files under src/"
 	git ls-files -- 'src/*.[ch]' \
 		| grep -E -v 'board|chibios|peripherals|system_monitor|syscalls|chconf' \
-		| xargs -P 1 -I file ./scripts/ci/docker-clang-tidy.sh -quiet -export-fixes=fixes.yaml file -- $(CLANG_TIDY_FLAGS) $(CLANG_TIDY_INCLUDES)
+		| xargs -t -I{} clang-tidy-6.0 -export-fixes=fixes.yaml {} -- $(CLANG_TIDY_FLAGS) $(CLANG_TIDY_INCLUDES)
 
 run_tests:
 	$(MAKE) -C tests
