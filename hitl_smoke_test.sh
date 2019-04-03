@@ -35,7 +35,7 @@ fi
 function join_by { local IFS="$1"; shift; echo "$*"; }
 
 HITL_API_GITHUB_USER="swiftnav-travis"
-HITL_API_URL="https://hitlapi.swiftnav.com"
+HITL_API_URL="https://hitl-api.ce.swiftnav.com"
 # From https://github.com/travis-ci/travis-ci/issues/8557, it is not trivial to
 # get the name / email of the person who made the PR, so we'll use the email of
 # the commit instead.
