@@ -69,26 +69,6 @@ static struct nap_ch_state {
   double fcn_freq_hz;         /**< GLO FCN frequency shift (0 for GPS) */
 } nap_ch_desc[MAX_CHANNELS];
 
-/* Interleave two bytes.
- *
- * NOTE:
- * This function is temporary implemented here.
- *
- * It is implemented in libswiftnav with the following PR:
- * https://github.com/swift-nav/libswiftnav/pull/72
- *
- * As soon as the starling pointer for PFWP is updated, the function
- * here should be removed and calls replaced with the one in libswiftnav.
- */
-u16 bytes_interleave_tmp(const u8 x, const u8 y) {
-  u16 z = 0;
-
-  for (u8 i = 0; i < 8; i++) {
-    z |= (x & 1U << i) << i | (y & 1U << i) << (i + 1);
-  }
-  return z;
-}
-
 /** Compute the correlation length in the units of sampling frequency samples.
  * \param chips_to_correlate The number of chips to correlate over.
  * \param cp_start_frac_units Initial code phase in NAP units.
@@ -325,8 +305,8 @@ void nap_track_init(u8 channel,
                                   channel - NAP_FIRST_GAL_E1_CHANNEL));
 
     for (u16 k = 0; k < GAL_E1B_PRN_BYTES; k++) {
-      chip_bytes = bytes_interleave_tmp(gal_e1c_codes[index][k],
-                                        gal_e1b_codes[index][k]);
+      chip_bytes =
+          bytes_interleave(gal_e1c_codes[index][k], gal_e1b_codes[index][k]);
 
       bram_addr = ((k * 2) << NAP_TRK_GAL_E1_MEMCFG_DATA_IDX_Pos);
       bram_data = ((chip_bytes >> 8) & 0xFF);
