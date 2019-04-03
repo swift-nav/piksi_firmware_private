@@ -46,11 +46,11 @@
 #define NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE \
   ((u64)1 << NAP_TRACK_CARRIER_PHASE_FRACTIONAL_WIDTH)
 
-#define NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ \
-  (NAP_TRACK_CODE_PHASE_UNITS_PER_CHIP / (double)NAP_TRACK_SAMPLE_RATE_Hz)
-
 #define NAP_TRACK_CODE_PHASE_UNITS_PER_CHIP \
   ((u64)1 << NAP_TRACK_CODE_PHASE_FRACTIONAL_WIDTH)
+
+#define NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ \
+  (NAP_TRACK_CODE_PHASE_UNITS_PER_CHIP / (double)NAP_TRACK_SAMPLE_RATE_Hz)
 
 #define SET_NAP_CORR_LEN(len) (len - 1)
 
@@ -65,22 +65,22 @@ static struct nap_ch_state {
   u64 sw_code_phase;          /**< Reckoned code phase */
   s64 sw_carr_phase;          /**< Reckoned carrier phase */
   double reckoned_carr_phase; /**< Reckoned carrier phase */
-  double code_phase_rate[2];  /**< Code phase rates */
+  double chip_rate[2];        /**< Code phase rates */
   double fcn_freq_hz;         /**< GLO FCN frequency shift (0 for GPS) */
 } nap_ch_desc[MAX_CHANNELS];
 
 /** Compute the correlation length in the units of sampling frequency samples.
  * \param chips_to_correlate The number of chips to correlate over.
  * \param cp_start_frac_units Initial code phase in NAP units.
- * \param cp_rate_units Code phase rate.
+ * \param chip_rate_units Code phase rate.
  * \return The correlation length in NAP units
  */
 static u32 calc_length_samples(u32 chips_to_correlate,
                                u32 cp_start_frac_units,
-                               u32 cp_rate_units) {
+                               u32 chip_rate_units) {
   u64 cp_end_units = chips_to_correlate * NAP_TRACK_CODE_PHASE_UNITS_PER_CHIP;
   u64 cp_units = cp_end_units - (s32)cp_start_frac_units;
-  u32 samples = round(cp_units / (double)cp_rate_units);
+  u32 samples = round(cp_units / (double)chip_rate_units);
   return samples;
 }
 
@@ -149,12 +149,78 @@ static u8 mesid_to_nap_code(const me_gnss_signal_t mesid) {
   return ret;
 }
 
-/** Compute the number of samples per code chip.
- * \param code GNSS code identifier.
- * \return Number of samples per code chip.
+/** Compute the number of timing counts per code chip.
+ * \param chip_rate Code phase rate.
+ * \return Number of timing counts per code chip.
  */
-static double calc_samples_per_chip(double code_phase_rate) {
-  return (double)NAP_TRACK_SAMPLE_RATE_Hz / code_phase_rate;
+static double calc_tc_per_chip(double chip_rate) {
+  return (double)NAP_TRACK_SAMPLE_RATE_Hz / chip_rate;
+}
+
+/** Initialize LFSRs, secondary codes and memory codes. */
+static inline void init_code_generators(const me_gnss_signal_t mesid,
+                                        const u32 num_codes,
+                                        const u8 channel) {
+  u8 index = 0;
+#if defined CODE_GAL_E1_SUPPORT && CODE_GAL_E1_SUPPORT > 0
+  if (mesid.code == CODE_GAL_E1B) {
+    u16 chip_bytes;
+    u32 channel_addr_one_hot;
+    u32 bram_addr;
+    u32 bram_data;
+
+    index = mesid.sat - 1;
+    channel_addr_one_hot = (1 << (NAP_TRK_GAL_E1_MEMCFG_CHANNEL_NR_Pos +
+                                  channel - NAP_FIRST_GAL_E1_CHANNEL));
+
+    for (u16 k = 0; k < GAL_E1B_PRN_BYTES; k++) {
+      chip_bytes =
+          bytes_interleave(gal_e1c_codes[index][k], gal_e1b_codes[index][k]);
+
+      bram_addr = ((k * 2) << NAP_TRK_GAL_E1_MEMCFG_DATA_IDX_Pos);
+      bram_data = ((chip_bytes >> 8) & 0xFF);
+      NAP->TRK_GAL_E1_MEMCFG = channel_addr_one_hot | bram_addr | bram_data;
+
+      bram_addr = ((k * 2 + 1) << NAP_TRK_GAL_E1_MEMCFG_DATA_IDX_Pos);
+      bram_data = (chip_bytes & 0xFF);
+      NAP->TRK_GAL_E1_MEMCFG = channel_addr_one_hot | bram_addr | bram_data;
+    }
+  } else {
+#endif /* CODE_GAL_E1_SUPPORT */
+    if (mesid.code == CODE_GPS_L2CM) {
+      index = (num_codes % GPS_L2CL_PRN_START_POINTS);
+    }
+
+    NAP->TRK_CODE_LFSR0_INIT = mesid_to_lfsr0_init(mesid);
+    NAP->TRK_CODE_LFSR0_RESET = mesid_to_lfsr0_init(mesid);
+    NAP->TRK_CODE_LFSR0_LAST = mesid_to_lfsr0_last(mesid);
+
+    NAP->TRK_CODE_LFSR1_INIT = mesid_to_lfsr1_init(mesid, index);
+    NAP->TRK_CODE_LFSR1_RESET = mesid_to_lfsr1_init(mesid, 0);
+    NAP->TRK_CODE_LFSR1_LAST = mesid_to_lfsr1_last(mesid);
+
+    if (mesid.code == CODE_GAL_E5I) {
+      index = mesid.sat - 1;
+      NAP->TRK_SEC_CODE[3] = getbitu(gal_e5q_sec_codes[index], 0, 4);
+      NAP->TRK_SEC_CODE[2] = getbitu(gal_e5q_sec_codes[index], 4, 32);
+      NAP->TRK_SEC_CODE[1] = getbitu(gal_e5q_sec_codes[index], 36, 32);
+      NAP->TRK_SEC_CODE[0] = getbitu(gal_e5q_sec_codes[index], 68, 32);
+    } else if (mesid.code == CODE_GAL_E7I) {
+      index = mesid.sat - 1;
+      NAP->TRK_SEC_CODE[3] = getbitu(gal_e7q_sec_codes[index], 0, 4);
+      NAP->TRK_SEC_CODE[2] = getbitu(gal_e7q_sec_codes[index], 4, 32);
+      NAP->TRK_SEC_CODE[1] = getbitu(gal_e7q_sec_codes[index], 36, 32);
+      NAP->TRK_SEC_CODE[0] = getbitu(gal_e7q_sec_codes[index], 68, 32);
+    } else if (mesid.code == CODE_BDS3_B5I) {
+      index = mesid.sat - 1;
+      NAP->TRK_SEC_CODE[3] = getbitu(bds3_b2aq_sec_codes[index], 0, 4);
+      NAP->TRK_SEC_CODE[2] = getbitu(bds3_b2aq_sec_codes[index], 4, 32);
+      NAP->TRK_SEC_CODE[1] = getbitu(bds3_b2aq_sec_codes[index], 36, 32);
+      NAP->TRK_SEC_CODE[0] = getbitu(bds3_b2aq_sec_codes[index], 68, 32);
+    }
+#if defined CODE_GAL_E1_SUPPORT && CODE_GAL_E1_SUPPORT > 0
+  }
+#endif /* CODE_GAL_E1_SUPPORT */
 }
 
 void nap_track_init(u8 channel,
@@ -185,27 +251,23 @@ void nap_track_init(u8 channel,
   s->fcn_freq_hz = mesid_to_carr_fcn_hz(mesid);
   s->mesid = mesid;
 
-  /* Set correlator spacing */
-  s->spacing = IS_GLO(s->mesid) ? NAP_EPL_SPACING_SAMPLES
-                                : (NAP_EPL_SPACING_SAMPLES - 1);
-
-  /* code and carrier frequency */
+  /* CHIP RATE --------------------------------------------------------- */
   double carrier_hz = mesid_to_carr_freq(mesid);
   double chip_rate =
       (1.0 + doppler_hz / carrier_hz) * code_to_chip_rate(mesid.code);
 
-  /* Spacing between VE and P correlators */
-  s16 delta_samples = NAP_VEP_SPACING_SAMPLES;
-
-  /* MIC_COMMENT: nap_track_update_init() so that nap_track_update()
+  /* MIC_COMMENT: nap_track_init() so that nap_track_update()
    * does not have to branch for the special "init" situation */
-  /* Chip rate */
-  s->code_phase_rate[1] = s->code_phase_rate[0] = chip_rate;
-  u32 cp_rate_units = round(chip_rate * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ);
-  s->code_pinc[1] = s->code_pinc[0] = cp_rate_units;
-  t->CODE_PINC = cp_rate_units;
-  /* Integration length */
-  u32 length = calc_length_samples(chips_to_correlate, 0, cp_rate_units);
+
+  s->chip_rate[1] = s->chip_rate[0] = chip_rate;
+  u32 chip_rate_units =
+      round(chip_rate * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ);
+  s->code_pinc[1] = s->code_pinc[0] = chip_rate_units;
+
+  t->CODE_PINC = chip_rate_units;
+
+  /* INTEGRATION LENGTH ------------------------------------------------ */
+  u32 length = calc_length_samples(chips_to_correlate, 0, chip_rate_units);
   s->length[1] = s->length[0] = length;
   if ((length < NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MIN_MS)) ||
       (length > NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MAX_MS))) {
@@ -213,34 +275,43 @@ void nap_track_init(u8 channel,
                     "Wrong inital NAP correlation length: "
                     "(%" PRIu32 " %" PRIu32 " %" PRIu32 " %lf)",
                     chips_to_correlate,
-                    cp_rate_units,
+                    chip_rate_units,
                     length,
                     chip_rate);
   }
+  /* Set correlator spacing */
+  s->spacing = IS_GLO(s->mesid) ? NAP_EPL_SPACING_SAMPLES
+                                : (NAP_EPL_SPACING_SAMPLES - 1);
+
   t->CORR_SET = ((u32)(s->spacing) << NAP_TRK_CH_CORR_SET_SPACING_Pos) |
                 SET_NAP_CORR_LEN(length);
-  s->length_adjust = delta_samples;
-  /* Carrier phase rate */
+
+  /* CARRIER (+FCN) FREQ ----------------------------------------------- */
+  /* Note: s->fcn_freq_hz is non zero for Glonass only */
   double carrier_dopp_hz = -(s->fcn_freq_hz + doppler_hz);
   s32 carr_pinc = round(carrier_dopp_hz * NAP_TRACK_CARRIER_FREQ_UNITS_PER_HZ);
   s->carr_pinc[1] = s->carr_pinc[0] = carr_pinc;
+
   t->CARR_PINC = carr_pinc;
 
-  /* Adjust first integration length due to correlator spacing */
-  /* was absorbed using `delta_samples` in nap_track_update() above */
+  /* Adjust first integration length, because correlator spacing is
+   * absorbed using `delta_samples` above. */
+  s16 delta_samples = NAP_VEP_SPACING_SAMPLES;
+  s->length_adjust = delta_samples;
 
-  /* get the code rollover point in samples */
+  /* Get the code rollover point in samples */
   u64 tc_codestart = ref_timing_count - delta_samples -
-                     (s32)round(code_phase * calc_samples_per_chip(chip_rate));
+                     (s32)round(code_phase * calc_tc_per_chip(chip_rate));
 
   nap_track_enable(channel);
 
   COMPILER_BARRIER();
 
-  /* Set up timing compare */
+  /* SET UP TIMING COMPARE --------------------------------------------- */
   u32 code_chips = code_to_chip_count(mesid.code);
-  double code_samples = (double)code_chips * calc_samples_per_chip(chip_rate);
+  double tc_code_period = (double)code_chips * calc_tc_per_chip(chip_rate);
 
+  /* Determine number of code periods for a symbol */
   bool symbol_synced = !code_requires_direct_acq(mesid.code);
   u32 num_codes = 1;
   if (symbol_synced) {
@@ -272,91 +343,33 @@ void nap_track_init(u8 channel,
 
   chSysLock();
 
-  /* get a reasonable deadline to which propagate to */
+  /* Get a reasonable deadline to which to propagate to */
   u64 tc_min_propag = NAP->TIMING_COUNT + TIMING_COMPARE_DELTA_MIN;
-  /* extend tc_min_propag - cannot use helper function in syslock */
+  /* Extend tc_min_propag - cannot use helper function in syslock */
   tc_min_propag += (tc_codestart >> 32) << 32;
   if (tc_min_propag < tc_codestart) {
     tc_min_propag += (1ULL << 32);
   }
 
-  u32 samples_diff = tc_min_propag - tc_codestart;
-  u32 tmp = (u32)floor((double)samples_diff / code_samples);
+  u32 tc_diff = tc_min_propag - tc_codestart;
+  u32 tmp = (u32)floor((double)tc_diff / tc_code_period);
   assert(num_codes);
   num_codes *= (1 + (tmp / num_codes));
 
   u64 tc_next_rollover =
-      tc_codestart + (u64)floor(0.5 + (double)num_codes * code_samples);
+      tc_codestart + (u64)floor(0.5 + (double)num_codes * tc_code_period);
 
-  u8 index = 0;
-  if (mesid.code == CODE_GPS_L2CM) {
-    index = (num_codes % GPS_L2CL_PRN_START_POINTS);
-  }
-
-#if defined CODE_GAL_E1_SUPPORT && CODE_GAL_E1_SUPPORT > 0
-  if (mesid.code == CODE_GAL_E1B) {
-    u16 chip_bytes;
-    u32 channel_addr_one_hot;
-    u32 bram_addr;
-    u32 bram_data;
-
-    index = mesid.sat - 1;
-    channel_addr_one_hot = (1 << (NAP_TRK_GAL_E1_MEMCFG_CHANNEL_NR_Pos +
-                                  channel - NAP_FIRST_GAL_E1_CHANNEL));
-
-    for (u16 k = 0; k < GAL_E1B_PRN_BYTES; k++) {
-      chip_bytes =
-          bytes_interleave(gal_e1c_codes[index][k], gal_e1b_codes[index][k]);
-
-      bram_addr = ((k * 2) << NAP_TRK_GAL_E1_MEMCFG_DATA_IDX_Pos);
-      bram_data = ((chip_bytes >> 8) & 0xFF);
-      NAP->TRK_GAL_E1_MEMCFG = channel_addr_one_hot | bram_addr | bram_data;
-
-      bram_addr = ((k * 2 + 1) << NAP_TRK_GAL_E1_MEMCFG_DATA_IDX_Pos);
-      bram_data = (chip_bytes & 0xFF);
-      NAP->TRK_GAL_E1_MEMCFG = channel_addr_one_hot | bram_addr | bram_data;
-    }
-  } else {
-#endif /* CODE_GAL_E1_SUPPORT */
-    NAP->TRK_CODE_LFSR0_INIT = mesid_to_lfsr0_init(mesid);
-    NAP->TRK_CODE_LFSR0_RESET = mesid_to_lfsr0_init(mesid);
-    NAP->TRK_CODE_LFSR0_LAST = mesid_to_lfsr0_last(mesid);
-
-    NAP->TRK_CODE_LFSR1_INIT = mesid_to_lfsr1_init(mesid, index);
-    NAP->TRK_CODE_LFSR1_RESET = mesid_to_lfsr1_init(mesid, 0);
-    NAP->TRK_CODE_LFSR1_LAST = mesid_to_lfsr1_last(mesid);
-
-    if (mesid.code == CODE_GAL_E5I) {
-      index = mesid.sat - 1;
-      NAP->TRK_SEC_CODE[3] = getbitu(gal_e5q_sec_codes[index], 0, 4);
-      NAP->TRK_SEC_CODE[2] = getbitu(gal_e5q_sec_codes[index], 4, 32);
-      NAP->TRK_SEC_CODE[1] = getbitu(gal_e5q_sec_codes[index], 36, 32);
-      NAP->TRK_SEC_CODE[0] = getbitu(gal_e5q_sec_codes[index], 68, 32);
-    } else if (mesid.code == CODE_GAL_E7I) {
-      index = mesid.sat - 1;
-      NAP->TRK_SEC_CODE[3] = getbitu(gal_e7q_sec_codes[index], 0, 4);
-      NAP->TRK_SEC_CODE[2] = getbitu(gal_e7q_sec_codes[index], 4, 32);
-      NAP->TRK_SEC_CODE[1] = getbitu(gal_e7q_sec_codes[index], 36, 32);
-      NAP->TRK_SEC_CODE[0] = getbitu(gal_e7q_sec_codes[index], 68, 32);
-    } else if (mesid.code == CODE_BDS3_B5I) {
-      index = mesid.sat - 1;
-      NAP->TRK_SEC_CODE[3] = getbitu(bds3_b2aq_sec_codes[index], 0, 4);
-      NAP->TRK_SEC_CODE[2] = getbitu(bds3_b2aq_sec_codes[index], 4, 32);
-      NAP->TRK_SEC_CODE[1] = getbitu(bds3_b2aq_sec_codes[index], 36, 32);
-      NAP->TRK_SEC_CODE[0] = getbitu(bds3_b2aq_sec_codes[index], 68, 32);
-    }
-#if defined CODE_GAL_E1_SUPPORT && CODE_GAL_E1_SUPPORT > 0
-  }
-#endif /* CODE_GAL_E1_SUPPORT */
-
-  /* port FCN-induced NCO phase to a common receiver clock point */
+  /* Port FCN-induced NCO phase to a common receiver clock point */
   s->reckoned_carr_phase = (s->fcn_freq_hz) *
                            (tc_next_rollover % FCN_NCO_RESET_COUNT) /
                            NAP_TRACK_SAMPLE_RATE_Hz;
 
-  tc_next_rollover &= 0xFFFFFFFF;
+  init_code_generators(mesid, num_codes, channel);
 
+  /* Set timing compare */
+  tc_next_rollover &= 0xFFFFFFFF;
   NAP->TRK_TIMING_COMPARE = tc_next_rollover;
+
   chSysUnlock();
 
   /* Sleep until compare match */
@@ -382,18 +395,19 @@ void nap_track_update(u8 channel,
   /* CHIP RATE --------------------------------------------------------- */
   u32 code_phase_frac = (u32)s->sw_code_phase + s->code_pinc[0] * s->length[0];
 
-  s->code_phase_rate[1] = s->code_phase_rate[0];
-  s->code_phase_rate[0] = chip_rate;
+  s->chip_rate[1] = s->chip_rate[0];
+  s->chip_rate[0] = chip_rate;
 
-  u32 code_units = round(chip_rate * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ);
+  u32 chip_rate_units =
+      round(chip_rate * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ);
   s->code_pinc[1] = s->code_pinc[0];
-  s->code_pinc[0] = code_units;
+  s->code_pinc[0] = chip_rate_units;
 
-  t->CODE_PINC = code_units;
+  t->CODE_PINC = chip_rate_units;
 
   /* INTEGRATION LENGTH ------------------------------------------------ */
   u32 length =
-      calc_length_samples(chips_to_correlate, code_phase_frac, code_units);
+      calc_length_samples(chips_to_correlate, code_phase_frac, chip_rate_units);
   length += s->length_adjust;
   s->length_adjust = 0;
   s->length[1] = s->length[0];
@@ -411,7 +425,7 @@ void nap_track_update(u8 channel,
                    "(%" PRIu32 " %" PRIu32 " %" PRIu32 " %" PRIu32 " %lf)",
                    chips_to_correlate,
                    code_phase_frac,
-                   code_units,
+                   chip_rate_units,
                    length,
                    chip_rate);
   }
@@ -461,7 +475,7 @@ void nap_track_read_results(u8 channel,
 
   /* Spacing between VE and P correlators */
   double prompt_offset =
-      NAP_VEP_SPACING_SAMPLES / calc_samples_per_chip(s->code_phase_rate[1]);
+      NAP_VEP_SPACING_SAMPLES / calc_tc_per_chip(s->chip_rate[1]);
 
   /* Code and carrier phase reckoning */
   s64 carr_phase_incr = ((s64)s->length[1]) * s->carr_pinc[1];
