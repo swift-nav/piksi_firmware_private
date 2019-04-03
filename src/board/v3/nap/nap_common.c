@@ -79,7 +79,7 @@ u64 nap_timing_count(void) {
 
   /* initialize rollover to random value, corresponding to 0-7 days uptime */
   if (0 == rollover_count) {
-    rollover_count = (u32)rand() % 3000;
+    rollover_count = (u32)rand() % 3000 + 1;
     log_warn("Initializing NAP rollover_count %ld", rollover_count);
   }
 

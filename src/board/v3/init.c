@@ -84,10 +84,11 @@ void pre_init(void) { rpmsg_setup(); }
 
 static void random_init(void) {
   u32 seed = 0;
-  u32 sample_data = nap_conf_rd_random();
-
-  for (int i = 0; i < 32; i++) seed ^= sample_data >> i;
-
+  /* xor together all registers in the hope that at least something is random */
+  for (int i = 0; i < 256; i++) {
+    seed ^= nt1065_read_reg(i) << (i % 24);
+  }
+  log_warn("random seed %lu", seed);
   srand(seed);
 }
 
@@ -109,11 +110,11 @@ void init(void) {
   frontend_configure();
 
   random_init();
+  xadc_init();
 
   /* Initialize rollover counter */
   nap_timing_count();
 
-  xadc_init();
   antenna_init();
   manage_pv_setup();
   imu_init();
