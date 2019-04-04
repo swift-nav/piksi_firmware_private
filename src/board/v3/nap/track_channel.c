@@ -266,7 +266,7 @@ void nap_track_init(u8 channel,
 
   t->CODE_PINC = chip_rate_units;
 
-  /* INTEGRATION LENGTH ------------------------------------------------ */
+  /* CORRELATION SETTINGS (integration length, spacing) ---------------- */
   u32 length = calc_length_samples(chips_to_correlate, 0, chip_rate_units);
   s->length[1] = s->length[0] = length;
   if ((length < NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MIN_MS)) ||
@@ -279,7 +279,6 @@ void nap_track_init(u8 channel,
                     length,
                     chip_rate);
   }
-  /* Set correlator spacing */
   s->spacing = IS_GLO(s->mesid) ? NAP_EPL_SPACING_SAMPLES
                                 : (NAP_EPL_SPACING_SAMPLES - 1);
 
@@ -405,7 +404,7 @@ void nap_track_update(u8 channel,
 
   t->CODE_PINC = chip_rate_units;
 
-  /* INTEGRATION LENGTH ------------------------------------------------ */
+  /* CORRELATION SETTINGS (integration length, spacing) ---------------- */
   u32 length =
       calc_length_samples(chips_to_correlate, code_phase_frac, chip_rate_units);
   length += s->length_adjust;
@@ -430,7 +429,7 @@ void nap_track_update(u8 channel,
                    chip_rate);
   }
 
-  /* CARRIER (+FCN) FREQ ---------------------------------------------- */
+  /* CARRIER (+FCN) FREQ ----------------------------------------------- */
   /* Note: s->fcn_freq_hz is non zero for Glonass only */
   double carrier_freq_hz = -(s->fcn_freq_hz + doppler_hz);
 
