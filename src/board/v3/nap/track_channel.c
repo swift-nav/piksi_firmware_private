@@ -276,12 +276,12 @@ void nap_track_init(u8 channel,
    * does not have to branch for the special "init" situation */
 
   s->chip_rate[1] = s->chip_rate[0] = chip_rate;
-  u32 cp_rate_units;
+  u32 chip_rate_units;
   if (s->mesid.code == CODE_GLO_L1OF || s->mesid.code == CODE_GLO_L2OF) {
-    cp_rate_units =
+    chip_rate_units =
         round(chip_rate * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ_GLO);
   } else {
-    cp_rate_units = round(chip_rate * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ);
+    chip_rate_units = round(chip_rate * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ);
   }
   s->code_pinc[1] = s->code_pinc[0] = chip_rate_units;
 
@@ -300,8 +300,7 @@ void nap_track_init(u8 channel,
                     length,
                     chip_rate);
   }
-  s->spacing = IS_GLO(s->mesid) ? NAP_EPL_SPACING_SAMPLES
-                                : (NAP_EPL_SPACING_SAMPLES - 1);
+  s->spacing = NAP_EPL_SPACING_SAMPLES - 1;
 
   t->CORR_SET = ((u32)(s->spacing) << NAP_TRK_CH_CORR_SET_SPACING_Pos) |
                 SET_NAP_CORR_LEN(length);
@@ -425,11 +424,12 @@ void nap_track_update(u8 channel,
   s->chip_rate[1] = s->chip_rate[0];
   s->chip_rate[0] = chip_rate;
 
-  u32 code_units;
+  u32 chip_rate_units;
   if (s->mesid.code == CODE_GLO_L1OF || s->mesid.code == CODE_GLO_L2OF) {
-    code_units = round(chip_rate * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ_GLO);
+    chip_rate_units =
+        round(chip_rate * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ_GLO);
   } else {
-    code_units = round(chip_rate * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ);
+    chip_rate_units = round(chip_rate * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ);
   }
   s->code_pinc[1] = s->code_pinc[0];
   s->code_pinc[0] = chip_rate_units;
@@ -511,9 +511,8 @@ void nap_track_read_results(u8 channel,
   }
 
   /* Spacing between VE and P correlators */
-  double prompt_offset =
-      NAP_VEP_SPACING_SAMPLES /
-      calc_samples_per_chip(s->code_phase_rate[1], s->mesid.code);
+  double prompt_offset = NAP_VEP_SPACING_SAMPLES /
+                         calc_samples_per_chip(s->chip_rate[1], s->mesid.code);
 
   /* Code and carrier phase reckoning */
   s64 carr_phase_incr = ((s64)s->length[1]) * s->carr_pinc[1];
