@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.6)
 # but the opep-amp package doesn't conform to typical CMake conventions
 # and uses "None" for bare metal target systems
 # This causes some innocuous messages when running CMake
-SET(CMAKE_SYSTEM_NAME None)
+SET(CMAKE_SYSTEM_NAME Generic)
 SET(CMAKE_SYSTEM_PROCESSOR arm)
 # This needs to be set, but we don't version our "system"
 SET(CMAKE_SYSTEM_VERSION 1)
