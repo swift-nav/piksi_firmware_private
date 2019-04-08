@@ -34,7 +34,7 @@
 #include "soft_macq/prns.h"
 #include "timing/timing.h"
 
-#define TIMING_COMPARE_DELTA_MIN (1e-3 * NAP_TRACK_SAMPLE_RATE_Hz)
+#define TIMING_COMPARE_DELTA_MIN (1e-3 * NAP_TRACK_SAMPLE_RATE_Hz_GAL)
 
 #define NAP_TRACK_CARRIER_FREQ_WIDTH 32
 #define NAP_TRACK_CARRIER_PHASE_FRACTIONAL_WIDTH 32
@@ -170,7 +170,7 @@ static double calc_samples_per_chip(double chip_freq_hz, code_t code) {
  * \return Number of timing counts per code chip.
  */
 static double calc_tc_per_chip(double chip_freq_hz) {
-  return (double)NAP_TRACK_SAMPLE_RATE_Hz / chip_freq_hz;
+  return (double)NAP_TRACK_SAMPLE_RATE_Hz_GAL / chip_freq_hz;
 }
 
 /** Initialize LFSRs, secondary codes and memory codes. */
@@ -407,7 +407,7 @@ void nap_track_init(u8 channel,
   s32 tc_delta;
   while ((tc_delta = (tc_next_rollover - NAP->TIMING_COUNT)) >= 0) {
     systime_t sleep_time =
-        floor(CH_CFG_ST_FREQUENCY * tc_delta / NAP_TRACK_SAMPLE_RATE_Hz);
+        floor(CH_CFG_ST_FREQUENCY * tc_delta / NAP_TRACK_SAMPLE_RATE_Hz_GAL);
 
     /* The next system tick will always occur less than the nominal tick
      * period in the future, so sleep for an extra tick. */
