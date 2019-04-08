@@ -37,13 +37,21 @@
  * @brief   The sample rate used by the NAP timing count
  * @note    The NAP timing count currently uses tracking sample frequency
  */
+<<<<<<< 0eb3ba92517df5c56e23d5a24e42ec8d7a56ed2a
 #define NAP_TIMING_COUNT_RATE_Hz (NAP_TRACK_SAMPLE_RATE_Hz)
+=======
+#define NAP_FRONTEND_SAMPLE_RATE_Hz (NAP_TRACK_SAMPLE_RATE_Hz_GAL)
+>>>>>>> FPGA timing count runs 33 MHz
 
 /**
  * @brief   This is 2 ms expressed as integer number of tracking samples
  * @note    needed for Glonass carrier phase stability
  */
+<<<<<<< 0eb3ba92517df5c56e23d5a24e42ec8d7a56ed2a
 #define FCN_NCO_RESET_COUNT ((u64)(NAP_TIMING_COUNT_RATE_Hz / 500))
+=======
+#define FCN_NCO_RESET_COUNT ((u64)(NAP_FRONTEND_SAMPLE_RATE_Hz / 500))
+>>>>>>> FPGA timing count runs 33 MHz
 
 #define NAP_PPS_TIMING_COUNT_OFFSET (-20)
 #define NAP_EXT_TIMING_COUNT_OFFSET (8)
