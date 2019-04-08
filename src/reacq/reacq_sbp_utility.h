@@ -14,8 +14,12 @@
 #define SRC_REACQ_REACQ_SBP_UTILITY_H_
 
 #include "sbp/sbp.h"
+#include "search_manager_api.h"
+#include "soft_macq/soft_macq_main.h"
 
 void reacq_sbp_init(void);
-void reacq_sbp_data_process(const acq_sv_profile_t *profile);
+void sch_send_acq_profile_msg(const acq_job_t *job,
+                              const acq_result_t *acq_result,
+                              bool peak_found);
 
 #endif /* SRC_REACQ_REACQ_SBP_UTILITY_H_ */

@@ -84,17 +84,20 @@ void sm_get_glo_visibility_flags(u16 sat, bool *visible, bool *known) {
  * \param[out] visible set if SV is visible
  * \param[out] known set if SV is known visible or known invisible
  */
-void sm_get_visibility_flags(gnss_signal_t sid, bool *visible, bool *known) {
-  if (0 != (test_case->vis_mask & (1 << sid_to_code_index(sid)))) {
+u16 sm_get_visibility_flags(const me_gnss_signal_t mesid,
+                            bool *visible,
+                            bool *known) {
+  if (0 != (test_case->vis_mask & (1 << mesid_to_code_index(mesid)))) {
     *visible = true;
   } else {
     *visible = false;
   }
-  if (0 != (test_case->known_mask & (1 << sid_to_code_index(sid)))) {
+  if (0 != (test_case->known_mask & (1 << mesid_to_code_index(mesid)))) {
     *known = true;
   } else {
     *known = false;
   }
+  return mesid.sat;
 }
 
 void sm_calc_all_glo_visibility_flags(void){};
@@ -113,6 +116,18 @@ u64 timing_getms(void) { return (u64)stubs_now_ms; }
 bool sm_lgf_stamp(u64 *lgf_stamp) {
   *lgf_stamp = (u64)test_case->lgf_stamp_ms;
   return true;
+}
+
+/* Search manager functions which call other modules */
+/** Get SV visibility flags.
+ *
+ * \param[in] sid GNSS signal SV identifier
+ * \param[out] visible is set if SV is visible. Valid only if known is set
+ * \param[out] known set if SV is known visible or known invisible
+ */
+u16 sm_mesid_to_sat(const me_gnss_signal_t mesid) {
+  (void)mesid;
+  return 1;
 }
 
 /*** TASK GENERATOR UNIT TESTS STUBS ***/
@@ -195,6 +210,11 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
 }
 
 ndb_op_code_t ndb_lgf_read(last_good_fix_t *lgf) {
+  (void)lgf;
+  return NDB_ERR_UNSUPPORTED;
+}
+
+ndb_op_code_t ndb_cached_lgf_read(last_good_fix_t *lgf) {
   (void)lgf;
   return NDB_ERR_UNSUPPORTED;
 }

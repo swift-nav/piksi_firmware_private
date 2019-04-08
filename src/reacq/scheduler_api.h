@@ -14,6 +14,6 @@
 
 #include "search_manager_api.h"
 
-reacq_sched_ret_t sch_run(acq_jobs_state_t *jobs_data);
+reacq_sched_ret_t sch_run(acq_jobs_context_t *jobs_data);
 
 #endif /* SWIFTNAV_SCHEDULER_API_H */

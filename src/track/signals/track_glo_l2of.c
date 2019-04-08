@@ -10,28 +10,23 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-/* Local headers */
 #include "track_glo_l2of.h"
 
-#include "signal_db/signal_db.h"
-#include "track/track_api.h"
-#include "track/track_common.h"
-#include "track/track_interface.h"
-#include "track/track_utils.h"
-
-/* Non-local headers */
-#include <acq/manage.h>
-#include <platform_track.h>
-
-/* Libraries */
+#include <assert.h>
+#include <string.h>
 #include <swiftnav/constants.h>
 #include <swiftnav/glo_map.h>
 #include <swiftnav/logging.h>
 #include <swiftnav/signal.h>
 
-/* STD headers */
-#include <assert.h>
-#include <string.h>
+#include "acq/manage.h"
+#include "platform_track.h"
+#include "reacq/search_manager_utils.h"
+#include "signal_db/signal_db.h"
+#include "track/track_api.h"
+#include "track/track_common.h"
+#include "track/track_interface.h"
+#include "track/track_utils.h"
 
 /** GLO L2CA configuration section name */
 #define GLO_L2OF_TRACK_SETTING_SECTION "glo_l2of_track"
@@ -103,10 +98,11 @@ void do_glo_l1of_to_l2of_handover(u32 sample_count,
      tracking_channel_evelation_degrees_get(nap_channel) here.
      However, we assume it is done where tracker_init()
      is called. */
+  u16 slot = sm_mesid_to_sat(L1_mesid);
 
   tracking_startup_params_t startup_params = {
       .mesid = L2_mesid,
-      .glo_slot_id = get_orbit_slot(sat),
+      .glo_slot_id = slot,
       .sample_count = extended_sample_count,
       /* recalculate doppler freq for L2 from L1 */
       .doppler_hz = doppler_hz * glo_freq_scale,

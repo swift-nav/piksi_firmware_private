@@ -19,6 +19,7 @@
 #include "position/position.h"
 #include "sbas_select/sbas_select.h"
 #include "search_manager_api.h"
+#include "swiftnap.h"
 #include "timing/timing.h"
 
 /**
@@ -77,11 +78,11 @@ u16 sm_constellation_to_start_index(constellation_t gnss) {
       return NUM_SATS_GPS + NUM_SATS_GAL;
     case CONSTELLATION_QZS:
       return NUM_SATS_GPS + NUM_SATS_GAL + NUM_SATS_SBAS;
-    case CONSTELLATION_GLO:
-      return NUM_SATS_GPS + NUM_SATS_GAL + NUM_SATS_SBAS + NUM_SATS_QZS;
     case CONSTELLATION_BDS:
+      return NUM_SATS_GPS + NUM_SATS_GAL + NUM_SATS_SBAS + NUM_SATS_QZS;
+    case CONSTELLATION_GLO:
       return NUM_SATS_GPS + NUM_SATS_GAL + NUM_SATS_SBAS + NUM_SATS_QZS +
-             NUM_SATS_GLO;
+             NUM_SATS_BDS;
     default:
       assert(!"Incorrect constellation");
       return 0;
@@ -110,7 +111,7 @@ static u32 sbas_limit_mask(void) {
 }
 
 /** Global search job data */
-acq_jobs_state_t acq_all_jobs_state_data;
+acq_jobs_context_t acq_all_jobs_state_data;
 
 /* Search manager API functions */
 
@@ -120,24 +121,24 @@ acq_jobs_state_t acq_all_jobs_state_data;
  *
  * \return none
  */
-void sm_init(acq_jobs_state_t *data) {
-  memset(data, 0, sizeof(acq_jobs_state_t));
+void sm_init(acq_jobs_context_t *data) {
+  memset(data, 0, sizeof(acq_jobs_context_t));
 
-  struct init_struct {
+  const struct {
     constellation_t gnss;
-    u16 first_prn;
-  } reacq_gnss[] = {{CONSTELLATION_GPS, GPS_FIRST_PRN},
-                    {CONSTELLATION_GAL, GAL_FIRST_PRN},
-                    {CONSTELLATION_SBAS, SBAS_FIRST_PRN},
-                    {CONSTELLATION_QZS, QZS_FIRST_PRN},
-                    {CONSTELLATION_GLO, GLO_FIRST_PRN},
-                    {CONSTELLATION_BDS, BDS_FIRST_PRN}};
+    u16 first_sv;
+    u16 num_sv;
+  } reacq_gnss[] = {{CONSTELLATION_GPS, GPS_FIRST_PRN, NUM_SATS_GPS},
+                    {CONSTELLATION_GAL, GAL_FIRST_PRN, NUM_SATS_GAL},
+                    {CONSTELLATION_SBAS, SBAS_FIRST_PRN, NUM_SATS_SBAS},
+                    {CONSTELLATION_QZS, QZS_FIRST_PRN, NUM_SATS_QZS},
+                    {CONSTELLATION_GLO, GLO_MIN_FCN, GLO_MAX_FCN},
+                    {CONSTELLATION_BDS, BDS_FIRST_PRN, NUM_SATS_BDS}};
 
   for (u16 k = 0; k < ARRAY_SIZE(reacq_gnss); k++) {
+    u16 num_sv = reacq_gnss[k].num_sv;
     constellation_t gnss = reacq_gnss[k].gnss;
     u16 idx = sm_constellation_to_start_index(gnss);
-    u16 num_sv = constellation_to_sat_count(gnss);
-    code_t code = constellation_to_l1_code(gnss);
 
     if (idx + num_sv > REACQ_NUM_SAT) {
       log_error("idx + num_sv < REACQ_NUM_SAT: %d + %d < %d",
@@ -148,16 +149,10 @@ void sm_init(acq_jobs_state_t *data) {
     }
 
     acq_job_t *job = &data->jobs[idx];
-    u16 first_prn = reacq_gnss[k].first_prn;
+    u16 first_sv = reacq_gnss[k].first_sv;
+    code_t code = constellation_to_l1_code(gnss);
     for (u16 i = 0; i < num_sv; i++) {
-      if (CONSTELLATION_GLO == gnss) {
-        /* NOTE: GLO MESID is initialized evenly with all FCNs, so that
-         * blind searches are immediately done with whole range of FCNs */
-        job[i].mesid = construct_mesid(code, first_prn + (i % GLO_MAX_FCN));
-      } else {
-        job[i].mesid = construct_mesid(code, first_prn + i);
-      }
-      job[i].sid = construct_sid(code, first_prn + i);
+      job[i].mesid = construct_mesid(code, first_sv + i);
     }
   }
 }
@@ -175,7 +170,7 @@ void sm_init(acq_jobs_state_t *data) {
  *
  * \return none
  */
-void sm_restore_jobs(acq_jobs_state_t *jobs_data,
+void sm_restore_jobs(acq_jobs_context_t *jobs_data,
                      reacq_sched_ret_t last_job_type) {
   assert(jobs_data != NULL);
 
@@ -188,17 +183,22 @@ void sm_restore_jobs(acq_jobs_state_t *jobs_data,
   u64 now_ms = timing_getms();
 
   /* count the number of GPS L1CA signals tracked */
-  u16 num_gps_l1 = code_track_count(CODE_GPS_L1CA);
+  const u16 num_gps_l1 = code_track_count(CODE_GPS_L1CA);
   /* count the number of SBAS satellites tracked */
-  u16 num_sbas = code_track_count(CODE_SBAS_L1CA);
+  const u16 num_sbas = code_track_count(CODE_SBAS_L1CA);
+  /* count the number of GLO satellites tracked */
+  const u16 num_glo = code_track_count(CODE_GLO_L1OF);
 
   u32 sbas_mask = sbas_limit_mask();
   u32 sbas_start_idx = sm_constellation_to_start_index(CONSTELLATION_SBAS);
 
   for (u16 i = 0; i < REACQ_NUM_SAT; i++) {
     acq_job_t *job = &jobs_data->jobs[i];
-    constellation_t con = code_to_constellation(job->mesid.code);
+    const me_gnss_signal_t mesid = job->mesid;
+    assert(mesid_valid(mesid));
+    const constellation_t con = code_to_constellation(mesid.code);
 
+    /* constellation disabled */
     if (!is_constellation_enabled(con)) {
       job->state = ACQ_STATE_IDLE;
       continue;
@@ -209,64 +209,51 @@ void sm_restore_jobs(acq_jobs_state_t *jobs_data,
       u32 sbas_idx = i - sbas_start_idx;
       /* don't set job for those SBAS SV which are not in our SBAS range,
        * or if we already more than the limit */
-      if ((num_sbas >= SBAS_SV_NUM_LIMIT) ||
+      if ((num_sbas >= NAP_NUM_SBAS_L1_CHANNELS) ||
           (0 == ((sbas_mask >> sbas_idx) & 1))) {
         job->state = ACQ_STATE_IDLE;
         continue;
       }
     }
 
-    const gnss_signal_t sid = job->sid;
-    assert(sid_valid(sid));
-
-    me_gnss_signal_t *mesid = &job->mesid;
     if (CONSTELLATION_GLO == con) {
-      u16 glo_fcn = GLO_FCN_UNKNOWN;
-      if (glo_map_valid(sid)) {
-        glo_fcn = glo_map_get_fcn(sid);
-        *mesid = construct_mesid(CODE_GLO_L1OF, glo_fcn);
+      if (num_glo >= NAP_NUM_GLO_G1_CHANNELS) {
+        job->state = ACQ_STATE_IDLE;
+        continue;
       }
     }
-    assert(mesid_valid(*mesid));
 
     /* if this mesid is in track, no need for its job */
-    if (mesid_is_tracked(*mesid)) {
+    if (mesid_is_tracked(mesid)) {
       job->state = ACQ_STATE_IDLE;
       continue;
     }
     /* if this mesid can't be tracked, no need for its job */
-    if (!tracking_startup_ready(*mesid)) {
+    if (!tracking_startup_ready(mesid)) {
       job->state = ACQ_STATE_IDLE;
       continue;
     }
 
-    bool visible = false;
     bool known = false;
-    bool invisible = false;
-    sm_get_visibility_flags(sid, &visible, &known);
-    visible = visible && known;
-    invisible = !visible && known;
+    bool visible = false;
 
-    if (CONSTELLATION_SBAS == con) {
-      /* sbas_mask SVs are visible as they were selected by location. */
-      visible = true;
-    }
+    sm_get_visibility_flags(mesid, &visible, &known);
 
     /* save the job category into `sky_status` */
     job->sky_status = known ? (visible ? VISIBLE : INVISIBLE) : UNKNOWN;
 
-    if (visible) {
+    if (VISIBLE == job->sky_status) {
       /* should only arrive here once all visibile satellite have been tried */
       if ((num_gps_l1 < LOW_GPS_L1CA_SV_LIMIT) && (CONSTELLATION_GPS == con)) {
         /* if there are less than 6 GPS L1CA don't delay their reacq */
         job->state = ACQ_STATE_WAIT;
-      } else if ((now_ms - job->stop_time) >
+      } else if ((now_ms - job->stop_time_ms) >
                  REACQ_MIN_SEARCH_INTERVAL_VISIBLE_MS) {
         /* schedule a job as ready if the min delay elapsed */
         job->state = ACQ_STATE_WAIT;
       }
-    } else if ((!known || (CONSTELLATION_GLO == con && !glo_map_valid(sid))) &&
-               ((now_ms - job->stop_time) >
+    } else if ((UNKNOWN == job->sky_status) &&
+               ((now_ms - job->stop_time_ms) >
                 REACQ_MIN_SEARCH_INTERVAL_UNKNOWN_MS)) {
       /* if the scheduler has done nothing or tried an invisible satellite it
        * means that there were no more unknown satellites to search, so reset
@@ -274,12 +261,18 @@ void sm_restore_jobs(acq_jobs_state_t *jobs_data,
       if (REACQ_DONE_UNKNOWN < last_job_type) {
         job->state = ACQ_STATE_WAIT;
       }
-    } else if (invisible && ((now_ms - job->stop_time) >
-                             REACQ_MIN_SEARCH_INTERVAL_INVISIBLE_MS)) {
+    } else if ((INVISIBLE == job->sky_status) &&
+               ((now_ms - job->stop_time_ms) >
+                REACQ_MIN_SEARCH_INTERVAL_INVISIBLE_MS)) {
       /* if the scheduler last time has done nothing then there were no ready
        * satellites so it's time to put the invisible sats in the search queue
        * again */
       if (REACQ_DONE_INVISIBLE < last_job_type) {
+        log_info_mesid(mesid,
+                       "invisible rescheduled at %" PRIu64
+                       ", last was %" PRIu64,
+                       now_ms,
+                       job->stop_time_ms);
         job->state = ACQ_STATE_WAIT;
       }
     }

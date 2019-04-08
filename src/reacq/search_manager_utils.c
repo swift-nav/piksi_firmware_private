@@ -16,10 +16,22 @@
 #include "search_manager_api.h"
 #include "shm/shm.h"
 #include "sv_visibility/sv_visibility.h"
+#include "swiftnav/glo_map.h"
 #include "timing/timing.h"
+#include "track/track_sid_db.h"
 
 /* Ephemerides fit interval for the purpose of (re-)acq, two weeks, [s] */
 #define SM_FIT_INTERVAL_VALID (WEEK_SECS * 2)
+
+static void known_and_visible_getter(const gnss_signal_t sid,
+                                     bool *visible,
+                                     bool *known) {
+  float elev = 0.0f;
+  (*known) = sid_db_elevation_degrees_get(sid, &elev);
+  if ((*known) && (elev >= get_solution_elevation_mask())) {
+    *visible = true;
+  }
+}
 
 /* Search manager functions which call other modules */
 /** Get SV visibility flags.
@@ -28,61 +40,46 @@
  * \param[out] visible is set if SV is visible. Valid only if known is set
  * \param[out] known set if SV is known visible or known invisible
  */
-void sm_get_visibility_flags(gnss_signal_t sid, bool *visible, bool *known) {
-  last_good_fix_t lgf;
-  ephemeris_t ephe;
-
+u16 sm_get_visibility_flags(const me_gnss_signal_t mesid,
+                            bool *visible,
+                            bool *known) {
   *visible = false;
   *known = false;
 
-  if (NDB_ERR_NONE != ndb_lgf_read(&lgf) ||
-      POSITION_FIX != lgf.position_quality) {
-    return;
+  constellation_t con = code_to_constellation(mesid.code);
+  /* All constellations but Glonass */
+  if (CONSTELLATION_GLO != con) {
+    const gnss_signal_t sid = construct_sid(mesid.code, mesid.sat);
+    known_and_visible_getter(sid, visible, known);
+    return mesid.sat;
   }
-
-  ndb_op_code_t op_code = ndb_ephemeris_read(sid, &ephe);
-  if (NDB_ERR_NONE != op_code && NDB_ERR_UNCONFIRMED_DATA != op_code) {
-    return;
+  /* Glonass is always special */
+  u16 slot1, slot2;
+  u8 ret = glo_map_get_slot_id(mesid.sat, &slot1, &slot2);
+  if (0 == ret) {
+    return GLO_ORBIT_SLOT_UNKNOWN; /* unknown */
   }
-
-  gps_time_t t = get_current_time();
-
-  ephe.fit_interval = SM_FIT_INTERVAL_VALID;
-  if (!ephemeris_valid(&ephe, &t)) {
-    return;
+  const gnss_signal_t sid1 = construct_sid(mesid.code, slot1);
+  known_and_visible_getter(sid1, visible, known);
+  if ((*known) && (*visible)) return slot1;
+  if (!(*known) && (2 == ret)) {
+    const gnss_signal_t sid2 = construct_sid(mesid.code, slot2);
+    known_and_visible_getter(sid2, visible, known);
+    if ((*known) && (*visible)) return slot2;
   }
-
-  sv_vis_config_t vis_cfg;
-
-  vis_cfg.e = &ephe;
-  vis_cfg.lgf_ecef[0] = lgf.position_solution.pos_ecef[0];
-  vis_cfg.lgf_ecef[1] = lgf.position_solution.pos_ecef[1];
-  vis_cfg.lgf_ecef[2] = lgf.position_solution.pos_ecef[2];
-  vis_cfg.lgf_time = lgf.position_solution.time;
-  vis_cfg.user_velocity = MAX_USER_VELOCITY_MPS;
-  vis_cfg.time_delta = (u32)(
-      (nap_timing_count() - gpstime2napcount(&lgf.position_solution.time)) *
-      RX_DT_NOMINAL);
-
-  sv_visibility_status_get(&vis_cfg, visible, known);
+  return GLO_ORBIT_SLOT_UNKNOWN;
 }
 
-/** Get HW time of the last good fix (LGF)
+/* Search manager functions which call other modules */
+/** Get SV visibility flags.
  *
- * \param[out] lgf_stamp time of LGF (ms)
- * \return true lgf_stamp is valid, false otherwise
+ * \param[in] sid GNSS signal SV identifier
+ * \param[out] visible is set if SV is visible. Valid only if known is set
+ * \param[out] known set if SV is known visible or known invisible
  */
-bool sm_lgf_stamp(u64 *lgf_stamp) {
-  last_good_fix_t lgf;
-  if (TIME_UNKNOWN == get_time_quality()) {
-    return false;
-  }
-  if (ndb_lgf_read(&lgf) != NDB_ERR_NONE ||
-      lgf.position_quality != POSITION_FIX) {
-    return false;
-  }
+u16 sm_mesid_to_sat(const me_gnss_signal_t mesid) {
+  bool visible;
+  bool known;
 
-  *lgf_stamp = (u64)(gpstime2napcount(&lgf.position_solution.time) *
-                     (RX_DT_NOMINAL * 1000.0));
-  return true;
+  return sm_get_visibility_flags(mesid, &visible, &known);
 }

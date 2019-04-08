@@ -200,18 +200,37 @@ bool track_sid_db_azimuth_degrees_get(const gnss_signal_t sid, double *result) {
  * \param[out] result Pointer for storing the SV elevation in degrees
  *
  * \return true if success, false if elevation is not present in the cache,
+ *              or signal is not supported.
+ */
+bool sid_db_elevation_degrees_get(const gnss_signal_t sid, float *elev) {
+  tp_azel_entry_t entry = {0};
+  /* If elevation cache entry is loaded, do the entry age check */
+  if (sid_valid(sid) && elev && track_sid_db_load_azel(sid, &entry)) {
+    *elev = entry.elevation_d;
+    return true;
+  }
+  return false;
+}
+
+/** Return the elevation angle for a satellite.
+ *
+ * \param[in] sid Signal identifier for which the elevation should be returned.
+ * \param[out] result Pointer for storing the SV elevation in degrees
+ *
+ * \return true if success, false if elevation is not present in the cache,
  *                                   cache entry is too old, or GNSS
  *                                   constellation is not supported.
  *
  * \sa sv_elevation_degrees_set
  */
-bool track_sid_db_elevation_degrees_get(const gnss_signal_t sid,
-                                        double *result) {
+bool track_sid_db_elevation_degrees_get(const gnss_signal_t sid, double *elev) {
   tp_azel_entry_t entry = {0};
   /* If elevation cache entry is loaded, do the entry age check */
-  if (track_sid_db_load_azel(sid, &entry) &&
-      nap_timing_count() - entry.timestamp_tk < SEC2TICK(MAX_AZ_EL_AGE_SEC)) {
-    *result = entry.elevation_d;
+  bool db_load = track_sid_db_load_azel(sid, &entry);
+  bool up_to_date =
+      (nap_timing_count() - entry.timestamp_tk) < SEC2TICK(MAX_AZ_EL_AGE_SEC);
+  if (db_load && up_to_date) {
+    *elev = entry.elevation_d;
     return true;
   }
   return false;

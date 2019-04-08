@@ -204,7 +204,6 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/reacq/search_manager.o \
         $(SWIFTNAV_ROOT)/src/reacq/search_manager_utils.o \
         $(SWIFTNAV_ROOT)/src/reacq/scheduler.o \
-        $(SWIFTNAV_ROOT)/src/reacq/scheduler_utils.o \
         $(SWIFTNAV_ROOT)/src/reacq/task_generator.o \
         $(SWIFTNAV_ROOT)/src/specan/specan_main.o \
         $(SWIFTNAV_ROOT)/src/soft_macq/prns.o \

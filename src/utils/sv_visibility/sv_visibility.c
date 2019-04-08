@@ -33,7 +33,8 @@
 void sv_visibility_status_get(const sv_vis_config_t *config,
                               bool *visible,
                               bool *known) {
-  assert(visible != 0 && known != 0);
+  assert(visible);
+  assert(known);
 
   if (config == NULL || config->e == NULL) {
     *visible = false;
@@ -45,9 +46,9 @@ void sv_visibility_status_get(const sv_vis_config_t *config,
   float distance = config->user_velocity * (float)config->time_delta;
 
   /* calculate angle corresponds to arc length [rad] */
-  double arc_angle = distance / SV_VIS_EARTH_MIN_RADIUS;
+  float arc_angle = distance / SV_VIS_EARTH_MIN_RADIUS;
   log_debug_sid(config->e->sid, "arc_angle [deg] %lf", arc_angle * R2D);
-  double sv_max_vis_angle_deg;
+  float sv_max_vis_angle_deg;
   me_gnss_signal_t mesid =
       construct_mesid(config->e->sid.code, config->e->sid.sat);
   switch ((s8)mesid.code) {
@@ -73,6 +74,8 @@ void sv_visibility_status_get(const sv_vis_config_t *config,
   }
 
   if (arc_angle * R2D >= sv_max_vis_angle_deg) {
+    log_warn_sid(
+        config->e->sid, "distance %f arc_angle %f", distance, arc_angle);
     /* user traveled so far even best SV (zenith) cannot be seen */
     *visible = false;
     *known = false;
@@ -144,6 +147,10 @@ void sv_visibility_status_get(const sv_vis_config_t *config,
 
   if ((elevation_user <= elev_mask) &&
       elevation_delta > SV_VIS_MAX_UNKNOWN_ANGLE) {
+    log_warn_sid(config->e->sid,
+                 "elevation_user %f elevation_delta %f",
+                 elevation_user,
+                 elevation_delta);
     *visible = false;
     *known = false;
     return;

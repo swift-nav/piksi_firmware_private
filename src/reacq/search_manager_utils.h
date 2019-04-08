@@ -14,14 +14,17 @@
 
 #include "swiftnav/common.h"
 #include "swiftnav/signal.h"
+#include "utils/signal_db/signal_db.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
 
-bool sm_lgf_stamp(u64 *lgf_stamp);
-void sm_get_visibility_flags(gnss_signal_t sid, bool *visible, bool *known);
-void sm_calc_all_glo_visibility_flags(void);
+u16 sm_get_visibility_flags(const me_gnss_signal_t mesid,
+                            bool *visible,
+                            bool *known);
+
+u16 sm_mesid_to_sat(const me_gnss_signal_t mesid);
 
 #ifdef __cplusplus
 }

@@ -11,7 +11,7 @@ clean:
 	@rm mesta
 
 UDEF = '-Wno-unused' \
-       '-DMAX_CHANNELS=81' \
+       '-DMAX_CHANNELS=79' \
        '-DSTARLING_MAX_CHANNEL_COUNT=250' \
        '-DMESTA_BUILD' \
        '-DPIKSI_RELEASE'
@@ -109,7 +109,6 @@ CSRC := $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l2c.c \
 	$(SWIFTNAV_ROOT)/src/reacq/reacq_manage.c \
 	$(SWIFTNAV_ROOT)/src/reacq/reacq_sbp_utility.c \
 	$(SWIFTNAV_ROOT)/src/reacq/scheduler.c \
-	$(SWIFTNAV_ROOT)/src/reacq/scheduler_utils.c \
 	$(SWIFTNAV_ROOT)/src/reacq/search_manager.c \
 	$(SWIFTNAV_ROOT)/src/reacq/search_manager_utils.c \
 	$(SWIFTNAV_ROOT)/src/reacq/task_generator.c \
