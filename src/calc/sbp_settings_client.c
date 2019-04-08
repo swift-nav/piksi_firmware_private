@@ -121,11 +121,6 @@ static int impl_unregister_cb(void *ctx, sbp_msg_callbacks_node_t **node) {
 }
 
 /********************************************************************************/
-static void impl_log(int priority, const char *fmt, ...) {
-  log_warn("Trying to log from libsettings: %d, %s", priority, fmt);
-}
-
-/********************************************************************************/
 static settings_api_t settings_api_for_client(SbpSettingsClient *client) {
   settings_api_t impl = {
       .ctx = client,
@@ -135,9 +130,14 @@ static settings_api_t settings_api_for_client(SbpSettingsClient *client) {
       .wait = impl_wait,
       .wait_deinit = NULL,
       .signal = impl_signal,
+      .wait_thd = NULL,
+      .signal_thd = NULL,
+      .lock = NULL,
+      .unlock = NULL,
       .register_cb = impl_register_cb,
       .unregister_cb = impl_unregister_cb,
-      .log = impl_log,
+      .log = NULL,
+      .log_preformat = false,
   };
   return impl;
 }
