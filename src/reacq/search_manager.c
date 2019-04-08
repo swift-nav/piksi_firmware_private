@@ -268,11 +268,6 @@ void sm_restore_jobs(acq_jobs_context_t *jobs_data,
        * satellites so it's time to put the invisible sats in the search queue
        * again */
       if (REACQ_DONE_INVISIBLE < last_job_type) {
-        log_info_mesid(mesid,
-                       "invisible rescheduled at %" PRIu64
-                       ", last was %" PRIu64,
-                       now_ms,
-                       job->stop_time_ms);
         job->state = ACQ_STATE_WAIT;
       }
     }

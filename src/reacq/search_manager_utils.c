@@ -20,9 +20,6 @@
 #include "timing/timing.h"
 #include "track/track_sid_db.h"
 
-/* Ephemerides fit interval for the purpose of (re-)acq, two weeks, [s] */
-#define SM_FIT_INTERVAL_VALID (WEEK_SECS * 2)
-
 static void known_and_visible_getter(const gnss_signal_t sid,
                                      bool *visible,
                                      bool *known) {

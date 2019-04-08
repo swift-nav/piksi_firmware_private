@@ -35,30 +35,25 @@ void tg_fill_task(acq_job_t *job) {
   acq_param->freq_bin_size_hz = ACQ_FULL_CF_STEP;
   acq_param->integration_time_ms = ACQ_INTEGRATION_TIME_4MS;
   acq_param->cn0_threshold_dbhz = ACQ_THRESHOLD;
-  fprintf(stderr, "gets here 10\n");
 
   const code_t code = job->mesid.code;
   acq_param->doppler_min_hz =
       code_to_sv_doppler_min(code) + code_to_tcxo_doppler_min(code);
   acq_param->doppler_max_hz =
       code_to_sv_doppler_max(code) + code_to_tcxo_doppler_max(code);
-  fprintf(stderr, "gets here 20\n");
 
   u16 sat = sm_mesid_to_sat(job->mesid);
   if (GLO_ORBIT_SLOT_UNKNOWN == sat) {
     return;
   }
-  fprintf(stderr, "gets here 30\n");
   gps_time_t now = get_current_time();
   if (!gps_time_valid(&now)) {
     return;
   }
-  fprintf(stderr, "gets here 40\n");
   last_good_fix_t lgf;
   if (NDB_ERR_NONE != ndb_cached_lgf_read(&lgf)) {
     return;
   }
-  fprintf(stderr, "gets here 50\n");
 
   gnss_signal_t sid = construct_sid(job->mesid.code, sat);
   dum_get_doppler_wndw(&sid,
