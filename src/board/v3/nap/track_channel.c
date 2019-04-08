@@ -326,10 +326,10 @@ void nap_track_init(u8 channel,
   s->length_adjust = delta_tc;
 
   /* Get the code rollover point in samples */
-  if (s->mesid.code == CODE_GAL_E1B || s->mesid.code == CODE_GAL_E7I) {
-    delta_samples *=
-        calc_tc_per_chip(1) / calc_samples_per_chip(1, s->mesid.code);
-  }
+  //  if (s->mesid.code != CODE_GAL_E1B && s->mesid.code != CODE_GAL_E7I) {
+  //    delta_samples *=
+  //        calc_tc_per_chip(1) / calc_samples_per_chip(1, s->mesid.code);
+  //  }
 
   u64 tc_codestart = ref_timing_count - delta_samples -
                      (s32)round(code_phase * calc_tc_per_chip(chip_rate));
