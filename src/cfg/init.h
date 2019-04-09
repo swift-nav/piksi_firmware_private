@@ -15,6 +15,7 @@
 
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <swiftnav/common.h>
 
 void pre_init(void);
@@ -24,6 +25,7 @@ bool factory_params_read(void);
 u16 sender_id_get(void);
 u8 hw_revision_string_get(char *hw_revision_string);
 u8 hw_version_string_get(char *hw_version_string);
+bool hw_is_l5base(void);
 u8 nap_version_string_get(char *nap_version_string);
 u8 nap_date_string_get(char *nap_date_string);
 u8 uuid_string_get(char *uuid_string);

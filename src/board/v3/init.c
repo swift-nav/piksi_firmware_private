@@ -10,6 +10,8 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "init.h"
+
 #include <hal.h>
 #include <inttypes.h>
 #include <libsbp/sbp.h>
@@ -99,6 +101,10 @@ void init(void) {
   /* Only boards after we started tracking HW version have working clk mux */
   bool allow_ext_clk = factory_params.hardware_version > 0;
   rf_clk_init(allow_ext_clk);
+
+  if (hw_is_l5base()) {
+    nap_set_hardware_is_base();
+  }
 
   /* NOTE:
    * No interaction with the FPGA is allowed prior to programming the frontend.
@@ -360,6 +366,28 @@ u8 hw_version_string_get(char *hw_version_string) {
   u16 minor_ver = factory_params.hardware_version & 0xFFFF;
   sprintf(hw_version_string, "%" PRIu16 ".%" PRIu16, major_ver, minor_ver);
   return strlen(hw_version_string);
+}
+
+bool hw_is_l5base(void) {
+  u16 major_ver = factory_params.hardware_version >> 16;
+  switch (major_ver) {
+    case 0:
+    case 1:
+    case 3:
+    case 4:
+    case 5:
+    case 6:
+    case 7:
+    case 8:
+    case 9:
+    case 10:
+    case 16:
+      // This hardware is original Piksi Multi.
+      return false;
+    default:
+      // This hardware is Piksi Multi L5.
+      return true;
+  }
 }
 
 u8 hw_revision_string_get(char *hw_revision_string) {
