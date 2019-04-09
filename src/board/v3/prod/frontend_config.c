@@ -9,8 +9,10 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
+#include "init.h"
 
 static void configure_v1(void) {
+  assert(!hw_is_l5base());
   for (u8 i = 0; i < 2; ++i) {
     spi_write(2, 0x03);
     spi_write(3, 0x01);
@@ -131,7 +133,11 @@ static void configure_v2(void) {
                           0x0F==/30 */
   spi_write(12, 0x1C); /* clock source and signal type */
   spi_write(13, 0x01); /* channel 1 enabled and Upper/Lower side-band */
-  spi_write(14, 0x26); /* Glonass L1OF LPF */
+  if (hw_is_l5base()) {
+    spi_write(14, 0x1D); /* Glonass L2OF LPF */
+  } else {
+    spi_write(14, 0x26); /* Glonass L1OF LPF */
+  }
   spi_write(15, 0x1B); /* RF and IF AGC mode*/
   spi_write(16, 0x53); /* Max and minimum RF AGC threshholds*/
   spi_write(17, 0xF1);
@@ -139,13 +145,18 @@ static void configure_v2(void) {
   spi_write(19, 0x0B);
   spi_write(20, 0x03); /* channel 2 enabled and Upper/Lower side-band */
   spi_write(21, 0x52); /* GPS L1 and BDS2 B11 LPF at 32.4 MHz */
+                       /* Base has L2 and B2 here, but same config */
   spi_write(22, 0x1B); /* RF and IF AGC mode*/
   spi_write(23, 0x53); /* Max and minimum RF AGC threshholds*/
   spi_write(24, 0xF1);
   spi_write(25, 0xEA);
   spi_write(26, 0x0B);
   spi_write(27, 0x01); /* channel 3 enabled and Upper/Lower side-band */
-  spi_write(28, 0x1D); /* Glonass L2OF LPF */
+  if (hw_is_l5base()) {
+    spi_write(28, 0x26); /* Glonass L1OF LPF */
+  } else {
+    spi_write(28, 0x1D); /* Glonass L2OF LPF */
+  }
   spi_write(29, 0x1B); /* RF and IF AGC mode*/
   spi_write(30, 0x53); /* Max and minimum RF AGC threshholds*/
   spi_write(31, 0xF1);
@@ -153,15 +164,25 @@ static void configure_v2(void) {
   spi_write(33, 0x0B);
   spi_write(34, 0x03); /* channel 4 enabled and Upper/Lower side-band */
   spi_write(35, 0x52); /* GPS L2 and BDS2 B2 LPF at 32.4 MHz */
+                       /* Base has L1 and B1 here, but same config */
   spi_write(36, 0x1B); /* RF and IF AGC mode*/
   spi_write(37, 0x53); /* Max and minimum RF AGC threshholds*/
   spi_write(38, 0xF1);
   spi_write(39, 0xEA);
   spi_write(40, 0x0B);
-  spi_write(41, 0x03); /* PLL A band and enable */
-  spi_write(42, 0x4F); /* PLL A N[8..1] divider */
-  spi_write(43, 0x89); /* PLL A N[0] and R divider */
-  spi_write(45, 0x01); /* PLL B band and enable */
-  spi_write(46, 0x7B); /* PLL B N[8..1] divider */
-  spi_write(47, 0x91); /* PLL B N[0] and R divider */
+  if (hw_is_l5base()) {
+    spi_write(41, 0x01); /* PLL A band and enable */
+    spi_write(42, 0x7B); /* PLL A N[8..1] divider */
+    spi_write(43, 0x91); /* PLL A N[0] and R divider */
+    spi_write(45, 0x03); /* PLL B band and enable */
+    spi_write(46, 0x4F); /* PLL B N[8..1] divider */
+    spi_write(47, 0x89); /* PLL B N[0] and R divider */
+  } else {
+    spi_write(41, 0x03); /* PLL A band and enable */
+    spi_write(42, 0x4F); /* PLL A N[8..1] divider */
+    spi_write(43, 0x89); /* PLL A N[0] and R divider */
+    spi_write(45, 0x01); /* PLL B band and enable */
+    spi_write(46, 0x7B); /* PLL B N[8..1] divider */
+    spi_write(47, 0x91); /* PLL B N[0] and R divider */
+  }
 }
