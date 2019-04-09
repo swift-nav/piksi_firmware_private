@@ -89,7 +89,7 @@ bool nap_pps_armed(void);
 void nap_set_can_termination(void);
 void nap_unset_can_termination(void);
 
-void nap_set_hardware_is_base(void);
+void nap_set_hardware_is_l5(void);
 
 #ifdef __cplusplus
 }

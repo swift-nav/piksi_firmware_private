@@ -12,7 +12,7 @@
 #include "init.h"
 
 static void configure_v1(void) {
-  assert(!hw_is_l5base());
+  assert(!hw_is_l5());
   for (u8 i = 0; i < 2; ++i) {
     spi_write(2, 0x03);
     spi_write(3, 0x01);
@@ -133,7 +133,7 @@ static void configure_v2(void) {
                           0x0F==/30 */
   spi_write(12, 0x1C); /* clock source and signal type */
   spi_write(13, 0x01); /* channel 1 enabled and Upper/Lower side-band */
-  if (hw_is_l5base()) {
+  if (hw_is_l5()) {
     spi_write(14, 0x1D); /* Glonass L2OF LPF */
   } else {
     spi_write(14, 0x26); /* Glonass L1OF LPF */
@@ -152,7 +152,7 @@ static void configure_v2(void) {
   spi_write(25, 0xEA);
   spi_write(26, 0x0B);
   spi_write(27, 0x01); /* channel 3 enabled and Upper/Lower side-band */
-  if (hw_is_l5base()) {
+  if (hw_is_l5()) {
     spi_write(28, 0x26); /* Glonass L1OF LPF */
   } else {
     spi_write(28, 0x1D); /* Glonass L2OF LPF */
@@ -170,7 +170,7 @@ static void configure_v2(void) {
   spi_write(38, 0xF1);
   spi_write(39, 0xEA);
   spi_write(40, 0x0B);
-  if (hw_is_l5base()) {
+  if (hw_is_l5()) {
     spi_write(41, 0x01); /* PLL A band and enable */
     spi_write(42, 0x7B); /* PLL A N[8..1] divider */
     spi_write(43, 0x91); /* PLL A N[0] and R divider */

@@ -104,8 +104,8 @@ void init(void) {
   bool allow_ext_clk = factory_params.hardware_version > 0;
   rf_clk_init(allow_ext_clk);
 
-  if (hw_is_l5base()) {
-    nap_set_hardware_is_base();
+  if (hw_is_l5()) {
+    nap_set_hardware_is_l5();
   }
 
   /* NOTE:
@@ -373,7 +373,7 @@ u8 hw_version_string_get(char *hw_version_string) {
   return strlen(hw_version_string);
 }
 
-bool hw_is_l5base(void) {
+bool hw_is_l5(void) {
   u16 major_ver = factory_params.hardware_version >> 16;
   switch (major_ver) {
     case 0:
