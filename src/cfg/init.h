@@ -14,6 +14,7 @@
 #define SWIFTNAV_INIT_H
 
 #include <stdio.h>
+#include <stdbool.h>
 #include <swiftnav/common.h>
 
 void pre_init(void);
