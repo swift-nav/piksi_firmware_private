@@ -34,16 +34,16 @@
   (NAP_FRONTEND_RAW_SAMPLE_RATE_Hz / NAP_TRACK_DECIMATION_RATE_GAL)
 
 /**
- * @brief   The sample rate used by the sample count for timing
- * @note    The sample count currently uses tracking samples
+ * @brief   The sample rate used by the NAP timing count
+ * @note    The sample count currently uses the raw frontend sample frequency
  */
-#define NAP_FRONTEND_SAMPLE_RATE_Hz (NAP_FRONTEND_RAW_SAMPLE_RATE_Hz)
+#define NAP_TIMING_COUNT_RATE_Hz (NAP_FRONTEND_RAW_SAMPLE_RATE_Hz)
 
 /**
  * @brief   This is 2 ms expressed as integer number of tracking samples
  * @note    needed for Glonass carrier phase stability
  */
-#define FCN_NCO_RESET_COUNT ((u64)(NAP_FRONTEND_RAW_SAMPLE_RATE_Hz / 500))
+#define FCN_NCO_RESET_COUNT ((u64)(NAP_TIMING_COUNT_RATE_Hz / 500))
 
 #define NAP_PPS_TIMING_COUNT_OFFSET (-20)
 #define NAP_EXT_TIMING_COUNT_OFFSET (8)
