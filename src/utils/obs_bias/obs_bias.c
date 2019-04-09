@@ -44,8 +44,8 @@ static const double glo_l2_isc[GLO_MAX_FCN] =
   {-2.9,-2.3,-1.8,-1.2,-1.2,-1.2,-0.8,+0.0,+0.2,-0.2,+0.8,+0.8,+0.9,+1.0};
 
 /* GLO carrier biases per FCN (cycles) */
-static const double glo_l1_carrier_corr = +0.004;
-static const double glo_l2_carrier_corr = +0.011;
+static const double glo_l1_carrier_corr = +0.0;
+static const double glo_l2_carrier_corr = +0.0;
 
 /* clang-format on */
 
