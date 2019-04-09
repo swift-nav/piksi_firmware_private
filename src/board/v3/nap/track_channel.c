@@ -34,7 +34,7 @@
 #include "soft_macq/prns.h"
 #include "timing/timing.h"
 
-#define TIMING_COMPARE_DELTA_MIN(1e-3 * NAP_TIMING_COUNT_RATE_Hz)
+#define TIMING_COMPARE_DELTA_MIN (1e-3 * NAP_TIMING_COUNT_RATE_Hz)
 
 #define NAP_TRACK_CARRIER_FREQ_WIDTH 32
 #define NAP_TRACK_CARRIER_PHASE_FRACTIONAL_WIDTH 32
