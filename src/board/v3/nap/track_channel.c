@@ -34,7 +34,7 @@
 #include "soft_macq/prns.h"
 #include "timing/timing.h"
 
-#define TIMING_COMPARE_DELTA_MIN (1e-3 * NAP_TRACK_SAMPLE_RATE_Hz_GAL)
+#define TIMING_COMPARE_DELTA_MIN (1e-3 * NAP_FRONTEND_RAW_SAMPLE_RATE_Hz)
 
 #define NAP_TRACK_CARRIER_FREQ_WIDTH 32
 #define NAP_TRACK_CARRIER_PHASE_FRACTIONAL_WIDTH 32
@@ -170,7 +170,7 @@ static double calc_samples_per_chip(double chip_freq_hz, code_t code) {
  * \return Number of timing counts per code chip.
  */
 static double calc_tc_per_chip(double chip_freq_hz) {
-  return (double)NAP_TRACK_SAMPLE_RATE_Hz_GAL / chip_freq_hz;
+  return (double)NAP_FRONTEND_RAW_SAMPLE_RATE_Hz / chip_freq_hz;
 }
 
 /** Initialize LFSRs, secondary codes and memory codes. */
@@ -326,10 +326,8 @@ void nap_track_init(u8 channel,
   s->length_adjust = delta_samples;
 
   /* Get the code rollover point in samples */
-  if (s->mesid.code != CODE_GAL_E1B && s->mesid.code != CODE_GAL_E7I) {
-    delta_samples *=
-        calc_tc_per_chip(1) / calc_samples_per_chip(1, s->mesid.code);
-  }
+  delta_samples *=
+      calc_tc_per_chip(1) / calc_samples_per_chip(1, s->mesid.code);
 
   u64 tc_codestart = ref_timing_count - delta_samples -
                      (s32)round(code_phase * calc_tc_per_chip(chip_rate));
@@ -407,7 +405,7 @@ void nap_track_init(u8 channel,
   s32 tc_delta;
   while ((tc_delta = (tc_next_rollover - NAP->TIMING_COUNT)) >= 0) {
     systime_t sleep_time =
-        floor(CH_CFG_ST_FREQUENCY * tc_delta / NAP_TRACK_SAMPLE_RATE_Hz_GAL);
+        floor(CH_CFG_ST_FREQUENCY * tc_delta / NAP_FRONTEND_RAW_SAMPLE_RATE_Hz);
 
     /* The next system tick will always occur less than the nominal tick
      * period in the future, so sleep for an extra tick. */
