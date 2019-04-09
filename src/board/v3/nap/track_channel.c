@@ -90,7 +90,7 @@ static u32 calc_length_samples(u32 chips_to_correlate,
 }
 
 /** Compute the number of samples per code chip.
- * \param chip_freq_hz Code phase rate.
+ * \param chip_freq_hz Code frequency.
  * \param code GNSS code identifier.
  * \return Number of samples per code chip.
  */
@@ -275,15 +275,15 @@ void nap_track_init(u8 channel,
   /* MIC_COMMENT: nap_track_init() so that nap_track_update()
    * does not have to branch for the special "init" situation */
 
-  s->chip_rate[1] = s->chip_rate[0] = chip_rate;
-  u32 chip_rate_units;
+  s->chip_freq_hz[1] = s->chip_freq_hz[0] = chip_freq_hz;
+  u32 code_pinc;
   if (s->mesid.code == CODE_GAL_E1B || s->mesid.code == CODE_GAL_E7I) {
-    chip_rate_units =
-        round(chip_rate * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ_GAL);
+    code_pinc =
+        round(chip_freq_hz * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ_GAL);
   } else {
-    chip_rate_units = round(chip_rate * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ);
+    code_pinc = round(chip_freq_hz * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ);
   }
-  s->code_pinc[1] = s->code_pinc[0] = chip_rate_units;
+  s->code_pinc[1] = s->code_pinc[0] = code_pinc;
 
   t->CODE_PINC = code_pinc;
 
@@ -330,7 +330,7 @@ void nap_track_init(u8 channel,
       calc_tc_per_chip(1) / calc_samples_per_chip(1, s->mesid.code);
 
   u64 tc_codestart = ref_timing_count - delta_samples -
-                     (s32)round(code_phase * calc_tc_per_chip(chip_rate));
+                     (s32)round(code_phase * calc_tc_per_chip(chip_freq_hz));
 
   nap_track_enable(channel);
 
@@ -427,12 +427,12 @@ void nap_track_update(u8 channel,
   s->chip_freq_hz[1] = s->chip_freq_hz[0];
   s->chip_freq_hz[0] = chip_freq_hz;
 
-  u32 chip_rate_units;
+  u32 code_pinc;
   if (s->mesid.code == CODE_GAL_E1B || s->mesid.code == CODE_GAL_E7I) {
-    chip_rate_units =
-        round(chip_rate * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ_GAL);
+    code_pinc =
+        round(chip_freq_hz * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ_GAL);
   } else {
-    chip_rate_units = round(chip_rate * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ);
+    code_pinc = round(chip_freq_hz * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ);
   }
   s->code_pinc[1] = s->code_pinc[0];
   s->code_pinc[0] = code_pinc;
@@ -514,8 +514,9 @@ void nap_track_read_results(u8 channel,
   }
 
   /* Spacing between VE and P correlators */
-  double prompt_offset = NAP_VEP_SPACING_SAMPLES /
-                         calc_samples_per_chip(s->chip_rate[1], s->mesid.code);
+  double prompt_offset =
+      NAP_VEP_SPACING_SAMPLES /
+      calc_samples_per_chip(s->chip_freq_hz[1], s->mesid.code);
 
   /* Code and carrier phase reckoning */
   s64 carr_phase_incr = ((s64)s->length[1]) * s->carr_pinc[1];
