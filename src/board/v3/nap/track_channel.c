@@ -391,7 +391,7 @@ void nap_track_init(u8 channel,
   /* Port FCN-induced NCO phase to a common receiver clock point */
   s->reckoned_carr_phase = (s->fcn_freq_hz) *
                            (tc_next_rollover % FCN_NCO_RESET_COUNT) /
-                           NAP_TRACK_SAMPLE_RATE_Hz;
+                           NAP_TIMING_COUNT_RATE_Hz;
 
   init_code_generators(mesid, num_codes, channel);
 
