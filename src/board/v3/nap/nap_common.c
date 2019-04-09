@@ -341,7 +341,7 @@ void nap_unset_can_termination() {
   NAP->CONTROL = SET_NAP_CONTROL_CAN_TERM_ENABLE(ctrl, 0);
 }
 
-void nap_set_hardware_is_base() {
+void nap_set_hardware_is_l5() {
   u32 ctrl = NAP->CONTROL;
   NAP->CONTROL = SET_NAP_CONTROL_HARDWARE_IS_BASE(ctrl, 1);
 }
