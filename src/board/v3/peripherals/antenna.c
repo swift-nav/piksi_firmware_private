@@ -42,6 +42,9 @@ static void antenna_configure(antenna_mode_t mode, bool bias) {
       } else {
         palClearLine(ANT_PWR_SEL_1_GPIO_LINE);
       }
+      palSetLine(SIG_SEL_PRI_L2L5_GPIO_LINE);
+      palClearLine(SIG_SEL_SEC_L2L5_GPIO_LINE);
+      palClearLine(SEC_RF_AMP_EN_GPIO_LINE);
     } break;
 
     case ANTENNA_MODE_SECONDARY: {
@@ -54,6 +57,9 @@ static void antenna_configure(antenna_mode_t mode, bool bias) {
       } else {
         palClearLine(ANT_PWR_SEL_2_GPIO_LINE);
       }
+      palClearLine(SIG_SEL_PRI_L2L5_GPIO_LINE);
+      palSetLine(SIG_SEL_SEC_L2L5_GPIO_LINE);
+      palSetLine(SEC_RF_AMP_EN_GPIO_LINE);
     } break;
 
     default: { assert(!"Invalid antenna mode"); } break;
@@ -76,6 +82,9 @@ void antenna_init(void) {
     palSetLineMode(ANT_PWR_SEL_2_GPIO_LINE, PAL_MODE_OUTPUT);
     palSetLineMode(ANT_IN_SEL_1_GPIO_LINE, PAL_MODE_OUTPUT);
     palSetLineMode(ANT_IN_SEL_2_GPIO_LINE, PAL_MODE_OUTPUT);
+    palSetLineMode(SIG_SEL_PRI_L2L5_GPIO_LINE, PAL_MODE_OUTPUT);
+    palSetLineMode(SIG_SEL_SEC_L2L5_GPIO_LINE, PAL_MODE_OUTPUT);
+    palSetLineMode(SEC_RF_AMP_EN_GPIO_LINE, PAL_MODE_OUTPUT);
     palSetLineMode(ANT_PRESENT_1_GPIO_LINE, PAL_MODE_INPUT);
     palSetLineMode(ANT_PRESENT_2_GPIO_LINE, PAL_MODE_INPUT);
     palSetLineMode(ANT_NFAULT_1_GPIO_LINE, PAL_MODE_INPUT);
