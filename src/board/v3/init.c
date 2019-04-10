@@ -144,8 +144,10 @@ static bool nap_version_ok(u32 version) {
   /* the stupid +1 is to work around the compiler warning:
    * `comparison of unsigned expression >= 0 is always true`
    * */
-  return (1 + (version & (~REQUIRED_NAP_VERSION_MASK))) >=
-         (1 + (REQUIRED_NAP_VERSION_VAL & (~REQUIRED_NAP_VERSION_MASK)));
+  const u32 nap_subminor = (version & (~REQUIRED_NAP_VERSION_MASK));
+  const u32 req_subminor =
+      (REQUIRED_NAP_VERSION_VAL & (~REQUIRED_NAP_VERSION_MASK));
+  return (nap_subminor >= req_subminor);
 }
 
 static void nap_version_check(void) {
