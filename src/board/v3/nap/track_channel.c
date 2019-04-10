@@ -388,6 +388,10 @@ void nap_track_init(u8 channel,
   u64 tc_next_rollover =
       tc_codestart + (u64)floor(0.5 + (double)num_codes * tc_code_period);
 
+  if (IS_GLO(s->mesid)) {
+    tc_next_rollover = 5 * ((tc_next_rollover + 2) / 5);
+  }
+
   /* Port FCN-induced NCO phase to a common receiver clock point */
   s->reckoned_carr_phase = (s->fcn_freq_hz) *
                            (tc_next_rollover % FCN_NCO_RESET_COUNT) /
