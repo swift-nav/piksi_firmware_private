@@ -133,21 +133,16 @@ static void nap_conf_check(void) {
   }
 }
 
-static bool nap_version_ok(u32 version) {
-  /* Upper two bytes need to match for register map compatibility,
-   * lower two bytes have to be greater or equal to enforce features. */
-  if ((version & REQUIRED_NAP_VERSION_MASK) !=
-      (REQUIRED_NAP_VERSION_VAL & REQUIRED_NAP_VERSION_MASK)) {
+/* version check per
+ * https://github.com/swift-nav/piksi_fpga/blob/master/README.md
+ * */
+static bool nap_version_ok(u32 nap_version) {
+  const u32 nap_major = (nap_version & REQUIRED_NAP_VERSION_MASK);
+  const u32 req_major = (REQUIRED_NAP_VERSION_VAL & REQUIRED_NAP_VERSION_MASK);
+  if (nap_major != req_major) {
     return false;
   }
-
-  /* the stupid +1 is to work around the compiler warning:
-   * `comparison of unsigned expression >= 0 is always true`
-   * */
-  const u32 nap_subminor = (version & (~REQUIRED_NAP_VERSION_MASK));
-  const u32 req_subminor =
-      (REQUIRED_NAP_VERSION_VAL & (~REQUIRED_NAP_VERSION_MASK));
-  return (nap_subminor >= req_subminor);
+  return true;
 }
 
 static void nap_version_check(void) {
