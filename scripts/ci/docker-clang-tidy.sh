@@ -17,7 +17,7 @@ fi
 
 find_sysroot() {
   echo '#include <assert.h>' | \
-    arm-none-eabi-gcc -M -xc - | \
+    $CC -M -xc - | \
     sed -e 's@ \\@@g' -e 's@^ /@/@g' | \
     grep -v '^-:' | \
     head -1 | \
