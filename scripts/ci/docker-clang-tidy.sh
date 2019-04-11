@@ -28,6 +28,8 @@ sysroot=$(find_sysroot)
 
 docker rm -f swiftnav-clang-tidy &>/dev/null || :
 
+set -x
+
 docker run \
   -v "$PWD:/work" \
   -v "$sysroot:/sysroot" \
