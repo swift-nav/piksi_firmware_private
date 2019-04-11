@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-make USE_DOCKER=y clang-tidy-all
+make USE_DOCKER=y clang-tidy-all || exit 1
                            
 if [[ -e "fixes.yaml" ]]; then
   echo "clang-tidy warnings found"
