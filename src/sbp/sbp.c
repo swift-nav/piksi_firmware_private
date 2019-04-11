@@ -238,6 +238,7 @@ static void sbp_log_(int level, const char *msg, ...) {
   log->level = level;
 
   va_start(ap, msg);
+  /* NOLINTNEXTLINE: -clang-analyzer-valist.Uninitialized */
   int n = vsnprintf(
       log->text, SBP_FRAMING_MAX_PAYLOAD_SIZE - sizeof(msg_log_t), msg, ap);
   va_end(ap);
@@ -269,6 +270,7 @@ static void sbp_detailed_log_(int level,
                 line_number);
 
   va_start(ap, msg);
+  /* NOLINTNEXTLINE: -clang-analyzer-valist.Uninitialized */
   n += vsnprintf(&log->text[n],
                  SBP_FRAMING_MAX_PAYLOAD_SIZE - sizeof(msg_log_t) - n,
                  msg,

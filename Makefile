@@ -77,6 +77,8 @@ CLANG_TIDY_INCLUDES = -I$(SWIFTNAV_ROOT)/include/ \
                       -I$(SWIFTNAV_ROOT)/src/board/v3/prod/ \
                       -isystem$(SWIFTNAV_ROOT)/mesta/stubs/
 
+CLANG_TIDY_EXCLUDES = board|chibios|peripherals|system_monitor|syscalls|chconf
+
 .PHONY: all tests firmware docs .FORCE
 .SUFFIXES:
 
@@ -173,11 +175,13 @@ clang-format-diff:
 	@echo "Autoformatting all lines which differ from master"
 	git-clang-format-6.0 master
 
+clang-tidy-all: export CLANG_TIDY_EXCLUDES := $(CLANG_TIDY_EXCLUDES)
+clang-tidy-all: export CLANG_TIDY_INCLUDES := $(CLANG_TIDY_INCLUDES)
+clang-tidy-all: export CLANG_TIDY_FLAGS := $(CLANG_TIDY_FLAGS)
 clang-tidy-all:
 	@echo "Checking all C files under src/"
-	git ls-files -- 'src/*.[ch]' \
-		| grep -E -v 'board|chibios|peripherals|system_monitor|syscalls|chconf' \
-		| xargs -t -I{} clang-tidy-6.0 -export-fixes=fixes.yaml {} -- $(CLANG_TIDY_FLAGS) $(CLANG_TIDY_INCLUDES)
+	@if [[ -z "$(USE_DOCKER)" ]]; then ./scripts/ci/clang-tidy.sh; \
+		else ./scripts/ci/docker-clang-tidy.sh; fi
 
 run_tests:
 	$(MAKE) -C tests

@@ -18,7 +18,7 @@ fi
 find_sysroot() {
   echo '#include <assert.h>' | \
     arm-none-eabi-gcc -M -xc - | \
-    sed -e 's@ \\@@g' -e 's@^ /@/@' | \
+    sed -e 's@ \\@@g' -e 's@^ /@/@g' | \
     grep -v '^-:' | \
     head -1 | \
     xargs dirname
@@ -31,8 +31,12 @@ docker rm -f swiftnav-clang-tidy &>/dev/null || :
 docker run \
   -v "$PWD:/work" \
   -v "$sysroot:/sysroot" \
+  -e CLANG_TIDY_INCLUDES="${CLANG_TIDY_INCLUDES//$ROOT/\/work}" \
+  -e CLANG_TIDY_EXCLUDES="${CLANG_TIDY_EXCLUDES}" \
+  -e CLANG_TIDY_FLAGS="$CLANG_TIDY_FLAGS -isystem/sysroot" \
   ${INTERACTIVE_ARGS} \
   --rm \
   --name swiftnav-clang-tidy \
-  "$DOCKER_TAG" "${@//$ROOT/\/work}" \
-  -isystem/sysroot
+  "$DOCKER_TAG" \
+  ./scripts/ci/clang-tidy.sh \
+  | sed -e "s@/work@$ROOT@g" -e "s@/sysroot@$sysroot@g"

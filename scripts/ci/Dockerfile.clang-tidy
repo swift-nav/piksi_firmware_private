@@ -1,0 +1,23 @@
+FROM debian:jessie-slim
+
+ARG DEBIAN_FRONTEND=noninteractive
+RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
+
+WORKDIR /work
+
+ARG CLANG_TAR=clang+llvm-6.0.0-x86_64-linux-gnu-debian8.tar.xz
+
+RUN apt-get update && \
+  apt-get install git curl ca-certificates xz-utils --no-install-recommends --force-yes -y && \
+  curl -O https://releases.llvm.org/6.0.0/$CLANG_TAR && \
+  mkdir /opt/llvm && \
+  tar -xvJf $CLANG_TAR --strip-components 1 -C /opt/llvm && \
+  rm $CLANG_TAR && \
+  apt-get clean && \
+  rm -rf /var/lib/apt/lists/*
+
+RUN ln -sf /opt/llvm/bin/clang-tidy /opt/llvm/bin/clang-tidy-6.0
+
+ENV PATH=/opt/llvm/bin:$PATH
+
+ENTRYPOINT ["/bin/bash"]
