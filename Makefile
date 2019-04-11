@@ -63,21 +63,23 @@ ifeq ($(PIKSI_HW),v3)
   FW_DEPS += $(OPENAMP_BUILDDIR)/lib/libopen-amp.a
 endif
 
-CLANG_TIDY_INCLUDES = -I$(SWIFTNAV_ROOT)/include/ \
-                      -I$(SWIFTNAV_ROOT)/src/ \
-                      -I$(SWIFTNAV_ROOT)/src/cfg/ \
-                      -I$(SWIFTNAV_ROOT)/src/utils/ \
-                      -I$(SWIFTNAV_ROOT)/starling/include/ \
-                      -I$(SWIFTNAV_ROOT)/starling/third_party/libswiftnav/include/ \
-                      -I$(SWIFTNAV_ROOT)/libsbp/c/include/ \
-                      -I$(SWIFTNAV_ROOT)/starling/libfec/include/ \
-                      -I$(SWIFTNAV_ROOT)/libsettings/include/ \
-                      -I$(SWIFTNAV_ROOT)/src/board/ \
-                      -I$(SWIFTNAV_ROOT)/src/board/v3/ \
-                      -I$(SWIFTNAV_ROOT)/src/board/v3/prod/ \
-                      -isystem$(SWIFTNAV_ROOT)/mesta/stubs/
+CLANG_TIDY_INCLUDES := -I$(SWIFTNAV_ROOT)/include/ \
+                       -I$(SWIFTNAV_ROOT)/src/ \
+                       -I$(SWIFTNAV_ROOT)/src/cfg/ \
+                       -I$(SWIFTNAV_ROOT)/src/utils/ \
+                       -I$(SWIFTNAV_ROOT)/starling/include/ \
+                       -I$(SWIFTNAV_ROOT)/starling/third_party/libswiftnav/include/ \
+                       -I$(SWIFTNAV_ROOT)/libsbp/c/include/ \
+                       -I$(SWIFTNAV_ROOT)/starling/libfec/include/ \
+                       -I$(SWIFTNAV_ROOT)/libsettings/include/ \
+                       -I$(SWIFTNAV_ROOT)/src/board/ \
+                       -I$(SWIFTNAV_ROOT)/src/board/v3/ \
+                       -I$(SWIFTNAV_ROOT)/src/board/v3/prod/ \
+                       -isystem$(SWIFTNAV_ROOT)/mesta/stubs/
 
-CLANG_TIDY_EXCLUDES = board|chibios|peripherals|system_monitor|syscalls|chconf
+CLANG_TIDY_EXCLUDES := board|chibios|peripherals|system_monitor|syscalls|chconf
+
+CLANG_TIDY_GCC      := $(PFWP_COMPILER)gcc
 
 .PHONY: all tests firmware docs .FORCE
 .SUFFIXES:
@@ -175,14 +177,13 @@ clang-format-diff:
 	@echo "Autoformatting all lines which differ from master"
 	git-clang-format-6.0 master
 
-clang-tidy-all: export CLANG_TIDY_EXCLUDES := $(CLANG_TIDY_EXCLUDES)
-clang-tidy-all: export CLANG_TIDY_INCLUDES := $(CLANG_TIDY_INCLUDES)
-clang-tidy-all: export CLANG_TIDY_FLAGS := $(CLANG_TIDY_FLAGS)
-clang-tidy-all: export CC := $(CC)
 clang-tidy-all:
 	@echo "Checking all C files under src/"
-	@if [ -z "$(USE_DOCKER)" ]; then ./scripts/ci/clang-tidy.sh; \
-		else ./scripts/ci/docker-clang-tidy.sh; fi
+	@./scripts/ci/clang-tidy.sh \
+		--includes "$(CLANG_TIDY_INCLUDES)" \
+		--excludes "$(CLANG_TIDY_EXCLUDES)" \
+		--gcc $(CLANG_TIDY_GCC) \
+	  $(if $(USE_DOCKER),--docker-run,--run)
 
 run_tests:
 	$(MAKE) -C tests
