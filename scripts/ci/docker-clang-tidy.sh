@@ -17,7 +17,7 @@ fi
 
 find_sysroot() {
   echo '#include <assert.h>' | \
-    $CC -M -xc - | \
+    arm-none-eabi-gcc -M -xc - | \
     sed -e 's@ \\@@g' -e 's@^ /@/@g' | \
     grep -v '^-:' | \
     head -1 | \
@@ -27,8 +27,6 @@ find_sysroot() {
 sysroot=$(find_sysroot)
 
 docker rm -f swiftnav-clang-tidy &>/dev/null || :
-
-set -x
 
 docker run \
   -v "$PWD:/work" \
