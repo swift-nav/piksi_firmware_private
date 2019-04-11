@@ -92,7 +92,6 @@ install:
     fi
 
 script:
-  # setup.sh PATH update doesn't seem to work on Travis, add manually for now
   - ./travis.sh
 
 after_success:

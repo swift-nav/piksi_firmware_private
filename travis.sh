@@ -4,6 +4,7 @@ set -e
 set -o pipefail
 
 if [ "$TESTENV" == "lint" ]; then
+  export PATH=$PATH:$HOME/gcc-arm-none-eabi/bin
   ./scripts/ci/travis-clang-format-check.sh
   ./scripts/ci/travis-clang-tidy-check.sh
 elif [ "$TESTENV" == "mesta" ]; then
