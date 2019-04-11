@@ -178,6 +178,7 @@ clang-format-diff:
 clang-tidy-all: export CLANG_TIDY_EXCLUDES := $(CLANG_TIDY_EXCLUDES)
 clang-tidy-all: export CLANG_TIDY_INCLUDES := $(CLANG_TIDY_INCLUDES)
 clang-tidy-all: export CLANG_TIDY_FLAGS := $(CLANG_TIDY_FLAGS)
+clang-tidy-all: export CC := $(CC)
 clang-tidy-all:
 	@echo "Checking all C files under src/"
 	@if [ -z "$(USE_DOCKER)" ]; then ./scripts/ci/clang-tidy.sh; \
