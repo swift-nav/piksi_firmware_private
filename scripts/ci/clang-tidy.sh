@@ -117,6 +117,12 @@ run_clang_tidy() {
   local input_files
   input_files=$(find_input_files)
 
+  echo "Using clang-tidy from:"
+  printf "\t%s\n" "$(command -v 'clang-tidy-6.0')"
+
+  echo "Version info for clang-tidy:"
+  clang-tidy-6.0 -version
+
   clang-tidy-6.0 -export-fixes=fixes.yaml $input_files -- \
     ${CLANG_TIDY_FLAGS} ${CLANG_TIDY_INCLUDES}
 }
