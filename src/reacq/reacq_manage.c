@@ -16,7 +16,7 @@
 #include "position/position.h"
 #include "scheduler_api.h"
 #include "search_manager_api.h"
-#include "simulator.h"
+#include "simulator/simulator.h"
 #include "track/track_sid_db.h"
 
 /**
