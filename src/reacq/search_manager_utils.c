@@ -15,7 +15,6 @@
 #include "ndb/ndb.h"
 #include "search_manager_api.h"
 #include "shm/shm.h"
-#include "sv_visibility/sv_visibility.h"
 #include "swiftnav/glo_map.h"
 #include "timing/timing.h"
 #include "track/track_sid_db.h"
@@ -58,11 +57,15 @@ u16 sm_get_visibility_flags(const me_gnss_signal_t mesid,
   }
   const gnss_signal_t sid1 = construct_sid(mesid.code, slot1);
   known_and_visible_getter(sid1, visible, known);
-  if ((*known) && (*visible)) return slot1;
+  if ((*known) && (*visible)) {
+    return slot1;
+  }
   if (!(*known) && (2 == ret)) {
     const gnss_signal_t sid2 = construct_sid(mesid.code, slot2);
     known_and_visible_getter(sid2, visible, known);
-    if ((*known) && (*visible)) return slot2;
+    if ((*known) && (*visible)) {
+      return slot2;
+    }
   }
   return GLO_ORBIT_SLOT_UNKNOWN;
 }

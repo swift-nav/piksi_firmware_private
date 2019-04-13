@@ -1015,7 +1015,6 @@ static void mark_masked_channel_for_drop(const gnss_signal_t sid) {
   if (!sid_valid(sid)) {
     return;
   }
-  log_info_sid(sid, "below elev mask");
 
   me_gnss_signal_t mesid = {.code = CODE_INVALID};
   constellation_t con = code_to_constellation(sid.code);

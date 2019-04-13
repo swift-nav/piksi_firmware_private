@@ -54,9 +54,9 @@ void track_sid_db_azel_degrees_set(gnss_signal_t sid,
                                    double elevation,
                                    u64 timestamp);
 
-bool sid_db_elevation_degrees_get(const gnss_signal_t sid, float *elev);
+bool sid_db_elevation_degrees_get(gnss_signal_t sid, float *elev);
 bool track_sid_db_azimuth_degrees_get(gnss_signal_t sid, double *result);
-bool track_sid_db_elevation_degrees_get(gnss_signal_t sid, double *result);
+bool track_sid_db_elevation_degrees_get(gnss_signal_t sid, double *elev);
 
 bool track_sid_db_load_positions(gnss_signal_t sid,
                                  xcorr_positions_t *position_entry);

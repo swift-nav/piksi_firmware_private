@@ -20,11 +20,9 @@
 extern "C" {
 #endif /* __cplusplus */
 
-u16 sm_get_visibility_flags(const me_gnss_signal_t mesid,
-                            bool *visible,
-                            bool *known);
+u16 sm_get_visibility_flags(me_gnss_signal_t mesid, bool *visible, bool *known);
 
-u16 sm_mesid_to_sat(const me_gnss_signal_t mesid);
+u16 sm_mesid_to_sat(me_gnss_signal_t mesid);
 
 #ifdef __cplusplus
 }

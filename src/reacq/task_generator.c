@@ -62,5 +62,4 @@ void tg_fill_task(acq_job_t *job) {
                        MAX_USER_VELOCITY_MPS,
                        &acq_param->doppler_min_hz,
                        &acq_param->doppler_max_hz);
-  fprintf(stderr, "gets here 60\n");
 }

@@ -10,8 +10,9 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "main.h"
+#include "main/main.h"
 #include "ndb/ndb.h"
+#include "ndb/ndb_internal.h"
 #include "position/position.h"
 #include "scheduler_api.h"
 #include "search_manager_api.h"
@@ -45,7 +46,9 @@ static void update_sat_azel(const double rcv_pos[3], const gps_time_t t) {
     /* try to compute from ephemeris */
     ndb_op_code_t res = ndb_ephemeris_read(sid, &ephemeris);
     if (NDB_ERR_NONE == res || NDB_ERR_UNCONFIRMED_DATA == res) {
-      if (0 == update_azel_from_ephemeris(&ephemeris, &t, rcv_pos)) {
+      ephemeris_t extended = ephemeris;
+      extended.fit_interval = NDB_NV_WARM_START_LIMIT_SECS;
+      if (0 == update_azel_from_ephemeris(&extended, &t, rcv_pos)) {
         /* success */
         continue;
       }

@@ -23,7 +23,6 @@
 #include <swiftnav/logging.h>
 
 #include "ndb/ndb.h"
-#include "ndb/ndb_internal.h"
 #include "sbp/sbp.h"
 #include "sbp/sbp_utils.h"
 #include "signal_db/signal_db.h"
@@ -328,12 +327,11 @@ s8 update_azel_from_ephemeris(const ephemeris_t *e,
                               const double pos_ecef[]) {
   assert(e);
   assert(t);
-  ephemeris_t valid_longer_eph = (*e);
   /* stretch validity of the ephemeris for the sake of azel computation */
   /* note that Galileo uses the fit interval differently,
-  * but this shouldn't be a problem as the satellite should be seen again in 15 hours */
-  valid_longer_eph.fit_interval = NDB_NV_WARM_START_LIMIT_SECS;
-  if (!ephemeris_valid(&valid_longer_eph, t)) {
+   * but this shouldn't be a problem as the satellite should be seen again in 15
+   * hours */
+  if (!ephemeris_valid(e, t)) {
     return -1;
   }
   double az, el;

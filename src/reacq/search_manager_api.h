@@ -66,8 +66,7 @@ typedef struct {
 
 /** Search jobs */
 typedef struct {
-  me_gnss_signal_t mesid; /**< ME SV identifier - primary */
-  // gnss_signal_t sid;                  /**< SV identifier - ancillary */
+  me_gnss_signal_t mesid;             /**< ME SV identifier - primary */
   u64 start_time_ms;                  /**< HW millisecond when job finished */
   u64 stop_time_ms;                   /**< HW millisecond when job finished */
   visibility_t sky_status;            /**< Set when this job needs to run */
