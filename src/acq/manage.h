@@ -21,6 +21,7 @@
 #include <swiftnav/signal.h>
 
 #include "soft_macq/soft_macq_main.h"
+#include "swiftnap.h"
 #include "track/track_flags.h"
 
 /** \addtogroup manage
@@ -51,9 +52,6 @@
 #define ACQ_FULL_CF_STEP soft_multi_acq_bin_width()
 
 #define MANAGE_NO_CHANNELS_FREE 255
-
-/** How many SBAS SV can be tracked */
-#define SBAS_SV_NUM_LIMIT 1
 
 typedef struct {
   me_gnss_signal_t mesid; /**< ME signal identifier. */

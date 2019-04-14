@@ -204,7 +204,6 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/reacq/search_manager.o \
         $(SWIFTNAV_ROOT)/src/reacq/search_manager_utils.o \
         $(SWIFTNAV_ROOT)/src/reacq/scheduler.o \
-        $(SWIFTNAV_ROOT)/src/reacq/scheduler_utils.o \
         $(SWIFTNAV_ROOT)/src/reacq/task_generator.o \
         $(SWIFTNAV_ROOT)/src/specan/specan_main.o \
         $(SWIFTNAV_ROOT)/src/soft_macq/prns.o \
@@ -230,7 +229,6 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/utils/track_loop/trk_loop_common.o \
         $(SWIFTNAV_ROOT)/src/utils/filters/filter_lp1.o \
         $(SWIFTNAV_ROOT)/src/utils/filters/filter_bw2.o \
-        $(SWIFTNAV_ROOT)/src/utils/sv_visibility/sv_visibility.o \
         $(SWIFTNAV_ROOT)/src/utils/bit_sync/bit_sync.o \
         $(SWIFTNAV_ROOT)/src/utils/run_stats/run_stats.o \
         $(SWIFTNAV_ROOT)/src/utils/nav_bit_fifo/nav_bit_fifo.o \

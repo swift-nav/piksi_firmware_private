@@ -219,36 +219,6 @@ static void me_send_failed_obs(obs_array_t *obs_array,
   obs_array = NULL;
 }
 
-/** Update the satellite azimuth & elevation database with current angles
- * \param rcv_pos Approximate receiver position
- * \param t Approximate time
- */
-static void update_sat_azel(const double rcv_pos[3], const gps_time_t t) {
-  ephemeris_t ephemeris;
-  almanac_t almanac;
-
-  /* compute elevation for any valid ephemeris/almanac we can pull from NDB */
-  for (u16 sv_index = 0; sv_index < NUM_SATS; sv_index++) {
-    /* form a SID with the first code for the constellation */
-    gnss_signal_t sid = sv_index_to_sid(sv_index);
-    if (!sid_valid(sid)) {
-      continue;
-    }
-    /* try to compute from ephemeris */
-    ndb_op_code_t res = ndb_ephemeris_read(sid, &ephemeris);
-    if (NDB_ERR_NONE == res || NDB_ERR_UNCONFIRMED_DATA == res) {
-      if (0 == update_azel_from_ephemeris(&ephemeris, &t, rcv_pos)) {
-        /* success */
-        continue;
-      }
-    }
-    /* else try to compute from almanac */
-    if (NDB_ERR_NONE == ndb_almanac_read(sid, &almanac)) {
-      update_azel_from_almanac(&almanac, &t, rcv_pos);
-    }
-  }
-}
-
 /* pack values into SBP sv_az_el_t array element */
 static void pack_azel(gnss_signal_t sid,
                       double azimuth,
@@ -733,15 +703,6 @@ static void me_calc_pvt_thread(void *arg) {
     watchdog_notify(WD_NOTIFY_ME_CALC_PVT);
 
     time_quality_t time_quality = get_time_quality();
-
-    if (TIME_UNKNOWN != time_quality && lgf.position_solution.valid &&
-        lgf.position_quality >= POSITION_GUESS && !simulation_enabled()) {
-      /* Update the satellite elevation angles so that they stay current
-       * (currently once every 30 seconds) */
-      DO_EACH_MS(MAX_AZ_EL_AGE_SEC * SECS_MS / 2,
-                 update_sat_azel(lgf.position_solution.pos_ecef,
-                                 lgf.position_solution.time));
-    }
 
     /* Take the current nap count as the reception time*/
     u64 current_tc = nap_timing_count();

@@ -79,14 +79,6 @@ typedef struct {
 static acq_status_t acq_status[PLATFORM_ACQ_TRACK_COUNT];
 static bool track_mask[ARRAY_SIZE(acq_status)];
 
-typedef struct {
-  bool visible; /** Visible flag */
-  bool known;   /** Known flag */
-} sm_glo_sv_vis_t;
-
-/* The array keeps latest visibility flags of each GLO SV */
-static sm_glo_sv_vis_t glo_sv_vis[NUM_SATS_GLO] = {0};
-
 #define DOPP_UNCERT_ALMANAC 4000
 #define DOPP_UNCERT_EPHEM 500
 
@@ -125,7 +117,7 @@ static tracking_startup_fifo_t tracking_startup_fifo;
 static MUTEX_DECL(tracking_startup_mutex);
 
 /* Elevation mask for tracking, degrees */
-static float tracking_elevation_mask = 9.0;
+static float tracking_elevation_mask = 10.0;
 /* Elevation mask for solution, degrees */
 static float solution_elevation_mask = 10.0;
 
@@ -267,28 +259,6 @@ static void mask_sat_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
   }
 }
 
-/**
- * The function calculates and stores visibility flags for all GLO SV
- *
- * Since work time of Runge-Kutta algorithm depends on GLO SV position
- * calculation period, due to iteration number
- * (see modeling https://github.com/swift-nav/exafore_planning/issues/681)
- * we continuously calculate the position.
- */
-static void calc_all_glo_visibility_flags(void) {
-  if (!is_glo_enabled()) {
-    return;
-  }
-
-  for (u16 glo_sat = 1; glo_sat <= NUM_SATS_GLO; glo_sat++) {
-    gnss_signal_t glo_sid = construct_sid(CODE_GLO_L1OF, glo_sat);
-    bool visible, known;
-    sm_get_visibility_flags(glo_sid, &visible, &known);
-    glo_sv_vis[glo_sat - 1].visible = visible;
-    glo_sv_vis[glo_sat - 1].known = known;
-  }
-}
-
 static THD_WORKING_AREA(wa_manage_acq_thread, MANAGE_ACQ_THREAD_STACK);
 static void manage_acq_thread(void *arg) {
   /* TODO: This should be trigged by a semaphore from the acq ISR code, not
@@ -302,8 +272,6 @@ static void manage_acq_thread(void *arg) {
   init_reacq();
 
   while (true) {
-    DO_EACH_MS(10000, calc_all_glo_visibility_flags());
-
     if (!had_fix) {
       /* do all this computation only if we never got a fix */
       last_good_fix_t lgf;
@@ -364,15 +332,42 @@ static int cons_enable_notify(void *ctx) {
   return SETTINGS_WR_OK;
 }
 
+/* Update the tracking mask used by the ME. */
+static int tracking_elevation_mask_notify(void *ctx) {
+  (void)ctx;
+
+  int ret = SETTINGS_WR_OK;
+  if (tracking_elevation_mask < 0.0f) {
+    tracking_elevation_mask = 0.0f;
+    log_info("Tracking elevation mask set at limit 0 deg");
+    ret = SETTINGS_WR_VALUE_REJECTED;
+  }
+  if (tracking_elevation_mask > solution_elevation_mask) {
+    log_info("Tracking elevation mask set at solution mask limit %.1f",
+             solution_elevation_mask);
+    tracking_elevation_mask = solution_elevation_mask;
+    ret = SETTINGS_WR_VALUE_REJECTED;
+  }
+  return ret;
+}
+
 /* Update the solution elevation mask used by the ME and by Starling. */
 static int solution_elevation_mask_notify(void *ctx) {
   (void)ctx;
 
-  log_debug("Solution elevation mask: %f", solution_elevation_mask);
-
+  int ret = SETTINGS_WR_OK;
+  if (solution_elevation_mask < 0.0f) {
+    solution_elevation_mask = 0.0f;
+    log_info("Solution elevation mask set at limit 0 deg");
+    ret = SETTINGS_WR_VALUE_REJECTED;
+  }
+  if (solution_elevation_mask > 90.0f) {
+    solution_elevation_mask = 90.0f;
+    log_info("Solution elevation mask set at limit 90 deg");
+    ret = SETTINGS_WR_VALUE_REJECTED;
+  }
   starling_set_elevation_mask(solution_elevation_mask);
-
-  return SETTINGS_WR_OK;
+  return ret;
 }
 
 void manage_acq_setup() {
@@ -614,8 +609,11 @@ void check_clear_unhealthy(void) {
 }
 
 void me_settings_setup(void) {
-  SETTING(
-      "track", "elevation_mask", tracking_elevation_mask, SETTINGS_TYPE_FLOAT);
+  SETTING_NOTIFY("track",
+                 "elevation_mask",
+                 tracking_elevation_mask,
+                 SETTINGS_TYPE_FLOAT,
+                 tracking_elevation_mask_notify);
   SETTING_NOTIFY("solution",
                  "elevation_mask",
                  solution_elevation_mask,
@@ -735,18 +733,6 @@ void restore_acq(const tracker_t *tracker) {
     qzs_acq_timer[index].status = acq;
     piksi_systime_get(&qzs_acq_timer[index].tick); /* channel drop time */
   }
-}
-
-/** Get GLO SV visibility flags. Function simply copies previously calculated
- * visibility flags for GLO SV
- *
- * \param[in] sat GLO SV orbital slot
- * \param[out] visible is set if SV is visible. Valid only if known is set
- * \param[out] known set if SV is known visible or known invisible
- */
-void sm_get_glo_visibility_flags(u16 sat, bool *visible, bool *known) {
-  *visible = glo_sv_vis[sat - 1].visible;
-  *known = glo_sv_vis[sat - 1].known;
 }
 
 /** Initiates the drop of all GLO signals from tracker on leap second event */
@@ -1070,7 +1056,7 @@ static u32 get_tracking_channel_sid_flags(const gnss_signal_t sid,
   u32 flags = 0;
 
   /* Satellite elevation is either unknown or above the solution mask. */
-  double elevation;
+  double elevation = 0.0;
   bool has_elevation = track_sid_db_elevation_degrees_get(sid, &elevation);
 
   /* satellite dropped under the tracking mask */
@@ -1207,12 +1193,6 @@ void manage_tracking_startup(void) {
 
     if (ACQ_PRN_TRACKING == acq->state || ACQ_PRN_UNHEALTHY == acq->state) {
       continue;
-    }
-
-    if (IS_SBAS(acq->mesid)) {
-      if (constellation_track_count(CONSTELLATION_SBAS) >= SBAS_SV_NUM_LIMIT) {
-        continue;
-      }
     }
 
     /* Make sure a tracking channel and a decoder channel are available */
@@ -1381,52 +1361,5 @@ bool is_qzss_enabled(void) { return cons_cfg[CONSTELLATION_QZS].enabled; }
  * @return true if GAL enabled, otherwise false
  */
 bool is_galileo_enabled(void) { return cons_cfg[CONSTELLATION_GAL].enabled; }
-
-/**
- * The function retrieves the GLO orbit slot, if the mapping to a FCN exists
- * and the SV is visible.
- *
- * @param[in]  fcn  Frequency slot to be checked
- *
- * @return GLO orbit slot
- */
-u16 get_orbit_slot(const u16 fcn) {
-  u16 glo_orbit_slot = GLO_ORBIT_SLOT_UNKNOWN;
-  u16 slot_id1, slot_id2;
-  /* check if we have the fcn mapped already to some slot id */
-  u8 num_si = glo_map_get_slot_id(fcn, &slot_id1, &slot_id2);
-  switch (num_si) {
-    case 1: {
-      bool vis, kn = false;
-      sm_get_glo_visibility_flags(slot_id1, &vis, &kn);
-      /* the fcn mapped to one slot id only,
-       * so use it as glo prn to be tracked if it's visible at the moment */
-      if (vis & kn) {
-        glo_orbit_slot = slot_id1;
-      }
-    } break;
-    case 2: {
-      bool vis, kn = false;
-      /* we have 2 slot ids mapped to one fcn */
-      /* check if SV with slot id 1 is visible */
-      sm_get_glo_visibility_flags(slot_id1, &vis, &kn);
-      if (vis && kn) {
-        /* SV with the FIRST slot ID is visible, track it */
-        glo_orbit_slot = slot_id1;
-      } else {
-        /* check the second slot id */
-        sm_get_glo_visibility_flags(slot_id2, &vis, &kn);
-        if (vis & kn) {
-          /* SV with the SECOND slot ID is visible, track it */
-          glo_orbit_slot = slot_id2;
-        }
-      }
-    } break;
-    default:
-      glo_orbit_slot = GLO_ORBIT_SLOT_UNKNOWN;
-      break;
-  }
-  return glo_orbit_slot;
-}
 
 /** \} */

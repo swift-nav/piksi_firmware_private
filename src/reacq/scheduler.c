@@ -14,16 +14,11 @@
 
 #include "acq/manage.h"
 #include "dum/dum.h"
+#include "reacq/reacq_sbp_utility.h"
 #include "scheduler_api.h"
 #include "soft_macq/soft_macq_main.h"
 #include "task_generator_api.h"
 #include "timing/timing.h"
-
-/* Scheduler utils functions */
-void sch_send_acq_profile_msg(const acq_job_t *job,
-                              const acq_result_t *acq_result,
-                              bool peak_found);
-u16 sm_constellation_to_start_index(constellation_t gnss);
 
 /* Scheduler constants */
 
@@ -42,7 +37,7 @@ u16 sm_constellation_to_start_index(constellation_t gnss);
  * \return true if need to continue, false if it's OK
  *         to re-run the schedule after this round
  */
-reacq_sched_ret_t sch_select_job(acq_jobs_state_t *jobs_data,
+reacq_sched_ret_t sch_select_job(acq_jobs_context_t *jobs_data,
                                  acq_job_t **job_to_run) {
   assert(job_to_run);
 
@@ -61,7 +56,6 @@ reacq_sched_ret_t sch_select_job(acq_jobs_state_t *jobs_data,
   /* Run first unknown satellite */
   job = &jobs_data->jobs[0];
   for (u8 i = 0; i < REACQ_NUM_SAT; i++, job++) {
-    /* Triggers only on ACQ_COST_MAX_PLUS cost hint */
     if ((ACQ_STATE_WAIT == job->state) && (UNKNOWN == job->sky_status)) {
       (*job_to_run) = job;
       log_debug("reacq: %3d %2d  0", job->mesid.sat, job->mesid.code);
@@ -84,33 +78,6 @@ reacq_sched_ret_t sch_select_job(acq_jobs_state_t *jobs_data,
   return REACQ_DONE_NOTHING;
 }
 
-/** GLO specific function.
- * The function sets Frequency slot to search if we are in blind search mode
- *
- * \param job pointer to job to run
- */
-static void sch_glo_fcn_set(acq_job_t *job) {
-  u16 slot_id1, slot_id2;
-  if (!glo_map_valid(job->sid)) {
-    bool next = true;
-    do {
-      /* FCN not mapped to GLO slot ID, so perform blind search, just pick next
-       * FCN */
-      job->mesid.sat++;
-      if (job->mesid.sat > GLO_MAX_FCN) {
-        job->mesid.sat = GLO_MIN_FCN;
-      }
-      /* now check if the selected frequency already mapped to other slot id */
-      if (glo_map_get_slot_id(job->mesid.sat, &slot_id1, &slot_id2) == 0) {
-        /* selected frequency is not mapped to other slot id, so use it for
-         * acquisition */
-        next = false;
-      }
-    } while (next);
-    job->mesid.code = job->sid.code;
-  }
-}
-
 /** Common part of scheduler for all constellations
  *
  * \param job pointer to job to run
@@ -122,7 +89,7 @@ static void sch_run_common(acq_job_t *job) {
   }
   assert(mesid_valid(job->mesid));
 
-  job->start_time = timing_getms();
+  job->start_time_ms = timing_getms();
   tg_fill_task(job);
 
   acq_result_t acq_result;
@@ -132,13 +99,13 @@ static void sch_run_common(acq_job_t *job) {
                                           acq_param->doppler_max_hz,
                                           &acq_result);
 
-  job->stop_time = timing_getms();
+  job->stop_time_ms = timing_getms();
   job->state = ACQ_STATE_IDLE;
 
   if (peak_found) { /* Send to track */
     u16 glo_orbit_slot = GLO_ORBIT_SLOT_UNKNOWN;
     if (IS_GLO(job->mesid)) {
-      glo_orbit_slot = get_orbit_slot(job->mesid.sat);
+      glo_orbit_slot = sm_mesid_to_sat(job->mesid);
     }
 
     me_gnss_signal_t mesid_trk = job->mesid;
@@ -172,14 +139,12 @@ static void sch_run_common(acq_job_t *job) {
  *
  * \return which type of job was run last (including no job)
  */
-reacq_sched_ret_t sch_run(acq_jobs_state_t *jobs_data) {
+reacq_sched_ret_t sch_run(acq_jobs_context_t *jobs_data) {
   reacq_sched_ret_t ret = REACQ_DONE_NOTHING;
   acq_job_t *job;
   /* `sch_select_job()` can also do nothing and return NULL in `job` */
   ret = sch_select_job(jobs_data, &job);
-  if ((NULL != job) && IS_GLO(job->mesid)) {
-    sch_glo_fcn_set(job);
-  }
+  /* `sch_run_common()` just sleeps on a NULL `job` */
   sch_run_common(job);
   return ret;
 }

@@ -62,7 +62,7 @@ bool is_bds2_enabled(void);
 bool is_qzss_enabled(void);
 bool is_galileo_enabled(void);
 void sm_get_glo_visibility_flags(u16 sat, bool *visible, bool *known);
-void sm_get_visibility_flags(gnss_signal_t sid, bool *visible, bool *known);
+// void sm_get_visibility_flags(gnss_signal_t sid, bool *visible, bool *known);
 void sm_calc_all_glo_visibility_flags(void);
 bool sm_lgf_stamp(u64 *lgf_stamp);
 gps_time_t get_current_time(void);
@@ -84,14 +84,14 @@ void acq_result_send(const me_gnss_signal_t mesid,
                      float cp,
                      float df_hz);
 void sch_initialize_cost(acq_job_t *init_job,
-                         const acq_jobs_state_t *all_jobs_data);
+                         const acq_jobs_context_t *all_jobs_data);
 bool soft_multi_acq_search(const me_gnss_signal_t mesid,
                            float doppler_min_hz,
                            float doppler_max_hz,
                            acq_result_t *p_acqres);
-reacq_sched_ret_t sch_select_job(acq_jobs_state_t *jobs_data,
+reacq_sched_ret_t sch_select_job(acq_jobs_context_t *jobs_data,
                                  acq_job_t **job_to_run);
-reacq_sched_ret_t sch_run(acq_jobs_state_t *jobs_data);
+reacq_sched_ret_t sch_run(acq_jobs_context_t *jobs_data);
 bool soft_multi_acq_search(const me_gnss_signal_t mesid,
                            float doppler_min_hz,
                            float doppler_max_hz,

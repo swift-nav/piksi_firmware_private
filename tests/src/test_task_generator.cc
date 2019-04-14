@@ -30,7 +30,7 @@
  *
  * \return 0
  */
-TEST(task_genertor_test, test_task_generator) {
+TEST(task_generator_test, test_task_generator) {
   /* There is not much to check in Phase 1 */
   acq_job_t job;
   acq_task_search_params_t *acq_param = &job.task_data;
@@ -40,9 +40,9 @@ TEST(task_genertor_test, test_task_generator) {
                       code_to_tcxo_doppler_max(CODE_GPS_L1CA);
 
   memset(&job, 0, sizeof(job));
+  job.mesid = construct_mesid(CODE_GPS_L1CA, 1);
 
   tg_fill_task(&job);
-
   EXPECT_EQ(EXPECTED_DOPPLER_BIN_SIZE_HZ, acq_param->freq_bin_size_hz);
   EXPECT_EQ(EXPECTED_INTEGRATION_TIME_4MS, acq_param->integration_time_ms);
   EXPECT_EQ(EXPECTED_PEAK_CN0_THRESHOLD_DBHZ, acq_param->cn0_threshold_dbhz);

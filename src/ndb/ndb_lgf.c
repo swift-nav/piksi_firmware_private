@@ -97,6 +97,14 @@ ndb_op_code_t ndb_lgf_read(last_good_fix_t *lgf) {
 }
 
 /**
+ * Loads cached LGF (not from NDB)
+ */
+ndb_op_code_t ndb_cached_lgf_read(last_good_fix_t *lgf) {
+  (*lgf) = last_good_fix;
+  return ndb_check_age(&lgf->position_solution.time, NDB_LGF_UPDATE_INTERVAL_S);
+}
+
+/**
  * Updates last good fix information.
  *
  * This method locally caches new information for later retrieval and also

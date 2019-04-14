@@ -11,7 +11,7 @@ clean:
 	@rm mesta
 
 UDEF = '-Wno-unused' \
-       '-DMAX_CHANNELS=81' \
+       '-DMAX_CHANNELS=79' \
        '-DSTARLING_MAX_CHANNEL_COUNT=250' \
        '-DMESTA_BUILD' \
        '-DPIKSI_RELEASE'
@@ -90,7 +90,6 @@ CSRC := $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l2c.c \
 	$(SWIFTNAV_ROOT)/src/utils/ephemeris/ephemeris.c \
 	$(SWIFTNAV_ROOT)/src/utils/obs_bias/obs_bias.c \
 	$(SWIFTNAV_ROOT)/src/utils/sbas_select/sbas_select.c \
-	$(SWIFTNAV_ROOT)/src/utils/sv_visibility/sv_visibility.c \
 	$(SWIFTNAV_ROOT)/src/utils/dum/dum.c \
 	$(SWIFTNAV_ROOT)/src/utils/ext_events/ext_events.c \
 	$(SWIFTNAV_ROOT)/src/utils/clock_filter/clock_filter.c \
@@ -109,7 +108,6 @@ CSRC := $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l2c.c \
 	$(SWIFTNAV_ROOT)/src/reacq/reacq_manage.c \
 	$(SWIFTNAV_ROOT)/src/reacq/reacq_sbp_utility.c \
 	$(SWIFTNAV_ROOT)/src/reacq/scheduler.c \
-	$(SWIFTNAV_ROOT)/src/reacq/scheduler_utils.c \
 	$(SWIFTNAV_ROOT)/src/reacq/search_manager.c \
 	$(SWIFTNAV_ROOT)/src/reacq/search_manager_utils.c \
 	$(SWIFTNAV_ROOT)/src/reacq/task_generator.c \
