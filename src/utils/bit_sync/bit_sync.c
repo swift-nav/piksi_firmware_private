@@ -299,9 +299,9 @@ static void histogram_update(bit_sync_t *b,
     for (u8 i = 0; i < GAL_CS25_MS; i++) {
       sum += b->histogram[i] * (e1c_xans[i]);
     }
-    if (sum >= GAL_CS25_MS/2) {
+    if (sum >= GAL_CS25_MS / 2) {
       b->bit_phase_ref = (b->bit_phase + 2) % b->bit_length;
-    }  
+    }
   } else if (CODE_BDS3_B5I == c) {
     /* Beidou3 B2aQ has a SC100 secondary code */
     if (ABS(b->histogram[0]) > 3) {
