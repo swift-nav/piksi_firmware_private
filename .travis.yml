@@ -31,6 +31,8 @@ matrix:
             - g++-6
             - doxygen
             - graphviz
+            - clang-format-6.0
+            - clang-tidy-6.0
       env: GCCVER=6
     - os: linux
       addons:
