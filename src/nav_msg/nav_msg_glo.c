@@ -123,7 +123,10 @@ static const u32 e_masks[7][3] = {
  *  Initialization is called after finding GLO time mark.
  * \param relcode Pointer to relcode removal structure.
  */
-static void relcode_init(relcode_t *relcode) { relcode->state = 0; }
+static void relcode_init(relcode_t *relcode) {
+  assert(relcode);
+  relcode->state = 0;
+}
 
 /** Update the structure for removal of relative code transformation.
  * \param relcode Pointer to relcode removal structure.
@@ -131,6 +134,7 @@ static void relcode_init(relcode_t *relcode) { relcode->state = 0; }
  * \return        Decoded data bit.
  */
 static u8 relcode_decode(relcode_t *relcode, u8 bit) {
+  assert(relcode);
   u8 decoded = relcode->state ^ bit;
   relcode->state = bit;
   return decoded;
@@ -141,6 +145,7 @@ static u8 relcode_decode(relcode_t *relcode, u8 bit) {
  * \param mesid Decoding channel ME sid
  */
 void nav_msg_init_glo(nav_msg_glo_t *n, me_gnss_signal_t mesid) {
+  assert(n);
   memset(n, 0, sizeof(nav_msg_glo_t));
   n->state = SYNC_TM;
   n->bit_polarity = BIT_POLARITY_UNKNOWN;
@@ -159,6 +164,7 @@ void nav_msg_init_glo(nav_msg_glo_t *n, me_gnss_signal_t mesid) {
  * \return word extracted from navigation string
  */
 u32 extract_word_glo(const nav_msg_glo_t *n, u16 bit_index, u8 n_bits) {
+  assert(n);
   assert(bit_index);
   assert(bit_index <= GLO_STR_LEN);
 
@@ -191,6 +197,7 @@ u32 extract_word_glo(const nav_msg_glo_t *n, u16 bit_index, u8 n_bits) {
  *          >0 -- number of bit in n->string_bits to be corrected (inverted)
  *                range[9..85]*/
 s8 error_detection_glo(const nav_msg_glo_t *n) {
+  assert(n);
   u8 c = 0;
   u32 data1, data2, data3;
   bool p0, p1, p2, p3, beta, c_sum;
@@ -267,6 +274,7 @@ s8 error_detection_glo(const nav_msg_glo_t *n) {
  * \return GLO timemark was decoded (true) or not (false)
  */
 bool timemark_glo_decoded(nav_msg_glo_t *n, bool symbol) {
+  assert(n);
   /* put incoming symbol at the tail of the buffer */
   n->string_bits[0] <<= 1; /* use one word of buffer for that purpose */
   n->string_bits[0] |= symbol;
@@ -304,6 +312,7 @@ bool timemark_glo_decoded(nav_msg_glo_t *n, bool symbol) {
  *         GLO_STRING_NOT_READY otherwise.
  */
 nav_msg_status_t get_data_bits_glo(nav_msg_glo_t *n, bool symbol) {
+  assert(n);
   nav_msg_status_t ret = GLO_STRING_NOT_READY;
   n->meander_bits_cnt++;
   n->manchester <<= 1;
@@ -364,6 +373,7 @@ nav_msg_status_t get_data_bits_glo(nav_msg_glo_t *n, bool symbol) {
  *         GLO_STRING_NOT_READY otherwise.
  */
 nav_msg_status_t nav_msg_update_glo(nav_msg_glo_t *n, bool symbol) {
+  assert(n);
   s8 ret = GLO_STRING_NOT_READY;
 
   switch (n->state) {
@@ -387,6 +397,7 @@ nav_msg_status_t nav_msg_update_glo(nav_msg_glo_t *n, bool symbol) {
  * \return The decoded position component [m]
  */
 static double decode_position_component(const nav_msg_glo_t *n) {
+  assert(n);
   double pos_m = extract_word_glo(n, 9, 26) * C_1_2P11 * 1000.0;
   u8 sign = extract_word_glo(n, 9 + 26, 1);
   if (sign) {
@@ -400,6 +411,7 @@ static double decode_position_component(const nav_msg_glo_t *n) {
  * \return The decoded velocity component [m/s]
  */
 static double decode_velocity_component(const nav_msg_glo_t *n) {
+  assert(n);
   /* extract velocity (Vx or Vy or Vz) */
   double vel_mps = extract_word_glo(n, 41, 23) * C_1_2P20 * 1000.0;
   u8 sign = extract_word_glo(n, 41 + 23, 1);
@@ -414,6 +426,7 @@ static double decode_velocity_component(const nav_msg_glo_t *n) {
  * \return The decoded acceleration component [m/s^2]
  */
 static double decode_acceleration_component(const nav_msg_glo_t *n) {
+  assert(n);
   /* extract acceleration (Ax or Ay or Az) */
   double acc_mps2 = extract_word_glo(n, 36, 4) * C_1_2P30 * 1000.0;
   u8 sign = extract_word_glo(n, 36 + 4, 1);
@@ -447,6 +460,7 @@ static u32 compute_ephe_fit_interval(const nav_msg_glo_t *n, u32 p1) {
 }
 
 static bool extract_string_1_components(nav_msg_glo_t *n) {
+  assert(n);
   double pos_m = decode_position_component(n); /* extract x */
   if ((pos_m < -GLO_POS_MAX_M) || (GLO_POS_MAX_M < pos_m)) {
     log_debug_mesid(n->mesid, "GLO-NAV-ERR: pos_x =%lf m", pos_m);
@@ -489,6 +503,7 @@ static bool extract_string_1_components(nav_msg_glo_t *n) {
 }
 
 static bool extract_string_2_components(nav_msg_glo_t *n) {
+  assert(n);
   double pos_m = decode_position_component(n); /* extract y */
   if ((pos_m < -GLO_POS_MAX_M) || (GLO_POS_MAX_M < pos_m)) {
     log_debug_mesid(n->mesid, "GLO-NAV-ERR: pos_y =%lf m", pos_m);
@@ -527,6 +542,7 @@ static bool extract_string_2_components(nav_msg_glo_t *n) {
 }
 
 static bool extract_string_3_components(nav_msg_glo_t *n) {
+  assert(n);
   u32 ret;
   u8 sign;
 
@@ -570,6 +586,7 @@ static bool extract_string_3_components(nav_msg_glo_t *n) {
 }
 
 static bool extract_string_4_components(nav_msg_glo_t *n) {
+  assert(n);
   u32 ret;
   u8 sign;
 
@@ -631,6 +648,7 @@ static bool extract_string_4_components(nav_msg_glo_t *n) {
 }
 
 static bool extract_string_5_components(nav_msg_glo_t *n) {
+  assert(n);
   u8 sign;
 
   /* extract N4 */
@@ -668,6 +686,8 @@ static bool extract_string_5_components(nav_msg_glo_t *n) {
  */
 static bool find_tow_age(
     const u32 string_receive_time_ms[GLO_STRINGS_TO_COLLECT], u32 *tow_age_s) {
+  assert(tow_age_s);
+
   bool retval = false;
   u32 tow_tag_ms = string_receive_time_ms[0]; /* String 1 (TOW) time tag. */
   u32 max_tag_ms = 0; /* Max tag is for finding last decoded string time tag. */
@@ -700,6 +720,7 @@ static bool find_tow_age(
  *
  */
 static void restart_decoding(nav_msg_glo_t *n) {
+  assert(n);
   n->decoded_strings = 0;
   /* We only support single ephemeris storage per GLO satellite.
      Ephemeris decoded from GLO L1CA is same as the one decoded
@@ -723,6 +744,7 @@ static void restart_decoding(nav_msg_glo_t *n) {
  * \return TRUE, if all strings from same validity window, FALSE otherwise.
  */
 static bool check_validity_window(const nav_msg_glo_t *n, s32 tk_s, u8 skip) {
+  assert(n);
   u32 tow_tag_ms = n->string_receive_time_ms[0];
   u32 tk_validity_index = tk_s / DIFF_VALIDITY_WINDOW_S;
 
@@ -760,6 +782,7 @@ static bool check_validity_window(const nav_msg_glo_t *n, s32 tk_s, u8 skip) {
  * \return TRUE, if all strings from same validity window, FALSE otherwise.
  */
 static bool check_time_validity(const nav_msg_glo_t *n, u8 skip) {
+  assert(n);
   /* Return value */
   bool strings_valid = false;
 
@@ -832,6 +855,7 @@ static bool check_time_validity(const nav_msg_glo_t *n, u8 skip) {
  *         FALSE otherwise.
  */
 static bool is_tow_decode_done(const nav_msg_glo_t *n) {
+  assert(n);
   /* Return value */
   bool strings_valid = false;
 
@@ -855,6 +879,7 @@ static bool is_tow_decode_done(const nav_msg_glo_t *n) {
  *         FALSE otherwise.
  */
 static bool is_eph_decode_done(const nav_msg_glo_t *n) {
+  assert(n);
   /* Return value */
   bool strings_valid = false;
 
@@ -902,6 +927,7 @@ static bool is_ephe_valid(const nav_msg_glo_t *n) {
  *
  */
 string_decode_status_t process_string_glo(nav_msg_glo_t *n, u32 time_tag_ms) {
+  assert(n);
   /* Extract and check dummy bit from GLO string, bit 85 in GLO string */
   if (extract_word_glo(n, GLO_STR_LEN, 1) != 0) {
     return GLO_STRING_DECODE_ERROR;

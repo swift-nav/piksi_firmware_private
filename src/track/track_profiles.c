@@ -477,6 +477,8 @@ static tracker_mode_t g_tracker_mode = {0};
  */
 static tp_tm_e get_track_mode(me_gnss_signal_t mesid,
                               const struct tp_profile_entry *entry) {
+  assert(entry);
+
   tp_tm_e track_mode = TP_TM_INITIAL;
 
   if (IS_GPS(mesid) || IS_QZSS(mesid)) {
@@ -646,6 +648,8 @@ static struct profile_vars get_profile_vars(const me_gnss_signal_t mesid,
  * \return None
  */
 void tp_profile_update_config(tracker_t *tracker) {
+  assert(tracker);
+
   const me_gnss_signal_t mesid = tracker->mesid;
   tp_profile_t *profile = &tracker->profile;
   const tp_profile_entry_t *cur_profile =
@@ -769,6 +773,8 @@ static void log_switch(tracker_t *tracker, const char *reason) {
 }
 
 static bool pll_bw_changed(tracker_t *tracker, profile_indices_t index) {
+  assert(tracker);
+
   tp_profile_t *state = &tracker->profile;
   const tp_profile_entry_t *entry = &state->profiles[index];
   float pll_bw;
@@ -831,6 +837,7 @@ static bool fll_bw_changed(tracker_t *tracker, profile_indices_t index) {
 static bool profile_switch_requested(tracker_t *tracker,
                                      profile_indices_t index,
                                      const char *reason) {
+  assert(tracker);
   assert(index != IDX_NONE);
   assert((size_t)index < g_tracker_mode.size);
 
@@ -876,6 +883,8 @@ static bool profile_switch_requested(tracker_t *tracker,
 }
 
 static bool low_cn0_profile_switch_requested(tracker_t *tracker) {
+  assert(tracker);
+
   /* in base tracker mode longer integration times are ensured
      by the strategy implemented in the profile switching table:
      always activate the longest possible integration time profile. */
@@ -922,6 +931,8 @@ static bool low_cn0_profile_switch_requested(tracker_t *tracker) {
  * \retval false No profile change is required.
  */
 bool tp_profile_has_new_profile(tracker_t *tracker) {
+  assert(tracker);
+
   tp_profile_t *state = &tracker->profile;
   bool tracker_mode_changed = (state->profiles != g_tracker_mode.profiles);
   if (tracker_mode_changed) {
@@ -986,6 +997,8 @@ bool tp_profile_has_new_profile(tracker_t *tracker) {
  */
 static float compute_cn0_offset(const me_gnss_signal_t mesid,
                                 const tp_profile_t *profile) {
+  assert(profile);
+
   const struct tp_profile_entry *cur_profile;
   tp_tm_e mode;
 
@@ -1038,6 +1051,7 @@ bool tp_is_base_station_mode(void) {
  */
 void tp_profile_init(tracker_t *tracker, const tp_report_t *data) {
   assert(tracker);
+  assert(data);
 
   tp_profile_t *profile = &tracker->profile;
   me_gnss_signal_t mesid = tracker->mesid;
@@ -1116,6 +1130,8 @@ void tp_profile_report_data(tp_profile_t *profile, const tp_report_t *data) {
 
 tp_tm_e tp_profile_get_next_track_mode(const tp_profile_t *profile,
                                        me_gnss_signal_t mesid) {
+  assert(profile);
+
   const tp_profile_entry_t *profile_entry;
   profile_entry = &profile->profiles[profile->next.index];
   return get_track_mode(mesid, profile_entry);

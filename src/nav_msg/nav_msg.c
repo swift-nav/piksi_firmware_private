@@ -102,6 +102,7 @@ void nav_msg_clear_decoded(nav_msg_t *n) {
  * \return Extracted bits
  */
 u32 extract_word(const nav_msg_t *n, u16 bit_index, u8 n_bits, u8 invert) {
+  assert(n);
   assert(n_bits > 0 && n_bits <= 32);
 
   /* Extract a word of n_bits length (n_bits <= 32) at position bit_index into
@@ -160,6 +161,7 @@ s32 adjust_tow(u32 TOW_trunc) {
 }
 
 static s32 seek_subframe(nav_msg_t *n) {
+  assert(n);
   /* We're going to look for the preamble at 360 nav bits ago.
    * This means we have whole subframe in buffer (10 * 30 bits),
    * and TLM + HOW word of the next subframe (30 + 30).
@@ -332,6 +334,7 @@ static s32 seek_subframe(nav_msg_t *n) {
 }
 
 static void seek_bit_polarity(nav_msg_t *n) {
+  assert(n);
   /* We're going to look for the preamble at 60 nav bits ago.
    * This means we have TLM + HOW words in buffer (30 + 30 bits).
    *
@@ -449,6 +452,7 @@ static void seek_bit_polarity(nav_msg_t *n) {
  *         rollover, or `TOW_INVALID` (-1) if unknown
  */
 s32 nav_msg_update(nav_msg_t *n, bool bit_val) {
+  assert(n);
   s32 TOW_ms = TOW_INVALID;
 
   /* The following is offset by 27 to allow the handover word to be
@@ -527,6 +531,7 @@ s32 nav_msg_update(nav_msg_t *n, bool bit_val) {
  *         otherwise returns the number of the first incorrect parity bit.
  */
 u8 nav_parity(u32 *word) {
+  assert(word);
   if (*word & 1u << 30) { /* Inspect D30* */
     *word ^= 0x3FFFFFC0;  /* D30* = 1, invert all the data bits! */
   }
@@ -560,6 +565,7 @@ u8 nav_parity(u32 *word) {
 }
 
 bool subframe_ready(const nav_msg_t *n) {
+  assert(n);
   return (0 != n->subframe_start_index);
 }
 
@@ -575,6 +581,7 @@ bool subframe_ready(const nav_msg_t *n) {
  * \return None
  */
 static void age_subframe_data(nav_msg_t *n) {
+  assert(n);
   for (unsigned sf = 0; sf < GPS_LNAV_SUBFRAME_CNT; ++sf) {
     if (n->frame_age[sf] < GPS_LNAV_SUBFRAME_AGE_MAX) {
       /* Increase age as it is under the limit */
@@ -594,6 +601,7 @@ static void age_subframe_data(nav_msg_t *n) {
  * \return None
  */
 static void prepare_for_next_subframe(nav_msg_t *n) {
+  assert(n);
   /* Mark the subframe as processed */
   n->subframe_start_index = 0;
 
@@ -626,6 +634,8 @@ static void prepare_for_next_subframe(nav_msg_t *n) {
 static gps_lnav_sf_status_t fill_in_sf_data(nav_msg_t *n,
                                             const me_gnss_signal_t mesid,
                                             u8 sf_id) {
+  assert(n);
+
   gps_lnav_sf_status_t res = GPS_LNAV_SF_STATUS_OK;
 
   if (sf_id >= GPS_LNAV_SUBFRAME_MIN && sf_id <= GPS_LNAV_SUBFRAME_MAX) {
@@ -703,6 +713,8 @@ static gps_lnav_sf_status_t fill_in_sf_data(nav_msg_t *n,
  */
 static bool can_combine_subframes123(const nav_msg_t *n,
                                      const me_gnss_signal_t mesid) {
+  assert(n);
+
   bool ok = true;
   bool age0 = false;
   bool age1p = false;
@@ -784,6 +796,8 @@ static s8 try_ephemeris_decoding(const nav_msg_t *n,
                                  const me_gnss_signal_t mesid,
                                  u32 sf_word2,
                                  gps_l1ca_decoded_data_t *data) {
+  assert(n);
+
   s8 res = -1;
   if (can_combine_subframes123(n, mesid)) {
     /*
@@ -879,6 +893,7 @@ static s8 decode_subframe23(const nav_msg_t *n,
 static s8 decode_subframe45(u8 age,
                             const u32 words[8],
                             gps_l1ca_decoded_data_t *data) {
+  assert(data);
   s8 res = -1;
   u8 data_id = words[3 - 3] >> (30 - 2) & 0x3;
 

@@ -94,6 +94,9 @@ static void check_L1_entry(tracker_t *tracker,
                            bool xcorr_flags[],
                            bool sat_active[],
                            float xcorr_cn0_diffs[]) {
+  assert(tracker);
+  assert(entry);
+
   gps_l1ca_tracker_data_t *data = &tracker->gps_l1ca;
 
   if ((CODE_GPS_L1CA != entry->mesid.code) &&
@@ -161,6 +164,9 @@ static void check_L1_xcorr_flags(tracker_t *tracker,
                                  const bool xcorr_flags[],
                                  const float xcorr_cn0_diffs[],
                                  bool *xcorr_suspect) {
+  assert(tracker);
+  assert(xcorr_suspect);
+
   gps_l1ca_tracker_data_t *data = &tracker->gps_l1ca;
 
   if (idx + 1 == tracker->mesid.sat) {
@@ -205,6 +211,9 @@ static void check_L1_xcorr_flags(tracker_t *tracker,
 static bool check_L2_entries(tracker_t *tracker,
                              const tracker_cc_entry_t *entry,
                              bool *xcorr_flag) {
+  assert(tracker);
+  assert(xcorr_flag);
+
   gps_l1ca_tracker_data_t *data = &tracker->gps_l1ca;
 
   if (CODE_GPS_L2CM != entry->mesid.code ||
@@ -264,6 +273,9 @@ static bool check_L2_entries(tracker_t *tracker,
 static void check_L2_xcorr_flag(tracker_t *tracker,
                                 bool xcorr_flag,
                                 bool *xcorr_suspect) {
+  assert(tracker);
+  assert(xcorr_suspect);
+
   gps_l1ca_tracker_data_t *data = &tracker->gps_l1ca;
 
   u16 index = mesid_to_code_index(tracker->mesid);
@@ -312,6 +324,8 @@ static void check_L2_xcorr_flag(tracker_t *tracker,
  * \return None
  */
 static void update_l1_xcorr(tracker_t *tracker) {
+  assert(tracker);
+
   gps_l1ca_tracker_data_t *data = &tracker->gps_l1ca;
 
   if (tracker_get_xcorr_flag(tracker)) {
@@ -387,6 +401,8 @@ static void update_l1_xcorr(tracker_t *tracker) {
  * \return None
  */
 static void update_l1_xcorr_from_l2(tracker_t *tracker) {
+  assert(tracker);
+
   gps_l1ca_tracker_data_t *data = &tracker->gps_l1ca;
 
   tracker_cc_data_t cc_data;
@@ -420,6 +436,8 @@ static void update_l1_xcorr_from_l2(tracker_t *tracker) {
 }
 
 static void tracker_gps_l1ca_update(tracker_t *tracker) {
+  assert(tracker);
+
   u32 cflags = tp_tracker_update(tracker, &gps_l1ca_config);
 
   bool bit_aligned =

@@ -149,6 +149,8 @@ void do_l1ca_to_l2c_handover(u32 sample_count,
 }
 
 static void tracker_gps_l2c_init(tracker_t *tracker) {
+  assert(tracker);
+
   gps_l2cm_tracker_data_t *data = &tracker->gps_l2cm;
 
   memset(data, 0, sizeof(*data));
@@ -176,6 +178,10 @@ static void tracker_gps_l2c_init(tracker_t *tracker) {
 static bool check_L1_entries(tracker_t *tracker,
                              const tracker_cc_entry_t *entry,
                              bool *xcorr_flag) {
+  assert(tracker);
+  assert(entry);
+  assert(xcorr_flag);
+
   gps_l2cm_tracker_data_t *data = &tracker->gps_l2cm;
 
   if (CODE_GPS_L1CA != entry->mesid.code ||
@@ -237,6 +243,9 @@ static bool check_L1_entries(tracker_t *tracker,
 static void check_L1_xcorr_flag(tracker_t *tracker,
                                 bool xcorr_flag,
                                 bool *xcorr_suspect) {
+  assert(tracker);
+  assert(xcorr_suspect);
+
   gps_l2cm_tracker_data_t *data = &tracker->gps_l2cm;
   s32 max_time_cnt = (s32)(gps_l2c_config.xcorr_time * XCORR_UPDATE_RATE);
 
@@ -283,6 +292,8 @@ static void check_L1_xcorr_flag(tracker_t *tracker,
  * \return None
  */
 static void update_l2_xcorr_from_l1(tracker_t *tracker) {
+  assert(tracker);
+
   gps_l2cm_tracker_data_t *data = &tracker->gps_l2cm;
 
   if (tracker_get_xcorr_flag(tracker)) {
@@ -321,6 +332,8 @@ static void update_l2_xcorr_from_l1(tracker_t *tracker) {
 }
 
 static void tracker_gps_l2c_update(tracker_t *tracker) {
+  assert(tracker);
+
   u32 cflags = tp_tracker_update(tracker, &gps_l2c_config);
 
   bool bit_aligned =

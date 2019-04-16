@@ -58,6 +58,8 @@ static void tracker_gal_e1_init(tracker_t *tracker) {
 }
 
 static void tracker_gal_e1_update(tracker_t *tracker) {
+  assert(tracker);
+
   u32 cflags = tp_tracker_update(tracker, &gal_e1_config);
 
   /* If GAL SV is marked unhealthy from E1, also drop E7 tracker */

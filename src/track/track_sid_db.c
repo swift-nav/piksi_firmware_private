@@ -146,7 +146,8 @@ static bool track_sid_db_load_azel(const gnss_signal_t sid,
  */
 static void track_sid_db_update_azel(const gnss_signal_t sid,
                                      const tp_azel_entry_t *azel_entry) {
-  assert(NULL != azel_entry);
+  assert(azel_entry);
+
   u16 sv_index = sid_to_sv_index(sid);
   chMtxLock(&sid_db_cache.mutex);
   sid_db_cache.entries[sv_index].azel = *azel_entry;
@@ -184,6 +185,8 @@ void track_sid_db_azel_degrees_set(const gnss_signal_t sid,
  * \sa sv_azimuth_degrees_set
  */
 bool track_sid_db_azimuth_degrees_get(const gnss_signal_t sid, double *result) {
+  assert(result);
+
   tp_azel_entry_t entry = {0};
   /* If azimuth cache entry is loaded, do the entry age check */
   if (track_sid_db_load_azel(sid, &entry) &&
@@ -361,6 +364,8 @@ bool track_sid_db_update_positions(const gnss_signal_t sid,
 }
 
 static bool tow_cache_sid_available(tracker_t *tracker, gnss_signal_t *sid) {
+  assert(tracker);
+
   me_gnss_signal_t mesid = tracker->mesid;
   u16 glo_orbit_slot = 0;
 
@@ -385,6 +390,8 @@ static bool tow_cache_sid_available(tracker_t *tracker, gnss_signal_t *sid) {
  * \param[in] tracker Tracker channel data
  */
 void update_tow_in_sid_db(tracker_t *tracker) {
+  assert(tracker);
+
   gnss_signal_t sid;
   if (!tow_cache_sid_available(tracker, &sid)) {
     return;
@@ -405,6 +412,8 @@ void update_tow_in_sid_db(tracker_t *tracker) {
  * \param[in] tracker Tracker channel data
  */
 void propagate_tow_from_sid_db(tracker_t *tracker) {
+  assert(tracker);
+
   me_gnss_signal_t mesid = tracker->mesid;
   gnss_signal_t sid;
   if (!tow_cache_sid_available(tracker, &sid)) {

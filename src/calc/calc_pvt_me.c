@@ -89,8 +89,8 @@ static void me_post_observations(obs_array_t *obs_array,
     log_error("ME: Unable to send ephemeris array.");
   }
 
-  ret = starling_send_rover_obs(
-      obs_array); /* Transferring ownership of obs_array here */
+  ret = starling_send_rover_obs(obs_array);
+  /* Transfer ownership of obs_array here */
   obs_array = NULL;
   if (STARLING_SEND_OK != ret) {
     log_error("ME: Unable to send observations.");
@@ -98,6 +98,7 @@ static void me_post_observations(obs_array_t *obs_array,
 }
 
 static bool decimate_observations(const gps_time_t *_t) {
+  assert(_t);
   /* We can use the solution setting directly here as we have no
    * later dependencies on being consistent, all we want to know
    * is should this epoch be decimated from output. */
@@ -109,13 +110,14 @@ static bool decimate_observations(const gps_time_t *_t) {
 /** This function takes ownership of `obs_array` and transfers ownership
  * of it to `me_post_observations()` */
 static void me_send_all(obs_array_t *obs_array, const ephemeris_t _ephem[]) {
+  assert(obs_array);
   /* Output observations only every obs_output_divisor times, taking
    * care to ensure that the observations are aligned. */
   if (decimate_observations(&obs_array->t) && !simulation_enabled()) {
     send_observations(obs_array, msg_obs_max_size);
   }
-  me_post_observations(obs_array,
-                       _ephem); /* Transferring ownership of obs_array here */
+  me_post_observations(obs_array, _ephem);
+  /* Transferring ownership of obs_array here */
   obs_array = NULL;
   DO_EVERY(biases_message_freq_setting, send_glonass_biases());
 }
@@ -157,6 +159,8 @@ static void remove_clock_offset(obs_array_t *obs_array,
                                 const gps_time_t *output_time,
                                 double clock_drift,
                                 double cpo_drift) {
+  assert(obs_array);
+  assert(output_time);
   /* amount of clock offset to remove */
   double clock_offset = gpsdifftime(output_time, &obs_array->t);
 
@@ -193,11 +197,12 @@ static void remove_clock_offset(obs_array_t *obs_array,
  * `me_post_observations()` or `me_send_emptyobs()` */
 static void me_send_failed_obs(obs_array_t *obs_array,
                                const ephemeris_t _ephem[]) {
+  assert(obs_array);
   /* require at least some timing quality */
   if (TIME_PROPAGATED > get_time_quality() || !gps_time_valid(&obs_array->t) ||
       obs_array->n == 0) {
-    me_send_emptyobs(
-        obs_array); /* Transferring ownership of obs_array, to be reused */
+    me_send_emptyobs(obs_array);
+    /* Transferring ownership of obs_array, to be reused */
     obs_array = NULL;
     return;
   }
@@ -287,6 +292,7 @@ static void send_sbp_az_el(const u8 n_used,
  * \param interval_us Interval by which the deadline should be advanced [us].
  */
 static void me_thd_sleep(piksi_systime_t *next_epoch, u32 interval_us) {
+  assert(next_epoch);
   u32 slept_us = 0;
   while (true) {
     slept_us = piksi_systime_sleep_until_us(next_epoch);
@@ -313,13 +319,18 @@ static void me_thd_sleep(piksi_systime_t *next_epoch, u32 interval_us) {
  *
  * \return None
  */
-static void collect_measurements(u64 rec_tc,
-                                 channel_measurement_t meas[MAX_CHANNELS],
-                                 channel_measurement_t in_view[MAX_CHANNELS],
-                                 ephemeris_t ephe[MAX_CHANNELS],
-                                 u8 *pn_ready,
-                                 u8 *pn_inview,
-                                 u8 *pn_total) {
+static void collect_measurements(
+    u64 rec_tc,
+    channel_measurement_t meas[static MAX_CHANNELS],
+    channel_measurement_t in_view[static MAX_CHANNELS],
+    ephemeris_t ephe[static MAX_CHANNELS],
+    u8 *pn_ready,
+    u8 *pn_inview,
+    u8 *pn_total) {
+  assert(pn_ready);
+  assert(pn_inview);
+  assert(pn_total);
+
   u8 n_collected = 0;
   u8 n_inview = 0;
   u8 n_active = 0;
@@ -386,6 +397,7 @@ static void drop_gross_outlier(const gnss_signal_t sid,
                                const double pseudorange_m,
                                const double sat_pos[],
                                const gnss_solution *current_fix) {
+  assert(current_fix);
   /* Check how large the outlier roughly is, and if it is a gross one,
    * drop the channel and delete the possibly corrupt ephemeris */
   double geometric_range[3];
@@ -414,6 +426,8 @@ static void drop_gross_outlier(const gnss_signal_t sid,
 
 static void starling_obs_to_nav_meas(const starling_obs_t *obs,
                                      navigation_measurement_t *nm) {
+  assert(obs);
+  assert(nm);
   nm->raw_pseudorange = obs->pseudorange;
   nm->pseudorange = obs->pseudorange;
   nm->raw_carrier_phase = obs->carrier_phase;
@@ -450,6 +464,10 @@ static s8 me_compute_pvt(const obs_array_t *obs_array,
                          last_good_fix_t *lgf,
                          gnss_sid_set_t *raim_sids,
                          gnss_sid_set_t *raim_removed_sids) {
+  assert(obs_array);
+  assert(lgf);
+  assert(raim_sids);
+  assert(raim_removed_sids);
   u8 n_ready = obs_array->n;
   sid_set_init(raim_sids);
   bool any_glo_obs = false; /* at least one GLO observation */
@@ -614,6 +632,8 @@ static s8 me_compute_pvt(const obs_array_t *obs_array,
  * time-of-ephemeris. This will be accurate to couple of milliseconds */
 static gps_time_t reference_time_from_meas(channel_measurement_t *meas,
                                            ephemeris_t *ephe) {
+  assert(meas);
+  assert(ephe);
   gps_time_t ref_time = GPS_TIME_UNKNOWN;
   ref_time.tow =
       (double)meas->time_of_week_ms / SECS_MS + GPS_NOMINAL_RANGE / GPS_C;
@@ -629,6 +649,10 @@ static void copy_raimed_obs(const obs_array_t *obs_array,
                             const gnss_sid_set_t *raim_sids,
                             const gnss_sid_set_t *raim_failed_sids,
                             obs_array_t *send_obs_array) {
+  assert(obs_array);
+  assert(raim_sids);
+  assert(raim_failed_sids);
+  assert(send_obs_array);
   send_obs_array->n = 0;
   send_obs_array->t = obs_array->t;
   for (u8 i = 0; i < obs_array->n; i++) {

@@ -56,6 +56,8 @@ static void tracker_bds2_b11_init(tracker_t *tracker) {
 }
 
 static void tracker_bds2_b11_update(tracker_t *tracker) {
+  assert(tracker);
+
   u32 cflags = tp_tracker_update(tracker, &bds2_l1ca_config);
 
   /* If BDS SV is marked unhealthy from B1, also drop B2 tracker */

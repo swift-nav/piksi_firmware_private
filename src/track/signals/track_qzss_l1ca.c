@@ -67,6 +67,8 @@ static void tracker_qzss_l1ca_init(tracker_t *tracker) {
 }
 
 static void tracker_qzss_l1ca_update(tracker_t *tracker) {
+  assert(tracker);
+
   u32 cflags = tp_tracker_update(tracker, &qzss_l1ca_config);
 
   bool bit_aligned =

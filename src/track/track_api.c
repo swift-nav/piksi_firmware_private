@@ -69,6 +69,8 @@ bool nap_sc_wipeoff(const tracker_t *tracker) {
  * \param chips_to_correlate  Number of code chips to integrate over.
  */
 void tracker_retune(tracker_t *tracker, u32 chips_to_correlate) {
+  assert(tracker);
+
   double doppler_hz = tracker->doppler_hz;
   double code_phase_rate = tracker->code_phase_rate;
   bool nap_strip_sc = nap_sc_wipeoff(tracker);
@@ -89,6 +91,9 @@ void tracker_retune(tracker_t *tracker, u32 chips_to_correlate) {
  */
 static s32 adjust_tow_by_bit_fifo_delay(tracker_t *tracker,
                                         const nav_data_sync_t *to_tracker) {
+  assert(tracker);
+  assert(to_tracker);
+
   s32 TOW_ms = TOW_INVALID;
   /* Compute time since the pending data was read from the FIFO */
   u8 fifo_length = nav_bit_fifo_length_for_rd_index(&tracker->nav_bit_fifo,
@@ -104,6 +109,8 @@ static s32 adjust_tow_by_bit_fifo_delay(tracker_t *tracker,
 }
 
 static void update_polarity(tracker_t *tracker, s8 polarity) {
+  assert(tracker);
+
   me_gnss_signal_t mesid = tracker->mesid;
   s8 prev_polarity = tracker->bit_polarity;
   if (prev_polarity != polarity) {
@@ -120,6 +127,11 @@ static void update_tow(tracker_t *tracker,
                        s32 *current_TOW_ms,
                        s32 *TOW_residual_ns,
                        bool *decoded_tow) {
+  assert(tracker);
+  assert(current_TOW_ms);
+  assert(TOW_residual_ns);
+  assert(decoded_tow);
+
   me_gnss_signal_t mesid = tracker->mesid;
 
   s32 TOW_ms = adjust_tow_by_bit_fifo_delay(tracker, data_sync);
@@ -243,6 +255,8 @@ s32 tracker_tow_update(tracker_t *tracker,
  * \param bit_phase_ref     Bit phase reference.
  */
 void tracker_bit_sync_set(tracker_t *tracker, s8 bit_phase_ref) {
+  assert(tracker);
+
   bit_sync_t *bit_sync = &tracker->bit_sync;
   bit_sync_set(bit_sync, bit_phase_ref);
 }
@@ -269,6 +283,8 @@ static s8 nav_bit_quantize(s32 bit_integrate) {
 void tracker_bit_sync_update(tracker_t *tracker,
                              u32 int_ms,
                              bool sensitivity_mode) {
+  assert(tracker);
+
   /* Update bit sync */
   s32 bit_integrate;
   bool integrated = bit_sync_update(&tracker->bit_sync,
@@ -322,6 +338,8 @@ void tracker_bit_sync_update(tracker_t *tracker,
  * \return Bit length
  */
 u8 tracker_bit_length_get(tracker_t *tracker) {
+  assert(tracker);
+
   return tracker->bit_sync.bit_length;
 }
 
@@ -333,6 +351,8 @@ u8 tracker_bit_length_get(tracker_t *tracker) {
  *         integration is bit aligned, false otherwise.
  */
 bool tracker_bit_aligned(tracker_t *tracker) {
+  assert(tracker);
+
   return (tracker->bit_sync.bit_phase == tracker->bit_sync.bit_phase_ref);
 }
 
@@ -344,6 +364,8 @@ bool tracker_bit_aligned(tracker_t *tracker) {
  * \retval false Bit sync is not established.
  */
 bool tracker_has_bit_sync(const tracker_t *tracker) {
+  assert(tracker);
+
   return (BITSYNC_UNSYNCED != tracker->bit_sync.bit_phase_ref);
 }
 
@@ -357,6 +379,8 @@ bool tracker_has_bit_sync(const tracker_t *tracker) {
  * \retval false Otherwise
  */
 bool tracker_has_all_locks(const tracker_t *tracker) {
+  assert(tracker);
+
   /* Mark pll_lock true if PLL is not in use, or we have pll lock. */
   bool pll_lock = ((0 == (tracker->flags & TRACKER_FLAG_PLL_USE)) ||
                    (0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)));
@@ -379,6 +403,8 @@ bool tracker_has_all_locks(const tracker_t *tracker) {
  *               aligned.
  */
 bool tracker_next_bit_aligned(tracker_t *tracker, u32 int_ms) {
+  assert(tracker);
+
   s32 next_bit_phase = tracker->bit_sync.bit_phase + int_ms;
   next_bit_phase %= tracker->bit_sync.bit_length;
 
@@ -409,6 +435,8 @@ static u16 tracking_lock_counter_increment(const me_gnss_signal_t mesid) {
  * \param[in] tracker Tracker data
  */
 void tracker_ambiguity_unknown(tracker_t *tracker) {
+  assert(tracker);
+
   tracker->bit_polarity = BIT_POLARITY_UNKNOWN;
   tracker->lock_counter = tracking_lock_counter_increment(tracker->mesid);
   tracker->reset_cpo = true;
@@ -422,6 +450,8 @@ void tracker_ambiguity_unknown(tracker_t *tracker) {
  * \return false if ambiguity unknown, true if it is known.
  */
 bool tracker_ambiguity_resolved(tracker_t *tracker) {
+  assert(tracker);
+
   return tracker->bit_polarity != BIT_POLARITY_UNKNOWN;
 }
 
@@ -433,6 +463,8 @@ bool tracker_ambiguity_resolved(tracker_t *tracker) {
  * \return None
  */
 void tracker_ambiguity_set(tracker_t *tracker, s8 polarity) {
+  assert(tracker);
+
   if (BIT_POLARITY_UNKNOWN == polarity) {
     return;
   }
@@ -447,6 +479,8 @@ void tracker_ambiguity_set(tracker_t *tracker, s8 polarity) {
  * \return GLO orbital slot
  */
 u16 tracker_glo_orbit_slot_get(tracker_t *tracker) {
+  assert(tracker);
+
   return tracker->glo_orbit_slot;
 }
 
@@ -456,6 +490,8 @@ u16 tracker_glo_orbit_slot_get(tracker_t *tracker) {
  * \param cs          Array of correlations to send.
  */
 void tracker_correlations_send(tracker_t *tracker, const corr_t *cs) {
+  assert(tracker);
+
   /* Output I/Q correlations using SBP if enabled for this channel */
   if (tracker->output_iq) {
     msg_tracking_iq_t msg = {

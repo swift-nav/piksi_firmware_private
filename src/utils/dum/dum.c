@@ -83,6 +83,9 @@ static s8 calc_sat_doppler_wndw(const ephemeris_t *e,
                                 float radius,
                                 float *doppler_min_hz,
                                 float *doppler_max_hz) {
+  assert(doppler_min_hz);
+  assert(doppler_max_hz);
+
   double vel[3] = {0};
   double doppler_hz = 0;
 
@@ -126,6 +129,9 @@ static int get_doppler(const gnss_signal_t *sid,
                        float radius,
                        float *doppler_min_hz,
                        float *doppler_max_hz) {
+  assert(sid);
+  assert(lgf);
+
   if (NULL == t || TIME_UNKNOWN == get_time_quality() || NULL == lgf ||
       POSITION_UNKNOWN == lgf->position_quality) {
     return -1;
@@ -217,7 +223,10 @@ void dum_get_doppler_wndw(const gnss_signal_t *sid,
                           float speed,
                           float *doppler_min_hz,
                           float *doppler_max_hz) {
-  assert(sid != NULL);
+  assert(doppler_min_hz);
+  assert(doppler_max_hz);
+  assert(sid);
+
   assert(sid_valid(*sid));
   assert((CODE_GPS_L1CA == sid->code) || (CODE_GLO_L1OF == sid->code) ||
          (CODE_SBAS_L1CA == sid->code) || (CODE_BDS2_B1 == sid->code) ||

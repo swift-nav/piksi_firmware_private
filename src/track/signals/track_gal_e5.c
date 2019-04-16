@@ -57,6 +57,8 @@ static void tracker_gal_e5_init(tracker_t *tracker) {
 }
 
 static void tracker_gal_e5_update(tracker_t *tracker) {
+  assert(tracker);
+
   u32 cflags = tp_tracker_update(tracker, &gal_e5_config);
 
   bool bit_aligned =

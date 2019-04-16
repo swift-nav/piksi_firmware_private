@@ -69,7 +69,9 @@ static void histogram_update(bit_sync_t *b,
  * \param mesid  ME signal identifier
  */
 void bit_sync_init(bit_sync_t *b, const me_gnss_signal_t mesid) {
+  assert(b);
   assert(mesid_valid(mesid));
+
   memset(b, 0, sizeof(bit_sync_t));
   b->bit_phase_ref = BITSYNC_UNSYNCED;
   b->mesid = mesid;
@@ -170,6 +172,8 @@ void bit_sync_init(bit_sync_t *b, const me_gnss_signal_t mesid) {
  * \param bit_phase_ref Bit phase reference.
  */
 void bit_sync_set(bit_sync_t *b, s8 bit_phase_ref) {
+  assert(b);
+
   b->bit_phase_ref = bit_phase_ref;
 }
 
@@ -189,6 +193,8 @@ bool bit_sync_update(bit_sync_t *b,
                      s32 corr_prompt_imag,
                      u32 ms,
                      s32 *bit_integrate) {
+  assert(b);
+  assert(bit_integrate);
   assert(ms <= b->bit_length && "Integration length exceeds symbol length");
 
   b->bit_phase += ms;
@@ -224,6 +230,7 @@ bool bit_sync_update(bit_sync_t *b,
 static void histogram_update(bit_sync_t *b,
                              s32 corr_prompt_real,
                              s32 corr_prompt_imag) {
+  assert(b);
   /* compute the sign of the real part of the dot product
    * (to check if the angle has changed by more than PI/2) */
   s64 dot_prod_real =

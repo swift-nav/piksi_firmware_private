@@ -28,6 +28,7 @@
 glo_decode_status_t glo_data_decoding(nav_msg_glo_t *n,
                                       me_gnss_signal_t mesid,
                                       nav_bit_t nav_bit) {
+  assert(n);
   if ((0 == nav_bit.data) || (nav_bit.cnt != n->bit_cnt)) {
     glo_decode_status_t status = GLO_DECODE_SENSITIVITY;
     if (BIT_POLARITY_UNKNOWN != n->bit_polarity) {
@@ -86,6 +87,7 @@ glo_decode_status_t glo_data_decoding(nav_msg_glo_t *n,
 decode_sync_flags_t get_data_sync_flags(const nav_msg_glo_t *n,
                                         me_gnss_signal_t mesid,
                                         glo_decode_status_t status) {
+  assert(n);
   decode_sync_flags_t flags = 0;
 
   switch (status) {
@@ -117,6 +119,7 @@ decode_sync_flags_t get_data_sync_flags(const nav_msg_glo_t *n,
 }
 
 void save_glo_eph(const nav_msg_glo_t *n, me_gnss_signal_t mesid) {
+  assert(n);
   log_debug_mesid(mesid,
                   "New ephemeris received [%" PRId16 ", %lf]",
                   n->eph.toe.wn,
@@ -146,6 +149,7 @@ void glo_data_sync(nav_msg_glo_t *n,
                    me_gnss_signal_t mesid,
                    u8 tracking_channel,
                    glo_decode_status_t status) {
+  assert(n);
   /* Get data sync flags. */
   decode_sync_flags_t flags = get_data_sync_flags(n, mesid, status);
   /* If flags is empty, no updates needed. */

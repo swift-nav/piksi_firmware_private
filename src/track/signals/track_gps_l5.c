@@ -119,17 +119,19 @@ void do_l1ca_to_l5_handover(u32 sample_count,
   }
 }
 
-static void tracker_gps_l5_init(tracker_t *tracker_channel) {
-  tp_tracker_init(tracker_channel, &gps_l5_config);
+static void tracker_gps_l5_init(tracker_t *tracker) {
+  tp_tracker_init(tracker, &gps_l5_config);
 
   /* L5 bit sync is known once we start tracking it since
      the L5 ranging code length matches the bit length (20ms).
      This is the end of 20ms integration period and the edge
      of a data bit. */
-  // tracker_bit_sync_set(tracker_channel, /* bit_phase_ref = */ 0);
+  // tracker_bit_sync_set(tracker, /* bit_phase_ref = */ 0);
 }
 
 static void tracker_gps_l5_update(tracker_t *tracker) {
+  assert(tracker);
+
   u32 cflags = tp_tracker_update(tracker, &gps_l5_config);
 
   bool bit_aligned =

@@ -167,6 +167,8 @@ static void tracker_qzss_l2c_init(tracker_t *tracker) {
  * \return None
  */
 static void update_tow_qzss_l2c(tracker_t *tracker, u32 cycle_flags) {
+  assert(tracker);
+
   tp_tow_entry_t tow_entry;
   me_gnss_signal_t mesid = tracker->mesid;
   gnss_signal_t sid = construct_sid(mesid.code, mesid.sat);
@@ -254,6 +256,8 @@ static void update_tow_qzss_l2c(tracker_t *tracker, u32 cycle_flags) {
 }
 
 static void tracker_qzss_l2c_update(tracker_t *tracker) {
+  assert(tracker);
+
   u32 cflags = tp_tracker_update(tracker, &qzss_l2c_config);
 
   /* QZSS L2C-specific ToW manipulation */

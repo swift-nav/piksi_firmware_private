@@ -62,6 +62,8 @@ static void tracker_glo_l1of_init(tracker_t *tracker) {
 }
 
 static void tracker_glo_l1of_update(tracker_t *tracker) {
+  assert(tracker);
+
   u32 cflags = tp_tracker_update(tracker, &glo_l1of_config);
 
   /* If GLO SV is marked unhealthy from L1, also drop L2 tracker */

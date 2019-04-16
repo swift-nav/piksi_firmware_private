@@ -120,6 +120,7 @@ static s16 ndb_ephe_find_candidate(gnss_signal_t sid) {
  * and add the given candidate. Log a warning if no empty slot found.
  */
 static void ndb_ephe_try_adding_candidate(const ephemeris_t *new) {
+  assert(new);
   int i;
   u32 candidate_age;
   piksi_systime_t now;
@@ -186,6 +187,7 @@ static bool ndb_can_confirm_ephemeris(const ephemeris_t *new,
                                       const ephemeris_t *existing_e,
                                       const almanac_t *existing_a,
                                       const ephemeris_t *candidate) {
+  assert(new);
   if (NULL != candidate) {
     if (ephemeris_equal_except_fit_interval(candidate, new)) {
       /* Exact match */
@@ -307,6 +309,7 @@ static bool ndb_can_confirm_ephemeris(const ephemeris_t *new,
  * \retval NDB_CAND_BAD_PARAM     Bad SID
  */
 static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new) {
+  assert(new);
   ndb_cand_status_t r = NDB_CAND_MISMATCH;
 
   ephemeris_t existing_e; /* Existing ephemeris data */
@@ -469,6 +472,7 @@ ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e) {
 
 static ndb_op_code_t ndb_ephemeris_store_do(const ephemeris_t *e,
                                             ndb_data_source_t src) {
+  assert(e);
   if (!e->valid) {
     return NDB_ERR_BAD_PARAM;
   }
@@ -537,6 +541,7 @@ static ndb_op_code_t ndb_ephemeris_store_do(const ephemeris_t *e,
 ndb_op_code_t ndb_ephemeris_store(const ephemeris_t *e,
                                   ndb_data_source_t src,
                                   u16 sender_id) {
+  assert(e);
   ndb_op_code_t res = ndb_ephemeris_store_do(e, src);
 
   sbp_send_ndb_event(NDB_EVENT_STORE,
@@ -614,13 +619,13 @@ ndb_op_code_t ndb_ephemeris_info(gnss_signal_t sid,
                                  gps_time_t *toe,
                                  u32 *fit_interval,
                                  float *ura) {
-  ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
+  assert(valid);
+  assert(health_bits);
+  assert(toe);
+  assert(fit_interval);
+  assert(ura);
 
-  assert(valid != NULL);
-  assert(health_bits != NULL);
-  assert(toe != NULL);
-  assert(fit_interval != NULL);
-  assert(ura != NULL);
+  ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
   u16 idx = sid_to_sv_index(sid);
   ndb_lock();
   if (0 != (ndb_ephemeris_md[idx].nv_data.state & NDB_IE_VALID)) {

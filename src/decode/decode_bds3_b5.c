@@ -64,6 +64,9 @@ void decode_bds3_b5_register(void) {
 
 static void decoder_bds3_b5_init(const decoder_channel_info_t *channel_info,
                                  decoder_data_t *decoder_data) {
+  assert(channel_info);
+  assert(decoder_data);
+
   bds3_b5_decoder_data_t *data = decoder_data;
 
   memset(data, 0, sizeof(*data));

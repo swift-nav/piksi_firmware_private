@@ -38,6 +38,10 @@ void tracker_measurement_get(u64 ref_tc,
                              const tracker_info_t *info,
                              const tracker_freq_info_t *freq_info,
                              channel_measurement_t *meas) {
+  assert(info);
+  assert(freq_info);
+  assert(meas);
+
   /* Update our channel measurement. */
   memset(meas, 0, sizeof(*meas));
 
@@ -70,6 +74,9 @@ void tracker_measurement_get(u64 ref_tc,
 bool tracker_calc_pseudorange(u64 ref_tc,
                               const channel_measurement_t *meas,
                               double *raw_pseudorange) {
+  assert(meas);
+  assert(raw_pseudorange);
+
   gps_time_t rec_time = napcount2gpstime(ref_tc);
   if (!gps_time_valid(&rec_time)) {
     log_warn("Invalid gps time in tracker_calc_pseudorange");
@@ -96,6 +103,8 @@ bool tracker_calc_pseudorange(u64 ref_tc,
  * \return Lock time [s]
  */
 double tracker_get_lock_time(const tracker_freq_info_t *freq_info) {
+  assert(freq_info);
+
   u64 lock_time_ms = 0;
 
   if (0 != freq_info->cpo.value) {
@@ -120,6 +129,8 @@ double tracker_get_lock_time(const tracker_freq_info_t *freq_info) {
  * \sa tracker_cc_data_t
  */
 u16 tracker_load_cc_data(tracker_cc_data_t *cc_data) {
+  assert(cc_data);
+
   u16 cnt = 0;
 
   for (u8 id = 0; id < NUM_TRACKER_CHANNELS; ++id) {
@@ -158,6 +169,8 @@ u16 tracker_load_cc_data(tracker_cc_data_t *cc_data) {
  */
 void tracker_set_carrier_phase_offset(const tracker_info_t *info,
                                       s32 carrier_phase_offset) {
+  assert(info);
+
   bool adjusted = false;
   tracker_t *tracker = tracker_get(info->id);
 

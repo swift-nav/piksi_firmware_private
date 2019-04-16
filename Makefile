@@ -107,7 +107,7 @@ $(LIBSETTINGS_BUILDDIR)/src/libsettings.a: $(LIBSBP_BUILDDIR)/src/libsbp.a
 	$(MAKE) -C $(LIBSETTINGS_BUILDDIR) $(MAKEFLAGS) settings
 
 $(STARLING_BUILDDIR)/src/libpvt-engine.a: .FORCE \
-                                        $(STARLING_BUILDDIR)/Makefile
+                                          $(STARLING_BUILDDIR)/Makefile
 	@printf "BUILD   pvt-engine for target $(PIKSI_TARGET)\n"; \
 	$(MAKE) pvt-engine -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
 
@@ -115,8 +115,8 @@ $(STARLING_BUILDDIR)/src/libpvt-engine.a: .FORCE \
 # might build in parallel, and both trying to build swiftnav-common in parallel
 # which leads to occasional failures.
 $(STARLING_BUILDDIR)/src/libstarling.a: .FORCE \
-                                             $(STARLING_BUILDDIR)/Makefile \
-                                             $(STARLING_BUILDDIR)/src/libpvt-engine.a
+                                        $(STARLING_BUILDDIR)/Makefile \
+                                        $(STARLING_BUILDDIR)/src/libpvt-engine.a
 	@printf "BUILD   libstarling for target $(PIKSI_TARGET)\n"; \
 	$(MAKE) starling -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
 

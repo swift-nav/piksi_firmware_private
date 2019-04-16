@@ -113,6 +113,8 @@ void sbp_ephe_reg_cbks(void (*ephemeris_msg_callback)(u16, u8, u8 *, void *)) {
  * @param[in] iono pointer to Iono parameters
  */
 void sbp_send_iono(const ionosphere_t *iono) {
+  assert(iono);
+
   msg_iono_t msg_iono = {.t_nmct =
                              {/* TODO: set this as 0 for now, beccause
                                * functionality decodes tnmct is not available */
@@ -152,6 +154,7 @@ void sbp_send_gnss_capb(const gnss_capb_t *gc) {
  * @param[in] cnav pointer to GPS CNAV message structure
  */
 void sbp_send_group_delay(const cnav_msg_t *cnav) {
+  assert(cnav);
   gps_time_t t = get_current_time();
   msg_group_delay_t msg_cnav = {
       .t_op =

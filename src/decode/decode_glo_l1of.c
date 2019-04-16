@@ -62,6 +62,9 @@ void decode_glo_l1of_register(void) {
 
 static void decoder_glo_l1of_init(const decoder_channel_info_t *channel_info,
                                   decoder_data_t *decoder_data) {
+  assert(channel_info);
+  assert(decoder_data);
+
   glo_l1of_decoder_data_t *data = decoder_data;
 
   memset(data, 0, sizeof(*data));

@@ -47,9 +47,6 @@
 /* Number of seconds of no time-matched after which low-latency will resume. */
 #define LOW_LATENCY_RESUME_AFTER_SEC 5.0
 
-/* Size of an spp solution in ECEF. */
-#define SPP_ECEF_SIZE 3
-
 #define STARLING_BASE_SENDER_ID_DEFAULT 0
 
 /*******************************************************************************
@@ -121,6 +118,7 @@ typedef struct {
 // message and a pointer to the read UTC params. If the reading fails the
 // pointer in the return value is set to NULL.
 static utc_details get_utc_info(utc_params_t *utc_params, const u8 time_qual) {
+  assert(utc_params);
   utc_details result;
   bool is_nv;
 
@@ -145,6 +143,9 @@ static utc_details get_utc_info(utc_params_t *utc_params, const u8 time_qual) {
 void starling_integration_sbp_messages_init(sbp_messages_t *sbp_messages,
                                             const gps_time_t *epoch_time,
                                             u8 time_qual) {
+  assert(sbp_messages);
+  assert(epoch_time);
+
   /* Necessary because some of these functions strip the const qualifier. */
   gps_time_t *t = (gps_time_t *)epoch_time;
   /* if there is ANY time known here better than propagated,
@@ -177,6 +178,9 @@ void starling_integration_sbp_messages_init(sbp_messages_t *sbp_messages,
 
 static void send_low_latency_messages(const gps_time_t *time_of_solution,
                                       const sbp_messages_t *sbp_messages) {
+  assert(time_of_solution);
+  assert(sbp_messages);
+
   dgnss_solution_mode_t mode = starling_get_solution_mode();
 
   /* This is ridiculously confusing, allow me to explain:
@@ -209,6 +213,7 @@ static void solution_make_sbp(const pvt_engine_result_t *soln,
                               const dops_t *dops,
                               sbp_messages_t *sbp_messages,
                               u8 time_qual) {
+  assert(sbp_messages);
   if (soln && soln->valid) {
     sbp_make_gps_time(&sbp_messages->gps_time, &soln->time, time_qual);
 
@@ -317,15 +322,17 @@ static void solution_make_sbp(const pvt_engine_result_t *soln,
 }
 
 static void solution_make_baseline_sbp(const pvt_engine_result_t *result,
-                                       const double spp_ecef[SPP_ECEF_SIZE],
+                                       const double spp_ecef[static 3],
                                        const dops_t *dops,
                                        sbp_messages_t *sbp_messages) {
+  assert(result);
+  assert(sbp_messages);
   double ecef_pos[3];
   if (result->has_known_reference_pos) {
     MEMCPY_S(ecef_pos,
              sizeof(ecef_pos),
              result->known_reference_pos,
-             SPP_ECEF_SIZE * sizeof(double));
+             3 * sizeof(double));
   } else {
     vector_subtract(3, spp_ecef, result->baseline, ecef_pos);
   }
@@ -484,6 +491,7 @@ static void starling_integration_solution_simulation(
 }
 
 void starling_integration_simulation_run(const obss_t *obss) {
+  assert(obss);
   gps_time_t epoch_time = obss->tor;
   u8 time_qual = get_time_quality();
   if (!gps_time_valid(&epoch_time) && TIME_PROPAGATED <= time_qual) {

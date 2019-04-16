@@ -49,6 +49,7 @@ bool xcorr_calc_alm_positions(gnss_signal_t sid,
                               u32 time_s,
                               u32 interval_s,
                               xcorr_positions_t *pos) {
+  assert(pos);
   assert(IS_GPS(sid));
 
   almanac_t a;
@@ -91,6 +92,9 @@ bool xcorr_calc_alm_positions(gnss_signal_t sid,
 bool xcorr_calc_eph_positions(const ephemeris_t *e,
                               u32 time_s,
                               xcorr_positions_t *pos) {
+  assert(e);
+  assert(pos);
+
   u32 interval_s = e->fit_interval / 2;
   gps_time_t t0 = make_gps_time(time_s - interval_s);
   gps_time_t t1 = make_gps_time(time_s);
@@ -127,6 +131,8 @@ bool xcorr_get_alm_positions(gnss_signal_t sid,
                              u32 time_s,
                              u32 interval_s,
                              xcorr_positions_t *pos) {
+  assert(pos);
+
   if (!track_sid_db_load_positions(sid, pos)) {
     return false;
   }
@@ -158,6 +164,9 @@ bool xcorr_match_positions(gnss_signal_t sid0,
                            gnss_signal_t sid1,
                            const xcorr_positions_t *pos0,
                            const xcorr_positions_t *pos1) {
+  assert(pos0);
+  assert(pos1);
+
   bool ok = true;
   double d[3] = {-1, -1, -1};
   for (u8 i = 0; i < 3 && ok; i++) {
@@ -190,6 +199,8 @@ bool xcorr_match_positions(gnss_signal_t sid0,
 xcorr_match_res_t xcorr_match_alm_position(gnss_signal_t sid0,
                                            gnss_signal_t sid,
                                            const xcorr_positions_t *pos) {
+  assert(pos);
+
   xcorr_positions_t alm_pos;
   if (!xcorr_get_alm_positions(sid, pos->time_s, pos->interval_s, &alm_pos)) {
     return XCORR_MATCH_RES_NO_ALMANAC;
@@ -222,7 +233,7 @@ static void delete_ghost_ephe(const gnss_signal_t sid) {
  *         returns false.
  */
 static bool xcorr_check_eph_to_eph(const ephemeris_t *e) {
-  assert(e != NULL);
+  assert(e);
 
   ephemeris_t test_e;
   u16 first_prn, num_sats;
@@ -355,6 +366,8 @@ s8 update_azel_from_ephemeris(const ephemeris_t *e,
 s8 update_azel_from_almanac(const almanac_t *a,
                             const gps_time_t *t,
                             const double pos_ecef[]) {
+  assert(a);
+
   if (!almanac_valid(a, t)) {
     return -1;
   }
@@ -380,6 +393,8 @@ s8 update_azel_from_almanac(const almanac_t *a,
  *
  */
 eph_new_status_t ephemeris_new(const ephemeris_t *e) {
+  assert(e);
+
   if (!sid_supported(e->sid)) {
     /* throw debug message prior to dying */
     log_error_sid(e->sid,

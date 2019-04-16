@@ -88,12 +88,11 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
                            float doppler_min_hz,
                            float doppler_max_hz,
                            acq_result_t *p_acqres) {
+  assert(p_acqres);
+
   u64 tmp_timetag = 0;
   u32 buff_size = 0;
   acqResults_t sLocalResult = {0};
-
-  /** sanity checking input parameters */
-  assert(NULL != p_acqres);
 
   memset(p_acqres, 0, sizeof(acq_result_t));
 

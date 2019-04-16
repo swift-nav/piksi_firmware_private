@@ -568,6 +568,7 @@ static u8 manage_track_new_acq(const me_gnss_signal_t mesid) {
 static void revert_expired_unhealthiness(acq_timer_t *timer,
                                          size_t size,
                                          u32 timeout_s) {
+  assert(timer);
   for (u8 i = 0; i < size; i++) {
     if (NULL == timer[i].status) {
       continue;
@@ -628,6 +629,7 @@ float get_solution_elevation_mask(void) { return solution_elevation_mask; }
 
 /** Updates acq hints using last observed Doppler value */
 void update_acq_hints(tracker_t *tracker) {
+  assert(tracker);
   me_gnss_signal_t mesid = tracker->mesid;
   if (!code_requires_direct_acq(mesid.code)) {
     return;
@@ -679,6 +681,7 @@ void update_acq_hints(tracker_t *tracker) {
  * \return
  */
 void restore_acq(const tracker_t *tracker) {
+  assert(tracker);
   me_gnss_signal_t mesid = tracker->mesid;
   acq_status_t *acq = &acq_status[mesid_to_global_index(mesid)];
 
@@ -787,6 +790,7 @@ bool leap_second_imminent(void) {
  * Keep tracking unhealthy (except GLO) and low-elevation satellites for
  * cross-correlation purposes. */
 void sanitize_tracker(tracker_t *tracker) {
+  assert(tracker);
   /*! Addressing the problem where we try to disable a channel that is
    * not busy in the first place. It remains to check
    * why `TRACKING_CHANNEL_FLAG_ACTIVE` might not be effective here?
@@ -859,6 +863,8 @@ void sanitize_tracker(tracker_t *tracker) {
 static bool compute_cpo(u64 ref_tc,
                         const channel_measurement_t *meas,
                         s32 *carrier_phase_offset) {
+  assert(meas);
+  assert(carrier_phase_offset);
   /* compute the pseudorange for this signal */
   double raw_pseudorange;
   if (!tracker_calc_pseudorange(ref_tc, meas, &raw_pseudorange)) {
@@ -936,6 +942,9 @@ u32 get_tracking_channel_meas(u8 i,
                               u64 ref_tc,
                               channel_measurement_t *meas,
                               ephemeris_t *ephe) {
+  assert(meas);
+  assert(ephe);
+
   tracker_info_t info;
   tracker_freq_info_t freq_info;
 
@@ -1107,6 +1116,7 @@ bool tracking_startup_ready(const me_gnss_signal_t mesid) {
  */
 static bool tracking_startup_fifo_mesid_present(
     const tracking_startup_fifo_t *fifo, const me_gnss_signal_t mesid) {
+  assert(fifo);
   tracking_startup_fifo_index_t read_index = fifo->read_index;
   tracking_startup_fifo_index_t write_index = fifo->write_index;
   COMPILER_BARRIER(); /* Prevent compiler reordering */
@@ -1132,6 +1142,7 @@ static bool tracking_startup_fifo_mesid_present(
  *
  */
 u8 tracking_startup_request(const tracking_startup_params_t *startup_params) {
+  assert(startup_params);
   u8 result = 2;
   if (chMtxTryLock(&tracking_startup_mutex)) {
     if (!tracking_startup_fifo_mesid_present(&tracking_startup_fifo,
@@ -1265,6 +1276,7 @@ void manage_tracking_startup(void) {
  * \param fifo        tracking_startup_fifo_t struct to use.
  */
 static void tracking_startup_fifo_init(tracking_startup_fifo_t *fifo) {
+  assert(fifo);
   fifo->read_index = 0;
   fifo->write_index = 0;
 }
@@ -1278,6 +1290,8 @@ static void tracking_startup_fifo_init(tracking_startup_fifo_t *fifo) {
  */
 static bool tracking_startup_fifo_write(
     tracking_startup_fifo_t *fifo, const tracking_startup_params_t *element) {
+  assert(fifo);
+  assert(element);
   if (TRACKING_STARTUP_FIFO_LENGTH(fifo) < TRACKING_STARTUP_FIFO_SIZE) {
     COMPILER_BARRIER(); /* Prevent compiler reordering */
     MEMCPY_S(
@@ -1302,6 +1316,8 @@ static bool tracking_startup_fifo_write(
  */
 static bool tracking_startup_fifo_read(tracking_startup_fifo_t *fifo,
                                        tracking_startup_params_t *element) {
+  assert(fifo);
+  assert(element);
   if (TRACKING_STARTUP_FIFO_LENGTH(fifo) > 0) {
     COMPILER_BARRIER(); /* Prevent compiler reordering */
     MEMCPY_S(

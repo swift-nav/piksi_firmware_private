@@ -87,6 +87,8 @@ static u32 tp_convert_ms_to_chips(me_gnss_signal_t mesid,
  * \return None
  */
 void tp_tracker_update_lock_detect_parameters(tracker_t *tracker, bool init) {
+  assert(tracker);
+
   tp_profile_t *profile = &tracker->profile;
   const tp_lock_detect_params_t *ldp = &profile->ld_phase_params;
   const tp_lock_detect_params_t *ldf = &profile->ld_freq_params;
@@ -112,6 +114,8 @@ void tp_tracker_update_lock_detect_parameters(tracker_t *tracker, bool init) {
  * \return None
  */
 void tp_profile_apply_config(tracker_t *tracker, bool init) {
+  assert(tracker);
+
   me_gnss_signal_t mesid = tracker->mesid;
   tp_profile_t *profile = &tracker->profile;
 
@@ -189,6 +193,8 @@ void tp_profile_apply_config(tracker_t *tracker, bool init) {
  * \return None
  */
 void tp_tracker_init(tracker_t *tracker, const tp_tracker_config_t *config) {
+  assert(tracker);
+
   me_gnss_signal_t mesid = tracker->mesid;
 
   tracker_ambiguity_unknown(tracker);
@@ -213,6 +219,8 @@ void tp_tracker_init(tracker_t *tracker, const tp_tracker_config_t *config) {
 }
 
 void tracker_cleanup(tracker_t *tracker) {
+  assert(tracker);
+
   size_t cleanup_region_size =
       sizeof(tracker_t) - offsetof(tracker_t, cleanup_region_start);
   memset(&tracker->cleanup_region_start, 0, cleanup_region_size);
@@ -226,6 +234,8 @@ void tracker_cleanup(tracker_t *tracker) {
  * \param[in] tracker Tracker channel data
  */
 void tp_tracker_disable(tracker_t *tracker) {
+  assert(tracker);
+
   log_debug_mesid(tracker->mesid,
                   "[+%" PRIu32 "ms] Tracker stop TOW=%" PRId32 "ms",
                   tracker->update_count,
@@ -253,6 +263,8 @@ void tp_tracker_disable(tracker_t *tracker) {
  * \return Computed number of chips.
  */
 static u32 tp_tracker_compute_rollover_count(tracker_t *tracker) {
+  assert(tracker);
+
   u8 result_ms;
   tp_tm_e mode_cur = tracker->tracking_mode;
   if (tracker->has_next_params) {
@@ -289,6 +301,8 @@ static u32 tp_tracker_compute_rollover_count(tracker_t *tracker) {
  * \return None
  */
 static void mode_change_init(tracker_t *tracker) {
+  assert(tracker);
+
   /* Compute time of the currently integrated period */
   u16 next_cycle = tp_wrap_cycle(tracker->tracking_mode, tracker->cycle_no + 1);
   u32 next_cycle_flags = tp_get_cycle_flags(tracker, next_cycle);
@@ -318,6 +332,8 @@ static void mode_change_init(tracker_t *tracker) {
  * \return None
  */
 static void mode_change_complete(tracker_t *tracker) {
+  assert(tracker);
+
   if (tracker->has_next_params) {
     tp_profile_switch(tracker);
     tp_profile_update_config(tracker);
@@ -335,11 +351,15 @@ static void mode_change_complete(tracker_t *tracker) {
  * \return None
  */
 static void tp_tracker_update_cycle_counter(tracker_t *tracker) {
+  assert(tracker);
+
   tracker->cycle_no =
       tp_wrap_cycle(tracker->tracking_mode, tracker->cycle_no + 1);
 }
 
 static void add_pilot_and_data_iq(tp_epl_corr_t *cs_now) {
+  assert(cs_now);
+
   corr_t *all = cs_now->all;
   corr_t *data = &all[3];
   corr_t *pilot = &all[0];
@@ -380,6 +400,8 @@ static void add_pilot_and_data_iq(tp_epl_corr_t *cs_now) {
  * \param[in]     cycle_flags  Current cycle flags.
  */
 static void tp_tracker_update_correlators(tracker_t *tracker, u32 cycle_flags) {
+  assert(tracker);
+
   me_gnss_signal_t mesid = tracker->mesid;
   tp_epl_corr_t cs_now;     /**< Correlations from FPGA */
   u32 sample_count;         /**< Sample count from FPGA */
@@ -499,6 +521,8 @@ static void tp_tracker_update_correlators(tracker_t *tracker, u32 cycle_flags) {
  * \return None
  */
 static void tp_tracker_update_bsync(tracker_t *tracker, u32 cycle_flags) {
+  assert(tracker);
+
   if (0 != (cycle_flags & TPF_BSYNC_UPD)) {
     bool sensitivity_mode =
         (0 != (tracker->flags & TRACKER_FLAG_SENSITIVITY_MODE));
@@ -522,6 +546,8 @@ static void tp_tracker_update_bsync(tracker_t *tracker, u32 cycle_flags) {
  * \return None
  */
 static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
+  assert(tracker);
+
   float cn0 = tracker->cn0_est.filter.yn;
   float cn0_prev = cn0;
   tp_cn0_thres_t cn0_thres;
@@ -589,6 +615,8 @@ static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
 }
 
 static void update_ld_phase(tracker_t *tracker, u32 cycle_flags) {
+  assert(tracker);
+
   bool pll_in_use = (0 != (tracker->flags & TRACKER_FLAG_PLL_USE));
   if (!pll_in_use) {
     const tp_lock_detect_params_t *ldp = &tracker->profile.ld_phase_params;
@@ -623,6 +651,8 @@ static void update_ld_phase(tracker_t *tracker, u32 cycle_flags) {
 }
 
 static void update_ld_freq(tracker_t *tracker, u32 cycle_flags) {
+  assert(tracker);
+
   bool fll_in_use = (0 != (tracker->flags & TRACKER_FLAG_FLL_USE));
   if (!fll_in_use) {
     const tp_lock_detect_params_t *ldf = &tracker->profile.ld_freq_params;
@@ -662,6 +692,8 @@ static void update_ld_freq(tracker_t *tracker, u32 cycle_flags) {
  * \return None
  */
 static void tp_tracker_update_locks(tracker_t *tracker, u32 cycle_flags) {
+  assert(tracker);
+
   bool outp_prev = tracker->ld_phase.outp || tracker->ld_freq.outp;
 
   update_ld_phase(tracker, cycle_flags);
@@ -722,6 +754,8 @@ static bool cycle_decimated(u16 cycle_no, u8 decim_factor) {
  * \return None
  */
 static void tp_tracker_update_loops(tracker_t *tracker, u32 cycle_flags) {
+  assert(tracker);
+
   if (0 != (cycle_flags & TPF_FLL_USE)) {
     bool halfq = (0 != (cycle_flags & TPF_FLL_HALFQ));
     tp_tl_update_fll_discr(&tracker->tl_state, tracker->corrs.corr_fll, halfq);
@@ -807,6 +841,8 @@ static void tp_tracker_update_loops(tracker_t *tracker, u32 cycle_flags) {
  * \return None
  */
 static void tp_tracker_flag_outliers(tracker_t *tracker) {
+  assert(tracker);
+
   const float doppler_max_hz = code_to_sv_doppler_max(tracker->mesid.code) +
                                code_to_tcxo_doppler_max(tracker->mesid.code);
 
@@ -860,6 +896,8 @@ static void tp_tracker_flag_outliers(tracker_t *tracker) {
 static void tp_tracker_filter_doppler(tracker_t *tracker,
                                       u32 cycle_flags,
                                       const tp_tracker_config_t *config) {
+  assert(tracker);
+
   if (0 != (cycle_flags & TPF_BSYNC_UPD) && tracker_bit_aligned(tracker)) {
     float xcorr_freq_hz = tracker->doppler_hz;
 
@@ -884,6 +922,8 @@ static void tp_tracker_filter_doppler(tracker_t *tracker,
  * \return None
  */
 static void tp_tracker_update_mode(tracker_t *tracker) {
+  assert(tracker);
+
   mode_change_complete(tracker);
   mode_change_init(tracker);
 }
@@ -897,6 +937,8 @@ static void tp_tracker_update_mode(tracker_t *tracker) {
  * \return Flags, used in the current tracking cycle.
  */
 u32 tp_tracker_update(tracker_t *tracker, const tp_tracker_config_t *config) {
+  assert(tracker);
+
   /*
    * State machine control: control is a combination of actions permitted by
    * the tracker state and flags specific for current cycle.
@@ -921,6 +963,8 @@ u32 tp_tracker_update(tracker_t *tracker, const tp_tracker_config_t *config) {
 }
 
 static bool tow_is_bit_aligned(tracker_t *tracker) {
+  assert(tracker);
+
   me_gnss_signal_t mesid = tracker->mesid;
   u8 bit_length = tracker_bit_length_get(tracker);
 
@@ -959,6 +1003,8 @@ static bool tow_is_bit_aligned(tracker_t *tracker) {
 }
 
 static bool should_update_tow_cache(const tracker_t *tracker) {
+  assert(tracker);
+
   me_gnss_signal_t mesid = tracker->mesid;
 
   bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
@@ -1024,6 +1070,8 @@ static bool should_update_tow_cache(const tracker_t *tracker) {
  * \return None
  */
 void tracker_tow_cache(tracker_t *tracker) {
+  assert(tracker);
+
   /* If TOW is unknown, check if a valid cached TOW is available. */
   if (TOW_UNKNOWN == tracker->TOW_ms) {
     propagate_tow_from_sid_db(tracker);

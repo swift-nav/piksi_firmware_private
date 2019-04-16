@@ -31,10 +31,7 @@ void tp_tl_init(tp_tl_state_t *s,
                 tp_ctrl_e ctrl,
                 const tl_rates_t *rates,
                 const tl_config_t *config) {
-  /*
-   * TODO add logic to initialize internal filter states: velocity and
-   *      acceleration.
-   */
+  assert(s);
 
   memset(s, 0, sizeof(*s));
   s->ctrl = ctrl;
@@ -66,6 +63,8 @@ void tp_tl_init(tp_tl_state_t *s,
  * \return None.
  */
 void tp_tl_retune(tp_tl_state_t *s, tp_ctrl_e ctrl, const tl_config_t *config) {
+  assert(s);
+
   if (ctrl == s->ctrl) {
     switch (ctrl) {
       case TP_CTRL_PLL2:
@@ -103,6 +102,8 @@ void tp_tl_retune(tp_tl_state_t *s, tp_ctrl_e ctrl, const tl_config_t *config) {
  * \return None
  */
 void tp_tl_adjust(tp_tl_state_t *s, float err) {
+  assert(s);
+
   switch (s->ctrl) {
     case TP_CTRL_PLL2:
       tl_pll2_adjust(&s->pll2, err);
@@ -126,6 +127,8 @@ void tp_tl_adjust(tp_tl_state_t *s, float err) {
  * \return None
  */
 void tp_tl_get_rates(const tp_tl_state_t *s, tl_rates_t *rates) {
+  assert(s);
+
   switch (s->ctrl) {
     case TP_CTRL_PLL2:
       tl_pll2_get_rates(&s->pll2, rates);
@@ -149,6 +152,8 @@ void tp_tl_get_rates(const tp_tl_state_t *s, tl_rates_t *rates) {
  * \return None
  */
 void tp_tl_get_config(const tp_loop_params_t *l, tl_config_t *config) {
+  assert(config);
+
   memset(config, 0, sizeof(*config));
 
   config->code_bw = l->code_bw;
@@ -168,6 +173,9 @@ void tp_tl_get_config(const tp_loop_params_t *l, tl_config_t *config) {
  * \param[in]      costas Costas (true) or 4 quadrant discriminator (false).
  */
 void tp_tl_update_fpll(tp_tl_state_t *s, const tp_epl_corr_t *cs, bool costas) {
+  assert(s);
+  assert(cs);
+
   correlation_t cs2[3];
   for (u8 i = 0; i < 3; i++) {
     cs2[i].I = cs->all[i].I;
@@ -193,6 +201,8 @@ void tp_tl_update_fpll(tp_tl_state_t *s, const tp_epl_corr_t *cs, bool costas) {
  * \param s Tracker state.
  */
 void tp_tl_update_dll(tp_tl_state_t *s) {
+  assert(s);
+
   switch (s->ctrl) {
     case TP_CTRL_PLL2:
       tl_pll2_update_dll(&s->pll2);
@@ -215,8 +225,9 @@ void tp_tl_update_dll(tp_tl_state_t *s) {
  *
  */
 float tp_tl_get_fll_error(const tp_tl_state_t *s) {
-  float freq_error_hz = 0.0f;
+  assert(s);
 
+  float freq_error_hz = 0.0f;
   switch (s->ctrl) {
     case TP_CTRL_PLL2:
       break;
@@ -239,6 +250,9 @@ float tp_tl_get_fll_error(const tp_tl_state_t *s) {
  * \param cs EPL correlator data.
  */
 void tp_tl_update_dll_discr(tp_tl_state_t *s, const tp_epl_corr_t *cs) {
+  assert(s);
+  assert(cs);
+
   correlation_t cs2[3];
   for (u32 i = 0; i < 3; i++) {
     cs2[i].I = cs->all[i].I;
@@ -269,6 +283,8 @@ void tp_tl_update_dll_discr(tp_tl_state_t *s, const tp_epl_corr_t *cs) {
  * \param[in]     halfq Half quadrant discriminator (no bitsync)
  */
 void tp_tl_update_fll_discr(tp_tl_state_t *s, corr_t cs, bool halfq) {
+  assert(s);
+
   switch (s->ctrl) {
     case TP_CTRL_PLL2:
       break;

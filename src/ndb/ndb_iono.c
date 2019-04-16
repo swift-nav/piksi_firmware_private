@@ -62,6 +62,7 @@ void ndb_iono_init(void) {
  * \sa ndb_iono_corr_store
  */
 ndb_op_code_t ndb_iono_corr_read(ionosphere_t *iono) {
+  assert(iono);
   ndb_op_code_t ret = ndb_retrieve(&iono_corr_md, iono, sizeof(*iono), NULL);
   if (NDB_ERR_NONE == ret) {
     /* If NDB read was successful, check that data has not aged out */

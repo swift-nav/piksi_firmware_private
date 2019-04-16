@@ -69,6 +69,7 @@
  * \private
  */
 static u32 sbas_compute_crc(sbas_v27_part_t *part) {
+  assert(part);
   u32 crc = crc24q_bits(0, part->decoded, SBAS_MSG_DATA_LENGTH, part->invert);
 
   return crc;
@@ -85,6 +86,7 @@ static u32 sbas_compute_crc(sbas_v27_part_t *part) {
  * \private
  */
 static u32 sbas_extract_crc(const sbas_v27_part_t *part) {
+  assert(part);
   u32 crc = getbitu(part->decoded, SBAS_MSG_DATA_LENGTH, SBAS_MSG_CRC_LENGTH);
   if (part->invert) {
     crc ^= 0xFFFFFF;
@@ -107,6 +109,7 @@ static u32 sbas_extract_crc(const sbas_v27_part_t *part) {
  * \private
  */
 static void sbas_rescan_preamble(sbas_v27_part_t *part) {
+  assert(part);
   part->preamble_seen = false;
   u8 preamble = 0;
   u8 preamble_inv = 0;
@@ -164,6 +167,7 @@ static void sbas_rescan_preamble(sbas_v27_part_t *part) {
  * \private
  */
 static void sbas_add_symbol(sbas_v27_part_t *part, u8 s) {
+  assert(part);
   part->symbols[part->n_symbols++] = s;
 
   if (part->init) {
@@ -256,6 +260,7 @@ static void sbas_add_symbol(sbas_v27_part_t *part, u8 s) {
  * \return None
  */
 static void sbas_msg_invert(sbas_v27_part_t *part) {
+  assert(part);
   for (size_t i = 0; i < sizeof(part->decoded); i++) {
     part->decoded[i] ^= 0xFFu;
   }
@@ -332,6 +337,7 @@ static void sbas_post_me_msg(const msg_sbas_raw_t *sbas_raw_msg) {
 void sbas_decode_msg_type_12(const sbas_v27_part_t *part,
                              sbas_msg_t *msg,
                              u32 delay_sym) {
+  assert(part);
   msg->wn = getbitu(part->decoded, 141, 10);
   s32 tow_s = getbitu(part->decoded, 121, 20) + 1;
   msg->tow_ms = tow_s * SECS_MS;
@@ -361,6 +367,9 @@ void sbas_decode_msg_type_12(const sbas_v27_part_t *part,
  * \private
  */
 static bool sbas_msg_decode(sbas_v27_part_t *part, sbas_msg_t *msg) {
+  assert(part);
+  assert(msg);
+
   u32 delay = 0;
   u8 msg_id = 0;
   bool res = false;
@@ -432,6 +441,7 @@ static bool sbas_msg_decode(sbas_v27_part_t *part, sbas_msg_t *msg) {
  * \return None
  */
 void sbas_msg_decoder_init(sbas_msg_decoder_t *dec) {
+  assert(dec);
   memset(dec, 0, sizeof(*dec));
   v27_init(&dec->part1.dec,
            dec->part1.decisions,
@@ -471,6 +481,7 @@ void sbas_msg_decoder_init(sbas_msg_decoder_t *dec) {
 bool sbas_msg_decoder_add_symbol(sbas_msg_decoder_t *dec,
                                  u8 symbol,
                                  sbas_msg_t *msg) {
+  assert(dec);
   sbas_add_symbol(&dec->part1, symbol);
   sbas_add_symbol(&dec->part2, symbol);
 

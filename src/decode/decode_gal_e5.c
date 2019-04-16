@@ -61,6 +61,9 @@ void decode_gal_e5_register(void) {
 
 static void decoder_gal_e5_init(const decoder_channel_info_t *channel_info,
                                 decoder_data_t *decoder_data) {
+  assert(channel_info);
+  assert(decoder_data);
+
   (void)channel_info;
   nav_msg_gal_fnav_t *data = decoder_data;
 

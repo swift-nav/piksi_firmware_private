@@ -58,6 +58,8 @@ static void tracker_bds3_b5_init(tracker_t *tracker) {
 }
 
 static void tracker_bds3_b5_update(tracker_t *tracker) {
+  assert(tracker);
+
   u32 cflags = tp_tracker_update(tracker, &bds3_b5_config);
 
   bool bit_aligned =

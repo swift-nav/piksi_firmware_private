@@ -151,6 +151,8 @@ static float update_estimator(track_cn0_state_t *e,
  */
 static const track_cn0_params_t *track_cn0_get_params(u8 cn0_ms,
                                                       track_cn0_params_t *p) {
+  assert(p);
+
   const track_cn0_params_t *pparams = NULL;
   u8 config_key = cn0_ms;
 
@@ -188,12 +190,14 @@ static const track_cn0_params_t *track_cn0_get_params(u8 cn0_ms,
  *
  * \return None
  */
-void track_cn0_init(track_cn0_state_t *e, u8 cn0_ms, float cn0) {
+void track_cn0_init(track_cn0_state_t *state, u8 cn0_ms, float cn0) {
+  assert(state);
+
   track_cn0_params_t p;
   const track_cn0_params_t *pp = track_cn0_get_params(cn0_ms, &p);
 
-  init_estimator(e, cn0);
-  cn0_filter_init(&e->filter, &pp->filter_params, cn0);
+  init_estimator(state, cn0);
+  cn0_filter_init(&state->filter, &pp->filter_params, cn0);
 }
 
 /**
@@ -206,20 +210,22 @@ void track_cn0_init(track_cn0_state_t *e, u8 cn0_ms, float cn0) {
  *
  * \return Filtered estimator value.
  */
-float track_cn0_update(track_cn0_state_t *e, u8 cn0_ms, float I, float Q) {
+float track_cn0_update(track_cn0_state_t *state, u8 cn0_ms, float I, float Q) {
+  assert(state);
+
   track_cn0_params_t p;
   const track_cn0_params_t *pp = track_cn0_get_params(cn0_ms, &p);
 
-  e->cn0_raw_dbhz = update_estimator(e, &pp->est_params, I, Q);
-  float cn0 =
-      cn0_filter_update(&e->filter, &pp->filter_params, e->cn0_raw_dbhz);
+  state->cn0_raw_dbhz = update_estimator(state, &pp->est_params, I, Q);
+  float cn0 = cn0_filter_update(
+      &state->filter, &pp->filter_params, state->cn0_raw_dbhz);
 
-  if (e->cn0_raw_dbhz < THRESH_SENS_DBHZ) {
-    if (e->weak_signal_ms < SECS_MS) { /* to avoid wrapping to 0 */
-      e->weak_signal_ms += cn0_ms;
+  if (state->cn0_raw_dbhz < THRESH_SENS_DBHZ) {
+    if (state->weak_signal_ms < SECS_MS) { /* to avoid wrapping to 0 */
+      state->weak_signal_ms += cn0_ms;
     }
   } else {
-    e->weak_signal_ms = 0;
+    state->weak_signal_ms = 0;
   }
 
   return cn0;

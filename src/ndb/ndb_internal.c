@@ -677,6 +677,8 @@ static ndb_op_code_t ndb_retrieve_int(ndb_file_t *file,
                                       void *out,
                                       size_t out_size,
                                       ndb_data_source_t *ds) {
+  assert(out);
+  assert(file);
   ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
 
   assert(idx < file->block_count);
@@ -772,9 +774,9 @@ ndb_op_code_t ndb_retrieve(const ndb_element_metadata_t *md,
                            void *out,
                            size_t out_size,
                            ndb_data_source_t *ds) {
-  ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
-
   assert(md);
+
+  ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
 
   if ((NULL != md->file) && (out_size == md->file->block_size)) {
     ndb_lock();
@@ -939,6 +941,8 @@ ndb_op_code_t ndb_check_age(const gps_time_t *t, double age_limit) {
  *  of the same satellite.
  *  */
 static s32 get_next_idx_to_send(gnss_signal_t *sid, s32 prev_idx) {
+  assert(sid);
+
   s32 i = prev_idx != NDB_SBP_UPDATE_SIG_IDX_INIT ? prev_idx + 1 : 0;
   assert(i >= 0);
 
@@ -956,6 +960,7 @@ static s32 get_next_idx_to_send(gnss_signal_t *sid, s32 prev_idx) {
 }
 
 void ndb_sbp_update(ndb_sbp_update_info_t *info) {
+  assert(info);
   /* increment call counter */
   info->count++;
 

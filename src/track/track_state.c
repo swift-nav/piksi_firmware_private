@@ -351,6 +351,7 @@ static void error_flags_add(tracker_t *tracker, error_flag_t error_flag) {
  *                          tracking channel.
  */
 static void serve_nap_request(tracker_t *tracker) {
+  /* assert(tracker); // an assert here slows down things a lot */
   if (tracker->busy) {
     tracker_lock(tracker);
     tracker_interface_lookup(tracker->mesid.code)->update(tracker);

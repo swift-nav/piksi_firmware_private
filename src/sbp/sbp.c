@@ -207,6 +207,7 @@ void sbp_process_messages() {
 
 /** Directs printf's output to the SBP interface */
 int _write(int file, char *ptr, int len) {
+  assert(ptr);
   switch (file) {
     /* Direct stdout and stderr to MSG_PRINT */
     case 1:

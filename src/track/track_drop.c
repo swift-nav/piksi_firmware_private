@@ -81,6 +81,8 @@ static const char *get_ch_drop_reason_str(ch_drop_reason_t reason) {
  * \param[in] reason     Channel drop reason
  */
 void tp_drop_channel(tracker_t *tracker, ch_drop_reason_t reason) {
+  assert(tracker);
+
   /* Read the required parameters from the tracking channel first to ensure
    * that the tracking channel is not restarted in the mean time.
    */

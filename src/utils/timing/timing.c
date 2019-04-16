@@ -193,6 +193,7 @@ void update_time(u64 tc, const gnss_solution *sol) {
  * \param accuracy Accuracy of the estimate (standard deviation)
  */
 void set_time(u64 tc, const gps_time_t *t, double accuracy) {
+  assert(t);
   if (!gps_time_valid(t)) {
     log_warn("Invalid gps time in set_time");
     return;
@@ -284,6 +285,7 @@ gps_time_t napcount2gpstime(const double tc) {
  * \return Timing count in units of RX_DT_NOMINAL.
  */
 u64 gpstime2napcount(const gps_time_t *t) {
+  assert(t);
   chMtxLock(&clock_mutex);
   gps_time_t gps_time = persistent_clock_state.t_gps;
   double rate = persistent_clock_state.clock_rate;
