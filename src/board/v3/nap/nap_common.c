@@ -70,8 +70,8 @@ void nap_setup(void) {
 
 u64 nap_timing_count(void) {
   static MUTEX_DECL(timing_count_mutex);
-  static u32 rollover_count = 0;
-  static u32 prev_count = 0;
+  static volatile u32 rollover_count = 0;
+  static volatile u32 prev_count = 0;
 
   chMtxLock(&timing_count_mutex);
 
