@@ -168,6 +168,7 @@ static void update_obss(obs_array_t *obs_array) {
   }
 }
 
+typedef void (*unpack_all_f)(const u8 msg[], u8 len, obs_array_t *obs_array);
 /** SBP callback for observation messages.
  * SBP observation sets are potentially split across multiple SBP messages to
  * keep the payload within the size limit.
@@ -180,7 +181,8 @@ static void update_obss(obs_array_t *obs_array) {
  * `obss_t` (`base_obss_rx`). Once a full set is received then update_obss()
  * is called.
  */
-static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
+static void generic_obs_callback(
+    u16 sender_id, u8 len, u8 msg[], void *context, unpack_all_f unpack) {
   (void)context;
 
   /* Keep track of where in the sequence of messages we were last time around
@@ -280,31 +282,11 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
   }
   obs_array->sender = sender_id;
 
-  /* Calculate the number of observations in this message by looking at the SBP
-   * `len` field. */
-  u8 obs_in_msg =
-      (len - sizeof(observation_header_t)) / sizeof(packed_obs_content_t);
-
-  /* Pull out the contents of the message. */
-  packed_obs_content_t *msg_raw_obs =
-      (packed_obs_content_t *)(msg + sizeof(observation_header_t));
-
-  /* Copy into local array. */
-  for (size_t i = 0;
-       i < obs_in_msg && obs_array->n < MAX_INPUT_OBSERVATION_COUNT;
-       ++i) {
-    starling_obs_t *current_obs = &obs_array->observations[obs_array->n++];
-    unpack_obs_content_into_starling_obs(&msg_raw_obs[i], current_obs);
-
-    /* We must also compute the TOT using the TOR from the header. */
-    current_obs->tot = obs_array->t;
-    current_obs->tot.tow -= current_obs->pseudorange / GPS_C;
-    normalize_gps_time(&current_obs->tot);
-  }
+  unpack(msg, len, obs_array);
 
   /* Print msg if we encounter a remote which sends large amount of obs. */
-  if (MAX_INPUT_OBSERVATION_COUNT == obs_array->n) {
-    log_info("Remote obs reached maximum: %d", MAX_INPUT_OBSERVATION_COUNT);
+  if (STARLING_MAX_CHANNEL_COUNT == obs_array->n) {
+    log_info("Remote obs reached maximum: %d", STARLING_MAX_CHANNEL_COUNT);
   }
 
   /* If we can, and all the obs have been received, update to using the new
@@ -322,6 +304,90 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
     /* Update message counter */
     base_obs_msg_counter++;
   }
+}
+
+static void unpack_obs(const u8 msg[], u8 len, obs_array_t *obs_array) {
+  if (obs_array->n != 0 && obs_array->is_osr) {
+    log_error(
+        "Receiving regular obs when we have previously processed OSR messages, "
+        "ignoring regular obs");
+    return;
+  }
+  obs_array->is_osr = false;
+
+  /* Calculate the number of observations in this message by looking at the SBP
+   * `len` field. */
+  u8 obs_in_msg =
+      (len - sizeof(observation_header_t)) / sizeof(packed_obs_content_t);
+
+  /* Pull out the contents of the message. */
+  packed_obs_content_t *msg_packed_obs =
+      (packed_obs_content_t *)(msg + sizeof(observation_header_t));
+
+  /* Copy into local array. */
+  for (size_t i = 0;
+       i < obs_in_msg && obs_array->n < MAX_INPUT_OBSERVATION_COUNT;
+       ++i) {
+    starling_obs_t *current_obs = &obs_array->observations[obs_array->n++];
+    unpack_obs_content_into_starling_obs(&msg_packed_obs[i], current_obs);
+
+    /* We must also compute the TOT using the TOR from the header. */
+    current_obs->tot = obs_array->t;
+    current_obs->tot.tow -= current_obs->pseudorange / GPS_C;
+    normalize_gps_time(&current_obs->tot);
+  }
+}
+
+static void unpack_osr(const u8 msg[], u8 len, obs_array_t *obs_array) {
+  if (obs_array->n != 0 && !obs_array->is_osr) {
+    log_error(
+        "Receiving OSR messages when we have previously processed regular obs, "
+        "ignoring OSR messages");
+    return;
+  }
+  obs_array->is_osr = true;
+
+  /* Calculate the number of observations in this message by looking at the SBP
+   * `len` field. */
+  u8 obs_in_msg =
+      (len - sizeof(observation_header_t)) / sizeof(packed_osr_content_t);
+
+  /* Pull out the contents of the message. */
+  packed_osr_content_t *msg_packed_osr =
+      (packed_osr_content_t *)(msg + sizeof(observation_header_t));
+
+  /* Copy into local array. */
+  for (size_t i = 0;
+       i < obs_in_msg && obs_array->n < STARLING_MAX_CHANNEL_COUNT;
+       ++i) {
+    starling_obs_t *current_obs = &obs_array->observations[obs_array->n++];
+    unpack_osr_content(&msg_packed_osr[i], current_obs);
+
+    /* We must also compute the TOT using the TOR from the header. */
+    current_obs->tot = obs_array->t;
+    current_obs->tot.tow -= current_obs->pseudorange / GPS_C;
+    normalize_gps_time(&current_obs->tot);
+  }
+}
+
+/** SBP callback for observation messages.
+ * SBP observation sets are potentially split across multiple SBP messages to
+ * keep the payload within the size limit.
+ *
+ * The header contains a count of how many total messages there are in this set
+ * of observations (all referring to the same observation time) and a count of
+ * which message this is in the sequence.
+ *
+ * This function attempts to collect a full set of observations into a single
+ * `obss_t` (`base_obss_rx`). Once a full set is received then update_obss()
+ * is called.
+ */
+static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
+  generic_obs_callback(sender_id, len, msg, context, unpack_obs);
+}
+
+static void osr_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
+  generic_obs_callback(sender_id, len, msg, context, unpack_osr);
 }
 
 /** SBP callback for the old style observation messages.
@@ -398,6 +464,9 @@ void base_obs_setup() {
 
   static sbp_msg_callbacks_node_t obs_packed_node;
   sbp_register_cbk(SBP_MSG_OBS, &obs_callback, &obs_packed_node);
+
+  static sbp_msg_callbacks_node_t osr_packed_node;
+  sbp_register_cbk(SBP_MSG_OSR, &osr_callback, &osr_packed_node);
 
   static sbp_msg_callbacks_node_t deprecated_node;
   sbp_register_cbk(SBP_MSG_OBS_DEP_A, &deprecated_callback, &deprecated_node);
