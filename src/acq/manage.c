@@ -438,6 +438,7 @@ static acq_status_t *choose_acq_sat(void) {
 
   if ((!code_requires_direct_acq(acq_status[sat_idx].mesid.code)) ||
       (CODE_SBAS_L1CA == acq_status[sat_idx].mesid.code) ||
+      (CODE_GPS_L1CA == acq_status[sat_idx].mesid.code) ||
       (acq_status[sat_idx].state != ACQ_PRN_ACQUIRING) ||
       (acq_status[sat_idx].masked)) {
     log_debug_mesid(acq_status[sat_idx].mesid, "skipped");
