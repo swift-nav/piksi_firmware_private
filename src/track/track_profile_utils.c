@@ -853,7 +853,7 @@ static const state_table_t *tracking_table_lut[TP_TM_COUNT] = {
  *
  * \return Table pointer or NULL on error.
  */
-static const state_table_t *select_table(tp_tm_e tracking_mode) {
+static const state_table_t *select_table(const tp_tm_e tracking_mode) {
   if ((TP_TM_COUNT <= tracking_mode) ||
       (NULL == tracking_table_lut[tracking_mode])) {
     log_error("tracking mode %d is not initialized", tracking_mode);

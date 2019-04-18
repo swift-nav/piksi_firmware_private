@@ -796,7 +796,6 @@ void sanitize_tracker(tracker_t *tracker) {
   }
 
   u32 flags = tracker->flags;
-  me_gnss_signal_t mesid = tracker->mesid;
 
   /* Skip channels that aren't in use */
   if (0 == (flags & TRACKER_FLAG_ACTIVE)) {
@@ -807,6 +806,8 @@ void sanitize_tracker(tracker_t *tracker) {
     tp_drop_channel(tracker, tracker->ch_drop_reason);
     return;
   }
+
+  me_gnss_signal_t mesid = tracker->mesid;
 
   /* Is tracking masked? */
   u16 global_index = mesid_to_global_index(mesid);

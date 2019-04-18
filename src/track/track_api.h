@@ -46,10 +46,10 @@ bool tracker_has_bit_sync(const tracker_t *tracker);
 bool tracker_has_all_locks(const tracker_t *tracker);
 bool tracker_next_bit_aligned(tracker_t *tracker, u32 int_ms);
 void tracker_ambiguity_unknown(tracker_t *tracker);
-bool tracker_ambiguity_resolved(tracker_t *tracker);
+bool tracker_ambiguity_resolved(const tracker_t *tracker);
 void tracker_ambiguity_set(tracker_t *tracker, s8 polarity);
-u16 tracker_glo_orbit_slot_get(tracker_t *tracker);
-void tracker_correlations_send(tracker_t *tracker, const corr_t *cs);
+u16 tracker_glo_orbit_slot_get(const tracker_t *tracker);
+void tracker_correlations_send(const tracker_t *tracker, const corr_t *cs);
 
 void tracker_cleanup(tracker_t *tracker);
 

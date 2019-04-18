@@ -609,7 +609,7 @@ u16 mesid_to_code_index(const me_gnss_signal_t mesid) {
  * \return carrier frequency
  */
 double mesid_to_carr_freq(const me_gnss_signal_t mesid) {
-  code_t code = mesid.code;
+  const code_t code = mesid.code;
   assert(code_valid(code));
   /* Map GLO mesid.sat [1 - 14] -> GLO FCN [-7 - +6] */
   s8 fcn = mesid.sat - GLO_FCN_OFFSET;
@@ -620,7 +620,7 @@ double mesid_to_carr_freq(const me_gnss_signal_t mesid) {
     return GLO_L2_HZ + fcn * GLO_L2_DELTA_HZ;
   }
   /* there is no difference between mesid and sid for GPS */
-  gnss_signal_t sid = construct_sid(mesid.code, mesid.sat);
+  gnss_signal_t sid = construct_sid(code, mesid.sat);
   return sid_to_carr_freq(sid);
 }
 
@@ -630,7 +630,7 @@ double mesid_to_carr_freq(const me_gnss_signal_t mesid) {
  * \return [carrier freq / code chip rate]
  */
 double mesid_to_carr_to_code(const me_gnss_signal_t mesid) {
-  code_t code = mesid.code;
+  const code_t code = mesid.code;
   assert(code_valid(code));
   /* Map GLO mesid.sat [1 - 14] -> GLO FCN [-7 - +6] */
   s8 fcn = mesid.sat - GLO_FCN_OFFSET;

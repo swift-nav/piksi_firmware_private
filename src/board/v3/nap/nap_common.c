@@ -183,18 +183,21 @@ void handle_nap_track_irq(void) {
 
   asm("dsb");
 
-  u32 err[3];
-  memcpy(err, (u8 *)NAP->TRK_IRQ_ERRORS, sizeof(err));
-  if (err[0] || err[1] || err[2]) {
-    memcpy((u8 *)NAP->TRK_IRQ_ERRORS, err, sizeof(err));
+  const u32 err0 = NAP->TRK_IRQ_ERRORS[0];
+  const u32 err1 = NAP->TRK_IRQ_ERRORS[1];
+  const u32 err2 = NAP->TRK_IRQ_ERRORS[2];
+  if (err0 || err1 || err2) {
+    NAP->TRK_IRQ_ERRORS[0] = err0;
+    NAP->TRK_IRQ_ERRORS[1] = err1;
+    NAP->TRK_IRQ_ERRORS[2] = err2;
     log_warn("Too many NAP tracking interrupts: 0x%08" PRIX32 "%08" PRIX32
              "%08" PRIX32,
-             err[2],
-             err[1],
-             err[0]);
-    trackers_missed(err[0], 0);
-    trackers_missed(err[1], 32);
-    trackers_missed(err[2], 64);
+             err2,
+             err1,
+             err0);
+    trackers_missed(err0, 0);
+    trackers_missed(err1, 32);
+    trackers_missed(err2, 64);
   }
 
   DO_EVERY(4096, watchdog_notify(WD_NOTIFY_NAP_ISR));
