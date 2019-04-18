@@ -19,6 +19,8 @@
 #include "signal_db/signal_db.h"
 
 #define INT_NUM_BYTES(arg) (((arg) + 7) / 8)
+#define INT_NUM_WORDS(arg) (((arg) + 15) / 16)
+#define INT_NUM_DWORDS(arg) (((arg) + 31) / 32)
 
 #define PRN_CODE_LENGTH_BYTES (INT_NUM_BYTES(GPS_L1CA_CHIPS_NUM))
 #define PRN_GLO_CODE_LENGTH_BYTES (INT_NUM_BYTES(GLO_CA_CHIPS_NUM))
