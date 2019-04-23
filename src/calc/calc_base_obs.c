@@ -291,7 +291,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
 
   /* Copy into local array. */
   for (size_t i = 0;
-       i < obs_in_msg && obs_array->n < STARLING_MAX_CHANNEL_COUNT;
+       i < obs_in_msg && obs_array->n < MAX_INPUT_OBSERVATION_COUNT;
        ++i) {
     starling_obs_t *current_obs = &obs_array->observations[obs_array->n++];
     unpack_obs_content_into_starling_obs(&msg_raw_obs[i], current_obs);
@@ -303,8 +303,8 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
   }
 
   /* Print msg if we encounter a remote which sends large amount of obs. */
-  if (STARLING_MAX_CHANNEL_COUNT == obs_array->n) {
-    log_info("Remote obs reached maximum: %d", STARLING_MAX_CHANNEL_COUNT);
+  if (MAX_INPUT_OBSERVATION_COUNT == obs_array->n) {
+    log_info("Remote obs reached maximum: %d", MAX_INPUT_OBSERVATION_COUNT);
   }
 
   /* If we can, and all the obs have been received, update to using the new
