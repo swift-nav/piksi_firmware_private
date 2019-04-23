@@ -579,6 +579,10 @@ static u8 get_profile_index(code_t code,
                             const tp_profile_entry_t *profiles,
                             size_t num_profiles,
                             float cn0) {
+  bool noise_tracker = (cn0 < 0);
+  if (noise_tracker) {
+    return IDX_20MS;
+  }
   if (code_requires_init_profile(code)) {
     return 0;
   }
@@ -922,6 +926,11 @@ static bool low_cn0_profile_switch_requested(tracker_t *tracker) {
  * \retval false No profile change is required.
  */
 bool tp_profile_has_new_profile(tracker_t *tracker) {
+  bool noise_tracker = (tracker->cn0 < 0);
+  if (noise_tracker) {
+    return false;
+  }
+
   tp_profile_t *state = &tracker->profile;
   bool tracker_mode_changed = (state->profiles != g_tracker_mode.profiles);
   if (tracker_mode_changed) {
@@ -992,8 +1001,8 @@ static float compute_cn0_offset(const me_gnss_signal_t mesid,
   cur_profile = &profile->profiles[profile->cur.index];
   mode = get_track_mode(mesid, cur_profile);
 
-  u8 cn0_ms = tp_get_cn0_ms(mode);
-  float cn0_offset = track_cn0_get_offset(cn0_ms);
+  int int_ms = (int)tp_get_fpll_ms(mode) * tp_get_fpll_decim(mode);
+  float cn0_offset = track_cn0_get_offset(int_ms);
 
   return cn0_offset;
 }

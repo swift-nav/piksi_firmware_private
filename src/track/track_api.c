@@ -243,6 +243,10 @@ s32 tracker_tow_update(tracker_t *tracker,
  * \param bit_phase_ref     Bit phase reference.
  */
 void tracker_bit_sync_set(tracker_t *tracker, s8 bit_phase_ref) {
+  bool noise_tracker = (tracker->cn0 < 0);
+  if (noise_tracker) {
+    return;
+  }
   bit_sync_t *bit_sync = &tracker->bit_sync;
   bit_sync_set(bit_sync, bit_phase_ref);
 }

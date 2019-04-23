@@ -14,6 +14,7 @@
 #include <string.h>
 
 #include "cn0_est_common.h"
+#include "signal_db/signal_db.h"
 
 #define CN0_EST_RSCN_INIT_COUNT 20.f
 
