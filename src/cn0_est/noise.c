@@ -14,7 +14,10 @@
 #include <ch.h>
 #include <math.h>
 #include <swiftnav/signal.h>
+
 #include "acq/manage.h"
+#include "board/nap/nap_common.h"
+#include "main/main.h"
 #include "signal_db/signal_db.h"
 
 #define NOISE_ALPHA 0.005

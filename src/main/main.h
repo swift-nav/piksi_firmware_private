@@ -40,15 +40,15 @@
     }                             \
   } while (0)
 
-#define DO_EACH_MS(n, cmd)                                         \
-  do {                                                             \
-    static int init_ = 1;                                          \
-    static piksi_systime_t previous;                               \
-    if (init_ || piksi_systime_elapsed_since_ms(&previous) >= n) { \
-      cmd;                                                         \
-      piksi_systime_get(&previous);                                \
-      init_ = 0;                                                   \
-    }                                                              \
+#define DO_EACH_MS(n, cmd)                                           \
+  do {                                                               \
+    static int init_ = 1;                                            \
+    static piksi_systime_t previous;                                 \
+    if (init_ || piksi_systime_elapsed_since_ms(&previous) >= (n)) { \
+      cmd;                                                           \
+      piksi_systime_get(&previous);                                  \
+      init_ = 0;                                                     \
+    }                                                                \
   } while (0)
 
 /* See gcc.gnu.org/onlinedocs/cpp/Stringification.html for

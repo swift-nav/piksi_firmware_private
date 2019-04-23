@@ -15,6 +15,7 @@
 
 #include <swiftnav/common.h>
 #include <swiftnav/signal.h>
+
 #include "signal_db/signal_db.h"
 
 #ifdef __cplusplus
@@ -78,7 +79,7 @@ typedef struct {
  * Basic C/No estimator state structure
  */
 typedef struct {
-  float cn0_db;      /**< Signal to noise ratio in dB/Hz. */
+  float cn0_db; /**< Signal to noise ratio in dB/Hz. */
 } cn0_est_basic_state_t;
 
 /**
@@ -156,11 +157,11 @@ float cn0_est_ch_update(cn0_est_ch_state_t *s,
 void cn0_est_basic_init(cn0_est_basic_state_t *s, float cn0_0);
 float cn0_est_basic_update(cn0_est_basic_state_t *s,
                            const cn0_est_params_t *p,
-                           float I,
-                           float Q,
+                           float p_I,
+                           float p_Q,
                            float n);
 
-void noise_calc(code_t code, u8 ms, s32 I, s32 Q);
+void noise_calc(code_t code, u8 cn0_ms, s32 I, s32 Q);
 float noise_get_estimation(code_t code);
 void noise_update_mesid_status(me_gnss_signal_t mesid, bool intrack);
 
