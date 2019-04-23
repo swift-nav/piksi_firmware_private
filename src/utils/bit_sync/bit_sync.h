@@ -19,6 +19,7 @@
 #include <swiftnav/signal.h>
 
 #include "gnss_capabilities/gnss_capabilities.h"
+#include "soft_macq/prns.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -40,6 +41,8 @@ typedef struct {
   s32 bit_integrate;
 
   s8 histogram[BIT_LENGTH_MAX];
+  u8 symb_bit[INT_NUM_BYTES(BIT_LENGTH_MAX)];
+
   s32 prev_real;
   s32 prev_imag;
 
