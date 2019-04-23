@@ -457,16 +457,20 @@ u16 tracker_glo_orbit_slot_get(tracker_t *tracker) {
  */
 void tracker_correlations_send(tracker_t *tracker, const corr_t *cs) {
   /* Output I/Q correlations using SBP if enabled for this channel */
-  if (tracker->output_iq) {
+  if (true) {
     msg_tracking_iq_t msg = {
         .channel = tracker->nap_channel,
     };
-    /* TODO GLO: Handle GLO orbit slot properly. */
-    if (IS_GLO(tracker->mesid)) {
+    const me_gnss_signal_t mesid = tracker->mesid;
+    if (mesid.sat != 3 || mesid.code != CODE_GPS_L1CA) {
       return;
     }
-    gnss_signal_t sid = mesid2sid(tracker->mesid, tracker->glo_orbit_slot);
-    msg.sid = sid_to_sbp(sid);
+    u8 sat = mesid.sat;
+    if (IS_GLO(mesid)) {
+      sat += 100 - GLO_FCN_OFFSET;
+    }
+    msg.sid.sat = (u8)sat;
+    msg.sid.code = (u8)mesid.code;
     for (u32 i = 0; i < 3; i++) {
       msg.corrs[i].I = cs[i].I;
       msg.corrs[i].Q = cs[i].Q;

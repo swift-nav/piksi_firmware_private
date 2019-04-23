@@ -161,6 +161,7 @@ static double calc_tc_per_chip(double chip_rate) {
 static inline void init_code_generators(const me_gnss_signal_t mesid,
                                         const u32 num_codes,
                                         const u8 channel) {
+  (void) channel; /* needs being here when CODE_GAL_E1_SUPPORT = 0 */
   u8 index = 0;
 #if defined CODE_GAL_E1_SUPPORT && CODE_GAL_E1_SUPPORT > 0
   if (mesid.code == CODE_GAL_E1B) {
