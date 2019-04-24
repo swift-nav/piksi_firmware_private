@@ -53,16 +53,14 @@ void send_observations(const obs_array_t *obs_array, u32 msg_obs_max_size) {
     for (u8 i = 0; i < curr_n; i++, obs_i++) {
       const starling_obs_t *m = &obs_array->observations[obs_i];
       const navigation_measurement_t nm = {
-        .raw_pseudorange = m->pseudorange,
-        .raw_carrier_phase = m->carrier_phase,
-        .raw_measured_doppler =  m->doppler,
-        .cn0 = m->cn0,
-        .lock_time = m->lock_time,
-        .flags = m->flags,
-        .sid = m->sid
-      };
-      if (pack_obs_content(&nm,
-                           &msg->obs[i]) < 0) {
+          .raw_pseudorange = m->pseudorange,
+          .raw_carrier_phase = m->carrier_phase,
+          .raw_measured_doppler = m->doppler,
+          .cn0 = m->cn0,
+          .lock_time = m->lock_time,
+          .flags = m->flags,
+          .sid = m->sid};
+      if (pack_obs_content(&nm, &msg->obs[i]) < 0) {
         /* Error packing this observation, skip it. */
         i--;
         curr_n--;
