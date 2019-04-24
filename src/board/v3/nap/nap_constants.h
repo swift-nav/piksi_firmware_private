@@ -21,17 +21,17 @@
 /**
  * @brief   The sample rate decimation used by tracking channels
  */
-#define NAP_TRACK_DECIMATION_RATE (5)
-#define NAP_TRACK_DECIMATION_RATE_GAL (3)
+#define NAP_TRACK_DECIMATION_RATE_SLOW (5)
+#define NAP_TRACK_DECIMATION_RATE_FAST (3)
 
 /**
  * @brief   The tracking channel sample rate after decimation
  * @note    This is the effective sampling rate of the tracking results
  */
-#define NAP_TRACK_SAMPLE_RATE_Hz \
-  (NAP_FRONTEND_RAW_SAMPLE_RATE_Hz / NAP_TRACK_DECIMATION_RATE)
-#define NAP_TRACK_SAMPLE_RATE_Hz_GAL \
-  (NAP_FRONTEND_RAW_SAMPLE_RATE_Hz / NAP_TRACK_DECIMATION_RATE_GAL)
+#define NAP_TRACK_SAMPLE_RATE_SLOW_Hz \
+  (NAP_FRONTEND_RAW_SAMPLE_RATE_Hz / NAP_TRACK_DECIMATION_RATE_SLOW)
+#define NAP_TRACK_SAMPLE_RATE_FAST_Hz \
+  (NAP_FRONTEND_RAW_SAMPLE_RATE_Hz / NAP_TRACK_DECIMATION_RATE_FAST)
 
 /**
  * @brief   The sample rate used by the NAP timing count
