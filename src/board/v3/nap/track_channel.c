@@ -40,11 +40,12 @@
 #define NAP_TRACK_CARRIER_PHASE_FRACTIONAL_WIDTH 32
 #define NAP_TRACK_CODE_PHASE_FRACTIONAL_WIDTH 32
 
-#define NAP_TRACK_CARRIER_FREQ_UNITS_PER_HZ \
-  (((u64)1 << NAP_TRACK_CARRIER_FREQ_WIDTH) / (double)NAP_TRACK_SAMPLE_RATE_Hz)
-#define NAP_TRACK_CARRIER_FREQ_UNITS_PER_HZ_GAL \
-  (((u64)1 << NAP_TRACK_CARRIER_FREQ_WIDTH) /   \
-   (double)NAP_TRACK_SAMPLE_RATE_Hz_GAL)
+#define NAP_TRACK_CARRIER_FREQ_UNITS_PER_HZ_SLOW \
+  (((u64)1 << NAP_TRACK_CARRIER_FREQ_WIDTH) /    \
+   (double)NAP_TRACK_SAMPLE_RATE_SLOW_Hz)
+#define NAP_TRACK_CARRIER_FREQ_UNITS_PER_HZ_FAST \
+  (((u64)1 << NAP_TRACK_CARRIER_FREQ_WIDTH) /    \
+   (double)NAP_TRACK_SAMPLE_RATE_FAST_Hz)
 
 #define NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE \
   ((u64)1 << NAP_TRACK_CARRIER_PHASE_FRACTIONAL_WIDTH)
@@ -52,10 +53,10 @@
 #define NAP_TRACK_CODE_PHASE_UNITS_PER_CHIP \
   ((u64)1 << NAP_TRACK_CODE_PHASE_FRACTIONAL_WIDTH)
 
-#define NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ \
-  (NAP_TRACK_CODE_PHASE_UNITS_PER_CHIP / (double)NAP_TRACK_SAMPLE_RATE_Hz)
-#define NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ_GAL \
-  (NAP_TRACK_CODE_PHASE_UNITS_PER_CHIP / (double)NAP_TRACK_SAMPLE_RATE_Hz_GAL)
+#define NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ_SLOW \
+  (NAP_TRACK_CODE_PHASE_UNITS_PER_CHIP / (double)NAP_TRACK_SAMPLE_RATE_SLOW_Hz)
+#define NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ_FAST \
+  (NAP_TRACK_CODE_PHASE_UNITS_PER_CHIP / (double)NAP_TRACK_SAMPLE_RATE_FAST_Hz)
 
 #define SET_NAP_CORR_LEN(len) (len - 1)
 
@@ -96,8 +97,8 @@ static u32 calc_length_samples(u32 chips_to_correlate,
  */
 static double calc_samples_per_chip(double chip_freq_hz, code_t code) {
   if (code == CODE_GAL_E1B || code == CODE_GAL_E7I)
-    return (double)NAP_TRACK_SAMPLE_RATE_Hz_GAL / chip_freq_hz;
-  return (double)NAP_TRACK_SAMPLE_RATE_Hz / chip_freq_hz;
+    return (double)NAP_TRACK_SAMPLE_RATE_FAST_Hz / chip_freq_hz;
+  return (double)NAP_TRACK_SAMPLE_RATE_SLOW_Hz / chip_freq_hz;
 }
 
 /** Compute the number of timing counts per code chip.
@@ -279,9 +280,10 @@ void nap_track_init(u8 channel,
   u32 code_pinc;
   if (s->mesid.code == CODE_GAL_E1B || s->mesid.code == CODE_GAL_E7I) {
     code_pinc =
-        round(chip_freq_hz * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ_GAL);
+        round(chip_freq_hz * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ_FAST);
   } else {
-    code_pinc = round(chip_freq_hz * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ);
+    code_pinc =
+        round(chip_freq_hz * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ_SLOW);
   }
   s->code_pinc[1] = s->code_pinc[0] = code_pinc;
 
@@ -312,9 +314,10 @@ void nap_track_init(u8 channel,
   s32 carr_pinc;
   if (s->mesid.code == CODE_GAL_E1B || s->mesid.code == CODE_GAL_E7I) {
     carr_pinc =
-        round(carrier_dopp_hz * NAP_TRACK_CARRIER_FREQ_UNITS_PER_HZ_GAL);
+        round(carrier_dopp_hz * NAP_TRACK_CARRIER_FREQ_UNITS_PER_HZ_FAST);
   } else {
-    carr_pinc = round(carrier_dopp_hz * NAP_TRACK_CARRIER_FREQ_UNITS_PER_HZ);
+    carr_pinc =
+        round(carrier_dopp_hz * NAP_TRACK_CARRIER_FREQ_UNITS_PER_HZ_SLOW);
   }
   s->carr_pinc[1] = s->carr_pinc[0] = carr_pinc;
 
@@ -434,9 +437,10 @@ void nap_track_update(u8 channel,
   u32 code_pinc;
   if (s->mesid.code == CODE_GAL_E1B || s->mesid.code == CODE_GAL_E7I) {
     code_pinc =
-        round(chip_freq_hz * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ_GAL);
+        round(chip_freq_hz * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ_FAST);
   } else {
-    code_pinc = round(chip_freq_hz * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ);
+    code_pinc =
+        round(chip_freq_hz * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ_SLOW);
   }
   s->code_pinc[1] = s->code_pinc[0];
   s->code_pinc[0] = code_pinc;
@@ -475,9 +479,10 @@ void nap_track_update(u8 channel,
   s32 carr_pinc;
   if (s->mesid.code == CODE_GAL_E1B || s->mesid.code == CODE_GAL_E7I) {
     carr_pinc =
-        round(carrier_freq_hz * NAP_TRACK_CARRIER_FREQ_UNITS_PER_HZ_GAL);
+        round(carrier_freq_hz * NAP_TRACK_CARRIER_FREQ_UNITS_PER_HZ_FAST);
   } else {
-    carr_pinc = round(carrier_freq_hz * NAP_TRACK_CARRIER_FREQ_UNITS_PER_HZ);
+    carr_pinc =
+        round(carrier_freq_hz * NAP_TRACK_CARRIER_FREQ_UNITS_PER_HZ_SLOW);
   }
   s->carr_pinc[1] = s->carr_pinc[0];
   s->carr_pinc[0] = carr_pinc;
@@ -543,11 +548,11 @@ void nap_track_read_results(u8 channel,
   if (s->mesid.code == CODE_GAL_E1B || s->mesid.code == CODE_GAL_E7I) {
     s->reckoned_carr_phase +=
         ((double)carr_phase_incr) / NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE +
-        s->fcn_freq_hz * (s->length[1] / NAP_TRACK_SAMPLE_RATE_Hz_GAL);
+        s->fcn_freq_hz * (s->length[1] / NAP_TRACK_SAMPLE_RATE_FAST_Hz);
   } else {
     s->reckoned_carr_phase +=
         ((double)carr_phase_incr) / NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE +
-        s->fcn_freq_hz * (s->length[1] / NAP_TRACK_SAMPLE_RATE_Hz);
+        s->fcn_freq_hz * (s->length[1] / NAP_TRACK_SAMPLE_RATE_SLOW_Hz);
   }
   *carrier_phase = (s->reckoned_carr_phase);
 
