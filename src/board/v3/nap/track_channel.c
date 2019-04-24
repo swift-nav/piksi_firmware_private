@@ -328,11 +328,11 @@ void nap_track_init(u8 channel,
   s16 delta_tc = NAP_VEP_SPACING_SAMPLES;
   s->length_adjust = delta_tc;
 
-  /* Get the code rollover point in samples */
-  delta_samples *=
-      calc_tc_per_chip(1) / calc_samples_per_chip(1, s->mesid.code);
+  /* Convert sample count into timing counts for respective tracking channels */
+  delta_tc *= calc_tc_per_chip(1) / calc_samples_per_chip(1, s->mesid.code);
 
-  u64 tc_codestart = ref_timing_count - delta_samples -
+  /* Get the code rollover point in timing counts */
+  u64 tc_codestart = ref_timing_count - delta_tc -
                      (s32)round(code_phase * calc_tc_per_chip(chip_freq_hz));
 
   nap_track_enable(channel);
@@ -391,8 +391,14 @@ void nap_track_init(u8 channel,
   u64 tc_next_rollover =
       tc_codestart + (u64)floor(0.5 + (double)num_codes * tc_code_period);
 
+  /* GLO channels are currently decimated by 5. In order to have consistent
+   * carrier phase biases with every channel start, the channel starting time
+   * has to be aligned with the arrival of a new sample. Thus, the the possible
+   * starting times are multiples of 5. */
   if (IS_GLO(s->mesid)) {
-    tc_next_rollover = 5 * ((tc_next_rollover + 2) / 5);
+    tc_next_rollover =
+        NAP_TRACK_DECIMATION_RATE_SLOW *
+        ((tc_next_rollover + 2) / NAP_TRACK_DECIMATION_RATE_SLOW);
   }
 
   /* Port FCN-induced NCO phase to a common receiver clock point */
