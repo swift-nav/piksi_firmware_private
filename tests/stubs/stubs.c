@@ -291,5 +291,5 @@ gps_time_t glo2gps_with_utc_params(const glo_time_t *glo_time,
 }
 
 time_quality_t get_time_quality(void) { return TIME_UNKNOWN; }
-u64 nap_timing_count(void) { return 0; }
 
+u64 nap_timing_count(void) { return 0; }
