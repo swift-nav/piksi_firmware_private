@@ -342,7 +342,7 @@ static void unpack_obs(const u8 msg[], u8 len, obs_array_t *obs_array) {
 
   /* Copy into local array. */
   for (size_t i = 0;
-       i < obs_in_msg && obs_array->n < STARLING_MAX_CHANNEL_COUNT;
+       i < obs_in_msg && obs_array->n < MAX_INPUT_OBSERVATION_COUNT;
        ++i) {
     starling_obs_t *current_obs = &obs_array->observations[obs_array->n++];
     unpack_obs_content_into_starling_obs(&msg_packed_obs[i], current_obs);

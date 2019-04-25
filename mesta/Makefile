@@ -199,8 +199,8 @@ CSRC := $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l2c.c \
 
 
 CXXSRC := $(SWIFTNAV_ROOT)/starling/src/starling/integration/starling_input_bridge.cc \
-          $(SWIFTNAV_ROOT)/starling/src/starling/util/Mutex.cc \
-          $(SWIFTNAV_ROOT)/starling/src/starling/util/ObsFifo.cc
+          $(SWIFTNAV_ROOT)/starling/src/starling/util/mutex.cc \
+          $(SWIFTNAV_ROOT)/starling/src/starling/util/obs_fifo.cc
 
 CXXFLAGS := -std=c++11
 
