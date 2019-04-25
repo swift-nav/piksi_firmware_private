@@ -30,9 +30,9 @@ s8 calc_navigation_measurement(const channel_measurement_t *meas,
                                const gps_time_t *rec_time);
 
 s8 calc_navigation_measurements(u8 n_channels,
-                               const channel_measurement_t meas[],
-                               obs_array_t *obs_array,
-                               const gps_time_t *rec_time);
+                                const channel_measurement_t meas[],
+                                obs_array_t *obs_array,
+                                const gps_time_t *rec_time);
 
 void apply_gps_cnav_isc(u8 n_channels,
                         navigation_measurement_t *nav_meas[],
