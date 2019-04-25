@@ -19,7 +19,6 @@
 #include <string.h>
 #include <swiftnav/logging.h>
 
-#include "cfg/init.h"
 #include "sbp/sbp.h"
 
 static settings_t *settings = NULL;
@@ -138,7 +137,7 @@ void settings_api_setup(void) {
       api.log_preformat = false,
   };
 
-  settings = settings_create(sender_id_get(), &api);
+  settings = settings_create(sbp_sender_id_get(), &api);
 }
 
 int settings_api_register_enum(const char *const enum_names[],

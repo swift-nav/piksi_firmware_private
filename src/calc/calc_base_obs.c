@@ -375,6 +375,9 @@ static void ics_msg_callback(u16 sender_id,
 
   /* store received CNAV message */
   cnav_msg_put(&cnav);
+
+  /* relay message */
+  sbp_send_msg_(SBP_MSG_GROUP_DELAY, len, msg, MSG_FORWARD_SENDER_ID);
 }
 
 /** Setup the base station observation handling subsystem. */
