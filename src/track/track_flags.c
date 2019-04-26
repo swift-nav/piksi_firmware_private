@@ -31,7 +31,7 @@ void tracker_flag_drop(tracker_t *tracker, ch_drop_reason_t reason) {
  */
 void tracker_set_prn_fail_flag(const me_gnss_signal_t mesid, bool val) {
   /* Find SV ID for L1CA and L2CM and set the flag  */
-  for (u8 id = 0; id < nap_track_n_channels; id++) {
+  for (u8 id = 0; id < NUM_TRACKER_CHANNELS; id++) {
     tracker_t *tracker = tracker_get(id);
     tracker_lock(tracker);
     /* Skip inactive channels */
@@ -135,7 +135,7 @@ void tracker_set_leap_second_flag(void) {
  * \return None
  */
 void tracker_set_xcorr_flag(const me_gnss_signal_t mesid) {
-  for (u8 id = 0; id < nap_track_n_channels; ++id) {
+  for (u8 id = 0; id < NUM_TRACKER_CHANNELS; ++id) {
     /* Find matching tracker and set the flag  */
     tracker_t *tracker = tracker_get(id);
     tracker_lock(tracker);

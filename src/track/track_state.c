@@ -49,7 +49,7 @@ static u16 iq_output_mask = 0;
 static int track_iq_output_notify(void *ctx) {
   (void)ctx;
 
-  for (int i = 0; i < nap_track_n_channels; i++) {
+  for (int i = 0; i < NUM_TRACKER_CHANNELS; i++) {
     tracker_t *tracker = tracker_get(i);
     tracker->output_iq = (iq_output_mask & (1 << i)) != 0;
   }
