@@ -84,10 +84,10 @@ void pre_init(void) { rpmsg_setup(); }
 
 static void random_init(void) {
   u32 seed = 0;
-  u32 sample_data = nap_conf_rd_random();
-
-  for (int i = 0; i < 32; i++) seed ^= sample_data >> i;
-
+  /* xor together all the registers to pick up something random */
+  for (int i = 0; i < 256; i++) {
+    seed ^= nt1065_read_reg(i) << (i % 24);
+  }
   srand(seed);
 }
 
