@@ -39,14 +39,14 @@ static const double gal_e7i_isc = 3.4;
 
 /* GLO pseudorange biases per FCN (meters) */
 static const double glo_l1_isc[GLO_MAX_FCN] =
-  {-7.6,-7.5,-7.3,-7.2,-7.0,-7.1,-6.9,-6.9,-7.0,-6.9,-7.1,-7.5,-7.5,-7.9};
+  {-7.2,-7.1,-6.9,-6.9,-6.7,-6.9,-6.9,-6.8,-6.9,-6.8,-7.0,-7.4,-7.4,-7.8};
 static const double glo_l2_isc[GLO_MAX_FCN] =
-  {-2.9,-2.3,-1.8,-1.2,-1.2,-1.2,-0.8,+0.0,+0.2,-0.2,+0.8,+0.8,+0.9,+1.0};
+  {-2.5,-2.3,-1.8,-1.4,-1.2,-0.9,-0.9,-0.2,+0.0,-0.3,+0.3,+0.8,+1.0,+0.9};
 
 /* GLO carrier biases per FCN (cycles) */
 /* TODO: add a second set for Piksi Base version */
-static const double glo_l1_carrier_corr = -0.017;
-static const double glo_l2_carrier_corr = -0.007;
+static const double glo_l1_carrier_corr = -0.003;
+static const double glo_l2_carrier_corr = +0.003;
 
 /* clang-format on */
 
