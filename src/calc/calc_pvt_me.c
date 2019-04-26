@@ -631,7 +631,6 @@ static void copy_raimed_obs(const obs_array_t *obs_array,
                             const gnss_sid_set_t *raim_sids,
                             const gnss_sid_set_t *raim_failed_sids,
                             obs_array_t *send_obs_array) {
-  send_obs_array->sender = obs_array->sender;
   send_obs_array->n = 0;
   send_obs_array->t = obs_array->t;
   for (u8 i = 0; i < obs_array->n; i++) {
