@@ -25,7 +25,7 @@ endif
 
 # Compiler options here.
 ifeq ($(USE_OPT),)
-  USE_OPT = -O2 -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard -ggdb3 -falign-functions=16
+  USE_OPT = -O3 -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard -funsafe-math-optimizations -ggdb3 -falign-functions=16
 endif
 
 # C specific options here (added to USE_OPT).
