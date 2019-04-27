@@ -421,7 +421,7 @@ void tracker_ambiguity_unknown(tracker_t *tracker) {
  *
  * \return false if ambiguity unknown, true if it is known.
  */
-bool tracker_ambiguity_resolved(tracker_t *tracker) {
+bool tracker_ambiguity_resolved(const tracker_t *tracker) {
   return tracker->bit_polarity != BIT_POLARITY_UNKNOWN;
 }
 
@@ -446,7 +446,7 @@ void tracker_ambiguity_set(tracker_t *tracker, s8 polarity) {
  *
  * \return GLO orbital slot
  */
-u16 tracker_glo_orbit_slot_get(tracker_t *tracker) {
+u16 tracker_glo_orbit_slot_get(const tracker_t *tracker) {
   return tracker->glo_orbit_slot;
 }
 
@@ -455,7 +455,7 @@ u16 tracker_glo_orbit_slot_get(tracker_t *tracker) {
  * \param[in] tracker Tracker channel data
  * \param cs          Array of correlations to send.
  */
-void tracker_correlations_send(tracker_t *tracker, const corr_t *cs) {
+void tracker_correlations_send(const tracker_t *tracker, const corr_t *cs) {
   /* Output I/Q correlations using SBP if enabled for this channel */
   if (tracker->output_iq) {
     msg_tracking_iq_t msg = {

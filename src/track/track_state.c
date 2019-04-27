@@ -115,7 +115,7 @@ void track_setup(void) {
  *
  * \return Associated tracker channel.
  */
-tracker_t *tracker_get(u8 id) {
+tracker_t *tracker_get(const u8 id) {
   assert(id < NUM_TRACKER_CHANNELS);
   return &trackers[id];
 }
@@ -128,12 +128,11 @@ tracker_t *tracker_get(u8 id) {
  * \return true if the tracker channel is available, false otherwise.
  */
 bool tracker_available(const u8 id, const me_gnss_signal_t mesid) {
-  tracker_t *tracker = tracker_get(id);
-
   if (!nap_track_supports(id, mesid)) {
     return false;
   }
 
+  tracker_t *tracker = tracker_get(id);
   return !(tracker->busy);
 }
 
@@ -157,7 +156,7 @@ void tracker_get_state(u8 id,
   tracker_lock(tracker);
 
   /* Tracker identifier */
-  info->id = (u8)(tracker - &trackers[0]);
+  info->id = id;
   /* Translate/expand flags from tracker internal scope */
   info->flags = tracker->flags;
   /* Signal identifier */
@@ -351,13 +350,9 @@ static void error_flags_add(tracker_t *tracker, error_flag_t error_flag) {
  *                          tracking channel.
  */
 static void serve_nap_request(tracker_t *tracker) {
-  if (tracker->busy) {
-    tracker_lock(tracker);
-    tracker_interface_lookup(tracker->mesid.code)->update(tracker);
-    tracker_unlock(tracker);
-  } else {
-    log_error_mesid(tracker->mesid, "tracker is disabled");
-  }
+  tracker_lock(tracker);
+  tracker_interface_lookup(tracker->mesid.code)->update(tracker);
+  tracker_unlock(tracker);
 }
 
 /** Handles pending IRQs and background tasks for tracking channels.
@@ -366,19 +361,18 @@ static void serve_nap_request(tracker_t *tracker) {
  * \param c0              Channel offset.
  */
 void trackers_update(u32 channels_mask, const u8 c0) {
-  /* experiment 3: like this we always clean a tracker if it has to...
-   * and don't clean trackers that are not to be served by NAP */
-  for (u8 ci = 0; channels_mask && ((c0 + ci) < nap_track_n_channels); ci++) {
-    tracker_t *tracker = tracker_get(c0 + ci);
+  tracker_t *pt_tracker = tracker_get(c0);
+  for (u8 ci = c0; channels_mask && (ci < nap_track_n_channels); ci++) {
     bool update_required = (channels_mask & 1) ? true : false;
     /* if NAP has something to do, serve this channel */
     /* due to a chance for a race condition between tracking thread and NAP
        we may end up here for an inactive tracker, which was just dropped.
        So we check the validity of the tracker by looking at its busy flag */
-    if (update_required && tracker->busy) {
-      serve_nap_request(tracker);
-      sanitize_tracker(tracker);
+    if (update_required && pt_tracker->busy) {
+      serve_nap_request(pt_tracker);
+      sanitize_tracker(pt_tracker);
     }
+    pt_tracker++;
     channels_mask >>= 1;
   }
 }
@@ -389,12 +383,13 @@ void trackers_update(u32 channels_mask, const u8 c0) {
  * \param c0              Channel offset.
  */
 void trackers_missed(u32 channels_mask, const u8 c0) {
+  tracker_t *pt_tracker = tracker_get(c0);
   for (u8 ci = c0; channels_mask && (ci < nap_track_n_channels); ci++) {
-    tracker_t *tracker = tracker_get(ci);
     bool error = (channels_mask & 1) ? true : false;
     if (error) {
-      error_flags_add(tracker, ERROR_FLAG_MISSED_UPDATE);
+      error_flags_add(pt_tracker, ERROR_FLAG_MISSED_UPDATE);
     }
+    pt_tracker++;
     channels_mask >>= 1;
   }
 }
