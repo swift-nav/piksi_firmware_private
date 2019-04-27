@@ -293,7 +293,9 @@ bool tracker_init(const u8 id,
     if (tp_get_cycle_count(tracking_mode) > 1) {
       /* nap_track_init() expects first 2 integration times be equal */
       u8 second_int_ms = tp_get_cycle_duration(tracking_mode, 1);
-      assert(second_int_ms == first_int_ms);
+      if (second_int_ms != first_int_ms) {
+        assert(0);
+      }
     }
     chips_to_correlate = code_to_chip_rate(mesid.code) * 1e-3 * first_int_ms;
 

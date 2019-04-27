@@ -598,7 +598,9 @@ static u8 get_profile_index(code_t code,
   /* Verify last tracking mode */
   u8 idx = g_tracker_mode.size - 1;
   u8 idx_max = tp_is_rover_mode() ? IDX_SENS : IDX_20MS;
-  assert(idx == idx_max);
+  if (idx != idx_max) {
+    assert(0);
+  }
 
   /* IDX_SENS for rover and IDX_20MS for base station */
   return g_tracker_mode.size - 1;

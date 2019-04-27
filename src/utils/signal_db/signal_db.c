@@ -387,7 +387,7 @@ bool code_supported(code_t code) {
  * \return Minimum Doppler value [Hz]
  */
 float code_to_tcxo_doppler_min(code_t code) {
-  assert(code_valid(code));
+  (void)(code);
 
   float doppler;
 
@@ -403,7 +403,7 @@ float code_to_tcxo_doppler_min(code_t code) {
  * \return Maximum Doppler value [Hz]
  */
 float code_to_tcxo_doppler_max(code_t code) {
-  assert(code_valid(code));
+  (void)(code);
 
   float doppler;
 
@@ -558,7 +558,7 @@ gnss_signal_t mesid2sid(const me_gnss_signal_t mesid, u16 glo_slot_id) {
  * \return Number of characters written to s, excluding the terminating null.
  */
 int mesid_to_string(char *s, int n, const me_gnss_signal_t mesid) {
-  assert(n >= MESID_STR_LEN_MAX);
+  (void)n;
   return sat_code_to_string(
       s, MESID_SUFFIX_LENGTH, /* suffix = */ " ME ", mesid.sat, mesid.code);
 }

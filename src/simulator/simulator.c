@@ -275,7 +275,9 @@ void simulation_step_tracking_and_observations(double elapsed) {
                                   simulation_sats_acc[i],
                                   &clock_err,
                                   &clock_rate_err);
-    assert(r == 0);
+    if (0 != r) {
+      assert(0);
+    }
   }
 
   /* Calculate the first sim_settings.num_sats amount of visible sats */
@@ -284,7 +286,9 @@ void simulation_step_tracking_and_observations(double elapsed) {
   for (u8 i = 0; i < simulation_num_almanacs; i++) {
     s8 r = calc_sat_az_el_almanac(
         &simulation_almanacs[i], &t, sim_state.pos, &az, &el);
-    assert(r == 0);
+    if (0 != r) {
+      assert(0);
+    }
     track_sid_db_azel_degrees_set(
         simulation_almanacs[i].sid, az * R2D, el * R2D, nap_timing_count());
 

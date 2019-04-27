@@ -734,7 +734,9 @@ static void tp_tracker_update_loops(tracker_t *tracker, u32 cycle_flags) {
     u16 next_cycle_no =
         tp_wrap_cycle(tracker->tracking_mode, tracker->cycle_no + 1);
     u8 next_ms = tp_get_cycle_duration(tracker->tracking_mode, next_cycle_no);
-    assert((1 == next_ms) || (2 == next_ms));
+    if ((1 != next_ms) && (2 != next_ms)) {
+      assert(0);
+    }
 
     tp_epl_corr_t corr_main = tracker->corrs.corr_main;
 

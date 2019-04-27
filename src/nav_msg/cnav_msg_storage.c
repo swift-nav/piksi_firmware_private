@@ -47,6 +47,7 @@ static cnav_msg_idx_t cnav_msg_type_to_idx(cnav_msg_type_t t) {
     default:
       assert(!"Unsupported CNAV message type");
   }
+  return -1;
 }
 
 static bool cnav_msg_type_id_valid(u8 msg_id) {

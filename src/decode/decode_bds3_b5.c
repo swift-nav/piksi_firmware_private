@@ -74,6 +74,7 @@ static void decoder_bds3_b5_process(const decoder_channel_info_t *channel_info,
                                     decoder_data_t *decoder_data) {
   assert(channel_info);
   assert(decoder_data);
+  (void)decoder_data;
 
   /* Process incoming nav bits */
   nav_bit_t nav_bit;

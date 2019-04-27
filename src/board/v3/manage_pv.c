@@ -99,17 +99,18 @@ static bool handle_pv(device_state_t dev_state) {
     case DEV_ANTENNA_SHORTED:
     case DEV_ANTENNA:
     case DEV_TRK_AT_LEAST_FOUR:
-      return FALSE;
+      return false;
       break;
     case DEV_SPS:
     case DEV_FLOAT:
     case DEV_FIXED:
-      return TRUE;
+      return true;
       break;
     default:
       assert(!"Unknown mode");
       break;
   }
+  return false;
 }
 
 static void manage_pv_thread(void *arg) {

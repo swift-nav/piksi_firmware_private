@@ -275,6 +275,7 @@ unsigned long long env_get_timestamp(void) {
 
 int platform_get_processor_info(struct hil_proc *proc, int cpu_id) {
   assert((unsigned int)cpu_id == HIL_RSVD_CPU_ID);
+  (void)cpu_id;
 
   extern const struct hil_proc hil_proc;
   env_memcpy(proc, &hil_proc, sizeof(*proc));
