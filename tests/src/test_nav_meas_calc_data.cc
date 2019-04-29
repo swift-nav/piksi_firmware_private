@@ -72,7 +72,7 @@ TEST(test_nav_meas_calc_data, first_test) {
       1899                     /* .wn */
   };
 
-  calc_navigation_measurement(1, &l1ca_meas_in, &obs_array_l1ca, &rec_time);
+  calc_navigation_measurements(1, &l1ca_meas_in, &obs_array_l1ca, &rec_time);
   log_debug(" ***** L1CA: *****\n");
   log_debug("pseudorange = %30.20f\n", out_l1ca->pseudorange);
   log_debug("carrier_phase = %30.20f\n", out_l1ca->carrier_phase);
@@ -86,7 +86,7 @@ TEST(test_nav_meas_calc_data, first_test) {
   log_debug("TOR = %30.20f\n",
             out_l1ca->tot.tow + out_l1ca->pseudorange / GPS_C);
 
-  calc_navigation_measurement(1, &l2cm_meas_in, &obs_array_l2cm, &rec_time);
+  calc_navigation_measurements(1, &l2cm_meas_in, &obs_array_l2cm, &rec_time);
   log_debug(" \n***** L2CM: *****\n");
   log_debug("pseudorange = %30.20f\n", out_l2cm->pseudorange);
   log_debug("carrier_phase = %30.20f\n", out_l2cm->carrier_phase);

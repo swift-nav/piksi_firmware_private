@@ -17,7 +17,6 @@
 #include <stdlib.h>
 #include <swiftnav/logging.h>
 
-#include "cfg/init.h"
 #include "sbp/sbp.h"
 #include "sbp/sbp_utils.h"
 
@@ -65,7 +64,7 @@ void starling_sbp_link_setup(void) {
   }
 
   SbpDuplexLink implemented_sbp_link = {
-      .loc_sender_id = sender_id_get(),
+      .loc_sender_id = sbp_sender_id_get(),
       .fwd_sender_id = MSG_FORWARD_SENDER_ID,
       .send = impl_sbp_send,
       .send_from = impl_sbp_send_from,

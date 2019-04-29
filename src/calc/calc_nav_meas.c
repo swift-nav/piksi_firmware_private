@@ -125,6 +125,22 @@ static s8 convert_channel_measurement_to_starling_obs(
   return 0;
 }
 
+/** Calculate one observation from tracking channel measurement
+ *
+ * \param meas Array of tracking channel measurements, length `n_channels`
+ * \param obs_array Observation array for storing the observations
+ * \param rec_time Pointer to an estimate of the GPS time at reception time
+ * \return '0' for success, '-1' for measurement sanity check error
+ *
+ * NOTE: assumes that arguments are sanitized
+ */
+s8 calc_navigation_measurement(const channel_measurement_t *meas,
+                               starling_obs_t *starling_obs,
+                               const gps_time_t *rec_time) {
+  return convert_channel_measurement_to_starling_obs(
+      rec_time, meas, starling_obs);
+}
+
 /** Calculate observations from tracking channel measurements.
  *
  * \param n_channels Number of tracking channel measurements
@@ -133,12 +149,11 @@ static s8 convert_channel_measurement_to_starling_obs(
  * \param rec_time Pointer to an estimate of the GPS time at reception time
  * \return '0' for success, '-1' for measurement sanity check error
  */
-s8 calc_navigation_measurement(u8 n_channels,
-                               const channel_measurement_t meas[],
-                               obs_array_t *obs_array,
-                               const gps_time_t *rec_time) {
+s8 calc_navigation_measurements(u8 n_channels,
+                                const channel_measurement_t meas[],
+                                obs_array_t *obs_array,
+                                const gps_time_t *rec_time) {
   /* initialize the obs array */
-  obs_array->sender = 0;
   obs_array->t = *rec_time;
   obs_array->n = n_channels;
 

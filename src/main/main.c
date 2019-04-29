@@ -65,10 +65,20 @@ int main(void) {
 
   io_support_init();
   sbp_setup();
+  /* Just after init also set `sbp_sender_id` */
+  u16 sbp_sender_id = sender_id_get();
+  /* avoid special `sbp_sender_id`s in the 0-64k range */
+  while ((MSG_FORWARD_SENDER_ID == sbp_sender_id) ||
+         (SBP_SENDER_ID == sbp_sender_id)) {
+    sbp_sender_id = (u16)rand();
+  }
+  sbp_sender_id_set(sbp_sender_id);
 
+  /* the settings interface will now pick up the correct `sbp_sender_id` */
   settings_api_setup();
   timing_setup();
 
+  /* these messages now come out with the correct `sbp_sender_id` */
   log_info("Piksi Starting...");
   log_info("pfwp_build_id: " GIT_VERSION "");
   log_info("pfwp_build_date: " __DATE__ " " __TIME__ "");
@@ -78,23 +88,12 @@ int main(void) {
   init();
   signal_db_init();
 
-  static u16 sender_id;
-  sender_id = sender_id_get();
-
-  if (sender_id == 0) {
-    /* TODO: Handle this properly! */
-    sender_id = (u16)rand();
-  }
-  /* We only need 16 bits for sender ID for sbp */
-
-  sbp_sender_id_set(sender_id);
-
   /* Initialize receiver time to the Jan 1980 with large enough uncertainty */
   gps_time_t t0 = {.tow = 0, .wn = 0};
   set_time(0, &t0, 2e9);
 
   static char sender_id_str[5];
-  sprintf(sender_id_str, "%04X", sender_id);
+  sprintf(sender_id_str, "%04X", sbp_sender_id);
 
   static char hw_revision_string[64] = {0};
   hw_revision_string_get(hw_revision_string);
