@@ -45,8 +45,8 @@ static const double glo_l2_isc[GLO_MAX_FCN] =
 
 /* GLO carrier biases per FCN (cycles) */
 /* TODO: add a second set for Piksi Base version */
-static const double glo_l1_carrier_corr = -0.003;
-static const double glo_l2_carrier_corr = +0.003;
+static const double glo_l1_carrier_corr = -0.007;
+static const double glo_l2_carrier_corr = +0.000;
 
 /* clang-format on */
 
