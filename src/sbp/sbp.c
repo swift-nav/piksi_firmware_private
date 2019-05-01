@@ -44,7 +44,7 @@ static void sbp_log_(int level, const char *msg, ...);
 static void sbp_detailed_log_(
     int level, const char *file_path, int line_number, const char *msg, ...);
 
-u16 my_sender_id;
+static u16 my_sender_id;
 
 /* TODO: Make new message type containing only latency and obs period */
 msg_uart_state_t corr_stats;
@@ -117,6 +117,8 @@ void sbp_setup(void) {
 }
 
 void sbp_sender_id_set(u16 sender_id) { my_sender_id = sender_id; }
+
+u16 sbp_sender_id_get(void) { return my_sender_id; }
 
 void sbp_register_cbk_with_closure(u16 msg_type,
                                    sbp_msg_callback_t cb,

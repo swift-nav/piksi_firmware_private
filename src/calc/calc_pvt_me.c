@@ -89,6 +89,7 @@ static void me_post_observations(obs_array_t *obs_array,
     log_error("ME: Unable to send ephemeris array.");
   }
 
+  obs_array->sender = sbp_sender_id_get();
   ret = starling_send_rover_obs(
       obs_array); /* Transferring ownership of obs_array here */
   obs_array = NULL;

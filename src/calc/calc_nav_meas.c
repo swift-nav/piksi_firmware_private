@@ -138,7 +138,6 @@ s8 calc_navigation_measurement(u8 n_channels,
                                obs_array_t *obs_array,
                                const gps_time_t *rec_time) {
   /* initialize the obs array */
-  obs_array->sender = 0;
   obs_array->t = *rec_time;
   obs_array->n = n_channels;
 
