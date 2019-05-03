@@ -29,6 +29,7 @@
 #include "ext_events/ext_events.h"
 #include "glo_map_setup/glo_map_setup.h"
 #include "hal/is_duro.h"
+#include "hal/can_enabled.h"
 #include "io_support.h"
 #include "ndb/ndb.h"
 #include "peripherals/can_termination.h"
@@ -183,7 +184,7 @@ int main(void) {
 
   SpecanStart();
 
-  if (device_is_duro()) {
+  if (device_is_duro() && can_enabled()) {
     can1_termination_init();
   }
 
