@@ -17,6 +17,7 @@
 #include <ch.h>
 #include <stdbool.h>
 #include <swiftnav/common.h>
+#include <swiftnav/signal.h>
 
 #include "ext_events/ext_events.h"
 #include "nap/nap_constants.h"
@@ -53,12 +54,6 @@ extern u8 nap_dna[NAP_DNA_LENGTH];
 /** The minimum expected correlation length for sanity checks [ms] */
 #define NAP_CORR_LENGTH_MIN_MS 0.5
 
-/** Convert milliseconds to NAP samples */
-#define NAP_MS_2_SAMPLES(ms) (((double)(ms) / 1000.) * NAP_TRACK_SAMPLE_RATE_Hz)
-/** Convert NAP samples to milliseconds */
-#define NAP_SAMPLES_2_MS(samples) \
-  (((samples)*1000.) / NAP_TRACK_SAMPLE_RATE_SLOW_Hz)
-
 /** \} */
 
 void nap_setup(void);
@@ -71,6 +66,8 @@ u64 nap_timing_count(void);
 u64 nap_sample_time_to_count(u32 sample_count);
 double nap_count_to_ms(u64 delta_time);
 double nap_count_to_ns(u64 delta_time);
+double nap_ms_2_samples(u32 ms, code_t code);
+double nap_samples_2_ms(u32 samples, code_t code);
 
 u32 nap_get_ext_event(u8 pin, ext_event_trigger_t *trig);
 void nap_set_ext_event(u8 pin, ext_event_trigger_t trig, u32 timeout);

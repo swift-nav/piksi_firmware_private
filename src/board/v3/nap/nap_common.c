@@ -130,6 +130,34 @@ double nap_count_to_ns(u64 delta_time) {
   return (double)delta_time * (SECS_NS / NAP_TIMING_COUNT_RATE_Hz);
 }
 
+/**
+ * Convert milliseconds to NAP samples.
+ *
+ * \param[in] ms Time interval to convert [milliseconds]
+ * \param[in] code GNSS code identifier
+ *
+ * \return Number of samples.
+ */
+double nap_ms_2_samples(u32 ms, code_t code) {
+  if (code == CODE_GAL_E1B || code == CODE_GAL_E7I)
+    return (((double)(ms) / 1000.) * NAP_TRACK_SAMPLE_RATE_FAST_Hz);
+  return (((double)(ms) / 1000.) * NAP_TRACK_SAMPLE_RATE_SLOW_Hz);
+}
+
+/**
+ * Convert NAP samples to ms.
+ *
+ * \param[in] samples Number of samples to convert
+ * \param[in] code GNSS code identifier
+ *
+ * \return Time interval [milliseconds].
+ */
+double nap_samples_2_ms(u32 samples, code_t code) {
+  if (code == CODE_GAL_E1B || code == CODE_GAL_E7I)
+    return (((samples)*1000.) / NAP_TRACK_SAMPLE_RATE_FAST_Hz);
+  return (((samples)*1000.) / NAP_TRACK_SAMPLE_RATE_SLOW_Hz);
+}
+
 static void nap_isr(void *context) {
   (void)context;
   chSysLockFromISR();

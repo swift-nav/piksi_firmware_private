@@ -292,8 +292,8 @@ void nap_track_init(u8 channel,
   /* CORRELATION SETTINGS (integration length, spacing) ---------------- */
   u32 length = calc_length_samples(chips_to_correlate, 0, code_pinc);
   s->length[1] = s->length[0] = length;
-  if ((length < NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MIN_MS)) ||
-      (length > NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MAX_MS))) {
+  if ((length < nap_ms_2_samples(NAP_CORR_LENGTH_MIN_MS, s->mesid.code)) ||
+      (length > nap_ms_2_samples(NAP_CORR_LENGTH_MAX_MS, s->mesid.code))) {
     log_error_mesid(s->mesid,
                     "Wrong inital NAP correlation length: "
                     "(%" PRIu32 " %" PRIu32 " %" PRIu32 " %lf)",
@@ -466,8 +466,8 @@ void nap_track_update(u8 channel,
       ((u32)(s->spacing) << NAP_TRK_CH_CORR_SET_SPACING_Pos) |
       SET_NAP_CORR_LEN(length);
 
-  if ((length < NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MIN_MS)) ||
-      (length > NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MAX_MS))) {
+  if ((length < nap_ms_2_samples(NAP_CORR_LENGTH_MIN_MS, s->mesid.code)) ||
+      (length > nap_ms_2_samples(NAP_CORR_LENGTH_MAX_MS, s->mesid.code))) {
     log_warn_mesid(s->mesid,
                    "Wrong NAP correlation length: "
                    "(%" PRIu32 " %" PRIu32 " %" PRIu32 " %" PRIu32 " %lf)",
