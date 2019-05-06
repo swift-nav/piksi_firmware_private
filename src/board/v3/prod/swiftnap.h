@@ -151,7 +151,6 @@ typedef struct {
   volatile u32 TRK_CODE_LFSR1_INIT;
   volatile u32 TRK_CODE_LFSR1_RESET;
   volatile u32 TRK_CODE_LFSR1_LAST;
-  volatile u32 TRK_L1CA_PRN_SELECT;
   volatile u32 TRK_SEC_CODE[4];
   const volatile u32 AES_KEY_A[8];
   const volatile u32 AES_KEY_B[8];
@@ -159,6 +158,7 @@ typedef struct {
   const volatile u32 AES_KEY_D[8];
   volatile u32 AES_KEY_READ_ENABLE;
   volatile u32 TRK_GAL_E1_MEMCFG;
+  volatile u32 TRK_L1CA_PRN_SELECT;
   const volatile u32 TRK_STATUS[3];
   volatile u32 TRK_CONTROL[3];
   volatile u32 TRK_IRQS[3];
@@ -654,16 +654,6 @@ typedef struct {
   (((REG) & ~NAP_TRK_CODE_LFSR1_LAST_VALUE_Msk) |   \
    ((VAL) << NAP_TRK_CODE_LFSR1_LAST_VALUE_Pos))
 
-/* Register: NAP_TRK_L1CA_PRN_SELECT */
-#define NAP_TRK_L1CA_PRN_SELECT_VALUE_Pos (0U)
-#define NAP_TRK_L1CA_PRN_SELECT_VALUE_Len (6U)
-#define NAP_TRK_L1CA_PRN_SELECT_VALUE_Rst (0x0U)
-#define NAP_TRK_L1CA_PRN_SELECT_VALUE_Msk \
-  (0x3FU << NAP_TRK_L1CA_PRN_SELECT_VALUE_Pos)
-#define SET_NAP_TRK_L1CA_PRN_SELECT_VALUE(REG, VAL) \
-  (((REG) & ~NAP_TRK_L1CA_PRN_SELECT_VALUE_Msk) |   \
-   ((VAL) << NAP_TRK_L1CA_PRN_SELECT_VALUE_Pos))
-
 /* Register: NAP_TRK_SEC_CODE[N] */
 #define NAP_TRK_SEC_CODE_VALUE_Pos (0U)
 #define NAP_TRK_SEC_CODE_VALUE_Len (32U)
@@ -741,6 +731,16 @@ typedef struct {
 #define SET_NAP_TRK_GAL_E1_MEMCFG_CHANNEL_NR(REG, VAL) \
   (((REG) & ~NAP_TRK_GAL_E1_MEMCFG_CHANNEL_NR_Msk) |   \
    ((VAL) << NAP_TRK_GAL_E1_MEMCFG_CHANNEL_NR_Pos))
+
+/* Register: NAP_TRK_L1CA_PRN_SELECT */
+#define NAP_TRK_L1CA_PRN_SELECT_VALUE_Pos (0U)
+#define NAP_TRK_L1CA_PRN_SELECT_VALUE_Len (6U)
+#define NAP_TRK_L1CA_PRN_SELECT_VALUE_Rst (0x0U)
+#define NAP_TRK_L1CA_PRN_SELECT_VALUE_Msk \
+  (0x3FU << NAP_TRK_L1CA_PRN_SELECT_VALUE_Pos)
+#define SET_NAP_TRK_L1CA_PRN_SELECT_VALUE(REG, VAL) \
+  (((REG) & ~NAP_TRK_L1CA_PRN_SELECT_VALUE_Msk) |   \
+   ((VAL) << NAP_TRK_L1CA_PRN_SELECT_VALUE_Pos))
 
 /* Register: NAP_TRK_STATUS0 */
 #define NAP_TRK_STATUS0_CH0_RUNNING_Pos (0U)
