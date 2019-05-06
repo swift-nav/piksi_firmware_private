@@ -129,8 +129,6 @@ void tp_profile_apply_config(tracker_t *tracker, bool init) {
   }
   tracker->cycle_no = cycle_no;
 
-  /**< C/N0 integration time */
-  u8 cn0_ms = tp_get_cn0_ms(tracker->tracking_mode);
   /**< Set initial rates */
   tl_rates_t rates;
   rates.code_freq = tracker->code_phase_rate - code_to_chip_rate(mesid.code);
@@ -169,9 +167,11 @@ void tp_profile_apply_config(tracker_t *tracker, bool init) {
   }
 
   if (init) {
+    /**< C/N0 integration time */
+    const u8 ms = tp_get_cn0_ms(tracker->tracking_mode);
     /* Initialize C/N0 estimator and filter */
     track_cn0_init(&tracker->cn0_est, /* C/N0 estimator state */
-                   cn0_ms,            /* C/N0 period in ms */
+                   ms,            /* C/N0 period in ms */
                    tracker->cn0);     /* Initial C/N0 value */
 
     log_debug_mesid(mesid, "CN0 init: %f", tracker->cn0);
@@ -522,70 +522,72 @@ static void tp_tracker_update_bsync(tracker_t *tracker, u32 cycle_flags) {
  * \return None
  */
 static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
-  float cn0 = tracker->cn0_est.filter.yn;
-  float cn0_prev = cn0;
+  if (0 == (cycle_flags & TPF_CN0_USE)) {
+    return;
+  }
+
+  const float cn0_prev = tracker->cn0_est.cn0_dbhz_filt;
+
+  /* Exit early if I&Q are zero */
+  if ((0 == tracker->corrs.corr_cn0.I) && (0 == tracker->corrs.corr_cn0.Q)) {
+    log_info_mesid(tracker->mesid,
+                   "I/Q: %" PRIi32 "/%" PRIi32 " %" PRIi32 "/%" PRIi32
+                   " %" PRIi32 "/%" PRIi32,
+                   tracker->corrs.corr_main.early.I,
+                   tracker->corrs.corr_main.early.Q,
+                   tracker->corrs.corr_main.prompt.I,
+                   tracker->corrs.corr_main.prompt.Q,
+                   tracker->corrs.corr_main.late.I,
+                   tracker->corrs.corr_main.late.Q);
+    return;
+  }
+
+  /* Update C/N0 estimate */
+  const u8 ms = tp_get_cn0_ms(tracker->tracking_mode);
+  track_cn0_update(&tracker->cn0_est,
+                   ms,
+                   tracker->corrs.corr_cn0.I,
+                   tracker->corrs.corr_cn0.Q);
+
+  /* Get profile thresholds */
   tp_cn0_thres_t cn0_thres;
   tp_profile_get_cn0_thres(&tracker->profile, &cn0_thres);
 
-  if (0 != (cycle_flags & TPF_CN0_USE)) {
-    /* Workaround for
-     * https://github.com/swift-nav/piksi_v3_bug_tracking/issues/475
-     * don't update c/n0 if correlators data are 0 use
-     * last post-filter sample instead */
-    if (0 == tracker->corrs.corr_cn0.I && 0 == tracker->corrs.corr_cn0.Q) {
-      log_info_mesid(tracker->mesid,
-                     "I/Q: %" PRIi32 "/%" PRIi32 " %" PRIi32 "/%" PRIi32
-                     " %" PRIi32 "/%" PRIi32,
-                     tracker->corrs.corr_main.early.I,
-                     tracker->corrs.corr_main.early.Q,
-                     tracker->corrs.corr_main.prompt.I,
-                     tracker->corrs.corr_main.prompt.Q,
-                     tracker->corrs.corr_main.late.I,
-                     tracker->corrs.corr_main.late.Q);
-
-    } else {
-      /* Update C/N0 estimate */
-      u8 cn0_ms = tp_get_cn0_ms(tracker->tracking_mode);
-      cn0 = track_cn0_update(&tracker->cn0_est,
-                             cn0_ms,
-                             tracker->corrs.corr_cn0.I,
-                             tracker->corrs.corr_cn0.Q);
-    }
-  }
-
-  if ((cn0 < cn0_thres.drop_dbhz) && (cn0_prev > cn0_thres.drop_dbhz)) {
-    tracker_timer_arm(&tracker->cn0_below_drop_thres_timer, /*deadline_ms=*/-1);
-  } else if (cn0 >= cn0_thres.drop_dbhz) {
+  const float cn0_new = tracker->cn0_est.cn0_dbhz_filt;
+  if ((cn0_new < cn0_thres.drop_dbhz) && (cn0_prev > cn0_thres.drop_dbhz)) {
+    tracker_timer_arm(&tracker->cn0_below_drop_thres_timer,
+                      /*deadline_ms=*/-1);
+  } else if (cn0_new >= cn0_thres.drop_dbhz) {
     tracker_timer_init(&tracker->cn0_below_drop_thres_timer);
   }
 
   bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
   bool inlock = tracker_has_all_locks(tracker);
 
-  if (cn0 > cn0_thres.drop_dbhz && !confirmed && inlock &&
+  if (cn0_new > cn0_thres.drop_dbhz && !confirmed && inlock &&
       tracker_has_bit_sync(tracker)) {
     tracker->flags |=
         (TRACKER_FLAG_CONFIRMED | TRACKER_FLAG_REMOVE_DLL_BW_ADDON);
-    log_debug_mesid(tracker->mesid, "CONFIRMED with CN0: %f", cn0);
+    log_debug_mesid(tracker->mesid, "CONFIRMED with CN0: %f", cn0_new);
   }
 
-  tracker->cn0 = cn0;
-
-  if (cn0 < cn0_thres.ambiguity_dbhz) {
+  if (cn0_new < cn0_thres.ambiguity_dbhz) {
     /* C/N0 has dropped below threshold, indicate that the carrier phase
      * ambiguity is now unknown as cycle slips are likely. */
     tracker_ambiguity_unknown(tracker);
   }
 
-  if (cn0 < cn0_thres.use_dbhz) {
+  if (cn0_new < cn0_thres.use_dbhz) {
     /* Flag as low CN0 measurements. */
     tracker->flags &= ~TRACKER_FLAG_CN0_USABLE;
   }
 
-  if (cn0 > (cn0_thres.use_dbhz + TRACK_CN0_HYSTERESIS_THRES_DBHZ)) {
+  if (cn0_new > (cn0_thres.use_dbhz + TRACK_CN0_HYSTERESIS_THRES_DBHZ)) {
     /* Flag as high CN0 measurements. */
     tracker->flags |= TRACKER_FLAG_CN0_USABLE;
   }
+
+  tracker->cn0 = cn0_new;
 }
 
 static void update_ld_phase(tracker_t *tracker, u32 cycle_flags) {
@@ -832,7 +834,8 @@ static void tp_tracker_flag_outliers(tracker_t *tracker) {
        So let's account for it in max_diff_hz */
     double max_diff_hz = MAX_FREQ_RATE_HZ_PER_S * elapsed_s;
     /* If raw CN0 is high the outliers are likely due to genuine acceleration */
-    bool low_cn0 = (tracker->cn0_est.cn0_raw_dbhz < TP_OUTLIERS_CN0_THRES_DBHZ);
+    bool low_cn0 =
+        (tracker->cn0_est.cn0_dbhz_inst < TP_OUTLIERS_CN0_THRES_DBHZ);
     if (low_cn0 && (fabs(diff_hz) > max_diff_hz)) {
       log_debug_mesid(
           tracker->mesid, "Doppler difference %.2f is too high", diff_hz);

@@ -992,7 +992,7 @@ static float compute_cn0_offset(const me_gnss_signal_t mesid,
   cur_profile = &profile->profiles[profile->cur.index];
   mode = get_track_mode(mesid, cur_profile);
 
-  u8 cn0_ms = tp_get_cn0_ms(mode);
+  const u8 cn0_ms = tp_get_cn0_ms(mode);
   float cn0_offset = track_cn0_get_offset(cn0_ms);
 
   return cn0_offset;
@@ -1085,16 +1085,16 @@ void tp_profile_get_cn0_thres(const tp_profile_t *profile,
    * integration. */
   cn0_thres->drop_dbhz -= profile->cn0_offset;
 
-  float threshold_dbhz = TP_HARD_CN0_DROP_THRESHOLD_DBHZ;
+  const float th_hard_dbhz = TP_HARD_CN0_DROP_THRESHOLD_DBHZ;
 
-  if (cn0_thres->drop_dbhz < threshold_dbhz) {
-    cn0_thres->drop_dbhz = threshold_dbhz;
+  if (cn0_thres->drop_dbhz < th_hard_dbhz) {
+    cn0_thres->drop_dbhz = th_hard_dbhz;
   }
-  if (cn0_thres->use_dbhz < threshold_dbhz) {
-    cn0_thres->use_dbhz = threshold_dbhz;
+  if (cn0_thres->use_dbhz < th_hard_dbhz) {
+    cn0_thres->use_dbhz = th_hard_dbhz;
   }
-  if (cn0_thres->ambiguity_dbhz < threshold_dbhz) {
-    cn0_thres->ambiguity_dbhz = threshold_dbhz;
+  if (cn0_thres->ambiguity_dbhz < th_hard_dbhz) {
+    cn0_thres->ambiguity_dbhz = th_hard_dbhz;
   }
 }
 

@@ -27,23 +27,15 @@
 #define cn0_filter_update lp1_filter_update
 
 /**
- * C/N0 estimator parameters.
- */
-typedef struct {
-  cn0_est_params_t est_params;       /**< C/N0 estimator algorithm */
-  cn0_filter_params_t filter_params; /**< Additional C/N0 value LP filter */
-} track_cn0_params_t;
-
-/**
  * C/N0 estimator state.
  */
 typedef struct {
   cn0_est_mm_state_t moment; /**< MM estimator */
+  cn0_filter_t filter;       /**< Additional C/N0 filter */
 
-  float cn0_raw_dbhz; /**< Last unfiltered CN0 estimation [dB-Hz] */
-  u32 weak_signal_ms; /**< Signal is below #THRESH_SENS_DBHZ this long [ms] */
-
-  cn0_filter_t filter; /**< Additional C/N0 filter */
+  float cn0_dbhz_inst; /**< Last unfiltered CN0 estimation [dB-Hz] */
+  float cn0_dbhz_filt; /**< Last unfiltered CN0 estimation [dB-Hz] */
+  u32 weak_signal_ms;  /**< Signal is below #THRESH_SENS_DBHZ this long [ms] */
 } track_cn0_state_t;
 
 #ifdef __cplusplus
@@ -51,8 +43,8 @@ extern "C" {
 #endif /* __cplusplus */
 
 void track_cn0_params_init(void);
-void track_cn0_init(track_cn0_state_t *e, u8 cn0_ms, float cn0);
-float track_cn0_update(track_cn0_state_t *e, u8 cn0_ms, float I, float Q);
+void track_cn0_init(track_cn0_state_t *state, u8 cn0_ms, float cn0);
+void track_cn0_update(track_cn0_state_t *state, u8 cn0_ms, float I, float Q);
 float track_cn0_get_offset(u8 cn0_ms);
 
 #ifdef __cplusplus

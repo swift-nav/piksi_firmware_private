@@ -35,17 +35,6 @@ typedef struct {
   s32 Q; /**< Quadrature correlation. */
 } corr_t;
 
-/** Accumulation of IQ correlations.
- * Used to receive accumulation of correlations from Acq channel in the form
- * acc.I = sum(tap[N].corr_i^2) for N = 0 to NAP_ACQ_N_TAPS-1
- * acc.Q = sum(tap[N].corr_q^2) for N = 0 to NAP_ACQ_N_TAPS-1
- */
-typedef struct {
-  u64 I; /**< In-phase correlation accumulation. */
-  u64 Q; /**< Quadrature correlation accumulation. */
-} acc_t;
-
-extern binary_semaphore_t timing_strobe_sem;
 extern u8 nap_dna[NAP_DNA_LENGTH];
 
 /** The maximum expected correlation length for sanity checks [ms] */

@@ -53,24 +53,12 @@
 #define XCORR_CONFIRM_THRESHOLD (-20.f)
 /** cross-correlation update rate [Hz] */
 #define XCORR_UPDATE_RATE (SECS_MS / GPS_L1CA_BIT_LENGTH_MS)
-/** Carrier phases within tolerance are declared equal. [cycles]
- *  Stable PLL remains within +-15 degree from correct phase.
- *  360 * 0.08 ~= 30 degrees
- */
-#define CARRIER_PHASE_TOLERANCE 0.08f
-/** counter for half-cycle ambiguity resolution */
-#define CARRIER_PHASE_AMBIGUITY_COUNTER 50
+
 /** handover should occur when code phase is near zero [chips] */
 #define HANDOVER_CODE_PHASE_THRESHOLD 0.5
 
 /** Initial C/N0 for confirmation [dB/Hz] */
 #define TP_TRACKER_CN0_CONFIRM_DELTA (2.f)
-
-/** C/N0 threshold long interval [ms] */
-#define TRACK_CN0_THRES_COUNT_LONG 2000
-
-/** C/N0 threshold short interval [ms] */
-#define TRACK_CN0_THRES_COUNT_SHORT 100
 
 /** C/N0 hysteresis threshold */
 #define TRACK_CN0_HYSTERESIS_THRES_DBHZ (3.f)
@@ -79,12 +67,12 @@
 #define TP_OUTLIERS_CN0_THRES_DBHZ 35.f
 
 /** C/N0 threshold when we can't say if we are still tracking */
-#define TP_HARD_CN0_DROP_THRESHOLD_DBHZ (18.f)
+#define TP_HARD_CN0_DROP_THRESHOLD_DBHZ (20.f)
 
 /** Default C/N0 threshold in dB/Hz for bit polarity ambiguity */
 #define TP_DEFAULT_CN0_AMBIGUITY_THRESHOLD_DBHZ (30.f)
 /** Default C/N0 threshold in dB/Hz for dropping track (for 1 ms integration) */
-#define TP_DEFAULT_CN0_DROP_THRESHOLD_DBHZ (32.2f)
+#define TP_DEFAULT_CN0_DROP_THRESHOLD_DBHZ (33.0f)
 /** C/N0 threshold for measurements use */
 #define TP_DEFAULT_CN0_USE_THRESHOLD_DBHZ (27.f)
 

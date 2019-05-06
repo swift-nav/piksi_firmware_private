@@ -216,14 +216,7 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/soft_macq/soft_macq_utils.o \
         $(SWIFTNAV_ROOT)/src/utils/sbas_select/sbas_select.o \
         $(SWIFTNAV_ROOT)/src/utils/lock_detector/lock_detector.o \
-        $(SWIFTNAV_ROOT)/src/cn0_est/cn0_est_basic.o \
-        $(SWIFTNAV_ROOT)/src/cn0_est/cn0_est_bl.o \
-        $(SWIFTNAV_ROOT)/src/cn0_est/cn0_est_ch.o \
         $(SWIFTNAV_ROOT)/src/cn0_est/cn0_est_mm.o \
-        $(SWIFTNAV_ROOT)/src/cn0_est/cn0_est_nwpr.o \
-        $(SWIFTNAV_ROOT)/src/cn0_est/cn0_est_rscn.o \
-        $(SWIFTNAV_ROOT)/src/cn0_est/cn0_est_snv.o \
-        $(SWIFTNAV_ROOT)/src/cn0_est/cn0_est_svr.o \
         $(SWIFTNAV_ROOT)/src/utils/track_loop/track_pll3_fll2_dll1.o \
         $(SWIFTNAV_ROOT)/src/utils/track_loop/track_pll2_dll1.o \
         $(SWIFTNAV_ROOT)/src/utils/track_loop/trk_loop_common.o \

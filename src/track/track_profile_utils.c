@@ -29,8 +29,8 @@ typedef struct {
 typedef struct {
   u8 cn0_ms;     /**< C/N0 estimator integration time */
   u8 lockdet_ms; /**< Lock detector integration time */
-  float flld_ms; /**< FLL discriminator integration time */
-  float fpll_ms; /**< FLL & PLL discriminator integration time [ms] */
+  u8 flld_ms;    /**< FLL discriminator integration time */
+  u8 fpll_ms;    /**< FLL & PLL discriminator integration time [ms] */
   u8 fpll_decim; /**< TPF_FPLL_RUN decimation factor
                       (0,1 - no decimation,
                       2 - every second etc) */
@@ -60,15 +60,15 @@ static const state_table_t mode_1msINI = {
   }
 };
 
-#define TP_FLAGS_1MS                          \
-  (TPF_EPL_SET | TPF_PLD_SET | TPF_FLL_SET |  \
-   TPF_EPL_USE | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN)
+#define TP_FLAGS_1MS                                       \
+  (TPF_EPL_SET | TPF_PLD_SET | TPF_FLL_SET | TPF_CN0_SET | \
+   TPF_EPL_USE | TPF_PLD_USE | TPF_FLL_USE | TPF_CN0_USE | TPF_FPLL_RUN)
 
 /**
  * 1 ms tracking mode for most GPS and QZSS: exactly as above but with bitsync
  */
 static const state_table_t mode_1ms_20ms = {
-  .cn0_ms = 10,
+  .cn0_ms = 1,
   .lockdet_ms = 1,
   .flld_ms = 1,
   .fpll_ms = 1,
@@ -77,29 +77,27 @@ static const state_table_t mode_1ms_20ms = {
   .bit_ms = 20,
   .ent_cnt = 20,
   .entries = {
-    {1, TP_FLAGS_1MS | TPF_CN0_SET | TPF_BSYNC_SET | TPF_FLL_HALFQ},
-    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
-    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
-    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
-    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
-    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
-    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
-    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
-    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
-    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD |
-                       TPF_CN0_USE},
-
-    {1, TP_FLAGS_1MS | TPF_CN0_SET | TPF_BSYNC_ADD},
-    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
-    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
-    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
-    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
-    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
-    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
-    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
-    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
-    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD |
-                       TPF_CN0_USE | TPF_BSYNC_UPD }
+    {1, TP_FLAGS_1MS | TPF_BSYNC_SET | TPF_FLL_HALFQ},
+    {1, TP_FLAGS_1MS | TPF_BSYNC_ADD},
+    {1, TP_FLAGS_1MS | TPF_BSYNC_ADD},
+    {1, TP_FLAGS_1MS | TPF_BSYNC_ADD},
+    {1, TP_FLAGS_1MS | TPF_BSYNC_ADD},
+    {1, TP_FLAGS_1MS | TPF_BSYNC_ADD},
+    {1, TP_FLAGS_1MS | TPF_BSYNC_ADD},
+    {1, TP_FLAGS_1MS | TPF_BSYNC_ADD},
+    {1, TP_FLAGS_1MS | TPF_BSYNC_ADD},
+    {1, TP_FLAGS_1MS | TPF_BSYNC_ADD},
+    {1, TP_FLAGS_1MS | TPF_BSYNC_ADD},
+    {1, TP_FLAGS_1MS | TPF_BSYNC_ADD},
+    {1, TP_FLAGS_1MS | TPF_BSYNC_ADD},
+    {1, TP_FLAGS_1MS | TPF_BSYNC_ADD},
+    {1, TP_FLAGS_1MS | TPF_BSYNC_ADD},
+    {1, TP_FLAGS_1MS | TPF_BSYNC_ADD},
+    {1, TP_FLAGS_1MS | TPF_BSYNC_ADD},
+    {1, TP_FLAGS_1MS | TPF_BSYNC_ADD},
+    {1, TP_FLAGS_1MS | TPF_BSYNC_ADD},
+    {1, TP_FLAGS_1MS | TPF_BSYNC_ADD |
+                       TPF_BSYNC_UPD }
   }
 };
 
@@ -107,7 +105,7 @@ static const state_table_t mode_1ms_20ms = {
  * 1 ms tracking mode for GLO
  */
 static const state_table_t mode_1ms_10ms = {
-  .cn0_ms = 10,
+  .cn0_ms = 1,
   .lockdet_ms = 1,
   .flld_ms = 1,
   .fpll_ms = 1,
@@ -116,17 +114,17 @@ static const state_table_t mode_1ms_10ms = {
   .bit_ms = 10,
   .ent_cnt = 10,
   .entries = {
-    {1, TP_FLAGS_1MS | TPF_CN0_SET | TPF_BSYNC_SET | TPF_FLL_HALFQ},
-    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
-    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
-    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
-    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
-    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
-    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
-    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
-    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
-    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD |
-                       TPF_CN0_USE | TPF_BSYNC_UPD}
+    {1, TP_FLAGS_1MS | TPF_BSYNC_SET | TPF_FLL_HALFQ},
+    {1, TP_FLAGS_1MS | TPF_BSYNC_ADD},
+    {1, TP_FLAGS_1MS | TPF_BSYNC_ADD},
+    {1, TP_FLAGS_1MS | TPF_BSYNC_ADD},
+    {1, TP_FLAGS_1MS | TPF_BSYNC_ADD},
+    {1, TP_FLAGS_1MS | TPF_BSYNC_ADD},
+    {1, TP_FLAGS_1MS | TPF_BSYNC_ADD},
+    {1, TP_FLAGS_1MS | TPF_BSYNC_ADD},
+    {1, TP_FLAGS_1MS | TPF_BSYNC_ADD},
+    {1, TP_FLAGS_1MS | TPF_BSYNC_ADD |
+                       TPF_BSYNC_UPD}
   }
 };
 
@@ -135,7 +133,7 @@ static const state_table_t mode_1ms_10ms = {
  * 1 ms tracking mode for SBAS and Beidou with D2 nav
  */
 static const state_table_t mode_1ms_2ms = {
-  .cn0_ms = 2,
+  .cn0_ms = 1,
   .lockdet_ms = 1,
   .flld_ms = 1,
   .fpll_ms = 1,
@@ -144,9 +142,9 @@ static const state_table_t mode_1ms_2ms = {
   .bit_ms = 2,
   .ent_cnt = 2,
   .entries = {
-    {1, TP_FLAGS_1MS | TPF_CN0_SET | TPF_BSYNC_SET | TPF_FLL_HALFQ},
-    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD |
-                       TPF_CN0_USE | TPF_BSYNC_UPD}
+    {1, TP_FLAGS_1MS | TPF_BSYNC_SET | TPF_FLL_HALFQ},
+    {1, TP_FLAGS_1MS | TPF_BSYNC_ADD |
+                       TPF_BSYNC_UPD}
   }
 };
 
@@ -155,7 +153,7 @@ static const state_table_t mode_1ms_2ms = {
  * 1 ms tracking mode for Galileo I/NAV
  */
 static const state_table_t mode_1ms_sc4 = {
-  .cn0_ms = 4,
+  .cn0_ms = 1,
   .lockdet_ms = 1,
   .flld_ms = 1,
   .fpll_ms = 1,
@@ -164,23 +162,23 @@ static const state_table_t mode_1ms_sc4 = {
   .bit_ms = 4,
   .ent_cnt = 4,
   .entries = {
-    {1, TP_FLAGS_1MS | TPF_CN0_SET | TPF_BSYNC_SET},
-    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
-    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
-    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD
-                     | TPF_CN0_USE | TPF_BSYNC_UPD }
+    {1, TP_FLAGS_1MS | TPF_BSYNC_SET},
+    {1, TP_FLAGS_1MS | TPF_BSYNC_ADD},
+    {1, TP_FLAGS_1MS | TPF_BSYNC_ADD},
+    {1, TP_FLAGS_1MS | TPF_BSYNC_ADD
+                     | TPF_BSYNC_UPD }
   }
 };
 
 #define TP_FLAGS_2MS                         \
-  (TPF_EPL_SET | TPF_PLD_SET | TPF_FLL_SET | \
-   TPF_EPL_USE | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN)
+  (TPF_EPL_SET | TPF_PLD_SET | TPF_CN0_SET | TPF_FLL_SET | \
+   TPF_EPL_USE | TPF_PLD_USE | TPF_CN0_USE | TPF_FLL_USE | TPF_FPLL_RUN)
 
 /**
  * 2 ms integration profile for most GPS and QZSS
  */
 static const state_table_t mode_2ms_20ms = {
-  .cn0_ms = 10,
+  .cn0_ms = 2,
   .lockdet_ms = 2,
   .flld_ms = 2,
   .fpll_ms = 2,
@@ -190,20 +188,19 @@ static const state_table_t mode_2ms_20ms = {
   .ent_cnt = 10,
   .entries = {
     {2, TPF_EPL_SET  | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET |
-        TPF_EPL_USE  |                               TPF_PLD_USE | TPF_FLL_USE |
-                                                                   TPF_FLL_HALFQ | TPF_FPLL_RUN},
-    {2, TP_FLAGS_2MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
-    {2, TP_FLAGS_2MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
-    {2, TP_FLAGS_2MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
-    {2, TP_FLAGS_2MS | TPF_CN0_ADD | TPF_BSYNC_ADD |
-                       TPF_CN0_USE},
+        TPF_EPL_USE  | TPF_CN0_USE |                 TPF_PLD_USE | TPF_FLL_USE |
+                                                     TPF_FLL_HALFQ | TPF_FPLL_RUN},
+    {2, TP_FLAGS_2MS |               TPF_BSYNC_ADD},
+    {2, TP_FLAGS_2MS |               TPF_BSYNC_ADD},
+    {2, TP_FLAGS_2MS |               TPF_BSYNC_ADD},
+    {2, TP_FLAGS_2MS |               TPF_BSYNC_ADD},
 
-    {2, TP_FLAGS_2MS | TPF_CN0_SET | TPF_BSYNC_ADD},
-    {2, TP_FLAGS_2MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
-    {2, TP_FLAGS_2MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
-    {2, TP_FLAGS_2MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
-    {2, TP_FLAGS_2MS | TPF_CN0_ADD | TPF_BSYNC_ADD |
-                       TPF_CN0_USE | TPF_BSYNC_UPD}
+    {2, TP_FLAGS_2MS |               TPF_BSYNC_ADD},
+    {2, TP_FLAGS_2MS |               TPF_BSYNC_ADD},
+    {2, TP_FLAGS_2MS |               TPF_BSYNC_ADD},
+    {2, TP_FLAGS_2MS |               TPF_BSYNC_ADD},
+    {2, TP_FLAGS_2MS |               TPF_BSYNC_ADD |
+                                     TPF_BSYNC_UPD}
   }
 };
 
@@ -211,7 +208,7 @@ static const state_table_t mode_2ms_20ms = {
  * 2 ms integration profile for GLO
  */
 static const state_table_t mode_2ms_10ms = {
-  .cn0_ms = 10,
+  .cn0_ms = 2,
   .lockdet_ms = 2,
   .flld_ms = 2,
   .fpll_ms = 2,
@@ -221,13 +218,13 @@ static const state_table_t mode_2ms_10ms = {
   .ent_cnt = 5,
   .entries = {
     {2, TPF_EPL_SET  | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET   |
-        TPF_EPL_USE  |                               TPF_PLD_USE | TPF_FLL_USE   |
+        TPF_EPL_USE  | TPF_CN0_USE |                 TPF_PLD_USE | TPF_FLL_USE   |
                                                                    TPF_FLL_HALFQ | TPF_FPLL_RUN},
-    {2, TP_FLAGS_2MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
-    {2, TP_FLAGS_2MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
-    {2, TP_FLAGS_2MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
-    {2, TP_FLAGS_2MS | TPF_CN0_ADD | TPF_BSYNC_ADD |
-                       TPF_CN0_USE | TPF_BSYNC_UPD}
+    {2, TP_FLAGS_2MS               | TPF_BSYNC_ADD},
+    {2, TP_FLAGS_2MS               | TPF_BSYNC_ADD},
+    {2, TP_FLAGS_2MS               | TPF_BSYNC_ADD},
+    {2, TP_FLAGS_2MS               | TPF_BSYNC_ADD |
+                                     TPF_BSYNC_UPD}
   }
 };
 
@@ -277,35 +274,18 @@ static const state_table_t mode_200ms_2ms = {
  * 2 ms tracking mode for Galileo I/NAV
  */
 static const state_table_t mode_2ms_sc4 = {
-  .cn0_ms = 10,
+  .cn0_ms = 2,
   .lockdet_ms = 2,
   .flld_ms = 2,
   .fpll_ms = 2,
   .fpll_decim = 1,
   .dll_ms = 2,
   .bit_ms = 4,
-  .ent_cnt = 10,
+  .ent_cnt = 2,
   .entries = {
-    {2, TP_FLAGS_2MS | TPF_CN0_SET | TPF_BSYNC_SET},
-    {2, TP_FLAGS_2MS | TPF_CN0_ADD | TPF_BSYNC_ADD |
-                                     TPF_BSYNC_UPD},
-
-    {2, TP_FLAGS_2MS | TPF_CN0_ADD | TPF_BSYNC_SET },
-    {2, TP_FLAGS_2MS | TPF_CN0_ADD | TPF_BSYNC_ADD |
-                                     TPF_BSYNC_UPD},
-
-    {2, TP_FLAGS_2MS | TPF_CN0_ADD | TPF_BSYNC_SET |
-                       TPF_CN0_USE },
-    {2, TP_FLAGS_2MS | TPF_CN0_SET | TPF_BSYNC_ADD |
-                                     TPF_BSYNC_UPD},
-
-    {2, TP_FLAGS_2MS | TPF_CN0_ADD | TPF_BSYNC_SET },
-    {2, TP_FLAGS_2MS | TPF_CN0_ADD | TPF_BSYNC_ADD |
-                                     TPF_BSYNC_UPD},
-
-    {2, TP_FLAGS_2MS | TPF_CN0_ADD | TPF_BSYNC_SET },
-    {2, TP_FLAGS_2MS | TPF_CN0_ADD | TPF_BSYNC_ADD |
-                       TPF_CN0_USE | TPF_BSYNC_UPD},
+    {2, TP_FLAGS_2MS | TPF_BSYNC_SET},
+    {2, TP_FLAGS_2MS | TPF_BSYNC_ADD |
+                       TPF_BSYNC_UPD},
   }
 };
 
@@ -313,33 +293,16 @@ static const state_table_t mode_2ms_sc4 = {
  * 4 ms tracking mode for Galileo I/NAV
  */
 static const state_table_t mode_4ms_sc4 = {
-  .cn0_ms = 10,
+  .cn0_ms = 4,
   .lockdet_ms = 4,
   .flld_ms = 4,
   .fpll_ms = 4,
   .fpll_decim = 1,
   .dll_ms = 4,
   .bit_ms = 4,
-  .ent_cnt = 10,
+  .ent_cnt = 2,
   .entries = {
     {2, TPF_EPL_SET  | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET},
-    {2, TPF_EPL_ADD  | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
-        TPF_EPL_USE  |               TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN},
-
-    {2, TPF_EPL_SET  | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET},
-    {2, TPF_EPL_ADD  | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
-        TPF_EPL_USE  |               TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN},
-
-    {2, TPF_EPL_SET  | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET |
-                       TPF_CN0_USE},
-    {2, TPF_EPL_ADD  | TPF_CN0_SET | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
-        TPF_EPL_USE  |               TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN},
-
-    {2, TPF_EPL_SET  | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET},
-    {2, TPF_EPL_ADD  | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
-        TPF_EPL_USE  |               TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN},
-
-    {2, TPF_EPL_SET  | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET},
     {2, TPF_EPL_ADD  | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
         TPF_EPL_USE  | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN},
   }
@@ -349,7 +312,7 @@ static const state_table_t mode_4ms_sc4 = {
  * 5 ms integrations for most GPS and QZSS
  */
 static const state_table_t mode_5ms_20ms = {
-  .cn0_ms = 10,
+  .cn0_ms = 5,
   .lockdet_ms = 5,
   .flld_ms = 5,
   .fpll_ms = 5,
@@ -358,23 +321,23 @@ static const state_table_t mode_5ms_20ms = {
   .bit_ms = 20,
   .ent_cnt = 9,
   .entries = {
-    {2, TPF_CN0_SET | TPF_EPL_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET},
-    {2, TPF_CN0_ADD | TPF_EPL_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
-    {1, TPF_CN0_ADD | TPF_EPL_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
-                      TPF_EPL_USE |                 TPF_PLD_USE | TPF_FLL_USE |
+    {2, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET},
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
+    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
+        TPF_EPL_USE | TPF_CN0_USE |                 TPF_PLD_USE | TPF_FLL_USE |
                                                                   TPF_FLL_HALFQ | TPF_FPLL_RUN},
 
-    {2, TPF_CN0_ADD | TPF_EPL_SET | TPF_BSYNC_ADD | TPF_PLD_SET | TPF_FLL_SET},
-    {3, TPF_CN0_ADD | TPF_EPL_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
-        TPF_CN0_USE | TPF_EPL_USE |                 TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN},
+    {2, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_ADD | TPF_PLD_SET | TPF_FLL_SET},
+    {3, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
+        TPF_EPL_USE | TPF_CN0_USE |                 TPF_PLD_USE | TPF_FLL_USE   | TPF_FPLL_RUN},
 
-    {2, TPF_CN0_SET | TPF_EPL_SET | TPF_BSYNC_ADD | TPF_PLD_SET | TPF_FLL_SET},
-    {3, TPF_CN0_ADD | TPF_EPL_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
-                      TPF_EPL_USE |                 TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN},
+    {2, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_ADD | TPF_PLD_SET | TPF_FLL_SET},
+    {3, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
+        TPF_EPL_USE | TPF_CN0_USE |                 TPF_PLD_USE | TPF_FLL_USE   | TPF_FPLL_RUN},
 
-    {2, TPF_CN0_ADD | TPF_EPL_SET | TPF_BSYNC_ADD | TPF_PLD_SET | TPF_FLL_SET},
-    {3, TPF_CN0_ADD | TPF_EPL_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
-        TPF_CN0_USE | TPF_EPL_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN},
+    {2, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_ADD | TPF_PLD_SET | TPF_FLL_SET},
+    {3, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD   |
+        TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE   | TPF_FPLL_RUN},
   }
 };
 
@@ -382,7 +345,7 @@ static const state_table_t mode_5ms_20ms = {
  * 5 ms integrations for GLO
  */
 static const state_table_t mode_5ms_10ms = {
-  .cn0_ms = 10,
+  .cn0_ms = 5,
   .lockdet_ms = 5,
   .flld_ms = 5,
   .fpll_ms = 5,
@@ -394,10 +357,10 @@ static const state_table_t mode_5ms_10ms = {
     {2, TPF_CN0_SET | TPF_EPL_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET},
     {2, TPF_CN0_ADD | TPF_EPL_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
     {1, TPF_CN0_ADD | TPF_EPL_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
-                      TPF_EPL_USE |                 TPF_PLD_USE | TPF_FLL_USE |
+        TPF_CN0_USE | TPF_EPL_USE |                 TPF_PLD_USE | TPF_FLL_USE |
                                                                   TPF_FLL_HALFQ | TPF_FPLL_RUN},
 
-    {2, TPF_CN0_ADD | TPF_EPL_SET | TPF_BSYNC_ADD | TPF_PLD_SET | TPF_FLL_SET},
+    {2, TPF_CN0_SET | TPF_EPL_SET | TPF_BSYNC_ADD | TPF_PLD_SET | TPF_FLL_SET},
     {3, TPF_CN0_ADD | TPF_EPL_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
         TPF_CN0_USE | TPF_EPL_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN}
   }
@@ -407,7 +370,7 @@ static const state_table_t mode_5ms_10ms = {
  * 10 ms tracking mode for Galileo I/NAV
  */
 static const state_table_t mode_10ms_sc4 = {
-  .cn0_ms = 10,
+  .cn0_ms = 4,
   .lockdet_ms = 10,
   .flld_ms = 5,
   .fpll_ms = 10,
@@ -418,18 +381,18 @@ static const state_table_t mode_10ms_sc4 = {
   .entries = {
     {2, TPF_EPL_SET  | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET},
     {2, TPF_EPL_ADD  | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
-                                     TPF_BSYNC_UPD               | TPF_FLL_USE},
-    {4, TPF_EPL_ADD  | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_PLD_ADD | TPF_FLL_SET |
-                                     TPF_BSYNC_UPD },
+                       TPF_CN0_USE | TPF_BSYNC_UPD               | TPF_FLL_USE},
+    {4, TPF_EPL_ADD  | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_ADD | TPF_FLL_SET |
+                       TPF_CN0_USE | TPF_BSYNC_UPD },
 
-    {2, TPF_EPL_ADD  | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_PLD_ADD | TPF_FLL_ADD |
-        TPF_EPL_USE  | TPF_CN0_USE |                 TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN},
-    {2, TPF_EPL_SET  | TPF_CN0_SET | TPF_BSYNC_ADD | TPF_PLD_SET | TPF_FLL_SET |
-                                     TPF_BSYNC_UPD},
-    {4, TPF_EPL_ADD  | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_PLD_ADD | TPF_FLL_ADD |
-                                     TPF_BSYNC_UPD |               TPF_FLL_USE},
+    {2, TPF_EPL_ADD  | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_ADD | TPF_FLL_ADD |
+        TPF_EPL_USE  |                               TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN},
+    {2, TPF_EPL_SET  | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_SET | TPF_FLL_SET |
+                       TPF_CN0_USE | TPF_BSYNC_UPD},
+    {4, TPF_EPL_ADD  | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_ADD | TPF_FLL_ADD |
+                       TPF_CN0_USE | TPF_BSYNC_UPD |               TPF_FLL_USE},
 
-    {4, TPF_EPL_ADD  | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_PLD_ADD | TPF_FLL_SET |
+    {4, TPF_EPL_ADD  | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_ADD | TPF_FLL_SET |
         TPF_EPL_USE  | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN},
   }
 };
@@ -439,7 +402,7 @@ static const state_table_t mode_10ms_sc4 = {
  * 10 ms integrations for most GPS and QZSS
  */
 static const state_table_t mode_10ms_20ms = {
-  .cn0_ms = 10,
+  .cn0_ms = 5,
   .lockdet_ms = 10,
   .flld_ms = 5,
   .fpll_ms = 10,
@@ -450,18 +413,18 @@ static const state_table_t mode_10ms_20ms = {
   .entries = {
     {2, TPF_CN0_SET | TPF_EPL_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET},
     {2, TPF_CN0_ADD | TPF_EPL_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
-    {1, TPF_CN0_ADD | TPF_EPL_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
+    {1, TPF_CN0_USE | TPF_EPL_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
                                                                   TPF_FLL_USE |
                                                                   TPF_FLL_HALFQ},
 
-    {5, TPF_CN0_ADD | TPF_EPL_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET |
+    {5, TPF_CN0_SET | TPF_EPL_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET |
         TPF_CN0_USE | TPF_EPL_USE |                 TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN},
 
     {2, TPF_CN0_SET | TPF_EPL_SET | TPF_BSYNC_ADD | TPF_PLD_SET | TPF_FLL_SET},
     {3, TPF_CN0_ADD | TPF_EPL_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
-                                                                  TPF_FLL_USE},
+        TPF_CN0_USE |                                             TPF_FLL_USE},
 
-    {5, TPF_CN0_ADD | TPF_EPL_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET |
+    {5, TPF_CN0_SET | TPF_EPL_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET |
         TPF_CN0_USE | TPF_EPL_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN}
   }
 };
@@ -470,7 +433,7 @@ static const state_table_t mode_10ms_20ms = {
  * 10 ms integrations for GLO
  */
 static const state_table_t mode_10ms_10ms = {
-  .cn0_ms = 10,
+  .cn0_ms = 5,
   .lockdet_ms = 10,
   .flld_ms = 5,
   .fpll_ms = 10,
@@ -481,11 +444,11 @@ static const state_table_t mode_10ms_10ms = {
   .entries = {
     {2, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET},
     {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
-    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
+    {1, TPF_EPL_ADD | TPF_CN0_USE | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
                                                                   TPF_FLL_USE |
                                                                   TPF_FLL_HALFQ},
 
-    {5, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET |
+    {5, TPF_EPL_ADD | TPF_CN0_SET | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET |
         TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN},
   }
 };
@@ -522,7 +485,7 @@ static const state_table_t mode_10ms_10ms = {
  * 20 ms integrations for GLO
  */
 static const state_table_t mode_20ms_10ms = {
-  .cn0_ms = 10,
+  .cn0_ms = 5,
   .lockdet_ms = 20,
   .flld_ms = 5,
   .fpll_ms = 20,
@@ -535,16 +498,16 @@ static const state_table_t mode_20ms_10ms = {
     {2, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET | GLO_FLAGS(odd)},  \
     {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | GLO_FLAGS(odd)},  \
     {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | GLO_FLAGS(odd) |  \
-                                                                  TPF_FLL_USE |                   \
+                      TPF_CN0_USE |                               TPF_FLL_USE |                   \
                                                                   TPF_FLL_HALFQ},                 \
                                                                                                   \
-    {5, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET | GLO_FLAGS(odd) |  \
+    {5, TPF_EPL_ADD | TPF_CN0_SET | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET | GLO_FLAGS(odd) |  \
                       TPF_CN0_USE | TPF_BSYNC_UPD |               TPF_FLL_USE},                   \
                                                                                                   \
     {5, TPF_EPL_ADD | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_ADD | TPF_FLL_SET | GLO_FLAGS(even) | \
-                                                                  TPF_FLL_USE},                   \
+                      TPF_CN0_USE |                               TPF_FLL_USE},                   \
                                                                                                   \
-    {5, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET | GLO_FLAGS(even) | \
+    {5, TPF_EPL_ADD | TPF_CN0_SET | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET | GLO_FLAGS(even) | \
         TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN}
 
     FSM_GLO_2000_MS
@@ -556,7 +519,7 @@ static const state_table_t mode_20ms_10ms = {
  * 20 ms integrations for GLO
  */
 static const state_table_t mode_20ms_10ms_base = {
-  .cn0_ms = 10,
+  .cn0_ms = 5,
   .lockdet_ms = 20,
   .flld_ms = 10,
   .fpll_ms = 20,
@@ -568,13 +531,11 @@ static const state_table_t mode_20ms_10ms_base = {
 #define FSM_GLO_20_MS(odd, even)                                                                  \
     {2, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET | GLO_FLAGS(odd)},  \
     {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | GLO_FLAGS(odd)},  \
-                                                                                                  \
-    {6, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | GLO_FLAGS(odd) |  \
+    {6, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | GLO_FLAGS(odd)  | \
                       TPF_CN0_USE | TPF_BSYNC_UPD |               TPF_FLL_USE |                   \
                                                                   TPF_FLL_HALFQ},                 \
                                                                                                   \
     {5, TPF_EPL_ADD | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_ADD | TPF_FLL_SET | GLO_FLAGS(even)}, \
-                                                                                                  \
     {5, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD | GLO_FLAGS(even) | \
         TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN}
 
@@ -582,6 +543,153 @@ static const state_table_t mode_20ms_10ms_base = {
 #undef FSM_GLO_20_MS
   }
 };
+
+
+/**
+ * 20 ms integrations for Galileo I/NAV
+ */
+static const state_table_t mode_20ms_sc4 = {
+  .cn0_ms = 10,
+  .lockdet_ms = 20,
+  .flld_ms = 4,
+  .fpll_ms = 20,
+  .fpll_decim = 1,
+  .dll_ms = 20,
+  .bit_ms = 4,
+  .ent_cnt = 7,
+  .entries = {
+    {2, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET},
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
+                                    TPF_BSYNC_UPD |               TPF_FLL_USE},
+    {4, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_PLD_ADD | TPF_FLL_SET |
+                                    TPF_BSYNC_UPD |               TPF_FLL_USE},
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_PLD_ADD | TPF_FLL_SET |
+                      TPF_CN0_USE },
+    {2, TPF_EPL_ADD | TPF_CN0_SET | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
+                                    TPF_BSYNC_UPD |               TPF_FLL_USE},
+    {4, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_PLD_ADD | TPF_FLL_SET |
+                                    TPF_BSYNC_UPD |               TPF_FLL_USE},
+    {4, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_PLD_ADD | TPF_FLL_SET |
+        TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN}
+  }
+};
+
+/**
+ * 20 ms integrations for Galileo I/NAV  (base station profile)
+ */
+static const state_table_t mode_20ms_sc4_base = {
+  .cn0_ms = 10,
+  .lockdet_ms = 20,
+  .flld_ms = 10,
+  .fpll_ms = 20,
+  .fpll_decim = 1,
+  .dll_ms = 20,
+  .bit_ms = 4,
+  .ent_cnt = 7,
+  .entries = {
+    {2, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET},
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
+                                    TPF_BSYNC_UPD},
+
+    {4, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_PLD_ADD | TPF_FLL_ADD |
+                                    TPF_BSYNC_UPD},
+
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_PLD_ADD | TPF_FLL_ADD |
+                      TPF_CN0_USE |                               TPF_FLL_USE },
+    {2, TPF_EPL_ADD | TPF_CN0_SET | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET |
+                                    TPF_BSYNC_UPD },
+
+    {4, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_PLD_ADD | TPF_FLL_ADD |
+                                    TPF_BSYNC_UPD },
+
+    {4, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_PLD_ADD | TPF_FLL_ADD |
+        TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN}
+  }
+};
+
+
+
+/**
+ * 20 ms integrations for most GPS and QZSS
+ */
+static const state_table_t mode_20ms_20ms = {
+  .cn0_ms = 10,
+  .lockdet_ms = 20,
+  .flld_ms = 5,
+  .fpll_ms = 20,
+  .fpll_decim = 1,
+  .dll_ms = 20,
+  .bit_ms = 20,
+  .ent_cnt = 6,
+  .entries = {
+    {2, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET},
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
+    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
+                                                                  TPF_FLL_USE |
+                                                                  TPF_FLL_HALFQ},
+
+    {5, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET |
+                      TPF_CN0_USE |                               TPF_FLL_USE},
+
+    {5, TPF_EPL_ADD | TPF_CN0_SET | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET |
+                                                                  TPF_FLL_USE},
+
+    {5, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET |
+        TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN}
+  }
+};
+
+
+/**
+ * 20 ms integrations for most GPS and QZSS (base station profile)
+ */
+static const state_table_t mode_20ms_20ms_base = {
+  .cn0_ms = 10,
+  .lockdet_ms = 20,
+  .flld_ms = 10,
+  .fpll_ms = 20,
+  .fpll_decim = 1,
+  .dll_ms = 20,
+  .bit_ms = 20,
+  .ent_cnt = 5,
+  .entries = {
+    {2, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET},
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
+    {6, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
+                      TPF_CN0_USE |                               TPF_FLL_USE |
+                                                                  TPF_FLL_HALFQ},
+
+    {5, TPF_EPL_ADD | TPF_CN0_SET | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET },
+    {5, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
+        TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN}
+  }
+};
+
+/**
+ * 200 ms integrations for most signals
+ */
+static const state_table_t mode_200ms_20ms = {
+  .cn0_ms = 20,
+  .lockdet_ms = 0, /* not used in FLL only mode */
+  .flld_ms = 10,
+  .fpll_ms = 20,
+  .fpll_decim = 10,
+  .dll_ms = 20,
+  .bit_ms = 20,
+  .ent_cnt = 5,
+  .entries = {
+    {2, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_FLL_SET},
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_ADD},
+    {6, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_ADD |
+                                                    TPF_FLL_USE |
+                                                    TPF_FLL_HALFQ},
+
+    {5, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_SET },
+    {5, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_ADD |
+        TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_FLL_USE | TPF_FPLL_RUN}
+  }
+};
+
 
 /**
  * 200 ms integrations for GLO
@@ -641,68 +749,6 @@ static const state_table_t mode_200ms_10ms_nm = {
 };
 
 /**
- * 20 ms integrations for Galileo I/NAV
- */
-static const state_table_t mode_20ms_sc4 = {
-  .cn0_ms = 10,
-  .lockdet_ms = 20,
-  .flld_ms = 4,
-  .fpll_ms = 20,
-  .fpll_decim = 1,
-  .dll_ms = 20,
-  .bit_ms = 4,
-  .ent_cnt = 7,
-  .entries = {
-    {2, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET},
-    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
-                                    TPF_BSYNC_UPD |               TPF_FLL_USE},
-    {4, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_PLD_ADD | TPF_FLL_SET |
-                                    TPF_BSYNC_UPD |               TPF_FLL_USE},
-    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_PLD_ADD | TPF_FLL_SET |
-                      TPF_CN0_USE},
-    {2, TPF_EPL_ADD | TPF_CN0_SET | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
-                                    TPF_BSYNC_UPD |               TPF_FLL_USE},
-    {4, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_PLD_ADD | TPF_FLL_SET |
-                                    TPF_BSYNC_UPD |               TPF_FLL_USE},
-    {4, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_PLD_ADD | TPF_FLL_SET |
-        TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN}
-  }
-};
-
-/**
- * 20 ms integrations for Galileo I/NAV  (base station profile)
- */
-static const state_table_t mode_20ms_sc4_base = {
-  .cn0_ms = 10,
-  .lockdet_ms = 20,
-  .flld_ms = 10,
-  .fpll_ms = 20,
-  .fpll_decim = 1,
-  .dll_ms = 20,
-  .bit_ms = 4,
-  .ent_cnt = 7,
-  .entries = {
-    {2, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET},
-    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
-                                    TPF_BSYNC_UPD},
-
-    {4, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_PLD_ADD | TPF_FLL_ADD |
-                                    TPF_BSYNC_UPD},
-
-    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_PLD_ADD | TPF_FLL_ADD |
-                      TPF_CN0_USE |                               TPF_FLL_USE },
-    {2, TPF_EPL_ADD | TPF_CN0_SET | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET |
-                                    TPF_BSYNC_UPD },
-
-    {4, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_PLD_ADD | TPF_FLL_ADD |
-                                    TPF_BSYNC_UPD },
-
-    {4, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_SET | TPF_PLD_ADD | TPF_FLL_ADD |
-        TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN}
-  }
-};
-
-/**
  * 200 ms integrations for Galileo I/NAV
  */
 static const state_table_t mode_200ms_sc4 = {
@@ -729,89 +775,6 @@ static const state_table_t mode_200ms_sc4 = {
         TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_FLL_USE | TPF_FPLL_RUN}
   }
 };
-
-
-/**
- * 20 ms integrations for most GPS and QZSS
- */
-static const state_table_t mode_20ms_20ms = {
-  .cn0_ms = 10,
-  .lockdet_ms = 20,
-  .flld_ms = 5,
-  .fpll_ms = 20,
-  .fpll_decim = 1,
-  .dll_ms = 20,
-  .bit_ms = 20,
-  .ent_cnt = 6,
-  .entries = {
-    {2, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET},
-    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
-    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
-                                                                  TPF_FLL_USE |
-                                                                  TPF_FLL_HALFQ},
-
-    {5, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET |
-                      TPF_CN0_USE |                               TPF_FLL_USE},
-
-    {5, TPF_EPL_ADD | TPF_CN0_SET | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET |
-                                                                  TPF_FLL_USE},
-
-    {5, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET |
-        TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN}
-  }
-};
-
-
-/**
- * 20 ms integrations for most GPS and QZSS (base station profile)
- */
-static const state_table_t mode_20ms_20ms_base = {
-  .cn0_ms = 10,
-  .lockdet_ms = 20,
-  .flld_ms = 10,
-  .fpll_ms = 20,
-  .fpll_decim = 1,
-  .dll_ms = 20,
-  .bit_ms = 20,
-  .ent_cnt = 5,
-  .entries = {
-    {2, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET},
-    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD},
-
-    {6, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
-                      TPF_CN0_USE |                               TPF_FLL_USE |
-                                                                  TPF_FLL_HALFQ},
-
-    {5, TPF_EPL_ADD | TPF_CN0_SET | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET },
-
-    {5, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
-        TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE | TPF_FPLL_RUN}
-  }
-};
-
-static const state_table_t mode_200ms_20ms = {
-  .cn0_ms = 20,
-  .lockdet_ms = 0, /* not used in FLL only mode */
-  .flld_ms = 10,
-  .fpll_ms = 20,
-  .fpll_decim = 10,
-  .dll_ms = 20,
-  .bit_ms = 20,
-  .ent_cnt = 5,
-  .entries = {
-    {2, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_FLL_SET},
-    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_ADD},
-
-    {6, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_ADD |
-                                                    TPF_FLL_USE |
-                                                    TPF_FLL_HALFQ},
-
-    {5, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_SET},
-    {5, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_ADD |
-        TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_FLL_USE | TPF_FPLL_RUN}
-  }
-};
-
 /* clang-format on */
 
 static const state_table_t *tracking_table_lut[TP_TM_COUNT] = {
@@ -1012,7 +975,7 @@ u8 tp_get_ld_ms(tp_tm_e tracking_mode) {
  *
  * \return FLL discriminator update period in ms.
  */
-float tp_get_flld_ms(tp_tm_e tracking_mode) {
+u8 tp_get_flld_ms(tp_tm_e tracking_mode) {
   const state_table_t *tbl = select_table(tracking_mode);
 
   assert(NULL != tbl);
