@@ -191,7 +191,9 @@ static inline void init_code_generators(const me_gnss_signal_t mesid,
       index = (num_codes % GPS_L2CL_PRN_START_POINTS);
     }
 
-    if (mesid.code != CODE_GPS_L1CA) {
+    if (mesid.code == CODE_GPS_L1CA) {
+      NAP->TRK_L1CA_PRN_SELECT = mesid.sat - GPS_FIRST_PRN;
+    } else {
       NAP->TRK_CODE_LFSR0_INIT = mesid_to_lfsr0_init(mesid);
       NAP->TRK_CODE_LFSR0_RESET = mesid_to_lfsr0_init(mesid);
       NAP->TRK_CODE_LFSR0_LAST = mesid_to_lfsr0_last(mesid);
@@ -199,9 +201,6 @@ static inline void init_code_generators(const me_gnss_signal_t mesid,
       NAP->TRK_CODE_LFSR1_INIT = mesid_to_lfsr1_init(mesid, index);
       NAP->TRK_CODE_LFSR1_RESET = mesid_to_lfsr1_init(mesid, 0);
       NAP->TRK_CODE_LFSR1_LAST = mesid_to_lfsr1_last(mesid);
-    } else {
-      // GPS L1CA
-      NAP->TRK_L1CA_PRN_SELECT = mesid.sat - GPS_FIRST_PRN;
     }
 
     if (mesid.code == CODE_GAL_E5I) {
