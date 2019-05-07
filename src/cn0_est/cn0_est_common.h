@@ -23,6 +23,7 @@ extern "C" {
 #define CN0_THRES_MAX (255.0f / 4.0f)
 
 typedef struct {
+  u8 ms;          /**< Moments estimator running duration */
   u8 count;       /**< Moments estimator running count */
   float M2;       /**< Running sum of second order moments. */
   float M4;       /**< Running sum of fourth order moments. */

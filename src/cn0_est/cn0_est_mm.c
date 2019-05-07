@@ -22,9 +22,9 @@
  * \{ */
 
 /** Boxcar window size for M2 and M4. */
-#define MM_AVERAGES 20
+#define MM_WINDOW_MS 40
 /** Filter coefficient for Pn. */
-#define CN0_MM_PN_ALPHA (0.2f)
+#define CN0_MM_PN_ALPHA (0.1f)
 
 /** Initialize the \f$ C / N_0 \f$ estimator state.
  *
@@ -65,10 +65,7 @@ void cn0_est_mm_init(cn0_est_mm_state_t *s, float cn0_0) {
 /**
  * Initializes C/No filter parameters
  * \param[out] p Pointer to estimator parameters
- * \param[in]  alpha Cutoff frequency
  * \param[in]  loop_freq Loop frequency, Hz
- * \param[in]  scale Scale coefficient for output C/No values
- * \param[in]  cn0_shift shift for output C/No values, dB-Hz
  */
 void cn0_est_compute_params(cn0_est_params_t *p, u8 loop_dt_ms) {
   memset(p, 0, sizeof(cn0_est_params_t));
@@ -106,14 +103,16 @@ void cn0_est_mm_update(cn0_est_mm_state_t *s,
     s->M4 += m4;
   }
   s->count++;
+  s->ms += p->t_int_ms;
 
-  if (MM_AVERAGES > s->count) {
+  if (MM_WINDOW_MS > s->ms) {
     return;
   }
 
   s->M2 /= (s->count);
   s->M4 /= (s->count);
   s->count = 0;
+  s->ms = 0;
 
   float pow_sq = (2.0f * s->M2 * s->M2) - s->M4;
   if (pow_sq < FLOAT_EQUALITY_EPS) {
