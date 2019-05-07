@@ -168,16 +168,12 @@ static int convert_chibios_ret(msg_t ret) {
   }
 }
 
-static platform_sem_t *chibios_sem_create(void) {
-  return platform_sem_create_count(0);
-}
-
 /**
  * We make no effort here to reuse destroyed semaphores,
  * there is an upper bound on the number of semaphores which
  * may be created during a single execution, and that is that.
  */
-static platform_sem_t *chibios_sem_create_count(int count) {
+static platform_sem_t *chibios_sem_create(void) {
   static int n_semaphores = 0;
   static semaphore_t semaphores[MAX_N_SEMAPHORES];
 
@@ -186,7 +182,7 @@ static platform_sem_t *chibios_sem_create_count(int count) {
   }
 
   semaphore_t *sem = &semaphores[n_semaphores++];
-
+  int count = 0;
   chSemObjectInit(sem, count);
   return (platform_sem_t *)sem;
 }
@@ -244,7 +240,6 @@ void starling_initialize_platform(void) {
   /* Semaphore */
   sem_impl_t sem_impl = {
       .sem_create = chibios_sem_create,
-      .sem_create_count = chibios_sem_create_count,
       .sem_destroy = chibios_sem_destroy,
       .sem_signal = chibios_sem_signal,
       .sem_wait = chibios_sem_wait,
