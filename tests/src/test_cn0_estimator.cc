@@ -116,8 +116,8 @@ TEST(cn0_test, test_cn0_mm_init) {
   cn0_est_mm_init(&cn0, 40.f);
   EXPECT_FLOAT_EQ(cn0.cn0_dbhz, 40.f);
   EXPECT_FLOAT_EQ(p.log_bw, 30.f);
-  EXPECT_FLOAT_EQ(cn0.M2, -1.0f);
-  EXPECT_FLOAT_EQ(cn0.M4, -1.0f);
+  EXPECT_FLOAT_EQ(cn0.M2, 0.0f);
+  EXPECT_FLOAT_EQ(cn0.M4, 0.0f);
   cn0_est_mm_update(&cn0, &p, -0.5, 0.f);
   EXPECT_FLOAT_EQ(cn0.M2, 0.25);
   EXPECT_FLOAT_EQ(cn0.M4, 0.25f * 0.25f);

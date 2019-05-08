@@ -522,8 +522,9 @@ static void tp_tracker_update_bsync(tracker_t *tracker, u32 cycle_flags) {
  * \return None
  */
 static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
-  float cn0 = tracker->cn0_est.filter.yn;
-  float cn0_prev = cn0;
+  float filt_cn0 = -1.0f;
+  float cn0_prev = tracker->cn0_est.cn0_raw_dbhz;
+
   tp_cn0_thres_t cn0_thres;
   tp_profile_get_cn0_thres(&tracker->profile, &cn0_thres);
 
@@ -546,45 +547,47 @@ static void tp_tracker_update_cn0(tracker_t *tracker, u32 cycle_flags) {
     } else {
       /* Update C/N0 estimate */
       u8 cn0_ms = tp_get_cn0_ms(tracker->tracking_mode);
-      cn0 = track_cn0_update(&tracker->cn0_est,
-                             cn0_ms,
-                             tracker->corrs.corr_cn0.I,
-                             tracker->corrs.corr_cn0.Q);
+      filt_cn0 = track_cn0_update(&tracker->cn0_est,
+                                  cn0_ms,
+                                  tracker->corrs.corr_cn0.I,
+                                  tracker->corrs.corr_cn0.Q);
     }
   }
 
-  if ((cn0 < cn0_thres.drop_dbhz) && (cn0_prev > cn0_thres.drop_dbhz)) {
+  float cn0_new = tracker->cn0_est.cn0_raw_dbhz;
+  if ((cn0_new < cn0_thres.drop_dbhz) && (cn0_prev > cn0_thres.drop_dbhz)) {
     tracker_timer_arm(&tracker->cn0_below_drop_thres_timer, /*deadline_ms=*/-1);
-  } else if (cn0 >= cn0_thres.drop_dbhz) {
+  } else if (cn0_new >= cn0_thres.drop_dbhz + TRACK_CN0_HYSTERESIS_THRES_DBHZ) {
     tracker_timer_init(&tracker->cn0_below_drop_thres_timer);
   }
 
   bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
   bool inlock = tracker_has_all_locks(tracker);
 
-  if (cn0 > cn0_thres.drop_dbhz && !confirmed && inlock &&
+  if (cn0_new > cn0_thres.drop_dbhz && !confirmed && inlock &&
       tracker_has_bit_sync(tracker)) {
     tracker->flags |=
         (TRACKER_FLAG_CONFIRMED | TRACKER_FLAG_REMOVE_DLL_BW_ADDON);
-    log_debug_mesid(tracker->mesid, "CONFIRMED with CN0: %f", cn0);
+    log_debug_mesid(tracker->mesid, "CONFIRMED with CN0: %f", cn0_new);
   }
 
-  tracker->cn0 = cn0;
-
-  if (cn0 < cn0_thres.ambiguity_dbhz) {
+  if (cn0_new < cn0_thres.ambiguity_dbhz) {
     /* C/N0 has dropped below threshold, indicate that the carrier phase
      * ambiguity is now unknown as cycle slips are likely. */
     tracker_ambiguity_unknown(tracker);
   }
 
-  if (cn0 < cn0_thres.use_dbhz) {
+  if (cn0_new < cn0_thres.use_dbhz) {
     /* Flag as low CN0 measurements. */
     tracker->flags &= ~TRACKER_FLAG_CN0_USABLE;
-  }
-
-  if (cn0 > (cn0_thres.use_dbhz + TRACK_CN0_HYSTERESIS_THRES_DBHZ)) {
+  } else if (cn0_new > (cn0_thres.use_dbhz + TRACK_CN0_HYSTERESIS_THRES_DBHZ)) {
     /* Flag as high CN0 measurements. */
     tracker->flags |= TRACKER_FLAG_CN0_USABLE;
+  }
+
+  tracker->cn0 = cn0_new;
+  if (filt_cn0 > 0.0f) {
+    tracker->filtered_cn0 = filt_cn0;
   }
 }
 

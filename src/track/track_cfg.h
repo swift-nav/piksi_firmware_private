@@ -10,6 +10,9 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#ifndef SWIFTNAV_TRACK_CFG
+#define SWIFTNAV_TRACK_CFG
+
 /* Bit synchronization and data decoding */
 #define TPF_BIT_PILOT ((u32)1 << 1) /* data comes in the fifth correlator */
 #define TPF_BSYNC_SET ((u32)1 << 2)
@@ -66,12 +69,6 @@
 /** Initial C/N0 for confirmation [dB/Hz] */
 #define TP_TRACKER_CN0_CONFIRM_DELTA (2.f)
 
-/** C/N0 threshold long interval [ms] */
-#define TRACK_CN0_THRES_COUNT_LONG 2000
-
-/** C/N0 threshold short interval [ms] */
-#define TRACK_CN0_THRES_COUNT_SHORT 100
-
 /** C/N0 hysteresis threshold */
 #define TRACK_CN0_HYSTERESIS_THRES_DBHZ (3.f)
 
@@ -79,12 +76,12 @@
 #define TP_OUTLIERS_CN0_THRES_DBHZ 35.f
 
 /** C/N0 threshold when we can't say if we are still tracking */
-#define TP_HARD_CN0_DROP_THRESHOLD_DBHZ (18.f)
+#define TP_HARD_CN0_DROP_THRESHOLD_DBHZ (20.0f)
 
 /** Default C/N0 threshold in dB/Hz for bit polarity ambiguity */
 #define TP_DEFAULT_CN0_AMBIGUITY_THRESHOLD_DBHZ (30.f)
 /** Default C/N0 threshold in dB/Hz for dropping track (for 1 ms integration) */
-#define TP_DEFAULT_CN0_DROP_THRESHOLD_DBHZ (32.2f)
+#define TP_DEFAULT_CN0_DROP_THRESHOLD_DBHZ (34.0f)
 /** C/N0 threshold for measurements use */
 #define TP_DEFAULT_CN0_USE_THRESHOLD_DBHZ (27.f)
 
@@ -99,3 +96,7 @@
 
 #define FLL_BW_MIN (1.5f)
 #define FLL_BW_MAX (3.0f)
+
+#define MAX_VAL_CN0 (255.0f / 4.0f)
+
+#endif /* SWIFTNAV_TRACK_CFG */

@@ -372,6 +372,7 @@ typedef struct {
   float unfiltered_freq_error_hz;  /**< Unfiltered frequency error at the FLL
                                      discriminator output [Hz]. */
   float cn0;                       /**< Current estimate of C/N0. */
+  float filtered_cn0;              /**< Filtered C/N0 estimate */
   u32 flags;                       /**< Tracker flags TRACKER_FLAG_... */
   ch_drop_reason_t ch_drop_reason; /* Drop reason if TRACKER_FLAG_DROP is set */
   float xcorr_freq_hz;             /**< Doppler for cross-correlation [Hz] */

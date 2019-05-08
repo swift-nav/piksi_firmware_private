@@ -35,8 +35,6 @@
 
 #define CHANNEL_DISABLE_WAIT_TIME_MS 100
 
-#define MAX_VAL_CN0 (255.0 / 4.0)
-
 static THD_WORKING_AREA(wa_nap_track_irq, NAP_TRACK_IRQ_THREAD_STACK);
 
 void nap_track_irq_thread(void *arg);
@@ -239,6 +237,7 @@ bool tracker_init(const u8 id,
     tracker->sample_count = ref_sample_count;
     /* First profile selection is based on initial CN0 estimate. */
     tracker->cn0 = cn0_init;
+    tracker->filtered_cn0 = cn0_init;
 
     tracker_timer_init(&tracker->unlocked_timer);
     tracker_timer_arm(&tracker->unlocked_timer, /*deadline_ms=*/-1);
@@ -425,7 +424,7 @@ void tracking_send_state(void) {
       bool running = tracker->busy;
       me_gnss_signal_t mesid = tracker->mesid;
       u16 glo_slot_id = tracker->glo_orbit_slot;
-      float cn0 = tracker->cn0;
+      float cn0 = tracker->filtered_cn0;
       bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
 
       if (!running || !confirmed) {

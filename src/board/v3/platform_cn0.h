@@ -19,7 +19,7 @@
 #define PLATFORM_CN0_EST_BW_HZ (1.5f)
 /** Scale coefficient for C/No estimator */
 #define PLATFORM_CN0_EST_SCALE (1.025f)
-/** C/No shift for Basic C/No estimation */
-#define PLATFORM_CN0_EST_SHIFT (-4.f)
+/** Platform C/N0 adjustment for the estimator */
+#define PLATFORM_CN0_EST_SHIFT (1.0f)
 
 #endif /* SWIFTNAV_PLATFORM_CN0_H */

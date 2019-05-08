@@ -14,17 +14,15 @@
 #include <string.h>
 
 #include "cn0_est_common.h"
+#include "swiftnav/constants.h"
+#include "track/track_cfg.h"
 
 /** \defgroup track Tracking
  * Functions used in tracking.
  * \{ */
 
 /** Filter coefficient for M2 an M4. */
-#define CN0_MM_ALPHA (0.5f)
-/** Filter coefficient for Pn. */
-#define CN0_MM_PN_ALPHA (0.005f)
-/** Estimate of noise power Pn. For smoother initial CN0 output. */
-#define CN0_MM_PN_INIT (100000.0f)
+#define CN0_MM_WINDOW 20
 
 /** Initialize the \f$ C / N_0 \f$ estimator state.
  *
@@ -59,9 +57,6 @@
 void cn0_est_mm_init(cn0_est_mm_state_t *s, float cn0_0) {
   memset(s, 0, sizeof(*s));
 
-  s->M2 = -1.0f; /* Set negative for first iteration */
-  s->M4 = -1.0f;
-  s->Pn = CN0_MM_PN_INIT;
   s->cn0_dbhz = cn0_0;
 }
 
@@ -82,42 +77,52 @@ float cn0_est_mm_update(cn0_est_mm_state_t *s,
   float m2 = I * I + Q * Q;
   float m4 = m2 * m2;
 
-  if (s->M2 < 0.0f) {
+  if (s->count == 0) {
     /* This is the first iteration, just initialize moments. */
     s->M2 = m2;
     s->M4 = m4;
+    s->log_bw = p->log_bw;
   } else {
-    s->M2 += (m2 - s->M2) * CN0_MM_ALPHA;
-    s->M4 += (m4 - s->M4) * CN0_MM_ALPHA;
+    s->M2 += m2;
+    s->M4 += m4;
+    s->log_bw += p->log_bw;
   }
 
+  s->count++;
+  if (s->count < CN0_MM_WINDOW) {
+    return s->cn0_dbhz;
+  }
+
+  s->M2 /= CN0_MM_WINDOW;
+  s->M4 /= CN0_MM_WINDOW;
+  s->log_bw /= CN0_MM_WINDOW;
+  s->count = 0;
+
   float tmp = 2.0f * s->M2 * s->M2 - s->M4;
-  if (0.0f > tmp) {
-    tmp = 0.0f;
+  if (tmp < FLOAT_EQUALITY_EPS) {
+    return s->cn0_dbhz;
   }
 
   float Pd = sqrtf(tmp);
   float Pn = s->M2 - Pd;
-  s->Pn += (Pn - s->Pn) * CN0_MM_PN_ALPHA;
 
-  float snr = m2 / s->Pn;
+  float snr = s->M2 / Pn;
 
-  if (!isfinite(snr) || (snr <= 0.0f)) {
-    /* CN0 out of limits, no updates. */
+  if (!isfinite(snr) || (snr < FLOAT_EQUALITY_EPS)) {
     return s->cn0_dbhz;
   }
 
   float snr_db = 10.0f * log10f(snr);
 
   /* Compute CN0 */
-  float cn0_dbhz = p->log_bw + snr_db;
+  float cn0_dbhz = s->log_bw + snr_db + p->cn0_shift;
   if (cn0_dbhz < 0.0f) {
     cn0_dbhz = 0.0f;
-  } else if (cn0_dbhz > 60.0f) {
-    cn0_dbhz = 60.0f;
+  } else if (cn0_dbhz > MAX_VAL_CN0) {
+    cn0_dbhz = MAX_VAL_CN0;
   }
-  s->cn0_dbhz = cn0_dbhz;
 
+  s->cn0_dbhz = cn0_dbhz;
   return s->cn0_dbhz;
 }
 

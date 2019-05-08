@@ -31,8 +31,8 @@
  */
 #define CN0_EST_LPF_ALPHA (.005f)
 /** C/N0 LPF cutoff frequency. The lower it is, the more stable CN0 looks like
- * and the slower is the response. */
-#define CN0_EST_LPF_CUTOFF_HZ (.25f)
+ */
+#define CN0_EST_LPF_CUTOFF_HZ (.1f)
 /** Integration interval: 1ms */
 #define INTEG_PERIOD_1_MS 1
 /** Integration interval: 2ms */
@@ -58,6 +58,7 @@
 #define TRACK_CN0_OFFSET_10MS_DBHZ 10
 /** C/N0 offset for 20ms estimator interval [dB/Hz] */
 #define TRACK_CN0_OFFSET_20MS_DBHZ 13
+
 /** Total number of precomputed integration intervals */
 #define INTEG_PERIODS_NUM (ARRAY_SIZE(cn0_periods_ms))
 
@@ -211,8 +212,6 @@ float track_cn0_update(track_cn0_state_t *e, u8 cn0_ms, float I, float Q) {
   const track_cn0_params_t *pp = track_cn0_get_params(cn0_ms, &p);
 
   e->cn0_raw_dbhz = update_estimator(e, &pp->est_params, I, Q);
-  float cn0 =
-      cn0_filter_update(&e->filter, &pp->filter_params, e->cn0_raw_dbhz);
 
   if (e->cn0_raw_dbhz < THRESH_SENS_DBHZ) {
     if (e->weak_signal_ms < SECS_MS) { /* to avoid wrapping to 0 */
@@ -222,7 +221,9 @@ float track_cn0_update(track_cn0_state_t *e, u8 cn0_ms, float I, float Q) {
     e->weak_signal_ms = 0;
   }
 
-  return cn0;
+  float cn0_filt =
+      cn0_filter_update(&e->filter, &pp->filter_params, e->cn0_raw_dbhz);
+  return cn0_filt;
 }
 
 /**
