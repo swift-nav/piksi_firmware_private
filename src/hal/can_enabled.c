@@ -25,11 +25,9 @@
 
 bool can_enabled(void) {
   unsigned char value = '0';
-  ssize_t n =
-      sbp_fileio_read(CAN_ENABLED_FILENAME, 0, &value, sizeof(value));
+  ssize_t n = sbp_fileio_read(CAN_ENABLED_FILENAME, 0, &value, sizeof(value));
   if (n == sizeof(value) && value == '1') {
     return true;
   }
   return false;
 }
-
