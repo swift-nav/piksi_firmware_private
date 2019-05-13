@@ -35,7 +35,7 @@
 
 /**
  * @brief   The sample rate used by the NAP timing count
- * @note    The sample count currently uses the raw frontend sample frequency
+ * @note    The timing count currently uses the raw frontend sample frequency
  */
 #define NAP_TIMING_COUNT_RATE_Hz (NAP_FRONTEND_RAW_SAMPLE_RATE_Hz)
 
