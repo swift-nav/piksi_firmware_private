@@ -65,6 +65,10 @@ void nap_setup(void) {
   gic_irq_enable(IRQ_ID_NAP);
 }
 
+/* wraps the reading of the NAP timing count to avoid compiler bugs around
+ * pointer to volatile */
+u32 nap_timing_count_low(void) { return NAP->TIMING_COUNT; }
+
 u64 nap_timing_count(void) {
   static MUTEX_DECL(timing_count_mutex);
   static volatile u32 rollover_count = 0;
@@ -72,7 +76,7 @@ u64 nap_timing_count(void) {
 
   chMtxLock(&timing_count_mutex);
 
-  u32 count = NAP->TIMING_COUNT;
+  u32 count = nap_timing_count_low();
 
   if (count < prev_count) rollover_count++;
 

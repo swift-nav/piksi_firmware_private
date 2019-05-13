@@ -342,7 +342,7 @@ void nap_track_init(u8 channel,
   chSysLock();
 
   /* Get a reasonable deadline to which to propagate to */
-  u64 tc_min_propag = NAP->TIMING_COUNT + TIMING_COMPARE_DELTA_MIN;
+  u64 tc_min_propag = nap_timing_count_low() + TIMING_COMPARE_DELTA_MIN;
   /* Extend tc_min_propag - cannot use helper function in syslock */
   tc_min_propag += (tc_codestart >> 32) << 32;
   if (tc_min_propag < tc_codestart) {
@@ -372,7 +372,7 @@ void nap_track_init(u8 channel,
 
   /* Sleep until compare match */
   s32 tc_delta;
-  while ((tc_delta = (tc_next_rollover - NAP->TIMING_COUNT)) >= 0) {
+  while ((tc_delta = (tc_next_rollover - nap_timing_count_low())) >= 0) {
     systime_t sleep_time =
         floor(CH_CFG_ST_FREQUENCY * tc_delta / NAP_TIMING_COUNT_RATE_Hz);
 

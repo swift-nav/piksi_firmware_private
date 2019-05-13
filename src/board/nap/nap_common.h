@@ -66,6 +66,7 @@ void nap_rd_dna(u8 dna[]);
 void nap_dna_callback_register(void);
 
 u64 nap_timing_count(void);
+u32 nap_timing_count_low(void);
 
 u64 nap_sample_time_to_count(u32 sample_count);
 double nap_count_to_ms(u64 delta_time);
