@@ -25,8 +25,8 @@
 extern "C" {
 #endif /* __cplusplus */
 
-#define RX_DT_NOMINAL (1.0 / NAP_FRONTEND_SAMPLE_RATE_Hz)
-#define SEC2TICK(x) ((x)*NAP_FRONTEND_SAMPLE_RATE_Hz)
+#define RX_DT_NOMINAL (1.0 / NAP_TIMING_COUNT_RATE_Hz)
+#define SEC2TICK(x) ((x)*NAP_TIMING_COUNT_RATE_Hz)
 
 void timing_setup(void);
 bool time_updated_within(gps_time_t* current_time, float timeout);

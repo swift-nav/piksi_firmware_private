@@ -37,7 +37,7 @@ void nap_track_init(u8 channel,
 
 void nap_track_update(u8 channel,
                       double doppler_hz,
-                      double code_phase_rate,
+                      double chip_freq_hz,
                       u32 chips_to_correlate,
                       bool has_pilot_sync);
 

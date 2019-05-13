@@ -50,7 +50,7 @@ void tracker_measurement_get(u64 ref_tc,
   meas->tow_residual_ns = info->tow_residual_ns;
 
   meas->rec_time_delta = (double)((s32)(info->sample_count - (u32)ref_tc)) /
-                         NAP_FRONTEND_SAMPLE_RATE_Hz;
+                         NAP_TIMING_COUNT_RATE_Hz;
 
   meas->cn0 = info->cn0;
   meas->lock_time = tracker_get_lock_time(freq_info);

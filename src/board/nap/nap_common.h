@@ -55,7 +55,6 @@ extern u8 nap_dna[NAP_DNA_LENGTH];
 
 /** Convert milliseconds to NAP samples */
 #define NAP_MS_2_SAMPLES(ms) (((double)(ms) / 1000.) * NAP_TRACK_SAMPLE_RATE_Hz)
-
 /** Convert NAP samples to milliseconds */
 #define NAP_SAMPLES_2_MS(samples) (((samples)*1000.) / NAP_TRACK_SAMPLE_RATE_Hz)
 
@@ -63,18 +62,11 @@ extern u8 nap_dna[NAP_DNA_LENGTH];
 
 void nap_setup(void);
 
-u32 nap_error_rd_blocking(void);
-
-u8 nap_hash_status(void);
-
 void nap_rd_dna(u8 dna[]);
-
 void nap_dna_callback_register(void);
 
 u64 nap_timing_count(void);
-u32 nap_timing_count_latched(void);
-void nap_timing_strobe(u32 falling_edge_count);
-bool nap_timing_strobe_wait(u32 timeout);
+
 u64 nap_sample_time_to_count(u32 sample_count);
 double nap_count_to_ms(u64 delta_time);
 double nap_count_to_ns(u64 delta_time);
