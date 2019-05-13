@@ -63,10 +63,6 @@ extern u8 nap_dna[NAP_DNA_LENGTH];
 
 void nap_setup(void);
 
-u32 nap_error_rd_blocking(void);
-
-u8 nap_hash_status(void);
-
 void nap_rd_dna(u8 dna[]);
 
 void nap_dna_callback_register(void);

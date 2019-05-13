@@ -94,7 +94,6 @@ BOARDSRC := \
         $(BOARDDIR)/nap/grabber.o \
         $(BOARDDIR)/nap/nap_common.o \
         $(BOARDDIR)/nap/nap_conf.o \
-        $(BOARDDIR)/nap/nap_dummy.o \
         $(BOARDDIR)/nap/track_channel.o \
         $(BOARDDIR)/platform_signal.o \
         $(BOARDDIR)/remoteproc/remoteproc_config.o \
