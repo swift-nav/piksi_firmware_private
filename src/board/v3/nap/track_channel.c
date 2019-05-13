@@ -34,7 +34,7 @@
 #include "soft_macq/prns.h"
 #include "timing/timing.h"
 
-#define TIMING_COMPARE_DELTA_MIN (1e-3 * NAP_TRACK_SAMPLE_RATE_Hz)
+#define TIMING_COMPARE_DELTA_MIN (1e-3 * NAP_TIMING_COUNT_RATE_Hz)
 
 #define NAP_TRACK_CARRIER_FREQ_WIDTH 32
 #define NAP_TRACK_CARRIER_PHASE_FRACTIONAL_WIDTH 32
@@ -89,7 +89,7 @@ static u32 calc_length_samples(u32 chips_to_correlate,
  * \return Number of timing counts per code chip.
  */
 static double calc_tc_per_chip(double chip_freq_hz) {
-  return (double)NAP_TRACK_SAMPLE_RATE_Hz / chip_freq_hz;
+  return (double)NAP_TIMING_COUNT_RATE_Hz / chip_freq_hz;
 }
 
 /** Look-up NAP constellation and band code for the given ME signal ID.
@@ -297,7 +297,7 @@ void nap_track_init(u8 channel,
   s16 delta_tc = NAP_VEP_SPACING_SAMPLES;
   s->length_adjust = delta_tc;
 
-  /* Get the code rollover point in samples */
+  /* Get the code rollover point in timing counts */
   u64 tc_codestart = ref_timing_count - delta_tc -
                      (s32)round(code_phase * calc_tc_per_chip(chip_freq_hz));
 
