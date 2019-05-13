@@ -119,9 +119,7 @@ u64 nap_sample_time_to_count(u32 sample_count) {
  * \return Time interval in milliseconds.
  */
 double nap_count_to_ms(u64 delta_time) {
-  double time_delta =
-      (double)delta_time * (1000. / NAP_FRONTEND_SAMPLE_RATE_Hz);
-  return time_delta;
+  return (double)delta_time * (1000. / NAP_FRONTEND_SAMPLE_RATE_Hz);
 }
 
 /**
@@ -132,9 +130,7 @@ double nap_count_to_ms(u64 delta_time) {
  * \return Time interval in nanoseconds.
  */
 double nap_count_to_ns(u64 delta_time) {
-  double time_delta =
-      (double)delta_time * (SECS_NS / NAP_FRONTEND_SAMPLE_RATE_Hz);
-  return time_delta;
+  return (double)delta_time * (SECS_NS / NAP_FRONTEND_SAMPLE_RATE_Hz);
 }
 
 static void nap_isr(void *context) {
