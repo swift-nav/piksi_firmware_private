@@ -72,6 +72,7 @@ void nap_rd_dna(u8 dna[]);
 void nap_dna_callback_register(void);
 
 u64 nap_timing_count(void);
+u32 nap_timing_count_low(void);
 u32 nap_timing_count_latched(void);
 void nap_timing_strobe(u32 falling_edge_count);
 bool nap_timing_strobe_wait(u32 timeout);
