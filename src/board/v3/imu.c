@@ -262,7 +262,7 @@ static void imu_thread(void *arg) {
 
         /* Warn if sensor read delay after ISR exceeds threshhold */
 
-        u64 tc_now = nap_sample_time_to_count(NAP->TIMING_COUNT);
+        u64 tc_now = nap_timing_count();
         gps_time_t t_now = napcount2gpstime(tc_now);
         dt = gpsdifftime(&t_now, &sample_time);
         dt_err_pcent =
