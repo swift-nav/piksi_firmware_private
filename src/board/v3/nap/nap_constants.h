@@ -35,7 +35,7 @@
 
 /**
  * @brief   The sample rate used by the NAP timing count
- * @note    The timing count currently uses the raw frontend sample frequency
+ * @note    NAP timing count currently runs with raw frontend sample frequency
  */
 #define NAP_TIMING_COUNT_RATE_Hz (NAP_FRONTEND_RAW_SAMPLE_RATE_Hz)
 
@@ -45,7 +45,7 @@
  */
 #define FCN_NCO_RESET_COUNT ((u64)(NAP_TIMING_COUNT_RATE_Hz / 500))
 
-#define NAP_PPS_TIMING_COUNT_OFFSET(-20)
+#define NAP_PPS_TIMING_COUNT_OFFSET (-20)
 #define NAP_EXT_TIMING_COUNT_OFFSET (8)
 
 #define NAP_VEP_SPACING_SAMPLES 33
