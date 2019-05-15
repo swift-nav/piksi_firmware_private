@@ -14,6 +14,7 @@
 #include <string.h>
 
 #include "cn0_est_common.h"
+#include "signal_db/signal_db.h"
 
 #define CN0_EST_NWPR_INIT_M 20
 #define CN0_EST_NWPR_INIT_N 100
