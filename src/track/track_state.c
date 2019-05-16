@@ -41,7 +41,7 @@ static THD_WORKING_AREA(wa_nap_track_irq, NAP_TRACK_IRQ_THREAD_STACK);
 
 void nap_track_irq_thread(void *arg);
 
-static tracker_t trackers[NUM_TRACKER_CHANNELS];
+static tracker_t trackers[ME_CHANNELS];
 
 static u16 iq_output_mask = 0;
 
@@ -49,7 +49,7 @@ static u16 iq_output_mask = 0;
 static int track_iq_output_notify(void *ctx) {
   (void)ctx;
 
-  for (int i = 0; i < NUM_TRACKER_CHANNELS; i++) {
+  for (u16 i = 0; i < ME_CHANNELS; i++) {
     tracker_t *tracker = tracker_get(i);
     tracker->output_iq = (iq_output_mask & (1 << i)) != 0;
   }
@@ -93,7 +93,7 @@ void track_setup(void) {
 
   track_internal_setup();
 
-  for (u32 i = 0; i < NUM_TRACKER_CHANNELS; i++) {
+  for (u16 i = 0; i < ME_CHANNELS; i++) {
     trackers[i].busy = false;
     chMtxObjectInit(&trackers[i].mutex);
   }
@@ -115,8 +115,8 @@ void track_setup(void) {
  *
  * \return Associated tracker channel.
  */
-tracker_t *tracker_get(const u8 id) {
-  assert(id < NUM_TRACKER_CHANNELS);
+tracker_t *tracker_get(u8 id) {
+  assert(id < ME_CHANNELS);
   return &trackers[id];
 }
 
@@ -363,8 +363,15 @@ static void serve_nap_request(tracker_t *tracker) {
  * \param c0              Channel offset.
  */
 void trackers_update(u32 channels_mask, const u8 c0) {
+<<<<<<< HEAD
   tracker_t *pt_tracker = tracker_get(c0);
   for (u8 ci = c0; channels_mask && (ci < nap_track_n_channels); ci++) {
+=======
+  /* experiment 3: like this we always clean a tracker if it has to...
+   * and don't clean trackers that are not to be served by NAP */
+  for (u8 ci = 0; channels_mask && ((c0 + ci) < ME_CHANNELS); ci++) {
+    tracker_t *tracker = tracker_get(c0 + ci);
+>>>>>>> ddec482a... one ME_CHANNELS
     bool update_required = (channels_mask & 1) ? true : false;
     /* if NAP has something to do, serve this channel */
     /* due to a chance for a race condition between tracking thread and NAP
@@ -385,8 +392,13 @@ void trackers_update(u32 channels_mask, const u8 c0) {
  * \param c0              Channel offset.
  */
 void trackers_missed(u32 channels_mask, const u8 c0) {
+<<<<<<< HEAD
   tracker_t *pt_tracker = tracker_get(c0);
   for (u8 ci = c0; channels_mask && (ci < nap_track_n_channels); ci++) {
+=======
+  for (u8 ci = c0; channels_mask && (ci < ME_CHANNELS); ci++) {
+    tracker_t *tracker = tracker_get(ci);
+>>>>>>> ddec482a... one ME_CHANNELS
     bool error = (channels_mask & 1) ? true : false;
     if (error) {
       error_flags_add(pt_tracker, ERROR_FLAG_MISSED_UPDATE);
@@ -401,14 +413,14 @@ void trackers_missed(u32 channels_mask, const u8 c0) {
  */
 void tracking_send_state(void) {
   static bool odd_run = false;
-  measurement_state_t meas_states[nap_track_n_channels];
+  measurement_state_t meas_states[ME_CHANNELS];
 
   if (simulation_enabled_for(SIMULATION_MODE_TRACKING)) {
     u8 num_sats = simulation_current_num_sats();
     for (u8 i = 0; i < num_sats; i++) {
       meas_states[i] = simulation_measurement_state(i);
     }
-    for (u8 i = num_sats; i < nap_track_n_channels; i++) {
+    for (u16 i = num_sats; i < ME_CHANNELS; i++) {
       meas_states[i].mesid = (sbp_gnss_signal_t){
           .sat = 0,
           .code = 0,
@@ -417,7 +429,7 @@ void tracking_send_state(void) {
     }
   } else {
     u8 max_obs = (SBP_FRAMING_MAX_PAYLOAD_SIZE / sizeof(measurement_state_t));
-    for (u8 i = 0; (i < nap_track_n_channels) && (i < max_obs); i++) {
+    for (u16 i = 0; (i < ME_CHANNELS) && (i < max_obs); i++) {
       tracker_t *tracker = tracker_get(i);
       bool running = tracker->busy;
       me_gnss_signal_t mesid = tracker->mesid;
@@ -458,7 +470,7 @@ void tracking_send_state(void) {
  * (there should NEVER be any!)
  */
 void stale_trackers_cleanup(void) {
-  for (u8 i = 0; i < nap_track_n_channels; i++) {
+  for (u16 i = 0; i < ME_CHANNELS; i++) {
     tracker_t *tracker = tracker_get(i);
     if (!tracker->busy) {
       continue;

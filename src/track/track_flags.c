@@ -31,7 +31,7 @@ void tracker_flag_drop(tracker_t *tracker, ch_drop_reason_t reason) {
  */
 void tracker_set_prn_fail_flag(const me_gnss_signal_t mesid, bool val) {
   /* Find SV ID for L1CA and L2CM and set the flag  */
-  for (u8 id = 0; id < NUM_TRACKER_CHANNELS; id++) {
+  for (u16 id = 0; id < ME_CHANNELS; id++) {
     tracker_t *tracker = tracker_get(id);
     tracker_lock(tracker);
     /* Skip inactive channels */
@@ -54,7 +54,7 @@ void tracker_set_prn_fail_flag(const me_gnss_signal_t mesid, bool val) {
  * \return None
  */
 void tracker_set_raim_flag(const gnss_signal_t sid) {
-  for (u8 i = 0; i < nap_track_n_channels; i++) {
+  for (u16 i = 0; i < ME_CHANNELS; i++) {
     /* Find the corresponding channel and flag it. (Note that searching by sid
      * instead of mesid is a bit tricky.. */
     tracker_t *tracker = tracker_get(i);
@@ -81,7 +81,7 @@ void tracker_set_raim_flag(const gnss_signal_t sid) {
  * Initiates SBAS tracker drop procedure
  */
 void tracker_set_sbas_provider_change_flag(void) {
-  for (u8 i = 0; i < nap_track_n_channels; i++) {
+  for (u16 i = 0; i < ME_CHANNELS; i++) {
     tracker_t *tracker = tracker_get(i);
 
     tracker_lock(tracker);
@@ -108,7 +108,7 @@ void tracker_set_sbas_provider_change_flag(void) {
  * Initiates GLO signals drop procedure due to leap second event
  */
 void tracker_set_leap_second_flag(void) {
-  for (u8 i = 0; i < nap_track_n_channels; i++) {
+  for (u16 i = 0; i < ME_CHANNELS; i++) {
     tracker_t *tracker = tracker_get(i);
 
     tracker_lock(tracker);
@@ -135,7 +135,7 @@ void tracker_set_leap_second_flag(void) {
  * \return None
  */
 void tracker_set_xcorr_flag(const me_gnss_signal_t mesid) {
-  for (u8 id = 0; id < NUM_TRACKER_CHANNELS; ++id) {
+  for (u16 id = 0; id < ME_CHANNELS; ++id) {
     /* Find matching tracker and set the flag  */
     tracker_t *tracker = tracker_get(id);
     tracker_lock(tracker);

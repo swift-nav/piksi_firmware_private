@@ -11,9 +11,8 @@
  */
 
 #include <math.h>
-#include <stdio.h>
-
 #include <starling/observation.h>
+#include <stdio.h>
 #include <swiftnav/ch_meas.h>
 #include <swiftnav/constants.h>
 #include <swiftnav/coord_system.h>
@@ -23,14 +22,14 @@
 #include <swiftnav/logging.h>
 #include <swiftnav/nav_meas.h>
 
+#include "board/me_max_channels.h"
 #include "calc/calc_nav_meas.h"
-
 #include "gtest/gtest.h"
 
 /* Real measurements from tracking (Piksi v3 board) channel for L1C/A, SV 31. */
 static const channel_measurement_t l1ca_meas_in = {
-    {31,                         /* sid.sat */
-     CODE_GPS_L1CA},             /* sid.code */
+    .sid = {31,                  /* sid.sat */
+            CODE_GPS_L1CA},      /* sid.code */
     1022.8769119973294437,       /* code_phase_chips */
     1023002.7708759307861328,    /* code_phase_rate */
     -111811276.6140588223934174, /* carrier_phase */
@@ -47,8 +46,8 @@ static const channel_measurement_t l1ca_meas_in = {
 
 /* Real measurements from tracking (Piksi v3 board) channel for L2CM, SV 12. */
 static const channel_measurement_t l2cm_meas_in = {
-    {12,                        /* .sid.sat */
-     CODE_GPS_L2CM},            /* .sid.code */
+    .sid = {12,                 /* .sid.sat */
+            CODE_GPS_L2CM},     /* .sid.code */
     20459.9424161217175424,     /* .code_phase_chips */
     1023002.6959905624389648,   /* .code_phase_rate */
     -69199213.4344176054000854, /* .carrier_phase */

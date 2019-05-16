@@ -123,7 +123,7 @@ double tracker_get_lock_time(const tracker_freq_info_t *freq_info) {
 u16 tracker_load_cc_data(tracker_cc_data_t *cc_data) {
   u16 cnt = 0;
 
-  for (u8 id = 0; id < NUM_TRACKER_CHANNELS; ++id) {
+  for (u16 id = 0; id < ME_CHANNELS; ++id) {
     tracker_t *tracker = tracker_get(id);
     tracker_cc_entry_t entry;
 
@@ -186,7 +186,7 @@ void tracker_set_carrier_phase_offset(const tracker_info_t *info,
  * \return tracker channel container for the requested mesid.
  */
 tracker_t *tracker_get_by_mesid(const me_gnss_signal_t mesid) {
-  for (u8 i = 0; i < nap_track_n_channels; i++) {
+  for (u16 i = 0; i < ME_CHANNELS; i++) {
     tracker_t *tracker = tracker_get(i);
     if (mesid_is_equal(tracker->mesid, mesid)) {
       return tracker;
@@ -200,7 +200,7 @@ tracker_t *tracker_get_by_mesid(const me_gnss_signal_t mesid) {
  */
 void tracker_adjust_all_phase_offsets(double offset_s) {
   log_info("Adjusting all phase offsets by %+0.1f ms", offset_s * SECS_MS);
-  for (u8 i = 0; i < nap_track_n_channels; i++) {
+  for (u16 i = 0; i < ME_CHANNELS; i++) {
     tracker_t *tracker = tracker_get(i);
     tracker_lock(tracker);
     if (0 != (tracker->flags & TRACKER_FLAG_ACTIVE) &&

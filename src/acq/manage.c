@@ -552,7 +552,7 @@ static u8 manage_track_new_acq(const me_gnss_signal_t mesid) {
   /* Decide which (if any) tracking channel to put
    * a newly acquired satellite into.
    */
-  for (u8 i = 0; i < nap_track_n_channels; i++) {
+  for (u16 i = 0; i < ME_CHANNELS; i++) {
     if (code_requires_decoder(mesid.code) && tracker_available(i, mesid) &&
         decoder_channel_available(i, mesid)) {
       return i;

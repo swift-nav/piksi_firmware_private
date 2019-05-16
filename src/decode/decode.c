@@ -79,7 +79,7 @@ typedef struct {
 } decoder_channel_t;
 
 static decoder_interface_list_element_t *decoder_interface_list = 0;
-static decoder_channel_t decoder_channels[NUM_DECODER_CHANNELS];
+static decoder_channel_t decoder_channels[ME_CHANNELS];
 
 static THD_WORKING_AREA(wa_decode_thread, DECODE_THREAD_STACK);
 
@@ -105,7 +105,7 @@ static const decoder_interface_t decoder_interface_default = {
 
 /** Set up the decoding module. */
 void decode_setup(void) {
-  for (u32 i = 0; i < NUM_DECODER_CHANNELS; i++) {
+  for (u16 i = 0; i < ME_CHANNELS; i++) {
     decoder_channels[i].state = DECODER_CHANNEL_STATE_DISABLED;
     decoder_channels[i].decoder = 0;
   }
@@ -222,7 +222,7 @@ static void decode_thread(void *arg) {
   chRegSetThreadName("decode");
 
   while (true) {
-    for (u32 i = 0; i < NUM_DECODER_CHANNELS; i++) {
+    for (u16 i = 0; i < ME_CHANNELS; i++) {
       decoder_channel_t *d = &decoder_channels[i];
       switch (decoder_channel_state_get(d)) {
         case DECODER_CHANNEL_STATE_ENABLED: {
@@ -287,7 +287,7 @@ static decoder_channel_t *decoder_channel_get(u8 tracking_channel) {
    * Just need to make sure that only a single decoder channel can be allocated
    * to a given tracking channel.
    */
-  assert(tracking_channel < NUM_DECODER_CHANNELS);
+  assert(tracking_channel < ME_CHANNELS);
   return &decoder_channels[tracking_channel];
 }
 

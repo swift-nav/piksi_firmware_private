@@ -165,8 +165,7 @@ s8 calc_navigation_measurements(u8 n_channels,
     return -1;
   }
 
-  assert(n_channels <= MAX_CHANNELS);
-  for (u8 i = 0; i < n_channels; ++i) {
+  for (u16 i = 0; i < n_channels; ++i) {
     s8 ret = convert_channel_measurement_to_starling_obs(
         rec_time, &meas[i], &obs_array->observations[i]);
     if (ret) {

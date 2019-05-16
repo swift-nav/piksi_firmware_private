@@ -36,7 +36,7 @@ typedef struct {
  */
 typedef struct {
   /** Entries with data for cross-correlation  */
-  tracker_cc_entry_t entries[NUM_TRACKER_CHANNELS];
+  tracker_cc_entry_t entries[ME_CHANNELS];
 } tracker_cc_data_t;
 
 /* Tracker utility interface. */

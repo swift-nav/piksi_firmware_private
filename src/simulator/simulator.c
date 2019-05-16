@@ -63,9 +63,9 @@ struct {
   double covariance[9];
   u8 num_sats_selected;
 
-  tracking_channel_state_t tracking_channel[MAX_CHANNELS];
-  measurement_state_t state_meas[MAX_CHANNELS];
-  channel_measurement_t ch_meas[MAX_CHANNELS];
+  tracking_channel_state_t tracking_channel[ME_CHANNELS];
+  measurement_state_t state_meas[ME_CHANNELS];
+  channel_measurement_t ch_meas[ME_CHANNELS];
   obs_array_t obs_array;
   obs_array_t base_obs_array;
   dops_t dops;
@@ -289,7 +289,7 @@ void simulation_step_tracking_and_observations(double elapsed) {
         simulation_almanacs[i].sid, az * R2D, el * R2D, nap_timing_count());
 
     if (el > 0 && num_sats_selected < sim_settings.num_sats &&
-        num_sats_selected < MAX_CHANNELS) {
+        num_sats_selected < ME_CHANNELS) {
       /* Generate a code measurement which is just the pseudorange: */
       double points_to_sat[3];
       double base_points_to_sat[3];

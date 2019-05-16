@@ -15,16 +15,16 @@
 #include <math.h>
 #include <string.h>
 
+#include "acq/manage.h"
 #include "axi_dma.h"
 #include "board.h"
 #include "ext_events/ext_events.h"
-#include "main.h"
-#include "manage.h"
+#include "main/main.h"
 #include "nap/track_channel.h"
 #include "nap_constants.h"
 #include "nap_hw.h"
 #include "piksi_systime.h"
-#include "sbp.h"
+#include "sbp/sbp.h"
 #include "system_monitor/system_monitor.h"
 #include "track/track_common.h"
 #include "track/track_sid_db.h"
@@ -48,11 +48,8 @@ static THD_WORKING_AREA(wa_nap_irq, NAP_IRQ_THREAD_STACK);
 static void nap_irq_thread(void *arg);
 
 u8 nap_dna[NAP_DNA_LENGTH] = {0};
-u8 nap_track_n_channels = 0;
 
 void nap_setup(void) {
-  nap_track_n_channels = MIN(NAP_NUM_TRACKING_CHANNELS, MAX_CHANNELS);
-
   axi_dma_init();
   axi_dma_start(&AXIDMADriver1);
 
