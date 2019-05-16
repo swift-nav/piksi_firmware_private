@@ -67,7 +67,7 @@ static struct nap_ch_state {
   double reckoned_carr_phase; /**< Reckoned carrier phase */
   double chip_freq_hz[2];     /**< Code frequency */
   double fcn_freq_hz;         /**< GLO FCN frequency shift (0 for GPS) */
-} nap_ch_desc[MAX_CHANNELS];
+} nap_ch_desc[ME_CHANNELS];
 
 /** Compute the correlation length in the units of sampling frequency samples.
  * \param chips_to_correlate The number of chips to correlate over.

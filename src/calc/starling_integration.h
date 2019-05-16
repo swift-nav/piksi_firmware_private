@@ -20,7 +20,6 @@
  * starling_threads.h.
  */
 
-#include <starling/config.h>
 #include <starling/starling.h>
 #include <stdbool.h>
 

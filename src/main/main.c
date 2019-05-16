@@ -162,6 +162,7 @@ int main(void) {
       "system_info", "nap_build_id", nap_version_string, SETTINGS_TYPE_STRING);
   SETTING_READONLY(
       "system_info", "nap_build_date", nap_date_string, SETTINGS_TYPE_STRING);
+  static int nap_track_n_channels = ME_CHANNELS;
   SETTING_READONLY(
       "system_info", "nap_channels", nap_track_n_channels, SETTINGS_TYPE_INT);
 

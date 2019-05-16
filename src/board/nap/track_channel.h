@@ -24,8 +24,6 @@
 /** \addtogroup track_channel
  * \{ */
 
-extern u8 nap_track_n_channels;
-
 /** \} */
 
 void nap_track_init(u8 channel,

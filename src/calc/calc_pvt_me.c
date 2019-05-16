@@ -316,9 +316,9 @@ static void me_thd_sleep(piksi_systime_t *next_epoch, u32 interval_us) {
  * \return None
  */
 static void collect_measurements(u64 rec_tc,
-                                 channel_measurement_t meas[MAX_CHANNELS],
-                                 channel_measurement_t in_view[MAX_CHANNELS],
-                                 ephemeris_t ephe[MAX_CHANNELS],
+                                 channel_measurement_t *meas,
+                                 channel_measurement_t *in_view,
+                                 ephemeris_t *ephe,
                                  u8 *pn_ready,
                                  u8 *pn_inview,
                                  u8 *pn_total) {
@@ -326,7 +326,7 @@ static void collect_measurements(u64 rec_tc,
   u8 n_inview = 0;
   u8 n_active = 0;
 
-  for (u8 i = 0; i < nap_track_n_channels; i++) {
+  for (u8 i = 0; i < ME_CHANNELS; i++) {
     u32 flags = 0; /* Channel flags accumulator */
     /* Load measurements from the tracking channel and ephemeris from NDB */
     flags = get_tracking_channel_meas(
@@ -482,7 +482,7 @@ static s8 me_compute_pvt(const obs_array_t *obs_array,
 
   /* Copy navigation measurements to a local array and create array of pointers
    * to it */
-  static navigation_measurement_t nav_meas[MAX_CHANNELS];
+  static navigation_measurement_t nav_meas[ME_CHANNELS];
   navigation_measurement_t *p_nav_meas[n_ready];
   for (u8 i = 0; i < n_ready; i++) {
     starling_obs_to_nav_meas(&obs_array->observations[i], &nav_meas[i]);
@@ -759,9 +759,9 @@ static void me_calc_pvt_thread(void *arg) {
     u8 n_ready = 0;
     u8 n_inview = 0;
     u8 n_total = 0;
-    static channel_measurement_t meas[MAX_CHANNELS];
-    static channel_measurement_t in_view[MAX_CHANNELS];
-    static ephemeris_t e_meas[MAX_CHANNELS];
+    static channel_measurement_t meas[ME_CHANNELS];
+    static channel_measurement_t in_view[ME_CHANNELS];
+    static ephemeris_t e_meas[ME_CHANNELS];
 
     /* Collect measurements propagated to the current NAP tick */
     collect_measurements(
