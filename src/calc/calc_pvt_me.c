@@ -326,7 +326,7 @@ static void collect_measurements(u64 rec_tc,
   u8 n_inview = 0;
   u8 n_active = 0;
 
-  for (u16 i = 0; i < ME_CHANNELS; i++) {
+  for (u8 i = 0; i < ME_CHANNELS; i++) {
     u32 flags = 0; /* Channel flags accumulator */
     /* Load measurements from the tracking channel and ephemeris from NDB */
     flags = get_tracking_channel_meas(

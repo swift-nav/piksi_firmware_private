@@ -105,7 +105,7 @@ static const decoder_interface_t decoder_interface_default = {
 
 /** Set up the decoding module. */
 void decode_setup(void) {
-  for (u16 i = 0; i < ME_CHANNELS; i++) {
+  for (u8 i = 0; i < ME_CHANNELS; i++) {
     decoder_channels[i].state = DECODER_CHANNEL_STATE_DISABLED;
     decoder_channels[i].decoder = 0;
   }
@@ -222,7 +222,7 @@ static void decode_thread(void *arg) {
   chRegSetThreadName("decode");
 
   while (true) {
-    for (u16 i = 0; i < ME_CHANNELS; i++) {
+    for (u8 i = 0; i < ME_CHANNELS; i++) {
       decoder_channel_t *d = &decoder_channels[i];
       switch (decoder_channel_state_get(d)) {
         case DECODER_CHANNEL_STATE_ENABLED: {
