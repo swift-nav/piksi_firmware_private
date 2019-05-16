@@ -466,6 +466,27 @@ u16 sid_to_sv_index(gnss_signal_t sid) {
   return sv_index;
 }
 
+/** Return the SV index for a gnss_signal_t.
+ *
+ * \param mesid   me_gnss_signal_t to use.
+ *
+ * \return SV index in [0, NUM_SATS).
+ */
+u16 mesid_to_sv_index(me_gnss_signal_t mesid) {
+  assert(mesid_valid(mesid));
+  constellation_t cons = mesid_to_constellation(mesid);
+  u16 sv_index = constellation_table[cons].start_index + mesid.sat -
+                 constellation_table[cons].sat_start;
+  assert(sv_index < NUM_SATS);
+  return sv_index;
+}
+
+u16 code_to_sat_start(code_t code) {
+  assert(code_valid(code));
+  constellation_t cons = code_to_constellation(code);
+  return constellation_table[cons].sat_start;
+}
+
 /** Return carrier frequency channel for a me_gnss_signal_t
  * \param mesid me_gnss_signal_t to use
  * \return The frequency channel [Hz]

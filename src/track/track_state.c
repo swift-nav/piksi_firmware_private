@@ -219,6 +219,8 @@ bool tracker_init(const u8 id,
     return false;
   }
 
+  noise_update_mesid_status(mesid, /*intrack=*/true);
+
   tracker_lock(tracker);
   {
     tracker_cleanup(tracker);
