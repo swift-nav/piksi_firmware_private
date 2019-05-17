@@ -398,7 +398,7 @@ void nap_track_init(u8 channel,
   if (IS_GLO(s->mesid)) {
     tc_next_rollover =
         NAP_TRACK_DECIMATION_RATE_SLOW *
-        ((tc_next_rollover + 2) / NAP_TRACK_DECIMATION_RATE_SLOW);
+        (tc_next_rollover / NAP_TRACK_DECIMATION_RATE_SLOW);
   }
 
   /* Port FCN-induced NCO phase to a common receiver clock point */
