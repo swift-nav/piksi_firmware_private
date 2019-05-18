@@ -190,6 +190,9 @@ static void send_low_latency_messages(const gps_time_t *time_of_solution,
    * In "LOW-LATENCY" mode, all of this is moot.
    */
   chMtxLock(&last_sbp_lock);
+  if (!gps_time_valid(&last_sbp_dgnss)) {
+    last_sbp_dgnss = *time_of_solution;
+  }
   const gps_time_t last_dgnss_time = last_sbp_dgnss;
   chMtxUnlock(&last_sbp_lock);
   const double elapsed_time_sec =
