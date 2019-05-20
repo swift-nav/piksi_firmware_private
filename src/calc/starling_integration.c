@@ -585,9 +585,15 @@ void handle_solution_time_matched(const StarlingFilterSolution *solution,
    * have been set while making the baseline SBP messages. We check
    * this value to make sure it occurs after the most recent low latency
    * output.
+   *
+   * If either of the timestamps are invalid treat it as if this message
+   * after a previous low latency message. This will only occur with the
+   * first mesage.
    */
   chMtxLock(&last_sbp_lock);
   const bool is_after_last_low_latency =
+      !gps_time_valid(&last_sbp_dgnss) ||
+      !gps_time_valid(&last_sbp_low_latency) ||
       gpsdifftime(&last_sbp_dgnss, &last_sbp_low_latency) > 0.;
   chMtxUnlock(&last_sbp_lock);
   if (is_after_last_low_latency) {
