@@ -45,23 +45,19 @@
 #define INTEG_PERIOD_10_MS 10
 /** Integration interval: 20ms */
 #define INTEG_PERIOD_20_MS 20
-/** Integration interval: 200ms */
-#define INTEG_PERIOD_200_MS 200
 
-/** C/N0 offset for 1ms integration mode  [dB/Hz] */
+/** C/N0 offset for 1ms estimator interval [dB/Hz] */
 #define TRACK_CN0_OFFSET_1MS_DBHZ 0
-/** C/N0 offset for 2ms integration mode [dB/Hz] */
+/** C/N0 offset for 2ms estimator interval [dB/Hz] */
 #define TRACK_CN0_OFFSET_2MS_DBHZ 3
-/** C/N0 offset for 4ms integration mode [dB/Hz] */
+/** C/N0 offset for 4ms estimator interval [dB/Hz] */
 #define TRACK_CN0_OFFSET_4MS_DBHZ 6
-/** C/N0 offset for 5ms integration mode [dB/Hz] */
+/** C/N0 offset for 5ms estimator interval [dB/Hz] */
 #define TRACK_CN0_OFFSET_5MS_DBHZ 7
-/** C/N0 offset for 10ms integration mode [dB/Hz] */
+/** C/N0 offset for 10ms estimator interval [dB/Hz] */
 #define TRACK_CN0_OFFSET_10MS_DBHZ 10
-/** C/N0 offset for 20ms integration mode [dB/Hz] */
+/** C/N0 offset for 20ms estimator interval [dB/Hz] */
 #define TRACK_CN0_OFFSET_20MS_DBHZ 13
-/** C/N0 offset for 200ms integration mode [dB/Hz] */
-#define TRACK_CN0_OFFSET_200MS_DBHZ 26
 /** Total number of precomputed integration intervals */
 #define INTEG_PERIODS_NUM (ARRAY_SIZE(cn0_periods_ms))
 
@@ -233,16 +229,16 @@ float track_cn0_update(track_cn0_state_t *e, u8 cn0_ms, float I, float Q) {
 }
 
 /**
- * Returns C/N0 offset according to integration time of tracking loop.
+ * Returns C/N0 offset according to C/N0 integration period.
  *
- * \param[in] int_ms Integration time of tracking loop
+ * \param[in] cn0_ms Integration period of C/N0 estimator.
  *
  * \return Offset in dB/Hz that corresponds to C/N0 increase for the given input
  */
-float track_cn0_get_offset(int int_ms) {
+float track_cn0_get_offset(u8 cn0_ms) {
   float cn0_offset = 0;
 
-  switch (int_ms) {
+  switch (cn0_ms) {
     case INTEG_PERIOD_1_MS:
       cn0_offset = TRACK_CN0_OFFSET_1MS_DBHZ;
       break;
@@ -267,13 +263,9 @@ float track_cn0_get_offset(int int_ms) {
       cn0_offset = TRACK_CN0_OFFSET_20MS_DBHZ;
       break;
 
-    case INTEG_PERIOD_200_MS:
-      cn0_offset = TRACK_CN0_OFFSET_200MS_DBHZ;
-      break;
-
     default:
       assert(!"Unexpected integration time");
-      cn0_offset = 10.f * log10f(int_ms);
+      cn0_offset = 10.f * log10f(cn0_ms);
       break;
   }
   return cn0_offset;
