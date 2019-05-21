@@ -472,6 +472,28 @@ static void starling_obs_to_nav_meas(const starling_obs_t *obs,
   }
 }
 
+/* see if the set has GPS L1CA or GAL E1B sids */
+static bool vip_sids_exist(const gnss_sid_set_t *sids) {
+  gnss_signal_t sid_check;
+  bool any_gps_exclusion = false;
+  for (u8 i = GPS_FIRST_PRN; i < NUM_SATS_GPS; i++) {
+    sid_check = construct_sid(CODE_GPS_L1CA, i);
+    if (sid_set_contains(sids, sid_check)) {
+      any_gps_exclusion = true;
+      break;
+    }
+  }
+  bool any_gal_exclusion = false;
+  for (u8 i = GAL_FIRST_PRN; i < NUM_SATS_GAL; i++) {
+    sid_check = construct_sid(CODE_GAL_E1B, i);
+    if (sid_set_contains(sids, sid_check)) {
+      any_gal_exclusion = true;
+      break;
+    }
+  }
+  return any_gps_exclusion || any_gal_exclusion;
+}
+
 /* Apply corrections and solve for position from the given navigation
  * measurements, and if succesful update LGF and clock model */
 static s8 me_compute_pvt(const obs_array_t *obs_array,
@@ -480,15 +502,13 @@ static s8 me_compute_pvt(const obs_array_t *obs_array,
                          last_good_fix_t *lgf,
                          gnss_sid_set_t *raim_sids,
                          gnss_sid_set_t *raim_removed_sids) {
-  u8 n_ready = obs_array->n;
+  u8 n_ready = obs_array->n; /* asserted elsewhere to be < MAX_CHANNELS */
   sid_set_init(raim_sids);
-  bool any_glo_obs = false; /* at least one GLO observation */
-  bool all_glo_obs = true;  /* all observations are GLO */
+  bool all_glo_obs = true; /* all observations are GLO */
   for (u8 i = 0; i < n_ready; i++) {
-    if (IS_GLO(obs_array->observations[i].sid)) {
-      any_glo_obs = true;
-    } else {
+    if (!IS_GLO(obs_array->observations[i].sid)) {
       all_glo_obs = false;
+      break;
     }
     sid_set_add(raim_sids, obs_array->observations[i].sid);
   }
@@ -610,11 +630,12 @@ static s8 me_compute_pvt(const obs_array_t *obs_array,
   }
 
   if (lgf->position_quality <= POSITION_GUESS) {
+    bool vip_exclusions = vip_sids_exist(raim_removed_sids);
     /* This was the first fix. If GLO observations were involved, require RAIM
-     * to pass without exclusions (if it is enabled). This is to protect against
-     * the case where initial leap second value is incorrect and GLO majority
-     * votes out the correct non-GLO observations. */
-    if (!disable_raim && (PVT_CONVERGED_RAIM_OK != pvt_ret) && any_glo_obs) {
+     * (if it is enabled) to pass without GPS or GAL exclusions. This is to
+     * protect against the case where initial leap second value is incorrect and
+     * GLO majority votes out the correct non-GLO observations. */
+    if (!disable_raim && (PVT_CONVERGED_RAIM_OK != pvt_ret) && vip_exclusions) {
       log_info("Discarding first fix because of RAIM exclusions");
       *raim_removed_sids = *raim_sids;
       return PVT_INSUFFICENT_MEAS;
