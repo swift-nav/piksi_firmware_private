@@ -19,6 +19,7 @@ static const ephemeris_t ref_eph = {
     BDS_FIT_INTERVAL_SECONDS, /* fit_interval [s] */
     1,                        /* valid */
     0,                        /* health_bits */
+    0,                        /* source */
     {{.tgd = {{0}},           /* kepler.tgd */
       -3.47640625000E+02,     /* kepler.crc */
       -1.20656250000E+02,     /* kepler.crs */
