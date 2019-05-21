@@ -363,6 +363,9 @@ static void serve_nap_request(tracker_t *tracker) {
  * \param c0              Channel offset.
  */
 void trackers_update(u32 channels_mask, const u8 c0) {
+  if (c0 >= ME_CHANNELS) {
+    return;
+  }
   tracker_t *pt_tracker = tracker_get(c0);
   for (u8 ci = c0; channels_mask && (ci < ME_CHANNELS); ci++) {
     bool update_required = (channels_mask & 1) ? true : false;
