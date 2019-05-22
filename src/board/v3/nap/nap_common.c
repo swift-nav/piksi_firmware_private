@@ -79,7 +79,7 @@ u64 nap_timing_count(void) {
   u32 count = nap_timing_count_low();
 
   if (count < prev_count) {
-    log_info("NAP rollover: new %" PRIu32 " old: %" PRIu32, count, prev_count);
+    log_debug("NAP rollover: new %" PRIu32 " old: %" PRIu32, count, prev_count);
     rollover_count++;
   }
 
