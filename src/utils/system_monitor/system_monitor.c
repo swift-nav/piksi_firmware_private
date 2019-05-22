@@ -228,10 +228,30 @@ static void watchdog_thread(void *arg) {
 
   if (use_wdt) wdgStart(&WDGD1, &board_wdg_config);
 
+  static const u64 tc_thres_lo =
+      (((WATCHDOG_THREAD_PERIOD_MS / 1000) - 1) * NAP_TIMING_COUNT_RATE_Hz);
+  static const u64 tc_thres_hi =
+      (((WATCHDOG_THREAD_PERIOD_MS / 1000) + 1) * NAP_TIMING_COUNT_RATE_Hz);
+  u64 tc_prev = nap_timing_count();
   while (TRUE) {
     /* Wait for all threads to set a flag indicating they are still
        alive and performing their function */
     chThdSleepMilliseconds(WATCHDOG_THREAD_PERIOD_MS);
+
+    u64 tc_now = nap_timing_count();
+    u64 tc_diff = tc_now - tc_prev;
+    tc_prev = tc_now;
+    bool tc_failure = false;
+    if ((tc_diff < tc_thres_lo) || (tc_diff > tc_thres_hi)) {
+      tc_failure = true;
+    }
+    if (tc_failure) {
+      log_error(
+          "NAP timing mismatch of %.1f seconds. "
+          "Watchdog reset %s.",
+          tc_diff * RX_DT_NOMINAL,
+          use_wdt ? "imminent" : "disabled");
+    }
 
     chSysLock();
     u32 threads_dead = watchdog_notify_flags ^ watchdog_watch_mask;
@@ -239,13 +259,16 @@ static void watchdog_thread(void *arg) {
     chSysUnlock();
 
     if (threads_dead) {
-      /* TODO: ChibiOS thread state dump */
-      declare_panic();
       log_error(
           "One or more threads appear to be dead: 0x%08X. "
           "Watchdog reset %s.",
           (unsigned int)threads_dead,
           use_wdt ? "imminent" : "disabled");
+    }
+
+    if (threads_dead || tc_failure) {
+      /* TODO: ChibiOS thread state dump */
+      declare_panic();
       debug_threads();
       if (use_wdt) {
         panic_dead_thread(threads_dead);
