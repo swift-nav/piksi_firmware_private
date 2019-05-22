@@ -54,6 +54,9 @@
 /** Minimum number of satellites to use with PVT */
 #define MINIMUM_SV_COUNT 5
 
+/** Require at least some non-Glonass observations in the first fix */
+#define MIN_NON_GLO_OBS_IN_FIRST_FIX 3
+
 /* Maximum time to maintain POSITION_FIX after last successful solution */
 #define POSITION_FIX_TIMEOUT_S 60
 
@@ -482,12 +485,9 @@ static s8 me_compute_pvt(const obs_array_t *obs_array,
                          gnss_sid_set_t *raim_removed_sids) {
   u8 n_ready = obs_array->n;
   sid_set_init(raim_sids);
-  bool any_glo_obs = false; /* at least one GLO observation */
-  bool all_glo_obs = true;  /* all observations are GLO */
+  bool all_glo_obs = true; /* all observations are GLO */
   for (u8 i = 0; i < n_ready; i++) {
-    if (IS_GLO(obs_array->observations[i].sid)) {
-      any_glo_obs = true;
-    } else {
+    if (!IS_GLO(obs_array->observations[i].sid)) {
       all_glo_obs = false;
     }
     sid_set_add(raim_sids, obs_array->observations[i].sid);
@@ -591,6 +591,7 @@ static s8 me_compute_pvt(const obs_array_t *obs_array,
     return pvt_ret;
   }
 
+  u8 num_non_glo_obs = 0;
   if (pvt_ret == PVT_CONVERGED_NO_RAIM) {
     /* no signals went through RAIM */
     sid_set_init(raim_sids);
@@ -605,16 +606,20 @@ static s8 me_compute_pvt(const obs_array_t *obs_array,
                            nav_meas[i].pseudorange,
                            nav_meas[i].sat_pos,
                            &current_fix);
+      } else if (!IS_GLO(nav_meas[i].sid)) {
+        /* count the verified non-Glonass observations */
+        num_non_glo_obs++;
       }
     }
   }
 
   if (lgf->position_quality <= POSITION_GUESS) {
-    /* This was the first fix. If GLO observations were involved, require RAIM
-     * to pass without exclusions (if it is enabled). This is to protect against
-     * the case where initial leap second value is incorrect and GLO majority
-     * votes out the correct non-GLO observations. */
-    if (!disable_raim && (PVT_CONVERGED_RAIM_OK != pvt_ret) && any_glo_obs) {
+    /* This was the first fix. If RAIM went off, require at least a couple of
+     * valid non-Glonass observations. This is to protect against the case where
+     * initial leap second value is incorrect and GLO majority votes out the
+     * correct non-GLO observations. */
+    if (!disable_raim && (PVT_CONVERGED_RAIM_OK != pvt_ret) &&
+        num_non_glo_obs < MIN_NON_GLO_OBS_IN_FIRST_FIX) {
       log_info("Discarding first fix because of RAIM exclusions");
       *raim_removed_sids = *raim_sids;
       return PVT_INSUFFICENT_MEAS;
