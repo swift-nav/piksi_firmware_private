@@ -8,7 +8,7 @@
 
 - name: Download and unpack gcc-arm utilities.
   unarchive:
-    src: https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/6-2017q2/gcc-arm-none-eabi-6-2017-q2-update-linux.tar.bz2
+    src: https://github.com/swift-nav/swift-toolchains/releases/download/pfwp/gcc-arm-none-eabi-6-2017-q2-update-linux.tar.bz2
     remote_src: yes
     dest: ~/gcc-arm-none-eabi
     extra_opts: '--strip-components=1'
