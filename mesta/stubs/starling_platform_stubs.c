@@ -98,7 +98,7 @@ static int stub_sem_wait(platform_sem_t *sem) {
   return 0;
 }
 
-static int stub_sem_wait_timeout(platform_sem_t *sem, unsigned long millis) {
+static int stub_sem_wait_timeout(platform_sem_t *sem, uint32_t millis) {
   (void)sem;
   (void)millis;
   return 0;
