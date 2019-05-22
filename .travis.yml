@@ -86,9 +86,9 @@ install:
     elif [[ "$TESTENV" == "mesta" ]]; then
       echo "mesta";
     elif [[ "$TRAVIS_EVENT_TYPE" == "cron" ]]; then
-      ANSIBLE_SUDO_OPTION="" bash setup.sh -s origin/master -x install;
+      ANSIBLE_SUDO_OPTION="" travis_wait ./setup.sh -s origin/master -x install;
     else
-      ANSIBLE_SUDO_OPTION="" bash setup.sh -x install;
+      ANSIBLE_SUDO_OPTION="" travis_wait ./setup.sh -x install;
     fi
 
 script:
