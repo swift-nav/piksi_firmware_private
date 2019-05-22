@@ -39,23 +39,18 @@ static int find_nontracked_sat(code_t code, u32 msk) {
 
   for (unsigned i = 0; i < sig_count; i++) {
     if (0 == (msk & (1u << i))) {
-      return i + 1;
+      return i + code_to_sat_start(code);
     }
   }
   return -1;
 }
 
 static void start_noise_estimation(void) {
-  static const code_t used_codes[] = {CODE_GPS_L1CA,
-                                      CODE_GPS_L2CM,
-                                      CODE_GLO_L1OF,
-                                      CODE_GLO_L2OF,
-                                      CODE_GAL_E1B,
-                                      CODE_GAL_E7I,
-                                      CODE_BDS2_B1,
-                                      CODE_BDS2_B2};
-  for (int i = 0; i < (int)ARRAY_SIZE(used_codes); i++) {
-    code_t code = used_codes[i];
+  for (code_t code = 0; code < CODE_COUNT; code++) {
+    if (!code_supported(code)) {
+      continue;
+    }
+
     lock();
     u32 msk_all = mask_all[code];
     u32 msk_noise = mask_noise[code];
