@@ -105,7 +105,7 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
 
   /** Check if the last grabbed signal snapshot isn't too old.
    * If yes, simply grab another one */
-  u32 curr_timetag = NAP->TIMING_COUNT;
+  u32 curr_timetag = nap_timing_count_low();
   if ((last_timetag == 0) ||
       ((curr_timetag - last_timetag) > FAU_MAX_AGE_SAMP)) {
     /** GRAB!!! */
