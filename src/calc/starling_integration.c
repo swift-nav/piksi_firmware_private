@@ -190,6 +190,9 @@ static void send_low_latency_messages(const gps_time_t *time_of_solution,
    * In "LOW-LATENCY" mode, all of this is moot.
    */
   chMtxLock(&last_sbp_lock);
+  if (!gps_time_valid(&last_sbp_dgnss)) {
+    last_sbp_dgnss = *time_of_solution;
+  }
   const gps_time_t last_dgnss_time = last_sbp_dgnss;
   chMtxUnlock(&last_sbp_lock);
   const double elapsed_time_sec =
@@ -582,9 +585,15 @@ void handle_solution_time_matched(const StarlingFilterSolution *solution,
    * have been set while making the baseline SBP messages. We check
    * this value to make sure it occurs after the most recent low latency
    * output.
+   *
+   * If either of the timestamps are invalid treat it as if this message
+   * after a previous low latency message. This will only occur with the
+   * first mesage.
    */
   chMtxLock(&last_sbp_lock);
   const bool is_after_last_low_latency =
+      !gps_time_valid(&last_sbp_dgnss) ||
+      !gps_time_valid(&last_sbp_low_latency) ||
       gpsdifftime(&last_sbp_dgnss, &last_sbp_low_latency) > 0.;
   chMtxUnlock(&last_sbp_lock);
   if (is_after_last_low_latency) {
