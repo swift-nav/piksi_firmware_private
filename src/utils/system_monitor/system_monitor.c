@@ -229,9 +229,9 @@ static void watchdog_thread(void *arg) {
   if (use_wdt) wdgStart(&WDGD1, &board_wdg_config);
 
   static const u64 tc_thres_lo =
-      (((WATCHDOG_THREAD_PERIOD_MS / 1000) - 1) * NAP_TIMING_COUNT_RATE_Hz);
+      (((WATCHDOG_THREAD_PERIOD_MS / 1000) - 1) * NAP_TRACK_SAMPLE_RATE_Hz);
   static const u64 tc_thres_hi =
-      (((WATCHDOG_THREAD_PERIOD_MS / 1000) + 1) * NAP_TIMING_COUNT_RATE_Hz);
+      (((WATCHDOG_THREAD_PERIOD_MS / 1000) + 1) * NAP_TRACK_SAMPLE_RATE_Hz);
   u64 tc_prev = nap_timing_count();
   while (TRUE) {
     /* Wait for all threads to set a flag indicating they are still
