@@ -208,6 +208,11 @@ void set_time(u64 tc, const gps_time_t *t, double accuracy) {
   sol.clock_drift = NOMINAL_CLOCK_DRIFT;
   sol.clock_drift_var = NOMINAL_CLOCK_DRIFT_VAR;
 
+  /* invalidate internal time */
+  chMtxLock(&clock_mutex);
+  persistent_clock_state.t_gps = GPS_TIME_UNKNOWN;
+  chMtxUnlock(&clock_mutex);
+
   update_time(tc, &sol);
 }
 

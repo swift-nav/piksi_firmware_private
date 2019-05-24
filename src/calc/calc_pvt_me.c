@@ -54,6 +54,9 @@
 /** Minimum number of satellites to use with PVT */
 #define MINIMUM_SV_COUNT 5
 
+/** Reset ME clock after a long run of failed RAIM repairs */
+#define MAX_FAILED_RAIM_REPAIRS 10
+
 /* Maximum time to maintain POSITION_FIX after last successful solution */
 #define POSITION_FIX_TIMEOUT_S 60
 
@@ -545,6 +548,7 @@ static s8 me_compute_pvt(const obs_array_t *obs_array,
                         &dops,
                         raim_removed_sids);
 
+  static u8 failed_raim_repairs = 0;
   if (pvt_ret < 0) {
     /* An error occurred with calc_PVT! */
     /* pvt_err_msg defined in starling/pvt.c */
@@ -554,6 +558,17 @@ static s8 me_compute_pvt(const obs_array_t *obs_array,
         log_warn(
             "PVT solver: %s (code %d)", pvt_err_msg[-pvt_ret - 1], pvt_ret));
 
+    if (PVT_RAIM_REPAIR_FAILED == pvt_ret &&
+        ++failed_raim_repairs >= MAX_FAILED_RAIM_REPAIRS) {
+      /* reinitializet the clock filter after a long run of failed RAIM repairs
+       */
+      log_error("Reinitializing ME time after %d unsuccessful RAIM attempts",
+                failed_raim_repairs);
+      gps_time_t t0 = {.tow = 0, .wn = 0};
+      set_time(0, &t0, 2e9);
+      failed_raim_repairs = 0;
+    }
+
     /* If we already had a good fix, degrade its quality to STATIC */
     if (lgf->position_quality > POSITION_STATIC) {
       lgf->position_quality = POSITION_STATIC;
@@ -562,6 +577,7 @@ static s8 me_compute_pvt(const obs_array_t *obs_array,
     *raim_removed_sids = *raim_sids;
     return pvt_ret;
   }
+  failed_raim_repairs = 0;
 
   if (pvt_ret == PVT_CONVERGED_NO_RAIM) {
     /* no signals went through RAIM */
