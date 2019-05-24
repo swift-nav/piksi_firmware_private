@@ -130,7 +130,7 @@ $(STARLING_BUILDDIR)/Makefile:
     mkdir -p $(STARLING_BUILDDIR); cd $(STARLING_BUILDDIR); \
     cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
           -DCMAKE_TOOLCHAIN_FILE=../../piksi-toolchain.cmake \
-          -DMAX_CHANNELS=79 \
+          -DMAX_CHANNELS=73 \
           $(CMAKEFLAGS) ../
 
 $(OPENAMP_BUILDDIR)/lib/libopen-amp.a:
