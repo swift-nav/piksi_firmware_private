@@ -618,7 +618,10 @@ bool mesid_valid(const me_gnss_signal_t mesid) {
  * \return Code-specific signal index in [0, SIGNAL_COUNT_\<code\>).
  */
 u16 mesid_to_code_index(const me_gnss_signal_t mesid) {
-  assert(mesid_valid(mesid));
+  if (!mesid_valid(mesid)) {
+    log_error_mesid(mesid, "is invalid");
+    assert(0);
+  }
   constellation_t cons = code_to_constellation(mesid.code);
   u16 sat_start = constellation_table[cons].sat_start;
   return mesid.sat - sat_start;
