@@ -122,11 +122,17 @@ bool time_updated_within(gps_time_t *current_time, float timeout) {
  * This function uses the PVT solution to update the model relating receiver
  * internal clock with GPS time.
  *
+ * \param tc SwiftNAP timing count.
+ * \param sol Pointer to the solution structure corresponding to measurements
+ * taken at tc.
+ *
+ * \return true if time update was successful, false if it broke
+ * sanity checks
  */
-void update_time(u64 tc, const gnss_solution *sol) {
+bool update_time(u64 tc, const gnss_solution *sol) {
   if (!sol->valid) {
     log_warn("Tried to adjust clock with invalid solution");
-    return;
+    return false;
   }
 
   chMtxLock(&clock_mutex);
@@ -156,12 +162,12 @@ void update_time(u64 tc, const gnss_solution *sol) {
     persistent_clock_state = clock_state;
     chMtxUnlock(&clock_mutex);
 
-    return;
+    return true;
   }
 
   if (gpsdifftime(&sol->time, &clock_state.t_gps) < 0) {
     log_warn("Tried to update time with an old solution");
-    return;
+    return false;
   }
 
   /* propagate the previous clock state estimate to current epoch tc */
@@ -183,6 +189,7 @@ void update_time(u64 tc, const gnss_solution *sol) {
   /* finally log the updated time quality */
   time_quality_t new_quality = clock_var_to_time_quality(clock_state.P[0][0]);
   log_time_quality(new_quality);
+  return true;
 }
 
 /** Set/initialize clock model with coarse time from ephemeris or peer. If

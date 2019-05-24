@@ -54,8 +54,8 @@
 /** Minimum number of satellites to use with PVT */
 #define MINIMUM_SV_COUNT 5
 
-/** Reset ME clock after a long run of failed RAIM repairs */
-#define MAX_FAILED_RAIM_REPAIRS 10
+/** Reset ME clock after a run of failed sanity events */
+#define MAX_CLOCK_SANITY_FAILURES 10
 
 /* Maximum time to maintain POSITION_FIX after last successful solution */
 #define POSITION_FIX_TIMEOUT_S 60
@@ -81,6 +81,35 @@ s16 msg_obs_max_size = SBP_FRAMING_MAX_PAYLOAD_SIZE;
 static soln_stats_t last_stats = {.signals_tracked = 0, .signals_useable = 0};
 
 /* STATIC FUNCTIONS */
+
+static void clock_sanity(bool is_sane, last_good_fix_t *lgf) {
+  static int clock_sanity_counter = 0;
+  if (is_sane) {
+    clock_sanity_counter = 0;
+    return;
+  }
+  if (++clock_sanity_counter >= MAX_CLOCK_SANITY_FAILURES) {
+    log_error("Reinitializing ME after %d clock sanity events",
+              clock_sanity_counter);
+
+    /* drop all channels because their TOW caches are already tainted */
+    tracker_drop_all_channels();
+
+    /* reinitialize ME clock filter to unknown */
+    gps_time_t t0 = {.tow = 0, .wn = 0};
+    set_time(0, &t0, 2e9);
+
+    if (NULL != lgf) {
+      lgf->position_solution.valid = false;
+      lgf->position_solution.time = GPS_TIME_UNKNOWN;
+      lgf->position_quality = POSITION_UNKNOWN;
+    }
+
+    starling_reset_time_matched_filter();
+
+    clock_sanity_counter = 0;
+  }
+}
 
 /** This function takes ownership of `obs_array`, and passes ownership
  *  of it to `starling_send_rover_obs()` */
@@ -548,7 +577,6 @@ static s8 me_compute_pvt(const obs_array_t *obs_array,
                         &dops,
                         raim_removed_sids);
 
-  static u8 failed_raim_repairs = 0;
   if (pvt_ret < 0) {
     /* An error occurred with calc_PVT! */
     /* pvt_err_msg defined in starling/pvt.c */
@@ -558,15 +586,8 @@ static s8 me_compute_pvt(const obs_array_t *obs_array,
         log_warn(
             "PVT solver: %s (code %d)", pvt_err_msg[-pvt_ret - 1], pvt_ret));
 
-    if (PVT_RAIM_REPAIR_FAILED == pvt_ret &&
-        ++failed_raim_repairs >= MAX_FAILED_RAIM_REPAIRS) {
-      /* reinitializet the clock filter after a long run of failed RAIM repairs
-       */
-      log_error("Reinitializing ME time after %d unsuccessful RAIM attempts",
-                failed_raim_repairs);
-      gps_time_t t0 = {.tow = 0, .wn = 0};
-      set_time(0, &t0, 2e9);
-      failed_raim_repairs = 0;
+    if (PVT_RAIM_REPAIR_FAILED == pvt_ret) {
+      clock_sanity(false, lgf);
     }
 
     /* If we already had a good fix, degrade its quality to STATIC */
@@ -577,7 +598,6 @@ static s8 me_compute_pvt(const obs_array_t *obs_array,
     *raim_removed_sids = *raim_sids;
     return pvt_ret;
   }
-  failed_raim_repairs = 0;
 
   if (pvt_ret == PVT_CONVERGED_NO_RAIM) {
     /* no signals went through RAIM */
@@ -615,7 +635,15 @@ static s8 me_compute_pvt(const obs_array_t *obs_array,
   }
 
   /* Update the relationship between the solved GPS time and NAP count */
-  update_time(current_tc, &current_fix);
+  bool succ = update_time(current_tc, &current_fix);
+
+  /* reset the clock sanity counter */
+  if (!succ) {
+    clock_sanity(false, lgf);
+    return PVT_RAIM_REPAIR_FAILED;
+  }
+
+  clock_sanity(true, NULL);
 
   /* Update global position solution state. */
   lgf->position_solution = current_fix;
@@ -749,6 +777,7 @@ static void me_calc_pvt_thread(void *arg) {
             output_time.tow,
             lgf.position_solution.time.wn,
             lgf.position_solution.time.tow);
+        clock_sanity(false, &lgf);
         continue;
       }
 

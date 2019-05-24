@@ -127,6 +127,26 @@ void tracker_set_leap_second_flag(void) {
 }
 
 /**
+ * Drop all active channels on clock sanity event
+ */
+void tracker_drop_all_channels(void) {
+  for (u8 i = 0; i < ME_CHANNELS; i++) {
+    tracker_t *tracker = tracker_get(i);
+
+    tracker_lock(tracker);
+    /* Skip inactive channels */
+    if (0 == (tracker->flags & TRACKER_FLAG_ACTIVE)) {
+      tracker_unlock(tracker);
+      continue;
+    }
+
+    tracker_flag_drop(tracker, CH_DROP_REASON_RAIM);
+
+    tracker_unlock(tracker);
+  }
+}
+
+/**
  * Sets cross-correlation flag to a channel with a given ME signal identifier
  *
  * \param[in] mesid ME signal identifier for channel to set cross-correlation

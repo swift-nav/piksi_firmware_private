@@ -32,7 +32,7 @@ void timing_setup(void);
 bool time_updated_within(gps_time_t* current_time, float timeout);
 gps_time_t get_current_time(void);
 void set_time(u64 tc, const gps_time_t* t, double accuracy);
-void update_time(u64 tc, const gnss_solution* sol);
+bool update_time(u64 tc, const gnss_solution* sol);
 time_quality_t get_time_quality(void);
 gps_time_t napcount2gpstime(double tc);
 u64 gpstime2napcount(const gps_time_t* t);
