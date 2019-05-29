@@ -59,6 +59,7 @@ matrix:
       env: GCCVER=6
 
 before_install:
+  - apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 6B05F25D762E3157
   - test -n $CC && unset CC
   - test -n $CXX && unset CXX
   - ./scripts/ci/check_for_s3_cred.sh || travis_terminate 1
