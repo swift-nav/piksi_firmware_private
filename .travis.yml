@@ -59,6 +59,10 @@ matrix:
       env: GCCVER=6
 
 before_install:
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+      ls /etc/apt/sources.list.d/*.list;
+      sudo rm -fv /etc/apt/sources.list.d/*chrome*.list;
+    fi
   - test -n $CC && unset CC
   - test -n $CXX && unset CXX
   - ./scripts/ci/check_for_s3_cred.sh || travis_terminate 1
