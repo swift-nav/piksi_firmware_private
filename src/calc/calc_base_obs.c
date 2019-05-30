@@ -140,6 +140,19 @@ static bool is_final_message_in_obs_sequence(u8 count, u8 total) {
   return count == total - 1;
 }
 
+/* Returns minimum intervals between to received observations, depending
+ * on the Starling solution mode.
+ */
+static double tor_interval_limit(void) {
+  dgnss_solution_mode_t mode = starling_get_solution_mode();
+  if (mode == STARLING_SOLN_MODE_LOW_LATENCY) {
+    return TOR_THRESHOLD_SOLN_MODE_LOW_LATENCY;
+  } else if (mode == STARLING_SOLN_MODE_TIME_MATCHED) {
+    return TOR_THRESHOLD_SOLN_MODE_TIMEMATCHED;
+  }
+  return 0.0;
+}
+
 /** Update the #base_obss state given a new set of obss.
  * First sorts by PRN and computes the TDCP Doppler for the observation set. If
  * #base_pos_known is false then a single point position solution is also
@@ -230,7 +243,8 @@ static void generic_obs_callback(
    * when receiving a new sequence of observations. */
   static gps_time_t tor_old = GPS_TIME_UNKNOWN;
   if (is_first_message_in_obs_sequence(count)) {
-    if (gps_time_valid(&tor_old) && gpsdifftime(&tor, &tor_old) <= 0) {
+    if (gps_time_valid(&tor_old) &&
+        gpsdifftime(&tor, &tor_old) <= tor_interval_limit()) {
       log_info(
           "Observation received with equal or earlier time stamp, ignoring");
       return;

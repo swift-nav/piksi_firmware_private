@@ -29,6 +29,12 @@
  */
 #define BASE_STATION_RESET_THRESHOLD 1000.0
 
+/* Minimum interval between two received observations in seconds.
+ * Intermediate messages are discarded.
+ */
+#define TOR_THRESHOLD_SOLN_MODE_LOW_LATENCY 0.15
+#define TOR_THRESHOLD_SOLN_MODE_TIMEMATCHED 0.95
+
 /* \} */
 
 extern bool base_pos_known;
