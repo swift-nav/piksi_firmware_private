@@ -61,7 +61,7 @@ matrix:
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
       ls /etc/apt/sources.list.d/*.list;
-      rm -v /etc/apt/sources.list.d/*chrome*.list;
+      rm -fv /etc/apt/sources.list.d/*chrome*.list;
     fi
   - test -n $CC && unset CC
   - test -n $CXX && unset CXX
