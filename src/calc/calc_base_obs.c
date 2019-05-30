@@ -152,7 +152,8 @@ static double tor_interval_limit(void) {
   dgnss_solution_mode_t mode = starling_get_solution_mode();
   if (mode == STARLING_SOLN_MODE_LOW_LATENCY) {
     return TOR_THRESHOLD_SOLN_MODE_LOW_LATENCY;
-  } else if (mode == STARLING_SOLN_MODE_TIME_MATCHED) {
+  }
+  if (mode == STARLING_SOLN_MODE_TIME_MATCHED) {
     return TOR_THRESHOLD_SOLN_MODE_TIMEMATCHED;
   }
   return 0.0;
