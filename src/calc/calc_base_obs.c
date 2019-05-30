@@ -47,8 +47,8 @@
 /* Minimum interval between two received observations in seconds.
  * Intermediate messages are discarded.
  */
-#define TOR_THRESHOLD_SOLN_MODE_LOW_LATENCY 0.15
-#define TOR_THRESHOLD_SOLN_MODE_TIMEMATCHED 0.95
+#define TOR_THRESHOLD_SOLN_MODE_LOW_LATENCY 0.95
+#define TOR_THRESHOLD_SOLN_MODE_TIMEMATCHED 0.15
 
 /** \defgroup base_obs Base station observation handling
  * \{ */
@@ -237,25 +237,36 @@ static void generic_obs_callback(
   }
 
   /* Check that the base station's messages align well enough to our local
-   * processing epochs - this will discard *.[123456789]00 if nav is at 1 Hz */
+   * processing epochs - this will discard *.[1-9]00 if nav is at 1 Hz */
   if (!is_time_aligned_to_local_epoch(&tor)) {
     if (is_first_message_in_obs_sequence(count)) {
-      log_info("Unaligned observation from base ignored, tow = %.3f,", tor.tow);
+      log_info("Unaligned observation from base ignored, tow = %.3f", tor.tow);
     }
     return;
   }
 
-  /* Check that messages are in chronological order. We only perform this check
-   * when receiving a new sequence of observations. */
+  /* Check that messages are in chronological order and not too close in time */
   static gps_time_t tor_old = GPS_TIME_UNKNOWN;
-  if (is_first_message_in_obs_sequence(count)) {
-    if (gps_time_valid(&tor_old) &&
-        gpsdifftime(&tor, &tor_old) <= tor_interval_limit()) {
-      log_info("Discarding invalid rate base observation, tow = %.3f", tor.tow);
+  if (gps_time_valid(&tor_old)) {
+    double tor_diff = gpsdifftime(&tor, &tor_old);
+    bool same_epoch = (fabs(tor_diff) < FLOAT_EQUALITY_EPS);
+    bool too_early = (tor_diff <= tor_interval_limit());
+    /* if too close in time skip this message */
+    if (!same_epoch && too_early) {
+      /* only log at the first message of each epoch */
+      if (is_first_message_in_obs_sequence(count)) {
+        log_info("Discarding excessive rate base observation, tow = %.3f",
+                 tor.tow);
+      }
       return;
     }
+    /* enough time has lapsed, update `tor_old` on the first message */
+    if (is_first_message_in_obs_sequence(count)) {
+      tor_old = tor;
+    }
+  } else {
+    tor_old = tor;
   }
-  tor_old = tor;
 
   /* Keep track of where in the sequence of messages we were last time around
    * so we can verify we haven't dropped a message. */
