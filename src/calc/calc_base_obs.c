@@ -44,6 +44,12 @@
 #include "starling_integration.h"
 #include "timing/timing.h"
 
+/* Minimum interval between two received observations in seconds.
+ * Intermediate messages are discarded.
+ */
+#define TOR_THRESHOLD_SOLN_MODE_LOW_LATENCY 0.95
+#define TOR_THRESHOLD_SOLN_MODE_TIMEMATCHED 0.15
+
 /** \defgroup base_obs Base station observation handling
  * \{ */
 
@@ -124,8 +130,7 @@ static void base_glonass_biases_callback(u16 sender_id,
 /* Check that a given time is aligned (within some tolerance) to the
  * local solution epoch. */
 static bool is_time_aligned_to_local_epoch(const gps_time_t *t) {
-  gps_time_t epoch =
-      gps_time_round_to_epoch(t, soln_freq_setting / obs_output_divisor);
+  gps_time_t epoch = gps_time_round_to_epoch(t, soln_freq_setting);
   double dt = gpsdifftime(&epoch, t);
   return (fabs(dt) <= TIME_MATCH_THRESHOLD);
 }
@@ -198,12 +203,6 @@ static void generic_obs_callback(
     u16 sender_id, u8 len, u8 msg[], void *context, unpack_all_f unpack) {
   (void)context;
 
-  /* Keep track of where in the sequence of messages we were last time around
-   * so we can verify we haven't dropped a message. */
-  static s16 prev_count = 0;
-  static gps_time_t prev_tor = GPS_TIME_UNKNOWN;
-  static obs_array_t *obs_array = NULL;
-
   /* An SBP sender ID of zero means that the messages are relayed observations
    * from the console, not from the base station. We don't want to use them and
    * we don't want to create an infinite loop by forwarding them again so just
@@ -231,40 +230,48 @@ static void generic_obs_callback(
    * we are. */
   unpack_obs_header((observation_header_t *)msg, &tor, &total, &count);
 
-  /* Check to see if the observation is aligned with our internal observations,
-   * i.e. is it going to time match one of our local obs. */
   /* if tor is invalid this obs message was sent before a time was solved, so we
    * should ignore */
   if (!gps_time_valid(&tor)) {
     return;
   }
 
-  /* Check that messages are in chronological order. We only perform this check
-   * when receiving a new sequence of observations. */
-  static gps_time_t tor_old = GPS_TIME_UNKNOWN;
-  if (is_first_message_in_obs_sequence(count)) {
-    if (gps_time_valid(&tor_old) &&
-        gpsdifftime(&tor, &tor_old) <= tor_interval_limit()) {
-      log_info(
-          "Observation received with equal or earlier time stamp, ignoring");
-      return;
-    }
-  }
-  tor_old = tor;
-
   /* Check that the base station's messages align well enough to our local
-   * processing epochs. */
+   * processing epochs - this will discard *.[1-9]00 if nav is at 1 Hz */
   if (!is_time_aligned_to_local_epoch(&tor)) {
     if (is_first_message_in_obs_sequence(count)) {
-      log_warn(
-          "Unaligned observation from base ignored, tow = %.3f,"
-          " Base station observation rate and solution"
-          " frequency may be mismatched.",
-          tor.tow);
+      log_info("Unaligned observation from base ignored, tow = %.3f", tor.tow);
     }
     return;
   }
 
+  /* Check that messages are in chronological order and not too close in time */
+  static gps_time_t tor_old = GPS_TIME_UNKNOWN;
+  if (gps_time_valid(&tor_old)) {
+    double tor_diff = gpsdifftime(&tor, &tor_old);
+    bool same_epoch = (fabs(tor_diff) < FLOAT_EQUALITY_EPS);
+    bool too_early = (tor_diff <= tor_interval_limit());
+    /* if too close in time skip this message */
+    if (!same_epoch && too_early) {
+      /* only log at the first message of each epoch */
+      if (is_first_message_in_obs_sequence(count)) {
+        log_info("Discarding excessive rate base observation, tow = %.3f",
+                 tor.tow);
+      }
+      return;
+    }
+    /* enough time has lapsed, update `tor_old` on the first message */
+    if (is_first_message_in_obs_sequence(count)) {
+      tor_old = tor;
+    }
+  } else {
+    tor_old = tor;
+  }
+
+  /* Keep track of where in the sequence of messages we were last time around
+   * so we can verify we haven't dropped a message. */
+  static s16 prev_count = 0;
+  static gps_time_t prev_tor = GPS_TIME_UNKNOWN;
   /* Verify sequence integrity */
   if (is_first_message_in_obs_sequence(count)) {
     prev_tor = tor;
@@ -278,6 +285,7 @@ static void generic_obs_callback(
     prev_count = count;
   }
 
+  static obs_array_t *obs_array = NULL;
   /* Make sure we have a valid array before operating on it */
   if (NULL == obs_array) {
     obs_array = starling_alloc_base_obs();
@@ -297,11 +305,6 @@ static void generic_obs_callback(
   obs_array->sender = sender_id;
 
   unpack(msg, len, obs_array);
-
-  /* Print msg if we encounter a remote which sends large amount of obs. */
-  if (STARLING_MAX_CHANNEL_COUNT == obs_array->n) {
-    log_info("Remote obs reached maximum: %d", STARLING_MAX_CHANNEL_COUNT);
-  }
 
   /* If we can, and all the obs have been received, update to using the new
    * obss. */
