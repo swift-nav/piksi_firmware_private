@@ -30,7 +30,7 @@ typedef struct {
   u8 cn0_ms;     /**< C/N0 estimator integration time */
   u8 lockdet_ms; /**< Lock detector integration time */
   float flld_ms; /**< FLL discriminator integration time */
-  float fpll_ms; /**< FLL & PLL discriminator integration time [ms] */
+  u8 fpll_ms;    /**< FLL & PLL discriminator integration time [ms] */
   u8 fpll_decim; /**< TPF_FPLL_RUN decimation factor
                       (0,1 - no decimation,
                       2 - every second etc) */
@@ -1032,8 +1032,7 @@ u8 tp_get_fpll_ms(tp_tm_e tracking_mode) {
 
   assert(NULL != tbl);
 
-  return (u8)tbl->fpll_ms; /* TODO should this be rounded on truncated? why
-                              isn't the profile length an integer? */
+  return tbl->fpll_ms;
 }
 
 /**
