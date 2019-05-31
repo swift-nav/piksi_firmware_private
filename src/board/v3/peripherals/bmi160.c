@@ -238,9 +238,9 @@ void bmi160_set_gyr_range(bmi160_gyr_range_t range) {
 /** Check if any new data is available from the sensors. */
 void bmi160_new_data_available(bool* new_acc, bool* new_gyro, bool* new_mag) {
   u8 status = bmi160_read_reg(BMI160_REG_STATUS);
-  *new_acc = status & BMI160_STATUS_ACC_RDY_Msk;
-  *new_gyro = status & BMI160_STATUS_GYRO_RDY_Msk;
-  *new_mag = status & BMI160_STATUS_MAG_RDY_Msk;
+  *new_acc = (0 != (status & BMI160_STATUS_ACC_RDY_Msk));
+  *new_gyro = (0 != (status & BMI160_STATUS_GYRO_RDY_Msk));
+  *new_mag = (0 != (status & BMI160_STATUS_MAG_RDY_Msk));
 }
 
 /** The following compensation functions are verbatim from Bosch BMM150 Driver

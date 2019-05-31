@@ -50,10 +50,10 @@ static u32 nap_tc;
 /* this lookuptable is used to translate enum values of imu_rate setting
  * to the period in seconds expected for this setting value */
 
-static const double BMI160_DT_LOOKUP[] = {0.04,   /* 25 Hz */
-                                          0.02,   /* 50 Hz */
-                                          0.01,   /* 100 Hz */
-                                          0.005}; /* 200 Hz */
+static const u8 BMI160_DT_LOOKUP_MS[] = {40, /* 25 Hz */
+                                         20, /* 50 Hz */
+                                         10, /* 100 Hz */
+                                         5}; /* 200 Hz */
 
 /* Settings */
 static u8 imu_rate = 2; /* 100 Hz */
@@ -128,7 +128,7 @@ static void imu_thread(void *arg) {
   s16 mag[3];
   u32 sensor_time;
   u32 p_sensor_time = 0;
-  double p_tow_ms = 0;
+  s32 p_tow_ms = 0;
   msg_imu_raw_t imu_raw;
   msg_mag_raw_t mag_raw;
 
@@ -173,10 +173,7 @@ static void imu_thread(void *arg) {
     }
 
     bool new_acc, new_gyro, new_mag;
-    double expected_dt, dt, dt_err_pcent; /* Timing instrumentation */
-    expected_dt = BMI160_DT_LOOKUP[imu_rate];
     bmi160_new_data_available(&new_acc, &new_gyro, &new_mag);
-
     if (new_acc != new_gyro && raw_imu_output) {
       log_warn("IMU interrupt without both accel and gyro ready: (%u, %u)",
                new_acc,
@@ -193,23 +190,27 @@ static void imu_thread(void *arg) {
 
     s16 *mag_ptr = (new_mag) ? mag : NULL;
     bmi160_get_data(acc, gyro, mag_ptr, &sensor_time);
+    /* doesn't `sensor_time` roll-over? */
+
+    s32 expected_dt_ms, dt_ms, dt_err_pcent; /* Timing instrumentation */
+    expected_dt_ms = BMI160_DT_LOOKUP_MS[imu_rate];
 
     /* Warn if dt error exceeds threshhold according to IMU. Ignore
        large errors since there is an undiagnosed discontinuity problem where
        the sensor_time register reads bogus information. The datasheet seems
        to imply that this register is shadowed.
     */
-
     if (raw_imu_output) {
-      dt = (sensor_time - p_sensor_time) * BMI160_SENSOR_TIME_TO_SECONDS;
-      dt_err_pcent = (fabs(dt - expected_dt) / expected_dt * 100.0);
+      dt_ms = (s32)(sensor_time - p_sensor_time) * BMI160_SENSOR_TIME_TO_MS;
+      dt_err_pcent = 100 * ABS(dt_ms - expected_dt_ms) / expected_dt_ms;
 
       if (!rate_change_in_progress &&
           dt_err_pcent > BMI160_DT_ERR_THRESH_PERCENT &&
           dt_err_pcent < BMI160_DT_ERR_MAX_PERCENT && p_sensor_time > 0) {
-        log_warn("Reported IMU sampling period of %.0f ms (expected %.0f) ",
-                 dt * 1000.0,
-                 expected_dt * 1000.0);
+        log_warn("Reported IMU sampling period of %" PRId32
+                 " ms (expected %" PRId32 ") ",
+                 dt_ms,
+                 expected_dt_ms);
         log_warn("IMU Error register: %u. IMU status register: %u",
                  bmi160_read_error(),
                  bmi160_read_status());
@@ -223,33 +224,35 @@ static void imu_thread(void *arg) {
     u32 tow;
     u8 tow_f;
     gps_time_t sample_time = GPS_TIME_UNKNOWN;
-    /* Recover the full 64 bit timing count from the 32 LSBs
-     * captured in the ISR. */
-    u64 tc = nap_sample_time_to_count(nap_tc);
 
     /* Calculate the GPS time of the observation, if possible. */
     if (get_time_quality() >= TIME_PROPAGATED) {
+      /* Recover the full 64 bit timing count from the 32 LSBs
+       * captured in the ISR. */
+      u64 full_tc = nap_sample_time_to_count(nap_tc);
+
       /* We know the GPS time to high accuracy, this allows us to convert a
        * timing count value into a GPS time. */
-      sample_time = napcount2gpstime(tc);
+      sample_time = napcount2gpstime(full_tc);
 
       /* Format the time of week as a fixed point value for the SBP message.
        */
-      double tow_ms = sample_time.tow * SECS_MS;
-      tow = (u32)tow_ms;
-      tow_f = (u8)lrint((tow_ms - tow) * 255);
-
+      s64 full_precision_tow_ms = sample_time.tow * SECS_MS * 256;
+      tow_f = (u8)(full_precision_tow_ms & 0xFF);
+      tow = (u32)(full_precision_tow_ms >> 8);
+      s32 tow_ms = (s32)tow;
       /* Warn if imu dt error exceeds threshhold according to our ME */
 
       if (raw_imu_output) {
-        dt = (tow_ms - p_tow_ms) / 1000.0;
-        dt_err_pcent = fabs(dt - expected_dt) / expected_dt * 100.0;
+        dt_ms = (tow_ms - p_tow_ms);
+        dt_err_pcent = 100 * ABS(dt_ms - expected_dt_ms) / expected_dt_ms;
 
         if (!rate_change_in_progress && p_tow_ms != 0 &&
             dt_err_pcent > BMI160_DT_ERR_THRESH_PERCENT) {
-          log_warn("Measured IMU sampling period of %.0f ms (expected %.0f ms)",
-                   dt * 1000.0,
-                   expected_dt * 1000.0);
+          log_warn("Measured IMU sampling period of %" PRId32
+                   " ms (expected %" PRId32 " ms)",
+                   dt_ms,
+                   expected_dt_ms);
           log_warn("IMU Error register: %u. IMU status register: %u",
                    bmi160_read_error(),
                    bmi160_read_status());
@@ -263,13 +266,13 @@ static void imu_thread(void *arg) {
         /* Warn if sensor read delay after ISR exceeds threshhold */
 
         u64 tc_now = nap_timing_count();
-        gps_time_t t_now = napcount2gpstime(tc_now);
-        dt = gpsdifftime(&t_now, &sample_time);
+        dt_ms = nap_count_to_ms(tc_now - full_tc);
         dt_err_pcent =
-            dt / expected_dt * 100.0; /* Delay's proportion of period */
+            100 * dt_ms / expected_dt_ms; /* Delay's proportion of period */
         if (dt_err_pcent > BMI160_READ_DELAY_THRESH_PERCENT) {
-          log_warn("IMU read delay of %.0f ms (%.0f %% of period)",
-                   dt * 1000.0,
+          log_warn("IMU read delay of %" PRId32 " ms (%" PRId32
+                   " %% of period)",
+                   dt_ms,
                    dt_err_pcent);
           log_warn("IMU Error register: %u. IMU status register: %u",
                    bmi160_read_error(),
