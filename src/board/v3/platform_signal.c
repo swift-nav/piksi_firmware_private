@@ -96,7 +96,7 @@ void platform_decode_setup(void) {
   decode_qzss_l1ca_register();
 #endif
 #if defined CODE_QZSS_L2C_SUPPORT && CODE_QZSS_L2C_SUPPORT > 0
-  decode_qzss_l2c_register();
+  /* decode_qzss_l2c_register(); */
 #endif
 #if defined CODE_BDS2_B1_SUPPORT && CODE_BDS2_B1_SUPPORT > 0
   decode_bds_b1_register();
