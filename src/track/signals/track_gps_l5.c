@@ -91,12 +91,12 @@ void do_l1ca_to_l5_handover(u32 sample_count,
       .mesid = mesid_L5,
       .sample_count = sample_count,
       /* recalculate doppler freq for L2 from L1 */
-      .doppler_hz = carrier_freq * GPS_L5_HZ / GPS_L1_HZ,
+      .doppler_hz = (float)(carrier_freq * GPS_L5_HZ / GPS_L1_HZ),
       .code_phase = fmod(code_phase * code_to_chip_rate(CODE_GPS_L5I) /
                              code_to_chip_rate(CODE_GPS_L1CA),
                          code_to_chip_count(CODE_GPS_L5I)),
       /* chips to correlate during first 1 ms of tracking */
-      .chips_to_correlate = code_to_chip_rate(CODE_GPS_L5I) * 1e-3,
+      .chips_to_correlate = (u32)round(code_to_chip_rate(CODE_GPS_L5I) * 1e-3),
       /* get initial cn0 from parent L1CA channel */
       .cn0_init = cn0_init};
 

@@ -110,7 +110,7 @@ static void tracker_glo_l1of_update(tracker_t *tracker) {
     /* Start GLO L2CA tracker if not running */
     do_glo_l1of_to_l2of_handover(tracker->sample_count,
                                  tracker->mesid.sat,
-                                 tracker->code_phase_prompt,
+                                 (float)tracker->code_phase_prompt,
                                  tracker->doppler_hz,
                                  tracker->cn0);
   }

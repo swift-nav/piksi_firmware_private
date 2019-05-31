@@ -1032,7 +1032,8 @@ u8 tp_get_fpll_ms(tp_tm_e tracking_mode) {
 
   assert(NULL != tbl);
 
-  return tbl->fpll_ms;
+  return (u8)tbl->fpll_ms; /* TODO should this be rounded on truncated? why
+                              isn't the profile length an integer? */
 }
 
 /**

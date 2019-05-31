@@ -80,7 +80,7 @@ static u32 calc_length_samples(u32 chips_to_correlate,
                                u32 code_pinc) {
   u64 cp_end_units = chips_to_correlate * NAP_TRACK_CODE_PHASE_UNITS_PER_CHIP;
   u64 cp_units = cp_end_units - (s32)cp_start_frac_units;
-  u32 samples = round(cp_units / (double)code_pinc);
+  u32 samples = (u32)rint(cp_units / (double)code_pinc);
   return samples;
 }
 
@@ -260,7 +260,8 @@ void nap_track_init(u8 channel,
    * does not have to branch for the special "init" situation */
 
   s->chip_freq_hz[1] = s->chip_freq_hz[0] = chip_freq_hz;
-  u32 code_pinc = round(chip_freq_hz * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ);
+  u32 code_pinc =
+      (u32)rint(chip_freq_hz * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ);
   s->code_pinc[1] = s->code_pinc[0] = code_pinc;
 
   t->CODE_PINC = code_pinc;
@@ -287,7 +288,7 @@ void nap_track_init(u8 channel,
   /* CARRIER (+FCN) FREQ ----------------------------------------------- */
   /* Note: s->fcn_freq_hz is non zero for Glonass only */
   double carrier_dopp_hz = -(s->fcn_freq_hz + doppler_hz);
-  s32 carr_pinc = round(carrier_dopp_hz * NAP_TRACK_CARRIER_FREQ_UNITS_PER_HZ);
+  s32 carr_pinc = lrint(carrier_dopp_hz * NAP_TRACK_CARRIER_FREQ_UNITS_PER_HZ);
   s->carr_pinc[1] = s->carr_pinc[0] = carr_pinc;
 
   t->CARR_PINC = carr_pinc;
@@ -299,7 +300,7 @@ void nap_track_init(u8 channel,
 
   /* Get the code rollover point in timing counts */
   u64 tc_codestart = ref_timing_count - delta_tc -
-                     (s32)round(code_phase * calc_tc_per_chip(chip_freq_hz));
+                     (s32)rint(code_phase * calc_tc_per_chip(chip_freq_hz));
 
   nap_track_enable(channel);
 
@@ -342,7 +343,7 @@ void nap_track_init(u8 channel,
   chSysLock();
 
   /* Get a reasonable deadline to which to propagate to */
-  u64 tc_min_propag = nap_timing_count_low() + TIMING_COMPARE_DELTA_MIN;
+  u64 tc_min_propag = nap_timing_count_low() + lrint(TIMING_COMPARE_DELTA_MIN);
   /* Extend tc_min_propag - cannot use helper function in syslock */
   tc_min_propag += (tc_codestart >> 32) << 32;
   if (tc_min_propag < tc_codestart) {
@@ -373,8 +374,8 @@ void nap_track_init(u8 channel,
   /* Sleep until compare match */
   s32 tc_delta;
   while ((tc_delta = (tc_next_rollover - nap_timing_count_low())) >= 0) {
-    systime_t sleep_time =
-        floor(CH_CFG_ST_FREQUENCY * tc_delta / NAP_TIMING_COUNT_RATE_Hz);
+    systime_t sleep_time = (systime_t)floor(CH_CFG_ST_FREQUENCY * tc_delta /
+                                            NAP_TIMING_COUNT_RATE_Hz);
 
     /* The next system tick will always occur less than the nominal tick period
      * in the future, so sleep for an extra tick. */
@@ -396,7 +397,8 @@ void nap_track_update(u8 channel,
   s->chip_freq_hz[1] = s->chip_freq_hz[0];
   s->chip_freq_hz[0] = chip_freq_hz;
 
-  u32 code_pinc = round(chip_freq_hz * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ);
+  u32 code_pinc =
+      (u32)rint(chip_freq_hz * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ);
   s->code_pinc[1] = s->code_pinc[0];
   s->code_pinc[0] = code_pinc;
 
@@ -431,7 +433,7 @@ void nap_track_update(u8 channel,
   /* Note: s->fcn_freq_hz is non zero for Glonass only */
   double carrier_freq_hz = -(s->fcn_freq_hz + doppler_hz);
 
-  s32 carr_pinc = round(carrier_freq_hz * NAP_TRACK_CARRIER_FREQ_UNITS_PER_HZ);
+  s32 carr_pinc = lrint(carrier_freq_hz * NAP_TRACK_CARRIER_FREQ_UNITS_PER_HZ);
   s->carr_pinc[1] = s->carr_pinc[0];
   s->carr_pinc[0] = carr_pinc;
 

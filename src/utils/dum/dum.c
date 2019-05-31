@@ -99,13 +99,13 @@ static s8 calc_sat_doppler_wndw(const ephemeris_t *e,
   /* TODO: Check sign of receiver frequency offset correction.
            There seems to be a sign flip somewhere in 'clock_drift'
            computation that gets compensated here */
-  float tcxo_shift = -lgf->clock_drift * sid_to_carr_freq(e->sid);
+  double tcxo_shift = -lgf->clock_drift * sid_to_carr_freq(e->sid);
   doppler_hz += tcxo_shift;
 
   /* Add distance uncertainty */
-  float unc = radius * DUM_DIST_UNC_FACTOR;
-  *doppler_min_hz = doppler_hz - unc;
-  *doppler_max_hz = doppler_hz + unc;
+  double unc = radius * DUM_DIST_UNC_FACTOR;
+  *doppler_min_hz = (float)(doppler_hz - unc);
+  *doppler_max_hz = (float)(doppler_hz + unc);
 
   return 0;
 }
@@ -170,7 +170,7 @@ static int get_doppler_by_lgf_propagation(const gnss_signal_t *sid,
                                           float speed,
                                           float *doppler_min_hz,
                                           float *doppler_max_hz) {
-  double diff_s = gpsdifftime(t, &lgf->position_solution.time);
+  float diff_s = (float)gpsdifftime(t, &lgf->position_solution.time);
   float radius = diff_s * speed;
 
   return get_doppler(sid, t, lgf, radius, doppler_min_hz, doppler_max_hz);

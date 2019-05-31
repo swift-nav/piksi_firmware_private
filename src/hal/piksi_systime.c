@@ -98,7 +98,7 @@ static inline u64 st2s(u64 st) {
 static inline u64 us2st(u64 us) {
   assert(us <= PIKSI_US2ST_LIMIT);
 
-  return PIKSI_US2ST(us);
+  return (u64)PIKSI_US2ST(us);
 }
 
 static inline u64 ms2st(u64 ms) {

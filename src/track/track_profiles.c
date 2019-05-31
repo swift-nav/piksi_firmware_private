@@ -681,7 +681,7 @@ void tp_profile_update_config(tracker_t *tracker) {
   profile->loop_params = loop_params_template;
 
   /* fill out the rest of tracking loop parameters */
-  profile->loop_params.carr_to_code = mesid_to_carr_to_code(mesid);
+  profile->loop_params.carr_to_code = (float)mesid_to_carr_to_code(mesid);
   profile->loop_params.pll_bw = profile->cur.pll_bw;
   profile->loop_params.fll_bw = profile->cur.fll_bw;
   profile->loop_params.code_bw = cur_profile->profile.dll_bw;

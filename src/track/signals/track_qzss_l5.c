@@ -87,12 +87,12 @@ void do_qzss_l1_to_l5_handover(u32 sample_count,
       .mesid = mesid_L5,
       .sample_count = sample_count,
       /* recalculate L5 Doppler freq from L1 */
-      .doppler_hz = carrier_freq * QZS_L5_HZ / QZS_L1_HZ,
+      .doppler_hz = (float)(carrier_freq * QZS_L5_HZ / QZS_L1_HZ),
       .code_phase = fmod(code_phase * code_to_chip_rate(CODE_QZS_L5I) /
                              code_to_chip_rate(CODE_QZS_L1CA),
                          code_to_chip_count(CODE_QZS_L5I)),
       /* chips to correlate during first 1 ms of tracking */
-      .chips_to_correlate = code_to_chip_rate(CODE_QZS_L5I) * 1e-3,
+      .chips_to_correlate = (u32)round(code_to_chip_rate(CODE_QZS_L5I) * 1e-3),
       /* get initial cn0 from parent L1CA channel */
       .cn0_init = cn0_init};
 

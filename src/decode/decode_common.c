@@ -169,7 +169,7 @@ void glo_data_sync(nav_msg_glo_t *n,
   from_decoder.TOW_ms = (s32)rounded_TOW_ms;
 
   double delta_TOW_ns = (TOW_ms - rounded_TOW_ms) * 1e6;
-  from_decoder.TOW_residual_ns = delta_TOW_ns;
+  from_decoder.TOW_residual_ns = lround(delta_TOW_ns);
 
   from_decoder.bit_polarity = n->bit_polarity;
   from_decoder.glo_orbit_slot = n->eph.sid.sat;

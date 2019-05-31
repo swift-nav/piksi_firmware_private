@@ -205,7 +205,7 @@ bool track_sid_db_azimuth_degrees_get(const gnss_signal_t sid, double *result) {
 bool sid_db_elevation_degrees_get(const gnss_signal_t sid, float *elev) {
   tp_azel_entry_t entry = {0};
   if (sid_valid(sid) && elev && track_sid_db_load_azel(sid, &entry)) {
-    *elev = entry.elevation_d;
+    *elev = (float)entry.elevation_d;
     return true;
   }
   return false;

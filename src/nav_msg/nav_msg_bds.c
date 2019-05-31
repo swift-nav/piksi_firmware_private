@@ -547,8 +547,8 @@ static void process_d1_fraid1(const nav_msg_bds_t *n,
   e->ura = bds_ura_table[urai];
   e->toe.wn = BDS_WEEK_TO_GPS_WEEK + weekno;
   /* Keplerian params */
-  k->tgd.bds_s[0] = BITS_SIGN_EXTEND_32(10, tgd1) * 1e-10;
-  k->tgd.bds_s[1] = BITS_SIGN_EXTEND_32(10, tgd2) * 1e-10;
+  k->tgd.bds_s[0] = BITS_SIGN_EXTEND_32(10, tgd1) * 1e-10f;
+  k->tgd.bds_s[1] = BITS_SIGN_EXTEND_32(10, tgd2) * 1e-10f;
   k->toc.wn = e->toe.wn;
   k->toc.tow = (double)toc * C_2P3;
   k->af0 = BITS_SIGN_EXTEND_32(24, a[0]) * C_1_2P33;

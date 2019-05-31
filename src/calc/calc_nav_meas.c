@@ -75,11 +75,11 @@ static s8 convert_channel_measurement_to_starling_obs(
 
   /* For raw Doppler we use the instantaneous Doppler frequency from the
    * tracking loop. */
-  obs->doppler = meas->carrier_freq;
+  obs->doppler = (float)meas->carrier_freq;
 
   /* Copy over remaining values. */
-  obs->cn0 = meas->cn0;
-  obs->lock_time = meas->lock_time;
+  obs->cn0 = (float)meas->cn0;
+  obs->lock_time = (float)meas->lock_time;
 
   /* Measurement time offset from rec_time, usually -5ms .. -0ms */
   double dt = meas->rec_time_delta;
@@ -98,9 +98,9 @@ static s8 convert_channel_measurement_to_starling_obs(
   normalize_gps_time(&obs->tot);
 
   /* Propagate pseudorange with raw doppler times wavelength */
-  obs->pseudorange += dt * obs->doppler * lambda;
+  obs->pseudorange += dt * meas->carrier_freq * lambda;
   /* Propagate carrier phase with doppler frequency */
-  obs->carrier_phase += dt * obs->doppler;
+  obs->carrier_phase += dt * meas->carrier_freq;
 
   /* Compute flags.
    *

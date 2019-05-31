@@ -200,7 +200,7 @@ void nt1065_get_agc(s8 rf_gain_array[], s8 if_gain_array[]) {
           agc_if_gain * AGC_IF_GAIN_SF + AGC_IF_GAIN_OFFSET);
 
       /* non-dimensionalize RF gain to percent (max is 0b1111 or 15) */
-      rf_gain_array[i] = rintf(agc_rf_gain / AGC_RF_GAIN_RANGE * 100.0);
+      rf_gain_array[i] = (s8)rint(agc_rf_gain / AGC_RF_GAIN_RANGE * 100.0);
 
       if (agc_indicator != 0) /* value of 0 indicates rf signal is in range */
       {
@@ -211,7 +211,7 @@ void nt1065_get_agc(s8 rf_gain_array[], s8 if_gain_array[]) {
       }
       /* non-dimensionalize IF gain to percent (max is 0b10111 or 23) */
       if (agc_if_gain <= AGC_IF_GAIN_RANGE) {
-        if_gain_array[i] = rintf(agc_if_gain / AGC_IF_GAIN_RANGE * 100.0);
+        if_gain_array[i] = (s8)rint(agc_if_gain / AGC_IF_GAIN_RANGE * 100.0);
       } else { /* Should never get here */
         log_error("NT1065 reported IFA gain of %f out of range for channel %d",
                   agc_if_gain * AGC_IF_GAIN_SF + AGC_IF_GAIN_OFFSET,

@@ -170,10 +170,12 @@ static void remove_clock_offset(obs_array_t *obs_array,
     assert(0 != (obs->flags & NAV_MEAS_FLAG_MEAS_DOPPLER_VALID));
 
     /* Adjust measured Doppler with smoothed oscillator drift. */
-    obs->doppler += clock_drift * sid_to_carr_freq(obs->sid);
+    double corrected_doppler =
+        obs->doppler + clock_drift * sid_to_carr_freq(obs->sid);
+    obs->doppler = (float)corrected_doppler;
 
     /* Range correction caused by clock offset */
-    double corr_cycles = clock_offset * obs->doppler;
+    double corr_cycles = clock_offset * corrected_doppler;
     obs->pseudorange -= corr_cycles * sid_to_lambda(obs->sid);
     obs->carrier_phase -= corr_cycles;
 
@@ -233,11 +235,11 @@ static void pack_azel(gnss_signal_t sid,
   assert(elevation >= -90 && elevation <= 90);
   assert(azimuth >= 0 && azimuth < 360);
   azel->sid = sid_to_sbp(sid);
-  azel->az = round(azimuth / 2); /* in [0 .. 180] */
+  azel->az = (u8)round(azimuth / 2); /* in [0 .. 180] */
   if (180 == azel->az) {
     azel->az = 0; /* clamp to [0 .. 179] as per specification */
   }
-  azel->el = round(elevation); /* in [-90 .. 90] */
+  azel->el = (s8)round(elevation); /* in [-90 .. 90] */
 }
 
 /** Generate SBP az-el message for all satellites that are either above horizon
@@ -689,7 +691,7 @@ static void me_calc_pvt_thread(void *arg) {
 
   piksi_systime_t next_epoch;
   piksi_systime_get(&next_epoch);
-  piksi_systime_inc_us(&next_epoch, SECS_US / soln_freq_setting);
+  piksi_systime_inc_us(&next_epoch, (u64)round(SECS_US / soln_freq_setting));
 
   gnss_sid_set_t raim_sids;
   gnss_sid_set_t raim_failed_sids;
@@ -706,7 +708,7 @@ static void me_calc_pvt_thread(void *arg) {
     drop_glo_signals_on_leap_second();
 
     /* sleep until next epoch, and update the deadline */
-    me_thd_sleep(&next_epoch, SECS_US / soln_freq);
+    me_thd_sleep(&next_epoch, (u64)round(SECS_US / soln_freq));
     watchdog_notify(WD_NOTIFY_ME_CALC_PVT);
 
     time_quality_t time_quality = get_time_quality();
@@ -753,7 +755,7 @@ static void me_calc_pvt_thread(void *arg) {
        * the epoch. Note that the sleep time can be set only at the resolution
        * of system tick frequency, and also due to other CPU load, we can expect
        * this adjustment to be somewhere between +-0.5 milliseconds */
-      piksi_systime_add_us(&next_epoch, round(dt * SECS_US));
+      piksi_systime_add_us(&next_epoch, llround(dt * SECS_US));
     }
 
     /* update the CPO drift correction, and adjust channel CPOs on roll-over */
@@ -805,7 +807,7 @@ static void me_calc_pvt_thread(void *arg) {
       if (dt < 0) {
         dt += 1.0 / soln_freq;
       }
-      piksi_systime_add_us(&next_epoch, round(dt * SECS_US));
+      piksi_systime_add_us(&next_epoch, llround(dt * SECS_US));
     }
 
     /* Initialize the observation array and create navigation measurements from

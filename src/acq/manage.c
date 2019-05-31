@@ -658,7 +658,7 @@ void update_acq_hints(tracker_t *tracker) {
     return;
   }
 
-  double doppler_hz = tracker->doppler_at_lock_hz;
+  float doppler_hz = (float)tracker->doppler_at_lock_hz;
   float doppler_min_hz =
       code_to_sv_doppler_min(mesid.code) + code_to_tcxo_doppler_min(mesid.code);
   float doppler_max_hz =
@@ -872,7 +872,7 @@ static bool compute_cpo(u64 ref_tc,
       sid_to_carr_freq(meas->sid) * (raw_pseudorange / GPS_C - cpo_correction);
 
   /* initialize the carrier phase offset with the pseudorange measurement */
-  *carrier_phase_offset = round(pseudorange_circ - meas->carrier_phase);
+  *carrier_phase_offset = lround(pseudorange_circ - meas->carrier_phase);
 
   return true;
 }

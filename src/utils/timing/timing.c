@@ -100,7 +100,7 @@ static void log_time_quality(time_quality_t new_quality) {
 /** Determine if last time estimate update from ME within a window.
  *
  */
-bool time_updated_within(gps_time_t *current_time, float timeout) {
+bool time_updated_within(gps_time_t *current_time, double timeout) {
   chMtxLock(&clock_mutex);
   gps_time_t last_gnss = persistent_clock_state.t_gps;
   chMtxUnlock(&clock_mutex);

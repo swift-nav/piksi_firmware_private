@@ -471,8 +471,8 @@ static void parse_inav_bgd(const u8 content[GAL_INAV_CONTENT_BYTE],
   ephemeris_kepler_t *kep = &(dd->ephemeris.kepler);
   u32 e1e5a = getbitu(content, 47, 10);
   u32 e1e5b = getbitu(content, 57, 10);
-  kep->tgd.gal_s[0] = BITS_SIGN_EXTEND_32(10, e1e5a) * C_1_2P32;
-  kep->tgd.gal_s[1] = BITS_SIGN_EXTEND_32(10, e1e5b) * C_1_2P32;
+  kep->tgd.gal_s[0] = BITS_SIGN_EXTEND_32(10, e1e5a) * (float)C_1_2P32;
+  kep->tgd.gal_s[1] = BITS_SIGN_EXTEND_32(10, e1e5b) * (float)C_1_2P32;
 }
 
 static void parse_inav_health6(const u8 content[GAL_INAV_CONTENT_BYTE],

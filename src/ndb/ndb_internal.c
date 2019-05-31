@@ -311,7 +311,7 @@ void ndb_load_data(ndb_file_t *file, bool erase) {
  * \return NAP time in seconds
  */
 ndb_timestamp_t ndb_get_timestamp(void) {
-  return nap_count_to_ms(nap_timing_count()) / 1000;
+  return (ndb_timestamp_t)(nap_count_to_ms(nap_timing_count()) / 1000);
 }
 
 /**

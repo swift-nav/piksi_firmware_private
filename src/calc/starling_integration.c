@@ -669,7 +669,7 @@ static void profile_low_latency_thread(enum ProfileDirective directive) {
       break;
     case PROFILE_END: {
       u64 nap_snapshot_diff = (u64)(nap_timing_count() - nap_snapshot_begin);
-      float time_snapshot_diff = RX_DT_NOMINAL * nap_snapshot_diff;
+      float time_snapshot_diff = (float)(RX_DT_NOMINAL * nap_snapshot_diff);
       avg_run_time_s = avg_run_time_s * (1 - smooth_factor) +
                        time_snapshot_diff * smooth_factor;
       diff_run_time_s = (time_snapshot_diff - avg_run_time_s);

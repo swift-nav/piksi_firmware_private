@@ -37,7 +37,7 @@ static void update_params(tl_pll2_state_t *s, const tl_config_t *config) {
   s->carr_c1 = a2 * omega_0 / config->carr_k;
   s->carr_c2 = omega_0_2 / config->carr_k;
 
-  omega_0 = config->code_bw / 0.25;
+  omega_0 = config->code_bw / 0.25f;
   s->code_c1 = omega_0 / config->code_k;
 
   s->carr_to_code = config->carr_to_code > 0 ? 1.f / config->carr_to_code : 0.f;
