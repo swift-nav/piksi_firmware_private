@@ -703,17 +703,12 @@ static THD_FUNCTION(initialize_and_run_starling, arg) { /* NOLINT */
   sbp_register_cbk(
       SBP_MSG_RESET_FILTERS, &reset_filters_callback, &reset_filters_node);
 
-  StarlingIoFunctionTable io_functions = {
-      .wait = starling_wait,
-      .poll_for_data = starling_poll_for_data,
-  };
-
   StarlingDebugFunctionTable debug_functions = {
       .profile_low_latency_thread = profile_low_latency_thread,
   };
 
   /* This runs forever. */
-  starling_run(&io_functions, &debug_functions);
+  starling_run(&debug_functions);
 
   /* Never get here. */
   log_error("Starling Engine has unexpectedly terminated.");
