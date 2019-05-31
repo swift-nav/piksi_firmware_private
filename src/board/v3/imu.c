@@ -237,7 +237,7 @@ static void imu_thread(void *arg) {
 
       /* Format the time of week as a fixed point value for the SBP message.
        */
-      s64 full_precision_tow_ms = sample_time.tow * SECS_MS * 256;
+      s64 full_precision_tow_ms = llrint(sample_time.tow * SECS_MS * 256);
       tow_f = (u8)(full_precision_tow_ms & 0xFF);
       tow = (u32)(full_precision_tow_ms >> 8);
       s32 tow_ms = (s32)tow;
