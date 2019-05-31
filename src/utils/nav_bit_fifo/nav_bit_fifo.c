@@ -20,7 +20,8 @@
  */
 static u8 code_to_nav_bit_fifo_size(const code_t code) {
   if ((CODE_GPS_L1CA == code) || (CODE_GPS_L2CM == code) ||
-      (CODE_GPS_L5I == code) || (CODE_AUX_GPS == code)) {
+      (CODE_GPS_L5I == code) || (CODE_AUX_GPS == code) ||
+      (CODE_QZS_L1CA == code) || (CODE_QZS_L2CM == code)) {
     return 20;
   }
   if ((CODE_GLO_L1OF == code) || (CODE_GLO_L2OF == code)) {
@@ -35,7 +36,8 @@ static u8 code_to_nav_bit_fifo_size(const code_t code) {
   if (CODE_BDS3_B5I == code) {
     return 80;
   }
-  if ((CODE_GAL_E1B == code) || (CODE_GAL_E7I == code)) {
+  if ((CODE_GAL_E1B == code) || (CODE_GAL_E7I == code) ||
+      (CODE_AUX_GAL == code)) {
     return 100;
   }
   if (CODE_GAL_E5I == code) {
