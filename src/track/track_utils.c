@@ -207,7 +207,7 @@ void tracker_adjust_all_phase_offsets(double offset_s) {
         tracker->cpo.value != 0) {
       /* adjust by integer cycles */
       tracker->cpo.value +=
-          (s32)round(offset_s * mesid_to_carr_freq(tracker->mesid));
+          lrint(offset_s * mesid_to_carr_freq(tracker->mesid));
     }
     tracker_unlock(tracker);
   }

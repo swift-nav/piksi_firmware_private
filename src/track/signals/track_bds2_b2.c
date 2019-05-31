@@ -126,7 +126,7 @@ void bds_b11_to_b2_handover(u32 sample_count,
       .doppler_hz = (float)(doppler_hz * BDS2_B2_HZ / BDS2_B11_HZ),
       .code_phase = code_phase,
       /* chips to correlate during first 1 ms of tracking */
-      .chips_to_correlate = (u32)round(code_to_chip_rate(mesid_B2.code) * 1e-3),
+      .chips_to_correlate = (u32)lrint(code_to_chip_rate(mesid_B2.code) * 1e-3),
       /* get initial cn0 from parent B1 channel */
       .cn0_init = cn0_init};
 

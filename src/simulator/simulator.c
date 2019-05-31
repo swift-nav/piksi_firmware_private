@@ -185,7 +185,7 @@ void simulation_step(void) {
   /* Update the time, clamping it to the solution frequency */
   double new_tow = sim_state.noisy_solution.time.tow + elapsed;
   sim_state.noisy_solution.time.tow =
-      round(new_tow * soln_freq_setting) / soln_freq_setting;
+      rint(new_tow * soln_freq_setting) / soln_freq_setting;
 
   /* Handle week-rollover. */
   normalize_gps_time(&sim_state.noisy_solution.time);
@@ -337,8 +337,8 @@ void simulation_step_tracking_and_observations(double elapsed) {
       fTmpCN0 = (fTmpCN0 <= 0) ? 0 : fTmpCN0;
       fTmpCN0 = (fTmpCN0 >= 63.75) ? 63.75f : fTmpCN0;
       sim_state.tracking_channel[num_sats_selected].cn0 =
-          (u8)rintf(fTmpCN0 * 4.0f);
-      sim_state.state_meas[num_sats_selected].cn0 = (u8)rintf(fTmpCN0 * 4.0f);
+          (u8)lrintf(fTmpCN0 * 4.0f);
+      sim_state.state_meas[num_sats_selected].cn0 = (u8)lrintf(fTmpCN0 * 4.0f);
 
       sim_state.ch_meas[num_sats_selected].sid = sid;
       sim_state.ch_meas[num_sats_selected].cn0 =

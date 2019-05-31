@@ -80,7 +80,7 @@ static u32 calc_length_samples(u32 chips_to_correlate,
                                u32 code_pinc) {
   u64 cp_end_units = chips_to_correlate * NAP_TRACK_CODE_PHASE_UNITS_PER_CHIP;
   u64 cp_units = cp_end_units - (s32)cp_start_frac_units;
-  u32 samples = (u32)rint(cp_units / (double)code_pinc);
+  u32 samples = (u32)lrint(cp_units / (double)code_pinc);
   return samples;
 }
 
@@ -261,7 +261,7 @@ void nap_track_init(u8 channel,
 
   s->chip_freq_hz[1] = s->chip_freq_hz[0] = chip_freq_hz;
   u32 code_pinc =
-      (u32)rint(chip_freq_hz * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ);
+      (u32)lrint(chip_freq_hz * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ);
   s->code_pinc[1] = s->code_pinc[0] = code_pinc;
 
   t->CODE_PINC = code_pinc;
@@ -300,7 +300,7 @@ void nap_track_init(u8 channel,
 
   /* Get the code rollover point in timing counts */
   u64 tc_codestart = ref_timing_count - delta_tc -
-                     (s32)rint(code_phase * calc_tc_per_chip(chip_freq_hz));
+                     llrint(code_phase * calc_tc_per_chip(chip_freq_hz));
 
   nap_track_enable(channel);
 
@@ -343,7 +343,7 @@ void nap_track_init(u8 channel,
   chSysLock();
 
   /* Get a reasonable deadline to which to propagate to */
-  u64 tc_min_propag = nap_timing_count_low() + lrint(TIMING_COMPARE_DELTA_MIN);
+  u64 tc_min_propag = nap_timing_count_low() + (u64)(TIMING_COMPARE_DELTA_MIN);
   /* Extend tc_min_propag - cannot use helper function in syslock */
   tc_min_propag += (tc_codestart >> 32) << 32;
   if (tc_min_propag < tc_codestart) {
@@ -398,7 +398,7 @@ void nap_track_update(u8 channel,
   s->chip_freq_hz[0] = chip_freq_hz;
 
   u32 code_pinc =
-      (u32)rint(chip_freq_hz * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ);
+      (u32)lrint(chip_freq_hz * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ);
   s->code_pinc[1] = s->code_pinc[0];
   s->code_pinc[0] = code_pinc;
 

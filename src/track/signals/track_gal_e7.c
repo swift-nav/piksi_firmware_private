@@ -128,7 +128,7 @@ void gal_e1_to_e7_handover(u32 sample_count,
       .doppler_hz = (float)(doppler_hz * GAL_E7_HZ / GAL_E1_HZ),
       .code_phase = fmod(code_phase * 10.0, code_to_chip_count(CODE_GAL_E7I)),
       /* chips to correlate during first 1 ms of tracking */
-      .chips_to_correlate = (u32)round(code_to_chip_rate(mesid_e7.code) * 1e-3),
+      .chips_to_correlate = (u32)lrint(code_to_chip_rate(mesid_e7.code) * 1e-3),
       /* get initial cn0 from parent E1 channel */
       .cn0_init = cn0_init};
 

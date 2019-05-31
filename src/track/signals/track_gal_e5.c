@@ -122,7 +122,7 @@ void gal_e1_to_e5_handover(u32 sample_count,
                              code_to_chip_rate(CODE_GAL_E1B),
                          code_to_chip_count(CODE_GAL_E5I)),
       /* chips to correlate during first 1 ms of tracking */
-      .chips_to_correlate = (u32)round(code_to_chip_rate(mesid_E5.code) * 1e-3),
+      .chips_to_correlate = (u32)lrint(code_to_chip_rate(mesid_E5.code) * 1e-3),
       /* get initial cn0 from parent E1 channel */
       .cn0_init = cn0_init};
 

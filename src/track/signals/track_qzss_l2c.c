@@ -116,7 +116,7 @@ void qzss_l1ca_to_l2c_handover(u32 sample_count,
       .doppler_hz = (float)(doppler_hz * QZS_L2_HZ / QZS_L1_HZ),
       .code_phase = code_phase,
       /* chips to correlate during first 1 ms of tracking */
-      .chips_to_correlate = (u32)round(code_to_chip_rate(mesid.code) * 1e-3),
+      .chips_to_correlate = (u32)lrint(code_to_chip_rate(mesid.code) * 1e-3),
       /* get initial cn0 from parent L1CA channel */
       .cn0_init = cn0_init};
 

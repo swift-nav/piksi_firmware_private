@@ -297,7 +297,7 @@ bool tracker_init(const u8 id,
       assert(second_int_ms == first_int_ms);
     }
     chips_to_correlate =
-        (u32)round(code_to_chip_rate(mesid.code) * 1e-3 * first_int_ms);
+        (u32)lrint(code_to_chip_rate(mesid.code) * 1e-3 * first_int_ms);
 
     COMPILER_BARRIER();
 
@@ -447,7 +447,7 @@ void tracking_send_state(void) {
       }
       cn0 = (cn0 <= 0) ? 0.0f : cn0;
       cn0 = (cn0 >= MAX_VAL_CN0) ? (float)MAX_VAL_CN0 : cn0;
-      meas_states[i].cn0 = (u8)rintf(cn0 * 4.0f);
+      meas_states[i].cn0 = (u8)lrintf(cn0 * 4.0f);
     }
   }
   odd_run = !odd_run;

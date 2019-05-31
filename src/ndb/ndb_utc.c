@@ -117,8 +117,8 @@ ndb_op_code_t ndb_utc_params_store(const gnss_signal_t *sid,
                    utc_params_p->t_lse.tow,
                    utc_params_p->dt_ls,
                    utc_params_p->dt_lsf,
-                   round(offset),
-                   SECS_NS * (offset - round(offset)));
+                   rint(offset),
+                   SECS_NS * (offset - rint(offset)));
     }
   }
 

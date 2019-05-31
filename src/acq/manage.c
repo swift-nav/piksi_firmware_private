@@ -872,7 +872,7 @@ static bool compute_cpo(u64 ref_tc,
       sid_to_carr_freq(meas->sid) * (raw_pseudorange / GPS_C - cpo_correction);
 
   /* initialize the carrier phase offset with the pseudorange measurement */
-  *carrier_phase_offset = lround(pseudorange_circ - meas->carrier_phase);
+  *carrier_phase_offset = lrint(pseudorange_circ - meas->carrier_phase);
 
   return true;
 }

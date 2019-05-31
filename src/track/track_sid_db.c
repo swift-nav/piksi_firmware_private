@@ -269,7 +269,7 @@ s32 tp_tow_compute(s32 old_TOW_ms,
   }
 
   double tmp_TOW_ms = old_TOW_ms + delta_d;
-  TOW_ms = (s32)round(tmp_TOW_ms);
+  TOW_ms = lrint(tmp_TOW_ms);
 
   if (ms_align > 1) {
     /* If the result is known to be aligned by some interval, do it here. */

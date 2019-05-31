@@ -290,8 +290,7 @@ u64 gpstime2napcount(const gps_time_t *t) {
   u64 ref_tc = persistent_clock_state.tc;
   chMtxUnlock(&clock_mutex);
 
-  return ref_tc +
-         (s64)round(gpsdifftime(t, &gps_time) / (RX_DT_NOMINAL * rate));
+  return ref_tc + llrint(gpsdifftime(t, &gps_time) / (RX_DT_NOMINAL * rate));
 }
 
 /** Callback to set receiver GPS time estimate. */
@@ -404,7 +403,7 @@ gps_time_t glo2gps_with_utc_params(const glo_time_t *glo_time,
 gps_time_t gps_time_round_to_epoch(const gps_time_t *time, double soln_freq) {
   gps_time_t rounded_time = GPS_TIME_UNKNOWN;
   /* round the time-of-week */
-  rounded_time.tow = round(time->tow * soln_freq) / soln_freq;
+  rounded_time.tow = rint(time->tow * soln_freq) / soln_freq;
   /* handle case where rounding caused tow roll-over */
   normalize_gps_time(&rounded_time);
   /* pick the correct week number */
@@ -434,7 +433,7 @@ double sub_2ms_cpo_correction(const u64 tc) {
   u64 tc_mod_2ms = tc % FCN_NCO_RESET_COUNT;
   double cpo_correction_s = time_mod_2ms - RX_DT_NOMINAL * tc_mod_2ms;
 
-  cpo_correction_s -= round(cpo_correction_s / 2e-3) * 2e-3;
+  cpo_correction_s -= rint(cpo_correction_s / 2e-3) * 2e-3;
 
   return cpo_correction_s;
 }

@@ -52,7 +52,7 @@ static u32 tp_convert_ms_to_chips(me_gnss_signal_t mesid,
   u32 chip_rate = (u32)code_to_chip_rate(mesid.code) / 1000;
 
   /* Round the current code_phase towards nearest integer. */
-  u32 current_chip = (u32)rint(code_phase);
+  u32 current_chip = (u32)lrint(code_phase);
 
   /* Take modulo of the code phase. Nominally this should be close to zero,
    * or close to chip_rate. */

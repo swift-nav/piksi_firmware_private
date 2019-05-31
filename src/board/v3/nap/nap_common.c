@@ -258,10 +258,9 @@ void nap_pps(u32 count) {
   NAP->PPS_TIMING_COMPARE = count + NAP_PPS_TIMING_COUNT_OFFSET;
 }
 
-void nap_pps_config(u32 microseconds, u8 active) {
-  u32 width = (u32)ceil((double)microseconds /
-                        ((1.0 / NAP_TIMING_COUNT_RATE_Hz) * 1e6)) -
-              1;
+void nap_pps_config(u32 usec, u8 active) {
+  u32 width =
+      (u32)ceil((double)usec / ((1.0 / NAP_TIMING_COUNT_RATE_Hz) * 1e6)) - 1;
   NAP->PPS_CONTROL =
       (width << NAP_PPS_CONTROL_PULSE_WIDTH_Pos) | (active & 0x01);
 }
