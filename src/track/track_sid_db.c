@@ -205,7 +205,7 @@ bool track_sid_db_azimuth_degrees_get(const gnss_signal_t sid, double *result) {
 bool sid_db_elevation_degrees_get(const gnss_signal_t sid, float *elev) {
   tp_azel_entry_t entry = {0};
   if (sid_valid(sid) && elev && track_sid_db_load_azel(sid, &entry)) {
-    *elev = entry.elevation_d;
+    *elev = (float)entry.elevation_d;
     return true;
   }
   return false;
@@ -269,7 +269,7 @@ s32 tp_tow_compute(s32 old_TOW_ms,
   }
 
   double tmp_TOW_ms = old_TOW_ms + delta_d;
-  TOW_ms = (s32)round(tmp_TOW_ms);
+  TOW_ms = lrint(tmp_TOW_ms);
 
   if (ms_align > 1) {
     /* If the result is known to be aligned by some interval, do it here. */

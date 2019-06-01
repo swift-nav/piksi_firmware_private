@@ -48,18 +48,18 @@ int InitBBConvLut(void) {
     uVal = k;
     iSampleVal = iSampleLUT[(uVal >> BBNCO_CARRPH_BITS) & SAMPLE_MASK];
     uPhase = uVal & BBNCO_CARRPH_MASK;
-    fPhase = (float)uPhase * TWOPI / BBNCO_CARRPH_SIZE;
+    fPhase = uPhase * (float)TWOPI / BBNCO_CARRPH_SIZE;
     fCos = +fScale * iSampleVal * cosf(fPhase);
     if (fCos < 0) {
-      bbConvTable[k].r = 2 * floorf(fCos) + 1;
+      bbConvTable[k].r = (s16)(2 * floorf(fCos) + 1);
     } else {
-      bbConvTable[k].r = 2 * ceilf(fCos) - 1;
+      bbConvTable[k].r = (s16)(2 * ceilf(fCos) - 1);
     }
     fSin = -fScale * iSampleVal * sinf(fPhase);
     if (fSin < 0) {
-      bbConvTable[k].i = 2 * floorf(fSin) + 1;
+      bbConvTable[k].i = (s16)(2 * floorf(fSin) + 1);
     } else {
-      bbConvTable[k].i = 2 * ceilf(fSin) - 1;
+      bbConvTable[k].i = (s16)(2 * ceilf(fSin) - 1);
     }
   }
 

@@ -83,7 +83,7 @@ void send_thread_states(void) {
   thread_t *tp = chRegFirstThread();
   while (tp) {
     msg_thread_state_t tp_state;
-    u16 cpu = 1000.0f * tp->p_ctime / (float)g_ctime;
+    u16 cpu = (u16)roundf(1000.0f * tp->p_ctime / (float)g_ctime);
     tp_state.cpu = cpu;
     tp_state.stack_free = check_stack_free(tp);
     const char *name = chRegGetThreadNameX(tp);

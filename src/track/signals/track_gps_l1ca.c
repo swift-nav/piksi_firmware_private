@@ -214,7 +214,7 @@ static bool check_L2_entries(tracker_t *tracker,
   }
 
   u16 index = mesid_to_code_index(tracker->mesid);
-  float L2_to_L1_freq = GPS_L1_HZ / GPS_L2_HZ;
+  float L2_to_L1_freq = (float)(GPS_L1_HZ / GPS_L2_HZ);
   /* Convert L2 doppler to L1 */
   float entry_freq = entry->freq_hz * L2_to_L1_freq;
   float error = fabsf(

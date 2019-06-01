@@ -32,7 +32,7 @@
 
 #define FAU_FFTLEN_LOG2 14
 #define FAU_FFTLEN (1 << FAU_FFTLEN_LOG2)
-#define FAU_BIN_WIDTH (FAU_SAMPLE_RATE_Hz / FAU_FFTLEN)
+#define FAU_BIN_WIDTH ((float)FAU_SAMPLE_RATE_Hz / FAU_FFTLEN)
 #define CODE_MULT 16384
 #define RESULT_DIV 2048
 #define FFT_SCALE_SCHED_CODE (0x01555555)
@@ -90,14 +90,14 @@ bool soft_acq_search(const sc16_t *_cSignal,
 
   const u8 *local_code = ca_code(mesid);
   u32 code_length = code_to_chip_count(mesid.code);
-  double chip_rate = code_to_chip_rate(mesid.code);
+  float chip_rate = (float)(code_to_chip_rate(mesid.code));
   memset(code_resamp, 0, sizeof(s8) * INTFFT_MAXSIZE);
   if ((CODE_SBAS_L1CA == mesid.code) || (CODE_BDS2_B1 == mesid.code) ||
       (CODE_GAL_E7I == mesid.code) || (CODE_GAL_E5I == mesid.code)) {
     /* For constellations with frequent symbol transitions, do 1x4 CxNC */
     code_resample(local_code,
                   code_length,
-                  chip_rate,
+                  (u32)chip_rate,
                   code_resamp + CODE_SPMS * (FAU_FFTLEN / CODE_SPMS - 1),
                   CODE_SPMS,
                   FAU_SAMPLE_RATE_Hz,
@@ -105,7 +105,7 @@ bool soft_acq_search(const sc16_t *_cSignal,
   } else if (CODE_GAL_E1B == mesid.code) {
     code_resample(local_code,
                   code_length,
-                  chip_rate,
+                  (u32)chip_rate,
                   code_resamp,
                   FAU_FFTLEN,
                   FAU_SAMPLE_RATE_Hz,
@@ -113,7 +113,7 @@ bool soft_acq_search(const sc16_t *_cSignal,
   } else {
     code_resample(local_code,
                   code_length,
-                  chip_rate,
+                  (u32)chip_rate,
                   code_resamp,
                   FAU_FFTLEN,
                   FAU_SAMPLE_RATE_Hz,
@@ -396,10 +396,10 @@ static bool peak_search(const me_gnss_signal_t mesid,
 
   /* artificially pump the C/N0 for non-coherent as MEAN is not STD */
   if (CODE_SBAS_L1CA == mesid.code) {
-    cn0 += 4.0;
+    cn0 += 4.0f;
   }
   if (CODE_BDS2_B1 == mesid.code) {
-    cn0 += 4.0;
+    cn0 += 4.0f;
   }
 
   if (cn0 > peak->cn0) {

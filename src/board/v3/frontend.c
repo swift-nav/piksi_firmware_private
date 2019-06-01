@@ -163,10 +163,10 @@ bool nt1065_get_temperature(double* temperature) {
 #define AGC_RF_GAIN_SF (0.95)
 #define AGC_RF_GAIN_OFFSET (12.0)
 #define AGC_IF_GAIN_MAX_DB (64.0)
-#define AGC_IF_GAIN_RANGE (23.0)
+#define AGC_IF_GAIN_RANGE (23.0f)
 #define AGC_IF_GAIN_SF (AGC_IF_GAIN_MAX_DB / AGC_IF_GAIN_RANGE)
 #define AGC_IF_GAIN_OFFSET (-0.5)
-#define AGC_RF_GAIN_RANGE (15.0)
+#define AGC_RF_GAIN_RANGE (15.0f)
 /* Invalid gain percentage is -1 in SBP */
 #define AGC_INVALID_GAIN (-1)
 
@@ -200,7 +200,7 @@ void nt1065_get_agc(s8 rf_gain_array[], s8 if_gain_array[]) {
           agc_if_gain * AGC_IF_GAIN_SF + AGC_IF_GAIN_OFFSET);
 
       /* non-dimensionalize RF gain to percent (max is 0b1111 or 15) */
-      rf_gain_array[i] = rintf(agc_rf_gain / AGC_RF_GAIN_RANGE * 100.0);
+      rf_gain_array[i] = (s8)lrintf(agc_rf_gain / AGC_RF_GAIN_RANGE * 100.0f);
 
       if (agc_indicator != 0) /* value of 0 indicates rf signal is in range */
       {
@@ -211,7 +211,7 @@ void nt1065_get_agc(s8 rf_gain_array[], s8 if_gain_array[]) {
       }
       /* non-dimensionalize IF gain to percent (max is 0b10111 or 23) */
       if (agc_if_gain <= AGC_IF_GAIN_RANGE) {
-        if_gain_array[i] = rintf(agc_if_gain / AGC_IF_GAIN_RANGE * 100.0);
+        if_gain_array[i] = (s8)lrintf(agc_if_gain / AGC_IF_GAIN_RANGE * 100.0f);
       } else { /* Should never get here */
         log_error("NT1065 reported IFA gain of %f out of range for channel %d",
                   agc_if_gain * AGC_IF_GAIN_SF + AGC_IF_GAIN_OFFSET,

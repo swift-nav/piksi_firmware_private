@@ -296,7 +296,8 @@ bool tracker_init(const u8 id,
       u8 second_int_ms = tp_get_cycle_duration(tracking_mode, 1);
       assert(second_int_ms == first_int_ms);
     }
-    chips_to_correlate = code_to_chip_rate(mesid.code) * 1e-3 * first_int_ms;
+    chips_to_correlate =
+        (u32)lrint(code_to_chip_rate(mesid.code) * 1e-3 * first_int_ms);
 
     COMPILER_BARRIER();
 
@@ -444,9 +445,9 @@ void tracking_send_state(void) {
         meas_states[i].mesid.sat = mesid.sat;
         meas_states[i].mesid.code = mesid.code;
       }
-      cn0 = (cn0 <= 0) ? 0 : cn0;
-      cn0 = (cn0 >= MAX_VAL_CN0) ? MAX_VAL_CN0 : cn0;
-      meas_states[i].cn0 = rintf(cn0 * 4.0);
+      cn0 = (cn0 <= 0) ? 0.0f : cn0;
+      cn0 = (cn0 >= MAX_VAL_CN0) ? (float)MAX_VAL_CN0 : cn0;
+      meas_states[i].cn0 = (u8)lrintf(cn0 * 4.0f);
     }
   }
   odd_run = !odd_run;

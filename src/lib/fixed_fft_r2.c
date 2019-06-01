@@ -207,7 +207,7 @@ static void InitW(intFFTr2_t *pIntFFT) {
     tW = &(pIntFFT->W[_bsize]);
 
     for (k = 0; k < _bsize; k++) {
-      phase = (-2.0 * M_PI * k * nBlocks) / (pIntFFT->N);
+      phase = (-2.0f * (float)M_PI * k * nBlocks) / (pIntFFT->N);
       c = floorf(fScale * cosf(phase));
       s = floorf(fScale * sinf(phase));
 

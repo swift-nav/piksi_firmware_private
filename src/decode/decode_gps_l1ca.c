@@ -268,7 +268,7 @@ static void decode_almanac_new(gnss_signal_t sid, const almanac_t *alma) {
 static void decode_almanac_time_new(gnss_signal_t sid,
                                     const gps_time_t *alma_time) {
   ndb_op_code_t r = ndb_almanac_wn_store(sid,
-                                         alma_time->tow,
+                                         (u32)lrint(alma_time->tow),
                                          alma_time->wn,
                                          NDB_DS_RECEIVER,
                                          NDB_EVENT_SENDER_ID_VOID);

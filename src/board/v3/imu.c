@@ -237,7 +237,7 @@ static void imu_thread(void *arg) {
        */
       double tow_ms = sample_time.tow * SECS_MS;
       tow = (u32)tow_ms;
-      tow_f = (u8)round((tow_ms - tow) * 255);
+      tow_f = (u8)lrint((tow_ms - tow) * 255);
 
       /* Warn if imu dt error exceeds threshhold according to our ME */
 

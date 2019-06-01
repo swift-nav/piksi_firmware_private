@@ -122,10 +122,10 @@ void do_l1ca_to_l2c_handover(u32 sample_count,
       .mesid = mesid,
       .sample_count = sample_count,
       /* recalculate doppler freq for L2 from L1 */
-      .doppler_hz = doppler_hz * GPS_L2_HZ / GPS_L1_HZ,
+      .doppler_hz = (float)(doppler_hz * GPS_L2_HZ / GPS_L1_HZ),
       .code_phase = code_phase,
       /* chips to correlate during first 1 ms of tracking */
-      .chips_to_correlate = code_to_chip_rate(mesid.code) * 1e-3,
+      .chips_to_correlate = (u32)lrint(code_to_chip_rate(mesid.code) * 1e-3),
       /* get initial cn0 from parent L1CA channel */
       .cn0_init = cn0_init - GPS_L2CM_CN0_INIT_ADJUST_DBHZ};
 
@@ -185,7 +185,7 @@ static bool check_L1_entries(tracker_t *tracker,
   }
 
   /* Convert L2 doppler to L1 */
-  float L2_to_L1_freq = GPS_L1_HZ / GPS_L2_HZ;
+  float L2_to_L1_freq = (float)(GPS_L1_HZ / GPS_L2_HZ);
   float freq_mod =
       fmodf(tracker->xcorr_freq_hz * L2_to_L1_freq, L1CA_XCORR_FREQ_STEP);
 

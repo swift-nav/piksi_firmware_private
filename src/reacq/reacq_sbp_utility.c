@@ -40,7 +40,7 @@ static void reacq_sbp_send(void) {
  * The function initialize timer for reacq SBP message
  */
 void reacq_sbp_init(void) {
-  last_time_s = nap_timing_count() * RX_DT_NOMINAL;
+  last_time_s = (u64)(nap_timing_count() * RX_DT_NOMINAL);
   amount = 0;
 }
 
@@ -55,7 +55,7 @@ void reacq_sbp_init(void) {
  * \return none
  */
 static void reacq_sbp_data_process(const acq_sv_profile_t *profile) {
-  u64 time_s = nap_timing_count() * RX_DT_NOMINAL; /* get current time */
+  u64 time_s = (u64)(nap_timing_count() * RX_DT_NOMINAL); /* get current time */
   bool expired = ((time_s - last_time_s) >= REACQ_SBP_PERIOD);
   if ((amount == REACQ_SBP_BUFF_SIZE) || ((amount > 0) && expired)) {
     reacq_sbp_send();
@@ -102,7 +102,7 @@ void sch_send_acq_profile_msg(const acq_job_t *job,
     sid = construct_sid(job->mesid.code, job->mesid.sat);
   }
   prof.sid = sid_to_sbp(sid);
-  prof.bin_width = acq_params->freq_bin_size_hz;
+  prof.bin_width = (u16)acq_params->freq_bin_size_hz;
   prof.timestamp = (u32)job->stop_time_ms;
   prof.time_spent = (u32)1000 * (job->stop_time_ms - job->start_time_ms);
   prof.cf_min = (s32)acq_params->doppler_min_hz;

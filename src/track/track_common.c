@@ -52,7 +52,7 @@ static u32 tp_convert_ms_to_chips(me_gnss_signal_t mesid,
   u32 chip_rate = (u32)code_to_chip_rate(mesid.code) / 1000;
 
   /* Round the current code_phase towards nearest integer. */
-  u32 current_chip = rint(code_phase);
+  u32 current_chip = (u32)lrint(code_phase);
 
   /* Take modulo of the code phase. Nominally this should be close to zero,
    * or close to chip_rate. */
@@ -133,8 +133,9 @@ void tp_profile_apply_config(tracker_t *tracker, bool init) {
   u8 cn0_ms = tp_get_cn0_ms(tracker->tracking_mode);
   /**< Set initial rates */
   tl_rates_t rates;
-  rates.code_freq = tracker->code_phase_rate - code_to_chip_rate(mesid.code);
-  rates.doppler_hz = tracker->doppler_hz;
+  rates.code_freq =
+      (float)(tracker->code_phase_rate - code_to_chip_rate(mesid.code));
+  rates.doppler_hz = (float)tracker->doppler_hz;
   rates.acceleration = 0.0f;
   /**< Set tracking loop configuration parameters */
   tl_config_t config;
@@ -867,7 +868,7 @@ static void tp_tracker_filter_doppler(tracker_t *tracker,
                                       u32 cycle_flags,
                                       const tp_tracker_config_t *config) {
   if (0 != (cycle_flags & TPF_BSYNC_UPD) && tracker_bit_aligned(tracker)) {
-    float xcorr_freq_hz = tracker->doppler_hz;
+    float xcorr_freq_hz = (float)tracker->doppler_hz;
 
     if (tracker->flags & TRACKER_FLAG_XCORR_FILTER_ACTIVE) {
       xcorr_freq_hz = lp1_filter_update(

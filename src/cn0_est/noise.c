@@ -20,16 +20,16 @@
 #include "main/main.h"
 #include "signal_db/signal_db.h"
 
-#define NOISE_ALPHA 0.005
+#define NOISE_ALPHA 0.005f
 #define NOISE_MAX_AGE_MS 2000 /* re-estimate the noise with this rate */
-#define NOISE_DEFAULT 20000.
+#define NOISE_DEFAULT 20000.0f
 
 static MUTEX_DECL(cn0_mutex);
 
 static u32 mask_all[CODE_COUNT] = {0};
 static u32 mask_noise[CODE_COUNT] = {0};
 static bool has_noise_estimate[CODE_COUNT] = {0};
-static double noise[CODE_COUNT] = {0};
+static float noise[CODE_COUNT] = {0};
 
 static void lock(void) { chMtxLock(&cn0_mutex); }
 static void unlock(void) { chMtxUnlock(&cn0_mutex); }
@@ -90,7 +90,7 @@ static void start_noise_estimation(void) {
 
 void noise_calc(code_t code, u8 cn0_ms, s32 I, s32 Q) {
   assert(code_valid(code));
-  double n = ((double)I * I + (double)Q * Q) / (double)cn0_ms;
+  float n = ((float)I * I + (float)Q * Q) / (float)cn0_ms;
   if (has_noise_estimate[code]) {
     noise[code] += (n - noise[code]) * NOISE_ALPHA;
   } else {
@@ -104,7 +104,7 @@ float noise_get_estimation(code_t code) {
 
   DO_EACH_MS(NOISE_MAX_AGE_MS, start_noise_estimation(););
 
-  double n = NOISE_DEFAULT;
+  float n = NOISE_DEFAULT;
   if (has_noise_estimate[code]) {
     n = noise[code];
   }

@@ -680,7 +680,7 @@ static bool find_tow_age(
   /* If string 1 was the last decoded string, then max_tag == tow_tag. */
 
   /* Convert millisecond time difference into seconds. */
-  u32 tag_diff_s = roundf((max_tag_ms - tow_tag_ms) / (float)SECS_MS);
+  u32 tag_diff_s = (u32)lrintf((max_tag_ms - tow_tag_ms) / (float)SECS_MS);
 
   /* The time tag diff must be divisible by 2 seconds,
    * and it must be less than the validity window. */
@@ -731,7 +731,7 @@ static bool check_validity_window(const nav_msg_glo_t *n, s32 tk_s, u8 skip) {
       continue;
     }
     s32 tag_diff_ms = n->string_receive_time_ms[i] - tow_tag_ms;
-    s32 tag_diff_s = roundf(tag_diff_ms / (float)SECS_MS);
+    s32 tag_diff_s = lrintf(tag_diff_ms / (float)SECS_MS);
     s32 receive_time_s = tk_s + tag_diff_s;
     u32 string_validity_index = receive_time_s / DIFF_VALIDITY_WINDOW_S;
 

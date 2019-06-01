@@ -778,7 +778,7 @@ ndb_op_code_t ndb_almanac_store(const gnss_signal_t *src_sid,
     u16 wn;        /* Almanac's WN value for matching TOA */
 
     if (WN_UNKNOWN == a->toa.wn &&
-        NDB_ERR_NONE == ndb_almanac_wn_read(a->toa.tow, &wn)) {
+        NDB_ERR_NONE == ndb_almanac_wn_read((u32)round(a->toa.tow), &wn)) {
       /* If WN is not specified in the almanac, but is found in NDB, update
        * it */
       tmp = *a;

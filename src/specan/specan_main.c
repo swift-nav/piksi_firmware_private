@@ -94,7 +94,7 @@ void ThreadManageSpecan(void *arg) {
     for (uBand = 1; uBand <= 4; uBand++) {
       p_head->channel_tag = uBand;
       p_head->t.wn = curr_time.wn;
-      p_head->t.tow = curr_time.tow;
+      p_head->t.tow = (u32)(1000 * lrint(curr_time.tow));
       p_head->t.ns_residual = 0;
       /** The call below sets start frequency and frequency step */
       SpecanCore(uBand);
@@ -143,14 +143,14 @@ void ThreadManageSpecan(void *arg) {
 
 int SpecanStart(void) {
   uint32_t k;
-  const float fTwoPI = 2.0 * M_PI;
+  const float fTwoPI = 2.0f * (float)M_PI;
 
   SETTING(
       "system_monitor", "spectrum_analyzer", run_spectrum, SETTINGS_TYPE_BOOL);
 
   for (k = 0; k < SPECAN_FFT_SIZE; k++) {
     /* uCoeff[k] = MIN(MIN(k+1, SPECAN_FFT_SIZE-k), 32); */
-    uCoeff[k] = rintf(32.0 * (1.0 - cosf(k * fTwoPI / SPECAN_FFT_SIZE)));
+    uCoeff[k] = (u8)lrintf(32.0f * (1.0f - cosf(k * fTwoPI / SPECAN_FFT_SIZE)));
   }
 
   InitIntFFTr2(&sFFT, SPECAN_FFT_SIZE);

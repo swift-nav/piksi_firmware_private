@@ -160,7 +160,7 @@ void glo_data_sync(nav_msg_glo_t *n,
   from_decoder.sync_flags = flags;
 
   double TOW_ms = n->gps_time.tow * SECS_MS;
-  double rounded_TOW_ms = round(TOW_ms);
+  double rounded_TOW_ms = rint(TOW_ms);
   if ((0 != (flags & SYNC_TOW)) &&
       ((rounded_TOW_ms > INT32_MAX) || (rounded_TOW_ms < 0))) {
     log_warn_mesid(mesid, "Unexpected TOW value: %lf ms", rounded_TOW_ms);
@@ -169,7 +169,7 @@ void glo_data_sync(nav_msg_glo_t *n,
   from_decoder.TOW_ms = (s32)rounded_TOW_ms;
 
   double delta_TOW_ns = (TOW_ms - rounded_TOW_ms) * 1e6;
-  from_decoder.TOW_residual_ns = delta_TOW_ns;
+  from_decoder.TOW_residual_ns = lrint(delta_TOW_ns);
 
   from_decoder.bit_polarity = n->bit_polarity;
   from_decoder.glo_orbit_slot = n->eph.sid.sat;

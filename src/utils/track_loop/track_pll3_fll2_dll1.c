@@ -215,7 +215,7 @@ void tl_pll3_update_fll_discr(tl_pll3_state_t *s,
     /* Skip update if the previous integration period was 0 */
     float dot = I * s->prev_I + Q * s->prev_Q;
     float cross = s->prev_I * Q - I * s->prev_Q;
-    float angle_circ = atan2f(cross, dot) / (2.0f * M_PI);
+    float angle_circ = atan2f(cross, dot) / (2.0f * (float)M_PI);
     if (halfq && (ABS(angle_circ) > 0.25f)) {
       angle_circ = SIGN(angle_circ) * (ABS(angle_circ) - 0.5f);
     }

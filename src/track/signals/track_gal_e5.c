@@ -117,12 +117,12 @@ void gal_e1_to_e5_handover(u32 sample_count,
       .mesid = mesid_E5,
       .sample_count = sample_count,
       /* recalculate doppler freq from E1 to E5a */
-      .doppler_hz = carrier_freq * GAL_E5_HZ / GAL_E1_HZ,
+      .doppler_hz = (float)(carrier_freq * GAL_E5_HZ / GAL_E1_HZ),
       .code_phase = fmod(code_phase * code_to_chip_rate(CODE_GAL_E5I) /
                              code_to_chip_rate(CODE_GAL_E1B),
                          code_to_chip_count(CODE_GAL_E5I)),
       /* chips to correlate during first 1 ms of tracking */
-      .chips_to_correlate = code_to_chip_rate(mesid_E5.code) * 1e-3,
+      .chips_to_correlate = (u32)lrint(code_to_chip_rate(mesid_E5.code) * 1e-3),
       /* get initial cn0 from parent E1 channel */
       .cn0_init = cn0_init};
 

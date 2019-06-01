@@ -272,7 +272,7 @@ static u32 sbas_get_timestamp(u32 delay) {
   /* Read current GPS time. */
   gps_time_t gps_time = get_current_time();
   /* Convert to milliseconds. */
-  u32 gps_time_ms = round(gps_time.tow * SECS_MS);
+  u32 gps_time_ms = (u32)lrint(gps_time.tow * SECS_MS);
   if (gps_time_ms >= WEEK_MS) {
     gps_time_ms -= WEEK_MS;
   }

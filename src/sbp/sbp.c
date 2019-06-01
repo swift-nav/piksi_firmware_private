@@ -316,20 +316,20 @@ void log_obs_latency(float latency_ms) {
   }
 
   if (corr_stats.latency.lmin > latency_ms || corr_stats.latency.lmin == 0) {
-    corr_stats.latency.lmin = latency_ms;
+    corr_stats.latency.lmin = lrintf(latency_ms);
   }
 
   if (corr_stats.latency.lmax < latency_ms) {
-    corr_stats.latency.lmax = latency_ms;
+    corr_stats.latency.lmax = lrintf(latency_ms);
   }
 
   if (corr_stats.obs_period.pmin > obs_period_ms ||
       corr_stats.obs_period.pmin == 0) {
-    corr_stats.obs_period.pmin = obs_period_ms;
+    corr_stats.obs_period.pmin = lrintf(obs_period_ms);
   }
 
   if (obs_period_ms > corr_stats.obs_period.pmax) {
-    corr_stats.obs_period.pmax = obs_period_ms;
+    corr_stats.obs_period.pmax = lrintf(obs_period_ms);
   }
 }
 

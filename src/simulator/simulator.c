@@ -43,10 +43,10 @@ simulation_settings_t sim_settings = {
     .speed = 4.0,
     .radius = 100.0,
     .pos_sigma = 1.5,
-    .speed_sigma = .15,
-    .cn0_sigma = 0.3,
+    .speed_sigma = .15f,
+    .cn0_sigma = 0.3f,
     .pseudorange_sigma = 4,
-    .phase_sigma = 3e-2,
+    .phase_sigma = 3e-2f,
     .num_sats = 9,
     .mode_mask = SIMULATION_MODE_PVT | SIMULATION_MODE_TRACKING |
                  SIMULATION_MODE_FLOAT | SIMULATION_MODE_RTK};
@@ -185,7 +185,7 @@ void simulation_step(void) {
   /* Update the time, clamping it to the solution frequency */
   double new_tow = sim_state.noisy_solution.time.tow + elapsed;
   sim_state.noisy_solution.time.tow =
-      round(new_tow * soln_freq_setting) / soln_freq_setting;
+      rint(new_tow * soln_freq_setting) / soln_freq_setting;
 
   /* Handle week-rollover. */
   normalize_gps_time(&sim_state.noisy_solution.time);
@@ -201,7 +201,8 @@ void simulation_step(void) {
  */
 void simulation_step_position_in_circle(double elapsed) {
   /* Update the angle, making a small angle approximation. */
-  sim_state.angle += (sim_settings.speed * elapsed) / sim_settings.radius;
+  sim_state.angle +=
+      (sim_settings.speed * (float)elapsed) / sim_settings.radius;
   if (sim_state.angle > 2 * M_PI) {
     sim_state.angle = 0;
   }
@@ -334,9 +335,10 @@ void simulation_step_tracking_and_observations(double elapsed) {
       sim_state.state_meas[num_sats_selected].mesid.code = sid.code;
       float fTmpCN0 = sim_state.obs_array.observations[num_sats_selected].cn0;
       fTmpCN0 = (fTmpCN0 <= 0) ? 0 : fTmpCN0;
-      fTmpCN0 = (fTmpCN0 >= 63.75) ? 63.75 : fTmpCN0;
-      sim_state.tracking_channel[num_sats_selected].cn0 = rintf(fTmpCN0 * 4.0);
-      sim_state.state_meas[num_sats_selected].cn0 = rintf(fTmpCN0 * 4.0);
+      fTmpCN0 = (fTmpCN0 >= 63.75) ? 63.75f : fTmpCN0;
+      sim_state.tracking_channel[num_sats_selected].cn0 =
+          (u8)lrintf(fTmpCN0 * 4.0f);
+      sim_state.state_meas[num_sats_selected].cn0 = (u8)lrintf(fTmpCN0 * 4.0f);
 
       sim_state.ch_meas[num_sats_selected].sid = sid;
       sim_state.ch_meas[num_sats_selected].cn0 =
@@ -375,16 +377,17 @@ void populate_obs(starling_obs_t* obs,
   obs->carrier_phase +=
       rand_gaussian(sim_settings.phase_sigma * sim_settings.phase_sigma);
 
-  obs->doppler =
-      vel / GPS_C * sid_to_carr_freq(simulation_almanacs[almanac_i].sid);
-  obs->cn0 = lerp(elevation, 0, M_PI / 2, 35, 45) +
-             rand_gaussian(sim_settings.cn0_sigma * sim_settings.cn0_sigma);
+  obs->doppler = (float)(vel / GPS_C *
+                         sid_to_carr_freq(simulation_almanacs[almanac_i].sid));
+  obs->cn0 =
+      (float)(lerp(elevation, 0, M_PI / 2, 35, 45) +
+              rand_gaussian(sim_settings.cn0_sigma * sim_settings.cn0_sigma));
   obs->flags = 0xffff;
   /* Assume 5hz solution rate for sim mode */
   if (obs->lock_time <= 0) {
-    obs->lock_time = 0.2;
+    obs->lock_time = 0.2f;
   }
-  obs->lock_time += 0.2;
+  obs->lock_time += 0.2f;
 }
 
 /** Returns true if the simulation is at all enabled

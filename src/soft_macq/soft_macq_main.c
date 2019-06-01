@@ -154,7 +154,7 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
     p_acqres->cp =
         (1.0f - sLocalResult.fCodeDelay) * code_to_chip_count(mesid.code);
     p_acqres->df_hz = sLocalResult.fDoppFreq;
-    p_acqres->cn0 = ret ? ACQ_EARLY_THRESHOLD : sLocalResult.fMaxCorr;
+    p_acqres->cn0 = ret ? (float)ACQ_EARLY_THRESHOLD : sLocalResult.fMaxCorr;
     return ret;
   }
 
