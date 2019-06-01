@@ -201,7 +201,7 @@ static void imu_thread(void *arg) {
        to imply that this register is shadowed.
     */
     if (raw_imu_output) {
-      dt_ms = (s32)(sensor_time - p_sensor_time) * BMI160_SENSOR_TIME_TO_MS;
+      dt_ms = lrint((sensor_time - p_sensor_time) * BMI160_SENSOR_TIME_TO_MS);
       dt_err_pcent = 100 * ABS(dt_ms - expected_dt_ms) / expected_dt_ms;
 
       if (!rate_change_in_progress &&
@@ -266,7 +266,7 @@ static void imu_thread(void *arg) {
         /* Warn if sensor read delay after ISR exceeds threshhold */
 
         u64 tc_now = nap_timing_count();
-        dt_ms = nap_count_to_ms(tc_now - full_tc);
+        dt_ms = lrint(nap_count_to_ms(tc_now - full_tc));
         dt_err_pcent =
             100 * dt_ms / expected_dt_ms; /* Delay's proportion of period */
         if (dt_err_pcent > BMI160_READ_DELAY_THRESH_PERCENT) {
