@@ -95,7 +95,7 @@ void clock_steer(s32 clk_drift_ppb) {
   }
 
   /* arbitrary [1:30] second delay function */
-  u16 adj_deadline_s = rintf(31.0f - 3.0f * log2f(abs_clk_drift_ppb));
+  u16 adj_deadline_s = (u16)lrintf(31.0f - 3.0f * log2f(abs_clk_drift_ppb));
   /* DAC set point bounded for safety */
   if (slow_down && (dac_value > 1900)) {
     dac_value--;

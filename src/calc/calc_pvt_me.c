@@ -606,7 +606,7 @@ static s8 me_compute_pvt(const obs_array_t *obs_array,
              current_fix.clock_drift);
   }
 
-  clock_steer(rint(current_fix.clock_drift * 1e9));
+  clock_steer(lrint(current_fix.clock_drift * 1e9));
 
   /* Update the relationship between the solved GPS time and NAP count */
   update_time(current_tc, &current_fix);
