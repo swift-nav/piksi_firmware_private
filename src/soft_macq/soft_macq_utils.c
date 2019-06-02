@@ -48,7 +48,7 @@ int InitBBConvLut(void) {
     uVal = k;
     iSampleVal = iSampleLUT[(uVal >> BBNCO_CARRPH_BITS) & SAMPLE_MASK];
     uPhase = uVal & BBNCO_CARRPH_MASK;
-    fPhase = (float)uPhase * TWOPI / BBNCO_CARRPH_SIZE;
+    fPhase = (float)uPhase * (float)(2 * M_PI) / BBNCO_CARRPH_SIZE;
     fCos = +fScale * iSampleVal * cosf(fPhase);
     if (fCos < 0) {
       bbConvTable[k].r = 2 * floorf(fCos) + 1;

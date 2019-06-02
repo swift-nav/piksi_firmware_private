@@ -47,7 +47,7 @@ float costas_discriminator(float I, float Q) {
     //  the average of 0.25 and -0.25 in the face of that ambiguity, so zero.
     return 0;
   }
-  return atanf(Q / I) * (float)(1 / (2 * M_PI));
+  return atanf(Q / I) / (float)(2 * M_PI);
 }
 
 /** Normalised non-coherent early-minus-late envelope DLL discriminator.

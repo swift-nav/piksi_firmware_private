@@ -7,7 +7,6 @@
 
 #include "lib/fixed_fft_r2.h"
 
-#define TWOPI (2.0 * M_PI)
 #define POW_TWO_P32 (4294967296.0)
 
 #define UTC_SEC_AT_GPS (315964800) /* More or less twenty years */

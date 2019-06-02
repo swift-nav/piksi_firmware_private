@@ -113,7 +113,7 @@ void tl_pll2_update_pll(tl_pll2_state_t *s,
     carr_error_cyc = costas_discriminator(cs[1].I, cs[1].Q);
   } else if (cs[1].I != 0.0f) {
     /* Otherwise use coherent discriminator */
-    carr_error_cyc = atan2f(cs[1].Q, cs[1].I) * (float)(1 / (2 * M_PI));
+    carr_error_cyc = atan2f(cs[1].Q, cs[1].I) / (float)(2 * M_PI);
   }
 
   float carr_vel_change_hz_per_s = carr_error_cyc * s->carr_c2 * s->T_CODE;

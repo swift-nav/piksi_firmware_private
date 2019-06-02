@@ -161,7 +161,7 @@ void tl_pll3_update_fpll(tl_pll3_state_t *s,
       carr_error = costas_discriminator(cs[1].I, cs[1].Q);
     } else if (cs[1].I != 0.0f) {
       /* use coherent discriminator */
-      carr_error = atan2f(cs[1].Q, cs[1].I) * (float)(1 / (2 * M_PI));
+      carr_error = atan2f(cs[1].Q, cs[1].I) / (float)(2 * M_PI);
     }
   }
 
@@ -215,7 +215,7 @@ void tl_pll3_update_fll_discr(tl_pll3_state_t *s,
     /* Skip update if the previous integration period was 0 */
     float dot = I * s->prev_I + Q * s->prev_Q;
     float cross = s->prev_I * Q - I * s->prev_Q;
-    float angle_circ = atan2f(cross, dot) / (2.0f * M_PI);
+    float angle_circ = atan2f(cross, dot) / (float)(2 * M_PI);
     if (halfq && (ABS(angle_circ) > 0.25f)) {
       angle_circ = SIGN(angle_circ) * (ABS(angle_circ) - 0.5f);
     }
