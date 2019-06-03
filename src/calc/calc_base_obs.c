@@ -254,11 +254,6 @@ static void generic_obs_callback(
     bool too_early = (tor_diff <= tor_interval_limit());
     /* if too close in time skip this message */
     if (!same_epoch && too_early) {
-      /* only log at the first message of each epoch */
-      if (is_first_message_in_obs_sequence(count)) {
-        log_info("Discarding excessive rate base observation, tow = %.3f",
-                 tor.tow);
-      }
       return;
     }
     /* enough time has lapsed, update `tor_old` on the first message */
