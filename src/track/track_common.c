@@ -419,9 +419,10 @@ static void tp_tracker_update_correlators(tracker_t *tracker, u32 cycle_flags) {
   }
 
   const code_t code = mesid.code;
-  bool pilot_sync = tracker_has_bit_sync(tracker) &&
-                    (is_gal(code) || (CODE_BDS3_B5I == code));
-  if ((CODE_GPS_L2CM == code) || pilot_sync) {
+  const bool tiered_codes = (CODE_GPS_L2CM == code) || (CODE_QZS_L2CM == code);
+  const bool pilot_sync = tracker_has_bit_sync(tracker) &&
+                          (is_gal(code) || (CODE_BDS3_B5I == code));
+  if (tiered_codes || pilot_sync) {
     /* Galileo, GPS L2/L5 and BDS B2a have data on the 5th correlator */
     cycle_flags |= TPF_BIT_PILOT;
     add_pilot_and_data_iq(&cs_now);
@@ -752,10 +753,12 @@ static void tp_tracker_update_loops(tracker_t *tracker, u32 cycle_flags) {
 
     bool costas = true;
     const code_t code = tracker->mesid.code;
-    bool pilot_sync =
+    const bool tiered_codes =
+        (CODE_GPS_L2CM == code) || (CODE_QZS_L2CM == code);
+    const bool pilot_sync =
         tracker_has_bit_sync(tracker) &&
         (is_gal(code) || (CODE_GPS_L5I == code) || (CODE_BDS3_B5I == code));
-    if ((CODE_GPS_L2CM == code) || pilot_sync) {
+    if (tiered_codes || pilot_sync) {
       /* The L2CM and L2CL codes are always in phase */
       /* Once in bit-sync, Galileo pilots are completely free of transitions so
        * no need for a Costas loop */

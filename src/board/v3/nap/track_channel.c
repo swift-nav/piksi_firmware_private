@@ -190,6 +190,9 @@ static inline void init_code_generators(const me_gnss_signal_t mesid,
     if (mesid.code == CODE_GPS_L2CM) {
       index = (num_codes % GPS_L2CL_PRN_START_POINTS);
     }
+    if (mesid.code == CODE_QZS_L2CM) {
+      index = (num_codes % QZS_L2CL_PRN_START_POINTS);
+    }
 
     NAP->TRK_CODE_LFSR0_INIT = mesid_to_lfsr0_init(mesid);
     NAP->TRK_CODE_LFSR0_RESET = mesid_to_lfsr0_init(mesid);

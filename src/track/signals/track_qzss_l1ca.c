@@ -84,7 +84,7 @@ static void tracker_qzss_l1ca_update(tracker_t *tracker) {
     log_debug_mesid(tracker->mesid, "calling qzss_l1ca_to_l2c_handover()");
 
     /* Start L2C tracker if not running */
-    if (CODE_QZSS_L2C_SUPPORT) {
+    if (CODE_QZS_L2C_SUPPORT) {
       qzss_l1ca_to_l2c_handover(tracker->sample_count,
                                 tracker->mesid.sat,
                                 tracker->code_phase_prompt,

@@ -33,9 +33,12 @@
  */
 static u16 tracking_lock_counters[PLATFORM_ACQ_TRACK_COUNT];
 
-static s32 normalize_tow(s32 tow) {
-  assert(tow >= 0);
-  return tow % GPS_WEEK_LENGTH_ms;
+static s32 normalize_tow(s32 tow_ms) {
+  if (tow_ms < 0) {
+    log_error("tow_ms %" PRId32, tow_ms);
+    assert(0);
+  }
+  return tow_ms % GPS_WEEK_LENGTH_ms;
 }
 
 /** Read correlations from the NAP for a tracker channel.
