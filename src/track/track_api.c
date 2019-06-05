@@ -163,7 +163,8 @@ static void update_eph(tracker_t *tracker, const nav_data_sync_t *data_sync) {
     log_warn_mesid(mesid, "Unexpected GLO orbit slot change");
   }
   tracker->glo_orbit_slot = data_sync->glo_orbit_slot;
-  if (!IS_GPS(mesid) && SV_UNHEALTHY == data_sync->health) {
+  if (!IS_GPS(mesid) && !IS_QZSS(mesid) &&
+      (SV_UNHEALTHY == data_sync->health)) {
     tracker->flags |= TRACKER_FLAG_UNHEALTHY;
     tracker_flag_drop(tracker, CH_DROP_REASON_SV_UNHEALTHY);
   }

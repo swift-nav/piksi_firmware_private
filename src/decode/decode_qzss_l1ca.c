@@ -105,6 +105,8 @@ static void decoder_qzss_l1ca_process(
     tracker_data_sync(channel_info->tracking_channel, &from_decoder);
   }
 
+  return;
+
   /* Decode nav data to temporary structure */
   gps_l1ca_decoded_data_t dd;
   s8 ret = process_subframe(&data->nav_msg, channel_info->mesid, &dd);

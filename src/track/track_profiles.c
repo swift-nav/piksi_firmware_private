@@ -23,7 +23,6 @@
 #include "lock_detector/lock_detector.h"
 #include "nap/nap_hw.h"
 #include "platform_cn0.h"
-#include "platform_track.h"
 #include "signal_db/signal_db.h"
 #include "timing/timing.h"
 #include "track/track_cfg.h"

@@ -461,6 +461,7 @@ static void manage_acq(void) {
   if (acq == NULL) {
     return;
   }
+  log_info_mesid(acq->mesid, "chosen");
 
   assert((CODE_GPS_L1CA == acq->mesid.code) ||
          (CODE_GLO_L1OF == acq->mesid.code) ||

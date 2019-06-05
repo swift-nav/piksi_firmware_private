@@ -20,7 +20,6 @@
 #include <swiftnav/signal.h>
 
 #include "acq/manage.h"
-#include "platform_track.h"
 #include "reacq/search_manager_utils.h"
 #include "signal_db/signal_db.h"
 #include "track/track_api.h"
