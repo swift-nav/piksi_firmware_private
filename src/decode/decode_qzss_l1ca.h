@@ -16,7 +16,7 @@
 extern "C" {
 #endif
 
-void deCODE_QZS_l1ca_register(void);
+void decode_qzs_l1ca_register(void);
 
 #ifdef __cplusplus
 }

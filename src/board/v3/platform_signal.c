@@ -94,7 +94,7 @@ void platform_decode_setup(void) {
   decode_sbas_l1_register();
 #endif
 #if defined CODE_QZS_L1CA_SUPPORT && CODE_QZS_L1CA_SUPPORT > 0
-  deCODE_QZS_l1ca_register();
+  decode_qzs_l1ca_register();
 #endif
 #if defined CODE_QZS_L2C_SUPPORT && CODE_QZS_L2C_SUPPORT > 0
   /* deCODE_QZS_l2c_register(); */

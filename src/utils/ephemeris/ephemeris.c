@@ -248,6 +248,10 @@ static bool xcorr_check_eph_to_eph(const ephemeris_t *e) {
      * 3) The chance we incorrectly decode slot_id twice is small, so no
      * ephemeris overwriting happens */
     return false;
+  } else if (IS_QZSS(e->sid)) {
+    first_prn = QZS_FIRST_PRN;
+    num_sats = NUM_SATS_QZS;
+    gnss = "QZSS";
   } else {
     log_warn("Unsupported GNSS. Ephemeris-to-ephemeris check skipped");
     return false;

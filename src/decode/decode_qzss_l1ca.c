@@ -57,7 +57,7 @@ static const decoder_interface_t decoder_interface_qzss_l1ca = {
 static decoder_interface_list_element_t list_element_qzss_l1ca = {
     .interface = &decoder_interface_qzss_l1ca, .next = NULL};
 
-void deCODE_QZS_l1ca_register(void) {
+void decode_qzs_l1ca_register(void) {
   /* workaround for `comparison is always false due to limited range of data
    * type` */
   for (u16 i = 1; i <= ARRAY_SIZE(qzss_l1ca_decoders); i++) {
@@ -166,5 +166,6 @@ static void decoder_qzss_l1ca_process(
                     "New ephemeris received [%" PRId16 ", %lf]",
                     dd.ephemeris.toe.wn,
                     dd.ephemeris.toe.tow);
+    ephemeris_new(&dd.ephemeris);
   }
 }
