@@ -168,8 +168,8 @@ static cons_cfg_t cons_cfg[CONSTELLATION_COUNT] = {
     [CONSTELLATION_QZS] =
         {
             .name = "QZSS",
-            .enabled = (CODE_QZS_L1CA_SUPPORT || CODE_QZS_L2C_SUPPORT),
-            .supported = (CODE_QZS_L1CA_SUPPORT || CODE_QZS_L2C_SUPPORT),
+            .enabled = (CODE_QZSS_L1CA_SUPPORT || CODE_QZSS_L2C_SUPPORT),
+            .supported = (CODE_QZSS_L1CA_SUPPORT || CODE_QZSS_L2C_SUPPORT),
             .is_applicable = is_qzss,
             .sid_active = qzss_active,
         },

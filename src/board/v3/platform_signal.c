@@ -51,10 +51,10 @@ void platform_track_setup(void) {
 #if defined CODE_SBAS_L1CA_SUPPORT && CODE_SBAS_L1CA_SUPPORT > 0
   track_sbas_l1_register();
 #endif
-#if defined CODE_QZS_L1CA_SUPPORT && CODE_QZS_L1CA_SUPPORT > 0
+#if defined CODE_QZSS_L1CA_SUPPORT && CODE_QZSS_L1CA_SUPPORT > 0
   track_qzss_l1ca_register();
 #endif
-#if defined CODE_QZS_L2C_SUPPORT && CODE_QZS_L2C_SUPPORT > 0
+#if defined CODE_QZSS_L2C_SUPPORT && CODE_QZSS_L2C_SUPPORT > 0
   track_qzss_l2c_register();
 #endif
 #if defined CODE_BDS2_B1_SUPPORT && CODE_BDS2_B1_SUPPORT > 0
@@ -93,10 +93,10 @@ void platform_decode_setup(void) {
 #if defined CODE_SBAS_L1CA_SUPPORT && CODE_SBAS_L1CA_SUPPORT > 0
   decode_sbas_l1_register();
 #endif
-#if defined CODE_QZS_L1CA_SUPPORT && CODE_QZS_L1CA_SUPPORT > 0
+#if defined CODE_QZSS_L1CA_SUPPORT && CODE_QZSS_L1CA_SUPPORT > 0
   decode_qzs_l1ca_register();
 #endif
-#if defined CODE_QZS_L2C_SUPPORT && CODE_QZS_L2C_SUPPORT > 0
+#if defined CODE_QZSS_L2C_SUPPORT && CODE_QZSS_L2C_SUPPORT > 0
   /* deCODE_QZS_l2c_register(); */
 #endif
 #if defined CODE_BDS2_B1_SUPPORT && CODE_BDS2_B1_SUPPORT > 0
