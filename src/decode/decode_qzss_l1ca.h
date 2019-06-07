@@ -9,17 +9,17 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
-#ifndef DECODE_QZS_L1CA_H
-#define DECODE_QZS_L1CA_H
+#ifndef DECODE_QZSS_L1CA_H
+#define DECODE_QZSS_L1CA_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void decode_qzs_l1ca_register(void);
+void decode_qzss_l1ca_register(void);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* DECODE_QZS_L1CA_H */
+#endif /* DECODE_QZSS_L1CA_H */

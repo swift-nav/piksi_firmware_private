@@ -366,18 +366,18 @@ static void collect_measurements(u64 rec_tc,
       } else {
         gnss_signal_t sid = meas[n_collected].sid;
         if ((sid.code == CODE_QZS_L1CA) || (sid.code == CODE_QZS_L2CM)) {
-          log_info_sid(sid,
-                       "NAV_SUITABLE %d ELEVATION %d TOW_VALID %d HAS_EPHE %d "
-                       "CN0_USABLE "
-                       "%d RECOVERY_MODE %d CODE_VALID %d DOPPLER_VALID %d",
-                       0 != (flags & TRACKER_FLAG_NAV_SUITABLE),
-                       0 != (flags & TRACKER_FLAG_ELEVATION),
-                       0 != (flags & TRACKER_FLAG_TOW_VALID),
-                       0 != (flags & TRACKER_FLAG_HAS_EPHE),
-                       0 != (flags & TRACKER_FLAG_CN0_USABLE),
-                       0 == (flags & TRACKER_FLAG_RECOVERY_MODE),
-                       0 != (meas_flags & CHAN_MEAS_FLAG_CODE_VALID),
-                       0 != (meas_flags & CHAN_MEAS_FLAG_MEAS_DOPPLER_VALID));
+          log_debug_sid(sid,
+                        "NAV_SUITABLE %d ELEVATION %d TOW_VALID %d HAS_EPHE %d "
+                        "CN0_USABLE "
+                        "%d RECOVERY_MODE %d CODE_VALID %d DOPPLER_VALID %d",
+                        0 != (flags & TRACKER_FLAG_NAV_SUITABLE),
+                        0 != (flags & TRACKER_FLAG_ELEVATION),
+                        0 != (flags & TRACKER_FLAG_TOW_VALID),
+                        0 != (flags & TRACKER_FLAG_HAS_EPHE),
+                        0 != (flags & TRACKER_FLAG_CN0_USABLE),
+                        0 == (flags & TRACKER_FLAG_RECOVERY_MODE),
+                        0 != (meas_flags & CHAN_MEAS_FLAG_CODE_VALID),
+                        0 != (meas_flags & CHAN_MEAS_FLAG_MEAS_DOPPLER_VALID));
         }
       }
     }
