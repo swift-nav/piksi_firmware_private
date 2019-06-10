@@ -26,7 +26,7 @@
 #define BDS_PREAMBLE (0x38900000)
 #define BDS_PREAMBLE_INV (0x07680000)
 #define BDS_WORD_BITMASK (0x3fffffff)
-#define BDS_WORD_SUBFR_MASK (0x3FF)
+#define BDS_10WORDS_MASK (0x3ff)
 
 static const u16 bch_table[16] = {[0b0000] = 0b000000000000000,
                                   [0b0001] = 0b000000000000001,
@@ -143,7 +143,7 @@ bds_decode_status_t bds_d2_processing(nav_msg_bds_t *n,
   /* TODO BDS: Save BDS D2 ephemeris */
   (void)data;
   s32 TOW_s = (((n->page_words[0]) >> 4) & 0xffU) << 12;
-  TOW_s |= (((n->page_words[1]) >> 18) & 0x3FFU);
+  TOW_s |= (((n->page_words[1]) >> 18) & BDS_10WORDS_MASK);
   if (TOW_s > WEEK_SECS) {
     return BDS_DECODE_RESET;
   }
@@ -184,11 +184,11 @@ bds_decode_status_t bds_d1_processing(nav_msg_bds_t *n,
   /* Current time is 330 bits from TOW. */
   n->TOW_ms = TOW_s * SECS_MS + BDS2_B11_D1NAV_SYMBOL_LENGTH_MS * 330;
 
-  if (0x3ffULL == ((n->goodwords_mask >> 10) & 0x3ffULL)) {
+  if (BDS_10WORDS_MASK == ((n->goodwords_mask >> 10) & BDS_10WORDS_MASK)) {
     process_d1_fraid4(n, data);
   }
 
-  if (0x3ffULL == ((n->goodwords_mask) & 0x3ffULL)) {
+  if (BDS_10WORDS_MASK == ((n->goodwords_mask) & BDS_10WORDS_MASK)) {
     process_d1_fraid5(n, data);
   }
 
@@ -196,7 +196,7 @@ bds_decode_status_t bds_d1_processing(nav_msg_bds_t *n,
     return BDS_DECODE_TOW_UPDATE;
   }
 
-  if (0x3fffffffULL == ((n->goodwords_mask >> 20) & 0x3fffffffULL)) {
+  if (BDS_WORD_BITMASK == ((n->goodwords_mask >> 20) & BDS_WORD_BITMASK)) {
     process_d1_fraid1(n, data);
     process_d1_fraid2(n, data);
     process_d1_fraid3(n, data);
@@ -218,8 +218,32 @@ bds_decode_status_t bds_d1_processing(nav_msg_bds_t *n,
  * \return true if first word of a new subframe ended with this bit
  */
 bool bds_pol_update(nav_msg_bds_t *n) {
-  (void)n;
-  return false;
+  /* subframe synced, no need to do anything */
+  if (n->subfr_sync) {
+    return false;
+  }
+  /* take a recent word */
+  u32 word3 = n->subframe_bits[8];
+  u32 pream_candidate = word3 & BDS_PREAMBLE_MASK;
+  /* check preamble on */
+  if ((BDS_PREAMBLE != pream_candidate) &&
+      (BDS_PREAMBLE_INV != pream_candidate)) {
+    return false;
+  }
+  if (BDS_PREAMBLE_INV == pream_candidate) {
+    word3 ^= BDS_WORD_BITMASK;
+  }
+  const u8 subfr = (word3 >> 12) & 0x7;
+  if ((subfr < 1) || (subfr > 5)) {
+    return false;
+  }
+  /* check that there are no bit errors */
+  if (0x7 != crc_check(n)) {
+    return false;
+  }
+  n->bit_polarity = (BDS_PREAMBLE == pream_candidate) ? BIT_POLARITY_NORMAL
+                                                      : BIT_POLARITY_INVERTED;
+  return true;
 }
 
 /** BDS navigation message decoding update.
@@ -339,7 +363,7 @@ bool bds_nav_msg_update(nav_msg_bds_t *n) {
       return false;
     }
     /* check that there are no bit errors */
-    if (BDS_WORD_SUBFR_MASK != crc_check(n)) {
+    if (BDS_10WORDS_MASK != crc_check(n)) {
       return false;
     }
     /* subframe start found */
@@ -369,7 +393,7 @@ bool bds_nav_msg_update(nav_msg_bds_t *n) {
     return false;
   }
   /* check that there are no bit errors */
-  if (BDS_WORD_SUBFR_MASK != crc_check(n)) {
+  if (BDS_10WORDS_MASK != crc_check(n)) {
     return false;
   }
   /* subframe start confirmed */
@@ -491,7 +515,7 @@ static void pack_buffer(nav_msg_bds_t *n) {
         (0 == k) ? tmp : packdw(tmp);
   }
   /* store correctly decoded words into mask */
-  n->goodwords_mask |= (0x3ffULL << (10 * (5 - subfr)));
+  n->goodwords_mask |= ((u64)BDS_10WORDS_MASK << (10 * (5 - subfr)));
   /* store subframe rx time */
   n->subfr_times[subfr - 1] = timing_getms();
   /* debug message to verify decoder output */
