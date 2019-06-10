@@ -34,13 +34,13 @@ INCDIR = $(SWIFTNAV_ROOT) \
 	 $(SWIFTNAV_ROOT)/starling/include/starling \
 	 $(SWIFTNAV_ROOT)/starling/libfec/include \
 	 $(SWIFTNAV_ROOT)/src/hal \
-	 $(SWIFTNAV_ROOT)/libsbp/c/include \
 	 $(SWIFTNAV_ROOT)/src/board/v3/prod \
 	 $(SWIFTNAV_ROOT)/src/board/v3 \
 	 $(SWIFTNAV_ROOT)/src/board \
 	 $(SWIFTNAV_ROOT)/src/main \
 	 $(SWIFTNAV_ROOT)/starling/src \
 	 $(SWIFTNAV_ROOT)/starling/ \
+	 $(SWIFTNAV_ROOT)/starling/third_party/libsbp/c/include \
 	 $(SWIFTNAV_ROOT)/starling/third_party/libswiftnav/include \
 	 $(SWIFTNAV_ROOT)/libsettings/include \
 	 $(SWIFTNAV_ROOT)/libsbp \
