@@ -22,7 +22,6 @@
 
 /* Non-local headers */
 #include <acq/manage.h>
-#include <platform_track.h>
 
 /* Libraries */
 #include <swiftnav/constants.h>
@@ -64,6 +63,7 @@ static void tracker_glo_l1of_init(tracker_t *tracker) {
 static void tracker_glo_l1of_update(tracker_t *tracker) {
   u32 cflags = tp_tracker_update(tracker, &glo_l1of_config);
 
+#if defined CODE_GLO_L2OF_SUPPORT && CODE_GLO_L2OF_SUPPORT > 0
   /* If GLO SV is marked unhealthy from L1, also drop L2 tracker */
   if (0 != (tracker->flags & TRACKER_FLAG_UNHEALTHY)) {
     me_gnss_signal_t mesid_drop;
@@ -72,7 +72,6 @@ static void tracker_glo_l1of_update(tracker_t *tracker) {
     return;
   }
 
-#if defined CODE_GLO_L2OF_SUPPORT && CODE_GLO_L2OF_SUPPORT > 0
   bool l2of_healthy = true;
 #endif
   if (glo_slot_id_is_valid(tracker->glo_orbit_slot)) {

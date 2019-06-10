@@ -23,7 +23,6 @@
 
 /* Non-local headers */
 #include <acq/manage.h>
-#include <platform_track.h>
 
 /* Libraries */
 #include <swiftnav/constants.h>

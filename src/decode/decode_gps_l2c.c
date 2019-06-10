@@ -59,9 +59,9 @@ static decoder_interface_list_element_t list_element_gps_l2c = {
     .interface = &decoder_interface_gps_l2c, .next = 0};
 
 void decode_gps_l2c_register(void) {
-  for (u16 i = 0; i < ARRAY_SIZE(gps_l2c_decoders); i++) {
-    gps_l2c_decoders[i].active = false;
-    gps_l2c_decoders[i].data = &gps_l2c_decoder_data[i];
+  for (u16 i = 1; i <= ARRAY_SIZE(gps_l2c_decoders); i++) {
+    gps_l2c_decoders[i - 1].active = false;
+    gps_l2c_decoders[i - 1].data = &gps_l2c_decoder_data[i - 1];
   }
 
   decoder_interface_register(&list_element_gps_l2c);

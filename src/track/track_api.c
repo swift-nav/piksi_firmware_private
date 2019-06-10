@@ -33,9 +33,12 @@
  */
 static u16 tracking_lock_counters[PLATFORM_ACQ_TRACK_COUNT];
 
-static s32 normalize_tow(s32 tow) {
-  assert(tow >= 0);
-  return tow % GPS_WEEK_LENGTH_ms;
+static s32 normalize_tow(s32 tow_ms) {
+  if (tow_ms < 0) {
+    log_error("tow_ms %" PRId32, tow_ms);
+    assert(0);
+  }
+  return tow_ms % GPS_WEEK_LENGTH_ms;
 }
 
 /** Read correlations from the NAP for a tracker channel.
@@ -163,7 +166,8 @@ static void update_eph(tracker_t *tracker, const nav_data_sync_t *data_sync) {
     log_warn_mesid(mesid, "Unexpected GLO orbit slot change");
   }
   tracker->glo_orbit_slot = data_sync->glo_orbit_slot;
-  if (!IS_GPS(mesid) && SV_UNHEALTHY == data_sync->health) {
+  if (!IS_GPS(mesid) && !IS_QZSS(mesid) &&
+      (SV_UNHEALTHY == data_sync->health)) {
     tracker->flags |= TRACKER_FLAG_UNHEALTHY;
     tracker_flag_drop(tracker, CH_DROP_REASON_SV_UNHEALTHY);
   }

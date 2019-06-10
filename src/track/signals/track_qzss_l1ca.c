@@ -22,7 +22,6 @@
 
 /* Non-local headers */
 #include <acq/manage.h>
-#include <platform_track.h>
 
 /* Libraries */
 #include <swiftnav/constants.h>
@@ -85,11 +84,13 @@ static void tracker_qzss_l1ca_update(tracker_t *tracker) {
     log_debug_mesid(tracker->mesid, "calling qzss_l1ca_to_l2c_handover()");
 
     /* Start L2C tracker if not running */
-    qzss_l1ca_to_l2c_handover(tracker->sample_count,
-                              tracker->mesid.sat,
-                              tracker->code_phase_prompt,
-                              tracker->doppler_hz,
-                              tracker->cn0,
-                              tracker->TOW_ms);
+    if (CODE_QZSS_L2C_SUPPORT) {
+      qzss_l1ca_to_l2c_handover(tracker->sample_count,
+                                tracker->mesid.sat,
+                                tracker->code_phase_prompt,
+                                tracker->doppler_hz,
+                                tracker->cn0,
+                                tracker->TOW_ms);
+    }
   }
 }

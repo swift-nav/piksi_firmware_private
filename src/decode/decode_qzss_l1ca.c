@@ -83,6 +83,7 @@ static void decoder_qzss_l1ca_process(
 
   /* Process incoming nav bits */
   nav_bit_t nav_bit;
+  s8 prev_polarity = BIT_POLARITY_UNKNOWN;
   while (tracker_nav_bit_received(channel_info->tracking_channel, &nav_bit)) {
     if ((0 == nav_bit.data) || (nav_bit.cnt != data->bit_cnt)) {
       nav_msg_init(&data->nav_msg);
@@ -95,14 +96,21 @@ static void decoder_qzss_l1ca_process(
     bool bit_val = nav_bit.data > 0;
     nav_data_sync_t from_decoder;
     tracker_data_sync_init(&from_decoder);
+    prev_polarity = data->nav_msg.bit_polarity;
     from_decoder.TOW_ms = nav_msg_update(&data->nav_msg, bit_val);
-
-    log_debug_mesid(channel_info->mesid,
-                    "from_decoder.TOW_ms %6" PRId32,
-                    from_decoder.TOW_ms);
-
     from_decoder.bit_polarity = data->nav_msg.bit_polarity;
+    /* Let's not update TOW together with fast HCA resolution. */
+    if (BIT_POLARITY_UNKNOWN == prev_polarity &&
+        BIT_POLARITY_UNKNOWN != from_decoder.bit_polarity) {
+      /* Only update polarity. */
+      from_decoder.sync_flags = SYNC_POL;
+    }
     tracker_data_sync(channel_info->tracking_channel, &from_decoder);
+  }
+
+  /* Check if there is a new nav msg subframe to process. */
+  if (!subframe_ready(&data->nav_msg)) {
+    return;
   }
 
   /* Decode nav data to temporary structure */
@@ -158,5 +166,6 @@ static void decoder_qzss_l1ca_process(
                     "New ephemeris received [%" PRId16 ", %lf]",
                     dd.ephemeris.toe.wn,
                     dd.ephemeris.toe.tow);
+    ephemeris_new(&dd.ephemeris);
   }
 }
