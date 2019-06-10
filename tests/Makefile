@@ -18,7 +18,7 @@ LIBSWIFTNAV_BUILDDIR=$(STARLING_BUILDDIR)/third_party/libswiftnav
 STARLING_SEARCHPATH=$(STARLING_BUILDDIR)
 LIBSWIFTNAV_SEARCHPATH=$(LIBSWIFTNAV_BUILDDIR)
 STARLING_FEC_SEARCHPATH=$(STARLING_BUILDDIR)/libfec
-LIBSBP_SEARCHPATH=$(SWIFTNAV_ROOT)/libsbp/c
+LIBSBP_SEARCHPATH==$(SWIFTNAV_ROOT)/starling/third_party/libsbp/c
 
 # Points to the root of Google Test, relative to where this file is.
 # Remember to tweak this if you move this file.
