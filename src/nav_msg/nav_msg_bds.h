@@ -129,7 +129,7 @@ typedef enum {
   BDS_DECODE_EPH_UPDATE, /**< Ephemeris decoded */
 } bds_decode_status_t;
 
-u32 crc_check(nav_msg_bds_t *n);
+u32 crc_check(const nav_msg_bds_t *n);
 void bds_nav_msg_init(nav_msg_bds_t *n, const me_gnss_signal_t *mesid);
 void bds_nav_msg_clear_decoded(nav_msg_bds_t *n);
 bds_decode_status_t bds_data_decoding(nav_msg_bds_t *n, nav_bit_t nav_bit);

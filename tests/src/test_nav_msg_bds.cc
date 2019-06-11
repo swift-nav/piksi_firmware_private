@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <string.h>
-
 #include <swiftnav/logging.h>
 
 #include "gtest/gtest.h"
