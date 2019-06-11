@@ -18,7 +18,6 @@ LIBSWIFTNAV_BUILDDIR=$(STARLING_BUILDDIR)/third_party/libswiftnav
 STARLING_SEARCHPATH=$(STARLING_BUILDDIR)
 LIBSWIFTNAV_SEARCHPATH=$(LIBSWIFTNAV_BUILDDIR)
 STARLING_FEC_SEARCHPATH=$(STARLING_BUILDDIR)/libfec
-LIBSBP_SEARCHPATH=$(SWIFTNAV_ROOT)/libsbp/c
 
 # Points to the root of Google Test, relative to where this file is.
 # Remember to tweak this if you move this file.
@@ -78,6 +77,7 @@ INCLUDE_DIRS += -I$(USER_SRC_DIR)/board/v3/
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/board/v3/prod/
 INCLUDE_DIRS += -I../starling/include
 INCLUDE_DIRS += -I../starling/third_party/libswiftnav/include
+INCLUDE_DIRS += -I../starling/third_party/libsbp/c/include
 INCLUDE_DIRS += -I../starling/libfec/include
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/utils
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/hal
@@ -88,7 +88,6 @@ INCLUDE_DIRS += -I$(USER_SRC_DIR)/soft_macq
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/track
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/main
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/sbp
-INCLUDE_DIRS += -I$(LIBSBP_SEARCHPATH)/include
 
 # All Google Test headers.  Usually you shouldn't change this
 # definition.

@@ -86,16 +86,16 @@ ifeq ($(LIB_BUILDFOLDER),)
   LIB_BUILDFOLDER = build_$(PIKSI_HW)
 endif
 
-ifeq ($(LIBSBP_BUILDDIR),)
-  LIBSBP_BUILDDIR=$(SWIFTNAV_ROOT)/libsbp/c/$(LIB_BUILDFOLDER)
-endif
-
 ifeq ($(LIBSETTINGS_BUILDDIR),)
   LIBSETTINGS_BUILDDIR=$(SWIFTNAV_ROOT)/libsettings/$(LIB_BUILDFOLDER)
 endif
 
 ifeq ($(STARLING_BUILDDIR),)
   STARLING_BUILDDIR=$(SWIFTNAV_ROOT)/starling/$(LIB_BUILDFOLDER)
+endif
+
+ifeq ($(LIBSBP_BUILDDIR),)
+  LIBSBP_BUILDDIR=$(STARLING_BUILDDIR)/third_party/libsbp
 endif
 
 ifeq ($(LIBSWIFTNAV_BUILDDIR),)
@@ -268,7 +268,7 @@ ASMSRC = $(STARTUPASM) $(PORTASM) $(OSALASM) $(BOARDASM)
 INCDIR = $(STARTUPINC) $(PORTINC) $(KERNINC) \
          $(HALINC) $(OSALINC) $(PLATFORMINC) $(BOARDINC) \
          $(CHIBIOS)/os/various \
-         $(SWIFTNAV_ROOT)/libsbp/c/include \
+         $(SWIFTNAV_ROOT)/starling/third_party/libsbp/c/include \
          $(SWIFTNAV_ROOT)/libsettings/include \
          $(SWIFTNAV_ROOT)/starling/include \
          $(SWIFTNAV_ROOT)/starling/third_party/libswiftnav/include \
@@ -368,7 +368,7 @@ DINCDIR =
 
 # List the default directory to look for the libraries here
 
-DLIBDIR = $(LIBSBP_BUILDDIR)/src \
+DLIBDIR = $(LIBSBP_BUILDDIR)/c/src \
           $(LIBSETTINGS_BUILDDIR)/src \
           $(STARLING_BUILDDIR)/src \
           $(STARLING_BUILDDIR)/starling-util \
