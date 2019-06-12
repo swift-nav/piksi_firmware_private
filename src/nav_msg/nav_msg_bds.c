@@ -28,6 +28,7 @@
 #define BDS_WORD_BITMASK (0x3fffffff)
 #define BDS_10WORDS_MASK (0x3ff)
 #define U32_FLIP ((u32)(-1))
+/* this bit mask does not work for n==0 and n==32 */
 #define BITMASK(n) ((1U << (n)) - 1)
 
 static const u16 bch_table[16] = {[0b0000] = 0b000000000000000,
@@ -226,7 +227,7 @@ bool bds_pol_update(nav_msg_bds_t *n) {
   if (n->subfr_sync) {
     return false;
   }
-  const u8 offset = 7;
+  const u8 offset = 8;
   const u8 remain = BDS_NAV_MSG_SUBFRAME_WORDS_LEN - offset;
   /* take a recent word */
   u32 word = n->subframe_bits[offset];
@@ -235,8 +236,10 @@ bool bds_pol_update(nav_msg_bds_t *n) {
   if ((BDS_PREAMBLE != candidate) && (BDS_PREAMBLE_INV != candidate)) {
     return false;
   }
+  s8 polarity = BIT_POLARITY_NORMAL;
   if (BDS_PREAMBLE_INV == candidate) {
     word ^= BDS_WORD_BITMASK;
+    polarity = BIT_POLARITY_INVERTED;
   }
   const u8 subfr = (word >> 12) & 0x7;
   if ((subfr < 1) || (subfr > 5)) {
@@ -247,8 +250,7 @@ bool bds_pol_update(nav_msg_bds_t *n) {
   if (BITMASK(remain) != crc) {
     return false;
   }
-  n->bit_polarity =
-      (BDS_PREAMBLE == candidate) ? BIT_POLARITY_NORMAL : BIT_POLARITY_INVERTED;
+  n->bit_polarity = polarity;
   return true;
 }
 
@@ -378,7 +380,6 @@ bool bds_nav_msg_update(nav_msg_bds_t *n) {
     n->bit_polarity = (BDS_PREAMBLE == pream_candidate_prev)
                           ? BIT_POLARITY_NORMAL
                           : BIT_POLARITY_INVERTED;
-    deint_buffer(n);
     return pack_buffer(n);
   }
   /* aligned with subframe */
@@ -404,7 +405,6 @@ bool bds_nav_msg_update(nav_msg_bds_t *n) {
   }
   /* subframe start confirmed */
   n->subfr_bit_index = n->bit_index;
-  deint_buffer(n);
   return pack_buffer(n);
 }
 
@@ -522,6 +522,8 @@ static u32 pack_dw(const u32 dw) {
 
 /** Deinterleaves signal in subframe structure */
 static bool pack_buffer(nav_msg_bds_t *n) {
+  deint_buffer(n);
+
   const u32 flip = (BIT_POLARITY_INVERTED == (n->bit_polarity)) ? U32_FLIP : 0;
   u32 tmp = n->subframe_bits[0] ^ flip;
   u8 subfr = (tmp >> 12) & 0x7;
