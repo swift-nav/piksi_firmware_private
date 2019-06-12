@@ -1,10 +1,8 @@
 #include <math.h>
+#include <swiftnav/gnss_time.h>
 
 #include "gtest/gtest.h"
-
 #include "piksi_systime.h"
-
-#include <swiftnav/gnss_time.h>
 
 TEST(piksi_systime_tests, init) {
   piksi_systime_t st = PIKSI_SYSTIME_INIT;

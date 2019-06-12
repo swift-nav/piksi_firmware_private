@@ -26,9 +26,10 @@
 #define BDS_PREAMBLE (0x38900000)
 #define BDS_PREAMBLE_INV (0x07680000)
 #define BDS_WORD_BITMASK (0x3fffffff)
+#define BDS_10WORDS_MASK (0x3ff)
+#define U32_FLIP ((u32)(-1))
 /* this bit mask does not work for n==0 and n==32 */
 #define BITMASK(n) ((1U << (n)) - 1)
-#define BDS_WORD_SUBFR_MASK BITMASK(BDS_WORD_SUBFR)
 
 static const u16 bch_table[16] = {[0b0000] = 0b000000000000000,
                                   [0b0001] = 0b000000000000001,
@@ -66,10 +67,12 @@ static const float bds_ura_table[16] = {[0] = 2.0f,
 
 static bool subframes123_from_same_frame(const nav_msg_bds_t *n);
 static void dw30_1bit_pushr(u32 *words, u8 numel, bool bitval);
-static void pack_buffer(nav_msg_bds_t *n);
-//~ static void dump_navmsg(const nav_msg_bds_t *n, const u8 subfr);
-static void deint(u32 *hi, u32 *lo, u32 dw);
+static u32 pack_dw(u32 dw);
+static bool pack_buffer(nav_msg_bds_t *n);
+static void deint_dw(u32 *hi, u32 *lo, u32 dw);
+static void deint_buffer(nav_msg_bds_t *n);
 static bool bch1511(u32 *pdw);
+//~ static void dump_navmsg(const nav_msg_bds_t *n, const u8 subfr);
 
 static void process_d1_fraid1(const nav_msg_bds_t *n,
                               bds_d1_decoded_data_t *data);
@@ -145,7 +148,7 @@ bds_decode_status_t bds_d2_processing(nav_msg_bds_t *n,
   /* TODO BDS: Save BDS D2 ephemeris */
   (void)data;
   s32 TOW_s = (((n->page_words[0]) >> 4) & 0xffU) << 12;
-  TOW_s |= (((n->page_words[1]) >> 18) & 0x3FFU);
+  TOW_s |= (((n->page_words[1]) >> 18) & BDS_10WORDS_MASK);
   if (TOW_s > WEEK_SECS) {
     return BDS_DECODE_RESET;
   }
@@ -186,11 +189,11 @@ bds_decode_status_t bds_d1_processing(nav_msg_bds_t *n,
   /* Current time is 330 bits from TOW. */
   n->TOW_ms = TOW_s * SECS_MS + BDS2_B11_D1NAV_SYMBOL_LENGTH_MS * 330;
 
-  if (0x3ffULL == ((n->goodwords_mask >> 10) & 0x3ffULL)) {
+  if (BDS_10WORDS_MASK == ((n->goodwords_mask >> 10) & BDS_10WORDS_MASK)) {
     process_d1_fraid4(n, data);
   }
 
-  if (0x3ffULL == ((n->goodwords_mask) & 0x3ffULL)) {
+  if (BDS_10WORDS_MASK == ((n->goodwords_mask) & BDS_10WORDS_MASK)) {
     process_d1_fraid5(n, data);
   }
 
@@ -198,7 +201,7 @@ bds_decode_status_t bds_d1_processing(nav_msg_bds_t *n,
     return BDS_DECODE_TOW_UPDATE;
   }
 
-  if (0x3fffffffULL == ((n->goodwords_mask >> 20) & 0x3fffffffULL)) {
+  if (BDS_WORD_BITMASK == ((n->goodwords_mask >> 20) & BDS_WORD_BITMASK)) {
     process_d1_fraid1(n, data);
     process_d1_fraid2(n, data);
     process_d1_fraid3(n, data);
@@ -212,6 +215,43 @@ bds_decode_status_t bds_d1_processing(nav_msg_bds_t *n,
   }
 
   return BDS_DECODE_TOW_UPDATE;
+}
+
+/** Navigation data polarity early solve.
+ * \param n Nav message decode state struct
+ *
+ * \return true if first word of a new subframe ended with this bit
+ */
+bool bds_pol_update(nav_msg_bds_t *n) {
+  /* subframe synced, no need to do anything */
+  if (n->subfr_sync) {
+    return false;
+  }
+  const u8 offset = 8;
+  const u8 remain = BDS_NAV_MSG_SUBFRAME_WORDS_LEN - offset;
+  /* take a recent word */
+  u32 word = n->subframe_bits[offset];
+  u32 candidate = word & BDS_PREAMBLE_MASK;
+  /* check preamble on */
+  if ((BDS_PREAMBLE != candidate) && (BDS_PREAMBLE_INV != candidate)) {
+    return false;
+  }
+  s8 polarity = BIT_POLARITY_NORMAL;
+  if (BDS_PREAMBLE_INV == candidate) {
+    word ^= BDS_WORD_BITMASK;
+    polarity = BIT_POLARITY_INVERTED;
+  }
+  const u8 subfr = (word >> 12) & 0x7;
+  if ((subfr < 1) || (subfr > 5)) {
+    return false;
+  }
+  /* check that there are no bit errors */
+  u32 crc = bch_crc_check(n->subframe_bits + offset, remain);
+  if (BITMASK(remain) != crc) {
+    return false;
+  }
+  n->bit_polarity = polarity;
+  return true;
 }
 
 /** BDS navigation message decoding update.
@@ -239,8 +279,19 @@ bds_decode_status_t bds_data_decoding(nav_msg_bds_t *n, nav_bit_t nav_bit) {
   }
   n->bit_cnt++;
 
+  /* add new bit to buffer */
   bool bit_val = nav_bit.data > 0;
-  bool tlm_rx = bds_nav_msg_update(n, bit_val);
+  n->bit_index++;
+  dw30_1bit_pushr(n->subframe_bits, BDS_NAV_MSG_SUBFRAME_WORDS_LEN, bit_val);
+
+  /* Check for rapid data polarity solve */
+  bool pol_solve = bds_pol_update(n);
+  if (pol_solve) {
+    return BDS_DECODE_POL_UPDATE;
+  }
+
+  /* Check for proper TLM word declaration */
+  bool tlm_rx = bds_nav_msg_update(n);
   if (!tlm_rx) {
     return BDS_DECODE_WAIT;
   }
@@ -272,6 +323,9 @@ nav_data_sync_t construct_bds_data_sync(const nav_msg_bds_t *n,
   from_decoder.health = n->health;
 
   switch (status) {
+    case BDS_DECODE_POL_UPDATE:
+      from_decoder.sync_flags = SYNC_POL;
+      break;
     case BDS_DECODE_TOW_UPDATE:
       from_decoder.sync_flags = SYNC_POL | SYNC_TOW;
       break;
@@ -295,15 +349,10 @@ nav_data_sync_t construct_bds_data_sync(const nav_msg_bds_t *n,
  * received.
  *
  * \param n Nav message decode state struct
- * \param bit_val State of the nav bit to process
  *
  * \return true if first word of a new subframe ended with this bit
  */
-bool bds_nav_msg_update(nav_msg_bds_t *n, bool bit_val) {
-  /* add new bit to buffer */
-  n->bit_index++;
-  dw30_1bit_pushr(n->subframe_bits, BDS_NAV_MSG_SUBFRAME_WORDS_LEN, bit_val);
-
+bool bds_nav_msg_update(nav_msg_bds_t *n) {
   u32 pream_candidate_prev = (n->subframe_bits[0]) & BDS_PREAMBLE_MASK;
   u32 pream_candidate_last = (n->subframe_bits[10]) & BDS_PREAMBLE_MASK;
 
@@ -322,7 +371,7 @@ bool bds_nav_msg_update(nav_msg_bds_t *n, bool bit_val) {
       return false;
     }
     /* check that there are no bit errors */
-    if (!crc_check(n)) {
+    if (BDS_10WORDS_MASK != bch_crc_check(n->subframe_bits, BDS_WORD_SUBFR)) {
       return false;
     }
     /* subframe start found */
@@ -331,8 +380,7 @@ bool bds_nav_msg_update(nav_msg_bds_t *n, bool bit_val) {
     n->bit_polarity = (BDS_PREAMBLE == pream_candidate_prev)
                           ? BIT_POLARITY_NORMAL
                           : BIT_POLARITY_INVERTED;
-    pack_buffer(n);
-    return true;
+    return pack_buffer(n);
   }
   /* aligned with subframe */
   if (n->bit_index !=
@@ -352,31 +400,13 @@ bool bds_nav_msg_update(nav_msg_bds_t *n, bool bit_val) {
     return false;
   }
   /* check that there are no bit errors */
-  if (!crc_check(n)) {
+  if (BDS_10WORDS_MASK != bch_crc_check(n->subframe_bits, BDS_WORD_SUBFR)) {
     return false;
   }
   /* subframe start confirmed */
   n->subfr_bit_index = n->bit_index;
-  pack_buffer(n);
-  return true;
+  return pack_buffer(n);
 }
-
-/*
-static void dump_navmsg(const nav_msg_bds_t *n, const u8 subfr) {
-  char bitstream[256];
-  char tempstr[64];
-  const u32 *subfr_words = &(n->page_words[(subfr-1)*BDS_WORD_SUBFR]);
-  u32 tow = (((subfr_words[0] >> 4) << 12) |
-             ((subfr_words[1] >> 18) & 0xfffU)) &
-            0xfffffU;
-  sprintf(bitstream, " 3 %02d %6" PRIu32 "  ", n->mesid.sat, tow);
-  for (u8 k = 0; k < BDS_WORD_SUBFR; k++) {
-    sprintf(tempstr, "%08" PRIx32 " ", subfr_words[k]);
-    strcat(bitstream, tempstr);
-  }
-  log_info("%s", bitstream);
-}
-*/
 
 static bool subframes123_from_same_frame(const nav_msg_bds_t *n) {
   /* If subframe 1 is newer than subframe 2, or
@@ -421,8 +451,8 @@ static u32 morton(u32 x) {
   return x;
 }
 
-/** deint - deinterleave every second bit */
-static void deint(u32 *hi, u32 *lo, const u32 dw) {
+/** deinterleave every second bit */
+static void deint_dw(u32 *hi, u32 *lo, const u32 dw) {
   *hi = morton(dw >> 1);
   *lo = morton(dw);
 }
@@ -445,62 +475,74 @@ static bool bch1511(u32 *pdw) {
 }
 
 /** BCH(15,11) check on all received bits */
-bool crc_check(nav_msg_bds_t *n) {
+u32 bch_crc_check(const u32 *subfr, const u8 size) {
   u32 good_words = 0;
-  for (u8 k = 0; k < BDS_WORD_SUBFR; k++) {
+  for (u8 k = 0; k < size; k++) {
     u32 hi, lo;
     bool good;
     if (0 == k) {
-      hi = (n->subframe_bits[k] >> 15) & 0x7fff;
-      lo = (n->subframe_bits[k]) & 0x7fff;
+      hi = (subfr[k] >> 15) & 0x7fff;
+      lo = (subfr[k]) & 0x7fff;
       good = bch1511(&lo);
     } else {
-      deint(&hi, &lo, n->subframe_bits[k]);
+      deint_dw(&hi, &lo, subfr[k]);
       good = bch1511(&hi) && bch1511(&lo);
     }
     if (good) {
       good_words |= (1 << k);
     }
-    n->subframe_bits[k] = (hi << 15) | lo;
-    /* with this ^ the deinterleave is done, but location of 4+4 bit CRC
+  }
+  return good_words;
+}
+
+/** Apply BCH(15,11) and deinterleaving on all received bits */
+static void deint_buffer(nav_msg_bds_t *n) {
+  for (u8 k = 0; k < BDS_WORD_SUBFR; k++) {
+    u32 hi, lo;
+    if (0 == k) {
+      hi = (n->subframe_bits[k] >> 15) & 0x7fff;
+      lo = (n->subframe_bits[k]) & 0x7fff;
+      bch1511(&lo);
+    } else {
+      deint_dw(&hi, &lo, n->subframe_bits[k]);
+      bch1511(&hi);
+      bch1511(&lo);
+    }
+    /* deinterleave, but location of 4+4 bit CRC
      * in the 30-bits is still wrong */
+    n->subframe_bits[k] = (hi << 15) | lo;
   }
-  /* check if all words passed the CRC check */
-  if (good_words != BDS_WORD_SUBFR_MASK) {
-    log_debug_mesid(n->mesid, "good_words %08" PRIx32, good_words);
-    return false;
-  }
-  return true;
 }
 
 /** pack CRC bits at the end as 11a+11b+4a+4b */
-static u32 packdw(const u32 dw) {
+static u32 pack_dw(const u32 dw) {
   return (((dw >> 19) & 0x7ff) << 19) | (((dw >> 4) & 0x7ff) << 8) |
          (((dw >> 15) & 0x00f) << 4) | (((dw)&0x00f));
 }
 
 /** Deinterleaves signal in subframe structure */
-static void pack_buffer(nav_msg_bds_t *n) {
-  u32 tmp = n->subframe_bits[0];
-  bool flip = (BIT_POLARITY_INVERTED == (n->bit_polarity)) ? true : false;
-  tmp = flip ? (tmp ^ BDS_WORD_BITMASK) : tmp;
+static bool pack_buffer(nav_msg_bds_t *n) {
+  deint_buffer(n);
+
+  const u32 flip = (BIT_POLARITY_INVERTED == (n->bit_polarity)) ? U32_FLIP : 0;
+  u32 tmp = n->subframe_bits[0] ^ flip;
   u8 subfr = (tmp >> 12) & 0x7;
   if ((subfr < 1) || (subfr > 5)) {
     log_warn_mesid(n->mesid, "subframe %" PRIu8 "error", subfr);
-    return;
+    return false;
   }
-  for (u8 k = 0; k < BDS_WORD_SUBFR; k++) {
-    tmp = n->subframe_bits[k];
-    tmp = flip ? (tmp ^ BDS_WORD_BITMASK) : tmp;
-    n->page_words[(subfr - 1) * BDS_WORD_SUBFR + k] =
-        (0 == k) ? tmp : packdw(tmp);
+  n->page_words[(subfr - 1) * BDS_WORD_SUBFR + 0] = tmp;
+  for (u8 k = 1; k < BDS_WORD_SUBFR; k++) {
+    tmp = n->subframe_bits[k] ^ flip;
+    n->page_words[(subfr - 1) * BDS_WORD_SUBFR + k] = pack_dw(tmp);
   }
   /* store correctly decoded words into mask */
-  n->goodwords_mask |= (0x3ffULL << (10 * (5 - subfr)));
+  n->goodwords_mask |= ((u64)BDS_10WORDS_MASK << (10 * (5 - subfr)));
   /* store subframe rx time */
   n->subfr_times[subfr - 1] = timing_getms();
   /* debug message to verify decoder output */
   //~ dump_navmsg(n, subfr);
+  return true;
 }
 
 static void process_d1_fraid1(const nav_msg_bds_t *n,

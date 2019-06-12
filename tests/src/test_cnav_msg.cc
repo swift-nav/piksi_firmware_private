@@ -1,10 +1,10 @@
-#include "gtest/gtest.h"
-#include "nav_msg/cnav_msg.h"
-
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+
+#include "gtest/gtest.h"
+#include "nav_msg/cnav_msg.h"
 
 #define G1 0x79 /* convolution encoder coefficient A 0171 */
 #define G2 0x5B /* convolution encoder coefficient B 0133 */

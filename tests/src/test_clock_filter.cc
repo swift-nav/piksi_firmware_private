@@ -1,6 +1,5 @@
-#include "gtest/gtest.h"
-
 #include "clock_filter/clock_filter.h"
+#include "gtest/gtest.h"
 
 // arbitrary clock tick frequency
 #define TICK_FREQ 10000000

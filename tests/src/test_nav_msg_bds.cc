@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <string.h>
-
 #include <swiftnav/logging.h>
 
 #include "gtest/gtest.h"
@@ -139,7 +138,8 @@ TEST(nav_msg_bds_tests, bch_decoder_real_data) {
   memcpy(&nav_msg1_result, &nav_msg1, sizeof(nav_msg_bds_t));
 
   /* CRC should pass with correct data. */
-  EXPECT_TRUE(crc_check(&nav_msg1_result));
+  EXPECT_TRUE(0x3FF ==
+              bch_crc_check(nav_msg1_result.subframe_bits, BDS_WORD_SUBFR));
 
   /* Initialize bit buffer with correct BDS subframe.
    * This time with opposite polarity. */
@@ -158,7 +158,7 @@ TEST(nav_msg_bds_tests, bch_decoder_real_data) {
   nav_msg2.subframe_bits[9] = 0x22BC4A14;
 
   /* CRC should pass with correct data. */
-  EXPECT_TRUE(crc_check(&nav_msg2));
+  EXPECT_TRUE(0x3FF == bch_crc_check(nav_msg2.subframe_bits, BDS_WORD_SUBFR));
 
   /* Test injection of a single bit error. */
   nav_msg_bds_t nav_msg3_result;
@@ -172,11 +172,13 @@ TEST(nav_msg_bds_tests, bch_decoder_real_data) {
         /* These are the first 15 bits of the word.
          * They are not encoded, and thus not protected by crc check.
          * CRC check does not notice bit errors here. */
-        EXPECT_TRUE(crc_check(&nav_msg3_result));
+        EXPECT_TRUE(0x3FF == bch_crc_check(nav_msg3_result.subframe_bits,
+                                           BDS_WORD_SUBFR));
       } else {
         /* These are the usual bits which are protected by crc check.
          * CRC should catch these errors. */
-        EXPECT_FALSE(crc_check(&nav_msg3_result));
+        EXPECT_FALSE(0x3FF == bch_crc_check(nav_msg3_result.subframe_bits,
+                                            BDS_WORD_SUBFR));
       }
       memcpy(&nav_msg3_result, &nav_msg1, sizeof(nav_msg_bds_t));
     }
@@ -210,7 +212,7 @@ TEST(nav_msg_bds_tests, bch_decoder_random_data) {
     }
 
     /* CRC should pass with correct data. */
-    EXPECT_TRUE(crc_check(&nav_msg));
+    EXPECT_TRUE(0x3FF == bch_crc_check(nav_msg.subframe_bits, BDS_WORD_SUBFR));
   }
 }
 

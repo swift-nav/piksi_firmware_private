@@ -11,12 +11,10 @@
  */
 #include <math.h>
 #include <stdio.h>
-
 #include <swiftnav/constants.h>
 #include <swiftnav/logging.h>
 
 #include "gtest/gtest.h"
-
 #include "run_stats/run_stats.h"
 
 TEST(run_stats_test, test_run_stats) {

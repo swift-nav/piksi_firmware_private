@@ -1,5 +1,4 @@
 #include "gtest/gtest.h"
-
 #include "nav_msg/cnav_msg_storage.h"
 #include "shm/shm.h"
 

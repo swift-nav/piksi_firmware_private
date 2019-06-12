@@ -1,5 +1,4 @@
 #include "gtest/gtest.h"
-
 #include "sbp/sbp_utils.h"
 
 // real ephemeris for SV 15 at 8:00, 30-May-2016

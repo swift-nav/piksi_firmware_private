@@ -1,10 +1,10 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+
 #include <iostream>
 
 #include "gtest/gtest.h"
-
 #include "nav_bit_fifo/nav_bit_fifo.h"
 
 TEST(nav_bit_fifo_tests, delay) {

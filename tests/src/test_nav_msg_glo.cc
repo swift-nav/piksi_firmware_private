@@ -1,11 +1,11 @@
-#include "gtest/gtest.h"
-#include "nav_msg/nav_msg_glo.h"
-
 #include <stdio.h>
 #include <string.h>
+#include <swiftnav/logging.h>
+
 #include <cmath>
 
-#include <swiftnav/logging.h>
+#include "gtest/gtest.h"
+#include "nav_msg/nav_msg_glo.h"
 #undef log_error
 #define log_error(...)
 

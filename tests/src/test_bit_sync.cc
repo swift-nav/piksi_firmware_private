@@ -1,9 +1,8 @@
 #include <inttypes.h>
 #include <stdio.h>
 
-#include "gtest/gtest.h"
-
 #include "bit_sync/bit_sync.h"
+#include "gtest/gtest.h"
 
 TEST(bit_sync_test, test_bit_sync_single_update_20ms) {
   bit_sync_t bit_sync_gps;

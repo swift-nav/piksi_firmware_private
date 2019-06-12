@@ -1,8 +1,8 @@
-#include "gtest/gtest.h"
-#include "nav_msg/nav_msg.h"
-
 #include <stdio.h>
 #include <string.h>
+
+#include "gtest/gtest.h"
+#include "nav_msg/nav_msg.h"
 
 #define BITSTREAM_LENGTH_BITS (56 * 32)
 #define FIRST_PREAMBLE_BIT_INDEX (55)
