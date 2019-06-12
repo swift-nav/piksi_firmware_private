@@ -1,7 +1,7 @@
-#include "gtest/gtest.h"
-
 #include <swiftnav/coord_system.h>
 #include <swiftnav/linear_algebra.h>
+
+#include "gtest/gtest.h"
 #include "sbas_select/sbas_select.h"
 
 TEST(sbas_select_tests, masks) {

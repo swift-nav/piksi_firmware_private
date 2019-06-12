@@ -1,11 +1,10 @@
-#include "gtest/gtest.h"
-#include "soft_macq/prns.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include <swiftnav/constants.h>
+
+#include "gtest/gtest.h"
+#include "soft_macq/prns.h"
 
 TEST(test_prns_sid_to_init_g1, init) {
   u32 g1;

@@ -2,9 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "gtest/gtest.h"
-
 #include "filters/filter_common.h"
+#include "gtest/gtest.h"
 
 #define BW 1000
 #define CN0_0 40

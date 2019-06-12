@@ -2,9 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "gtest/gtest.h"
-
 #include "cn0_est/cn0_est_common.h"
+#include "gtest/gtest.h"
 
 #define CN0_0 40
 #define CUTOFF_FREQ 0.1

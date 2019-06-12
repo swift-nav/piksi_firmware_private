@@ -1,8 +1,8 @@
-#include "gnss_capabilities/gnss_capabilities.h"
-#include "gtest/gtest.h"
-
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "gnss_capabilities/gnss_capabilities.h"
+#include "gtest/gtest.h"
 
 /* This calculates position SV configuration (4 bits) in Word 3,
  * where s is number (0..3) of SV inside the Word */
