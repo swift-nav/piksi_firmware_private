@@ -92,67 +92,88 @@ static double calc_tc_per_chip(double chip_freq_hz) {
   return (double)NAP_TIMING_COUNT_RATE_Hz / chip_freq_hz;
 }
 
+#define NAP_TRK_CODE_INVALID 255
+
 /** Look-up NAP constellation and band code for the given ME signal ID.
  * \param mesid ME signal ID.
  * \return NAP constellation and band code.
  */
 static u8 mesid_to_nap_code(const me_gnss_signal_t mesid) {
-  u8 ret = ~0;
+  u8 ret = NAP_TRK_CODE_INVALID;
   switch ((s8)mesid.code) {
     case CODE_GPS_L1CA:
-    case CODE_QZS_L1CA:
       ret = NAP_TRK_CODE_GPS_L1;
+      break;
+    case CODE_QZS_L1CA:
+#if defined CODE_QZSS_L1CA_SUPPORT && CODE_QZSS_L1CA_SUPPORT > 0
+      ret = NAP_TRK_CODE_GPS_L1;
+#endif
       break;
     case CODE_SBAS_L1CA:
       ret = NAP_TRK_CODE_SBAS_L1;
       break;
     case CODE_GPS_L2CM:
-    case CODE_QZS_L2CM:
       ret = NAP_TRK_CODE_GPS_L2;
       break;
+    case CODE_QZS_L2CM:
+#if defined CODE_QZSS_L2C_SUPPORT && CODE_QZSS_L2C_SUPPORT > 0
+      ret = NAP_TRK_CODE_GPS_L2;
+#endif
+      break;
     case CODE_GPS_L5I:
-    case CODE_QZS_L5I:
       ret = NAP_TRK_CODE_GPS_L5;
+      break;
+    case CODE_QZS_L5I:
+#if defined CODE_QZSS_L5_SUPPORT && CODE_QZSS_L5_SUPPORT > 0
+      ret = NAP_TRK_CODE_GPS_L5;
+#endif
       break;
     case CODE_GLO_L1OF:
 #if defined CODE_GLO_L1OF_SUPPORT && CODE_GLO_L1OF_SUPPORT > 0
       ret = NAP_TRK_CODE_GLO_G1;
-#else
-      assert(!"Invalid code");
-#endif /* CODE_GLO_L1OF_SUPPORT */
+#endif
       break;
     case CODE_GLO_L2OF:
 #if defined CODE_GLO_L2OF_SUPPORT && CODE_GLO_L2OF_SUPPORT > 0
       ret = NAP_TRK_CODE_GLO_G2;
-#else
-      assert(!"Invalid code");
-#endif /* CODE_GLO_L2OF_SUPPORT */
+#endif
       break;
     case CODE_BDS2_B1:
+#if defined CODE_BDS2_B1_SUPPORT && CODE_BDS2_B1_SUPPORT > 0
       ret = NAP_TRK_CODE_BDS_B1;
+#endif
       break;
     case CODE_BDS2_B2:
+#if defined CODE_BDS2_B2_SUPPORT && CODE_BDS2_B2_SUPPORT > 0
       ret = NAP_TRK_CODE_BDS_B2;
+#endif
       break;
     case CODE_BDS3_B5I:
+#if defined CODE_BDS3_B5_SUPPORT && CODE_BDS3_B5_SUPPORT > 0
       ret = NAP_TRK_CODE_BDS_L5;
+#endif
       break;
     case CODE_GAL_E1B:
 #if defined CODE_GAL_E1_SUPPORT && CODE_GAL_E1_SUPPORT > 0
       ret = NAP_TRK_CODE_GAL_E1;
-#else
-      assert(!"Invalid code");
-#endif /* CODE_GAL_E1_SUPPORT*/
+#endif
       break;
     case CODE_GAL_E7I:
+#if defined CODE_GAL_E7_SUPPORT && CODE_GAL_E7_SUPPORT > 0
       ret = NAP_TRK_CODE_GAL_E7;
+#endif
       break;
     case CODE_GAL_E5I:
+#if defined CODE_GAL_E5_SUPPORT && CODE_GAL_E5_SUPPORT > 0
       ret = NAP_TRK_CODE_GAL_E5;
+#endif
       break;
     default:
-      assert(!"Invalid code");
       break;
+  }
+  if (NAP_TRK_CODE_INVALID == ret) {
+    log_error_mesid(mesid, "is invalid");
+    assert(0);
   }
   return ret;
 }

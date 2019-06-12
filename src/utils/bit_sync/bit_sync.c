@@ -282,15 +282,15 @@ static void histogram_update(bit_sync_t *b,
 
   } else if (CODE_BDS3_B5I == c) {
     /* Beidou3 B2aQ has a SC100 secondary code */
-    u8 last_symb = getbitu(b->symb_bit, (BDS3_SC100_BYTES - 1), 1);
-    bitshl(b->symb_bit, INT_NUM_BYTES(BDS3_SC100_BYTES), 1);
+    u8 last_symb = getbitu(b->symb_bit, (BDS3_B5Q_SC_MS - 1), 1);
+    bitshl(b->symb_bit, BDS3_SC100_BYTES, 1);
     u32 new_symb = nav_bit_change ? 1 - last_symb : last_symb;
-    setbitu(b->symb_bit, (BDS3_SC100_BYTES - 1), 1, new_symb);
-    for (u8 i = 0; i < INT_NUM_BYTES(BDS3_SC100_BYTES); i++) {
+    setbitu(b->symb_bit, (BDS3_B5Q_SC_MS - 1), 1, new_symb);
+    for (u8 i = 0; i < BDS3_SC100_BYTES; i++) {
       sum += count_bits_u8(b->symb_bit[i] ^ c5q_sc_ms_bits[sat][i], 1);
     }
-    sum = BDS3_SC100_BYTES - 2 * sum;
-    if (ABS(sum) >= (3 * BDS3_SC100_BYTES / 4)) {
+    sum = BDS3_B5Q_SC_MS - 2 * sum;
+    if (ABS(sum) >= (3 * BDS3_B5Q_SC_MS / 4)) {
       b->bit_phase_ref = (b->bit_phase + 2) % b->bit_length;
     }
 
