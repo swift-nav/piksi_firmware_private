@@ -18,7 +18,8 @@
 #include "track/track_common.h"
 #include "track/track_interface.h"
 #include "track/track_utils.h"
-#include "track_qzss_l2c.h" /* for L1C/A to L2C tracking handover */
+#include "track_qzss_l2c.h"
+#include "track_qzss_l5.h"
 
 /* Non-local headers */
 #include <acq/manage.h>
@@ -83,14 +84,23 @@ static void tracker_qzss_l1ca_update(tracker_t *tracker) {
   if (inlock && settled && (TOW_UNKNOWN != (tracker->TOW_ms))) {
     log_debug_mesid(tracker->mesid, "calling qzss_l1ca_to_l2c_handover()");
 
-    /* Start L2C tracker if not running */
-    if (CODE_QZSS_L2C_SUPPORT) {
-      qzss_l1ca_to_l2c_handover(tracker->sample_count,
-                                tracker->mesid.sat,
-                                tracker->code_phase_prompt,
-                                tracker->doppler_hz,
-                                tracker->cn0,
-                                tracker->TOW_ms);
-    }
+/* Start L2C tracker if not running */
+#if defined CODE_QZSS_L2C_SUPPORT && CODE_QZSS_L2C_SUPPORT > 0
+    qzss_l1ca_to_l2c_handover(tracker->sample_count,
+                              tracker->mesid.sat,
+                              tracker->code_phase_prompt,
+                              tracker->doppler_hz,
+                              tracker->cn0,
+                              tracker->TOW_ms);
+#endif
+
+    /* Start L5I tracker if not running */
+#if defined CODE_QZSS_L5_SUPPORT && CODE_QZSS_L5_SUPPORT > 0
+    qzss_l1ca_to_l5_handover(tracker->sample_count,
+                             tracker->mesid.sat,
+                             tracker->code_phase_prompt,
+                             tracker->doppler_hz,
+                             tracker->cn0);
+#endif
   }
 }
