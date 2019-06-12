@@ -107,12 +107,11 @@ static s32 adjust_tow_by_bit_fifo_delay(tracker_t *tracker,
 }
 
 static void update_polarity(tracker_t *tracker, s8 polarity) {
-  me_gnss_signal_t mesid = tracker->mesid;
-  s8 prev_polarity = tracker->bit_polarity;
+  const s8 prev_polarity = tracker->bit_polarity;
   if (prev_polarity != polarity) {
     /* Print warning if there was an unexpected polarity change */
-    if (BIT_POLARITY_UNKNOWN != tracker->bit_polarity) {
-      log_warn_mesid(mesid, "Unexpected bit polarity change");
+    if (BIT_POLARITY_UNKNOWN != prev_polarity) {
+      log_warn_mesid(tracker->mesid, "Unexpected bit polarity change");
     }
     tracker->bit_polarity = polarity;
   }
@@ -191,11 +190,11 @@ s32 tracker_tow_update(tracker_t *tracker,
   assert(tracker);
   assert(TOW_residual_ns);
   assert(decoded_tow);
+  *decoded_tow = false;
 
   /* Latch TOW from nav message if pending */
 
   nav_data_sync_t to_tracker;
-  *decoded_tow = false;
   if (nav_data_sync_get(&to_tracker, &tracker->nav_data_sync)) {
     decode_sync_flags_t flags = to_tracker.sync_flags;
 

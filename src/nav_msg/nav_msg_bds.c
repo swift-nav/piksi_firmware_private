@@ -28,6 +28,7 @@
 #define BDS_WORD_BITMASK (0x3fffffff)
 #define BDS_10WORDS_MASK (0x3ff)
 #define U32_FLIP ((u32)(-1))
+#define BITMASK(n) ((1U << (n)) - 1)
 
 static const u16 bch_table[16] = {[0b0000] = 0b000000000000000,
                                   [0b0001] = 0b000000000000001,
@@ -225,27 +226,29 @@ bool bds_pol_update(nav_msg_bds_t *n) {
   if (n->subfr_sync) {
     return false;
   }
+  const u8 offset = 7;
+  const u8 remain = BDS_NAV_MSG_SUBFRAME_WORDS_LEN - offset;
   /* take a recent word */
-  u32 word3 = n->subframe_bits[6];
-  u32 pream_candidate = word3 & BDS_PREAMBLE_MASK;
+  u32 word = n->subframe_bits[offset];
+  u32 candidate = word & BDS_PREAMBLE_MASK;
   /* check preamble on */
-  if ((BDS_PREAMBLE != pream_candidate) &&
-      (BDS_PREAMBLE_INV != pream_candidate)) {
+  if ((BDS_PREAMBLE != candidate) && (BDS_PREAMBLE_INV != candidate)) {
     return false;
   }
-  if (BDS_PREAMBLE_INV == pream_candidate) {
-    word3 ^= BDS_WORD_BITMASK;
+  if (BDS_PREAMBLE_INV == candidate) {
+    word ^= BDS_WORD_BITMASK;
   }
-  const u8 subfr = (word3 >> 12) & 0x7;
+  const u8 subfr = (word >> 12) & 0x7;
   if ((subfr < 1) || (subfr > 5)) {
     return false;
   }
   /* check that there are no bit errors */
-  if (0x1f != crc_check(n)) {
+  u32 crc = bch_crc_check(n->subframe_bits + offset, remain);
+  if (BITMASK(remain) != crc) {
     return false;
   }
-  n->bit_polarity = (BDS_PREAMBLE == pream_candidate) ? BIT_POLARITY_NORMAL
-                                                      : BIT_POLARITY_INVERTED;
+  n->bit_polarity =
+      (BDS_PREAMBLE == candidate) ? BIT_POLARITY_NORMAL : BIT_POLARITY_INVERTED;
   return true;
 }
 
@@ -366,7 +369,7 @@ bool bds_nav_msg_update(nav_msg_bds_t *n) {
       return false;
     }
     /* check that there are no bit errors */
-    if (BDS_10WORDS_MASK != crc_check(n)) {
+    if (BDS_10WORDS_MASK != bch_crc_check(n->subframe_bits, BDS_WORD_SUBFR)) {
       return false;
     }
     /* subframe start found */
@@ -396,7 +399,7 @@ bool bds_nav_msg_update(nav_msg_bds_t *n) {
     return false;
   }
   /* check that there are no bit errors */
-  if (BDS_10WORDS_MASK != crc_check(n)) {
+  if (BDS_10WORDS_MASK != bch_crc_check(n->subframe_bits, BDS_WORD_SUBFR)) {
     return false;
   }
   /* subframe start confirmed */
@@ -472,17 +475,17 @@ static bool bch1511(u32 *pdw) {
 }
 
 /** BCH(15,11) check on all received bits */
-u32 crc_check(const nav_msg_bds_t *n) {
+u32 bch_crc_check(const u32 *subfr, const u8 size) {
   u32 good_words = 0;
-  for (u8 k = 0; k < BDS_WORD_SUBFR; k++) {
+  for (u8 k = 0; k < size; k++) {
     u32 hi, lo;
     bool good;
     if (0 == k) {
-      hi = (n->subframe_bits[k] >> 15) & 0x7fff;
-      lo = (n->subframe_bits[k]) & 0x7fff;
+      hi = (subfr[k] >> 15) & 0x7fff;
+      lo = (subfr[k]) & 0x7fff;
       good = bch1511(&lo);
     } else {
-      deint_dw(&hi, &lo, n->subframe_bits[k]);
+      deint_dw(&hi, &lo, subfr[k]);
       good = bch1511(&hi) && bch1511(&lo);
     }
     if (good) {
