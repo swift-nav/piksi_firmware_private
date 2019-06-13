@@ -20,11 +20,11 @@ extern "C" {
 
 void track_qzss_l5_register(void);
 
-void do_qzss_l1_to_l5_handover(u32 sample_count,
-                               u16 sat,
-                               double code_phase,
-                               double carrier_freq,
-                               float cn0_init);
+void qzss_l1ca_to_l5_handover(u32 sample_count,
+                              u16 sat,
+                              double code_phase,
+                              double carrier_freq,
+                              float cn0_init);
 
 #ifdef __cplusplus
 }

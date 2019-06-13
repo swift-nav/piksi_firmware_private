@@ -65,11 +65,11 @@ void track_qzss_l5_register(void) {
  * \param[in] cn0          CN0 estimate [dB-Hz]
  * \param[in] TOW_ms       Latest decoded TOW [ms]
  */
-void do_qzss_l1_to_l5_handover(u32 sample_count,
-                               u16 sat,
-                               double code_phase,
-                               double carrier_freq,
-                               float cn0_init) {
+void qzss_l1ca_to_l5_handover(u32 sample_count,
+                              u16 sat,
+                              double code_phase,
+                              double carrier_freq,
+                              float cn0_init) {
   /* compose L5 MESID: same SV, but code is L5 */
   me_gnss_signal_t mesid_L5 = construct_mesid(CODE_QZS_L5I, sat);
 
