@@ -296,7 +296,7 @@ void nap_track_init(u8 channel,
   if ((length < NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MIN_MS)) ||
       (length > NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MAX_MS))) {
     log_error_mesid(s->mesid,
-                    "Wrong inital NAP correlation length: "
+                    "Wrong initial NAP correlation length: "
                     "(%" PRIu32 " %" PRIu32 " %" PRIu32 " %lf)",
                     chips_to_correlate,
                     code_pinc,
