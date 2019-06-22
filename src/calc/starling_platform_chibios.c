@@ -50,7 +50,7 @@ typedef struct platform_thread_info_s {
   void *wsp;
   size_t size;
   int prio;
-  platform_thread_t* handle;
+  platform_thread_t *handle;
 } platform_thread_info_t;
 
 typedef struct platform_thread_t {
@@ -89,21 +89,23 @@ static void platform_thread_info_init(const thread_id_t id,
   }
 }
 
-static platform_thread_t* chibios_thread_create(const thread_id_t id,
-                                  platform_routine_t *fn) {
+static platform_thread_t *chibios_thread_create(const thread_id_t id,
+                                                platform_routine_t *fn) {
   assert(fn);
   platform_thread_info_t info;
   platform_thread_info_init(id, &info);
-  info.handle->tid = chThdCreateStatic(info.wsp, info.size, info.prio, fn, NULL);
+  info.handle->tid =
+      chThdCreateStatic(info.wsp, info.size, info.prio, fn, NULL);
   return info.handle;
 }
 
-static void chibios_thread_set_name(const platform_thread_t* handle, const char *name) {
+static void chibios_thread_set_name(const platform_thread_t *handle,
+                                    const char *name) {
   (void)handle;
   chRegSetThreadName(name);
 }
 
-static void chibios_thread_join(const platform_thread_t* handle) {
+static void chibios_thread_join(const platform_thread_t *handle) {
   chThdWait(handle->tid);
 }
 
