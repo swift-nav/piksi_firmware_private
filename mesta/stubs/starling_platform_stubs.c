@@ -33,18 +33,20 @@ static void stub_mutex_unlock(mtx_id_t id) { (void)id; }
  * Thread
  ******************************************************************************/
 
-static platform_thread_t* stub_thread_create(const thread_id_t id, platform_routine_t *fn) {
+static platform_thread_t *stub_thread_create(const thread_id_t id,
+                                             platform_routine_t *fn) {
   (void)id;
   (void)fn;
   return NULL;
 }
 
-static void stub_thread_set_name(const platform_thread_t* thread, const char *name) {
+static void stub_thread_set_name(const platform_thread_t *thread,
+                                 const char *name) {
   (void)name;
   (void)thread;
 }
 
-static void stub_thread_join(const platform_thread_t* thread) { (void)thread; }
+static void stub_thread_join(const platform_thread_t *thread) { (void)thread; }
 
 /*******************************************************************************
  * Watchdog
