@@ -53,9 +53,9 @@ typedef struct platform_thread_info_s {
   platform_thread_t *handle;
 } platform_thread_info_t;
 
-typedef struct platform_thread_t {
+struct platform_thread_t {
   thread_t *tid;
-} platform_thread_t;
+};
 
 static platform_thread_t starling_main_thread;
 static platform_thread_t starling_tm_thread;
@@ -101,11 +101,12 @@ static platform_thread_t *chibios_thread_create(const thread_id_t id,
 
 static void chibios_thread_set_name(const platform_thread_t *handle,
                                     const char *name) {
-  (void)handle;
+  assert(handle != NULL);
   chRegSetThreadName(name);
 }
 
 static void chibios_thread_join(const platform_thread_t *handle) {
+  assert(handle != NULL);
   chThdWait(handle->tid);
 }
 
