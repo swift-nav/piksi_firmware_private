@@ -817,5 +817,5 @@ void starling_calc_pvt_setup() {
   setup_solution_handlers();
 
   /* Start main starling thread. */
-  platform_thread_create(THREAD_ID_STARLING, initialize_and_run_starling);
+  platform_thread_create(STARLING_HIGH_PRIO_THREAD, initialize_and_run_starling);
 }

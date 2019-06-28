@@ -53,24 +53,24 @@ typedef struct platform_thread_info_s {
 } platform_thread_info_t;
 
 static THD_WORKING_AREA(wa_time_matched_obs_thread,
-                        TIME_MATCHED_OBS_THREAD_STACK);
+                        STARLING_LOW_PRIO_THREAD_STACK);
 
 /* Working area for the main starling thread. */
-static THD_WORKING_AREA(wa_starling_thread, STARLING_THREAD_STACK);
+static THD_WORKING_AREA(wa_starling_thread, STARLING_HIGH_PRIO_THREAD_STACK);
 
 static void platform_thread_info_init(const thread_id_t id,
                                       platform_thread_info_t *info) {
   switch (id) {
-    case THREAD_ID_TMO:
+    case STARLING_LOW_PRIO_THREAD:
       info->wsp = wa_time_matched_obs_thread;
       info->size = sizeof(wa_time_matched_obs_thread);
-      info->prio = NORMALPRIO + TIME_MATCHED_OBS_THREAD_PRIORITY;
+      info->prio = NORMALPRIO + STARLING_LOW_PRIO_THREAD_PRIORITY;
       break;
 
-    case THREAD_ID_STARLING:
+    case STARLING_HIGH_PRIO_THREAD:
       info->wsp = wa_starling_thread;
       info->size = sizeof(wa_starling_thread);
-      info->prio = HIGHPRIO + STARLING_THREAD_PRIORITY;
+      info->prio = HIGHPRIO + STARLING_HIGH_PRIO_THREAD_PRIORITY;
       break;
 
     default:
