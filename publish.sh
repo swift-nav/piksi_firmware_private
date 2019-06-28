@@ -26,6 +26,10 @@ if [ "$TESTENV" == "mesta" ]; then
     exit
 fi
 
+if [ "$TRAVIS_EVENT_TYPE" == "cron" ]; then
+    exit
+fi
+
 REPO="${PWD##*/}"
 BUCKET="${BUCKET:-swiftnav-artifacts}"
 PRS_BUCKET="${PRS_BUCKET:-swiftnav-artifacts-pull-requests}"
