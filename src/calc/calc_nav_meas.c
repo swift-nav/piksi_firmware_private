@@ -60,16 +60,16 @@ static s8 convert_channel_measurement_to_starling_obs(
   /* Compute the time of transmit of the signal on the satellite from the
    * tracking loop parameters. This will be used to compute the pseudorange.
    */
-  gps_time_t tor;
-  tor.wn = WN_UNKNOWN;
-  tor.tow = 1e-3 * meas->time_of_week_ms;
-  tor.tow += chips / chip_rate;
-  tor.tow += meas->tow_residual_ns * 1e-9;
+  gps_time_t tot;
+  tot.wn = WN_UNKNOWN;
+  tot.tow = 1e-3 * meas->time_of_week_ms;
+  tot.tow += chips / chip_rate;
+  tot.tow += meas->tow_residual_ns * 1e-9;
 
-  normalize_gps_time(&tor);
+  normalize_gps_time(&tot);
 
   /* Match the week number to the time of reception. */
-  gps_time_match_weeks(&tor, rec_time);
+  gps_time_match_weeks(&tot, rec_time);
 
   /* Compute the carrier phase measurement. */
   obs->carrier_phase = meas->carrier_phase;
@@ -92,11 +92,7 @@ static s8 convert_channel_measurement_to_starling_obs(
 
   /* The raw pseudorange is just the time of flight multiplied by the speed of
    * light. */
-  obs->pseudorange = GPS_C * (gpsdifftime(&meas_tor, &tor));
-
-  /* Finally, propagate measurement back to reference time */
-  tor.tow -= dt;
-  normalize_gps_time(&tor);
+  obs->pseudorange = GPS_C * (gpsdifftime(&meas_tor, &tot));
 
   /* Propagate pseudorange with raw doppler times wavelength */
   obs->pseudorange += dt * meas->carrier_freq * lambda;

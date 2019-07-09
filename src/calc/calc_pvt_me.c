@@ -415,7 +415,7 @@ static void drop_gross_outlier(const gnss_signal_t sid,
   }
 }
 
-static void starling_obs_to_nav_meas(const gps_time_t *tot,
+static void starling_obs_to_nav_meas(const gps_time_t *tor,
                                      const starling_obs_t *obs,
                                      navigation_measurement_t *nm) {
   nm->raw_pseudorange = obs->pseudorange;
@@ -437,7 +437,9 @@ static void starling_obs_to_nav_meas(const gps_time_t *tot,
   nm->cn0 = obs->cn0;
   nm->lock_time = obs->lock_time;
   nm->elevation = 0;
-  nm->tot = (*tot);
+  nm->tot = (*tor);
+  nm->tot.tow -= (obs->pseudorange / GPS_C);
+  normalize_gps_time(&nm->tot);
   nm->sid = obs->sid;
   nm->flags = obs->flags;
   double el;
