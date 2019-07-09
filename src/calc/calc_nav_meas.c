@@ -39,11 +39,6 @@ static s8 convert_channel_measurement_to_starling_obs(
   double chip_rate = code_to_chip_rate(meas->sid.code);
   double lambda = sid_to_lambda(meas->sid);
 
-  /* Compute the time of transmit of the signal on the satellite from the
-   * tracking loop parameters. This will be used to compute the pseudorange.
-   */
-  obs->tot.wn = WN_UNKNOWN;
-  obs->tot.tow = 1e-3 * meas->time_of_week_ms;
   double chips = meas->code_phase_chips;
   if (chips > code_length) {
     /* Sanity check of the code phase measurement */
@@ -61,14 +56,20 @@ static s8 convert_channel_measurement_to_starling_obs(
     /* Note the loop will run at most once for L1CA or 20 rounds for L2CM. */
     chips -= chips_in_millisecond;
   }
-  obs->tot.tow += chips / chip_rate;
 
-  obs->tot.tow += meas->tow_residual_ns * 1e-9;
+  /* Compute the time of transmit of the signal on the satellite from the
+   * tracking loop parameters. This will be used to compute the pseudorange.
+   */
+  gps_time_t tor;
+  tor.wn = WN_UNKNOWN;
+  tor.tow = 1e-3 * meas->time_of_week_ms;
+  tor.tow += chips / chip_rate;
+  tor.tow += meas->tow_residual_ns * 1e-9;
 
-  normalize_gps_time(&obs->tot);
+  normalize_gps_time(&tor);
 
   /* Match the week number to the time of reception. */
-  gps_time_match_weeks(&obs->tot, rec_time);
+  gps_time_match_weeks(&tor, rec_time);
 
   /* Compute the carrier phase measurement. */
   obs->carrier_phase = meas->carrier_phase;
@@ -85,17 +86,17 @@ static s8 convert_channel_measurement_to_starling_obs(
   double dt = meas->rec_time_delta;
 
   /* Form the time of reception of this signal */
-  gps_time_t meas_tor = *rec_time;
+  gps_time_t meas_tor = (*rec_time);
   meas_tor.tow += dt;
   normalize_gps_time(&meas_tor);
 
   /* The raw pseudorange is just the time of flight multiplied by the speed of
    * light. */
-  obs->pseudorange = GPS_C * (gpsdifftime(&meas_tor, &obs->tot));
+  obs->pseudorange = GPS_C * (gpsdifftime(&meas_tor, &tor));
 
   /* Finally, propagate measurement back to reference time */
-  obs->tot.tow -= dt;
-  normalize_gps_time(&obs->tot);
+  tor.tow -= dt;
+  normalize_gps_time(&tor);
 
   /* Propagate pseudorange with raw doppler times wavelength */
   obs->pseudorange += dt * meas->carrier_freq * lambda;
@@ -154,7 +155,7 @@ s8 calc_navigation_measurements(u8 n_channels,
                                 obs_array_t *obs_array,
                                 const gps_time_t *rec_time) {
   /* initialize the obs array */
-  obs_array->t = *rec_time;
+  obs_array->t = (*rec_time);
   obs_array->n = n_channels;
 
   /* To calculate the pseudorange from the time of transmit we need the local
