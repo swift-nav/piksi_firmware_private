@@ -6,7 +6,7 @@
 
 - name: Download and unpack gcc-arm utilities.
   unarchive:
-    src: https://github.com/swift-nav/swift-toolchains/releases/download/pfwp/gcc-arm-none-eabi-5_3-2016q1-20160330-mac.tar.bz2
+    src: https://github.com/swift-nav/swift-toolchains/releases/download/pfwp_mac_toolchain/gcc-arm-none-eabi-6-2017-q2-update-mac.tar.bz2
     remote_src: yes
     dest: ~/gcc-arm-none-eabi
     extra_opts: '--strip-components=1'
