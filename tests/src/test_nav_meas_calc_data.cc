@@ -83,8 +83,7 @@ TEST(test_nav_meas_calc_data, first_test) {
   log_debug("sat = %u, code = %u\n",
             (unsigned int)out_l1ca->sid.sat,
             (unsigned int)out_l1ca->sid.code);
-  log_debug("TOR = %30.20f\n",
-            obs_array_l1ca.t.tow + out_l1ca->pseudorange / GPS_C);
+  log_debug("TOR = %30.20f\n", obs_array_l1ca.t.tow);
 
   calc_navigation_measurements(1, &l2cm_meas_in, &obs_array_l2cm, &rec_time);
   log_debug(" \n***** L2CM: *****\n");
@@ -98,8 +97,7 @@ TEST(test_nav_meas_calc_data, first_test) {
   log_debug("sat = %u, code = %u\n",
             (unsigned int)out_l2cm->sid.sat,
             (unsigned int)out_l2cm->sid.code);
-  log_debug("TOR = %30.20f\n",
-            obs_array_l2cm.t.tow + out_l2cm->pseudorange / GPS_C);
+  log_debug("TOR = %30.20f\n", obs_array_l2cm.t.tow);
 
   double check_value;
 

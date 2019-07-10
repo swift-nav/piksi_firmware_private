@@ -612,9 +612,10 @@ void handle_solution_time_matched(const StarlingFilterSolution *solution,
  * NOTE: The pointers are only valid within the enclosing scope.
  *       Any copies of the data must be deep copies.
  */
-void handle_solution_low_latency(const StarlingFilterSolution *spp_solution,
-                                 const StarlingFilterSolution *rtk_solution,
-                                 const gps_time_t *solution_epoch_time) {
+static void handle_solution_low_latency(
+    const StarlingFilterSolution *spp_solution,
+    const StarlingFilterSolution *rtk_solution,
+    const gps_time_t *solution_epoch_time) {
   assert(solution_epoch_time);
 
   /* Check if observations do not have valid time. We may have locally a
@@ -622,7 +623,6 @@ void handle_solution_low_latency(const StarlingFilterSolution *spp_solution,
    * nearest epoch and use instead if necessary.
    */
   gps_time_t epoch_time = *solution_epoch_time;
-  u8 time_qual = get_time_quality();
   if (!gps_time_valid(&epoch_time)) {
     epoch_time = get_current_time();
     epoch_time = gps_time_round_to_epoch(&epoch_time, soln_freq_setting);
@@ -632,6 +632,7 @@ void handle_solution_low_latency(const StarlingFilterSolution *spp_solution,
    * apply that. Then if there is an RTK solution, overwrite the relevant
    * messages with the RTK baseline result. When there are no valid
    * solutions, we simply pass on the set of default messages. */
+  u8 time_qual = get_time_quality();
   sbp_messages_t sbp_messages;
   starling_integration_sbp_messages_init(&sbp_messages, &epoch_time, time_qual);
 
