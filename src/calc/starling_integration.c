@@ -542,10 +542,12 @@ static void reset_filters_callback(u16 sender_id,
  *       Any copies of the data must be deep copies.
  */
 void handle_solution_time_matched(const StarlingFilterSolution *solution,
-                                  const obss_t *obss_base,
-                                  const obss_t *obss_rover) {
-  assert(obss_base);
-  assert(obss_rover);
+                                  const obs_core_t *obs_base,
+                                  const pvt_engine_result_t *rover_soln,
+                                  const double *rover_spp_ecef) {
+  assert(obs_base);
+  assert(rover_soln);
+  assert(rover_spp_ecef);
 
   if (STARLING_SOLN_MODE_TIME_MATCHED != starling_get_solution_mode()) {
     return;
@@ -557,9 +559,9 @@ void handle_solution_time_matched(const StarlingFilterSolution *solution,
   sbp_messages_t sbp_messages;
   u8 time_qual = get_time_quality();
   starling_integration_sbp_messages_init(
-      &sbp_messages, &obss_base->tor, time_qual);
+      &sbp_messages, &obs_base->t, time_qual);
 
-  pvt_engine_result_t soln_copy = obss_rover->soln;
+  pvt_engine_result_t soln_copy = (*rover_soln);
 
   /* TODO: Actually get the timing quality from ME / Starling
    * the time quality could have degraded or improved AFTER this
@@ -570,10 +572,8 @@ void handle_solution_time_matched(const StarlingFilterSolution *solution,
   solution_make_sbp(&soln_copy, NULL, &sbp_messages, time_qual);
 
   if (solution) {
-    solution_make_baseline_sbp(&solution->result,
-                               obss_rover->pos_ecef,
-                               &solution->dops,
-                               &sbp_messages);
+    solution_make_baseline_sbp(
+        &solution->result, rover_spp_ecef, &solution->dops, &sbp_messages);
   }
 
   /* There is an edge case when switching into time-matched mode where
@@ -612,9 +612,10 @@ void handle_solution_time_matched(const StarlingFilterSolution *solution,
  * NOTE: The pointers are only valid within the enclosing scope.
  *       Any copies of the data must be deep copies.
  */
-void handle_solution_low_latency(const StarlingFilterSolution *spp_solution,
-                                 const StarlingFilterSolution *rtk_solution,
-                                 const gps_time_t *solution_epoch_time) {
+static void handle_solution_low_latency(
+    const StarlingFilterSolution *spp_solution,
+    const StarlingFilterSolution *rtk_solution,
+    const gps_time_t *solution_epoch_time) {
   assert(solution_epoch_time);
 
   /* Check if observations do not have valid time. We may have locally a
@@ -622,7 +623,6 @@ void handle_solution_low_latency(const StarlingFilterSolution *spp_solution,
    * nearest epoch and use instead if necessary.
    */
   gps_time_t epoch_time = *solution_epoch_time;
-  u8 time_qual = get_time_quality();
   if (!gps_time_valid(&epoch_time)) {
     epoch_time = get_current_time();
     epoch_time = gps_time_round_to_epoch(&epoch_time, soln_freq_setting);
@@ -632,6 +632,7 @@ void handle_solution_low_latency(const StarlingFilterSolution *spp_solution,
    * apply that. Then if there is an RTK solution, overwrite the relevant
    * messages with the RTK baseline result. When there are no valid
    * solutions, we simply pass on the set of default messages. */
+  u8 time_qual = get_time_quality();
   sbp_messages_t sbp_messages;
   starling_integration_sbp_messages_init(&sbp_messages, &epoch_time, time_qual);
 
@@ -762,10 +763,12 @@ static void update_solution_info_low_latency(
 /*******************************************************************************/
 static void update_solution_info_time_matched(
     const StarlingFilterSolution *solution,
-    const obss_t *obss_base,
-    const obss_t *obss_rover) {
-  (void)obss_base;
-  (void)obss_rover;
+    const obs_core_t *obs_base,
+    const pvt_engine_result_t *rover_soln,
+    const double *rover_spp_ecef) {
+  (void)obs_base;
+  (void)rover_soln;
+  (void)rover_spp_ecef;
   update_piksi_solution_info(solution);
 }
 

@@ -343,11 +343,6 @@ static void unpack_obs(const u8 msg[], u8 len, obs_array_t *obs_array) {
        ++i) {
     starling_obs_t *current_obs = &obs_array->observations[obs_array->n++];
     unpack_obs_content_into_starling_obs(&msg_packed_obs[i], current_obs);
-
-    /* We must also compute the TOT using the TOR from the header. */
-    current_obs->tot = obs_array->t;
-    current_obs->tot.tow -= current_obs->pseudorange / GPS_C;
-    normalize_gps_time(&current_obs->tot);
   }
 }
 
@@ -375,11 +370,6 @@ static void unpack_osr(const u8 msg[], u8 len, obs_array_t *obs_array) {
        ++i) {
     starling_obs_t *current_obs = &obs_array->observations[obs_array->n++];
     unpack_osr_content(&msg_packed_osr[i], current_obs);
-
-    /* We must also compute the TOT using the TOR from the header. */
-    current_obs->tot = obs_array->t;
-    current_obs->tot.tow -= current_obs->pseudorange / GPS_C;
-    normalize_gps_time(&current_obs->tot);
   }
 }
 

@@ -78,12 +78,12 @@ TEST(test_nav_meas_calc_data, first_test) {
   log_debug("measured_doppler = %30.20f\n", out_l1ca->doppler);
   log_debug("cn0 = %30.20f\n", out_l1ca->cn0);
   log_debug("lock_time = %30.20f\n", out_l1ca->lock_time);
-  log_debug("tow = %30.20f, wn = %d\n", out_l1ca->tot.tow, out_l1ca->tot.wn);
+  log_debug(
+      "tow = %30.20f, wn = %d\n", obs_array_l1ca.t.tow, obs_array_l1ca.t.wn);
   log_debug("sat = %u, code = %u\n",
             (unsigned int)out_l1ca->sid.sat,
             (unsigned int)out_l1ca->sid.code);
-  log_debug("TOR = %30.20f\n",
-            out_l1ca->tot.tow + out_l1ca->pseudorange / GPS_C);
+  log_debug("TOR = %30.20f\n", obs_array_l1ca.t.tow);
 
   calc_navigation_measurements(1, &l2cm_meas_in, &obs_array_l2cm, &rec_time);
   log_debug(" \n***** L2CM: *****\n");
@@ -92,12 +92,12 @@ TEST(test_nav_meas_calc_data, first_test) {
   log_debug("measured_doppler = %30.20f\n", out_l2cm->doppler);
   log_debug("cn0 = %30.20f\n", out_l2cm->cn0);
   log_debug("lock_time = %30.20f\n", out_l2cm->lock_time);
-  log_debug("tow = %30.20f, wn = %d\n", out_l2cm->tot.tow, out_l2cm->tot.wn);
+  log_debug(
+      "tow = %30.20f, wn = %d\n", obs_array_l2cm.t.tow, obs_array_l2cm.t.wn);
   log_debug("sat = %u, code = %u\n",
             (unsigned int)out_l2cm->sid.sat,
             (unsigned int)out_l2cm->sid.code);
-  log_debug("TOR = %30.20f\n",
-            out_l2cm->tot.tow + out_l2cm->pseudorange / GPS_C);
+  log_debug("TOR = %30.20f\n", obs_array_l2cm.t.tow);
 
   double check_value;
 
@@ -110,13 +110,11 @@ TEST(test_nav_meas_calc_data, first_test) {
       fabs(out_l1ca->doppler / out_l2cm->doppler - GPS_L1_HZ / GPS_L2_HZ);
   EXPECT_LT(check_value, 0.003);
 
-  check_value =
-      fabs(out_l1ca->tot.tow + out_l1ca->pseudorange / GPS_C - rec_time.tow);
-  EXPECT_LT(check_value, 5e-8);
+  check_value = fabs(obs_array_l1ca.t.tow - rec_time.tow);
+  EXPECT_FLOAT_EQ(check_value, 0.0);
 
-  check_value =
-      fabs(out_l2cm->tot.tow + out_l2cm->pseudorange / GPS_C - rec_time.tow);
-  EXPECT_LT(check_value, 5e-8);
+  check_value = fabs(obs_array_l2cm.t.tow - rec_time.tow);
+  EXPECT_FLOAT_EQ(check_value, 0.0);
 }
 
 TEST(iono_tropo_usage_test, iono_tropo_test) {

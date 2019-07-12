@@ -182,11 +182,6 @@ static void remove_clock_offset(obs_array_t *obs_array,
 
     /* Compensate for NAP counter drift since cpo computation */
     obs->carrier_phase += cpo_drift * sid_to_carr_freq(obs->sid);
-
-    /* Also apply the time correction to the time of transmission so the
-     * satellite positions can be calculated for the correct time. */
-    obs->tot.tow += clock_offset;
-    normalize_gps_time(&(obs->tot));
   }
 
   /* update TOR of the observation set */
@@ -420,7 +415,8 @@ static void drop_gross_outlier(const gnss_signal_t sid,
   }
 }
 
-static void starling_obs_to_nav_meas(const starling_obs_t *obs,
+static void starling_obs_to_nav_meas(const gps_time_t *tor,
+                                     const starling_obs_t *obs,
                                      navigation_measurement_t *nm) {
   nm->raw_pseudorange = obs->pseudorange;
   nm->pseudorange = obs->pseudorange;
@@ -441,7 +437,9 @@ static void starling_obs_to_nav_meas(const starling_obs_t *obs,
   nm->cn0 = obs->cn0;
   nm->lock_time = obs->lock_time;
   nm->elevation = 0;
-  nm->tot = obs->tot;
+  nm->tot = (*tor);
+  nm->tot.tow -= (obs->pseudorange / GPS_C);
+  normalize_gps_time(&nm->tot);
   nm->sid = obs->sid;
   nm->flags = obs->flags;
   double el;
@@ -488,7 +486,8 @@ static s8 me_compute_pvt(const obs_array_t *obs_array,
   static navigation_measurement_t nav_meas[ME_CHANNELS];
   navigation_measurement_t *p_nav_meas[n_ready];
   for (u8 i = 0; i < n_ready; i++) {
-    starling_obs_to_nav_meas(&obs_array->observations[i], &nav_meas[i]);
+    starling_obs_to_nav_meas(
+        &obs_array->t, &obs_array->observations[i], &nav_meas[i]);
     p_nav_meas[i] = &nav_meas[i];
   }
 
