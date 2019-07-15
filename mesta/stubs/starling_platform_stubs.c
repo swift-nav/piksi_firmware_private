@@ -136,6 +136,7 @@ void init_starling_platform_stub_implementation(void) {
   /* Semaphore */
   sem_impl_t sem_impl = {
       .sem_create = stub_sem_create,
+      .sem_create_count = stub_sem_create_count,
       .sem_destroy = stub_sem_destroy,
       .sem_signal = stub_sem_signal,
       .sem_wait = stub_sem_wait,
