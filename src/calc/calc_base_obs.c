@@ -201,7 +201,7 @@ typedef void (*unpack_all_f)(const u8 msg[], u8 len, obs_array_t *obs_array);
  * is called.
  */
 static void generic_obs_callback(
-    u16 sender_id, u8 len, u8 msg[], void *context, unpack_all_f unpack) {
+    u16 relay_msg_type, u16 sender_id, u8 len, u8 msg[], void *context, unpack_all_f unpack) {
   (void)context;
 
   /* An SBP sender ID of zero means that the messages are relayed observations
@@ -213,7 +213,7 @@ static void generic_obs_callback(
   }
 
   /* Relay observations using sender_id = 0. */
-  sbp_send_msg_(SBP_MSG_OBS, len, msg, MSG_FORWARD_SENDER_ID);
+  sbp_send_msg_(relay_msg_type, len, msg, MSG_FORWARD_SENDER_ID);
 
   /* No use processing base observations if receiver time is still unknown */
   if (TIME_UNKNOWN == get_time_quality()) {
@@ -386,11 +386,11 @@ static void unpack_osr(const u8 msg[], u8 len, obs_array_t *obs_array) {
  * is called.
  */
 static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
-  generic_obs_callback(sender_id, len, msg, context, unpack_obs);
+  generic_obs_callback(SBP_MSG_OBS, sender_id, len, msg, context, unpack_obs);
 }
 
 static void osr_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
-  generic_obs_callback(sender_id, len, msg, context, unpack_osr);
+  generic_obs_callback(SBP_MSG_OSR, sender_id, len, msg, context, unpack_osr);
 }
 
 /** SBP callback for the old style observation messages.
