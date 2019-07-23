@@ -77,7 +77,6 @@ struct uuid {
 static void nap_conf_check(void);
 static bool nap_version_ok(u32 version);
 static void nap_version_check(void);
-static bool factory_params_read(void);
 static void uuid_unpack(const uint8_t *in, struct uuid *uu);
 
 void pre_init(void) { rpmsg_setup(); }
@@ -93,7 +92,6 @@ static void random_init(void) {
 
 void init(void) {
   fault_handling_setup();
-  factory_params_read();
 
   /* Make sure FPGA is configured - required for EMIO usage */
   nap_conf_check();
@@ -195,7 +193,7 @@ void nap_auth_check(void) {
   }
 }
 
-static bool factory_params_read(void) {
+bool factory_params_read(void) {
   uint8_t factory_data_buff[FACTORY_DATA_SIZE_MAX];
   factory_data_t *factory_data = (factory_data_t *)factory_data_buff;
 
