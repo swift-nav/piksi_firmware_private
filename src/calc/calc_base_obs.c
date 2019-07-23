@@ -200,8 +200,12 @@ typedef void (*unpack_all_f)(const u8 msg[], u8 len, obs_array_t *obs_array);
  * `obss_t` (`base_obss_rx`). Once a full set is received then update_obss()
  * is called.
  */
-static void generic_obs_callback(
-    u16 relay_msg_type, u16 sender_id, u8 len, u8 msg[], void *context, unpack_all_f unpack) {
+static void generic_obs_callback(u16 relay_msg_type,
+                                 u16 sender_id,
+                                 u8 len,
+                                 u8 msg[],
+                                 void *context,
+                                 unpack_all_f unpack) {
   (void)context;
 
   /* An SBP sender ID of zero means that the messages are relayed observations
