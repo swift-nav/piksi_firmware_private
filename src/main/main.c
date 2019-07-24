@@ -69,7 +69,7 @@ int main(void) {
   settings_api_setup();
   timing_setup();
 
-  log_info("Piksi Starting...");
+  log_info("Piksi Starting!!!");
   log_info("pfwp_build_id: " GIT_VERSION "");
   log_info("pfwp_build_date: " __DATE__ " " __TIME__ "");
 
@@ -129,6 +129,7 @@ int main(void) {
 
   log_info("Setting up RF Frontend");
   frontend_setup();
+  log_info("Finished setting up RF Frontend");
   me_settings_setup();
 
   ext_event_setup();
