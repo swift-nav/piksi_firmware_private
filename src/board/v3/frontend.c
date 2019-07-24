@@ -75,7 +75,7 @@ void frontend_configure(void) {
     gic_irq_sensitivity_set(IRQ_ID_FRONTEND_AOK, IRQ_SENSITIVITY_EDGE);
     gic_irq_priority_set(IRQ_ID_FRONTEND_AOK, FRONTEND_AOK_IRQ_PRIORITY);
     gic_irq_enable(IRQ_ID_FRONTEND_AOK);
-    log_info("NT1065 IRQ set")
+    log_info("NT1065 IRQ set");
 
     /* Make sure AOK interrupt edge was not missed */
     if (!nt1065_check_aok_status()) {
