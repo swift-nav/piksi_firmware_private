@@ -127,6 +127,7 @@ int main(void) {
   ndb_setup();
   ephemeris_setup();
 
+  log_info("Setting up RF Frontend");
   frontend_setup();
   me_settings_setup();
 
