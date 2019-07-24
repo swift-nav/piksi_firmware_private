@@ -69,6 +69,19 @@ void frontend_configure(void) {
   bool is_aok = true;
   /* If the NT1065 doesn't become healthy within a timeout, retry config */
   do {
+
+    /* Enable AOK interrupt */
+    gic_handler_register(IRQ_ID_FRONTEND_AOK, frontend_isr, NULL);
+    gic_irq_sensitivity_set(IRQ_ID_FRONTEND_AOK, IRQ_SENSITIVITY_EDGE);
+    gic_irq_priority_set(IRQ_ID_FRONTEND_AOK, FRONTEND_AOK_IRQ_PRIORITY);
+    gic_irq_enable(IRQ_ID_FRONTEND_AOK);
+    log_info("NT1065 IRQ set")
+
+    /* Make sure AOK interrupt edge was not missed */
+    if (!nt1065_check_aok_status()) {
+      frontend_error_notify_sys();
+    }
+
     frontend_open_spi();
 
     /* Read chip ID and release */
@@ -76,19 +89,11 @@ void frontend_configure(void) {
     u16 id = (id_release >> 3) & 0x1fff;
     u8 release = id_release & 0x7;
 
+    log_info("NT1065 ID: %d", id);
+    log_info("NT1065 release: %d", release);
+
     if (id != 1065) {
       log_error("nt1065: invalid chip ID");
-    }
-
-    /* Enable AOK interrupt */
-    gic_handler_register(IRQ_ID_FRONTEND_AOK, frontend_isr, NULL);
-    gic_irq_sensitivity_set(IRQ_ID_FRONTEND_AOK, IRQ_SENSITIVITY_EDGE);
-    gic_irq_priority_set(IRQ_ID_FRONTEND_AOK, FRONTEND_AOK_IRQ_PRIORITY);
-    gic_irq_enable(IRQ_ID_FRONTEND_AOK);
-
-    /* Make sure AOK interrupt edge was not missed */
-    if (!nt1065_check_aok_status()) {
-      frontend_error_notify_sys();
     }
 
     switch (release) {
