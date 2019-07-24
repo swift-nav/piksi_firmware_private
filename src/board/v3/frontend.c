@@ -12,7 +12,7 @@
  */
 
  /*CHANGES*/
- 
+
 #include "frontend.h"
 
 #include <ch.h>
@@ -120,6 +120,7 @@ void frontend_configure(void) {
 }
 
 void frontend_setup(void) { /* Register any setting... */
+  log_info("so it only goes until here? what about other stuff?");
 }
 
 bool nt1065_get_temperature(double* temperature) {
