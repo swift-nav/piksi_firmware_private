@@ -54,7 +54,6 @@ extern void ext_setup(void);
 void *__dso_handle = NULL;
 
 int main(void) {
-  log_info("Piksi waiting for GDB");
   volatile bool wait = true;
   while(wait);
   halInit();
