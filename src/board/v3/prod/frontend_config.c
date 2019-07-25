@@ -123,6 +123,7 @@ static void configure_v1(void) {
 }
 
 static void configure_v2(void) {
+  log_info("Running config_v2 from prod folder");
   spi_write(2, 0x03);
   spi_write(3, 0x01); /* TCXO frequency setting and LO source*/
   spi_write(4, 0x03);

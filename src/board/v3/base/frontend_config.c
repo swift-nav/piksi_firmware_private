@@ -21,6 +21,7 @@ static void configure_v1(void) { assert("unsupported" == 0); }
  * - GPS L5 and Galileo E5b are on CH3 in high-injection mode at -23.55 MHz
  * */
 static void configure_v2(void) {
+  log_info("Running config_v2 from base folder");
   spi_write(2, 0x03);
   spi_write(3, 0x01); /* TCXO frequency setting and LO source*/
   spi_write(4, 0x03);
