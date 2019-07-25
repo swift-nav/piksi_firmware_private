@@ -77,6 +77,7 @@ int main(void) {
 
   firmware_starling_preinit();
 
+  log_info("Initializing init()");
   init();
   signal_db_init();
 

@@ -76,7 +76,7 @@ void frontend_configure(void) {
     if (!nt1065_check_aok_status()) {
       frontend_error_notify_sys();
     }
-    
+
     frontend_open_spi();
 
     /* Read chip ID and release */
