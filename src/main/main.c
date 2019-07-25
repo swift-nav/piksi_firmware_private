@@ -55,6 +55,9 @@ extern void ext_setup(void);
 void *__dso_handle = NULL;
 
 int main(void) {
+  volatile bool wait = true;
+  while (wait);
+
   halInit();
 
   /* Kernel initialization, the main() function becomes a thread with
