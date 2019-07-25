@@ -115,6 +115,7 @@ void init(void) {
    * The following delay is necessary to allow the FPGA PLL to adjust to the
    * frequency change.
    */
+  log_info("setting frontend configuration");
   frontend_configure();
   chThdSleepMilliseconds(100);
 
