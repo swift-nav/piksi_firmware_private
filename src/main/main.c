@@ -56,7 +56,7 @@ void *__dso_handle = NULL;
 int main(void) {
   log_info("Piksi waiting for GDB");
   volatile bool wait = true;
-  while(wait) {};
+  while(wait);
   halInit();
 
   /* Kernel initialization, the main() function becomes a thread with
