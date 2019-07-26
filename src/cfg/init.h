@@ -13,6 +13,7 @@
 #ifndef SWIFTNAV_INIT_H
 #define SWIFTNAV_INIT_H
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <swiftnav/common.h>
 
