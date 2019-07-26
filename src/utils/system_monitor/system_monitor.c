@@ -110,7 +110,7 @@ static void check_frontend_errors(void) {
     if (frontend_errors) {
       log_error("nt1065: AOK error flag set");
       nt1065_check_plls();
-      nt1065_check_calibration()
+      nt1065_check_calibration();
       nt1065_check_standby();
     }
   }
