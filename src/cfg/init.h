@@ -13,11 +13,13 @@
 #ifndef SWIFTNAV_INIT_H
 #define SWIFTNAV_INIT_H
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <swiftnav/common.h>
 
 void pre_init(void);
 void init(void);
+bool factory_params_read(void);
 
 u16 sender_id_get(void);
 u8 hw_revision_string_get(char *hw_revision_string);

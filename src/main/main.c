@@ -60,13 +60,13 @@ int main(void) {
   /* Kernel initialization, the main() function becomes a thread with
    * priority NORMALPRIO and the RTOS is active. */
   chSysInit();
-
-  /* Piksi hardware initialization. */
   pre_init();
-
   io_support_init();
+
+  /* SBP setup is needed to allow sbp fileio to work for factory data */
   sbp_setup();
-  /* Just after init also set `sbp_sender_id` */
+  /* ignore return since log_error is sent by factory_params_read */
+  factory_params_read();
   u16 sbp_sender_id = sender_id_get();
   /* avoid special `sbp_sender_id`s in the 0-64k range */
   while ((MSG_FORWARD_SENDER_ID == sbp_sender_id) ||
