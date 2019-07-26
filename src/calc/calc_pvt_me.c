@@ -109,11 +109,11 @@ static bool decimate_observations(const gps_time_t *_t) {
   gps_time_t epoch =
       gps_time_round_to_epoch(_t, soln_freq_setting / obs_output_divisor);
   /* If time is within half a soln period, we should send obs.
-   * This wide time threshhold will send empty obs with no solution 
-   * when solution thread scheduling is not steered towards GNSS time. 
-   * Note, if we ever start producing obs at a rate faster than 
+   * This wide time threshhold will send empty obs with no solution
+   * when solution thread scheduling is not steered towards GNSS time.
+   * Note, if we ever start producing obs at a rate faster than
    * soln_freq_setting, this will need to change. */
-  return fabs(gpsdifftime(_t, &epoch)) < 0.5/soln_freq_setting;
+  return fabs(gpsdifftime(_t, &epoch)) < 0.5 / soln_freq_setting;
 }
 
 /** This function takes ownership of `obs_array` and transfers ownership
