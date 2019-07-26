@@ -84,6 +84,8 @@ void frontend_configure(void) {
     u16 id = (id_release >> 3) & 0x1fff;
     u8 release = id_release & 0x7;
 
+    log_info("nt1065 id: %d", id);
+    log_info("nt1065 release rev: %2", release);
     if (id != 1065) {
       log_error("nt1065: invalid chip ID");
     }
