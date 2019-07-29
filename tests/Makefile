@@ -76,6 +76,7 @@ INCLUDE_DIRS += -I$(USER_SRC_DIR)
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/board/v3/
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/board/v3/prod/
 INCLUDE_DIRS += -I../starling/include
+INCLUDE_DIRS += -I../starling/third_party/libpal/include
 INCLUDE_DIRS += -I../starling/third_party/libswiftnav/include
 INCLUDE_DIRS += -I../starling/third_party/libsbp/c/include
 INCLUDE_DIRS += -I../starling/libfec/include

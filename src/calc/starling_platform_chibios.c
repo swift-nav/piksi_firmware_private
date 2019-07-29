@@ -12,8 +12,9 @@
 
 #include <assert.h>
 #include <ch.h>
+#include <libpal/pal.h>
+#include <libpal/synch/mutex.h>
 #include <starling/platform/mq.h>
-#include <starling/platform/mutex.h>
 #include <starling/platform/semaphore.h>
 #include <starling/platform/thread.h>
 #include <starling/platform/watchdog.h>
@@ -22,25 +23,50 @@
 /* Used for watchdog implementation. */
 #include "system_monitor/system_monitor.h"
 
+/* From libpal/src/default/not_implemented */
+#define NOT_IMPLEMENTED()           \
+  do {                              \
+    assert(0 && "NOT IMPLEMENTED"); \
+  } while (0)
+
 /*******************************************************************************
  * Mutex
  ******************************************************************************/
 
-#define NUM_MUTEXES STARLING_MAX_NUM_MUTEXES
+#define NUM_MUTEXES (20u)
 
 static mutex_t mutexes[NUM_MUTEXES];
+static size_t mutexes_used = 0;
 
-static int chibios_mutex_init(mtx_id_t id) {
-  if (id >= NUM_MUTEXES) {
-    return -1;
+enum PAL_MUTEX_INIT_RESULT {
+  PAL_MUTEX_INIT_MAX_BEYOND_SUPPLY = -1,
+  PAL_MUTEX_INIT_SUCCESS = 0,
+};
+
+static int chibios_mutex_init(size_t max_mutexes) {
+  if (max_mutexes >= NUM_MUTEXES) {
+    return (int)PAL_MUTEX_INIT_MAX_BEYOND_SUPPLY;
   }
-  chMtxObjectInit(&mutexes[id]);
-  return 0;
+  for (size_t i = 0; i < max_mutexes; i++) {
+    chMtxObjectInit(&mutexes[i]);
+  }
+  return (int)PAL_MUTEX_INIT_SUCCESS;
 }
 
-static void chibios_mutex_lock(mtx_id_t id) { chMtxLock(&mutexes[id]); }
+static pal_mutex_t chibios_mutex_alloc(void) {
+  assert(mutexes_used < NUM_MUTEXES);
+  /* not thread safe!!! */
+  return (pal_mutex_t)(mutexes_used++);
+}
 
-static void chibios_mutex_unlock(mtx_id_t id) { chMtxUnlock(&mutexes[id]); }
+static void chibios_mutex_free(pal_mutex_t mutex) {
+  NOT_IMPLEMENTED();
+  (void)mutex;
+}
+
+static void chibios_mutex_lock(pal_mutex_t mutex) { chMtxLock(&mutexes[(size_t)mutex]); }
+
+static void chibios_mutex_unlock(pal_mutex_t mutex) { chMtxUnlock(&mutexes[(size_t)mutex]); }
 
 /*******************************************************************************
  * Thread
@@ -228,17 +254,31 @@ static int chibios_sem_wait_timeout(platform_sem_t *sem, unsigned long millis) {
 }
 
 /*******************************************************************************
+ * PAL Initialization
+ ******************************************************************************/
+
+void pal_init_impl(void) {
+  struct pal_impl_mutex mutex_impl = {
+      .init = chibios_mutex_init,
+      .alloc = chibios_mutex_alloc,
+      .free = chibios_mutex_free,
+      .lock = chibios_mutex_lock,
+      .unlock = chibios_mutex_unlock,
+  };
+  pal_set_impl_mutex(&mutex_impl);
+}
+
+/*******************************************************************************
  * Initialization
  ******************************************************************************/
 
+/* From starling/util/mutex.h */
+size_t starling_mutex_count(void);
+
 void starling_initialize_platform(void) {
+  pal_init_impl();
   /* Mutex */
-  mutex_impl_t mutex_impl = {
-      .mutex_init = chibios_mutex_init,
-      .mutex_lock = chibios_mutex_lock,
-      .mutex_unlock = chibios_mutex_unlock,
-  };
-  platform_set_implementation_mutex(&mutex_impl);
+  pal_mutex_init(starling_mutex_count());
   /* Thread */
   thread_impl_t thread_impl = {
       .thread_create = chibios_thread_create,
