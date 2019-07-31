@@ -50,7 +50,15 @@ typedef struct platform_thread_info_s {
   void *wsp;
   size_t size;
   int prio;
+  platform_thread_t *handle;
 } platform_thread_info_t;
+
+struct platform_thread_t {
+  thread_t *tid;
+};
+
+static platform_thread_t starling_main_thread;
+static platform_thread_t starling_tm_thread;
 
 static THD_WORKING_AREA(wa_time_matched_obs_thread,
                         TIME_MATCHED_OBS_THREAD_STACK);
@@ -65,12 +73,14 @@ static void platform_thread_info_init(const thread_id_t id,
       info->wsp = wa_time_matched_obs_thread;
       info->size = sizeof(wa_time_matched_obs_thread);
       info->prio = NORMALPRIO + TIME_MATCHED_OBS_THREAD_PRIORITY;
+      info->handle = &starling_tm_thread;
       break;
 
     case THREAD_ID_STARLING:
       info->wsp = wa_starling_thread;
       info->size = sizeof(wa_starling_thread);
       info->prio = HIGHPRIO + STARLING_THREAD_PRIORITY;
+      info->handle = &starling_main_thread;
       break;
 
     default:
@@ -79,16 +89,25 @@ static void platform_thread_info_init(const thread_id_t id,
   }
 }
 
-static void chibios_thread_create(const thread_id_t id,
-                                  platform_routine_t *fn) {
+static platform_thread_t *chibios_thread_create(const thread_id_t id,
+                                                platform_routine_t *fn) {
   assert(fn);
   platform_thread_info_t info;
   platform_thread_info_init(id, &info);
-  chThdCreateStatic(info.wsp, info.size, info.prio, fn, NULL);
+  info.handle->tid =
+      chThdCreateStatic(info.wsp, info.size, info.prio, fn, NULL);
+  return info.handle;
 }
 
-static void chibios_thread_set_name(const char *name) {
+static void chibios_thread_set_name(const platform_thread_t *handle,
+                                    const char *name) {
+  assert(handle != NULL);
   chRegSetThreadName(name);
+}
+
+static void chibios_thread_join(const platform_thread_t *handle) {
+  assert(handle != NULL);
+  chThdWait(handle->tid);
 }
 
 /*******************************************************************************
@@ -224,6 +243,7 @@ void starling_initialize_platform(void) {
   thread_impl_t thread_impl = {
       .thread_create = chibios_thread_create,
       .thread_set_name = chibios_thread_set_name,
+      .thread_join = chibios_thread_join,
   };
   platform_set_implementation_thread(&thread_impl);
   /* Watchdog */

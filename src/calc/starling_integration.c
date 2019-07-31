@@ -690,34 +690,6 @@ static void profile_low_latency_thread(enum ProfileDirective directive) {
   }
 }
 
-/******************************************************************************/
-static THD_FUNCTION(initialize_and_run_starling, arg) { /* NOLINT */
-  (void)arg;
-  chRegSetThreadName("starling");
-
-  /* Set time of last differential solution in the past. */
-  last_sbp_dgnss = GPS_TIME_UNKNOWN;
-  last_sbp_low_latency = GPS_TIME_UNKNOWN;
-
-  /* Register a reset callback. */
-  static sbp_msg_callbacks_node_t reset_filters_node;
-  sbp_register_cbk(
-      SBP_MSG_RESET_FILTERS, &reset_filters_callback, &reset_filters_node);
-
-  StarlingDebugFunctionTable debug_functions = {
-      .profile_low_latency_thread = profile_low_latency_thread,
-  };
-
-  /* This runs forever. */
-  starling_run(&debug_functions);
-
-  /* Never get here. */
-  log_error("Starling Engine has unexpectedly terminated.");
-  assert(0);
-
-  __builtin_unreachable();
-}
-
 /*******************************************************************************/
 static void update_piksi_solution_info(const StarlingFilterSolution *soln) {
   /* Ignore non-existant or invalid solutions. */
@@ -816,6 +788,18 @@ void starling_calc_pvt_setup() {
 
   setup_solution_handlers();
 
-  /* Start main starling thread. */
-  platform_thread_create(THREAD_ID_STARLING, initialize_and_run_starling);
+  /* Set time of last differential solution in the past. */
+  last_sbp_dgnss = GPS_TIME_UNKNOWN;
+  last_sbp_low_latency = GPS_TIME_UNKNOWN;
+
+  /* Register a reset callback. */
+  static sbp_msg_callbacks_node_t reset_filters_node;
+  sbp_register_cbk(
+      SBP_MSG_RESET_FILTERS, &reset_filters_callback, &reset_filters_node);
+
+  StarlingDebugFunctionTable debug_functions = {
+      .profile_low_latency_thread = profile_low_latency_thread,
+  };
+
+  assert(starling_run(&debug_functions));
 }

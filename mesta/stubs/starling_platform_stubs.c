@@ -33,12 +33,20 @@ static void stub_mutex_unlock(mtx_id_t id) { (void)id; }
  * Thread
  ******************************************************************************/
 
-static void stub_thread_create(const thread_id_t id, platform_routine_t *fn) {
+static platform_thread_t *stub_thread_create(const thread_id_t id,
+                                             platform_routine_t *fn) {
   (void)id;
   (void)fn;
+  return NULL;
 }
 
-static void stub_thread_set_name(const char *name) { (void)name; }
+static void stub_thread_set_name(const platform_thread_t *thread,
+                                 const char *name) {
+  (void)name;
+  (void)thread;
+}
+
+static void stub_thread_join(const platform_thread_t *thread) { (void)thread; }
 
 /*******************************************************************************
  * Watchdog
@@ -120,6 +128,7 @@ void init_starling_platform_stub_implementation(void) {
   thread_impl_t thread_impl = {
       .thread_create = stub_thread_create,
       .thread_set_name = stub_thread_set_name,
+      .thread_join = stub_thread_join,
   };
   platform_set_implementation_thread(&thread_impl);
   /* Watchdog */
