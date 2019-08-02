@@ -102,7 +102,7 @@ static platform_thread_t *chibios_thread_create(const thread_id_t id,
 static void chibios_thread_set_name(const platform_thread_t *handle,
                                     const char *name) {
   assert(handle != NULL);
-  chRegSetThreadName(name);
+  chRegSetThreadNameX(handle->tid, name);
 }
 
 static void chibios_thread_join(const platform_thread_t *handle) {
