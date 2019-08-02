@@ -10,8 +10,8 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include <libpal/synch/mutex.h>
 #include <starling/platform/mq.h>
-#include <starling/platform/mutex.h>
 #include <starling/platform/semaphore.h>
 #include <starling/platform/thread.h>
 #include <starling/platform/watchdog.h>
@@ -20,14 +20,18 @@
  * Mutex
  ******************************************************************************/
 
-static int stub_mutex_init(mtx_id_t id) {
-  (void)id;
+static int stub_mutex_init(size_t max_mutexes) {
+  (void)max_mutexes;
   return 0;
 }
 
-static void stub_mutex_lock(mtx_id_t id) { (void)id; }
+static pal_mutex_t stub_mutex_alloc(void) { return NULL; }
 
-static void stub_mutex_unlock(mtx_id_t id) { (void)id; }
+static void stub_mutex_free(pal_mutex_t mutex) { (void)mutex; }
+
+static void stub_mutex_lock(pal_mutex_t mutex) { (void)mutex; }
+
+static void stub_mutex_unlock(pal_mutex_t mutex) { (void)mutex; }
 
 /*******************************************************************************
  * Thread
@@ -118,12 +122,14 @@ static int stub_sem_wait_timeout(platform_sem_t *sem, uint32_t millis) {
 
 void init_starling_platform_stub_implementation(void) {
   /* Mutex */
-  mutex_impl_t mutex_impl = {
-      .mutex_init = stub_mutex_init,
-      .mutex_lock = stub_mutex_lock,
-      .mutex_unlock = stub_mutex_unlock,
+  struct pal_impl_mutex mutex_impl = {
+      .init = stub_mutex_init,
+      .alloc = stub_mutex_alloc,
+      .free = stub_mutex_free,
+      .lock = stub_mutex_lock,
+      .unlock = stub_mutex_unlock,
   };
-  platform_set_implementation_mutex(&mutex_impl);
+  pal_set_impl_mutex(&mutex_impl);
   /* Thread */
   thread_impl_t thread_impl = {
       .thread_create = stub_thread_create,
