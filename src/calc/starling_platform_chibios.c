@@ -64,9 +64,13 @@ static void chibios_mutex_free(pal_mutex_t mutex) {
   (void)mutex;
 }
 
-static void chibios_mutex_lock(pal_mutex_t mutex) { chMtxLock(&mutexes[(size_t)mutex]); }
+static void chibios_mutex_lock(pal_mutex_t mutex) {
+  chMtxLock(&mutexes[(size_t)mutex]);
+}
 
-static void chibios_mutex_unlock(pal_mutex_t mutex) { chMtxUnlock(&mutexes[(size_t)mutex]); }
+static void chibios_mutex_unlock(pal_mutex_t mutex) {
+  chMtxUnlock(&mutexes[(size_t)mutex]);
+}
 
 /*******************************************************************************
  * Thread
