@@ -14,7 +14,6 @@
 
 #include <assert.h>
 #include <ch.h>
-#include <libpal/synch/mutex.h>
 #include <starling/integration/starling_input_bridge.h>
 #include <starling/platform/thread.h>
 #include <starling/starling.h>

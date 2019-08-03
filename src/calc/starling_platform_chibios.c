@@ -23,11 +23,8 @@
 /* Used for watchdog implementation. */
 #include "system_monitor/system_monitor.h"
 
-/* From libpal/src/default/not_implemented */
-#define NOT_IMPLEMENTED()           \
-  do {                              \
-    assert(0 && "NOT IMPLEMENTED"); \
-  } while (0)
+/* From libpal for unimplemented functions */
+#include "not_implemented.h"
 
 /*******************************************************************************
  * Mutex
@@ -277,13 +274,7 @@ void pal_init_impl(void) {
  * Initialization
  ******************************************************************************/
 
-/* From starling/util/mutex.h */
-size_t starling_mutex_count(void);
-
 void starling_initialize_platform(void) {
-  pal_init_impl();
-  /* Mutex */
-  pal_mutex_init(starling_mutex_count());
   /* Thread */
   thread_impl_t thread_impl = {
       .thread_create = chibios_thread_create,
