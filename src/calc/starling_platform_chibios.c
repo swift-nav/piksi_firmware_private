@@ -56,7 +56,8 @@ static int chibios_mutex_init(size_t max_mutexes) {
 static pal_mutex_t chibios_mutex_alloc(void) {
   assert(mutexes_used < NUM_MUTEXES);
   /* not thread safe!!! */
-  return (pal_mutex_t)(mutexes_used++);
+  mutex_t *mutex = &mutexes[mutexes_used++];
+  return (pal_mutex_t)mutex;
 }
 
 static void chibios_mutex_free(pal_mutex_t mutex) {
@@ -65,11 +66,11 @@ static void chibios_mutex_free(pal_mutex_t mutex) {
 }
 
 static void chibios_mutex_lock(pal_mutex_t mutex) {
-  chMtxLock(&mutexes[(size_t)mutex]);
+  chMtxLock((mutex_t *)mutex);
 }
 
 static void chibios_mutex_unlock(pal_mutex_t mutex) {
-  chMtxUnlock(&mutexes[(size_t)mutex]);
+  chMtxUnlock((mutex_t *)mutex);
 }
 
 /*******************************************************************************
