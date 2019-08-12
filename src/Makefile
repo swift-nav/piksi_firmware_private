@@ -94,6 +94,10 @@ ifeq ($(STARLING_BUILDDIR),)
   STARLING_BUILDDIR=$(SWIFTNAV_ROOT)/starling/$(LIB_BUILDFOLDER)
 endif
 
+ifeq ($(LIBPAL_BUILDDIR),)
+  LIBPAL_BUILDDIR=$(STARLING_BUILDDIR)/third_party/libpal
+endif
+
 ifeq ($(LIBSBP_BUILDDIR),)
   LIBSBP_BUILDDIR=$(STARLING_BUILDDIR)/third_party/libsbp
 endif
@@ -271,6 +275,8 @@ INCDIR = $(STARTUPINC) $(PORTINC) $(KERNINC) \
          $(SWIFTNAV_ROOT)/starling/third_party/libsbp/c/include \
          $(SWIFTNAV_ROOT)/libsettings/include \
          $(SWIFTNAV_ROOT)/starling/include \
+         $(SWIFTNAV_ROOT)/starling/third_party/libpal/include \
+         $(SWIFTNAV_ROOT)/starling/third_party/libpal/src/default \
          $(SWIFTNAV_ROOT)/starling/third_party/libswiftnav/include \
          $(SWIFTNAV_ROOT)/src \
          $(SWIFTNAV_ROOT)/src/board \
@@ -368,7 +374,8 @@ DINCDIR =
 
 # List the default directory to look for the libraries here
 
-DLIBDIR = $(LIBSBP_BUILDDIR)/c/src \
+DLIBDIR = $(LIBPAL_BUILDDIR)/src/default \
+          $(LIBSBP_BUILDDIR)/c/src \
           $(LIBSETTINGS_BUILDDIR)/src \
           $(STARLING_BUILDDIR)/src \
           $(STARLING_BUILDDIR)/starling-util \
@@ -377,7 +384,7 @@ DLIBDIR = $(LIBSBP_BUILDDIR)/c/src \
           $(BOARDLIBDIR)
 
 # List all default libraries here
-DLIBS = $(BOARDLIBS) -lsbp -lstarling -lswiftnav -lpvt-engine\
+DLIBS = $(BOARDLIBS) -lpal -lsbp -lstarling -lswiftnav -lpvt-engine\
          -lstarling-util -lm -Wl,--start-group\
          -lstdc++ -lc -Wl,--end-group -lfec -lnosys -lsettings
 

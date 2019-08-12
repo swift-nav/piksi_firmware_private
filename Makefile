@@ -43,9 +43,11 @@ MAKEFLAGS += LIB_BUILDFOLDER=$(LIB_BUILDFOLDER)
 LIBSETTINGS_BUILDDIR=$(SWIFTNAV_ROOT)/libsettings/$(LIB_BUILDFOLDER)
 STARLING_BUILDDIR=$(SWIFTNAV_ROOT)/starling/$(LIB_BUILDFOLDER)
 LIBSBP_BUILDDIR=$(STARLING_BUILDDIR)/third_party/libsbp
+LIBPAL_BUILDDIR=$(STARLING_BUILDDIR)/third_party/libpal
 LIBSWIFTNAV_BUILDDIR=$(STARLING_BUILDDIR)/third_party/libswiftnav
 OPENAMP_BUILDDIR=$(SWIFTNAV_ROOT)/open-amp/$(LIB_BUILDFOLDER)
 
+MAKEFLAGS += LIBPAL_BUILDDIR=$(LIBPAL_BUILDDIR)
 MAKEFLAGS += LIBSBP_BUILDDIR=$(LIBSBP_BUILDDIR)
 MAKEFLAGS += LIBSETTINGS_BUILDDIR=$(LIBSETTINGS_BUILDDIR)
 MAKEFLAGS += STARLING_BUILDDIR=$(STARLING_BUILDDIR)
@@ -66,6 +68,7 @@ CLANG_TIDY_INCLUDES = -I$(SWIFTNAV_ROOT)/include/ \
                       -I$(SWIFTNAV_ROOT)/src/ \
                       -I$(SWIFTNAV_ROOT)/src/utils/ \
                       -I$(SWIFTNAV_ROOT)/starling/include/ \
+                      -I$(SWIFTNAV_ROOT)/starling/third_party/libpal/include/ \
                       -I$(SWIFTNAV_ROOT)/starling/third_party/libswiftnav/include/ \
                       -I$(SWIFTNAV_ROOT)/starling/third_party/libsbp/c/include/ \
                       -I$(SWIFTNAV_ROOT)/starling/libfec/include/ \
@@ -139,6 +142,8 @@ $(OPENAMP_BUILDDIR)/lib/libopen-amp.a:
 clean:
 	@printf "CLEAN   src\n"; \
 	$(MAKE) -C src $(MAKEFLAGS) clean
+	@printf "CLEAN   libpal\n"; \
+	$(RM) -rf $(LIBPAL_BUILDDIR)
 	@printf "CLEAN   libsbp\n"; \
 	$(RM) -rf $(LIBSBP_BUILDDIR)
 	@printf "CLEAN   libsettings\n"; \

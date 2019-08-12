@@ -40,6 +40,8 @@ INCDIR = $(SWIFTNAV_ROOT) \
          $(SWIFTNAV_ROOT)/src/main \
          $(SWIFTNAV_ROOT)/starling/src \
          $(SWIFTNAV_ROOT)/starling/ \
+         $(SWIFTNAV_ROOT)/starling/third_party/libpal/include \
+         $(SWIFTNAV_ROOT)/starling/third_party/libpal/src/default \
          $(SWIFTNAV_ROOT)/starling/third_party/libsbp/c/include \
          $(SWIFTNAV_ROOT)/starling/third_party/libswiftnav/include \
          $(SWIFTNAV_ROOT)/libsettings/include \
@@ -149,7 +151,6 @@ CSRC := $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l2c.c \
         $(SWIFTNAV_ROOT)/src/board/v3/ndb_fs_access.c \
         $(SWIFTNAV_ROOT)/src/lib/fixed_fft_r2.c \
         $(SWIFTNAV_ROOT)/starling/src/starling/platform/watchdog.c \
-        $(SWIFTNAV_ROOT)/starling/src/starling/platform/mutex.c \
         $(SWIFTNAV_ROOT)/starling/src/starling/platform/thread.c \
         $(SWIFTNAV_ROOT)/starling/src/starling/platform/mq.c \
         $(SWIFTNAV_ROOT)/starling/src/starling/platform/semaphore.c \
@@ -159,6 +160,7 @@ CSRC := $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l2c.c \
         $(SWIFTNAV_ROOT)/starling/src/observation.c \
         $(SWIFTNAV_ROOT)/starling/src/cycle_slip.c \
         $(SWIFTNAV_ROOT)/starling/libfec/src/viterbi27.c \
+        $(SWIFTNAV_ROOT)/starling/third_party/libpal/src/default/synch/mutex.c \
         $(SWIFTNAV_ROOT)/starling/third_party/libswiftnav/src/almanac.c \
         $(SWIFTNAV_ROOT)/starling/third_party/libswiftnav/src/bits.c \
         $(SWIFTNAV_ROOT)/starling/third_party/libswiftnav/src/coord_system.c \

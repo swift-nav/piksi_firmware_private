@@ -16,6 +16,7 @@
 #include <ch.h>
 #include <sbp/sbp_fileio.h>
 #include <starling/integration/starling_input_bridge.h>
+#include <starling/platform/platform.h>
 #include <starling/starling.h>
 #include <stdbool.h>
 #include <utils/settings/settings_client.h>
@@ -45,6 +46,8 @@ static bool is_firmware_starling_enabled(void) {
 
 void firmware_starling_preinit(void) {
   starling_initialize_platform();
+  // Starling based platform initialization
+  starling_platform_setup();
   starling_initialize_api();
 }
 
