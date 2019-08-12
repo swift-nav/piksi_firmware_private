@@ -41,7 +41,7 @@ enum PAL_MUTEX_INIT_RESULT {
 };
 
 static int chibios_mutex_init(size_t max_mutexes) {
-  if (max_mutexes >= NUM_MUTEXES) {
+  if (max_mutexes > NUM_MUTEXES) {
     return (int)PAL_MUTEX_INIT_MAX_BEYOND_SUPPLY;
   }
   for (size_t i = 0; i < max_mutexes; i++) {
