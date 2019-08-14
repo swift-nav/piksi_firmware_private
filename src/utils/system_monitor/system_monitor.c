@@ -282,6 +282,9 @@ static void watchdog_thread(void *arg) {
 void system_monitor_pre_init(void) { wdgStart(&WDGD1, &board_wdg_config); }
 
 void system_monitor_setup(void) {
+  // ignore acq_thread
+  watchdog_thread_ignore(WD_NOTIFY_ACQ_MGMT);
+
   SETTING("system_monitor",
           "heartbeat_period_milliseconds",
           heartbeat_period_milliseconds,
