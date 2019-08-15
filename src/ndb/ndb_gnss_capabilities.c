@@ -39,7 +39,7 @@ static const gnss_capb_t gnss_capb_defaults = {
   .gps_l2c = (u64)0x0f7814bfd,
   .gps_l5 = (u64)0x0a78003ad,
 
-  .glo_active = (u32)0x0fffffff,
+  .glo_active = (u32)0x00000000,
   .glo_l2of = (u32)0x02fff7df,
   .glo_l3 = (u32)0x00080100,
 
