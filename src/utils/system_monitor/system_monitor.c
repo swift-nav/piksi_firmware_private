@@ -58,7 +58,7 @@ static uint32_t heartbeat_period_milliseconds = 1000;
 static bool use_wdt = true;
 
 static u32 watchdog_watch_mask = WATCHDOG_NOTIFY_FLAG_ALL;
-static u32 watchdog_notify_flags = 0;
+static u32 watchdog_notify_flags = WATCHDOG_NOTIFY_FLAG_ALL;
 static u32 frontend_notify_flags = 0;
 static bool frontend_errors = false;
 
@@ -254,8 +254,8 @@ static void watchdog_thread(void *arg) {
     }
 
     chSysLock();
-    u32 threads_dead = watchdog_notify_flags ^ watchdog_watch_mask;
-    watchdog_notify_flags = 0;
+    u32 threads_dead = watchdog_notify_flags;
+    watchdog_notify_flags = watchdog_watch_mask;
     chSysUnlock();
 
     if (threads_dead) {
@@ -324,6 +324,7 @@ void watchdog_thread_ignore(watchdog_notify_t thread_id) {
   chSysLock();
   watchdog_watch_mask &= ~WATCHDOG_NOTIFY_FLAG(thread_id);
   chSysUnlock();
+  watchdog_notify(thread_id); // in case mask has flag set
 }
 
 /** Called by each important system thread after doing its important
@@ -333,7 +334,7 @@ void watchdog_thread_ignore(watchdog_notify_t thread_id) {
  **/
 void watchdog_notify(watchdog_notify_t thread_id) {
   chSysLock();
-  watchdog_notify_flags |= WATCHDOG_NOTIFY_FLAG(thread_id);
+  watchdog_notify_flags &= ~WATCHDOG_NOTIFY_FLAG(thread_id);
   chSysUnlock();
 }
 
