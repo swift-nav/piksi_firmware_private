@@ -12,7 +12,7 @@
 
 #include "calc_pvt_common.h"
 
-#include <starling/pvt_engine/firmware_binding.h>
+#include <pvt_engine/firmware_binding.h>
 
 #include "sbp/sbp.h"
 #include "sbp/sbp_utils.h"
