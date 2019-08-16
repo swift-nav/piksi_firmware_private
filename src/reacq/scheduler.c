@@ -98,7 +98,7 @@ static void sch_glo_fcn_set(acq_job_t *job) {
        * FCN */
       job->mesid.sat++;
       if (job->mesid.sat > GLO_MAX_FCN) {
-        job->mesid.sat = GLO_MIN_FCN;
+        job->mesid.sat = GLO_MIN_FCN + 4;
       }
       /* now check if the selected frequency already mapped to other slot id */
       if (glo_map_get_slot_id(job->mesid.sat, &slot_id1, &slot_id2) == 0) {
