@@ -57,6 +57,7 @@ MAKEFLAGS += OPENAMP_BUILDDIR=$(OPENAMP_BUILDDIR)
 FW_DEPS=compiler-version \
         $(LIBSETTINGS_BUILDDIR)/src/libsettings.a \
         $(STARLING_BUILDDIR)/src/libpvt-engine.a \
+	$(STARLING_BUILDDIR)/src/libpvt-common.a \
         $(STARLING_BUILDDIR)/src/libstarling.a \
         $(STARLING_BUILDDIR)/src/libstarling-util.a
 
@@ -94,7 +95,8 @@ firmware: $(FW_DEPS)
 
 $(LIBSETTINGS_BUILDDIR)/src/libsettings.a: .FORCE \
                                            $(STARLING_BUILDDIR)/Makefile \
-                                           $(STARLING_BUILDDIR)/src/libpvt-engine.a
+                                           $(STARLING_BUILDDIR)/src/libpvt-engine.a \
+                                           $(STARLING_BUILDDIR)/src/libpvt-common.a
 	@printf "BUILD   libsettings for target $(PIKSI_TARGET)\n"; \
 	mkdir -p $(LIBSETTINGS_BUILDDIR); cd $(LIBSETTINGS_BUILDDIR); \
 	cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
@@ -103,8 +105,14 @@ $(LIBSETTINGS_BUILDDIR)/src/libsettings.a: .FORCE \
 	      $(CMAKEFLAGS) ../
 	$(MAKE) -C $(LIBSETTINGS_BUILDDIR) $(MAKEFLAGS) settings
 
+$(STARLING_BUILDDIR)/src/libpvt-common.a: .FORCE \
+	                                $(STARLING_BUILDDIR)/Makefile
+	@printf "BUILD   pvt-engine for target $(PIKSI_TARGET)\n"; \
+	$(MAKE) pvt-common -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
+
 $(STARLING_BUILDDIR)/src/libpvt-engine.a: .FORCE \
-                                        $(STARLING_BUILDDIR)/Makefile
+                                        $(STARLING_BUILDDIR)/Makefile \
+					$(STARLING_BUILDDIR)/src/libpvt-common.a
 	@printf "BUILD   pvt-engine for target $(PIKSI_TARGET)\n"; \
 	$(MAKE) pvt-engine -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
 
@@ -113,7 +121,8 @@ $(STARLING_BUILDDIR)/src/libpvt-engine.a: .FORCE \
 # which leads to occasional failures.
 $(STARLING_BUILDDIR)/src/libstarling.a: .FORCE \
                                              $(STARLING_BUILDDIR)/Makefile \
-                                             $(STARLING_BUILDDIR)/src/libpvt-engine.a
+                                             $(STARLING_BUILDDIR)/src/libpvt-engine.a \
+					     $(STARLING_BUILDDIR)/src/libpvt-common.a
 	@printf "BUILD   libstarling for target $(PIKSI_TARGET)\n"; \
 	$(MAKE) starling -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
 

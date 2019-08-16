@@ -384,7 +384,7 @@ DLIBDIR = $(LIBPAL_BUILDDIR)/src/default \
           $(BOARDLIBDIR)
 
 # List all default libraries here
-DLIBS = $(BOARDLIBS) -lpal -lsbp -lstarling -lswiftnav -lpvt-engine\
+DLIBS = $(BOARDLIBS) -lpal -lsbp -lstarling -lswiftnav -lpvt-engine -lpvt-common\
          -lstarling-util -lm -Wl,--start-group\
          -lstdc++ -lc -Wl,--end-group -lfec -lnosys -lsettings
 

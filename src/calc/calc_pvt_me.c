@@ -15,9 +15,9 @@
 #include <float.h>
 #include <inttypes.h>
 #include <libsbp/sbp.h>
+#include <pvt_engine/firmware_binding.h>
 #include <starling/integration/starling_input_bridge.h>
 #include <starling/observation.h>
-#include <starling/pvt_engine/firmware_binding.h>
 #include <starling/starling.h>
 #include <stdio.h>
 #include <string.h>
