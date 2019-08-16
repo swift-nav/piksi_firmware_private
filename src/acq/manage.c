@@ -454,6 +454,13 @@ static acq_status_t *choose_acq_sat(void) {
   u32 this = sat_idx;
   log_debug_mesid(acq_status[sat_idx].mesid, "chosen");
 
+  if(mesid_to_constellation( acq_status[sat_idx].mesid ) == CONSTELLATION_GLO ) {
+    while(acq_status[sat_idx].mesid.sat < GLO_MIN_FCN + 3) {
+      sat_idx = (sat_idx + 1) % ARRAY_SIZE(acq_status);
+      this = sat_idx;
+    }
+  }
+
   sat_idx = (sat_idx + 1) % ARRAY_SIZE(acq_status);
   return &acq_status[this];
 }
