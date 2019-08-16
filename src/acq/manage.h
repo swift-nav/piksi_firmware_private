@@ -23,11 +23,6 @@
 #include "soft_macq/soft_macq_main.h"
 #include "track/track_flags.h"
 
-#ifdef debug
-#undef debug
-#endif
-#define debug true
-
 /** \addtogroup manage
  * \{ */
 
