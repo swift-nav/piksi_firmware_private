@@ -9,6 +9,9 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
+
+#define debug true;
+
 #include "acq/manage.h"
 #include "board/nap/nap_common.h"
 #include "me_constants.h"

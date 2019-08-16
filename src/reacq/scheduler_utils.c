@@ -10,6 +10,8 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#define debug true;
+
 #include <assert.h>
 #include <swiftnav/glo_map.h>
 
