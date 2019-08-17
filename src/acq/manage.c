@@ -452,10 +452,9 @@ static acq_status_t *choose_acq_sat(void) {
   }
 
   u32 this = sat_idx;
-  log_debug_mesid(acq_status[sat_idx].mesid, "chosen");
 
   if(mesid_to_constellation( acq_status[sat_idx].mesid ) == CONSTELLATION_GLO ) {
-    while(acq_status[sat_idx].mesid.sat < GLO_MIN_FCN + 3) {
+    while(acq_status[sat_idx].mesid.sat < GLO_MIN_FCN) {
       sat_idx = (sat_idx + 1) % ARRAY_SIZE(acq_status);
       this = sat_idx;
     }
@@ -694,54 +693,55 @@ void restore_acq(const tracker_t *tracker) {
   /* Now restore satellite acq */
   acq->state = ACQ_PRN_ACQUIRING;
 
-  if (0 == (tracker->flags & TRACKER_FLAG_UNHEALTHY)) {
-    return;
-  }
+  return;
+  // if (0 == (tracker->flags & TRACKER_FLAG_UNHEALTHY)) {
+  //   return;
+  // }
 
-  /* Set quarantine timer for unhealthy SVs */
-  if (IS_GLO(mesid)) {
-    if (tracker->glo_orbit_slot != GLO_ORBIT_SLOT_UNKNOWN) {
-      /* GLO acq quarantine timer is only armed for GLO L1OF
-         as it is the only direct acq GLO signal we care about in acq module */
-      mesid = construct_mesid(CODE_GLO_L1OF, mesid.sat);
-      acq = &acq_status[mesid_to_global_index(mesid)];
-      acq->state = ACQ_PRN_UNHEALTHY;
-      u16 index = tracker->glo_orbit_slot - 1;
-      assert(index < ARRAY_SIZE(glo_acq_timer));
-      glo_acq_timer[index].status = acq;
-      piksi_systime_get(&glo_acq_timer[index].tick); /* channel drop time */
-    }
-  } else if (IS_SBAS(mesid)) {
-    acq->state = ACQ_PRN_UNHEALTHY;
-    u16 index = tracker->mesid.sat - SBAS_FIRST_PRN;
-    assert(index < ARRAY_SIZE(sbas_acq_timer));
-    sbas_acq_timer[index].status = acq;
-    piksi_systime_get(&sbas_acq_timer[index].tick); /* channel drop time */
-  } else if (IS_BDS2(mesid)) {
-    mesid = construct_mesid(CODE_BDS2_B1, mesid.sat);
-    acq = &acq_status[mesid_to_global_index(mesid)];
-    acq->state = ACQ_PRN_UNHEALTHY;
-    u16 index = tracker->mesid.sat - BDS_FIRST_PRN;
-    assert(index < ARRAY_SIZE(bds2_acq_timer));
-    bds2_acq_timer[index].status = acq;
-    piksi_systime_get(&bds2_acq_timer[index].tick); /* channel drop time */
-  } else if (IS_GAL(mesid)) {
-    mesid = construct_mesid(CODE_GAL_E1B, mesid.sat);
-    acq = &acq_status[mesid_to_global_index(mesid)];
-    acq->state = ACQ_PRN_UNHEALTHY;
-    u16 index = tracker->mesid.sat - GAL_FIRST_PRN;
-    assert(index < ARRAY_SIZE(gal_acq_timer));
-    gal_acq_timer[index].status = acq;
-    piksi_systime_get(&gal_acq_timer[index].tick); /* channel drop time */
-  } else if (IS_QZSS(mesid)) {
-    mesid = construct_mesid(CODE_QZS_L1CA, mesid.sat);
-    acq = &acq_status[mesid_to_global_index(mesid)];
-    acq->state = ACQ_PRN_UNHEALTHY;
-    u16 index = tracker->mesid.sat - QZS_FIRST_PRN;
-    assert(index < ARRAY_SIZE(qzs_acq_timer));
-    qzs_acq_timer[index].status = acq;
-    piksi_systime_get(&qzs_acq_timer[index].tick); /* channel drop time */
-  }
+  // /* Set quarantine timer for unhealthy SVs */
+  // if (IS_GLO(mesid)) {
+  //   if (tracker->glo_orbit_slot != GLO_ORBIT_SLOT_UNKNOWN) {
+  //     /* GLO acq quarantine timer is only armed for GLO L1OF
+  //        as it is the only direct acq GLO signal we care about in acq module */
+  //     mesid = construct_mesid(CODE_GLO_L1OF, mesid.sat);
+  //     acq = &acq_status[mesid_to_global_index(mesid)];
+  //     acq->state = ACQ_PRN_UNHEALTHY;
+  //     u16 index = tracker->glo_orbit_slot - 1;
+  //     assert(index < ARRAY_SIZE(glo_acq_timer));
+  //     glo_acq_timer[index].status = acq;
+  //     piksi_systime_get(&glo_acq_timer[index].tick); /* channel drop time */
+  //   }
+  // } else if (IS_SBAS(mesid)) {
+  //   acq->state = ACQ_PRN_UNHEALTHY;
+  //   u16 index = tracker->mesid.sat - SBAS_FIRST_PRN;
+  //   assert(index < ARRAY_SIZE(sbas_acq_timer));
+  //   sbas_acq_timer[index].status = acq;
+  //   piksi_systime_get(&sbas_acq_timer[index].tick); /* channel drop time */
+  // } else if (IS_BDS2(mesid)) {
+  //   mesid = construct_mesid(CODE_BDS2_B1, mesid.sat);
+  //   acq = &acq_status[mesid_to_global_index(mesid)];
+  //   acq->state = ACQ_PRN_UNHEALTHY;
+  //   u16 index = tracker->mesid.sat - BDS_FIRST_PRN;
+  //   assert(index < ARRAY_SIZE(bds2_acq_timer));
+  //   bds2_acq_timer[index].status = acq;
+  //   piksi_systime_get(&bds2_acq_timer[index].tick); /* channel drop time */
+  // } else if (IS_GAL(mesid)) {
+  //   mesid = construct_mesid(CODE_GAL_E1B, mesid.sat);
+  //   acq = &acq_status[mesid_to_global_index(mesid)];
+  //   acq->state = ACQ_PRN_UNHEALTHY;
+  //   u16 index = tracker->mesid.sat - GAL_FIRST_PRN;
+  //   assert(index < ARRAY_SIZE(gal_acq_timer));
+  //   gal_acq_timer[index].status = acq;
+  //   piksi_systime_get(&gal_acq_timer[index].tick); /* channel drop time */
+  // } else if (IS_QZSS(mesid)) {
+  //   mesid = construct_mesid(CODE_QZS_L1CA, mesid.sat);
+  //   acq = &acq_status[mesid_to_global_index(mesid)];
+  //   acq->state = ACQ_PRN_UNHEALTHY;
+  //   u16 index = tracker->mesid.sat - QZS_FIRST_PRN;
+  //   assert(index < ARRAY_SIZE(qzs_acq_timer));
+  //   qzs_acq_timer[index].status = acq;
+  //   piksi_systime_get(&qzs_acq_timer[index].tick); /* channel drop time */
+  // }
 }
 
 /** Get GLO SV visibility flags. Function simply copies previously calculated
