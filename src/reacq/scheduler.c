@@ -9,6 +9,9 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
+
+#define DEBUG true
+
 #include <assert.h>
 #include <swiftnav/glo_map.h>
 
@@ -179,9 +182,9 @@ reacq_sched_ret_t sch_run(acq_jobs_state_t *jobs_data) {
   ret = sch_select_job(jobs_data, &job);
   if ((NULL != job) && IS_GLO(job->mesid)) {
     sch_glo_fcn_set(job);
-    if(job->mesid.sat < GLO_MIN_FCN + 3) {
-      return ret;
-    }
+    // if(job->mesid.sat < GLO_MIN_FCN + 3) {
+    //   return ret;
+    // }
   }
   sch_run_common(job);
   return ret;

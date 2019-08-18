@@ -10,6 +10,8 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#define DEBUG true
+
 #include "scheduler_api.h"
 #include "search_manager_api.h"
 

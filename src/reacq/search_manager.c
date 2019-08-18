@@ -9,6 +9,9 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
+
+#define DEBUG true
+
 #include <assert.h>
 #include <inttypes.h>
 #include <string.h>
