@@ -212,7 +212,7 @@ void sm_restore_jobs(acq_jobs_context_t *jobs_data,
       u32 sbas_idx = i - sbas_start_idx;
       /* don't set job for those SBAS SV which are not in our SBAS range,
        * or if we already more than the limit */
-      if ((num_sbas >= NAP_NUM_SBAS_L1_CHANNELS) ||
+      if ((num_sbas > NAP_NUM_SBAS_L1_CHANNELS) ||
           (0 == ((sbas_mask >> sbas_idx) & 1))) {
         job->state = ACQ_STATE_IDLE;
         continue;
