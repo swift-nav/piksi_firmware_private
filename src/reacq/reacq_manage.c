@@ -10,8 +10,6 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#define DEBUG true
-
 #include "main/main.h"
 #include "ndb/ndb.h"
 #include "ndb/ndb_internal.h"

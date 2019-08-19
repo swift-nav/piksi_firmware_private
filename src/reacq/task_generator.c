@@ -10,8 +10,6 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#define DEBUG true
-
 #include <assert.h>
 #include <ndb/ndb.h>
 
