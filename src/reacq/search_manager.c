@@ -220,7 +220,7 @@ void sm_restore_jobs(acq_jobs_context_t *jobs_data,
     }
 
     if (CONSTELLATION_GLO == con) {
-      if (num_glo >= NAP_NUM_GLO_G1_CHANNELS) {
+      if (num_glo > NAP_NUM_GLO_G1_CHANNELS) {
         job->state = ACQ_STATE_IDLE;
         continue;
       }
