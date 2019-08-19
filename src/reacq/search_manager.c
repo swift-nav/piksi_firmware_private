@@ -232,6 +232,14 @@ void sm_restore_jobs(acq_jobs_state_t *jobs_data,
     }
     assert(mesid_valid(*mesid));
 
+    if (CONSTELLATION_GLO == con) {
+      /* We want to exclude FCN -6 and -5 */
+      if(mesid->sat == 2 || mesid->sat == 3) {
+        job->state = ACQ_STATE_IDLE;
+      }
+
+    }
+
     /* if this mesid is in track, no need for its job */
     if (mesid_is_tracked(*mesid)) {
       job->state = ACQ_STATE_IDLE;
