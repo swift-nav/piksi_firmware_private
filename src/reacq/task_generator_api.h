@@ -19,7 +19,6 @@ extern "C" {
 #endif /* __cplusplus */
 
 void tg_fill_task(acq_job_t *job);
-void tg_check_uncertainty_change(acq_job_t *job);
 
 #ifdef __cplusplus
 } /* extern "C" */

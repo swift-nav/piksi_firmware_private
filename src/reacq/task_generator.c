@@ -10,6 +10,8 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#define DEBUG true
+
 #include <assert.h>
 #include <ndb/ndb.h>
 
@@ -36,35 +38,31 @@ void tg_fill_task(acq_job_t *job) {
   acq_param->integration_time_ms = ACQ_INTEGRATION_TIME_4MS;
   acq_param->cn0_threshold_dbhz = ACQ_THRESHOLD;
 
-  float default_doppler_min = code_to_sv_doppler_min(job->sid.code) +
-                              code_to_tcxo_doppler_min(job->sid.code);
-  float default_doppler_max = code_to_sv_doppler_max(job->sid.code) +
-                              code_to_tcxo_doppler_max(job->sid.code);
+  const code_t code = job->mesid.code;
+  acq_param->doppler_min_hz =
+    code_to_sv_doppler_min(code) + code_to_tcxo_doppler_min(code);
+  acq_param->doppler_max_hz =
+    code_to_sv_doppler_max(code) + code_to_tcxo_doppler_max(code);
 
-  last_good_fix_t lgf;
-  gps_time_t now = get_current_time();
-
-  if (TOW_UNKNOWN != now.tow && WN_UNKNOWN != now.wn &&
-      NDB_ERR_NONE == ndb_lgf_read(&lgf)) {
-    dum_get_doppler_wndw(&job->sid,
-                         &now,
-                         &lgf,
-                         MAX_USER_VELOCITY_MPS,
-                         &acq_param->doppler_min_hz,
-                         &acq_param->doppler_max_hz);
-  } else {
-    acq_param->doppler_min_hz = default_doppler_min;
-    acq_param->doppler_max_hz = default_doppler_max;
+  u16 sat = sm_mesid_to_sat(job->mesid);
+  if (GLO_ORBIT_SLOT_UNKNOWN == sat) {
+    return;
   }
+  gps_time_t now = get_current_time();
+  if (!gps_time_valid(&now)) {
+    return;
+  }
+  last_good_fix_t lgf;
+  if (NDB_ERR_NONE != ndb_cached_lgf_read(&lgf)) {
+    return;
+  }
+
+  gnss_signal_t sid = construct_sid(job->mesid.code, sat);
+  dum_get_doppler_wndw(&sid,
+                       &now,
+                       &lgf,
+                       MAX_USER_VELOCITY_MPS,
+                       &acq_param->doppler_min_hz,
+                       &acq_param->doppler_max_hz);
 }
-/** Checks if job search space has changed drastically
- *
- *  Sets restart flag on job data if search space has changed
- *  drastically. This function is not implemented in Phase 1
- *  reacquistion logic.
- *
- * \param job job whose search space is checked.
- *
- * \return none
- */
-void tg_check_uncertainty_change(acq_job_t *job) { (void)job; }
+

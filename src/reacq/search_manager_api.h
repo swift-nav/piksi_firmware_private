@@ -16,6 +16,7 @@
 
 #include "search_manager_utils.h"
 #include "signal_db/signal_db.h"
+#include "swiftnav/gnss_time.h"
 
 /* Search manager constants */
 
@@ -23,10 +24,10 @@
 #define REACQ_MIN_SEARCH_INTERVAL_VISIBLE_MS 500
 
 /** Minimum interval between searches of an unknown SV (ms) */
-#define REACQ_MIN_SEARCH_INTERVAL_UNKNOWN_MS 10000
+#define REACQ_MIN_SEARCH_INTERVAL_UNKNOWN_MS (10 * SECS_MS)
 
 /** Minimum interval between searches of an invisible SV (ms) */
-#define REACQ_MIN_SEARCH_INTERVAL_INVISIBLE_MS 180000
+#define REACQ_MIN_SEARCH_INTERVAL_INVISIBLE_MS (3 * MINUTE_SECS * SECS_MS)
 
 /** High priority GPS search happens below this number of reacquired satellites
  */
@@ -34,7 +35,7 @@
 
 /** Total number of re-acq slots */
 #define REACQ_NUM_SAT                                                          \
-  (NUM_SATS_GPS + NUM_SATS_GAL + NUM_SATS_SBAS + NUM_SATS_QZS + NUM_SATS_GLO + \
+  (NUM_SATS_GPS + NUM_SATS_GAL + NUM_SATS_SBAS + NUM_SATS_QZS + GLO_MAX_FCN + \
    NUM_SATS_BDS)
 
 /** Predicted status of satellite. */
@@ -52,7 +53,7 @@ typedef enum {
 typedef enum {
   ACQ_STATE_IDLE, /**< Job is idling */
   ACQ_STATE_WAIT, /**< Job waits to get running */
-} acq_job_scheduling_state_e;
+} acq_job_scheduling_state_t;
 
 /** Acquisition parameters which are passed to hardware */
 typedef struct {
@@ -66,11 +67,10 @@ typedef struct {
 /** Search jobs */
 typedef struct {
   me_gnss_signal_t mesid;  /**< ME SV identifier */
-  gnss_signal_t sid;       /**< SV identifier, used to fetch ephemeris */
-  u64 start_time;          /**< HW millisecond when job finished */
-  u64 stop_time;           /**< HW millisecond when job finished */
+  u64 start_time_ms;          /**< HW millisecond when job finished */
+  u64 stop_time_ms;           /**< HW millisecond when job finished */
   visibility_t sky_status; /**< Set when this job needs to run */
-  acq_job_scheduling_state_e state;   /**< Scheduling state */
+  acq_job_scheduling_state_t state;   /**< Scheduling state */
   acq_task_search_params_t task_data; /**< Acquisition parameters */
 } acq_job_t;
 
@@ -80,18 +80,18 @@ typedef struct {
    * Start index of any used GNSS can be obtain using function
    * sm_constellation_to_start_index() */
   acq_job_t jobs[REACQ_NUM_SAT];
-} acq_jobs_state_t;
+} acq_jobs_context_t;
 
 /** Global data of all the jobs is shared between search manager
     and scheduler */
-extern acq_jobs_state_t acq_all_jobs_state_data;
+extern acq_jobs_context_t acq_all_jobs_state_data;
 
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
 
-void sm_init(acq_jobs_state_t *data);
-void sm_restore_jobs(acq_jobs_state_t *jobs_data,
+void sm_init(acq_jobs_context_t *data);
+void sm_restore_jobs(acq_jobs_context_t *jobs_data,
                      reacq_sched_ret_t last_job_type);
 
 #ifdef __cplusplus
