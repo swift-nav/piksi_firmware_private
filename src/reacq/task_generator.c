@@ -38,9 +38,9 @@ void tg_fill_task(acq_job_t *job) {
 
   const code_t code = job->mesid.code;
   acq_param->doppler_min_hz =
-    code_to_sv_doppler_min(code) + code_to_tcxo_doppler_min(code);
+      code_to_sv_doppler_min(code) + code_to_tcxo_doppler_min(code);
   acq_param->doppler_max_hz =
-    code_to_sv_doppler_max(code) + code_to_tcxo_doppler_max(code);
+      code_to_sv_doppler_max(code) + code_to_tcxo_doppler_max(code);
 
   u16 sat = sm_mesid_to_sat(job->mesid);
   if (GLO_ORBIT_SLOT_UNKNOWN == sat) {

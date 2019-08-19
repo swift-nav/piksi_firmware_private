@@ -12,15 +12,15 @@
 
 #include "track_glo_l2of.h"
 
+#include <acq/manage.h>
 #include <assert.h>
+#include <platform_track.h> 
 #include <string.h>
 #include <swiftnav/constants.h>
 #include <swiftnav/glo_map.h>
 #include <swiftnav/logging.h>
 #include <swiftnav/signal.h>
 
-#include <acq/manage.h>
-#include <platform_track.h> 
 #include "reacq/search_manager_utils.h"
 #include "signal_db/signal_db.h"
 #include "track/track_api.h"

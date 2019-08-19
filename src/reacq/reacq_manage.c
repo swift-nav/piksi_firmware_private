@@ -36,7 +36,7 @@ static void update_sat_azel(const double rcv_pos[3], const gps_time_t t) {
   ephemeris_t ephemeris;
   almanac_t almanac;
 
-   /* compute elevation for any valid ephemeris/almanac we can pull from NDB */
+  /* compute elevation for any valid ephemeris/almanac we can pull from NDB */
   for (u16 sv_index = 0; sv_index < NUM_SATS; sv_index++) {
     /* form a SID with the first code for the constellation */
     gnss_signal_t sid = sv_index_to_sid(sv_index);
@@ -60,7 +60,7 @@ static void update_sat_azel(const double rcv_pos[3], const gps_time_t t) {
   }
 }
 
- static void update_sat_azel_db(void) {
+static void update_sat_azel_db(void) {
   time_quality_t time_quality = get_time_quality();
   last_good_fix_t lgf;
   ndb_op_code_t ret = ndb_cached_lgf_read(&lgf);

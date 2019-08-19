@@ -34,7 +34,7 @@
 #define LOW_GPS_L1CA_SV_LIMIT 6
 
 /** Total number of re-acq slots */
-#define REACQ_NUM_SAT                                                          \
+#define REACQ_NUM_SAT                                                         \
   (NUM_SATS_GPS + NUM_SATS_GAL + NUM_SATS_SBAS + NUM_SATS_QZS + GLO_MAX_FCN + \
    NUM_SATS_BDS)
 
@@ -67,8 +67,8 @@ typedef struct {
 /** Search jobs */
 typedef struct {
   me_gnss_signal_t mesid;  /**< ME SV identifier */
-  u64 start_time_ms;          /**< HW millisecond when job finished */
-  u64 stop_time_ms;           /**< HW millisecond when job finished */
+  u64 start_time_ms;       /**< HW millisecond when job finished */
+  u64 stop_time_ms;        /**< HW millisecond when job finished */
   visibility_t sky_status; /**< Set when this job needs to run */
   acq_job_scheduling_state_t state;   /**< Scheduling state */
   acq_task_search_params_t task_data; /**< Acquisition parameters */

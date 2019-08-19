@@ -75,7 +75,7 @@ static void reacq_sbp_data_process(const acq_sv_profile_t *profile) {
 }
 
 /** Populate acq_sv_profile message and send it out
- * 
+ *
  * \param job job data which is filled in message
  * \param acq_result acquisition results
  * \param peak_found true if job found peak and acq_result contains
@@ -92,7 +92,7 @@ void sch_send_acq_profile_msg(const acq_job_t *job,
      space range */
   const acq_task_search_params_t *acq_params = &job->task_data;
 
-   prof.job_type = 0;
+  prof.job_type = 0;
   prof.status = peak_found;
   prof.cn0 = (u16)(10 * acq_result->cn0);
   prof.int_time = acq_params->integration_time_ms;
@@ -111,6 +111,6 @@ void sch_send_acq_profile_msg(const acq_job_t *job,
   prof.cf = (s32)acq_result->df_hz;
   prof.cp = (u32)acq_result->cp;
 
-   reacq_sbp_data_process(&prof);
+  reacq_sbp_data_process(&prof);
 }
 

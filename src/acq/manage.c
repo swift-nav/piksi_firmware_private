@@ -337,7 +337,7 @@ static int cons_enable_notify(void *ctx) {
 static int tracking_elevation_mask_notify(void *ctx) {
   (void)ctx;
 
-   int ret = SETTINGS_WR_OK;
+  int ret = SETTINGS_WR_OK;
   if (tracking_elevation_mask < 0.0f) {
     tracking_elevation_mask = 0.0f;
     log_info("Tracking elevation mask set at limit 0 deg");
@@ -370,7 +370,7 @@ static int solution_elevation_mask_notify(void *ctx) {
   }
   starling_set_elevation_mask(solution_elevation_mask);
 
-   return ret;
+  return ret;
 }
 
 void manage_acq_setup() {
@@ -612,10 +612,10 @@ void check_clear_unhealthy(void) {
 }
 
 void me_settings_setup(void) {
-  SETTING_NOTIFY("track", 
-                 "elevation_mask", 
-                 tracking_elevation_mask, 
-                 SETTINGS_TYPE_FLOAT, 
+  SETTING_NOTIFY("track",
+                 "elevation_mask",
+                 tracking_elevation_mask,
+                 SETTINGS_TYPE_FLOAT,
                  tracking_elevation_mask_notify);
   SETTING_NOTIFY("solution",
                  "elevation_mask",

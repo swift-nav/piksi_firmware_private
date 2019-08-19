@@ -83,7 +83,7 @@ u16 sm_constellation_to_start_index(constellation_t gnss) {
       return NUM_SATS_GPS + NUM_SATS_GAL + NUM_SATS_SBAS + NUM_SATS_QZS;
     case CONSTELLATION_GLO:
       return NUM_SATS_GPS + NUM_SATS_GAL + NUM_SATS_SBAS + NUM_SATS_QZS +
-      NUM_SATS_BDS;
+             NUM_SATS_BDS;
     default:
       assert(!"Incorrect constellation");
       return 0;
@@ -239,7 +239,7 @@ void sm_restore_jobs(acq_jobs_context_t *jobs_data,
     bool visible = false;
 
     sm_get_visibility_flags(mesid, &visible, &known);
-    
+
     /* save the job category into `sky_status` */
     job->sky_status = known ? (visible ? VISIBLE : INVISIBLE) : UNKNOWN;
 
@@ -263,8 +263,8 @@ void sm_restore_jobs(acq_jobs_context_t *jobs_data,
         job->state = ACQ_STATE_WAIT;
       }
     } else if ((INVISIBLE == job->sky_status) && 
-              ((now_ms - job->stop_time_ms) >
-               REACQ_MIN_SEARCH_INTERVAL_INVISIBLE_MS)) {
+               ((now_ms - job->stop_time_ms) >
+                REACQ_MIN_SEARCH_INTERVAL_INVISIBLE_MS)) {
       /* if the scheduler last time has done nothing then there were no ready
        * satellites so it's time to put the invisible sats in the search queue
        * again */

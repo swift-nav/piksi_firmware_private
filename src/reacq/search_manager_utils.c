@@ -37,9 +37,9 @@ static void known_and_visible_getter(const gnss_signal_t sid,
  * \param[out] visible is set if SV is visible. Valid only if known is set
  * \param[out] known set if SV is known visible or known invisible
  */
-u16 sm_get_visibility_flags(const me_gnss_signal_t mesid, 
-                             bool *visible, 
-                             bool *known) {
+u16 sm_get_visibility_flags(const me_gnss_signal_t mesid,
+                            bool *visible,
+                            bool *known) {
   *visible = false;
   *known = false;
 
@@ -81,6 +81,6 @@ u16 sm_get_visibility_flags(const me_gnss_signal_t mesid,
 u16 sm_mesid_to_sat(const me_gnss_signal_t mesid) {
   bool visible;
   bool known;
-  
+
   return sm_get_visibility_flags(mesid, &visible, &known);
 }
