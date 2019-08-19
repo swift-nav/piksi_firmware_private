@@ -72,9 +72,7 @@ bool is_qzss_enabled(void) { return true; }
 
 bool is_galileo_enabled(void) { return true; }
 
-void sm_get_glo_visibility_flags(u16 sat,
-                                 bool *visible,
-                                 bool *known) {
+void sm_get_glo_visibility_flags(u16 sat, bool *visible, bool *known) {
   (void)sat;
   *visible = true;
   *known = true;
