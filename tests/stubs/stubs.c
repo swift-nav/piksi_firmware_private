@@ -84,8 +84,8 @@ void sm_get_glo_visibility_flags(u16 sat, bool *visible, bool *known) {
  * \param[out] visible set if SV is visible
  * \param[out] known set if SV is known visible or known invisible
  */
-u16 sm_get_visibility_flags(const me_gnss_signal_t mesid, 
-                            bool *visible, 
+u16 sm_get_visibility_flags(const me_gnss_signal_t mesid,
+                            bool *visible,
                             bool *known) {
   if (0 != (test_case->vis_mask & (1 << mesid_to_code_index(mesid)))) {
     *visible = true;

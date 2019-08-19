@@ -14,7 +14,7 @@
 
 #include <acq/manage.h>
 #include <assert.h>
-#include <platform_track.h> 
+#include <platform_track.h>
 #include <string.h>
 #include <swiftnav/constants.h>
 #include <swiftnav/glo_map.h>

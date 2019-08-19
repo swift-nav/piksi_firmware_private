@@ -63,4 +63,3 @@ void tg_fill_task(acq_job_t *job) {
                        &acq_param->doppler_min_hz,
                        &acq_param->doppler_max_hz);
 }
-

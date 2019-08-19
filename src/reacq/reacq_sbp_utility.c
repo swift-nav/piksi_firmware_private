@@ -113,4 +113,3 @@ void sch_send_acq_profile_msg(const acq_job_t *job,
 
   reacq_sbp_data_process(&prof);
 }
-

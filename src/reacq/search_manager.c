@@ -262,7 +262,7 @@ void sm_restore_jobs(acq_jobs_context_t *jobs_data,
       if (REACQ_DONE_UNKNOWN < last_job_type) {
         job->state = ACQ_STATE_WAIT;
       }
-    } else if ((INVISIBLE == job->sky_status) && 
+    } else if ((INVISIBLE == job->sky_status) &&
                ((now_ms - job->stop_time_ms) >
                 REACQ_MIN_SEARCH_INTERVAL_INVISIBLE_MS)) {
       /* if the scheduler last time has done nothing then there were no ready
