@@ -12,8 +12,9 @@
 # project, except GTEST_HEADERS, which you can use in your own targets
 # but shouldn't modify.
 SWIFTNAV_ROOT := $(shell pwd)/..
+STARLING_ROOT=$(SWIFTNAV_ROOT)/third_party/starling
 LIB_BUILDFOLDER = build_pm_test
-STARLING_BUILDDIR=$(SWIFTNAV_ROOT)/starling/$(LIB_BUILDFOLDER)
+STARLING_BUILDDIR=$(STARLING_ROOT)/$(LIB_BUILDFOLDER)
 LIBSWIFTNAV_BUILDDIR=$(STARLING_BUILDDIR)/third_party/libswiftnav
 STARLING_SEARCHPATH=$(STARLING_BUILDDIR)
 LIBSWIFTNAV_SEARCHPATH=$(LIBSWIFTNAV_BUILDDIR)
@@ -75,11 +76,11 @@ INCLUDE_DIRS += -I$(STUBS_DIR)
 INCLUDE_DIRS += -I$(USER_SRC_DIR)
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/board/v3/
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/board/v3/prod/
-INCLUDE_DIRS += -I../starling/include
-INCLUDE_DIRS += -I../starling/third_party/libpal/include
-INCLUDE_DIRS += -I../starling/third_party/libswiftnav/include
-INCLUDE_DIRS += -I../starling/third_party/libsbp/c/include
-INCLUDE_DIRS += -I../starling/libfec/include
+INCLUDE_DIRS += -I$(STARLING_ROOT)/include
+INCLUDE_DIRS += -I$(STARLING_ROOT)/third_party/libpal/include
+INCLUDE_DIRS += -I$(STARLING_ROOT)/third_party/libswiftnav/include
+INCLUDE_DIRS += -I$(STARLING_ROOT)/third_party/libsbp/c/include
+INCLUDE_DIRS += -I$(STARLING_ROOT)/libfec/include
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/utils
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/hal
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/calc

@@ -1,5 +1,11 @@
 SWIFTNAV_ROOT := $(shell pwd)
+
+ifeq ($(STARLING_ROOT),)
+  STARLING_ROOT = $(SWIFTNAV_ROOT)/third_party/starling
+endif
+
 MAKEFLAGS += SWIFTNAV_ROOT=$(SWIFTNAV_ROOT)
+MAKEFLAGS += STARLING_ROOT=$(STARLING_ROOT)
 PFWP_COMPILER := arm-none-eabi-
 
 # Be silent per default, but 'make V=1' will show all compiler calls.
@@ -41,7 +47,7 @@ LIB_BUILDFOLDER = build_$(PIKSI_HW)
 MAKEFLAGS += LIB_BUILDFOLDER=$(LIB_BUILDFOLDER)
 
 LIBSETTINGS_BUILDDIR=$(SWIFTNAV_ROOT)/libsettings/$(LIB_BUILDFOLDER)
-STARLING_BUILDDIR=$(SWIFTNAV_ROOT)/starling/$(LIB_BUILDFOLDER)
+STARLING_BUILDDIR=$(STARLING_ROOT)/$(LIB_BUILDFOLDER)
 LIBSBP_BUILDDIR=$(STARLING_BUILDDIR)/third_party/libsbp
 LIBPAL_BUILDDIR=$(STARLING_BUILDDIR)/third_party/libpal
 LIBSWIFTNAV_BUILDDIR=$(STARLING_BUILDDIR)/third_party/libswiftnav
@@ -68,11 +74,11 @@ endif
 CLANG_TIDY_INCLUDES = -I$(SWIFTNAV_ROOT)/include/ \
                       -I$(SWIFTNAV_ROOT)/src/ \
                       -I$(SWIFTNAV_ROOT)/src/utils/ \
-                      -I$(SWIFTNAV_ROOT)/starling/include/ \
-                      -I$(SWIFTNAV_ROOT)/starling/third_party/libpal/include/ \
-                      -I$(SWIFTNAV_ROOT)/starling/third_party/libswiftnav/include/ \
-                      -I$(SWIFTNAV_ROOT)/starling/third_party/libsbp/c/include/ \
-                      -I$(SWIFTNAV_ROOT)/starling/libfec/include/ \
+                      -I$(STARLING_ROOT)/include/ \
+                      -I$(STARLING_ROOT)/third_party/libpal/include/ \
+                      -I$(STARLING_ROOT)/third_party/libswiftnav/include/ \
+                      -I$(STARLING_ROOT)/third_party/libsbp/c/include/ \
+                      -I$(STARLING_ROOT)/libfec/include/ \
                       -I$(SWIFTNAV_ROOT)/libsettings/include/ \
                       -I$(SWIFTNAV_ROOT)/src/board/ \
                       -I$(SWIFTNAV_ROOT)/src/board/v3/ \
@@ -101,7 +107,7 @@ $(LIBSETTINGS_BUILDDIR)/src/libsettings.a: .FORCE \
 	mkdir -p $(LIBSETTINGS_BUILDDIR); cd $(LIBSETTINGS_BUILDDIR); \
 	cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
 	      -DCMAKE_TOOLCHAIN_FILE=../../piksi-toolchain.cmake \
-	      -DLIBSBP_SEARCH_PATH=$(SWIFTNAV_ROOT)/starling/third_party/libsbp/c \
+	      -DLIBSBP_SEARCH_PATH=$(STARLING_ROOT)/third_party/libsbp/c \
 	      $(CMAKEFLAGS) ../
 	$(MAKE) -C $(LIBSETTINGS_BUILDDIR) $(MAKEFLAGS) settings
 
