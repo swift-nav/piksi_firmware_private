@@ -23,6 +23,10 @@ ifeq ($(SWIFTNAV_ROOT),)
   SWIFTNAV_ROOT = ..
 endif
 
+ifeq ($(STARLING_ROOT),)
+  STARLING_ROOT = $(SWIFTNAV_ROOT)/third_party/starling
+endif
+
 # Compiler options here.
 ifeq ($(USE_OPT),)
   USE_OPT = -O2 -ggdb3 -fomit-frame-pointer -falign-functions=16
@@ -91,7 +95,7 @@ ifeq ($(LIBSETTINGS_BUILDDIR),)
 endif
 
 ifeq ($(STARLING_BUILDDIR),)
-  STARLING_BUILDDIR=$(SWIFTNAV_ROOT)/starling/$(LIB_BUILDFOLDER)
+  STARLING_BUILDDIR=$(STARLING_ROOT)/$(LIB_BUILDFOLDER)
 endif
 
 ifeq ($(LIBPAL_BUILDDIR),)
@@ -272,15 +276,15 @@ ASMSRC = $(STARTUPASM) $(PORTASM) $(OSALASM) $(BOARDASM)
 INCDIR = $(STARTUPINC) $(PORTINC) $(KERNINC) \
          $(HALINC) $(OSALINC) $(PLATFORMINC) $(BOARDINC) \
          $(CHIBIOS)/os/various \
-         $(SWIFTNAV_ROOT)/starling/third_party/libsbp/c/include \
+         $(STARLING_ROOT)/third_party/libsbp/c/include \
          $(SWIFTNAV_ROOT)/libsettings/include \
-         $(SWIFTNAV_ROOT)/starling/include \
-         $(SWIFTNAV_ROOT)/starling/third_party/libpal/include \
-         $(SWIFTNAV_ROOT)/starling/third_party/libpal/src/default \
-         $(SWIFTNAV_ROOT)/starling/third_party/libswiftnav/include \
+         $(STARLING_ROOT)/include \
+         $(STARLING_ROOT)/third_party/libpal/include \
+         $(STARLING_ROOT)/third_party/libpal/src/default \
+         $(STARLING_ROOT)/third_party/libswiftnav/include \
          $(SWIFTNAV_ROOT)/src \
          $(SWIFTNAV_ROOT)/src/board \
-         $(SWIFTNAV_ROOT)/starling/libfec/include \
+         $(STARLING_ROOT)/libfec/include \
          $(SWIFTNAV_ROOT)/src/utils \
          $(SWIFTNAV_ROOT)/src/simulator \
          $(SWIFTNAV_ROOT)/src/sbp \
