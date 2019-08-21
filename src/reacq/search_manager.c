@@ -188,7 +188,11 @@ void sm_restore_jobs(acq_jobs_context_t *jobs_data,
   /* count the number of SBAS satellites tracked */
   const u16 num_sbas = code_track_count(CODE_SBAS_L1CA);
   /* count the number of GLO satellites tracked */
-  const u16 num_glo = code_track_count(CODE_GLO_L1OF);
+  const u16 num_glo_g1 = code_track_count(CODE_GLO_L1OF);
+  /* count the number of GLO satellites tracked */
+  const u16 num_gal_e1 = code_track_count(CODE_GAL_E1B);
+  /* count the number of GLO satellites tracked */
+  const u16 num_bds_b1 = code_track_count(CODE_BDS_B1);
 
   u32 sbas_mask = sbas_limit_mask();
   u32 sbas_start_idx = sm_constellation_to_start_index(CONSTELLATION_SBAS);
@@ -204,31 +208,45 @@ void sm_restore_jobs(acq_jobs_context_t *jobs_data,
       job->state = ACQ_STATE_IDLE;
       continue;
     }
-
-    if (CONSTELLATION_SBAS == con) {
-      assert(sbas_start_idx <= i);
-      u32 sbas_idx = i - sbas_start_idx;
-      /* don't set job for those SBAS SV which are not in our SBAS range,
-       * or if we already more than the limit */
-      if ((num_sbas > NAP_NUM_SBAS_L1_CHANNELS) ||
-          (0 == ((sbas_mask >> sbas_idx) & 1))) {
-        job->state = ACQ_STATE_IDLE;
-        continue;
-      }
+    /* limit the acquisition when max tracking channels already in use */
+    switch (con){
+      case CONSTELLATION_SBAS:
+          assert(sbas_start_idx <= i);
+          u32 sbas_idx = i - sbas_start_idx;
+          /* don't set job for those SBAS SV which are not in our SBAS range,
+          * or if we already more than the limit */
+          if ((num_sbas > NAP_NUM_SBAS_L1_CHANNELS) ||
+            (0 == ((sbas_mask >> sbas_idx) & 1))) {
+            job->state = ACQ_STATE_IDLE;
+            continue;
+          }
+        break;
+      case CONSTELLATION_GLO:    
+        if (num_glo_g1 > NAP_NUM_GLO_G1_CHANNELS) {
+          job->state = ACQ_STATE_IDLE;
+          continue;
+        }
+        break;
+      case CONSTELLATION_GAL:    
+        if (num_gal_e1 > NAP_NUM_GAL_E1_CHANNELS) {
+          job->state = ACQ_STATE_IDLE;
+          continue;
+        }
+        break;
+      case CONSTELLATION_GPS:    
+        if (num_gps_l1 > NAP_NUM_GPS_L1_CHANNELS) {
+          job->state = ACQ_STATE_IDLE;
+          continue;
+        }
+        break;
+      case CONSTELLATION_BDS:    
+        if (num_bds_b1 > NAP_NUM_BDS_B1_CHANNELS) {
+          job->state = ACQ_STATE_IDLE;
+          continue;
+        }
+        break;
     }
 
-    if (CONSTELLATION_GLO == con) {
-      if (num_glo > NAP_NUM_GLO_G1_CHANNELS) {
-        job->state = ACQ_STATE_IDLE;
-        continue;
-      }
-    }
-
-    /* if this mesid is in track, no need for its job */
-    if (mesid_is_tracked(mesid)) {
-      job->state = ACQ_STATE_IDLE;
-      continue;
-    }
     /* if this mesid can't be tracked, no need for its job */
     if (!tracking_startup_ready(mesid)) {
       job->state = ACQ_STATE_IDLE;
