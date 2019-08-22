@@ -207,7 +207,7 @@ void sm_restore_jobs(acq_jobs_context_t *jobs_data,
     assert(sbas_start_idx <= i);
     u32 sbas_idx = i - sbas_start_idx;
 
-    switch(con) {
+    switch (con) {
       case CONSTELLATION_GPS: {
         if (num_gps_l1 > NAP_NUM_GPS_L1_CHANNELS) {
           job->state = ACQ_STATE_IDLE;
@@ -234,7 +234,7 @@ void sm_restore_jobs(acq_jobs_context_t *jobs_data,
       }
       case CONSTELLATION_SBAS: {
         if ((num_sbas > NAP_NUM_SBAS_L1_CHANNELS) ||
-           (0 == ((sbas_mask >> sbas_idx) & 1))) {
+            (0 == ((sbas_mask >> sbas_idx) & 1))) {
           job->state = ACQ_STATE_IDLE;
           continue;
         }
