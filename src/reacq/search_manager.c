@@ -89,27 +89,6 @@ u16 sm_constellation_to_start_index(constellation_t gnss) {
   }
 }
 
-/**
- * Helper function. Return SBAS mask depending on user position
- * \return mask for SBAS SV.
- */
-static u32 sbas_limit_mask(void) {
-  /* read LGF */
-  last_good_fix_t lgf;
-  if (NDB_ERR_NONE != ndb_lgf_read(&lgf)) {
-    /* cannot read LGF for some reason, so set mask for all possible SBAS SV*/
-    return sbas_select_prn_mask(SBAS_WAAS) | sbas_select_prn_mask(SBAS_EGNOS) |
-           sbas_select_prn_mask(SBAS_GAGAN) | sbas_select_prn_mask(SBAS_MSAS);
-  }
-  static sbas_system_t sbas_provider = SBAS_NONE;
-  sbas_system_t new_provider = sbas_select_provider(&lgf);
-  if ((sbas_provider != new_provider) && (SBAS_NONE != sbas_provider)) {
-    tracker_set_sbas_provider_change_flag();
-  }
-  sbas_provider = new_provider;
-  return sbas_select_prn_mask(sbas_provider);
-}
-
 /** Global search job data */
 acq_jobs_context_t acq_all_jobs_state_data;
 
@@ -184,13 +163,6 @@ void sm_restore_jobs(acq_jobs_context_t *jobs_data,
 
   /* count the number of signals currently tracked */
   const u16 num_gps_l1 = code_track_count(CODE_GPS_L1CA);
-  const u16 num_sbas = code_track_count(CODE_SBAS_L1CA);
-  const u16 num_glo_l1 = code_track_count(CODE_GLO_L1OF);
-  const u16 num_gal_e1 = code_track_count(CODE_GAL_E1B);
-  const u16 num_bds_b1 = code_track_count(CODE_BDS2_B1);
-
-  u32 sbas_mask = sbas_limit_mask();
-  u32 sbas_start_idx = sm_constellation_to_start_index(CONSTELLATION_SBAS);
 
   for (u16 i = 0; i < REACQ_NUM_SAT; i++) {
     acq_job_t *job = &jobs_data->jobs[i];
@@ -202,47 +174,6 @@ void sm_restore_jobs(acq_jobs_context_t *jobs_data,
     if (!is_constellation_enabled(con)) {
       job->state = ACQ_STATE_IDLE;
       continue;
-    }
-
-    assert(sbas_start_idx <= i);
-    u32 sbas_idx = i - sbas_start_idx;
-
-    switch (con) {
-      case CONSTELLATION_GPS: {
-        if (num_gps_l1 > NAP_NUM_GPS_L1_CHANNELS) {
-          job->state = ACQ_STATE_IDLE;
-          continue;
-        }
-      }
-      case CONSTELLATION_GLO: {
-        if (num_glo_l1 > NAP_NUM_GLO_G1_CHANNELS) {
-          job->state = ACQ_STATE_IDLE;
-          continue;
-        }
-      }
-      case CONSTELLATION_GAL: {
-        if (num_gal_e1 > NAP_NUM_GAL_E1_CHANNELS) {
-          job->state = ACQ_STATE_IDLE;
-          continue;
-        }
-      }
-      case CONSTELLATION_BDS: {
-        if (num_bds_b1 > NAP_NUM_BDS_B1_CHANNELS) {
-          job->state = ACQ_STATE_IDLE;
-          continue;
-        }
-      }
-      case CONSTELLATION_SBAS: {
-        if ((num_sbas > NAP_NUM_SBAS_L1_CHANNELS) ||
-            (0 == ((sbas_mask >> sbas_idx) & 1))) {
-          job->state = ACQ_STATE_IDLE;
-          continue;
-        }
-      }
-      case CONSTELLATION_QZS:
-      case CONSTELLATION_INVALID:
-      case CONSTELLATION_COUNT:
-      default:;
     }
 
     /* if this mesid is in track, no need for its job */
