@@ -1,4 +1,4 @@
-[submodule "starling"]
+[submodule "third_party/starling"]
   path = third_party/starling
   url = ssh://git@github.com/swift-nav/starling.git
 [submodule "ChibiOS-RT"]
