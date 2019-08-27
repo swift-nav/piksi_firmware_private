@@ -227,24 +227,14 @@ static void sch_glo_fcn_set(acq_job_t *job) {
     return;
   }
 
-  u16 slot_id1, slot_id2;
   if (!glo_map_valid(job->sid)) {
-    bool next = true;
-    do {
-      /* FCN not mapped to GLO slot ID, so perform blind search, just pick next
-       * FCN */
-      job->mesid.sat++;
-      if (job->mesid.sat > GLO_MAX_FCN) {
-        job->mesid.sat = GLO_MIN_FCN;
-      }
-      /* now check if the selected frequency already mapped to other slot id */
-      if (glo_map_get_slot_id(job->mesid.sat, &slot_id1, &slot_id2) == 0) {
-        /* selected frequency is not mapped to other slot id, so use it for
-         * acquisition */
-        next = false;
-      }
-    } while (next);
-    job->mesid.code = job->sid.code;
+    /* FCN not mapped to GLO slot ID, so perform blind search, just pick next
+     * FCN */
+    job->mesid.sat++;
+
+    if (job->mesid.sat > GLO_MAX_FCN) {
+      job->mesid.sat = GLO_MIN_FCN
+    }
   }
 }
 
