@@ -233,7 +233,7 @@ static void sch_glo_fcn_set(acq_job_t *job) {
     job->mesid.sat++;
 
     if (job->mesid.sat > GLO_MAX_FCN) {
-      job->mesid.sat = GLO_MIN_FCN
+      job->mesid.sat = GLO_MIN_FCN;
     }
   }
 }
