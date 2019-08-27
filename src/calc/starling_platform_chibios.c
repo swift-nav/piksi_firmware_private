@@ -319,7 +319,7 @@ static int chibios_sem_wait_timeout(platform_sem_t *sem, unsigned long millis) {
  ******************************************************************************/
 
 void pal_init_impl(void) {
-  struct pal_impl_mam mem_impl = {
+  struct pal_impl_mem mem_impl = {
       .alloc = chibios_mem_alloc,
       .free = chibios_mem_free,
   };
