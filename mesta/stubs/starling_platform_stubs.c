@@ -36,8 +36,10 @@ static void stub_mutex_unlock(pal_mutex_t mutex) { (void)mutex; }
  * Thread
  ******************************************************************************/
 
-static pal_thread_t stub_thread_create(pal_thread_entry_t fn, void *ctx,
-                                       size_t stacksize, uint8_t prio) {
+static pal_thread_t stub_thread_create(pal_thread_entry_t fn,
+                                       void *ctx,
+                                       size_t stacksize,
+                                       uint8_t prio) {
   (void)fn;
   (void)ctx;
   (void)stacksize;
@@ -45,9 +47,7 @@ static pal_thread_t stub_thread_create(pal_thread_entry_t fn, void *ctx,
   return NULL;
 }
 
-static void stub_thread_set_name(const char *name) {
-  (void)name;
-}
+static void stub_thread_set_name(const char *name) { (void)name; }
 
 static void stub_thread_join(pal_thread_t thread, void **retval) {
   (void)thread;

@@ -84,12 +84,18 @@ typedef struct chibios_thread_working_area_s {
 } chibios_thread_working_area_t;
 
 static chibios_thread_working_area_t chibios_thread_working_areas[] = {
-  { .work_area = (void *)wa_starling_thread, .size = sizeof(wa_starling_thread), false },
-  { .work_area = (void *)wa_time_matched_obs_thread, .size = sizeof(wa_time_matched_obs_thread), false },
+    {.work_area = (void *)wa_starling_thread,
+     .size = sizeof(wa_starling_thread),
+     false},
+    {.work_area = (void *)wa_time_matched_obs_thread,
+     .size = sizeof(wa_time_matched_obs_thread),
+     false},
 };
 
-static int chibios_thread_find_working_area(void **work_area_loc, size_t *size_loc, size_t stacksize) {
-  int ret = 1; // 1 indicates failure
+static int chibios_thread_find_working_area(void **work_area_loc,
+                                            size_t *size_loc,
+                                            size_t stacksize) {
+  int ret = 1;  // 1 indicates failure
   for (int i = 0; i < (int)ARRAY_SIZE(chibios_thread_working_areas); i++) {
     chibios_thread_working_area_t *was = &chibios_thread_working_areas[i];
     if (!was->in_use && was->size >= stacksize) {
@@ -97,7 +103,7 @@ static int chibios_thread_find_working_area(void **work_area_loc, size_t *size_l
       *size_loc = was->size;
       /* not thread safe!!! */
       was->in_use = true;
-      ret = 0; // 0 indicates success
+      ret = 0;  // 0 indicates success
       break;
     }
   }
@@ -121,8 +127,11 @@ static void chibios_thread_fn_wrapper(void *context) {
   (void)(ctx->fn(ctx->ctx));
 }
 
-static chibios_thread_fn_wrapper_t * chibios_make_thread_fn_wrapper_context(pal_thread_entry_t fn, void *context) {
-  chibios_thread_fn_wrapper_t *ctx = (chibios_thread_fn_wrapper_t *)pal_mem_alloc(sizeof(chibios_thread_fn_wrapper_t));
+static chibios_thread_fn_wrapper_t *chibios_make_thread_fn_wrapper_context(
+    pal_thread_entry_t fn, void *context) {
+  chibios_thread_fn_wrapper_t *ctx =
+      (chibios_thread_fn_wrapper_t *)pal_mem_alloc(
+          sizeof(chibios_thread_fn_wrapper_t));
   if (ctx != NULL) {
     ctx->fn = fn;
     ctx->ctx = context;
@@ -139,26 +148,28 @@ typedef struct chibios_thread_info_s {
 } chibios_thread_info_t;
 
 static void chibios_thread_info_init(chibios_thread_info_t *info,
-                                      pal_thread_entry_t fn,
-                                      void *context,
-                                      size_t stacksize,
-                                      uint8_t prio) {
+                                     pal_thread_entry_t fn,
+                                     void *context,
+                                     size_t stacksize,
+                                     uint8_t prio) {
   info->fn = chibios_thread_fn_wrapper;
   info->ctx = (void *)chibios_make_thread_fn_wrapper_context(fn, context);
   assert(info->ctx != 0);
   int chibios_thread_find_working_area_result =
-    chibios_thread_find_working_area(&info->wsp, &info->size, stacksize);
+      chibios_thread_find_working_area(&info->wsp, &info->size, stacksize);
   assert(chibios_thread_find_working_area_result == 0);
   info->prio = chibios_prio_from_pal_prio(prio);
 }
 
-
-static pal_thread_t chibios_thread_create(pal_thread_entry_t fn, void *ctx,
-                                          size_t stacksize, uint8_t prio) {
+static pal_thread_t chibios_thread_create(pal_thread_entry_t fn,
+                                          void *ctx,
+                                          size_t stacksize,
+                                          uint8_t prio) {
   assert(fn);
   chibios_thread_info_t info;
   chibios_thread_info_init(&info, fn, ctx, stacksize, prio);
-  thread_t *handle = chThdCreateStatic(info.wsp, info.size, info.prio, info.fn, info.ctx);
+  thread_t *handle =
+      chThdCreateStatic(info.wsp, info.size, info.prio, info.fn, info.ctx);
   return (pal_thread_t)handle;
 }
 
@@ -173,9 +184,7 @@ static void chibios_thread_join(pal_thread_t handle, void **retval) {
   *retval = (void *)chThdWait((thread_t *)handle);
 }
 
-static void chibios_thread_exit(void *code) {
-  chThdExit((msg_t)code);
-}
+static void chibios_thread_exit(void *code) { chThdExit((msg_t)code); }
 
 /*******************************************************************************
  * Watchdog
