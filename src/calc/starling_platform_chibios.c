@@ -25,6 +25,17 @@
 #include "not_implemented.h"
 
 /*******************************************************************************
+ * Memory
+ ******************************************************************************/
+
+static void *chibios_mem_alloc(size_t size) { return chCoreAlloc(size); }
+
+static void chibios_mem_free(void *mem) {
+  NOT_IMPLEMENTED();
+  (void)mem;
+}
+
+/*******************************************************************************
  * Mutex
  ******************************************************************************/
 
@@ -308,6 +319,11 @@ static int chibios_sem_wait_timeout(platform_sem_t *sem, unsigned long millis) {
  ******************************************************************************/
 
 void pal_init_impl(void) {
+  struct pal_impl_mam mem_impl = {
+      .alloc = chibios_mem_alloc,
+      .free = chibios_mem_free,
+  };
+  pal_set_impl_mem(&mem_impl);
   struct pal_impl_mutex mutex_impl = {
       .init = chibios_mutex_init,
       .alloc = chibios_mutex_alloc,
