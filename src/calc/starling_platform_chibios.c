@@ -125,6 +125,10 @@ static tprio_t chibios_prio_from_pal_prio(uint8_t prio) {
   tprio_t base_prio = pal_thread_is_high_prio(prio) ? HIGHPRIO : NORMALPRIO;
   uint8_t prio_diff = PAL_THREAD_MAX_PRIO - pal_thread_get_prio(prio);
   tprio_t chibios_prio = (tprio_t)((uint8_t)base_prio - prio_diff);
+  /* this is a total hack to keep TM thread at correct value */
+  if (prio == PAL_THREAD_DEFAULT_PRIO) {
+    chibios_prio = (tprio_t)((uint8_t)base_prio - 3);
+  }
   return chibios_prio < LOWPRIO ? LOWPRIO : chibios_prio;
 }
 
