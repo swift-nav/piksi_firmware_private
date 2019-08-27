@@ -155,7 +155,6 @@ CSRC := $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l2c.c \
         $(SWIFTNAV_ROOT)/src/board/v3/ndb_fs_access.c \
         $(SWIFTNAV_ROOT)/src/lib/fixed_fft_r2.c \
         $(STARLING_ROOT)/src/starling/platform/watchdog.c \
-        $(STARLING_ROOT)/src/starling/platform/thread.c \
         $(STARLING_ROOT)/src/starling/platform/mq.c \
         $(STARLING_ROOT)/src/starling/platform/semaphore.c \
         $(STARLING_ROOT)/src/util/sbp/misc.c \
@@ -165,6 +164,7 @@ CSRC := $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l2c.c \
         $(STARLING_ROOT)/src/cycle_slip.c \
         $(STARLING_ROOT)/libfec/src/viterbi27.c \
         $(STARLING_ROOT)/third_party/libpal/src/default/synch/mutex.c \
+        $(STARLING_ROOT)/third_party/libpal/src/default/thread/thread.c \
         $(STARLING_ROOT)/third_party/libswiftnav/src/almanac.c \
         $(STARLING_ROOT)/third_party/libswiftnav/src/bits.c \
         $(STARLING_ROOT)/third_party/libswiftnav/src/coord_system.c \

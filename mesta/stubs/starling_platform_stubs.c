@@ -10,10 +10,9 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <libpal/synch/mutex.h>
+#include <libpal/pal.h>
 #include <starling/platform/mq.h>
 #include <starling/platform/semaphore.h>
-#include <starling/platform/thread.h>
 #include <starling/platform/watchdog.h>
 
 /*******************************************************************************
@@ -37,20 +36,25 @@ static void stub_mutex_unlock(pal_mutex_t mutex) { (void)mutex; }
  * Thread
  ******************************************************************************/
 
-static platform_thread_t *stub_thread_create(const thread_id_t id,
-                                             platform_routine_t *fn) {
-  (void)id;
+static pal_thread_t stub_thread_create(pal_thread_entry_t fn,
+                                       void *ctx,
+                                       size_t stacksize,
+                                       uint8_t prio) {
   (void)fn;
+  (void)ctx;
+  (void)stacksize;
+  (void)prio;
   return NULL;
 }
 
-static void stub_thread_set_name(const platform_thread_t *thread,
-                                 const char *name) {
-  (void)name;
+static void stub_thread_set_name(const char *name) { (void)name; }
+
+static void stub_thread_join(pal_thread_t thread, void **retval) {
   (void)thread;
+  (void)retval;
 }
 
-static void stub_thread_join(const platform_thread_t *thread) { (void)thread; }
+static void stub_thread_exit(void *code) { (void)code; }
 
 /*******************************************************************************
  * Watchdog
@@ -131,12 +135,13 @@ void init_starling_platform_stub_implementation(void) {
   };
   pal_set_impl_mutex(&mutex_impl);
   /* Thread */
-  thread_impl_t thread_impl = {
-      .thread_create = stub_thread_create,
-      .thread_set_name = stub_thread_set_name,
-      .thread_join = stub_thread_join,
+  struct pal_impl_thread thread_impl = {
+      .create = stub_thread_create,
+      .set_name = stub_thread_set_name,
+      .join = stub_thread_join,
+      .exit = stub_thread_exit,
   };
-  platform_set_implementation_thread(&thread_impl);
+  pal_set_impl_thread(&thread_impl);
   /* Watchdog */
   platform_set_implementation_watchdog(
       stub_watchdog_notify_starling_main_thread);

@@ -13,10 +13,8 @@
 #include <assert.h>
 #include <ch.h>
 #include <libpal/pal.h>
-#include <libpal/synch/mutex.h>
 #include <starling/platform/mq.h>
 #include <starling/platform/semaphore.h>
-#include <starling/platform/thread.h>
 #include <starling/platform/watchdog.h>
 #include <string.h>
 
@@ -25,6 +23,17 @@
 
 /* From libpal for unimplemented functions */
 #include "not_implemented.h"
+
+/*******************************************************************************
+ * Memory
+ ******************************************************************************/
+
+static void *chibios_mem_alloc(size_t size) { return chCoreAlloc(size); }
+
+static void chibios_mem_free(void *mem) {
+  NOT_IMPLEMENTED();
+  (void)mem;
+}
 
 /*******************************************************************************
  * Mutex
@@ -74,69 +83,123 @@ static void chibios_mutex_unlock(pal_mutex_t mutex) {
  * Thread
  ******************************************************************************/
 
-typedef struct platform_thread_info_s {
-  void *wsp;
-  size_t size;
-  int prio;
-  platform_thread_t *handle;
-} platform_thread_info_t;
+#define STARLING_MAX_THREAD_STACK (3 * 1024 * 1024)
 
-struct platform_thread_t {
-  thread_t *tid;
+static THD_WORKING_AREA(wa_time_matched_obs_thread, STARLING_MAX_THREAD_STACK);
+static THD_WORKING_AREA(wa_starling_thread, STARLING_MAX_THREAD_STACK);
+
+typedef struct chibios_thread_working_area_s {
+  void *work_area;
+  size_t size;
+  bool in_use;
+} chibios_thread_working_area_t;
+
+static chibios_thread_working_area_t chibios_thread_working_areas[] = {
+    {.work_area = (void *)wa_starling_thread,
+     .size = sizeof(wa_starling_thread),
+     false},
+    {.work_area = (void *)wa_time_matched_obs_thread,
+     .size = sizeof(wa_time_matched_obs_thread),
+     false},
 };
 
-static platform_thread_t starling_main_thread;
-static platform_thread_t starling_tm_thread;
-
-static THD_WORKING_AREA(wa_time_matched_obs_thread,
-                        TIME_MATCHED_OBS_THREAD_STACK);
-
-/* Working area for the main starling thread. */
-static THD_WORKING_AREA(wa_starling_thread, STARLING_THREAD_STACK);
-
-static void platform_thread_info_init(const thread_id_t id,
-                                      platform_thread_info_t *info) {
-  switch (id) {
-    case THREAD_ID_TMO:
-      info->wsp = wa_time_matched_obs_thread;
-      info->size = sizeof(wa_time_matched_obs_thread);
-      info->prio = NORMALPRIO + TIME_MATCHED_OBS_THREAD_PRIORITY;
-      info->handle = &starling_tm_thread;
+static int chibios_thread_find_working_area(void **work_area_loc,
+                                            size_t *size_loc,
+                                            size_t stacksize) {
+  int ret = 1;  // 1 indicates failure
+  for (int i = 0; i < (int)ARRAY_SIZE(chibios_thread_working_areas); i++) {
+    chibios_thread_working_area_t *was = &chibios_thread_working_areas[i];
+    if (!was->in_use && was->size >= stacksize) {
+      *work_area_loc = was->work_area;
+      *size_loc = was->size;
+      /* not thread safe!!! */
+      was->in_use = true;
+      ret = 0;  // 0 indicates success
       break;
-
-    case THREAD_ID_STARLING:
-      info->wsp = wa_starling_thread;
-      info->size = sizeof(wa_starling_thread);
-      info->prio = HIGHPRIO + STARLING_THREAD_PRIORITY;
-      info->handle = &starling_main_thread;
-      break;
-
-    default:
-      assert(!"Unknown thread ID");
-      break;
+    }
   }
+  return ret;
 }
 
-static platform_thread_t *chibios_thread_create(const thread_id_t id,
-                                                platform_routine_t *fn) {
+static tprio_t chibios_prio_from_pal_prio(uint8_t prio) {
+  tprio_t base_prio = pal_thread_is_high_prio(prio) ? HIGHPRIO : NORMALPRIO;
+  uint8_t prio_diff = PAL_THREAD_MAX_PRIO - pal_thread_get_prio(prio);
+  tprio_t chibios_prio = (tprio_t)((uint8_t)base_prio - prio_diff);
+  /* this is a total hack to keep TM thread at correct value */
+  if (prio == PAL_THREAD_DEFAULT_PRIO) {
+    chibios_prio = (tprio_t)((uint8_t)base_prio - 3);
+  }
+  return chibios_prio < LOWPRIO ? LOWPRIO : chibios_prio;
+}
+
+typedef struct chibios_thread_fn_wrapper_s {
+  pal_thread_entry_t fn;
+  void *ctx;
+} chibios_thread_fn_wrapper_t;
+
+static void chibios_thread_fn_wrapper(void *context) {
+  chibios_thread_fn_wrapper_t *ctx = (chibios_thread_fn_wrapper_t *)context;
+  (void)(ctx->fn(ctx->ctx));
+}
+
+static chibios_thread_fn_wrapper_t *chibios_make_thread_fn_wrapper_context(
+    pal_thread_entry_t fn, void *context) {
+  chibios_thread_fn_wrapper_t *ctx =
+      (chibios_thread_fn_wrapper_t *)pal_mem_alloc(
+          sizeof(chibios_thread_fn_wrapper_t));
+  if (ctx != NULL) {
+    ctx->fn = fn;
+    ctx->ctx = context;
+  }
+  return ctx;
+}
+
+typedef struct chibios_thread_info_s {
+  void *wsp;
+  size_t size;
+  tprio_t prio;
+  tfunc_t fn;
+  void *ctx;
+} chibios_thread_info_t;
+
+static void chibios_thread_info_init(chibios_thread_info_t *info,
+                                     pal_thread_entry_t fn,
+                                     void *context,
+                                     size_t stacksize,
+                                     uint8_t prio) {
+  info->fn = chibios_thread_fn_wrapper;
+  info->ctx = (void *)chibios_make_thread_fn_wrapper_context(fn, context);
+  assert(info->ctx != 0);
+  int chibios_thread_find_working_area_result =
+      chibios_thread_find_working_area(&info->wsp, &info->size, stacksize);
+  assert(chibios_thread_find_working_area_result == 0);
+  info->prio = chibios_prio_from_pal_prio(prio);
+}
+
+static pal_thread_t chibios_thread_create(pal_thread_entry_t fn,
+                                          void *ctx,
+                                          size_t stacksize,
+                                          uint8_t prio) {
   assert(fn);
-  platform_thread_info_t info;
-  platform_thread_info_init(id, &info);
-  info.handle->tid =
-      chThdCreateStatic(info.wsp, info.size, info.prio, fn, NULL);
-  return info.handle;
+  chibios_thread_info_t info;
+  chibios_thread_info_init(&info, fn, ctx, stacksize, prio);
+  thread_t *handle =
+      chThdCreateStatic(info.wsp, info.size, info.prio, info.fn, info.ctx);
+  return (pal_thread_t)handle;
 }
 
-static void chibios_thread_set_name(const platform_thread_t *handle,
-                                    const char *name) {
-  assert(handle != NULL);
-  chRegSetThreadNameX(handle->tid, name);
+static void chibios_thread_set_name(const char *name) {
+  assert(name != NULL);
+  chRegSetThreadName(name);
 }
 
-static void chibios_thread_join(const platform_thread_t *handle) {
+static void chibios_thread_join(pal_thread_t handle, void **retval) {
   assert(handle != NULL);
-  chThdWait(handle->tid);
+  assert(retval != NULL);
+  *retval = (void *)chThdWait((thread_t *)handle);
 }
+
+static void chibios_thread_exit(void *code) { chThdExit((msg_t)code); }
 
 /*******************************************************************************
  * Watchdog
@@ -260,6 +323,11 @@ static int chibios_sem_wait_timeout(platform_sem_t *sem, unsigned long millis) {
  ******************************************************************************/
 
 void pal_init_impl(void) {
+  struct pal_impl_mem mem_impl = {
+      .alloc = chibios_mem_alloc,
+      .free = chibios_mem_free,
+  };
+  pal_set_impl_mem(&mem_impl);
   struct pal_impl_mutex mutex_impl = {
       .init = chibios_mutex_init,
       .alloc = chibios_mutex_alloc,
@@ -268,6 +336,13 @@ void pal_init_impl(void) {
       .unlock = chibios_mutex_unlock,
   };
   pal_set_impl_mutex(&mutex_impl);
+  struct pal_impl_thread thread_impl = {
+      .create = chibios_thread_create,
+      .set_name = chibios_thread_set_name,
+      .join = chibios_thread_join,
+      .exit = chibios_thread_exit,
+  };
+  pal_set_impl_thread(&thread_impl);
 }
 
 /*******************************************************************************
@@ -275,13 +350,6 @@ void pal_init_impl(void) {
  ******************************************************************************/
 
 void starling_initialize_platform(void) {
-  /* Thread */
-  thread_impl_t thread_impl = {
-      .thread_create = chibios_thread_create,
-      .thread_set_name = chibios_thread_set_name,
-      .thread_join = chibios_thread_join,
-  };
-  platform_set_implementation_thread(&thread_impl);
   /* Watchdog */
   platform_set_implementation_watchdog(
       chibios_watchdog_notify_starling_main_thread);
