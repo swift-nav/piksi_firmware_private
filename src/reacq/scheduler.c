@@ -350,7 +350,7 @@ static void sch_run_common(acq_jobs_state_t *jobs_data, acq_job_t *job) {
 void sch_run(acq_jobs_state_t *jobs_data) {
   acq_job_t *job;
   job = sch_select_job(jobs_data);
-  if (CONSTELLATION_GLO == jobs_data->constellation) {
+  if ((NULL != job) && (CONSTELLATION_GLO == jobs_data->constellation)) {
     sch_glo_fcn_set(job);
   }
   sch_run_common(jobs_data, job);
