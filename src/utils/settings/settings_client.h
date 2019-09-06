@@ -18,12 +18,12 @@
 #include <stdbool.h>
 #include <swiftnav/common.h>
 
-enum mutexes {
+enum SETTINGS_MUTEXES {
   MTX_SETTING_CLIENT = 0,
   MUTEX_COUNT,
 };
 
-enum cond_vars {
+enum SETTINGS_COND_VARS {
   CV_SETTING_CLIENT = 0,
   COND_VAR_COUNT,
 };
