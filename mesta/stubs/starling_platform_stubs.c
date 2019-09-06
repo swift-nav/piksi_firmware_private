@@ -12,7 +12,6 @@
 
 #include <libpal/pal.h>
 #include <starling/platform/mq.h>
-#include <starling/platform/semaphore.h>
 #include <starling/platform/watchdog.h>
 
 /*******************************************************************************
@@ -21,7 +20,7 @@
 
 static int stub_mutex_init(size_t max_mutexes) {
   (void)max_mutexes;
-  return 0;
+  return PAL_INVALID;
 }
 
 static pal_mutex_t stub_mutex_alloc(void) { return NULL; }
@@ -95,29 +94,33 @@ static void *stub_mq_alloc(size_t size) {
 }
 
 /*******************************************************************************
- * Semaphore
+ * Condition Variable
  ******************************************************************************/
 
 /**
- * We make no effort here to reuse destroyed semaphores,
- * there is an upper bound on the number of semaphores which
+ * We make no effort here to reuse destroyed condition variables,
+ * there is an upper bound on the number of condition variables which
  * may be created during a single execution, and that is that.
  */
-static platform_sem_t *stub_sem_create(void) { return NULL; }
-
-static void stub_sem_destroy(platform_sem_t **sem_loc) { (void)sem_loc; }
-
-static void stub_sem_signal(platform_sem_t *sem) { (void)sem; }
-
-static int stub_sem_wait(platform_sem_t *sem) {
-  (void)sem;
-  return 0;
+static int stub_cv_init(size_t max_cv) {
+  (void)max_cv;
+  return PAL_INVALID;
 }
 
-static int stub_sem_wait_timeout(platform_sem_t *sem, uint32_t millis) {
-  (void)sem;
+static pal_cv_t stub_cv_alloc(void) { return NULL; }
+
+static void stub_cv_free(pal_cv_t cv_loc) { (void)cv_loc; }
+
+static void stub_cv_notify_one(pal_cv_t cv) { (void)cv; }
+
+static void stub_cv_notify_all(pal_cv_t cv) { (void)cv; }
+
+static void stub_cv_wait(pal_cv_t cv, pal_mutex_t lock) { (void)cv; }
+
+static int stub_cv_wait_for(pal_cv_t cv, pal_mutex_t lock, uint32_t millis) {
+  (void)cv;
   (void)millis;
-  return 0;
+  return PAL_INVALID;
 }
 
 /*******************************************************************************
@@ -153,13 +156,15 @@ void init_starling_platform_stub_implementation(void) {
       .mq_alloc = stub_mq_alloc,
   };
   platform_set_implementation_mq(&mq_impl);
-  /* Semaphore */
-  sem_impl_t sem_impl = {
-      .sem_create = stub_sem_create,
-      .sem_destroy = stub_sem_destroy,
-      .sem_signal = stub_sem_signal,
-      .sem_wait = stub_sem_wait,
-      .sem_wait_timeout = stub_sem_wait_timeout,
+  /* Condition Variable */
+  cv_impl_t cv_impl = {
+      .cv_init = stub_cv_init,
+      .cv_alloc = stub_cv_alloc,
+      .cv_free = stub_cv_free,
+      .cv_notify_one = stub_cv_notify_one,
+      .cv_notify_all = stub_cv_notify_all,
+      .cv_wait = stub_cv_wait,
+      .cv_wait_for = stub_cv_wait_for,
   };
-  platform_set_implementation_semaphore(&sem_impl);
+  pal_set_impl_cv(&cv_impl);
 }

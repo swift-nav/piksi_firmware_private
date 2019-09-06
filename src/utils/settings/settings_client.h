@@ -13,9 +13,20 @@
 #ifndef SWIFTNAV_SETTINGS_CLIENT_H
 #define SWIFTNAV_SETTINGS_CLIENT_H
 
+#include <libpal/pal.h>
 #include <libsettings/settings.h>
 #include <stdbool.h>
 #include <swiftnav/common.h>
+
+enum SETTINGS_MUTEXES {
+  MTX_SETTING_CLIENT = 0,
+  SETTING_MUTEX_COUNT,
+};
+
+enum SETTINGS_COND_VARS {
+  CV_SETTING_CLIENT = 0,
+  SETTING_COND_VAR_COUNT,
+};
 
 struct setting {
   const char *section;
