@@ -163,6 +163,7 @@ CSRC := $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l2c.c \
         $(STARLING_ROOT)/src/observation.c \
         $(STARLING_ROOT)/src/cycle_slip.c \
         $(STARLING_ROOT)/libfec/src/viterbi27.c \
+        $(STARLING_ROOT)/third_party/libpal/src/default/synch/condition_var.c \
         $(STARLING_ROOT)/third_party/libpal/src/default/synch/mutex.c \
         $(STARLING_ROOT)/third_party/libpal/src/default/thread/thread.c \
         $(STARLING_ROOT)/third_party/libswiftnav/src/almanac.c \

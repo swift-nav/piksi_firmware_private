@@ -21,7 +21,7 @@
 
 static int stub_mutex_init(size_t max_mutexes) {
   (void)max_mutexes;
-  return 0;
+  return PAL_INVALID;
 }
 
 static pal_mutex_t stub_mutex_alloc(void) { return NULL; }
@@ -95,6 +95,36 @@ static void *stub_mq_alloc(size_t size) {
 }
 
 /*******************************************************************************
+ * Condition Variable
+ ******************************************************************************/
+
+/**
+ * We make no effort here to reuse destroyed condition variables,
+ * there is an upper bound on the number of condition variables which
+ * may be created during a single execution, and that is that.
+ */
+static int stub_cv_init(size_t max_cv) {
+  (void)max_cv;
+  return PAL_INVALID;
+}
+
+static pal_cv_t stub_cv_alloc(void) { return NULL; }
+
+static void stub_cv_free(pal_cv_t cv_loc) { (void)cv_loc; }
+
+static void stub_cv_notify_one(pal_cv_t cv) { (void)cv; }
+
+static void stub_cv_notify_all(pal_cv_t cv) { (void)cv; }
+
+static void stub_cv_wait(pal_cv_t cv, pal_mutex_t lock) { (void)cv; }
+
+static int stub_cv_wait_for(pal_cv_t cv, pal_mutex_t lock, uint32_t millis) {
+  (void)cv;
+  (void)millis;
+  return PAL_INVALID;
+}
+
+/*******************************************************************************
  * Semaphore
  ******************************************************************************/
 
@@ -162,4 +192,15 @@ void init_starling_platform_stub_implementation(void) {
       .sem_wait_timeout = stub_sem_wait_timeout,
   };
   platform_set_implementation_semaphore(&sem_impl);
+  /* Condition Variable */
+  cv_impl_t cv_impl = {
+    .cv_init = stub_cv_init,
+    .cv_alloc = stub_cv_alloc,
+    .cv_free = stub_cv_free,
+    .cv_notify_one = stub_cv_notify_one,
+    .cv_notify_all = stub_cv_notify_all,
+    .cv_wait = stub_cv_wait,
+    .cv_wait_for = stub_cv_wait_for,
+  };
+  pal_set_impl_cv(&cv_impl);
 }

@@ -43,24 +43,21 @@ static void chibios_mem_free(void *mem) {
 
 static mutex_t mutexes[NUM_MUTEXES];
 static size_t mutexes_used = 0;
-
-enum PAL_MUTEX_INIT_RESULT {
-  PAL_MUTEX_INIT_MAX_BEYOND_SUPPLY = -1,
-  PAL_MUTEX_INIT_SUCCESS = 0,
-};
+static size_t mutexes_initd = 0;
 
 static int chibios_mutex_init(size_t max_mutexes) {
-  if (max_mutexes > NUM_MUTEXES) {
-    return (int)PAL_MUTEX_INIT_MAX_BEYOND_SUPPLY;
+  size_t new_total = mutexes_initd + max_mutexes;
+  if (new_total > NUM_MUTEXES) {
+    return PAL_INVALID;
   }
-  for (size_t i = 0; i < max_mutexes; i++) {
-    chMtxObjectInit(&mutexes[i]);
+  for (; mutexes_initd < new_total; mutexes_initd++) {
+    chMtxObjectInit(&mutexes[mutexes_initd]);
   }
-  return (int)PAL_MUTEX_INIT_SUCCESS;
+  return PAL_SUCCESS;
 }
 
 static pal_mutex_t chibios_mutex_alloc(void) {
-  assert(mutexes_used < NUM_MUTEXES);
+  assert(mutexes_used < mutexes_initd);
   /* not thread safe!!! */
   mutex_t *mutex = &mutexes[mutexes_used++];
   return (pal_mutex_t)mutex;
@@ -258,21 +255,84 @@ static errno_t chibios_mq_pop(msg_queue_id_t id,
 static void *chibios_mq_alloc(size_t size) { return chCoreAlloc(size); }
 
 /*******************************************************************************
- * Semaphore
+ * Condition Variable
  ******************************************************************************/
 
-#define MAX_N_SEMAPHORES 8
+#define NUM_COND_VARS 8
 
 static int convert_chibios_ret(msg_t ret) {
   switch (ret) {
     case MSG_OK:
-      return PLATFORM_SEM_OK;
+      return PAL_SUCCESS;
     case MSG_TIMEOUT:
-      return PLATFORM_SEM_TIMEOUT;
+      return PAL_TIMEOUT;
     default:
-      return PLATFORM_SEM_ERROR;
+      return PAL_ERROR;
   }
 }
+
+static condition_variable_t cond_vars[NUM_COND_VARS];
+static size_t cond_vars_used = 0;
+static size_t cond_vars_initd = 0;
+
+/**
+ * We make no effort here to reuse destroyed condition variables,
+ * there is an upper bound on the number of condition variables which
+ * may be created during a single execution, and that is that.
+ */
+static int chibios_cv_init(size_t max_cv) {
+  size_t new_total = cond_vars_initd + max_cv;
+  if (new_total > NUM_COND_VARS) {
+    return PAL_INVALID;
+  }
+  for (; cond_vars_initd < new_total; cond_vars_initd++) {
+    chCondObjectInit(&cond_vars[cond_vars_initd]);
+  }
+  return PAL_SUCCESS;
+}
+
+static pal_cv_t chibios_cv_alloc(void) {
+  assert(cond_vars_used < cond_vars_initd);
+  /* not thread safe!!! */
+  condition_variable_t *cv = &cond_vars[cond_vars_used++];
+  return (pal_cv_t)cv;
+}
+
+static void chibios_cv_free(pal_cv_t cv) { (void)cv; }
+
+static void chibios_cv_notify_one(pal_cv_t cv) {
+  chCondSignal((condition_variable_t *)cv);
+}
+
+static void chibios_cv_notify_all(pal_cv_t cv) {
+  chCondBroadcast((condition_variable_t *)cv);
+}
+
+// lock must be both locked, and the most recently locked mutex
+// before calling this function.
+// Should not be used within ISRs
+static void chibios_cv_wait(pal_cv_t cv, pal_mutex_t lock) {
+  (void) lock;
+  chCondWait((condition_variable_t *)cv);
+}
+
+// lock must be both locked, and the most recently locked mutex
+// before calling this function.
+// Should not be used within ISRs
+static int chibios_cv_wait_for(pal_cv_t cv,
+                                pal_mutex_t lock,
+                                unsigned long millis) {
+  (void) lock;
+  const systime_t timeout = MS2ST(millis);
+  int ret = chCondWaitTimeout((condition_variable_t *)cv, timeout);
+  return convert_chibios_ret(ret);
+}
+
+/*******************************************************************************
+ * Semaphore
+ ******************************************************************************/
+
+#define MAX_N_SEMAPHORES 8
 
 /**
  * We make no effort here to reuse destroyed semaphores,
@@ -317,28 +377,43 @@ static int chibios_sem_wait_timeout(platform_sem_t *sem, unsigned long millis) {
 /*******************************************************************************
  * PAL Initialization
  ******************************************************************************/
+static bool pal_initialized = false;
 
 void pal_init_impl(void) {
-  struct pal_impl_mem mem_impl = {
-      .alloc = chibios_mem_alloc,
-      .free = chibios_mem_free,
-  };
-  pal_set_impl_mem(&mem_impl);
-  struct pal_impl_mutex mutex_impl = {
-      .init = chibios_mutex_init,
-      .alloc = chibios_mutex_alloc,
-      .free = chibios_mutex_free,
-      .lock = chibios_mutex_lock,
-      .unlock = chibios_mutex_unlock,
-  };
-  pal_set_impl_mutex(&mutex_impl);
-  struct pal_impl_thread thread_impl = {
-      .create = chibios_thread_create,
-      .set_name = chibios_thread_set_name,
-      .join = chibios_thread_join,
-      .exit = chibios_thread_exit,
-  };
-  pal_set_impl_thread(&thread_impl);
+  if (!pal_initialized) {
+    struct pal_impl_mem mem_impl = {
+        .alloc = chibios_mem_alloc,
+        .free = chibios_mem_free,
+    };
+    pal_set_impl_mem(&mem_impl);
+    struct pal_impl_mutex mutex_impl = {
+        .init = chibios_mutex_init,
+        .alloc = chibios_mutex_alloc,
+        .free = chibios_mutex_free,
+        .lock = chibios_mutex_lock,
+        .unlock = chibios_mutex_unlock,
+    };
+    pal_set_impl_mutex(&mutex_impl);
+    struct pal_impl_thread thread_impl = {
+        .create = chibios_thread_create,
+        .set_name = chibios_thread_set_name,
+        .join = chibios_thread_join,
+        .exit = chibios_thread_exit,
+    };
+    pal_set_impl_thread(&thread_impl);
+    cv_impl_t cv_impl = {
+      .cv_init = chibios_cv_init,
+      .cv_alloc = chibios_cv_alloc,
+      .cv_free = chibios_cv_free,
+      .cv_notify_one = chibios_cv_notify_one,
+      .cv_notify_all = chibios_cv_notify_all,
+      .cv_wait = chibios_cv_wait,
+      .cv_wait_for = chibios_cv_wait_for,
+    };
+    pal_set_impl_cv(&cv_impl);
+    
+    pal_initialized = true;
+  }
 }
 
 /*******************************************************************************
