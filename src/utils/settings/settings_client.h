@@ -16,6 +16,17 @@
 #include <libsettings/settings.h>
 #include <stdbool.h>
 #include <swiftnav/common.h>
+#include <libpal/pal.h>
+
+enum mutexes {
+  MTX_SETTING_CLIENT = 0,
+  MUTEX_COUNT,
+};
+
+enum cond_vars {
+  CV_SETTING_CLIENT = 0,
+  COND_VAR_COUNT,
+};
 
 struct setting {
   const char *section;

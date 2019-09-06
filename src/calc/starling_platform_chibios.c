@@ -14,7 +14,6 @@
 #include <ch.h>
 #include <libpal/pal.h>
 #include <starling/platform/mq.h>
-#include <starling/platform/semaphore.h>
 #include <starling/platform/watchdog.h>
 #include <string.h>
 
@@ -329,52 +328,6 @@ static int chibios_cv_wait_for(pal_cv_t cv,
 }
 
 /*******************************************************************************
- * Semaphore
- ******************************************************************************/
-
-#define MAX_N_SEMAPHORES 8
-
-/**
- * We make no effort here to reuse destroyed semaphores,
- * there is an upper bound on the number of semaphores which
- * may be created during a single execution, and that is that.
- */
-static platform_sem_t *chibios_sem_create(void) {
-  static int n_semaphores = 0;
-  static semaphore_t semaphores[MAX_N_SEMAPHORES];
-
-  if (n_semaphores >= MAX_N_SEMAPHORES) {
-    return NULL;
-  }
-
-  semaphore_t *sem = &semaphores[n_semaphores++];
-  int count = 0;
-  chSemObjectInit(sem, count);
-  return (platform_sem_t *)sem;
-}
-
-static void chibios_sem_destroy(platform_sem_t **sem_loc) {
-  if (sem_loc) {
-    *sem_loc = NULL;
-  }
-}
-
-static void chibios_sem_signal(platform_sem_t *sem) {
-  chSemSignal((semaphore_t *)sem);
-}
-
-static int chibios_sem_wait(platform_sem_t *sem) {
-  int ret = chSemWait((semaphore_t *)sem);
-  return convert_chibios_ret(ret);
-}
-
-static int chibios_sem_wait_timeout(platform_sem_t *sem, unsigned long millis) {
-  const systime_t timeout = MS2ST(millis);
-  int ret = chSemWaitTimeout((semaphore_t *)sem, timeout);
-  return convert_chibios_ret(ret);
-}
-
-/*******************************************************************************
  * PAL Initialization
  ******************************************************************************/
 static bool pal_initialized = false;
@@ -432,13 +385,4 @@ void starling_initialize_platform(void) {
       .mq_alloc = chibios_mq_alloc,
   };
   platform_set_implementation_mq(&mq_impl);
-  /* Semaphore */
-  sem_impl_t sem_impl = {
-      .sem_create = chibios_sem_create,
-      .sem_destroy = chibios_sem_destroy,
-      .sem_signal = chibios_sem_signal,
-      .sem_wait = chibios_sem_wait,
-      .sem_wait_timeout = chibios_sem_wait_timeout,
-  };
-  platform_set_implementation_semaphore(&sem_impl);
 }

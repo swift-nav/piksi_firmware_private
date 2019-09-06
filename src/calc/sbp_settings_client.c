@@ -15,7 +15,7 @@
 #include "sbp_settings_client.h"
 
 #include <assert.h>
-#include <starling/platform/semaphore.h>
+#include <libpal/pal.h>
 #include <stdlib.h>
 #include <swiftnav/logging.h>
 
@@ -26,8 +26,11 @@ struct SbpSettingsClient {
   /* Underlying SBP link. */
   SbpDuplexLink sbp_link;
 
-  /* Semaphore for used for waiting on replies. */
-  platform_sem_t *sem;
+  /* Condition Variable used for waiting on replies. */
+  pal_cv_t cv;
+
+  /* Mutex used to sync replies */
+  pal_mutex_t mtx;
 
   /* Settings context object. */
   settings_t *settings_context;
@@ -60,17 +63,21 @@ static int impl_send_from(void *ctx,
 static int impl_wait(void *ctx, int timeout_ms) {
   SbpSettingsClient *client = (SbpSettingsClient *)ctx;
   assert(client);
-  assert(client->sem);
+  assert(client->cv);
+  assert(client->mtx);
   timeout_ms = timeout_ms > 0 ? timeout_ms : 0;
-  return platform_sem_wait_timeout(client->sem, (unsigned long)timeout_ms);
+  pal_mutex_lock(client->mtx);
+  int ret = pal_cv_wait_for(client->cv, client->mtx, (unsigned long) timeout_ms);
+  pal_mutex_unlock(client->mtx);
+  return ret;
 }
 
 /********************************************************************************/
 static void impl_signal(void *ctx) {
   SbpSettingsClient *client = (SbpSettingsClient *)ctx;
   assert(client);
-  assert(client->sem);
-  platform_sem_signal(client->sem);
+  assert(client->cv);
+  pal_cv_notify_one(client->cv);
 }
 
 /********************************************************************************/
@@ -147,8 +154,12 @@ static void sbp_settings_client_destroy(SbpSettingsClient *client) {
   if (!client) {
     return;
   }
-  if (client->sem) {
-    platform_sem_destroy(&client->sem);
+  if (client->cv) {
+    // no-op
+    pal_cv_free(client->cv);
+  }
+  if (client->mtx) {
+    //TODO(yizhe): pal_mutex_free unimplmented, will assert
   }
   if (client->settings_context) {
     settings_destroy(&client->settings_context);
@@ -175,13 +186,19 @@ SbpSettingsClient *sbp_settings_client_create(const SbpDuplexLink *sbp_link) {
     return NULL;
   }
 
-  client->sem = platform_sem_create();
-  if (!client->sem) {
-    log_error(CLASS_PREFIX "unable to create semaphore");
+  client->cv = pal_cv_alloc();
+  if (!client->cv) {
+    log_error(CLASS_PREFIX "unable to create condition variable");
     sbp_settings_client_destroy(client);
     return NULL;
   }
 
+  client->mtx = pal_mutex_alloc();
+  if (!client->mtx) {
+    log_error(CLASS_PREFIX "unable to create mutex");
+    sbp_settings_client_destroy(client);
+    return NULL;
+  }
   return client;
 };
 

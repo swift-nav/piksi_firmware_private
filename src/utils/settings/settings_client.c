@@ -117,6 +117,10 @@ static int unreg_cb_wrap(void *ctx, sbp_msg_callbacks_node_t **node) {
 }
 
 void settings_api_setup(void) {
+  pal_init_impl();
+  pal_cv_init(MUTEX_COUNT);
+  pal_mutex_init(COND_VAR_COUNT);
+
   chBSemObjectInit(&settings_api_ctx.sem, false);
 
   settings_api_t api = {
