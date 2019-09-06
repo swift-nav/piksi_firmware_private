@@ -321,7 +321,7 @@ static void chibios_cv_wait(pal_cv_t cv, pal_mutex_t lock) {
 static int chibios_cv_wait_for(pal_cv_t cv,
                                 pal_mutex_t lock,
                                 unsigned long millis) {
-  (void) lock;
+  (void)lock;
   const systime_t timeout = MS2ST(millis);
   int ret = chCondWaitTimeout((condition_variable_t *)cv, timeout);
   return convert_chibios_ret(ret);

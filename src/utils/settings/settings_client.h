@@ -13,10 +13,10 @@
 #ifndef SWIFTNAV_SETTINGS_CLIENT_H
 #define SWIFTNAV_SETTINGS_CLIENT_H
 
+#include <libpal/pal.h>
 #include <libsettings/settings.h>
 #include <stdbool.h>
 #include <swiftnav/common.h>
-#include <libpal/pal.h>
 
 enum mutexes {
   MTX_SETTING_CLIENT = 0,
