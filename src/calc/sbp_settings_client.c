@@ -67,7 +67,7 @@ static int impl_wait(void *ctx, int timeout_ms) {
   assert(client->mtx);
   timeout_ms = timeout_ms > 0 ? timeout_ms : 0;
   pal_mutex_lock(client->mtx);
-  int ret = pal_cv_wait_for(client->cv, client->mtx, (unsigned long) timeout_ms);
+  int ret = pal_cv_wait_for(client->cv, client->mtx, (unsigned long)timeout_ms);
   pal_mutex_unlock(client->mtx);
   return ret;
 }
@@ -159,7 +159,7 @@ static void sbp_settings_client_destroy(SbpSettingsClient *client) {
     pal_cv_free(client->cv);
   }
   if (client->mtx) {
-    //TODO(yizhe): pal_mutex_free unimplmented, will assert
+    // TODO(yizhe): pal_mutex_free unimplemented, will assert
   }
   if (client->settings_context) {
     settings_destroy(&client->settings_context);
