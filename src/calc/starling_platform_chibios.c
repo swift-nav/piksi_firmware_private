@@ -311,7 +311,7 @@ static void chibios_cv_notify_all(pal_cv_t cv) {
 // before calling this function.
 // Should not be used within ISRs
 static void chibios_cv_wait(pal_cv_t cv, pal_mutex_t lock) {
-  (void) lock;
+  (void)lock;
   chCondWait((condition_variable_t *)cv);
 }
 
@@ -319,9 +319,9 @@ static void chibios_cv_wait(pal_cv_t cv, pal_mutex_t lock) {
 // before calling this function.
 // Should not be used within ISRs
 static int chibios_cv_wait_for(pal_cv_t cv,
-                                pal_mutex_t lock,
-                                unsigned long millis) {
-  (void) lock;
+                               pal_mutex_t lock,
+                               unsigned long millis) {
+  (void)lock;
   const systime_t timeout = MS2ST(millis);
   int ret = chCondWaitTimeout((condition_variable_t *)cv, timeout);
   return convert_chibios_ret(ret);
@@ -330,6 +330,7 @@ static int chibios_cv_wait_for(pal_cv_t cv,
 /*******************************************************************************
  * PAL Initialization
  ******************************************************************************/
+
 static bool pal_initialized = false;
 
 void pal_init_impl(void) {
@@ -355,16 +356,16 @@ void pal_init_impl(void) {
     };
     pal_set_impl_thread(&thread_impl);
     cv_impl_t cv_impl = {
-      .cv_init = chibios_cv_init,
-      .cv_alloc = chibios_cv_alloc,
-      .cv_free = chibios_cv_free,
-      .cv_notify_one = chibios_cv_notify_one,
-      .cv_notify_all = chibios_cv_notify_all,
-      .cv_wait = chibios_cv_wait,
-      .cv_wait_for = chibios_cv_wait_for,
+        .cv_init = chibios_cv_init,
+        .cv_alloc = chibios_cv_alloc,
+        .cv_free = chibios_cv_free,
+        .cv_notify_one = chibios_cv_notify_one,
+        .cv_notify_all = chibios_cv_notify_all,
+        .cv_wait = chibios_cv_wait,
+        .cv_wait_for = chibios_cv_wait_for,
     };
     pal_set_impl_cv(&cv_impl);
-    
+
     pal_initialized = true;
   }
 }

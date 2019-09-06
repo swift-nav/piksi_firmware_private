@@ -158,13 +158,13 @@ void init_starling_platform_stub_implementation(void) {
   platform_set_implementation_mq(&mq_impl);
   /* Condition Variable */
   cv_impl_t cv_impl = {
-    .cv_init = stub_cv_init,
-    .cv_alloc = stub_cv_alloc,
-    .cv_free = stub_cv_free,
-    .cv_notify_one = stub_cv_notify_one,
-    .cv_notify_all = stub_cv_notify_all,
-    .cv_wait = stub_cv_wait,
-    .cv_wait_for = stub_cv_wait_for,
+      .cv_init = stub_cv_init,
+      .cv_alloc = stub_cv_alloc,
+      .cv_free = stub_cv_free,
+      .cv_notify_one = stub_cv_notify_one,
+      .cv_notify_all = stub_cv_notify_all,
+      .cv_wait = stub_cv_wait,
+      .cv_wait_for = stub_cv_wait_for,
   };
   pal_set_impl_cv(&cv_impl);
 }
