@@ -13,7 +13,7 @@
 #include "calc_base_obs.h"
 
 #include <math.h>
-#include <starling/integration/starling_input_bridge.h>
+#include <starling/starling_input_bridge.h>
 #include <starling/observation.h>
 #include <starling/starling.h>
 #include <stdlib.h>

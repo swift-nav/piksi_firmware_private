@@ -15,7 +15,7 @@
 #include <libsbp/imu.h>
 #include <libsbp/mag.h>
 #include <math.h>
-#include <starling/integration/starling_input_bridge.h>
+#include <starling/starling_input_bridge.h>
 #include <swiftnav/gnss_time.h>
 #include <swiftnav/logging.h>
 

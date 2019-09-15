@@ -15,7 +15,7 @@
 #include <assert.h>
 #include <ch.h>
 #include <libpal/pal.h>
-#include <starling/integration/starling_input_bridge.h>
+#include <starling/starling_input_bridge.h>
 #include <starling/starling.h>
 #include <starling/starling_external_dependencies.h>
 #include <string.h>

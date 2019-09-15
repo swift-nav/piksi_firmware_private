@@ -13,7 +13,7 @@
 #include "nav_msg/sbas_msg.h"
 
 #include <limits.h>
-#include <starling/integration/starling_input_bridge.h>
+#include <starling/starling_input_bridge.h>
 #include <starling/util/sbp/packers.h>
 #include <starling/util/sbp/unpackers.h>
 #include <string.h>

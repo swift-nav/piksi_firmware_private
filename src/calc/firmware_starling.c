@@ -15,7 +15,7 @@
 #include <calc/starling_integration.h>
 #include <ch.h>
 #include <sbp/sbp_fileio.h>
-#include <starling/integration/starling_input_bridge.h>
+#include <starling/starling_input_bridge.h>
 #include <starling/platform/platform.h>
 #include <starling/starling.h>
 #include <stdbool.h>
