@@ -216,7 +216,8 @@ $(OBJDIR)/%.o: %.cc
 OBJS += $(OBJDIR)/gtest_main.a
 
 LIBS = -lstarling -lstarling-util -lswiftnav -lpthread -lfec
-LIB_PATH = -L$(STARLING_SEARCHPATH)/src
+LIB_PATH = -L$(STARLING_SEARCHPATH)/src/starling
+LIB_PATH += -L$(STARLING_SEARCHPATH)/src/util
 LIB_PATH += -L$(LIBSWIFTNAV_SEARCHPATH)
 LIB_PATH += -L$(STARLING_FEC_SEARCHPATH)
 LIB_RPATH = -Wl,-rpath,$(STARLING_SEARCHPATH)/src
