@@ -16,9 +16,9 @@
 #include <inttypes.h>
 #include <libsbp/sbp.h>
 #include <pvt_engine/firmware_binding.h>
-#include <starling/integration/starling_input_bridge.h>
 #include <starling/observation.h>
 #include <starling/starling.h>
+#include <starling/starling_input_bridge.h>
 #include <stdio.h>
 #include <string.h>
 #include <swiftnav/constants.h>

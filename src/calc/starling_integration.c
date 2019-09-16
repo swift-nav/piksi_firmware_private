@@ -15,9 +15,9 @@
 #include <assert.h>
 #include <ch.h>
 #include <libpal/pal.h>
-#include <starling/integration/starling_input_bridge.h>
 #include <starling/starling.h>
 #include <starling/starling_external_dependencies.h>
+#include <starling/starling_input_bridge.h>
 #include <string.h>
 #include <swiftnav/coord_system.h>
 #include <swiftnav/linear_algebra.h>

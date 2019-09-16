@@ -159,8 +159,8 @@ CSRC := $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l2c.c \
         $(STARLING_ROOT)/src/util/sbp/misc.c \
         $(STARLING_ROOT)/src/util/sbp/packers.c \
         $(STARLING_ROOT)/src/util/sbp/unpackers.c \
-        $(STARLING_ROOT)/src/observation.c \
-        $(STARLING_ROOT)/src/cycle_slip.c \
+        $(STARLING_ROOT)/src/pvt_engine/observation.c \
+        $(STARLING_ROOT)/src/pvt_engine/cycle_slip.c \
         $(STARLING_ROOT)/libfec/src/viterbi27.c \
         $(STARLING_ROOT)/third_party/libpal/src/default/synch/condition_var.c \
         $(STARLING_ROOT)/third_party/libpal/src/default/synch/mutex.c \
@@ -202,7 +202,7 @@ CSRC := $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l2c.c \
         $(SWIFTNAV_ROOT)/mesta/main.c \
 
 
-CXXSRC := $(STARLING_ROOT)/src/starling/integration/starling_input_bridge.cc \
+CXXSRC := $(STARLING_ROOT)/src/starling/starling_input_bridge.cc \
           $(STARLING_ROOT)/src/starling/util/mutex.cc
 
 CXXFLAGS := -std=c++11

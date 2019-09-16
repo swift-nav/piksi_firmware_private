@@ -381,8 +381,10 @@ DINCDIR =
 DLIBDIR = $(LIBPAL_BUILDDIR)/src/default \
           $(LIBSBP_BUILDDIR)/c/src \
           $(LIBSETTINGS_BUILDDIR)/src \
-          $(STARLING_BUILDDIR)/src \
-          $(STARLING_BUILDDIR)/starling-util \
+          $(STARLING_BUILDDIR)/src/starling \
+					$(STARLING_BUILDDIR)/src/pvt_engine \
+					$(STARLING_BUILDDIR)/src/pvt_common \
+          $(STARLING_BUILDDIR)/src/util \
           $(STARLING_BUILDDIR)/libfec \
           $(LIBSWIFTNAV_BUILDDIR) \
           $(BOARDLIBDIR)
