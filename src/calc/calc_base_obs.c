@@ -13,9 +13,9 @@
 #include "calc_base_obs.h"
 
 #include <math.h>
-#include <starling/starling_input_bridge.h>
 #include <starling/observation.h>
 #include <starling/starling.h>
+#include <starling/starling_input_bridge.h>
 #include <stdlib.h>
 #include <string.h>
 #include <swiftnav/constants.h>
