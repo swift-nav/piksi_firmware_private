@@ -1,5 +1,0 @@
-- name: Initializing Git submodules for ChibiOS, libopencm3, and starling...
-  shell: git submodule update --init --recursive
-
-- name: Build piksi_firmware
-  local_action: shell make clean && make

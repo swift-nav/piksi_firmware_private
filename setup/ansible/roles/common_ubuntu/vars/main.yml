@@ -1,1 +1,0 @@
-force_manual_gcc: "{{ lookup('env', 'FORCE_MANUAL_GCC') }}"
