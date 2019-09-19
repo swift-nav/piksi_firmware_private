@@ -64,7 +64,7 @@ pipeline {
                     post {
                         success {
                             script {
-                              sh("echo");
+                              sh("echo post firmware build")
                           /*
                                 createPrDescription(context: context)
                                 context.archivePatterns(patterns: [
@@ -126,12 +126,13 @@ pipeline {
         always {
             // Common post-run function from ci-jenkins shared libs.
             // Used to e.g. notify slack.
-/*
             script {
+              sh("echo post everything")
+/*
                 context.slackNotify()
                 context.postCommon()
-            }
 */
+            }
         }
     }
 }
