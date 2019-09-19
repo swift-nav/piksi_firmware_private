@@ -79,6 +79,11 @@ pipeline {
                           */
                             }
                         }
+                        always {
+                          script {
+                            sh("echo post macos")
+                          }
+                        }
                     }
                 }
 /*
