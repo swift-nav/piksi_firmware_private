@@ -64,7 +64,7 @@ pipeline {
                     post {
                         success {
                             script {
-                              sh("echo post firmware build")
+                              sh("echo post firmware build 2")
                           /*
                                 createPrDescription(context: context)
                                 context.archivePatterns(patterns: [
