@@ -64,6 +64,7 @@ pipeline {
                     post {
                         success {
                             script {
+                              sh("echo");
                           /*
                                 createPrDescription(context: context)
                                 context.archivePatterns(patterns: [
