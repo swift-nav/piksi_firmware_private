@@ -35,19 +35,22 @@ pipeline {
             parallel {
                 stage('Build Firmware') {
                     agent {
+                      label 'macos'
+/*
                         dockerfile {
                             filename dockerFile
                             args dockerMountArgs
                         }
+*/
                     }
                     environment {
-			PIKSI_HW = "v3"
+                        PIKSI_HW = "v3"
                         // These tokens are in plaintext so Swift developers can make PR's from their
                         // personal forks. We may want to revisit this at some point.
                         GITHUB_COMMENT_TOKEN = "29ff16b8acbf635fad0c702d3189c04a997b9719"
                         HITL_API_GITHUB_TOKEN = "d70b53ef8e8e0966818c473c56c02bf45b17290b"
                         PRODUCT_VERSION = "v3"
-			SLACK_CHANNEL = "github"
+                        SLACK_CHANNEL = "github"
                     }
                     steps {
                         stageStart()
@@ -60,22 +63,24 @@ pipeline {
                     }
                     post {
                         success {
-			    script {
-			        createPrDescription(context: context)
-			        context.archivePatterns(patterns: [
-				    "pr_description.yaml",
-			            "requirements.yaml",
-			            "build_v3_prod/piksi_firmware_v3_prod*.elf",
-			            "build_v3_base/piksi_firmware_v3_base*.elf"])
+                            script {
+                          /*
+                                createPrDescription(context: context)
+                                context.archivePatterns(patterns: [
+                                    "pr_description.yaml",
+                                    "requirements.yaml",
+                                    "build_v3_prod/piksi_firmware_v3_prod*.elf",
+                                    "build_v3_base/piksi_firmware_v3_base*.elf"])
                                 if (context.isPrPush()) {
-			            hitl.triggerForPr() // this generates metrics.yaml
-			        }
-			        hitl.addComments()
-			    }
-
-			}
+                                    hitl.triggerForPr() // this generates metrics.yaml
+                                }
+                                hitl.addComments()
+                          */
+                            }
+                        }
                     }
                 }
+/*
                 stage('Tests & Mesta') {
                     agent {
                         dockerfile {
@@ -84,8 +89,8 @@ pipeline {
                         }
                     }
                     environment {
-			PIKSI_HW = "v3"
-		    }
+                        PIKSI_HW = "v3"
+                    }
                     steps {
                         stageStart()
                         gitPrep()
@@ -93,10 +98,10 @@ pipeline {
                         script {
                             runMake(target: "run_tests")
                             runMake(target: "mesta", workDir: "mesta")
-			    sh script: "./mesta/mesta"
+                            sh script: "./mesta/mesta"
                         }
                     }
-		}
+                }
                 stage('Formatting & Lint') {
                     agent {
                         dockerfile {
@@ -108,10 +113,11 @@ pipeline {
                         stageStart()
                         gitPrep()
 
-			sh script: "./scripts/clang-format-check.sh"
-			sh script: "./scripts/clang-tidy-check.sh"
+                        sh script: "./scripts/clang-format-check.sh"
+                        sh script: "./scripts/clang-tidy-check.sh"
                     }
-		}
+                }
+*/
             }
         }
     }
@@ -119,10 +125,12 @@ pipeline {
         always {
             // Common post-run function from ci-jenkins shared libs.
             // Used to e.g. notify slack.
+/*
             script {
                 context.slackNotify()
                 context.postCommon()
             }
+*/
         }
     }
 }
@@ -138,7 +146,7 @@ def runMake(Map args=[:]) {
     def logger = context.getLogger()
 
     context.builder.make(
-    	    workDir: args.workDir,
+                workDir: args.workDir,
             target: args.target,
             gtestOut: args.gtestOut,
             makej: 4)
