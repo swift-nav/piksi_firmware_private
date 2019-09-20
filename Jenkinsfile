@@ -53,7 +53,7 @@ pipeline {
                         HITL_API_GITHUB_TOKEN = "d70b53ef8e8e0966818c473c56c02bf45b17290b"
                         PRODUCT_VERSION = "v3"
                         SLACK_CHANNEL = "github"
-                        PATH = "$PATH:$HOME/toolchain/arm-none-eabi/bin:/usr/local/bin"
+                        PATH = "$PATH:$HOME/toolchain/bin:/usr/local/bin"
                     }
                     steps {
                         stageStart()
