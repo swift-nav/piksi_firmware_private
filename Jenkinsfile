@@ -24,7 +24,6 @@ pipeline {
         timestamps()
         // Keep builds for 7 days.
         buildDiscarder(logRotator(daysToKeepStr: '7'))
-        skipDefaultCheckout()
     }
 
     parameters {
@@ -56,7 +55,6 @@ pipeline {
                     steps {
                         stageStart()
                         gitPrep()
-                        checkout scm
 
                         script {
                             runMake(target: "PIKSI_REV=prod all")
