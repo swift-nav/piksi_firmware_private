@@ -17,13 +17,14 @@ hitl.update()
 
 pipeline {
     // Override agent in each stage to make sure we don't share containers among stages.
-    agent any
+    agent none
     options {
         // Make sure job aborts eventually if hanging.
         timeout(time: 2, unit: 'HOURS')
         timestamps()
         // Keep builds for 7 days.
         buildDiscarder(logRotator(daysToKeepStr: '7'))
+        skipDefaultCheckout()
     }
 
     parameters {
@@ -55,6 +56,7 @@ pipeline {
                     steps {
                         stageStart()
                         gitPrep()
+                        checkout scm
 
                         script {
                             runMake(target: "PIKSI_REV=prod all")
@@ -64,7 +66,7 @@ pipeline {
                     post {
                         success {
                             script {
-                              sh("echo post firmware build 2")
+                              sh("echo post firmware build 3")
                           /*
                                 createPrDescription(context: context)
                                 context.archivePatterns(patterns: [
