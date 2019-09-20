@@ -15,6 +15,8 @@ def logger = context.getLogger()
 def hitl = new SwiftHitl(context: context)
 hitl.update()
 
+def macToolchain = "https://github.com/swift-nav/swift-toolchains/releases/download/pfwp_mac_toolchain/gcc-arm-none-eabi-6-2017-q2-update-mac.tar.bz2"
+
 pipeline {
     // Override agent in each stage to make sure we don't share containers among stages.
     agent none
@@ -51,12 +53,17 @@ pipeline {
                         HITL_API_GITHUB_TOKEN = "d70b53ef8e8e0966818c473c56c02bf45b17290b"
                         PRODUCT_VERSION = "v3"
                         SLACK_CHANNEL = "github"
+                        PATH = "$PATH:$HOME/toolchain/arm-none-eabi/bin"
                     }
                     steps {
                         stageStart()
                         gitPrep()
 
                         script {
+                            sh("""#!/bin/bash -ex
+                            | curl -sSL -o- ${macToolchain} | tar -xJvf - --strip-components=1 -C \$HOME/toolchain
+                            | brew install cmake
+                            """.stripMargin())
                             runMake(target: "PIKSI_REV=prod all")
                             runMake(target: "PIKSI_REV=base all")
                         }
@@ -81,7 +88,7 @@ pipeline {
                         }
                         always {
                           script {
-                            sh("echo post macos")
+                            sh("reset_macos_build_node")
                           }
                         }
                     }
