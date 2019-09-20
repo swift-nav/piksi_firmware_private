@@ -19,7 +19,7 @@ def macToolchain = "https://github.com/swift-nav/swift-toolchains/releases/downl
 
 pipeline {
     // Override agent in each stage to make sure we don't share containers among stages.
-    agent none
+    agent any
     options {
         // Make sure job aborts eventually if hanging.
         timeout(time: 2, unit: 'HOURS')
@@ -61,6 +61,7 @@ pipeline {
 
                         script {
                             sh("""#!/bin/bash -ex
+                            | mkdir \$HOME/toolchain
                             | curl -sSL -o- ${macToolchain} | tar -xJvf - --strip-components=1 -C \$HOME/toolchain
                             | brew install cmake
                             """.stripMargin())
