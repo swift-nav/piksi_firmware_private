@@ -11,7 +11,6 @@
  */
 
 #include <libpal/pal.h>
-#include <starling/platform/mq.h>
 #include <starling/platform/watchdog.h>
 
 /*******************************************************************************
@@ -65,32 +64,34 @@ static void stub_watchdog_notify_starling_main_thread(void) {}
  * Queue
  ******************************************************************************/
 
-static void stub_mq_init(msg_queue_id_t id, size_t max_length) {
-  (void)id;
+static int stub_mq_init(size_t max_mq, size_t max_elem) {
+  (void)max_mq;
+  (void)max_elem;
+  return PAL_INVALID;
+}
+
+static pal_mq_t stub_mq_alloc(size_t max_length) {
   (void)max_length;
-}
-
-static errno_t stub_mq_push(msg_queue_id_t id,
-                            void *msg,
-                            mq_blocking_mode_t should_block) {
-  (void)id;
-  (void)msg;
-  (void)should_block;
-  return 0;
-}
-
-static errno_t stub_mq_pop(msg_queue_id_t id,
-                           void **msg,
-                           mq_blocking_mode_t should_block) {
-  (void)id;
-  (void)msg;
-  (void)should_block;
-  return 0;
-}
-
-static void *stub_mq_alloc(size_t size) {
-  (void)size;
   return NULL;
+}
+
+static void stub_mq-fre(pal_mq_t mq) {
+  (void)mq;
+  return NULL;
+}
+
+static int stub_mq_push(pal_mq_t mq, void *msg, mq_blocking_mode_t mode) {
+  (void)mq;
+  (void)msg;
+  (void)mode;
+  return PAL_INVALID;
+}
+
+static int stub_mq_pop(pal_mq_t mq, void **msg, mq_blocking_mode_t mode) {
+  (void)mq;
+  (void)msg;
+  (void)mode;
+  return PAL_INVALID;
 }
 
 /*******************************************************************************
@@ -151,11 +152,12 @@ void init_starling_platform_stub_implementation(void) {
   /* Queue */
   mq_impl_t mq_impl = {
       .mq_init = stub_mq_init,
+      .mq_alloc = stub_mq_alloc,
+      .mq_free = stub_mq_free,
       .mq_push = stub_mq_push,
       .mq_pop = stub_mq_pop,
-      .mq_alloc = stub_mq_alloc,
   };
-  platform_set_implementation_mq(&mq_impl);
+  pal_set_impl_mq(&mq_impl);
   /* Condition Variable */
   cv_impl_t cv_impl = {
       .cv_init = stub_cv_init,

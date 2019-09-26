@@ -13,7 +13,6 @@
 #include <assert.h>
 #include <ch.h>
 #include <libpal/pal.h>
-#include <starling/platform/mq.h>
 #include <starling/platform/watchdog.h>
 #include <string.h>
 
@@ -22,6 +21,19 @@
 
 /* From libpal for unimplemented functions */
 #include "not_implemented.h"
+
+static int convert_chibios_ret(msg_t ret) {
+  switch (ret) {
+    case MSG_OK:
+      return PAL_SUCCESS;
+    case MSG_TIMEOUT:
+      return PAL_TIMEOUT;
+    case MSG_RESET:
+      return PAL_INVALID;
+    default:
+      return PAL_ERROR;
+  }
+}
 
 /*******************************************************************************
  * Memory
@@ -205,15 +217,16 @@ static void chibios_watchdog_notify_starling_main_thread(void) {
  * Queue
  ******************************************************************************/
 
+#define MAX_NUM_PAL_MQ 4
+#define MAX_NUM_PAL_MQ_ELEM 256
 #define MAILBOX_BLOCKING_TIMEOUT_MS 5000
 
-typedef struct mailbox_info_s {
-  mailbox_t mailbox;
-  msg_t *mailbox_buf;
-} mailbox_info_t;
-
-static mailbox_info_t mailbox_info[MQ_ID_COUNT] = {
-    [MQ_ID_PAIRED_OBS] = {{0}, NULL}, [MQ_ID_PRIMARY_DATA] = {{0}, NULL}};
+static pal_mq_s pal_mqs[MAX_NUM_PAL_MQ];
+static size_t mq_used = 0;
+static size_t mq_initd = 0;
+static msg_t pal_mq_elems[MAX_NUM_PAL_MQ_ELEM];
+static size_t elem_used = 0;
+static size_t elem_initd = 0;
 
 static void chibios_mq_init(msg_queue_id_t id, size_t max_length) {
   mailbox_info[id].mailbox_buf = chCoreAlloc(sizeof(msg_t) * max_length);
@@ -222,53 +235,66 @@ static void chibios_mq_init(msg_queue_id_t id, size_t max_length) {
       &mailbox_info[id].mailbox, mailbox_info[id].mailbox_buf, max_length);
 }
 
-static errno_t chibios_mq_push(msg_queue_id_t id,
-                               void *msg,
-                               mq_blocking_mode_t should_block) {
-  uint32_t timeout_ms =
-      (MQ_BLOCKING == should_block) ? MAILBOX_BLOCKING_TIMEOUT_MS : 0;
-  if (MSG_OK !=
-      chMBPost(&mailbox_info[id].mailbox, (msg_t)msg, MS2ST(timeout_ms))) {
-    /* Full or mailbox reset while waiting */
-    return EBUSY;
-  }
-
-  return 0;
+struct pal_mq_s {
+  mailbox_t mailbox;
+  msg_t *mailbox_buf;
 }
 
-static errno_t chibios_mq_pop(msg_queue_id_t id,
-                              void **msg,
-                              mq_blocking_mode_t should_block) {
-  uint32_t timeout_ms =
-      (MQ_BLOCKING == should_block) ? MAILBOX_BLOCKING_TIMEOUT_MS : 0;
-  if (MSG_OK !=
-      chMBFetch(&mailbox_info[id].mailbox, (msg_t *)msg, MS2ST(timeout_ms))) {
-    /* Empty or mailbox reset while waiting */
+static int
+chibios_mq_init(size_t max_mq, size_t max_elem) {
+  assert(pal_has_impl_mem());
+
+  assert(max_mq > 0);
+  assert(max_elem >= max_mq);  // at least 1 elem per mq;
+
+  assert(max_mq + mq_initd <= MAX_NUM_PAL_MQ);
+  mq_initd += max_mq;
+
+  assert(max_elem + elem_initd <= MAX_NUM_PAL_MQ_ELEM);
+  elem_initd += max_elem;
+
+  return PAL_SUCCESS;
+}
+
+static pal_mq_t chibios_mq_alloc(size_t max_length) {
+  assert(mq_used < mq_initd);
+  assert(elem_used + max_length <= elem_initd);
+
+  chMBObjectInit(
+      &pal_mqs[mq_used].mailbox, &pal_mq_elems[elem_used], max_length);
+  elem_used += max_length;
+
+  return &pal_mqs[mq_used++];
+}
+
+static int chibios_mq_push(pal_mq_t mq, void *msg, mq_blocking_mode_t mode) {
+  sysinterval_t timeout = (mode == MQ_BLOCKING)
+                              ? MS2ST(MAILBOX_BLOCKING_TIMEOUT_MS)
+                              : TIME_IMMEDIATE;
+
+  return convert_chibios_ret(
+      chMBPostTimeout(&mq->mailbox, (msg_t)msg, timeout));
+}
+
+static int chibios_mq_pop(mq, void **msg, mq_blocking_mode_t mode) {
+  sysinterval_t timeout = (mode == MQ_BLOCKING)
+                              ? MS2ST(MAILBOX_BLOCKING_TIMEOUT_MS)
+                              : TIME_IMMEDIATE;
+
+  msg_t ret = chMBFetch(&mq->mailbox, (msg_t *)msg, timeout);
+
+  if (ret != MSG_OK) {
     *msg = NULL;
-    return EBUSY;
   }
 
-  return 0;
+  return convert_chibios_ret(ret);
 }
-
-static void *chibios_mq_alloc(size_t size) { return chCoreAlloc(size); }
 
 /*******************************************************************************
  * Condition Variable
  ******************************************************************************/
 
 #define NUM_COND_VARS 8
-
-static int convert_chibios_ret(msg_t ret) {
-  switch (ret) {
-    case MSG_OK:
-      return PAL_SUCCESS;
-    case MSG_TIMEOUT:
-      return PAL_TIMEOUT;
-    default:
-      return PAL_ERROR;
-  }
-}
 
 static condition_variable_t cond_vars[NUM_COND_VARS];
 static size_t cond_vars_used = 0;
@@ -365,6 +391,15 @@ void pal_init_impl(void) {
         .cv_wait_for = chibios_cv_wait_for,
     };
     pal_set_impl_cv(&cv_impl);
+    /* Queue */
+    mq_impl_t mq_impl = {
+        .mq_init = chibios_mq_init,
+        .mq_alloc = chibios_mq_alloc,
+        .mq_free = chibios_mq_free,
+        .mq_push = chibios_mq_push,
+        .mq_pop = chibios_mq_pop,
+    };
+    pal_set_impl_mq(&mq_impl);
 
     pal_initialized = true;
   }
@@ -378,12 +413,4 @@ void starling_initialize_platform(void) {
   /* Watchdog */
   platform_set_implementation_watchdog(
       chibios_watchdog_notify_starling_main_thread);
-  /* Queue */
-  mq_impl_t mq_impl = {
-      .mq_init = chibios_mq_init,
-      .mq_push = chibios_mq_push,
-      .mq_pop = chibios_mq_pop,
-      .mq_alloc = chibios_mq_alloc,
-  };
-  platform_set_implementation_mq(&mq_impl);
 }
