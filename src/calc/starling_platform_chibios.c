@@ -221,27 +221,19 @@ static void chibios_watchdog_notify_starling_main_thread(void) {
 #define MAX_NUM_PAL_MQ_ELEM 256
 #define MAILBOX_BLOCKING_TIMEOUT_MS 5000
 
-static pal_mq_s pal_mqs[MAX_NUM_PAL_MQ];
+struct pal_mq_s {
+  mailbox_t mailbox;
+  msg_t *mailbox_buf;
+};
+
+static struct pal_mq_s pal_mqs[MAX_NUM_PAL_MQ];
 static size_t mq_used = 0;
 static size_t mq_initd = 0;
 static msg_t pal_mq_elems[MAX_NUM_PAL_MQ_ELEM];
 static size_t elem_used = 0;
 static size_t elem_initd = 0;
 
-static void chibios_mq_init(msg_queue_id_t id, size_t max_length) {
-  mailbox_info[id].mailbox_buf = chCoreAlloc(sizeof(msg_t) * max_length);
-  assert(mailbox_info[id].mailbox_buf);
-  chMBObjectInit(
-      &mailbox_info[id].mailbox, mailbox_info[id].mailbox_buf, max_length);
-}
-
-struct pal_mq_s {
-  mailbox_t mailbox;
-  msg_t *mailbox_buf;
-}
-
-static int
-chibios_mq_init(size_t max_mq, size_t max_elem) {
+static int chibios_mq_init(size_t max_mq, size_t max_elem) {
   assert(pal_has_impl_mem());
 
   assert(max_mq > 0);
@@ -267,19 +259,18 @@ static pal_mq_t chibios_mq_alloc(size_t max_length) {
   return &pal_mqs[mq_used++];
 }
 
-static int chibios_mq_push(pal_mq_t mq, void *msg, mq_blocking_mode_t mode) {
-  sysinterval_t timeout = (mode == MQ_BLOCKING)
-                              ? MS2ST(MAILBOX_BLOCKING_TIMEOUT_MS)
-                              : TIME_IMMEDIATE;
+static void chibios_mq_free(pal_mq_t mq) { (void)mq; }
 
-  return convert_chibios_ret(
-      chMBPostTimeout(&mq->mailbox, (msg_t)msg, timeout));
+static int chibios_mq_push(pal_mq_t mq, void *msg, mq_blocking_mode_t mode) {
+  systime_t timeout = (mode == MQ_BLOCKING) ? MS2ST(MAILBOX_BLOCKING_TIMEOUT_MS)
+                                            : TIME_IMMEDIATE;
+
+  return convert_chibios_ret(chMBPost(&mq->mailbox, (msg_t)msg, timeout));
 }
 
-static int chibios_mq_pop(mq, void **msg, mq_blocking_mode_t mode) {
-  sysinterval_t timeout = (mode == MQ_BLOCKING)
-                              ? MS2ST(MAILBOX_BLOCKING_TIMEOUT_MS)
-                              : TIME_IMMEDIATE;
+static int chibios_mq_pop(pal_mq_t mq, void **msg, mq_blocking_mode_t mode) {
+  systime_t timeout = (mode == MQ_BLOCKING) ? MS2ST(MAILBOX_BLOCKING_TIMEOUT_MS)
+                                            : TIME_IMMEDIATE;
 
   msg_t ret = chMBFetch(&mq->mailbox, (msg_t *)msg, timeout);
 
