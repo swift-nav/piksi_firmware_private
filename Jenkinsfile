@@ -36,6 +36,8 @@ pipeline {
                     }
                     environment {
                         PIKSI_HW = "v3"
+                        HITL_API_BUILD_TYPE = "pull_request"
+                        HITL_VIEWER_BUILD_TYPE = "pr"
                         // These tokens are in plaintext so Swift developers can make PR's from their
                         // personal forks. We may want to revisit this at some point.
                         GITHUB_COMMENT_TOKEN = "29ff16b8acbf635fad0c702d3189c04a997b9719"
