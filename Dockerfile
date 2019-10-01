@@ -8,3 +8,6 @@ FROM 571934480752.dkr.ecr.us-west-2.amazonaws.com/swift-build:2019-01-07.3
 
 WORKDIR /mnt/workspace
 
+# This package is only needed for the HITL upload script, not for development
+RUN pip3 install requests
+
