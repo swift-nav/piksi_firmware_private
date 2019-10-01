@@ -7,6 +7,4 @@ FROM 571934480752.dkr.ecr.us-west-2.amazonaws.com/swift-build:2019-01-07.3
 # build and publish updates to that base image.
 
 WORKDIR /mnt/workspace
-RUN sudo apt-get update && sudo apt-get install -y python-pip
-RUN pip install requests
 
