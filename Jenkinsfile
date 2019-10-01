@@ -2,10 +2,7 @@
 
 // Use 'ci-jenkins@someref' to pull shared lib from a different branch/tag than the default.
 // Default is configured in Jenkins and should be from "stable" tag.
-@Library("ci-jenkins") import com.swiftnav.ci.*
-
-String dockerFile = "Dockerfile"
-String dockerMountArgs = "-v /mnt/efs/refrepo:/mnt/efs/refrepo"
+@Library("ci-jenkins@jbangelo/STAR-816-move-pfwp-to-jenkins") import com.swiftnav.ci.*
 
 def context = new Context(context: this)
 context.setRepo("piksi_firmware_private")
@@ -35,10 +32,7 @@ pipeline {
             parallel {
                 stage('Build Firmware') {
                     agent {
-                        dockerfile {
-                            filename dockerFile
-                            args dockerMountArgs
-                        }
+                        dockerfile true
                     }
                     environment {
 			PIKSI_HW = "v3"
@@ -78,10 +72,7 @@ pipeline {
                 }
                 stage('Tests & Mesta') {
                     agent {
-                        dockerfile {
-                            filename dockerFile
-                            args dockerMountArgs
-                        }
+                        dockerfile true
                     }
                     environment {
 			PIKSI_HW = "v3"
@@ -99,10 +90,7 @@ pipeline {
 		}
                 stage('Formatting & Lint') {
                     agent {
-                        dockerfile {
-                            filename dockerFile
-                            args dockerMountArgs
-                        }
+                        dockerfile true
                     }
                     steps {
                         stageStart()
