@@ -35,13 +35,13 @@ pipeline {
                         dockerfile true
                     }
                     environment {
-			PIKSI_HW = "v3"
+                        PIKSI_HW = "v3"
                         // These tokens are in plaintext so Swift developers can make PR's from their
                         // personal forks. We may want to revisit this at some point.
                         GITHUB_COMMENT_TOKEN = "29ff16b8acbf635fad0c702d3189c04a997b9719"
                         HITL_API_GITHUB_TOKEN = "d70b53ef8e8e0966818c473c56c02bf45b17290b"
                         PRODUCT_VERSION = "v3"
-			SLACK_CHANNEL = "github"
+                        SLACK_CHANNEL = "github"
                     }
                     steps {
                         stageStart()
@@ -50,23 +50,18 @@ pipeline {
                         script {
                             runMake(target: "PIKSI_REV=prod all")
                             //runMake(target: "PIKSI_REV=base all")
+            			    
+                            createPrDescription(context: context)
+            			    context.archivePatterns(patterns: [
+                                "pr_description.yaml",
+            		            "requirements.yaml",
+            		            "build_v3_prod/piksi_firmware_v3_prod*.elf",
+            		            "build_v3_base/piksi_firmware_v3_base*.elf"])
+                            if (context.isPrPush()) {
+        			            hitl.triggerForPr() // this generates metrics.yaml
+    			            }
+        			        hitl.addComments()
                         }
-                    }
-                    post {
-                        success {
-			    script {
-			        createPrDescription(context: context)
-			        context.archivePatterns(patterns: [
-				    "pr_description.yaml",
-			            "requirements.yaml",
-			            "build_v3_prod/piksi_firmware_v3_prod*.elf",
-			            "build_v3_base/piksi_firmware_v3_base*.elf"])
-                                if (context.isPrPush()) {
-			            hitl.triggerForPr() // this generates metrics.yaml
-			        }
-			        hitl.addComments()
-			    }
-			}
                     }
                 }
                 stage('Tests & Mesta') {
