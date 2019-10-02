@@ -1,7 +1,7 @@
 #!groovy
 
 // Use 'ci-jenkins@someref' to pull shared lib from a different branch/tag than the default.
-// Default is configured in Jenkins and should be from "stable" tag.
+// Default is the master branch
 @Library("ci-jenkins@jbangelo/STAR-816-move-pfwp-to-jenkins") import com.swiftnav.ci.*
 
 def context = new Context(context: this)
