@@ -75,7 +75,7 @@ static pal_mq_t stub_mq_alloc(size_t max_length) {
   return NULL;
 }
 
-static void stub_mq-fre(pal_mq_t mq) {
+static void stub_mq_free(pal_mq_t mq) {
   (void)mq;
   return NULL;
 }

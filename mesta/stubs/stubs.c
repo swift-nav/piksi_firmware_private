@@ -16,7 +16,6 @@
 #include "nap/axi_dma.h"
 #include "settings/settings_client.h"
 #include "simulator/simulator.h"
-#include "starling/platform/mq.h"
 #include "system_monitor/system_monitor.h"
 
 AXIDMADriver AXIDMADriver1;
