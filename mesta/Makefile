@@ -203,7 +203,8 @@ CSRC := $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l2c.c \
 
 
 CXXSRC := $(STARLING_ROOT)/src/starling/starling_input_bridge.cc \
-          $(STARLING_ROOT)/src/starling/util/mutex.cc
+          $(STARLING_ROOT)/src/starling/util/mutex.cc \
+          $(STARLING_ROOT)/src/starling/util/message_queue.cc
 
 CXXFLAGS := -std=c++11
 
