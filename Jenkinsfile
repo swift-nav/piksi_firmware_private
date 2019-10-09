@@ -54,9 +54,13 @@ pipeline {
                             createPrDescription(context: context)
                             context.archivePatterns(patterns: [
                                 "pr_description.yaml",
-                                "requirements.yaml",
+                                "requirements.yaml"])
+                            context.archivePatterns(patterns: [
                                 "build_v3_prod/piksi_firmware_v3_prod*.elf",
-                                "build_v3_base/piksi_firmware_v3_base*.elf"])
+                                "build_v3_prod/piksi_firmware_v3_prod.map",
+                                "build_v3_base/piksi_firmware_v3_base*.elf",
+                                "build_v3_base/piksi_firmware_v3_base.map"],
+                                addPath: "v3")
                             if (context.isPrPush()) {
                                 hitl.triggerForPr() // this generates metrics.yaml
                             }
