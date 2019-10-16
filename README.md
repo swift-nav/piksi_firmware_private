@@ -3,17 +3,12 @@ piksi_firmware_private
 
 [![Build status][1]][2]
 
-### Note: Piksi v2 is no longer supported.
-Follow [this link](https://github.com/swift-nav/piksi_firmware_private/tree/last-v2-commit) for the final Piksi v2 compatible commit.
-
 Firmware for the Swift Navigation Piksi GPS Receiver.
-
-Documentation available online at http://docs.swift-nav.com/piksi_firmware
 
 Checking Out Submodules
 =========================
 
-ChibiOS, libopencm3, libsbp and starling are submodules of this git repository.
+Several dependencies are submodules of this git repository.
 Check them out using:
 
 	git submodule update --init --recursive
@@ -21,60 +16,45 @@ Check them out using:
 Remember to run `git submodule update` after pulling in the latest changes to
 ensure all the submodules are in sync.
 
-Build
-=====
-macOS
------
-First install python if you don't have it yet:
-```bash
-% brew install python
-```
-This installs Python 3; symlinks for `python` and `pip` are created in `/usr/local/opt/python/libexec/bin`
-so add this dir to your PATH in ~/.bashrc, ~/.profile, or similar, and restart the shell.
-```bash
-export PATH="$PATH:/usr/local/opt/python/libexec/bin"
-```
+Development Environment Setup
+=============================
+Cross Compiling Toolchain
+-------------------------
+We currently use the ARM GCC Embedded Toolchain, version 6-2017-q2-update, released by ARM. We mirror the correct version for our most common dev environments:
+ * (64-bit x86 Linux)[https://github.com/swift-nav/swift-toolchains/releases/download/pfwp/gcc-arm-none-eabi-6-2017-q2-update-linux.tar.bz2]
+ * (64-bit x86 macOS)[https://github.com/swift-nav/swift-toolchains/releases/download/pfwp_mac_toolchain/gcc-arm-none-eabi-6-2017-q2-update-mac.tar.bz2]
+Other environments will have to download the packages from the ARM Developer website. Make sure to download the correct version, otherwise your local build may differ from the canonical build.
 
-Now run the script that calls the ansible installer
-```bash
-% bash setup.sh -x install
-```
+On Unix systems it is recomended to extract the toolchain to the `~/gcc-arm-none-eabi/` directory. Here is an example tar command to achieve this: `tar -x -C ~/gcc-arm-none-eabi/ --strip-components=1 <tarbal_name_here>`
 
-Add the path for the arm-gcc compiler to ~/.bashrc, ~/.profile, or similar:
-```bash
-export PATH="$PATH:$HOME/gcc-arm-none-eabi/bin"
-```
-Run the build
-```bash
-% make PIKSI_HW=v3 PIKSI_REV=prod
-```
+Once extracted add the `bin` directory to your `PATH` environment variable.
 
-Installation
-============
+macOS Packages
+--------------
+We maintain a set of homebrew formulas that install all of the dependencies. To install then simply run
 
-There are a few options:
+	brew tap swift-nav/homebrew-swift-devs
+	brew install piksi-firmware-toolchain
 
-* **Normal usage**. If you're only using the Piksi console, binary
-  installers (Windows and OS X) are
-  [here](http://downloads.swiftnav.com/piksi_console/) and source
-  for the console can be found in
-  [piksi_tools](https://github.com/swift-nav/piksi_tools).
+Ubuntu Packages
+---------------
+The following command installs the required packages for development:
 
-* **Development (native)**. To install dependencies for the
-  development tools on your platform (OS X, Ubuntu, or Debian), run
-  the setup script in this repository via `bash setup.sh -x
-  install`. If you're also building the firmware, you'll need to
-  checkout the submodules as well.
+	sudo apt-get install git build-essential cmake
 
-* **Development (VM)**. The Vagrant file is currently used for testing
-  installation setup.sh, but can also be used to provision a
-  development VM. To do so, you will need to download
-  [VirtualBox](https://www.virtualbox.org/wiki/Downloads) and
-  [Vagrant](http://www.vagrantup.com/downloads.html), and then run
-  `vagrant up trusty` in this repository.
+Building
+========
+To build the firmware run the following command from the root of the repository once the development environment has been set up and all of the submodules have been updated.
 
-For additional details about the toolchain installation, please see
-  http://docs.swift-nav.com/wiki/Piksi_Developer_Getting_Started_Guide .
+	make PIKSI_HW=v3 PIKSI_REV=prod
+
+Building With Docker
+--------------------
+While building in your native environment is usually the easiest, the container described by the `Dockerfile` is the canonical build environment. To build and run the docker container run this command from the root of the repository.
+
+	docker-compose run piksi_firmware
+
+Once the container is started you can follow the above directions to build the firmware.
 
 [1]: https://travis-ci.com/swift-nav/piksi_firmware_private.svg?token=qpdcpHVrbHsVtRxV2VHR&branch=master
 [2]: https://travis-ci.com/swift-nav/piksi_firmware_private

@@ -206,11 +206,11 @@ OBJS = $(patsubst %.c,$(OBJDIR)/%.o,$(C_SRCS))
 OBJS += $(patsubst %.cc,$(OBJDIR)/%.o,$(CXX_SRCS))
 
 # Rule for C files
-$(OBJDIR)/%.o: %.c
+$(OBJDIR)/%.o: %.c lsnp
 	$(CC) $(CFLAGS) $(INCLUDE_DIRS) -c $< -o $@
 
 # Rule for C++ files
-$(OBJDIR)/%.o: %.cc
+$(OBJDIR)/%.o: %.cc lsnp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $< -o $@
 
 OBJS += $(OBJDIR)/gtest_main.a
