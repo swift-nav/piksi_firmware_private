@@ -46,7 +46,7 @@ Building
 ========
 To build the firmware run the following command from the root of the repository once the development environment has been set up and all of the submodules have been updated.
 
-	make PIKSI_HW=v3 PIKSI_REV=prod
+	make PIKSI_HW=v3 PIKSI_REV=base
 
 Building With Docker
 --------------------

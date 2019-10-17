@@ -1,6 +1,6 @@
 
 ifeq ($(PIKSI_REV),)
-  PIKSI_REV=prod
+  PIKSI_REV=base
 endif
 
 USE_OPT += -mfpu=neon -mfloat-abi=hard
