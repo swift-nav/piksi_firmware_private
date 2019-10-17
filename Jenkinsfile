@@ -102,6 +102,20 @@ pipeline {
         }
     }
     post {
+        success {
+            script {
+                def automatedPr = new AutomatedPR(context: context)
+                automatedPr.merge()
+            }
+        }
+
+        failure {
+            script {
+                def automatedPr = new AutomatedPR(context: context)
+                automatedPr.alertSlack()
+            }
+        }
+
         always {
             // Common post-run function from ci-jenkins shared libs.
             // Used to e.g. notify slack.
