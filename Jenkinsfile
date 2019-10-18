@@ -51,7 +51,9 @@ pipeline {
                                 runMake(target: "PIKSI_REV=base all")
                             }
 
-                            createPrDescription(context: context)
+                            if (context.isPrPush()) {
+                                createPrDescription(context: context)
+                            }
                             context.archivePatterns(patterns: [
                                 "pr_description.yaml",
                                 "requirements.yaml"])
