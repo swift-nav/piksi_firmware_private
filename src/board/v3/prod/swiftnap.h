@@ -24,8 +24,8 @@
 #define NAP_NUM_TRACKING_CHANNELS (79U)
 
 /* Number of specific tracking channels */
-#define NAP_NUM_GPS_L1_CHANNELS (17U)
-#define NAP_NUM_SBAS_L1_CHANNELS (1U)
+#define NAP_NUM_GPS_L1_CHANNELS (16U)
+#define NAP_NUM_SBAS_L1_CHANNELS (2U)
 #define NAP_NUM_GPS_L2_CHANNELS (11U)
 #define NAP_NUM_GPS_L5_CHANNELS (0U)
 #define NAP_NUM_GLO_G1_CHANNELS (8U)
@@ -40,7 +40,7 @@
 
 /* Index of first specific channel */
 #define NAP_FIRST_GPS_L1_CHANNEL (0U)
-#define NAP_FIRST_SBAS_L1_CHANNEL (17U)
+#define NAP_FIRST_SBAS_L1_CHANNEL (16U)
 #define NAP_FIRST_GPS_L2_CHANNEL (18U)
 #define NAP_FIRST_GLO_G1_CHANNEL (29U)
 #define NAP_FIRST_GLO_G2_CHANNEL (37U)
