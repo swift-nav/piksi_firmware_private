@@ -9,7 +9,7 @@
   artifacts:
     -
       bucket: M4_BUCKET
-      prefix: piksi_buildroot/M4_BUILDROOT_VERSION/v3/prod
+      prefix: piksi_buildroot_private/M4_BUILDROOT_VERSION/v3/prod
       files:
         - uImage.piksiv3_prod
     -
@@ -27,7 +27,7 @@
   artifacts:
     -
       bucket: M4_BUCKET
-      prefix: piksi_buildroot/M4_BUILDROOT_VERSION/v3/prod
+      prefix: piksi_buildroot_private/M4_BUILDROOT_VERSION/v3/prod
       files:
         - uImage.piksiv3_prod
     -
