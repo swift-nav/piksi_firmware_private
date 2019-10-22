@@ -21,7 +21,7 @@
 #define RPROC_MEM_START 0x1A000000
 #define RPROC_MEM_SIZE 0x06000000
 #define ELF_START 0x1A000000
-#define ELF_SIZE 0x06000000
+#define ELF_SIZE 0x02000000
 #define NUM_VRINGS 2
 #define VRING_ALIGN 0x00100000
 /* Number of buffers per vring. Must be a power of 2. Max = 256. */
