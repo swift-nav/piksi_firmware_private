@@ -63,6 +63,13 @@
  * \{ */
 
 /** Status of acquisition for a particular ME SID. */
+
+/* Test huge huge heap allocation */
+
+#define TEST_ARRAY_SIZE (0x100000)
+
+volatile float test_array[TEST_ARRAY_SIZE];
+
 typedef struct {
   enum {
     ACQ_PRN_SKIP = 0,
@@ -270,8 +277,13 @@ static void manage_acq_thread(void *arg) {
   chRegSetThreadName("manage acq");
 
   init_reacq();
-
+  int j;
   while (true) {
+    for (int i = 0; i < TEST_ARRAY_SIZE; i ++)
+    {
+    test_array[i] = i * j % 8;
+    j++;
+    }
     if (!had_fix) {
       /* do all this computation only if we never got a fix */
       last_good_fix_t lgf;
