@@ -46,9 +46,9 @@ pipeline {
                         gitPrep()
 
                         script {
-                            runMake(target: "PIKSI_REV=base all")
+                            runMake(target: "PIKSI_REV=prod all")
                             if (!context.isPrPush()) {
-                                runMake(target: "PIKSI_REV=prod all")
+                                runMake(target: "PIKSI_REV=base all")
                             }
 
                             createPrDescription(context: context)
@@ -158,3 +158,4 @@ def createPrDescription(Map args=[:]) {
             |""".stripMargin()
     )
 }
+

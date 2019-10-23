@@ -9,7 +9,7 @@ endif
 
 ifeq ($(PIKSI_HW),v3)
   ifeq ($(PIKSI_REV),)
-    PIKSI_REV=base
+    PIKSI_REV=prod
   endif
 endif
 
