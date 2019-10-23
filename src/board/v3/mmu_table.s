@@ -38,7 +38,7 @@ MMUTable:
 .set    SECT, SECT+0x100000
 .endr
 
-.rept   0x48                /* 0x1c800000 - 0x1fffffff (Firmware DDR)
+.rept   0x38                /* 0x1c800000 - 0x1fffffff (Firmware DDR)
                              * Normal, shared, inner and outer cacheable */
 .word   SECT + 0x15de6      /* S=b1 TEX=b101 AP=b11, Domain=b1111, C=b0, B=b1 */
 .set    SECT, SECT+0x100000
