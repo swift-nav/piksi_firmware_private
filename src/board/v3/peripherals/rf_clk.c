@@ -23,7 +23,7 @@
 #include "settings/settings_client.h"
 
 static bool rf_clk_ext = false;
-static bool clock_steering_active = false;
+static bool clock_steering_active = true;
 static uint16_t dac_value = 2100;
 static piksi_systime_t next_clocksteering_deadline = PIKSI_SYSTIME_INIT;
 
