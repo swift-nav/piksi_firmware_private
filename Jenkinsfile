@@ -47,7 +47,9 @@ pipeline {
 
                         script {
                             runMake(target: "PIKSI_REV=prod all")
-                            runMake(target: "PIKSI_REV=base all")
+                            if (!context.isPrPush()) {
+                                runMake(target: "PIKSI_REV=base all")
+                            }
 
                             if (context.isPrPush()) {
                                 createPrDescription(context: context)
