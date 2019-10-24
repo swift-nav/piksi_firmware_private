@@ -16,6 +16,10 @@
 #include <stdbool.h>
 #include <swiftnav/common.h>
 
+extern bool is_clock_steering;
+
 void rf_clk_init(bool allow_ext_clk);
+
+void clock_steer(s32 clk_drift_ppb);
 
 #endif /* SWIFTNAV_RF_CLK_H */

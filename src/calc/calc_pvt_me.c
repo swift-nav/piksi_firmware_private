@@ -32,6 +32,7 @@
 
 #include "acq/manage.h"
 #include "board/nap/track_channel.h"
+#include "board/v3/peripherals/rf_clk.h"
 #include "calc_nav_meas.h"
 #include "calc_pvt_common.h"
 #include "main/main.h"
@@ -630,6 +631,8 @@ static s8 me_compute_pvt(const obs_array_t *obs_array,
              current_fix.clock_offset,
              current_fix.clock_drift);
   }
+
+  clock_steer(lrint(current_fix.clock_drift * 1e9));
 
   /* Update the relationship between the solved GPS time and NAP count */
   update_time(current_tc, &current_fix);
