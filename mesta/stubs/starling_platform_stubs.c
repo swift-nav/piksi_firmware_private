@@ -82,17 +82,12 @@ static void *stub_mq_alloc(size_t size) {
  * Semaphore
  ******************************************************************************/
 
-static platform_sem_t *stub_sem_create(void) { return NULL; }
-
 /**
  * We make no effort here to reuse destroyed semaphores,
  * there is an upper bound on the number of semaphores which
  * may be created during a single execution, and that is that.
  */
-static platform_sem_t *stub_sem_create_count(int count) {
-  (void)count;
-  return NULL;
-}
+static platform_sem_t *stub_sem_create(void) { return NULL; }
 
 static void stub_sem_destroy(platform_sem_t **sem_loc) { (void)sem_loc; }
 
@@ -103,7 +98,7 @@ static int stub_sem_wait(platform_sem_t *sem) {
   return 0;
 }
 
-static int stub_sem_wait_timeout(platform_sem_t *sem, unsigned long millis) {
+static int stub_sem_wait_timeout(platform_sem_t *sem, uint32_t millis) {
   (void)sem;
   (void)millis;
   return 0;
@@ -141,7 +136,6 @@ void init_starling_platform_stub_implementation(void) {
   /* Semaphore */
   sem_impl_t sem_impl = {
       .sem_create = stub_sem_create,
-      .sem_create_count = stub_sem_create_count,
       .sem_destroy = stub_sem_destroy,
       .sem_signal = stub_sem_signal,
       .sem_wait = stub_sem_wait,
