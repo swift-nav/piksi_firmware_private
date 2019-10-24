@@ -47,9 +47,7 @@ pipeline {
 
                         script {
                             runMake(target: "PIKSI_REV=prod all")
-                            if (!context.isPrPush()) {
-                                runMake(target: "PIKSI_REV=base all")
-                            }
+                            runMake(target: "PIKSI_REV=base all")
 
                             createPrDescription(context: context)
                             context.archivePatterns(patterns: [
