@@ -162,7 +162,7 @@ def createPrDescription(Map args=[:]) {
             |---
             |commit:
             |  sha: ${pr.data.head.sha}
-            |  message: ${pr.data.title}
+            |  message: '${pr.data.title}'
             |  range: ${pr.data.base.sha}..${pr.data.head.sha}
             |pr:
             |  number: ${pr.getNumber()}
