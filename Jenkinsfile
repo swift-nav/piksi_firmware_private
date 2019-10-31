@@ -63,6 +63,11 @@ pipeline {
                                 addPath: "v3")
                             if (context.isPrPush()) {
                                 hitl.triggerForPr() // this generates metrics.yaml
+                                context.archivePatterns(
+                                    patterns: [
+                                        'metrics.yaml',
+                                    ],
+                                )
                             }
                             hitl.addComments()
                         }
