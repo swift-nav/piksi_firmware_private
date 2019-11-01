@@ -63,7 +63,7 @@
 #define TCXO_FREQ_STAB_PPM 0.28f
 /* Maximum TCXO offset. Includes TCXO nominal temperature frequency stability,
    aging and soldering [ppm] */
-#define TCXO_FREQ_OFFSET_MAX_PPM (TCXO_FREQ_STAB_PPM + 2.92)
+#define TCXO_FREQ_OFFSET_MAX_PPM (TCXO_FREQ_STAB_PPM + 3.12)
 
 /* TCXO offset to Hz conversion factor.
    With TCXO frequency set to 10MHz the GPS L1 IF is computed like this:
