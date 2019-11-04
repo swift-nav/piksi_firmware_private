@@ -123,7 +123,7 @@ function bootstrap_osx () {
     # Download and install Ansible
     if ! which ansible &>/dev/null; then
         log_info "Installing Ansible..."
-        sudo pip install ansible
+        sudo pip install ansible==2.8.4
         #brew install ansible
     fi
 }
@@ -139,15 +139,6 @@ function setup_ansible_plugins () {
         https://raw.githubusercontent.com/ginsys/ansible-plugins/devel/callback_plugins/human_log.py
 }
 
-function install_ansible () {
-    # Required if Ansible's not already available via apt-get.
-    if [[ ! -x /usr/bin/ansible ]]; then
-        log_info "Installing ansible from custom repo..."
-        sudo add-apt-repository ppa:rquillo/ansible
-        sudo apt-get update && sudo apt-get install ansible
-    fi
-}
-
 function run_all_platforms () {
     if [ ! -e ./setup.sh ] ; then
         log_error "Error: setup.sh should be run from piksi_firmware toplevel." >&2
@@ -159,7 +150,7 @@ function run_all_platforms () {
         log_info "Updating..."
         sudo apt-get update
         sudo apt-get install -y curl python-pip
-        sudo pip install ansible
+        sudo pip install ansible==2.8.4
     elif [[ "$OSTYPE" == "darwin"* ]]; then
         piksi_splash_osx
         log_info "Checking system dependencies for OSX..."
