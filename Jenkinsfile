@@ -12,6 +12,8 @@ def logger = context.getLogger()
 def hitl = new SwiftHitl(context: context)
 hitl.update()
 
+String dockerMountArgs = "-v /mnt/efs/refrepo:/mnt/efs/refrepo"
+
 pipeline {
     // Override agent in each stage to make sure we don't share containers among stages.
     agent any
@@ -32,7 +34,9 @@ pipeline {
             parallel {
                 stage('Build Firmware') {
                     agent {
-                        dockerfile true
+                        dockerfile {
+                            args dockerMountArgs
+                        }
                     }
                     environment {
                         PIKSI_HW = "v3"
@@ -75,7 +79,9 @@ pipeline {
                 }
                 stage('Tests & Mesta') {
                     agent {
-                        dockerfile true
+                        dockerfile {
+                            args dockerMountArgs
+                        }
                     }
                     environment {
                         PIKSI_HW = "v3"
@@ -93,7 +99,9 @@ pipeline {
                 }
                 stage('Formatting & Lint') {
                     agent {
-                        dockerfile true
+                        dockerfile {
+                            args dockerMountArgs
+                        }
                     }
                     steps {
                         stageStart()
