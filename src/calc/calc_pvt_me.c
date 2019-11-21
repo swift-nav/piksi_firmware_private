@@ -145,7 +145,9 @@ static void me_send_emptyobs(obs_array_t *obs_array) {
   }
 
   obs_array->n = 0;
-  obs_array->t = GPS_TIME_UNKNOWN;
+  if (!gps_time_valid(&obs_array->t)) {
+    obs_array->t = GPS_TIME_UNKNOWN;
+  }
   /* Transferring ownership of obs_array here */
   me_post_observations(obs_array, NULL);
   obs_array = NULL;
