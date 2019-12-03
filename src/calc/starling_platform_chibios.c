@@ -228,6 +228,7 @@ static pal_mq_t chibios_mq_alloc(size_t max_length) {
 static void chibios_mq_free(pal_mq_t mq) {
   (void)mq;
   // Can't free MQs
+  assert(0);
 }
 
 static int chibios_mq_push(pal_mq_t mq,
