@@ -11,7 +11,6 @@
  */
 
 #include <libpal/pal.h>
-#include <starling/platform/mq.h>
 #include <starling/platform/watchdog.h>
 
 /*******************************************************************************
@@ -65,32 +64,39 @@ static void stub_watchdog_notify_starling_main_thread(void) {}
  * Queue
  ******************************************************************************/
 
-static void stub_mq_init(msg_queue_id_t id, size_t max_length) {
-  (void)id;
+static int stub_mq_init(size_t max_mq, size_t max_length) {
+  (void)max_mq;
   (void)max_length;
+  return PAL_SUCCESS;
 }
 
-static errno_t stub_mq_push(msg_queue_id_t id,
-                            void *msg,
-                            mq_blocking_mode_t should_block) {
-  (void)id;
-  (void)msg;
-  (void)should_block;
-  return 0;
-}
-
-static errno_t stub_mq_pop(msg_queue_id_t id,
-                           void **msg,
-                           mq_blocking_mode_t should_block) {
-  (void)id;
-  (void)msg;
-  (void)should_block;
-  return 0;
-}
-
-static void *stub_mq_alloc(size_t size) {
-  (void)size;
+static pal_mq_t stub_mq_alloc(size_t max_length) {
+  (void)max_length;
   return NULL;
+}
+
+static void stub_mq_free(pal_mq_t mq) { (void)mq; }
+
+static int stub_mq_push(pal_mq_t mq,
+                        void *msg,
+                        enum pal_mq_blocking_mode mode,
+                        size_t timeout_ms) {
+  (void)mq;
+  (void)msg;
+  (void)mode;
+  (void)timeout_ms;
+  return PAL_SUCCESS;
+}
+
+static int stub_mq_pop(pal_mq_t mq,
+                       void **msg,
+                       enum pal_mq_blocking_mode mode,
+                       size_t timeout_ms) {
+  (void)mq;
+  (void)msg;
+  (void)mode;
+  (void)timeout_ms;
+  return PAL_SUCCESS;
 }
 
 /*******************************************************************************
@@ -149,13 +155,14 @@ void init_starling_platform_stub_implementation(void) {
   platform_set_implementation_watchdog(
       stub_watchdog_notify_starling_main_thread);
   /* Queue */
-  mq_impl_t mq_impl = {
-      .mq_init = stub_mq_init,
-      .mq_push = stub_mq_push,
-      .mq_pop = stub_mq_pop,
-      .mq_alloc = stub_mq_alloc,
+  struct pal_impl_mq mq_impl = {
+      .init = stub_mq_init,
+      .alloc = stub_mq_alloc,
+      .free = stub_mq_free,
+      .push = stub_mq_push,
+      .pop = stub_mq_pop,
   };
-  platform_set_implementation_mq(&mq_impl);
+  pal_set_impl_mq(&mq_impl);
   /* Condition Variable */
   cv_impl_t cv_impl = {
       .cv_init = stub_cv_init,

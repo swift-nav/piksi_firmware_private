@@ -13,7 +13,6 @@
 #include <assert.h>
 #include <ch.h>
 #include <libpal/pal.h>
-#include <starling/platform/mq.h>
 #include <starling/platform/watchdog.h>
 #include <string.h>
 
@@ -209,49 +208,65 @@ static void chibios_watchdog_notify_starling_main_thread(void) {
 
 typedef struct mailbox_info_s {
   mailbox_t mailbox;
-  msg_t *mailbox_buf;
+  msg_t mailbox_buf[];
 } mailbox_info_t;
 
-static mailbox_info_t mailbox_info[MQ_ID_COUNT] = {
-    [MQ_ID_PAIRED_OBS] = {{0}, NULL}, [MQ_ID_PRIMARY_DATA] = {{0}, NULL}};
-
-static void chibios_mq_init(msg_queue_id_t id, size_t max_length) {
-  mailbox_info[id].mailbox_buf = chCoreAlloc(sizeof(msg_t) * max_length);
-  assert(mailbox_info[id].mailbox_buf);
-  chMBObjectInit(
-      &mailbox_info[id].mailbox, mailbox_info[id].mailbox_buf, max_length);
+static int chibios_mq_init(size_t max_mq, size_t max_length) {
+  (void)max_mq;
+  (void)max_length;
+  return PAL_SUCCESS;
 }
 
-static errno_t chibios_mq_push(msg_queue_id_t id,
-                               void *msg,
-                               mq_blocking_mode_t should_block) {
-  uint32_t timeout_ms =
-      (MQ_BLOCKING == should_block) ? MAILBOX_BLOCKING_TIMEOUT_MS : 0;
-  if (MSG_OK !=
-      chMBPost(&mailbox_info[id].mailbox, (msg_t)msg, MS2ST(timeout_ms))) {
+static pal_mq_t chibios_mq_alloc(size_t max_length) {
+  struct mailbox_info_s *mb =
+      chCoreAlloc(sizeof(*mb) + (max_length * sizeof(msg_t)));
+  assert(mb);
+  chMBObjectInit(&mb->mailbox, mb->mailbox_buf, max_length);
+  return (pal_mq_t)mb;
+}
+
+static void chibios_mq_free(pal_mq_t mq) {
+  (void)mq;
+  // Can't free MQs
+  assert(0);
+}
+
+static int chibios_mq_push(pal_mq_t mq,
+                           void *msg,
+                           enum pal_mq_blocking_mode mode,
+                           size_t timeout_ms) {
+  struct mailbox_info_s *mb = (struct mailbox_info_s *)mq;
+  if (mode == PAL_MQ_NONBLOCKING) {
+    timeout_ms = 0;
+  } else {
+    timeout_ms = MAILBOX_BLOCKING_TIMEOUT_MS;
+  }
+  if (MSG_OK != chMBPost(&mb->mailbox, (msg_t)msg, MS2ST(timeout_ms))) {
     /* Full or mailbox reset while waiting */
-    return EBUSY;
+    return PAL_WOULD_BLOCK;
   }
 
-  return 0;
+  return PAL_SUCCESS;
 }
 
-static errno_t chibios_mq_pop(msg_queue_id_t id,
-                              void **msg,
-                              mq_blocking_mode_t should_block) {
-  uint32_t timeout_ms =
-      (MQ_BLOCKING == should_block) ? MAILBOX_BLOCKING_TIMEOUT_MS : 0;
-  if (MSG_OK !=
-      chMBFetch(&mailbox_info[id].mailbox, (msg_t *)msg, MS2ST(timeout_ms))) {
+static int chibios_mq_pop(pal_mq_t mq,
+                          void **msg,
+                          enum pal_mq_blocking_mode mode,
+                          size_t timeout_ms) {
+  struct mailbox_info_s *mb = (struct mailbox_info_s *)mq;
+  if (mode == PAL_MQ_NONBLOCKING) {
+    timeout_ms = 0;
+  } else {
+    timeout_ms = MAILBOX_BLOCKING_TIMEOUT_MS;
+  }
+  if (MSG_OK != chMBFetch(&mb->mailbox, (msg_t *)msg, MS2ST(timeout_ms))) {
     /* Empty or mailbox reset while waiting */
     *msg = NULL;
-    return EBUSY;
+    return PAL_WOULD_BLOCK;
   }
 
-  return 0;
+  return PAL_SUCCESS;
 }
-
-static void *chibios_mq_alloc(size_t size) { return chCoreAlloc(size); }
 
 /*******************************************************************************
  * Condition Variable
@@ -365,6 +380,14 @@ void pal_init_impl(void) {
         .cv_wait_for = chibios_cv_wait_for,
     };
     pal_set_impl_cv(&cv_impl);
+    struct pal_impl_mq mq_impl = {
+        .init = chibios_mq_init,
+        .alloc = chibios_mq_alloc,
+        .free = chibios_mq_free,
+        .push = chibios_mq_push,
+        .pop = chibios_mq_pop,
+    };
+    pal_set_impl_mq(&mq_impl);
 
     pal_initialized = true;
   }
@@ -378,12 +401,4 @@ void starling_initialize_platform(void) {
   /* Watchdog */
   platform_set_implementation_watchdog(
       chibios_watchdog_notify_starling_main_thread);
-  /* Queue */
-  mq_impl_t mq_impl = {
-      .mq_init = chibios_mq_init,
-      .mq_push = chibios_mq_push,
-      .mq_pop = chibios_mq_pop,
-      .mq_alloc = chibios_mq_alloc,
-  };
-  platform_set_implementation_mq(&mq_impl);
 }
