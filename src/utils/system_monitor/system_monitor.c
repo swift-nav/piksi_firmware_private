@@ -173,7 +173,7 @@ static void calibrate_rf_plls_and_lpf(const piksi_systime_t *now) {
       return;
     }
   } else {
-    u64 diff_s = piksi_systime_elapsed_since_s(now);
+    u64 diff_s = piksi_systime_elapsed_since_s(&calibrate_epoch);
     if (diff_s < FE_CALIBRATION_REPEAT_TIMEOUT_S) {
       return;
     }
@@ -183,10 +183,10 @@ static void calibrate_rf_plls_and_lpf(const piksi_systime_t *now) {
      too much time has elapsed since last RF PLL and LPF calibration:
      re-calibrate RF front-end PLLs and LPF */
 
-  const char* plls = nt1065_calibrate_plls() ? "success" : "failure";
+  const char *plls = nt1065_calibrate_plls() ? "success" : "failure";
   log_warn("Calibration of NT1065 PLLs at %.1lf C: %s", temperature_c, plls);
 
-  const char* lpf = nt1065_calibrate_lpf() ? "success" : "failure";
+  const char *lpf = nt1065_calibrate_lpf() ? "success" : "failure";
   log_warn("Calibration of NT1065 LPF at %.1lf C: %s", temperature_c, lpf);
 
   calibrate_epoch = *now;
@@ -239,7 +239,7 @@ static void system_monitor_thread(void *arg) {
     DO_EVERY(3, board_send_state(););
 
     DO_EACH_MS(FE_CALIBRATION_REPEAT_TIMEOUT_S * 1000,
-      calibrate_rf_plls_and_lpf(&time););
+               calibrate_rf_plls_and_lpf(&time););
 
     DO_EVERY(3, check_frontend_errors(););
     piksi_systime_sleep_until_windowed_ms(&time, heartbeat_period_milliseconds);
