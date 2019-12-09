@@ -123,6 +123,76 @@ static void check_frontend_errors(void) {
   }
 }
 
+/**
+ * How often to perform RF front-end LPF and PLL calibration in
+ * absense of temperature readings [s].
+ * Normally temperature reading should be available at all times.
+ * This threshold is a safety measure in case of missing temperature
+ * readings.
+ * The selection of 1 minute is arbitrary assuming that temperature
+ * does not change much during this time.
+ */
+#define FE_CALIBRATION_REPEAT_TIMEOUT_S (1 * 60)
+
+/**
+ * The absolute value temperature change needed to trigger
+ * RF front-end LPF and PLL calibration [Celsius].
+ * NT1065 tech support was contacted about this value and
+ * the recommended maximum was 50 degrees Celsius.
+ * The selected smaller value is an extra safety measure.
+ */
+#define FE_CALIBRATION_THRESHOLD_C 30
+
+/**
+ * Performs calibration of NT1065 PLLs and LPF as a function of RF temperature
+ * If temperature readings are not available, a time-out based calibration
+ * is performed.
+ * @param now current system time
+ */
+static void calibrate_rf_plls_and_lpf(const piksi_systime_t *now) {
+  assert(now);
+
+  static piksi_systime_t calibrate_epoch = 0;
+  static double calibrate_temperature_c = 0;
+  double temperature_c = 0;
+  bool temperature_valid = nt1065_get_temperature(&temperature_c);
+
+  static int init_done = 0;
+  if (!init_done) {
+    init_done = 1;
+    if (temperature_valid) {
+      calibrate_temperature_c = temperature_c;
+    }
+    calibrate_epoch = *now;
+    return;
+  }
+
+  if (temperature_valid) {
+    int diff_c = fabs(temperature_c - calibrate_temperature_c);
+    if (diff_c < FE_CALIBRATION_THRESHOLD_C) {
+      return;
+    }
+  } else {
+    u64 diff_s = piksi_systime_elapsed_since_s(now);
+    if (diff_s < FE_CALIBRATION_REPEAT_TIMEOUT_S) {
+      return;
+    }
+  }
+
+  /* we either face a significant temperature change or
+     too much time has elapsed since last RF PLL and LPF calibration:
+     re-calibrate RF front-end PLLs and LPF */
+
+  const char* plls = nt1065_calibrate_plls() ? "success" : "failure";
+  log_warn("Calibration of NT1065 PLLs at %d C: %s", temperature_c, plls);
+
+  const char* lpf = nt1065_calibrate_lpf() ? "success" : "failure";
+  log_warn("Calibration of NT1065 LPF at %d C: %s", temperature_c, lpf);
+
+  calibrate_epoch = *now;
+  calibrate_temperature_c = temperature_c;
+}
+
 static THD_WORKING_AREA(wa_system_monitor_thread, SYSTEM_MONITOR_THREAD_STACK);
 static void system_monitor_thread(void *arg) {
   (void)arg;
@@ -167,6 +237,9 @@ static void system_monitor_thread(void *arg) {
     DO_EVERY(2, send_thread_states(););
 
     DO_EVERY(3, board_send_state(););
+
+    DO_EACH_MS(FE_CALIBRATION_REPEAT_TIMEOUT_S * 1000,
+      calibrate_rf_plls_and_lpf(&time););
 
     DO_EVERY(3, check_frontend_errors(););
     piksi_systime_sleep_until_windowed_ms(&time, heartbeat_period_milliseconds);
