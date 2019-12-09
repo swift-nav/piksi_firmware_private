@@ -141,7 +141,7 @@ static void check_frontend_errors(void) {
  * the recommended maximum was 50 degrees Celsius.
  * The selected smaller value is an extra safety measure.
  */
-#define FE_CALIBRATION_THRESHOLD_C 30
+#define FE_CALIBRATION_THRESHOLD_C 30.f
 
 /**
  * Performs calibration of NT1065 PLLs and LPF as a function of RF temperature
@@ -152,7 +152,7 @@ static void check_frontend_errors(void) {
 static void calibrate_rf_plls_and_lpf(const piksi_systime_t *now) {
   assert(now);
 
-  static piksi_systime_t calibrate_epoch = 0;
+  static piksi_systime_t calibrate_epoch = {0};
   static double calibrate_temperature_c = 0;
   double temperature_c = 0;
   bool temperature_valid = nt1065_get_temperature(&temperature_c);
@@ -168,7 +168,7 @@ static void calibrate_rf_plls_and_lpf(const piksi_systime_t *now) {
   }
 
   if (temperature_valid) {
-    int diff_c = fabs(temperature_c - calibrate_temperature_c);
+    double diff_c = fabs(temperature_c - calibrate_temperature_c);
     if (diff_c < FE_CALIBRATION_THRESHOLD_C) {
       return;
     }
@@ -184,10 +184,10 @@ static void calibrate_rf_plls_and_lpf(const piksi_systime_t *now) {
      re-calibrate RF front-end PLLs and LPF */
 
   const char* plls = nt1065_calibrate_plls() ? "success" : "failure";
-  log_warn("Calibration of NT1065 PLLs at %d C: %s", temperature_c, plls);
+  log_warn("Calibration of NT1065 PLLs at %.1lf C: %s", temperature_c, plls);
 
   const char* lpf = nt1065_calibrate_lpf() ? "success" : "failure";
-  log_warn("Calibration of NT1065 LPF at %d C: %s", temperature_c, lpf);
+  log_warn("Calibration of NT1065 LPF at %.1lf C: %s", temperature_c, lpf);
 
   calibrate_epoch = *now;
   calibrate_temperature_c = temperature_c;
