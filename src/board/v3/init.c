@@ -371,22 +371,13 @@ u8 hw_version_string_get(char *hw_version_string) {
 bool hw_is_l5(void) {
   u16 major_ver = factory_params.hardware_version >> 16;
   switch (major_ver) {
-    case 0:
-    case 1:
-    case 3:
-    case 4:
-    case 5:
-    case 6:
-    case 7:
-    case 8:
-    case 9:
-    case 10:
-    case 16:
-      // This hardware is original Piksi Multi.
-      return false;
-    default:
+    case 11:
+    case 12:
       // This hardware is Piksi Multi L5.
       return true;
+    default:
+      // This hardware is the original Piksi Multi.
+      return false;
   }
 }
 
