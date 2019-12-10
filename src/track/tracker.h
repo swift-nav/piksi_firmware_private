@@ -95,7 +95,8 @@ typedef enum {
   CH_DROP_REASON_OUTLIER,      /**< Doppler outlier */
   CH_DROP_REASON_SBAS_PROVIDER_CHANGE, /**< SBAS provider change */
   CH_DROP_REASON_RAIM,                 /**< Signal removed by RAIM */
-  CH_DROP_REASON_NEW_MODE              /**< New tracker mode */
+  CH_DROP_REASON_NEW_MODE,             /**< New tracker mode */
+  CH_DROP_REASON_TOO_OLD               /**< Signal in track too long */
 } ch_drop_reason_t;
 
 struct profile_vars {

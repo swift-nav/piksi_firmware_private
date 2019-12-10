@@ -38,6 +38,8 @@
 /** SBAS L1 configuration container */
 static tp_tracker_config_t sbas_l1ca_config = TP_TRACKER_DEFAULT_CONFIG;
 
+#define SBAS_MAX_TIME_IN_TRACK_MS (DAY_SECS * SECS_MS)
+
 /* Forward declarations of interface methods for SBAS L1 */
 static tracker_interface_function_t tracker_sbas_l1ca_init;
 static tracker_interface_function_t tracker_sbas_l1ca_update;
@@ -70,5 +72,12 @@ static void tracker_sbas_l1ca_update(tracker_t *tracker) {
   if (!bit_aligned) {
     return;
   }
+
+  u64 time_in_track_ms = tracker_timer_ms(&tracker->age_timer);
+  if (time_in_track_ms > SBAS_MAX_TIME_IN_TRACK_MS) {
+    /* drop and reacquire satellite every 24 hours to work around bug DLM-13 */
+    tracker_flag_drop(tracker, CH_DROP_REASON_TOO_OLD);
+  }
+
   tracker_tow_cache(tracker);
 }
