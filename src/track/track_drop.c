@@ -65,6 +65,9 @@ static const char *get_ch_drop_reason_str(ch_drop_reason_t reason) {
     case CH_DROP_REASON_NEW_MODE:
       str = "New tracker mode, dropping";
       break;
+    case CH_DROP_REASON_TOO_OLD:
+      str = "Periodic channel reset, dropping";
+      break;
     default:
       assert(!"Unknown channel drop reason");
   }
