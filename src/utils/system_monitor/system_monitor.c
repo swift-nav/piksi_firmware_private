@@ -157,9 +157,9 @@ static void calibrate_rf_plls_and_lpf(const piksi_systime_t *now) {
   double temperature_c = 0;
   bool temperature_valid = nt1065_get_temperature(&temperature_c);
 
-  static int init_done = 0;
+  static bool init_done = 0;
   if (!init_done) {
-    init_done = 1;
+    init_done = true;
     if (temperature_valid) {
       calibrate_temperature_c = temperature_c;
     }
@@ -183,11 +183,17 @@ static void calibrate_rf_plls_and_lpf(const piksi_systime_t *now) {
      too much time has elapsed since last RF PLL and LPF calibration:
      re-calibrate RF front-end PLLs and LPF */
 
-  const char *plls = nt1065_calibrate_plls() ? "success" : "failure";
-  log_warn("Calibration of NT1065 PLLs at %.1lf C: %s", temperature_c, plls);
+  if (nt1065_calibrate_plls()) {
+    log_info("Calibration of NT1065 PLLs at %.1lf C: success", temperature_c);
+  } else {
+    log_warn("Calibration of NT1065 PLLs at %.1lf C: failure", temperature_c);
+  }
 
-  const char *lpf = nt1065_calibrate_lpf() ? "success" : "failure";
-  log_warn("Calibration of NT1065 LPF at %.1lf C: %s", temperature_c, lpf);
+  if (nt1065_calibrate_lpf()) {
+    log_info("Calibration of NT1065 LPF at %.1lf C: success", temperature_c);
+  } else {
+    log_warn("Calibration of NT1065 LPF at %.1lf C: failure", temperature_c);
+  }
 
   calibrate_epoch = *now;
   calibrate_temperature_c = temperature_c;
