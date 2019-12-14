@@ -280,7 +280,7 @@ INCDIR = $(STARTUPINC) $(PORTINC) $(KERNINC) \
          $(SWIFTNAV_ROOT)/libsettings/include \
          $(STARLING_ROOT)/include \
          $(STARLING_ROOT)/third_party/libpal/include \
-         $(STARLING_ROOT)/third_party/libpal/src/default \
+         $(STARLING_ROOT)/third_party/libpal/src/default/include \
          $(STARLING_ROOT)/third_party/libswiftnav/include \
          $(SWIFTNAV_ROOT)/src \
          $(SWIFTNAV_ROOT)/src/board \
