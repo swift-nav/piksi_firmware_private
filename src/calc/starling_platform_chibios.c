@@ -12,9 +12,7 @@
 
 #include <assert.h>
 #include <ch.h>
-#include <libpal/pal.h>
 #include <libpal/impl/impl.h>
-
 #include <libpal/impl/io/file.h>
 #include <libpal/impl/io/io.h>
 #include <libpal/impl/io/serial.h>
@@ -25,7 +23,7 @@
 #include <libpal/impl/synch/condition_var.h>
 #include <libpal/impl/synch/mutex.h>
 #include <libpal/impl/thread/thread.h>
-
+#include <libpal/pal.h>
 #include <starling/platform/watchdog.h>
 #include <string.h>
 
@@ -397,9 +395,7 @@ void pal_impl_init(void) {
 /**
  * Deinitialize ChibiOS PAL Implementation
  */
-void pal_impl_deinit(void) {
-  NOT_IMPLEMENTED();
-}
+void pal_impl_deinit(void) { NOT_IMPLEMENTED(); }
 
 /*******************************************************************************
  * Initialization

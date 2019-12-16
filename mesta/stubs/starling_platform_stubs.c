@@ -10,6 +10,10 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include <libpal/impl/ipc/mq.h>
+#include <libpal/impl/synch/condition_var.h>
+#include <libpal/impl/synch/mutex.h>
+#include <libpal/impl/thread/thread.h>
 #include <libpal/pal.h>
 #include <starling/platform/watchdog.h>
 
@@ -141,13 +145,16 @@ void pal_impl_init(void) {
   };
   pal_set_impl_mq(&mq_impl);
   /* Condition Variable */
-  cv_impl_t cv_impl = {
-      .cv_alloc = stub_cv_alloc,
-      .cv_free = stub_cv_free,
-      .cv_notify_one = stub_cv_notify_one,
-      .cv_notify_all = stub_cv_notify_all,
-      .cv_wait = stub_cv_wait,
-      .cv_wait_for = stub_cv_wait_for,
+  struct pal_impl_cv cv_impl = {
+      .alloc = stub_cv_alloc,
+      .free = stub_cv_free,
+      .notify_one = stub_cv_notify_one,
+      .notify_all = stub_cv_notify_all,
+      .wait = stub_cv_wait,
+      .wait_for = stub_cv_wait_for,
   };
   pal_set_impl_cv(&cv_impl);
+}
+
+void pal_impl_deinit(void) {  // Nothing to do
 }
