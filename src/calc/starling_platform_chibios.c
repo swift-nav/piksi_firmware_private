@@ -12,6 +12,17 @@
 
 #include <assert.h>
 #include <ch.h>
+#include <libpal/impl/impl.h>
+#include <libpal/impl/io/file.h>
+#include <libpal/impl/io/io.h>
+#include <libpal/impl/io/serial.h>
+#include <libpal/impl/io/stdstream.h>
+#include <libpal/impl/io/tcp.h>
+#include <libpal/impl/ipc/mq.h>
+#include <libpal/impl/mem/mem.h>
+#include <libpal/impl/synch/condition_var.h>
+#include <libpal/impl/synch/mutex.h>
+#include <libpal/impl/thread/thread.h>
 #include <libpal/pal.h>
 #include <starling/platform/watchdog.h>
 #include <string.h>
@@ -211,12 +222,6 @@ typedef struct mailbox_info_s {
   msg_t mailbox_buf[];
 } mailbox_info_t;
 
-static int chibios_mq_init(size_t max_mq, size_t max_length) {
-  (void)max_mq;
-  (void)max_length;
-  return PAL_SUCCESS;
-}
-
 static pal_mq_t chibios_mq_alloc(size_t max_length) {
   struct mailbox_info_s *mb =
       chCoreAlloc(sizeof(*mb) + (max_length * sizeof(msg_t)));
@@ -346,52 +351,51 @@ static int chibios_cv_wait_for(pal_cv_t cv,
  * PAL Initialization
  ******************************************************************************/
 
-static bool pal_initialized = false;
+void pal_impl_init(void) {
+  struct pal_impl_mem mem_impl = {
+      .alloc = chibios_mem_alloc,
+      .free = chibios_mem_free,
+  };
+  pal_set_impl_mem(&mem_impl);
+  struct pal_impl_mutex mutex_impl = {
+      .alloc = chibios_mutex_alloc,
+      .free = chibios_mutex_free,
+      .lock = chibios_mutex_lock,
+      .unlock = chibios_mutex_unlock,
+  };
+  pal_set_impl_mutex(&mutex_impl);
+  struct pal_impl_thread thread_impl = {
+      .create = chibios_thread_create,
+      .set_name = chibios_thread_set_name,
+      .join = chibios_thread_join,
+      .exit = chibios_thread_exit,
+  };
+  pal_set_impl_thread(&thread_impl);
+  struct pal_impl_cv cv_impl = {
+      .alloc = chibios_cv_alloc,
+      .free = chibios_cv_free,
+      .notify_one = chibios_cv_notify_one,
+      .notify_all = chibios_cv_notify_all,
+      .wait = chibios_cv_wait,
+      .wait_for = chibios_cv_wait_for,
+  };
+  pal_set_impl_cv(&cv_impl);
+  struct pal_impl_mq mq_impl = {
+      .alloc = chibios_mq_alloc,
+      .free = chibios_mq_free,
+      .push = chibios_mq_push,
+      .pop = chibios_mq_pop,
+  };
+  pal_set_impl_mq(&mq_impl);
 
-void pal_init_impl(void) {
-  if (!pal_initialized) {
-    struct pal_impl_mem mem_impl = {
-        .alloc = chibios_mem_alloc,
-        .free = chibios_mem_free,
-    };
-    pal_set_impl_mem(&mem_impl);
-    struct pal_impl_mutex mutex_impl = {
-        .init = chibios_mutex_init,
-        .alloc = chibios_mutex_alloc,
-        .free = chibios_mutex_free,
-        .lock = chibios_mutex_lock,
-        .unlock = chibios_mutex_unlock,
-    };
-    pal_set_impl_mutex(&mutex_impl);
-    struct pal_impl_thread thread_impl = {
-        .create = chibios_thread_create,
-        .set_name = chibios_thread_set_name,
-        .join = chibios_thread_join,
-        .exit = chibios_thread_exit,
-    };
-    pal_set_impl_thread(&thread_impl);
-    cv_impl_t cv_impl = {
-        .cv_init = chibios_cv_init,
-        .cv_alloc = chibios_cv_alloc,
-        .cv_free = chibios_cv_free,
-        .cv_notify_one = chibios_cv_notify_one,
-        .cv_notify_all = chibios_cv_notify_all,
-        .cv_wait = chibios_cv_wait,
-        .cv_wait_for = chibios_cv_wait_for,
-    };
-    pal_set_impl_cv(&cv_impl);
-    struct pal_impl_mq mq_impl = {
-        .init = chibios_mq_init,
-        .alloc = chibios_mq_alloc,
-        .free = chibios_mq_free,
-        .push = chibios_mq_push,
-        .pop = chibios_mq_pop,
-    };
-    pal_set_impl_mq(&mq_impl);
-
-    pal_initialized = true;
-  }
+  assert(chibios_mutex_init(NUM_MUTEXES) == PAL_SUCCESS);
+  assert(chibios_cv_init(NUM_COND_VARS) == PAL_SUCCESS);
 }
+
+/**
+ * Deinitialize ChibiOS PAL Implementation
+ */
+void pal_impl_deinit(void) { NOT_IMPLEMENTED(); }
 
 /*******************************************************************************
  * Initialization

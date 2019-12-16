@@ -46,8 +46,7 @@ static bool is_firmware_starling_enabled(void) {
 
 void firmware_starling_preinit(void) {
   starling_initialize_platform();
-  // Starling based platform initialization
-  starling_platform_setup();
+  pal_init();
   starling_initialize_api();
 }
 

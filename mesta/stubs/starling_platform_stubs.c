@@ -10,17 +10,16 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include <libpal/impl/ipc/mq.h>
+#include <libpal/impl/synch/condition_var.h>
+#include <libpal/impl/synch/mutex.h>
+#include <libpal/impl/thread/thread.h>
 #include <libpal/pal.h>
 #include <starling/platform/watchdog.h>
 
 /*******************************************************************************
  * Mutex
  ******************************************************************************/
-
-static int stub_mutex_init(size_t max_mutexes) {
-  (void)max_mutexes;
-  return PAL_INVALID;
-}
 
 static pal_mutex_t stub_mutex_alloc(void) { return NULL; }
 
@@ -64,12 +63,6 @@ static void stub_watchdog_notify_starling_main_thread(void) {}
  * Queue
  ******************************************************************************/
 
-static int stub_mq_init(size_t max_mq, size_t max_length) {
-  (void)max_mq;
-  (void)max_length;
-  return PAL_SUCCESS;
-}
-
 static pal_mq_t stub_mq_alloc(size_t max_length) {
   (void)max_length;
   return NULL;
@@ -103,16 +96,6 @@ static int stub_mq_pop(pal_mq_t mq,
  * Condition Variable
  ******************************************************************************/
 
-/**
- * We make no effort here to reuse destroyed condition variables,
- * there is an upper bound on the number of condition variables which
- * may be created during a single execution, and that is that.
- */
-static int stub_cv_init(size_t max_cv) {
-  (void)max_cv;
-  return PAL_INVALID;
-}
-
 static pal_cv_t stub_cv_alloc(void) { return NULL; }
 
 static void stub_cv_free(pal_cv_t cv_loc) { (void)cv_loc; }
@@ -133,10 +116,9 @@ static int stub_cv_wait_for(pal_cv_t cv, pal_mutex_t lock, uint32_t millis) {
  * Initialization
  ******************************************************************************/
 
-void init_starling_platform_stub_implementation(void) {
+void pal_impl_init(void) {
   /* Mutex */
   struct pal_impl_mutex mutex_impl = {
-      .init = stub_mutex_init,
       .alloc = stub_mutex_alloc,
       .free = stub_mutex_free,
       .lock = stub_mutex_lock,
@@ -156,7 +138,6 @@ void init_starling_platform_stub_implementation(void) {
       stub_watchdog_notify_starling_main_thread);
   /* Queue */
   struct pal_impl_mq mq_impl = {
-      .init = stub_mq_init,
       .alloc = stub_mq_alloc,
       .free = stub_mq_free,
       .push = stub_mq_push,
@@ -164,14 +145,16 @@ void init_starling_platform_stub_implementation(void) {
   };
   pal_set_impl_mq(&mq_impl);
   /* Condition Variable */
-  cv_impl_t cv_impl = {
-      .cv_init = stub_cv_init,
-      .cv_alloc = stub_cv_alloc,
-      .cv_free = stub_cv_free,
-      .cv_notify_one = stub_cv_notify_one,
-      .cv_notify_all = stub_cv_notify_all,
-      .cv_wait = stub_cv_wait,
-      .cv_wait_for = stub_cv_wait_for,
+  struct pal_impl_cv cv_impl = {
+      .alloc = stub_cv_alloc,
+      .free = stub_cv_free,
+      .notify_one = stub_cv_notify_one,
+      .notify_all = stub_cv_notify_all,
+      .wait = stub_cv_wait,
+      .wait_for = stub_cv_wait_for,
   };
   pal_set_impl_cv(&cv_impl);
+}
+
+void pal_impl_deinit(void) {  // Nothing to do
 }
