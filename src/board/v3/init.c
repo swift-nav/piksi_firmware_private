@@ -370,12 +370,15 @@ u8 hw_version_string_get(char *hw_version_string) {
 
 bool hw_is_l5(void) {
   u16 major_ver = factory_params.hardware_version >> 16;
+  //printf("Major version: %u", major_ver);
   switch (major_ver) {
     case 11:
     case 12:
+      printf("This is a Piksi Multi L5\n");
       // This hardware is Piksi Multi L5.
       return true;
     default:
+      printf("This is an original Piksi Multi\n");
       // This hardware is the original Piksi Multi.
       return false;
   }
