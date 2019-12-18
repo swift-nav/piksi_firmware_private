@@ -294,4 +294,37 @@ void nt1065_write_reg(uint8_t reg_addr, uint8_t value) {
   frontend_close_spi();
 }
 
+bool nt1065_calibrate_plls(void) {
+  int reg_addr[] = {43, 47};
+  bool calibrated = true;
+  for (int i = 0; i < 2; i++) {
+    uint8_t d = nt1065_read_reg(reg_addr[i]);
+    /* start PLL calibration, takes ~1ms to be locked as per datasheet,
+       reset to '0' automatically when finished */
+    d |= 1;
+    nt1065_write_reg(reg_addr[i], d);
+
+    chThdSleepMilliseconds(/*sleep_ms=*/30);
+
+    d = nt1065_read_reg(reg_addr[i]);
+    calibrated &= (0U == (d & 1U));
+  }
+  return calibrated;
+}
+
+#define NT1065_REG4 4
+
+bool nt1065_calibrate_lpf(void) {
+  uint8_t d = nt1065_read_reg(NT1065_REG4);
+  /* LPG auto-calibration system execute, takes ~15ms as per datasheet,
+     reset to '0' automatically when finished */
+  d |= 1;
+  nt1065_write_reg(NT1065_REG4, d);
+
+  chThdSleepMilliseconds(/*sleep_ms=*/30);
+
+  d = nt1065_read_reg(NT1065_REG4);
+  return 0U == (d & 1U);
+}
+
 #include "frontend_config.c"

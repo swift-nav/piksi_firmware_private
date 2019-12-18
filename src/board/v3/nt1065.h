@@ -56,3 +56,13 @@ bool nt1065_check_calibration(void);
 uint8_t nt1065_read_reg(uint8_t reg_addr);
 
 void nt1065_write_reg(uint8_t reg_addr, uint8_t value);
+
+/** @brief Calibrate RF front-end PLL "A" and PLL "B"
+ *  @return True if calibration succeeded
+ */
+bool nt1065_calibrate_plls(void);
+
+/** @brief Calibrate RF front-end low pass filter (LPF)
+ *  @return True if calibration succeeded
+ */
+bool nt1065_calibrate_lpf(void);
