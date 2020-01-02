@@ -196,7 +196,9 @@ void tp_tracker_init(tracker_t *tracker, const tp_tracker_config_t *config) {
   tracker_ambiguity_unknown(tracker);
 
   log_debug_mesid(
-      mesid, "[+%" PRIu32 "ms] Tracker start", tracker->update_count);
+      mesid,
+      "[+%" PRIu64 "ms] Tracker start",
+      tracker_timer_ms(&tracker->age_timer));
 
   /* Do tracking report to manager */
   tp_report_t report;
@@ -229,8 +231,8 @@ void tracker_cleanup(tracker_t *tracker) {
  */
 void tp_tracker_disable(tracker_t *tracker) {
   log_debug_mesid(tracker->mesid,
-                  "[+%" PRIu32 "ms] Tracker stop TOW=%" PRId32 "ms",
-                  tracker->update_count,
+                  "[+%" PRIu64 "ms] Tracker stop TOW=%" PRId32 "ms",
+                  tracker_timer_ms(&tracker->age_timer),
                   tracker->TOW_ms);
 
   /* restore acq for this tracked SV */
@@ -462,8 +464,8 @@ static void tp_tracker_update_correlators(tracker_t *tracker, u32 cycle_flags) {
 
   if (!tp_tow_is_sane(tracker->TOW_ms)) {
     log_error_mesid(mesid,
-                    "[+%" PRIu32 "ms] Error TOW from decoder %" PRId32 "(%s)",
-                    tracker->update_count,
+                    "[+%" PRIu64 "ms] Error TOW from decoder %" PRId32 "(%s)",
+                    tracker_timer_ms(&tracker->age_timer),
                     tracker->TOW_ms,
                     decoded_tow ? "decoded" : "propagated");
 
@@ -474,8 +476,8 @@ static void tp_tracker_update_correlators(tracker_t *tracker, u32 cycle_flags) {
 
   if (decoded_tow) {
     log_debug_mesid(mesid,
-                    "[+%" PRIu32 "ms] Decoded TOW %" PRId32,
-                    tracker->update_count,
+                    "[+%" PRIu64 "ms] Decoded TOW %" PRId32,
+                    tracker_timer_ms(&tracker->age_timer),
                     tracker->TOW_ms);
 
     if (tracker->TOW_ms != TOW_UNKNOWN) {
@@ -488,9 +490,6 @@ static void tp_tracker_update_correlators(tracker_t *tracker, u32 cycle_flags) {
   } else {
     tracker->flags |= TRACKER_FLAG_TOW_VALID;
   }
-
-  /* Channel run time. */
-  tracker->update_count += int_ms;
 }
 
 /**
@@ -954,10 +953,10 @@ static bool tow_is_bit_aligned(tracker_t *tracker) {
     s8 error_ms = tail < (bit_length >> 1) ? -tail : bit_length - tail;
 
     log_error_mesid(mesid,
-                    "[+%" PRIu32
+                    "[+%" PRIu64
                     "ms] TOW error detected: "
                     "error=%" PRId8 "ms old_tow=%" PRId32,
-                    tracker->update_count,
+                    tracker_timer_ms(&tracker->age_timer),
                     error_ms,
                     tracker->TOW_ms);
 

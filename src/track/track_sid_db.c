@@ -432,10 +432,10 @@ void propagate_tow_from_sid_db(tracker_t *tracker) {
   }
 
   log_debug_mesid(mesid,
-                  "[+%" PRIu32 "ms] Initializing TOW from cache [%" PRIu8
+                  "[+%" PRIu64 "ms] Initializing TOW from cache [%" PRIu8
                   "ms]"
                   " delta=%.2lfms ToW=%" PRId32 "ms error=%lf",
-                  tracker->update_count,
+                  tracker_timer_ms(&tracker->age_timer),
                   bit_length,
                   nap_count_to_ms(time_delta_tk),
                   TOW_ms,
@@ -447,8 +447,8 @@ void propagate_tow_from_sid_db(tracker_t *tracker) {
     tracker->flags |= TRACKER_FLAG_TOW_VALID;
   } else {
     log_error_mesid(mesid,
-                    "[+%" PRIu32 "ms] Error TOW propagation %" PRId32,
-                    tracker->update_count,
+                    "[+%" PRIu64 "ms] Error TOW propagation %" PRId32,
+                    tracker_timer_ms(&tracker->age_timer),
                     tracker->TOW_ms);
     tracker->TOW_residual_ns = 0;
     tracker->TOW_ms = TOW_UNKNOWN;

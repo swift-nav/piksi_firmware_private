@@ -163,9 +163,6 @@ typedef struct {
   const struct tp_profile_entry *profiles; /**< Profiles switching table. */
 } tp_profile_t;
 
-/** Counter type. Value changes every time tracking mode changes. */
-typedef u32 update_count_t;
-
 /** Controller parameters for error sigma computations */
 typedef struct {
   float fll_bw; /**< FLL controller NBW [Hz].
@@ -347,11 +344,9 @@ typedef struct {
   /** Flags if tracker is cross-correlated */
   bool xcorr_flag;
 
-  update_count_t update_count; /**< Number of ms channel has been running */
   tracker_timer_t cn0_below_drop_thres_timer;
 
-  /**< update_count value when pessimistic
-       phase detector has changed last time. */
+  /**< When pessimistic phase detector has changed last time. */
   tracker_timer_t unlocked_timer;
 
   s32 TOW_ms;               /**< TOW in ms. */
