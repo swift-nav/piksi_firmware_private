@@ -350,12 +350,10 @@ typedef struct {
   update_count_t update_count; /**< Number of ms channel has been running */
   tracker_timer_t cn0_below_drop_thres_timer;
 
-  tracker_timer_t unlocked_timer;
   /**< update_count value when pessimistic
        phase detector has changed last time. */
-  update_count_t xcorr_change_count;
-  /**< update count value when cross-correlation
-       flag has changed last time */
+  tracker_timer_t unlocked_timer;
+
   s32 TOW_ms;               /**< TOW in ms. */
   s32 TOW_ms_prev;          /**< previous TOW in ms. */
   s32 TOW_residual_ns;      /**< Residual to TOW_ms [ns] */

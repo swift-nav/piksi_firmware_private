@@ -194,7 +194,6 @@ void tracker_set_xcorr_suspect_flag(tracker_t *tracker,
                       "clearing cross-correlation suspect flag");
     }
   }
-  tracker->xcorr_change_count = tracker->update_count;
 }
 
 /**
