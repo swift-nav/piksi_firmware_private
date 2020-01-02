@@ -194,10 +194,9 @@ void tp_tracker_init(tracker_t *tracker, const tp_tracker_config_t *config) {
 
   tracker_ambiguity_unknown(tracker);
 
-  log_debug_mesid(
-      mesid,
-      "[+%" PRIu64 "ms] Tracker start",
-      tracker_timer_ms(&tracker->age_timer));
+  log_debug_mesid(mesid,
+                  "[+%" PRIu64 "ms] Tracker start",
+                  tracker_timer_ms(&tracker->age_timer));
 
   /* Do tracking report to manager */
   tp_report_t report;
