@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2017 Swift Navigation Inc.
- * Contact: Michele Bavaro <michele@swift-nav.com>
+ * Copyright (C) 2017, 2020 Swift Navigation Inc.
+ * Contact: Swift Navigation <dev@swiftnav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
