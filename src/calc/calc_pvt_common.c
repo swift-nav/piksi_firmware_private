@@ -23,6 +23,9 @@ void send_observations(const obs_array_t *obs_array, u32 msg_obs_max_size) {
 
   if ((NULL == obs_array) || (0 == obs_array->n)) {
     gps_time_t t_dummy = GPS_TIME_UNKNOWN;
+    if (NULL != obs_array && gps_time_valid(&obs_array->t)) {
+      t_dummy = obs_array->t;
+    }
     pack_obs_header(&t_dummy, 1, 0, &msg->header);
     sbp_send_msg(SBP_MSG_OBS, sizeof(observation_header_t), buff);
     return;
