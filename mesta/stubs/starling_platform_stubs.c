@@ -92,22 +92,22 @@ static enum pal_error stub_mq_free(pal_mq_t *mq) {
 static enum pal_error stub_mq_push(pal_mq_t mq,
                                    void *msg,
                                    enum pal_mq_blocking_mode mode,
-                                   size_t timeout_ms) {
+                                   uint64_t timeout_us) {
   (void)mq;
   (void)msg;
   (void)mode;
-  (void)timeout_ms;
+  (void)timeout_us;
   return PAL_SUCCESS;
 }
 
 static enum pal_error stub_mq_pop(pal_mq_t mq,
                                   void **msg,
                                   enum pal_mq_blocking_mode mode,
-                                  size_t timeout_ms) {
+                                  uint64_t timeout_us) {
   (void)mq;
   (void)msg;
   (void)mode;
-  (void)timeout_ms;
+  (void)timeout_us;
   return PAL_SUCCESS;
 }
 
@@ -142,9 +142,9 @@ static enum pal_error stub_cv_wait(pal_cv_t cv, pal_mutex_t lock) {
 
 static enum pal_error stub_cv_wait_for(pal_cv_t cv,
                                        pal_mutex_t lock,
-                                       uint32_t millis) {
+                                       uint64_t timeout_us) {
   (void)cv;
-  (void)millis;
+  (void)timeout_us;
   return PAL_INVALID;
 }
 
