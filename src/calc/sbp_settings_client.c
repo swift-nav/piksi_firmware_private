@@ -186,15 +186,13 @@ SbpSettingsClient *sbp_settings_client_create(const SbpDuplexLink *sbp_link) {
     return NULL;
   }
 
-  client->cv = pal_cv_alloc();
-  if (!client->cv) {
+  if (pal_cv_alloc(&client->cv) != PAL_SUCCESS) {
     log_error(CLASS_PREFIX "unable to create condition variable");
     sbp_settings_client_destroy(client);
     return NULL;
   }
 
-  client->mtx = pal_mutex_alloc();
-  if (!client->mtx) {
+  if (pal_mutex_alloc(&client->mtx) != PAL_SUCCESS) {
     log_error(CLASS_PREFIX "unable to create mutex");
     sbp_settings_client_destroy(client);
     return NULL;

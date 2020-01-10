@@ -172,6 +172,7 @@ CSRC := $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l2c.c \
 				$(STARLING_ROOT)/third_party/libpal/src/default/io/serial.c \
 				$(STARLING_ROOT)/third_party/libpal/src/default/io/stdstream.c \
 				$(STARLING_ROOT)/third_party/libpal/src/default/io/tcp.c \
+				$(STARLING_ROOT)/third_party/libpal/src/default/chrono/monotonic_clock.c \
         $(STARLING_ROOT)/third_party/libswiftnav/src/almanac.c \
         $(STARLING_ROOT)/third_party/libswiftnav/src/bits.c \
         $(STARLING_ROOT)/third_party/libswiftnav/src/coord_system.c \

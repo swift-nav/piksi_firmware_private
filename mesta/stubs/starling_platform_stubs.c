@@ -21,32 +21,48 @@
  * Mutex
  ******************************************************************************/
 
-static pal_mutex_t stub_mutex_alloc(void) { return NULL; }
+static enum pal_error stub_mutex_alloc(pal_mutex_t *mutex) {
+  return PAL_INVALID;
+}
 
-static void stub_mutex_free(pal_mutex_t mutex) { (void)mutex; }
+static enum pal_error stub_mutex_free(pal_mutex_t *mutex) {
+  (void)mutex;
+  return PAL_INVALID;
+}
 
-static void stub_mutex_lock(pal_mutex_t mutex) { (void)mutex; }
+static enum pal_error stub_mutex_lock(pal_mutex_t mutex) {
+  (void)mutex;
+  return PAL_INVALID;
+}
 
-static void stub_mutex_unlock(pal_mutex_t mutex) { (void)mutex; }
+static enum pal_error stub_mutex_unlock(pal_mutex_t mutex) {
+  (void)mutex;
+  return PAL_INVALID;
+}
 
 /*******************************************************************************
  * Thread
  ******************************************************************************/
 
-static pal_thread_t stub_thread_create(pal_thread_entry_t fn,
-                                       void *ctx,
-                                       size_t stacksize,
-                                       uint8_t prio) {
+static enum pal_error stub_thread_create(pal_thread_t *thread,
+                                         pal_thread_entry_t fn,
+                                         void *ctx,
+                                         size_t stacksize,
+                                         uint8_t prio) {
+  (void)thread;
   (void)fn;
   (void)ctx;
   (void)stacksize;
   (void)prio;
-  return NULL;
+  return PAL_INVALID;
 }
 
-static void stub_thread_set_name(const char *name) { (void)name; }
+static enum pal_error stub_thread_set_name(const char *name) {
+  (void)name;
+  return PAL_INVALID;
+}
 
-static void stub_thread_join(pal_thread_t thread, void **retval) {
+static enum pal_error stub_thread_join(pal_thread_t thread, void **retval) {
   (void)thread;
   (void)retval;
 }
@@ -63,17 +79,20 @@ static void stub_watchdog_notify_starling_main_thread(void) {}
  * Queue
  ******************************************************************************/
 
-static pal_mq_t stub_mq_alloc(size_t max_length) {
+static enum pal_error stub_mq_alloc(size_t max_length, pal_mq_t *mq) {
   (void)max_length;
-  return NULL;
+  return PAL_INVALID;
 }
 
-static void stub_mq_free(pal_mq_t mq) { (void)mq; }
+static enum pal_error stub_mq_free(pal_mq_t *mq) {
+  (void)mq;
+  return PAL_INVALID;
+}
 
-static int stub_mq_push(pal_mq_t mq,
-                        void *msg,
-                        enum pal_mq_blocking_mode mode,
-                        size_t timeout_ms) {
+static enum pal_error stub_mq_push(pal_mq_t mq,
+                                   void *msg,
+                                   enum pal_mq_blocking_mode mode,
+                                   size_t timeout_ms) {
   (void)mq;
   (void)msg;
   (void)mode;
@@ -81,10 +100,10 @@ static int stub_mq_push(pal_mq_t mq,
   return PAL_SUCCESS;
 }
 
-static int stub_mq_pop(pal_mq_t mq,
-                       void **msg,
-                       enum pal_mq_blocking_mode mode,
-                       size_t timeout_ms) {
+static enum pal_error stub_mq_pop(pal_mq_t mq,
+                                  void **msg,
+                                  enum pal_mq_blocking_mode mode,
+                                  size_t timeout_ms) {
   (void)mq;
   (void)msg;
   (void)mode;
@@ -96,17 +115,34 @@ static int stub_mq_pop(pal_mq_t mq,
  * Condition Variable
  ******************************************************************************/
 
-static pal_cv_t stub_cv_alloc(void) { return NULL; }
+static enum pal_error stub_cv_alloc(pal_cv_t *cv) {
+  (void)cv;
+  return PAL_INVALID;
+}
 
-static void stub_cv_free(pal_cv_t cv_loc) { (void)cv_loc; }
+static enum pal_error stub_cv_free(pal_cv_t *cv_loc) {
+  (void)cv_loc;
+  return PAL_INVALID;
+}
 
-static void stub_cv_notify_one(pal_cv_t cv) { (void)cv; }
+static enum pal_error stub_cv_notify_one(pal_cv_t cv) {
+  (void)cv;
+  return PAL_INVALID;
+}
 
-static void stub_cv_notify_all(pal_cv_t cv) { (void)cv; }
+static enum pal_error stub_cv_notify_all(pal_cv_t cv) {
+  (void)cv;
+  return PAL_INVALID;
+}
 
-static void stub_cv_wait(pal_cv_t cv, pal_mutex_t lock) { (void)cv; }
+static enum pal_error stub_cv_wait(pal_cv_t cv, pal_mutex_t lock) {
+  (void)cv;
+  return PAL_INVALID;
+}
 
-static int stub_cv_wait_for(pal_cv_t cv, pal_mutex_t lock, uint32_t millis) {
+static enum pal_error stub_cv_wait_for(pal_cv_t cv,
+                                       pal_mutex_t lock,
+                                       uint32_t millis) {
   (void)cv;
   (void)millis;
   return PAL_INVALID;
