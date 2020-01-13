@@ -225,7 +225,7 @@ static void chibios_watchdog_notify_starling_main_thread(void) {
  * Queue
  ******************************************************************************/
 
-#define MAILBOX_BLOCKING_TIMEOUT_MS 5000
+#define MAILBOX_BLOCKING_TIMEOUT_US 5000000
 
 typedef struct mailbox_info_s {
   mailbox_t mailbox;
@@ -251,14 +251,14 @@ static enum pal_error chibios_mq_free(pal_mq_t *mq) {
 static enum pal_error chibios_mq_push(pal_mq_t mq,
                                       void *msg,
                                       enum pal_mq_blocking_mode mode,
-                                      size_t timeout_ms) {
+                                      uint64_t timeout_us) {
   struct mailbox_info_s *mb = (struct mailbox_info_s *)mq;
   if (mode == PAL_MQ_NONBLOCKING) {
-    timeout_ms = 0;
+    timeout_us = 0;
   } else {
-    timeout_ms = MAILBOX_BLOCKING_TIMEOUT_MS;
+    timeout_us = MAILBOX_BLOCKING_TIMEOUT_US;
   }
-  if (MSG_OK != chMBPost(&mb->mailbox, (msg_t)msg, MS2ST(timeout_ms))) {
+  if (MSG_OK != chMBPost(&mb->mailbox, (msg_t)msg, US2ST(timeout_us))) {
     /* Full or mailbox reset while waiting */
     return PAL_WOULD_BLOCK;
   }
@@ -269,14 +269,14 @@ static enum pal_error chibios_mq_push(pal_mq_t mq,
 static enum pal_error chibios_mq_pop(pal_mq_t mq,
                                      void **msg,
                                      enum pal_mq_blocking_mode mode,
-                                     size_t timeout_ms) {
+                                     uint64_t timeout_us) {
   struct mailbox_info_s *mb = (struct mailbox_info_s *)mq;
   if (mode == PAL_MQ_NONBLOCKING) {
-    timeout_ms = 0;
+    timeout_us = 0;
   } else {
-    timeout_ms = MAILBOX_BLOCKING_TIMEOUT_MS;
+    timeout_us = MAILBOX_BLOCKING_TIMEOUT_US;
   }
-  if (MSG_OK != chMBFetch(&mb->mailbox, (msg_t *)msg, MS2ST(timeout_ms))) {
+  if (MSG_OK != chMBFetch(&mb->mailbox, (msg_t *)msg, US2ST(timeout_us))) {
     /* Empty or mailbox reset while waiting */
     *msg = NULL;
     return PAL_WOULD_BLOCK;
@@ -359,9 +359,9 @@ static enum pal_error chibios_cv_wait(pal_cv_t cv, pal_mutex_t lock) {
 // Should not be used within ISRs
 static enum pal_error chibios_cv_wait_for(pal_cv_t cv,
                                           pal_mutex_t lock,
-                                          unsigned long millis) {
+                                          uint64_t timeout_us) {
   (void)lock;
-  const systime_t timeout = MS2ST(millis);
+  const systime_t timeout = US2ST(timeout_us);
   int ret = chCondWaitTimeout((condition_variable_t *)cv, timeout);
   return convert_chibios_ret(ret);
 }
