@@ -67,7 +67,8 @@ static int impl_wait(void *ctx, int timeout_ms) {
   assert(client->mtx);
   timeout_ms = timeout_ms > 0 ? timeout_ms : 0;
   pal_mutex_lock(client->mtx);
-  int ret = pal_cv_wait_for(client->cv, client->mtx, (unsigned long)timeout_ms);
+  uint64_t timeout_us = ((uint64_t)timeout_ms) * 1000;
+  int ret = pal_cv_wait_for(client->cv, client->mtx, timeout_us);
   pal_mutex_unlock(client->mtx);
   return ret;
 }
