@@ -14,8 +14,8 @@
 #include <libpal/impl/synch/condition_var.h>
 #include <libpal/impl/synch/mutex.h>
 #include <libpal/impl/thread/thread.h>
+#include <libpal/impl/watchdog/watchdog.h>
 #include <libpal/pal.h>
-#include <starling/platform/watchdog.h>
 
 /*******************************************************************************
  * Mutex
