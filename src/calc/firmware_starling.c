@@ -15,14 +15,11 @@
 #include <calc/starling_integration.h>
 #include <ch.h>
 #include <sbp/sbp_fileio.h>
-#include <starling/platform/platform.h>
 #include <starling/starling.h>
 #include <starling/starling_input_bridge.h>
 #include <stdbool.h>
 #include <utils/settings/settings_client.h>
 #include <utils/system_monitor/system_monitor.h>
-
-#include "starling_platform_chibios.h"
 
 /* Persistent file indicating whether Starling should run on the firmware
  * or on Linux. */
@@ -45,7 +42,6 @@ static bool is_firmware_starling_enabled(void) {
 }
 
 void firmware_starling_preinit(void) {
-  starling_initialize_platform();
   pal_init();
   starling_initialize_api();
 }

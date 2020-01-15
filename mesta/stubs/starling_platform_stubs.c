@@ -65,6 +65,7 @@ static enum pal_error stub_thread_set_name(const char *name) {
 static enum pal_error stub_thread_join(pal_thread_t thread, void **retval) {
   (void)thread;
   (void)retval;
+  return PAL_INVALID;
 }
 
 static void stub_thread_exit(void *code) { (void)code; }
@@ -73,7 +74,7 @@ static void stub_thread_exit(void *code) { (void)code; }
  * Watchdog
  ******************************************************************************/
 
-static void stub_watchdog_notify_starling_main_thread(void) {}
+static enum pal_error stub_watchdog_notify_starling_main_thread(void) { return PAL_INVALID; }
 
 /*******************************************************************************
  * Queue
@@ -97,7 +98,7 @@ static enum pal_error stub_mq_push(pal_mq_t mq,
   (void)msg;
   (void)mode;
   (void)timeout_us;
-  return PAL_SUCCESS;
+  return PAL_INVALID;
 }
 
 static enum pal_error stub_mq_pop(pal_mq_t mq,
@@ -108,7 +109,7 @@ static enum pal_error stub_mq_pop(pal_mq_t mq,
   (void)msg;
   (void)mode;
   (void)timeout_us;
-  return PAL_SUCCESS;
+  return PAL_INVALID;
 }
 
 /*******************************************************************************
@@ -170,8 +171,10 @@ void pal_impl_init(void) {
   };
   pal_set_impl_thread(&thread_impl);
   /* Watchdog */
-  platform_set_implementation_watchdog(
-      stub_watchdog_notify_starling_main_thread);
+  struct pal_impl_watchdog watchdog_impl = {
+      .notify = stub_watchdog_notify_starling_main_thread,
+  };
+  pal_set_impl_watchdog(&watchdog_impl);
   /* Queue */
   struct pal_impl_mq mq_impl = {
       .alloc = stub_mq_alloc,
