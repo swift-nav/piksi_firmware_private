@@ -33,6 +33,7 @@ static dgnss_solution_mode_t dgnss_soln_mode = STARLING_SOLN_MODE_LOW_LATENCY;
 static float glonass_downweight_factor = 4.0;
 static u32 corr_age_max = DFLT_CORRECTION_AGE_MAX_S;
 static PROCESS_NOISE_MOTION_TYPE dynamic_motion_model = HIGH_DYNAMICS;
+static starling_antenna_t antenna_type = STARLING_ANT_NONE;
 
 /* TODO(kevin) make this non global. */
 bool send_heading = false;
@@ -114,6 +115,12 @@ static int set_glonass_downweight_factor(void *ctx) {
   return SETTINGS_WR_OK;
 }
 
+static int set_antenna_offset(void *ctx) {
+    (void)ctx;
+    starling_set_antenna_offset(antenna_type);
+    return SETTINGS_WR_OK;
+}
+
 /********************************************************************************/
 static void init_settings_client(const SbpDuplexLink *sbp_link) {
   if (settings_client) {
@@ -150,6 +157,11 @@ void starling_register_sbp_settings(const SbpDuplexLink *sbp_link) {
   settings_type_t dgnss_soln_mode_setting;
   sbp_settings_client_register_enum(
       settings_client, dgnss_soln_mode_enum, &dgnss_soln_mode_setting);
+
+  static const char *const antenna_offset_enum[] = {"None", "GPS500", NULL};
+  settings_type_t antenna_offset_setting;
+  sbp_settings_client_register_enum(
+          settings_client, antenna_offset_enum, &antenna_offset_setting);
 
   /* Register actual settings. */
   sbp_settings_client_register(settings_client,
@@ -249,5 +261,14 @@ void starling_register_sbp_settings(const SbpDuplexLink *sbp_link) {
                                sizeof(disable_raim),
                                SETTINGS_TYPE_BOOL,
                                NULL,
+                               NULL);
+
+  sbp_settings_client_register(settings_client,
+                               "solution",
+                               "antenna_offset",
+                               &antenna_type,
+                               sizeof(antenna_type),
+                               antenna_offset_setting,
+                               set_antenna_offset,
                                NULL);
 }
