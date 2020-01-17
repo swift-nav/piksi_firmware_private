@@ -407,8 +407,11 @@ void pal_impl_init(void) {
   };
   pal_set_impl_mq(&mq_impl);
 
-  assert(chibios_mutex_init(NUM_MUTEXES) == PAL_SUCCESS);
-  assert(chibios_cv_init(NUM_COND_VARS) == PAL_SUCCESS);
+  enum pal_error ret;
+  ret = chibios_mutex_init(NUM_MUTEXES);
+  assert(PAL_SUCCESS == ret);
+  ret = chibios_cv_init(NUM_COND_VARS);
+  assert(PAL_SUCCESS == ret);
 }
 
 /**
