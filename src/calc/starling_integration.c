@@ -800,5 +800,6 @@ void starling_calc_pvt_setup() {
       .profile_low_latency_thread = profile_low_latency_thread,
   };
 
-  assert(starling_run(&debug_functions));
+  bool started = starling_run(&debug_functions);
+  assert(started);
 }
