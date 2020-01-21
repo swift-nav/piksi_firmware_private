@@ -213,6 +213,11 @@ static enum pal_error chibios_thread_join(pal_thread_t handle, void **retval) {
 
 static void chibios_thread_exit(void *code) { chThdExit((msg_t)code); }
 
+static enum pal_error chibios_thread_interrupt(pal_thread_t thread) {
+  (void)thread;
+  return PAL_INVALID;
+}
+
 /*******************************************************************************
  * Watchdog
  ******************************************************************************/
@@ -389,6 +394,7 @@ void pal_impl_init(void) {
       .set_name = chibios_thread_set_name,
       .join = chibios_thread_join,
       .exit = chibios_thread_exit,
+      .interrupt = chibios_thread_interrupt,
   };
   pal_set_impl_thread(&thread_impl);
   struct pal_impl_cv cv_impl = {
