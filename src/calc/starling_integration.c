@@ -801,6 +801,6 @@ void starling_calc_pvt_setup() {
   };
 
   bool started =
-      starling_run(STARLING_PVT_CONFIG_PIKSI_MULTI, &debug_functions);
+      starling_run(STARLINNG_PVT_CONFIG_PIKSI_MULTI, &debug_functions);
   assert(started);
 }
