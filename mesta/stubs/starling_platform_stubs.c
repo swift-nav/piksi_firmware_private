@@ -14,8 +14,8 @@
 #include <libpal/impl/synch/condition_var.h>
 #include <libpal/impl/synch/mutex.h>
 #include <libpal/impl/thread/thread.h>
+#include <libpal/impl/watchdog/watchdog.h>
 #include <libpal/pal.h>
-#include <starling/platform/watchdog.h>
 
 /*******************************************************************************
  * Mutex
@@ -65,15 +65,21 @@ static enum pal_error stub_thread_set_name(const char *name) {
 static enum pal_error stub_thread_join(pal_thread_t thread, void **retval) {
   (void)thread;
   (void)retval;
+  return PAL_INVALID;
 }
 
 static void stub_thread_exit(void *code) { (void)code; }
+
+static enum pal_error stub_thread_interrupt(pal_thread_t thread) {
+  (void)thread;
+  return PAL_INVALID;
+}
 
 /*******************************************************************************
  * Watchdog
  ******************************************************************************/
 
-static void stub_watchdog_notify_starling_main_thread(void) {}
+static enum pal_error stub_watchdog_notify_starling_main_thread(void) { return PAL_INVALID; }
 
 /*******************************************************************************
  * Queue
@@ -97,7 +103,7 @@ static enum pal_error stub_mq_push(pal_mq_t mq,
   (void)msg;
   (void)mode;
   (void)timeout_us;
-  return PAL_SUCCESS;
+  return PAL_INVALID;
 }
 
 static enum pal_error stub_mq_pop(pal_mq_t mq,
@@ -108,7 +114,7 @@ static enum pal_error stub_mq_pop(pal_mq_t mq,
   (void)msg;
   (void)mode;
   (void)timeout_us;
-  return PAL_SUCCESS;
+  return PAL_INVALID;
 }
 
 /*******************************************************************************
@@ -167,11 +173,14 @@ void pal_impl_init(void) {
       .set_name = stub_thread_set_name,
       .join = stub_thread_join,
       .exit = stub_thread_exit,
+      .interrupt = stub_thread_interrupt,
   };
   pal_set_impl_thread(&thread_impl);
   /* Watchdog */
-  platform_set_implementation_watchdog(
-      stub_watchdog_notify_starling_main_thread);
+  struct pal_impl_watchdog watchdog_impl = {
+      .notify = stub_watchdog_notify_starling_main_thread,
+  };
+  pal_set_impl_watchdog(&watchdog_impl);
   /* Queue */
   struct pal_impl_mq mq_impl = {
       .alloc = stub_mq_alloc,

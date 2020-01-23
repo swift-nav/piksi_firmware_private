@@ -23,8 +23,8 @@
 #include <libpal/impl/synch/condition_var.h>
 #include <libpal/impl/synch/mutex.h>
 #include <libpal/impl/thread/thread.h>
+#include <libpal/impl/watchdog/watchdog.h>
 #include <libpal/pal.h>
-#include <starling/platform/watchdog.h>
 #include <string.h>
 
 /* Used for watchdog implementation. */
@@ -213,12 +213,18 @@ static enum pal_error chibios_thread_join(pal_thread_t handle, void **retval) {
 
 static void chibios_thread_exit(void *code) { chThdExit((msg_t)code); }
 
+static enum pal_error chibios_thread_interrupt(pal_thread_t thread) {
+  (void)thread;
+  return PAL_INVALID;
+}
+
 /*******************************************************************************
  * Watchdog
  ******************************************************************************/
 
-static void chibios_watchdog_notify_starling_main_thread(void) {
+static enum pal_error chibios_watchdog_notify_starling_main_thread(void) {
   watchdog_notify(WD_NOTIFY_STARLING);
+  return PAL_SUCCESS;
 }
 
 /*******************************************************************************
@@ -388,6 +394,7 @@ void pal_impl_init(void) {
       .set_name = chibios_thread_set_name,
       .join = chibios_thread_join,
       .exit = chibios_thread_exit,
+      .interrupt = chibios_thread_interrupt,
   };
   pal_set_impl_thread(&thread_impl);
   struct pal_impl_cv cv_impl = {
@@ -406,6 +413,10 @@ void pal_impl_init(void) {
       .pop = chibios_mq_pop,
   };
   pal_set_impl_mq(&mq_impl);
+  struct pal_impl_watchdog watchdog_impl = {
+      .notify = chibios_watchdog_notify_starling_main_thread,
+  };
+  pal_set_impl_watchdog(&watchdog_impl);
 
   enum pal_error ret;
   ret = chibios_mutex_init(NUM_MUTEXES);
@@ -418,13 +429,3 @@ void pal_impl_init(void) {
  * Deinitialize ChibiOS PAL Implementation
  */
 void pal_impl_deinit(void) { NOT_IMPLEMENTED(); }
-
-/*******************************************************************************
- * Initialization
- ******************************************************************************/
-
-void starling_initialize_platform(void) {
-  /* Watchdog */
-  platform_set_implementation_watchdog(
-      chibios_watchdog_notify_starling_main_thread);
-}
