@@ -70,6 +70,11 @@ static enum pal_error stub_thread_join(pal_thread_t thread, void **retval) {
 
 static void stub_thread_exit(void *code) { (void)code; }
 
+static enum pal_error stub_thread_interrupt(pal_thread_t thread) {
+  (void)thread;
+  return PAL_INVALID;
+}
+
 /*******************************************************************************
  * Watchdog
  ******************************************************************************/
@@ -168,6 +173,7 @@ void pal_impl_init(void) {
       .set_name = stub_thread_set_name,
       .join = stub_thread_join,
       .exit = stub_thread_exit,
+      .interrupt = stub_thread_interrupt,
   };
   pal_set_impl_thread(&thread_impl);
   /* Watchdog */
