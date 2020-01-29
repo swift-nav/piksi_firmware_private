@@ -39,13 +39,25 @@ void solution_send_pos_messages(const sbp_messages_t *sbp_messages) {
     sbp_send_msg(SBP_MSG_POS_LLH,
                  sizeof(sbp_messages->pos_llh),
                  (u8 *)&sbp_messages->pos_llh);
+    sbp_send_msg(SBP_MSG_POS_LLH_GNSS,
+                 sizeof(sbp_messages->pos_llh),
+                 (u8 *)&sbp_messages->pos_llh);
     sbp_send_msg(SBP_MSG_POS_ECEF,
+                 sizeof(sbp_messages->pos_ecef),
+                 (u8 *)&sbp_messages->pos_ecef);
+    sbp_send_msg(SBP_MSG_POS_ECEF_GNSS,
                  sizeof(sbp_messages->pos_ecef),
                  (u8 *)&sbp_messages->pos_ecef);
     sbp_send_msg(SBP_MSG_VEL_NED,
                  sizeof(sbp_messages->vel_ned),
                  (u8 *)&sbp_messages->vel_ned);
+    sbp_send_msg(SBP_MSG_VEL_NED_GNSS,
+                 sizeof(sbp_messages->vel_ned),
+                 (u8 *)&sbp_messages->vel_ned);
     sbp_send_msg(SBP_MSG_VEL_ECEF,
+                 sizeof(sbp_messages->vel_ecef),
+                 (u8 *)&sbp_messages->vel_ecef);
+    sbp_send_msg(SBP_MSG_VEL_ECEF_GNSS,
                  sizeof(sbp_messages->vel_ecef),
                  (u8 *)&sbp_messages->vel_ecef);
     sbp_send_msg(SBP_MSG_DOPS,
@@ -54,13 +66,25 @@ void solution_send_pos_messages(const sbp_messages_t *sbp_messages) {
     sbp_send_msg(SBP_MSG_POS_ECEF_COV,
                  sizeof(sbp_messages->pos_ecef_cov),
                  (u8 *)&sbp_messages->pos_ecef_cov);
+    sbp_send_msg(SBP_MSG_POS_ECEF_COV_GNSS,
+                 sizeof(sbp_messages->pos_ecef_cov),
+                 (u8 *)&sbp_messages->pos_ecef_cov);
     sbp_send_msg(SBP_MSG_VEL_ECEF_COV,
+                 sizeof(sbp_messages->vel_ecef_cov),
+                 (u8 *)&sbp_messages->vel_ecef_cov);
+    sbp_send_msg(SBP_MSG_VEL_ECEF_COV_GNSS,
                  sizeof(sbp_messages->vel_ecef_cov),
                  (u8 *)&sbp_messages->vel_ecef_cov);
     sbp_send_msg(SBP_MSG_POS_LLH_COV,
                  sizeof(sbp_messages->pos_llh_cov),
                  (u8 *)&sbp_messages->pos_llh_cov);
+    sbp_send_msg(SBP_MSG_POS_LLH_COV_GNSS,
+                 sizeof(sbp_messages->pos_llh_cov),
+                 (u8 *)&sbp_messages->pos_llh_cov);
     sbp_send_msg(SBP_MSG_VEL_NED_COV,
+                 sizeof(sbp_messages->vel_ned_cov),
+                 (u8 *)&sbp_messages->vel_ned_cov);
+    sbp_send_msg(SBP_MSG_VEL_NED_COV_GNSS,
                  sizeof(sbp_messages->vel_ned_cov),
                  (u8 *)&sbp_messages->vel_ned_cov);
 
