@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2017 Swift Navigation Inc.
+ * Copyright (C) 2011-2017, 2020 Swift Navigation Inc.
  * Contact: Swift Navigation <dev@swiftnav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -194,7 +194,6 @@ void tracker_set_xcorr_suspect_flag(tracker_t *tracker,
                       "clearing cross-correlation suspect flag");
     }
   }
-  tracker->xcorr_change_count = tracker->update_count;
 }
 
 /**

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2017 Swift Navigation Inc.
- * Contact: Michele Bavaro <michele@swift-nav.com>
+ * Copyright (C) 2017, 2020 Swift Navigation Inc.
+ * Contact: Swift Navigation <dev@swiftnav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -188,10 +188,10 @@ static void update_tow_qzss_l2c(tracker_t *tracker, u32 cycle_flags) {
                           : QZS_L2C_SYMBOL_LENGTH_MS - tail;
 
         log_error_mesid(mesid,
-                        "[+%" PRIu32
+                        "[+%" PRIu64
                         "ms] TOW error detected: "
                         "error=%" PRId8 "ms old_tow=%" PRId32,
-                        tracker->update_count,
+                        tracker_timer_ms(&tracker->age_timer),
                         error_ms,
                         tracker->TOW_ms);
 
@@ -211,12 +211,12 @@ static void update_tow_qzss_l2c(tracker_t *tracker, u32 cycle_flags) {
 
       if (TOW_UNKNOWN != ToW_ms) {
         log_debug_mesid(mesid,
-                        "[+%" PRIu32
+                        "[+%" PRIu64
                         "ms]"
                         " Initializing TOW from cache [%" PRIu8
                         "ms] "
                         "delta=%.2lfms ToW=%" PRId32 "ms error=%lf",
-                        tracker->update_count,
+                        tracker_timer_ms(&tracker->age_timer),
                         bit_length,
                         nap_count_to_ms(time_delta_tk),
                         ToW_ms,
@@ -226,8 +226,8 @@ static void update_tow_qzss_l2c(tracker_t *tracker, u32 cycle_flags) {
           tracker->flags |= TRACKER_FLAG_TOW_VALID;
         } else {
           log_error_mesid(mesid,
-                          "[+%" PRIu32 "ms] Error TOW propagation %" PRId32,
-                          tracker->update_count,
+                          "[+%" PRIu64 "ms] Error TOW propagation %" PRId32,
+                          tracker_timer_ms(&tracker->age_timer),
                           tracker->TOW_ms);
           tracker->TOW_ms = TOW_UNKNOWN;
           tracker->flags &= ~TRACKER_FLAG_TOW_VALID;
