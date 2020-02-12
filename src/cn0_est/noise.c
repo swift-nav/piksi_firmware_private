@@ -47,7 +47,7 @@ static int find_nontracked_sat(code_t code, u32 msk) {
 
 static void start_noise_estimation(void) {
   for (code_t code = 0; code < CODE_COUNT; code++) {
-    if (!code_supported(code)) {
+    if (!code_supported(code) || (CODE_SBAS_L1CA == code)) {
       continue;
     }
 
