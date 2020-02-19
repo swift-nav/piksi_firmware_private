@@ -42,7 +42,7 @@ static enum pal_error chibios_mem_alloc(void **ptr, size_t size) {
   return (*ptr != NULL) ? PAL_SUCCESS : PAL_OOM;
 }
 
-static enum pal_error chibios_mem_free(void **mem) {
+static enum pal_error chibios_mem_free(void *mem) {
   NOT_IMPLEMENTED();
   (void)mem;
   return PAL_SUCCESS;
@@ -76,7 +76,7 @@ static enum pal_error chibios_mutex_alloc(pal_mutex_t *mutex) {
   return PAL_SUCCESS;
 }
 
-static enum pal_error chibios_mutex_free(pal_mutex_t *mutex) {
+static enum pal_error chibios_mutex_free(pal_mutex_t mutex) {
   NOT_IMPLEMENTED();
   (void)mutex;
   return PAL_SUCCESS;
@@ -247,7 +247,7 @@ static enum pal_error chibios_mq_alloc(size_t max_length, pal_mq_t *mq) {
   return PAL_SUCCESS;
 }
 
-static enum pal_error chibios_mq_free(pal_mq_t *mq) {
+static enum pal_error chibios_mq_free(pal_mq_t mq) {
   (void)mq;
   // Can't free MQs
   assert(0);
@@ -336,7 +336,7 @@ static enum pal_error chibios_cv_alloc(pal_cv_t *cv_out) {
   return PAL_SUCCESS;
 }
 
-static enum pal_error chibios_cv_free(pal_cv_t *cv) {
+static enum pal_error chibios_cv_free(pal_cv_t cv) {
   (void)cv;
   return PAL_SUCCESS;
 }
