@@ -85,17 +85,12 @@ static soln_stats_t last_stats = {.signals_tracked = 0, .signals_useable = 0};
 
 /** This function takes ownership of `obs_array`, and passes ownership
  *  of it to `starling_send_rover_obs()` */
-static void me_post_observations(obs_array_t *obs_array,
-                                 const ephemeris_t _ephem[]) {
+static void me_post_observations(obs_array_t *obs_array) {
   assert(NULL != obs_array);
-  int ret = starling_send_ephemerides(_ephem, obs_array->n);
-  if (STARLING_SEND_OK != ret) {
-    log_error("ME: Unable to send ephemeris array.");
-  }
 
   /* Transferring ownership of obs_array here */
   obs_array->sender = sbp_sender_id_get();
-  ret = starling_send_rover_obs(obs_array);
+  int ret = starling_send_rover_obs(obs_array);
   obs_array = NULL;
   if (STARLING_SEND_OK != ret) {
     log_error("ME: Unable to send observations.");
@@ -118,14 +113,14 @@ static bool decimate_observations(const gps_time_t *_t) {
 
 /** This function takes ownership of `obs_array` and transfers ownership
  * of it to `me_post_observations()` */
-static void me_send_all(obs_array_t *obs_array, const ephemeris_t _ephem[]) {
+static void me_send_all(obs_array_t *obs_array) {
   /* Output observations only every obs_output_divisor times, taking
    * care to ensure that the observations are aligned. */
   if (decimate_observations(&obs_array->t) && !simulation_enabled()) {
     send_observations(obs_array, msg_obs_max_size);
   }
   /* Transferring ownership of obs_array here */
-  me_post_observations(obs_array, _ephem);
+  me_post_observations(obs_array);
   obs_array = NULL;
 
   DO_EVERY(biases_message_freq_setting, send_glonass_biases());
@@ -147,7 +142,7 @@ static void me_send_emptyobs(obs_array_t *obs_array) {
   obs_array->n = 0;
   obs_array->t = GPS_TIME_UNKNOWN;
   /* Transferring ownership of obs_array here */
-  me_post_observations(obs_array, NULL);
+  me_post_observations(obs_array);
   obs_array = NULL;
   /* When we don't have a time solve, we still want to decimate our
    * observation output, we can use the GPS time if we have one,
@@ -199,8 +194,7 @@ static void remove_clock_offset(obs_array_t *obs_array,
  *
  * NOTE: This function takes ownership of `obs_array` and passes it to
  * `me_post_observations()` or `me_send_emptyobs()` */
-static void me_send_failed_obs(obs_array_t *obs_array,
-                               const ephemeris_t _ephem[]) {
+static void me_send_failed_obs(obs_array_t *obs_array) {
   /* require at least some timing quality */
   if (TIME_PROPAGATED > get_time_quality() || !gps_time_valid(&obs_array->t) ||
       obs_array->n == 0) {
@@ -223,7 +217,7 @@ static void me_send_failed_obs(obs_array_t *obs_array,
     send_observations(obs_array, msg_obs_max_size);
   }
   /* Transferring ownership of obs_array here */
-  me_post_observations(obs_array, _ephem);
+  me_post_observations(obs_array);
   obs_array = NULL;
 }
 
@@ -877,7 +871,7 @@ static void me_calc_pvt_thread(void *arg) {
 
       if (disable_raim) {
         /* Transferring ownership of `obs_array` here */
-        me_send_all(obs_array, e_meas);
+        me_send_all(obs_array);
         obs_array = NULL;
       } else {
         /* Send only the observations that have gone through RAIM. */
@@ -893,7 +887,7 @@ static void me_calc_pvt_thread(void *arg) {
           copy_raimed_obs(
               obs_array, &raim_sids, &raim_failed_sids, send_obs_array);
           /* Transferring ownership of `send_obs_array` here */
-          me_send_all(send_obs_array, e_meas);
+          me_send_all(send_obs_array);
           send_obs_array = NULL;
         }
         /* We must manually free here since we didn't send `obs_array` itself */
@@ -911,7 +905,7 @@ static void me_calc_pvt_thread(void *arg) {
 
       /* Send the observations, but marked unusable */
       /* Transferring ownership of `obs_array` here */
-      me_send_failed_obs(obs_array, e_meas);
+      me_send_failed_obs(obs_array);
       obs_array = NULL;
     }
   }
