@@ -25,7 +25,7 @@ static enum pal_error stub_mutex_alloc(pal_mutex_t *mutex) {
   return PAL_INVALID;
 }
 
-static enum pal_error stub_mutex_free(pal_mutex_t *mutex) {
+static enum pal_error stub_mutex_free(pal_mutex_t mutex) {
   (void)mutex;
   return PAL_INVALID;
 }
@@ -79,7 +79,9 @@ static enum pal_error stub_thread_interrupt(pal_thread_t thread) {
  * Watchdog
  ******************************************************************************/
 
-static enum pal_error stub_watchdog_notify_starling_main_thread(void) { return PAL_INVALID; }
+static enum pal_error stub_watchdog_notify_starling_main_thread(void) {
+  return PAL_INVALID;
+}
 
 /*******************************************************************************
  * Queue
@@ -90,7 +92,7 @@ static enum pal_error stub_mq_alloc(size_t max_length, pal_mq_t *mq) {
   return PAL_INVALID;
 }
 
-static enum pal_error stub_mq_free(pal_mq_t *mq) {
+static enum pal_error stub_mq_free(pal_mq_t mq) {
   (void)mq;
   return PAL_INVALID;
 }
@@ -126,7 +128,7 @@ static enum pal_error stub_cv_alloc(pal_cv_t *cv) {
   return PAL_INVALID;
 }
 
-static enum pal_error stub_cv_free(pal_cv_t *cv_loc) {
+static enum pal_error stub_cv_free(pal_cv_t cv_loc) {
   (void)cv_loc;
   return PAL_INVALID;
 }
