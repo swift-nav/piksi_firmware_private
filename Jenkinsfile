@@ -91,6 +91,7 @@ pipeline {
                         gitPrep()
 
                         script {
+                            runMake(target: "starling-cmake")
                             runMake(target: "run_tests")
                             runMake(target: "mesta", workDir: "mesta")
                             sh script: "./mesta/mesta"

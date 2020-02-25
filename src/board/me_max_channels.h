@@ -9,7 +9,7 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
-#include "starling/config.h"
+#include "pvt_engine/max_sizes.h"
 #include "swiftnap.h"
 
 #ifndef ME_MAX_CHANNELS_H
