@@ -1,11 +1,24 @@
 mesta:
 
+ifeq ($(PIKSI_HW),)
+  PIKSI_HW=v3
+endif
+
 ifeq ($(SWIFTNAV_ROOT),)
   SWIFTNAV_ROOT = ..
 endif
 
 ifeq ($(STARLING_ROOT),)
   STARLING_ROOT = $(SWIFTNAV_ROOT)/third_party/starling
+endif
+
+# NOTE: this assumes libraries are not PIKSI_REV sensitive
+ifeq ($(LIB_BUILDFOLDER),)
+  LIB_BUILDFOLDER = build_$(PIKSI_HW)
+endif
+
+ifeq ($(STARLING_BUILDDIR),)
+  STARLING_BUILDDIR=$(STARLING_ROOT)/$(LIB_BUILDFOLDER)
 endif
 
 OBJDIR := $(SWIFTNAV_ROOT)/mesta/build
@@ -36,6 +49,7 @@ INCDIR = $(SWIFTNAV_ROOT) \
          $(SWIFTNAV_ROOT)/mesta/stubs/libswiftnav \
          $(STARLING_ROOT)/include \
          $(STARLING_ROOT)/include/starling \
+         $(STARLING_BUILDDIR)/src/pvt_engine/include \
          $(STARLING_ROOT)/libfec/include \
          $(SWIFTNAV_ROOT)/src/hal \
          $(SWIFTNAV_ROOT)/src/board/v3/prod \
@@ -48,6 +62,8 @@ INCDIR = $(SWIFTNAV_ROOT) \
          $(STARLING_ROOT)/third_party/libpal/src/default/include \
          $(STARLING_ROOT)/third_party/libsbp/c/include \
          $(STARLING_ROOT)/third_party/libswiftnav/include \
+         $(STARLING_ROOT)/third_party/eigen \
+         $(STARLING_ROOT)/third_party/Optional \
          $(SWIFTNAV_ROOT)/libsettings/include \
          $(SWIFTNAV_ROOT)/libsbp \
          $(SWIFTNAV_ROOT)/libsbp/c/include/libsbp
@@ -157,7 +173,6 @@ CSRC := $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l2c.c \
         $(STARLING_ROOT)/src/util/sbp/misc.c \
         $(STARLING_ROOT)/src/util/sbp/packers.c \
         $(STARLING_ROOT)/src/util/sbp/unpackers.c \
-        $(STARLING_ROOT)/src/pvt_engine/observation.c \
         $(STARLING_ROOT)/src/pvt_engine/cycle_slip.c \
         $(STARLING_ROOT)/libfec/src/viterbi27.c \
 				$(STARLING_ROOT)/third_party/libpal/src/default/pal.c \
@@ -211,9 +226,11 @@ CSRC := $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l2c.c \
 
 
 CXXSRC := $(STARLING_ROOT)/src/starling/starling_input_bridge.cc \
-          $(STARLING_ROOT)/src/starling/util/mutex.cc
+          $(STARLING_ROOT)/src/starling/util/mutex.cc \
+          $(STARLING_ROOT)/src/starling/observation.cc \
+          $(STARLING_ROOT)/src/pvt_engine/observation_utils.cc
 
-CXXFLAGS := -std=c++11
+CXXFLAGS := -std=c++14
 
 target = $(patsubst $(SWIFTNAV_ROOT)%$(suffix ${1}),$(OBJDIR)%.o,${1})
 

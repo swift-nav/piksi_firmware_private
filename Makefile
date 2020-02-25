@@ -79,6 +79,7 @@ CLANG_TIDY_INCLUDES = -I$(SWIFTNAV_ROOT)/include/ \
                       -I$(STARLING_ROOT)/third_party/libswiftnav/include/ \
                       -I$(STARLING_ROOT)/third_party/libsbp/c/include/ \
                       -I$(STARLING_ROOT)/libfec/include/ \
+                      -I$(STARLING_BUILDDIR)/src/pvt_engine/include/ \
                       -I$(SWIFTNAV_ROOT)/libsettings/include/ \
                       -I$(SWIFTNAV_ROOT)/src/board/ \
                       -I$(SWIFTNAV_ROOT)/src/board/v3/ \
@@ -187,7 +188,7 @@ clang-format-diff:
 	@echo "Autoformatting all lines which differ from master"
 	git-clang-format-6.0 master
 
-clang-tidy-all:
+clang-tidy-all: $(STARLING_BUILDDIR)/Makefile
 	@echo "Checking all C files under src/"
 	git ls-files -- 'src/*.[ch]' \
 		| grep -E -v 'board|chibios|peripherals|system_monitor|syscalls|chconf' \

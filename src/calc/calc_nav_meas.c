@@ -13,7 +13,7 @@
 #include "calc_nav_meas.h"
 
 #include <assert.h>
-#include <starling/cycle_slip.h>
+#include <pvt_engine/cycle_slip.h>
 #include <starling/starling.h>
 #include <string.h>
 #include <swiftnav/coord_system.h>
