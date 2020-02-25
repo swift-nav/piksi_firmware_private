@@ -282,6 +282,7 @@ INCDIR = $(STARTUPINC) $(PORTINC) $(KERNINC) \
          $(STARLING_ROOT)/third_party/libpal/include \
          $(STARLING_ROOT)/third_party/libpal/src/default/include \
          $(STARLING_ROOT)/third_party/libswiftnav/include \
+         $(STARLING_BUILDDIR)/src/pvt_engine/include \
          $(SWIFTNAV_ROOT)/src \
          $(SWIFTNAV_ROOT)/src/board \
          $(STARLING_ROOT)/libfec/include \
