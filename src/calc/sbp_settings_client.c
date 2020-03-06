@@ -67,7 +67,8 @@ static int impl_wait(void *ctx, int timeout_ms) {
   assert(client->mtx);
   timeout_ms = timeout_ms > 0 ? timeout_ms : 0;
   pal_mutex_lock(client->mtx);
-  int ret = pal_cv_wait_for(client->cv, client->mtx, (unsigned long)timeout_ms);
+  uint64_t timeout_us = ((uint64_t)timeout_ms) * 1000;
+  int ret = pal_cv_wait_for(client->cv, client->mtx, timeout_us);
   pal_mutex_unlock(client->mtx);
   return ret;
 }
@@ -186,15 +187,13 @@ SbpSettingsClient *sbp_settings_client_create(const SbpDuplexLink *sbp_link) {
     return NULL;
   }
 
-  client->cv = pal_cv_alloc();
-  if (!client->cv) {
+  if (pal_cv_alloc(&client->cv) != PAL_SUCCESS) {
     log_error(CLASS_PREFIX "unable to create condition variable");
     sbp_settings_client_destroy(client);
     return NULL;
   }
 
-  client->mtx = pal_mutex_alloc();
-  if (!client->mtx) {
+  if (pal_mutex_alloc(&client->mtx) != PAL_SUCCESS) {
     log_error(CLASS_PREFIX "unable to create mutex");
     sbp_settings_client_destroy(client);
     return NULL;

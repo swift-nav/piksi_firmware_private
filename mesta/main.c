@@ -19,14 +19,14 @@
 #include "track/track_state.h"
 
 /* Forward decl. */
-void init_starling_platform_stub_implementation(void);
+void pal_init(void);
 
 swiftnap_t mesta_nap = {0};
 
 void handle_nap_track_irq(void);
 
 int main(void) {
-  init_starling_platform_stub_implementation();
+  pal_init();
   platform_track_setup();
   platform_decode_setup();
   track_setup();
