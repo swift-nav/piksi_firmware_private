@@ -4,7 +4,7 @@
 #include "gtest/gtest.h"
 #include "sbas_select/sbas_select.h"
 
-TEST(sbas_select_tests, masks) {
+TEST(sbas_select_tests, DISABLED_masks) {
   EXPECT_EQ(sbas_select_prn_mask(SBAS_NONE), 0);
 
   EXPECT_EQ(sbas_select_prn_mask(SBAS_WAAS), 0x48800);
