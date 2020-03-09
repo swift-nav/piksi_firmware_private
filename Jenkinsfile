@@ -2,7 +2,7 @@
 
 // Use 'ci-jenkins@someref' to pull shared lib from a different branch/tag than the default.
 // Default is the master branch
-@Library("ci-jenkins@silverjam/1368-park-ave") import com.swiftnav.ci.*
+@Library("ci-jenkins") import com.swiftnav.ci.*
 
 def context = new Context(context: this)
 context.setRepo("piksi_firmware_private")
