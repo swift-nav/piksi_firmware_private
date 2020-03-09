@@ -96,7 +96,7 @@ static enum pal_error chibios_mutex_unlock(pal_mutex_t mutex) {
  * Thread
  ******************************************************************************/
 
-#define STARLING_MAX_THREAD_STACK (4 * 1024 * 1024)
+#define STARLING_MAX_THREAD_STACK (3 * 1024 * 1024)
 
 static THD_WORKING_AREA(wa_time_matched_obs_thread, STARLING_MAX_THREAD_STACK);
 static THD_WORKING_AREA(wa_starling_thread, STARLING_MAX_THREAD_STACK);
