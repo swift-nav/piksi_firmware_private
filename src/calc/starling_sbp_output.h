@@ -39,6 +39,7 @@ typedef struct {
   msg_vel_ecef_cov_t vel_ecef_cov;
   msg_pos_llh_cov_t pos_llh_cov;
   msg_vel_ned_cov_t vel_ned_cov;
+  msg_protection_level_t protection_level;
 } sbp_messages_t;
 
 void solution_send_pos_messages(const sbp_messages_t *sbp_messages);
