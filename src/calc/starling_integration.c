@@ -12,6 +12,7 @@
 
 #include "starling_integration.h"
 
+#include <math.h>
 #include <assert.h>
 #include <ch.h>
 #include <libpal/pal.h>
@@ -321,6 +322,7 @@ static void solution_make_sbp(const pvt_engine_result_t *soln,
 static void solution_make_baseline_sbp(const pvt_engine_result_t *result,
                                        const double spp_ecef[SPP_ECEF_SIZE],
                                        const dops_t *dops,
+                                       const StarlingProtectionLevels *pl,
                                        sbp_messages_t *sbp_messages) {
   double ecef_pos[3];
   if (result->has_known_reference_pos) {
@@ -421,6 +423,20 @@ static void solution_make_baseline_sbp(const pvt_engine_result_t *result,
                 sbp_messages->pos_llh.tow,
                 result->flags.position_mode);
 
+  double pl_pos_llh[3];
+  wgsecef2llh(pl->pos_ecef, pl_pos_llh);
+  const double hpl = sqrt(pow(pl->protection_levels_ned[0], 2) +
+                          pow(pl->protection_levels_ned[1], 2));
+  const double vpl = pl->protection_levels_ned[2];
+
+  sbp_make_pl(&sbp_messages->protection_level,
+              &result->time,
+              vpl,
+              hpl,
+              pl_pos_llh,
+              (u8)pl->flags.tir_level);
+
+
   chMtxLock(&last_sbp_lock);
   last_sbp_dgnss = result->time;
   chMtxUnlock(&last_sbp_lock);
@@ -470,9 +486,12 @@ static void starling_integration_solution_simulation(
              simulation_ref_ecef(),
              sizeof(result.known_reference_pos));
 
+    StarlingProtectionLevels dummy_pls;
+
     solution_make_baseline_sbp(&result,
                                simulation_ref_ecef(),
                                simulation_current_dops_solution(),
+                               &dummy_pls,
                                sbp_messages);
 
     double t_check = soln->time.tow * (soln_freq_setting / obs_output_divisor);
@@ -572,7 +591,8 @@ void handle_solution_time_matched(const StarlingFilterSolution *solution,
 
   if (solution) {
     solution_make_baseline_sbp(
-        &solution->result, rover_spp_ecef, &solution->dops, &sbp_messages);
+        &solution->result, rover_spp_ecef, &solution->dops,
+        &solution->pl, &sbp_messages);
   }
 
   /* There is an edge case when switching into time-matched mode where
@@ -647,6 +667,7 @@ static void handle_solution_low_latency(
       solution_make_baseline_sbp(&rtk_solution->result,
                                  spp_solution->result.baseline,
                                  &rtk_solution->dops,
+                                 &rtk_solution->pl,
                                  &sbp_messages);
     }
   }
