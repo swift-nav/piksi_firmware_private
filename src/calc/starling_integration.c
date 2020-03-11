@@ -12,10 +12,10 @@
 
 #include "starling_integration.h"
 
-#include <math.h>
 #include <assert.h>
 #include <ch.h>
 #include <libpal/pal.h>
+#include <math.h>
 #include <starling/starling.h>
 #include <starling/starling_external_dependencies.h>
 #include <starling/starling_input_bridge.h>
@@ -436,7 +436,6 @@ static void solution_make_baseline_sbp(const pvt_engine_result_t *result,
               pl_pos_llh,
               (u8)pl->flags.tir_level);
 
-
   chMtxLock(&last_sbp_lock);
   last_sbp_dgnss = result->time;
   chMtxUnlock(&last_sbp_lock);
@@ -590,9 +589,11 @@ void handle_solution_time_matched(const StarlingFilterSolution *solution,
   solution_make_sbp(&soln_copy, NULL, &sbp_messages, time_qual);
 
   if (solution) {
-    solution_make_baseline_sbp(
-        &solution->result, rover_spp_ecef, &solution->dops,
-        &solution->pl, &sbp_messages);
+    solution_make_baseline_sbp(&solution->result,
+                               rover_spp_ecef,
+                               &solution->dops,
+                               &solution->pl,
+                               &sbp_messages);
   }
 
   /* There is an edge case when switching into time-matched mode where

@@ -89,7 +89,7 @@ void solution_send_pos_messages(const sbp_messages_t *sbp_messages) {
                  (u8 *)&sbp_messages->vel_ned_cov);
     sbp_send_msg(SBP_MSG_PROTECTION_LEVEL,
                  sizeof(sbp_messages->protection_level),
-                 (u8 * ) & sbp_messages->protection_level);
+                 (u8 *)&sbp_messages->protection_level);
 
     if (dgnss_soln_mode != STARLING_SOLN_MODE_NO_DGNSS) {
       sbp_send_msg(SBP_MSG_BASELINE_ECEF,
