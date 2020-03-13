@@ -485,18 +485,18 @@ static void starling_integration_solution_simulation(
   }
 }
 
-void starling_integration_simulation_run(const obss_t *obss) {
-  gps_time_t epoch_time = obss->tor;
-  u8 time_qual = get_time_quality();
-  if (!gps_time_valid(&epoch_time) && TIME_PROPAGATED <= time_qual) {
-    /* observations do not have valid time, but we have a reasonable estimate
-     * of current GPS time, so round that to nearest epoch and use it
-     */
-    epoch_time = get_current_time();
-    epoch_time = gps_time_round_to_epoch(&epoch_time, soln_freq_setting);
-  }
+void starling_integration_simulation_run(void) {
+  gps_time_t epoch_time = get_current_time();
+  epoch_time = gps_time_round_to_epoch(&epoch_time, soln_freq_setting);
   sbp_messages_t sbp_messages;
-  starling_integration_sbp_messages_init(&sbp_messages, &epoch_time, time_qual);
+
+  if (epoch_time.wn == 0) {
+    /* patch the epoch time when system time is still unknown */
+    epoch_time.wn = 1;
+  }
+
+  starling_integration_sbp_messages_init(
+      &sbp_messages, &epoch_time, TIME_FINEST);
   starling_integration_solution_simulation(&sbp_messages);
   send_low_latency_messages(&epoch_time, &sbp_messages);
 }
