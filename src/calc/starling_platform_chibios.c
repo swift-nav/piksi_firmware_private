@@ -238,7 +238,7 @@ typedef struct mailbox_info_s {
   msg_t mailbox_buf[];
 } mailbox_info_t;
 
-static enum pal_error chibios_mq_alloc(size_t max_length, pal_mq_t *mq) {
+static enum pal_error chibios_mq_alloc(pal_mq_t *mq, size_t max_length) {
   struct mailbox_info_s *mb =
       chCoreAlloc(sizeof(*mb) + (max_length * sizeof(msg_t)));
   assert(mb);
