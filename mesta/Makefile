@@ -193,6 +193,7 @@ CSRC := $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l2c.c \
         $(STARLING_ROOT)/third_party/libswiftnav/src/bits.c \
         $(STARLING_ROOT)/third_party/libswiftnav/src/coord_system.c \
         $(STARLING_ROOT)/third_party/libswiftnav/src/correct_iono_tropo.c \
+        $(STARLING_ROOT)/third_party/libswiftnav/src/decode_glo.c \
         $(STARLING_ROOT)/third_party/libswiftnav/src/edc.c \
         $(STARLING_ROOT)/third_party/libswiftnav/src/ephemeris.c \
         $(STARLING_ROOT)/third_party/libswiftnav/src/fifo_byte.c \

@@ -18,6 +18,7 @@
 #include <string.h>
 #include <swiftnav/bits.h>
 #include <swiftnav/constants.h>
+#include <swiftnav/decode_glo.h>
 #include <swiftnav/gnss_time.h>
 #include <swiftnav/logging.h>
 
@@ -27,17 +28,6 @@
 #define BIT_POLARITY_INVERTED 1
 #define BIT_POLARITY_UNKNOWN (-1)
 
-/* GLO fit intervals do not seem to overlap.
-   P1 field from string 1 defines a fit interval.
-   tb field from string 2 changes at the beginning of the fit interval.
-   tb field is TOE.
-   The previous fit interval ends at the start of the frame, which delivers
-   the new tb value. So there is a small time window, after the old ephemeris
-   gets stale and the new ephemeris is not decoded yet.
-   This define sets an overlap margin of #FIT_INTERVAL_MARGIN_S / 2 seconds
-   to allow for the new ephemeris decoding. */
-#define FIT_INTERVAL_MARGIN_S (10 * MINUTE_SECS)
-
 /* Minimum one-sided data validity time around toe value in seconds. */
 #define MIN_VALIDITY_WINDOW_S (15 * MINUTE_SECS)
 /* Maximum one-sided data validity time around toe value in seconds. */
@@ -45,24 +35,6 @@
 /* The time difference of one-sided data validity windows in seconds.
  * Difference between 15 min vs. 22.5 min vs. 30 min is 7.5 min. */
 #define DIFF_VALIDITY_WINDOW_S ((u32)(7.5f * MINUTE_SECS))
-
-enum glo_sv_model { SV_GLONASS, SV_GLONASS_M };
-
-/* GLO parameter limits (ICD L1,L2 GLONASS edition 5.1 2008 Table 4.5) */
-#define GLO_POS_MAX_M (2.7e4 * 1e3)         /* [m] */
-#define GLO_VEL_MAX_M_S (4.3 * 1e3)         /* [m/s] */
-#define GLO_ACC_MAX_M_S2 (6.2e-9 * 1e3)     /* [m/s^2] */
-#define GLO_TK_HOURS_MAX 23                 /* [hours] */
-#define GLO_TK_MINS_MAX 59                  /* [mins] */
-#define GLO_TB_MIN_S (15 * MINUTE_SECS)     /* [s] */
-#define GLO_TB_MAX_S (1425 * MINUTE_SECS)   /* [s] */
-#define GLO_GAMMA_MAX 9.313225746154785e-10 /* 2^(-30)[unitless] */
-#define GLO_TAU_MAX_S 0.001953125           /* 2^(-9)[s] */
-#define GLO_D_TAU_MAX_S 13.97e-9            /* [s] */
-#define GLO_NT_MAX_DAYS 1461                /* [days] */
-
-/* ICD L1,L2 GLONASS edition 5.1 2008 Table 4.9 */
-#define GLO_TAU_GPS_MAX_S 1.9e-3 /* [s] */
 
 /* The figures below are from the analysis of GLO ephemeris data
    across 2013-2017 at ftp://cddis.gsfc.nasa.gov/gnss/data/daily/
@@ -84,40 +56,6 @@ enum glo_sv_model { SV_GLONASS, SV_GLONASS_M };
 
 #define GLO_VEL_MAG_M_S (3.37874 * 1e3)                 /* [m/s] */
 #define GLO_VEL_MAG_MARGIN_M_S (0.22 * GLO_VEL_MAG_M_S) /* [m/s] */
-
-/* Word Ft (accuracy of measurements), refer to GLO ICD, Table 4.4 */
-static const float f_t[] = {1.0f,
-                            2.0f,
-                            2.5f,
-                            4.0f,
-                            5.0f,
-                            7.0f,
-                            10.0f,
-                            12.0f,
-                            14.0f,
-                            16.0f,
-                            32.0f,
-                            64.0f,
-                            128.0f,
-                            256.0f,
-                            512.0f,
-                            INVALID_URA_VALUE};
-
-/* Word P1 (Time interval between adjacent values of tb).
-   Refer to table 4.3 of GLO ICD */
-static const u8 p1_lookup_min[] = {0, 30, 45, 60}; /* [min] */
-
-/* These bit masks (for data bits 9..85) correspond to table 4.13 of GLO ICD
- * used in error correction algorithm */
-static const u32 e_masks[7][3] = {
-    {0xaaad5b00, 0x55555556, 0xaaaab},
-    {0x33366d00, 0x9999999b, 0xccccd},
-    {0xc3c78e00, 0xe1e1e1e3, 0x10f0f1},
-    {0xfc07f000, 0xfe01fe03, 0xff01},
-    {0xfff80000, 0xfffe0003, 0x1f0001},
-    {0, 0xfffffffc, 1},
-    {0, 0, 0x1ffffe},
-};
 
 /** Initialize the structure for removal of relative code transformation.
  *  Initialization is called after finding GLO time mark.
@@ -150,114 +88,6 @@ void nav_msg_init_glo(nav_msg_glo_t *n, me_gnss_signal_t mesid) {
   n->mesid = mesid;
 }
 
-/** Extract a word of n_bits length (n_bits <= 32) at position bit_index into
- * the subframe. Refer to bit index to Table 4.6 and 4.11 in GLO ICD 5.1 (pg.
- * 34)
- * \param n pointer to GLO nav message structure to be parsed
- * \param bit_index number of bit the extract process start with. Range [1..85]
- * \param n_bits how many bits should be extracted [1..32]
- * \return word extracted from navigation string
- */
-u32 extract_word_glo(const nav_msg_glo_t *n, u16 bit_index, u8 n_bits) {
-  assert(bit_index);
-  assert(bit_index <= GLO_STR_LEN);
-
-  assert(n_bits);
-  assert(n_bits <= 32);
-
-  /* Extract a word of n_bits length (n_bits <= 32) at position bit_index into
-   * the GLO string.*/
-  bit_index--;
-  u32 word = 0;
-  u8 bix_hi = bit_index >> 5;
-  u8 bix_lo = bit_index & 0x1F;
-  if (bix_lo + n_bits <= 32) {
-    word = n->string_bits[bix_hi] >> bix_lo;
-    word &= (0xffffffff << (32 - n_bits)) >> (32 - n_bits);
-  } else {
-    u8 s = 32 - bix_lo;
-    word = extract_word_glo(n, bit_index + 1, s) |
-           extract_word_glo(n, bit_index + 1 + s, n_bits - s) << s;
-  }
-
-  return word;
-}
-
-/** The function performs data verification and error detection
- * in received GLO navigation string. Refer to GLO ICD, section 4.7
- * \param n pointer to GLO nav message structure
- * \return -1 -- received string is bad and should be dropped out,
- *          0 -- received string is good
- *          >0 -- number of bit in n->string_bits to be corrected (inverted)
- *                range[9..85]*/
-s8 error_detection_glo(const nav_msg_glo_t *n) {
-  u8 c = 0;
-  u32 data1, data2, data3;
-  bool p0, p1, p2, p3, beta, c_sum;
-  u8 bit_set = 0;
-  u8 k = 0;
-
-  /* calculate C1..7 */
-  for (u8 i = 0; i < 7; i++) {
-    /* extract corresponding check bit of Hamming code */
-    beta = extract_word_glo(n, i + 1, 1);
-    /* extract data bits and apply mask */
-    data1 = extract_word_glo(n, 1, 32) & e_masks[i][0];
-    data2 = extract_word_glo(n, 33, 32) & e_masks[i][1];
-    data3 = extract_word_glo(n, 65, 32) & e_masks[i][2];
-    /* calculate parity for data[1..3] */
-    p1 = parity(data1);
-    p2 = parity(data2);
-    p3 = parity(data3);
-    bool p = beta ^ p1 ^ p2 ^ p3;
-    /* calculate common parity and set according C bit */
-    c |= p << i;
-    if (p) {
-      bit_set++; /* how many bits are set, used in error criteria */
-      k = i + 1; /* store number of most significant checksum not equal to 0,
-                    used in error criteria */
-    }
-  }
-
-  /* calculate C sum */
-  data1 = extract_word_glo(n, 1, 32) & 0xffffff00;
-  data2 = extract_word_glo(n, 33, 32);
-  data3 = extract_word_glo(n, 65, 32);
-  p1 = parity(data1);
-  p2 = parity(data2);
-  p3 = parity(data3);
-  p0 = parity(extract_word_glo(n, 1, 8));
-  c_sum = p0 ^ p1 ^ p2 ^ p3;
-
-  /* Now check C word to figure out is the string good, bad or
-   * correction is needed */
-
-  /* case a) from ICD */
-  if ((!c_sum && !bit_set) || (1 == bit_set && c_sum)) {
-    return 0; /* The string is good */
-  }
-
-  /* case b) from ICD */
-  if (bit_set > 1 && c_sum) {
-    u8 i_corr = (c & 0x7f) + 8 - k; /* define number of bit to be corrected */
-
-    if (i_corr > GLO_STR_LEN) {
-      return -1; /* odd number of multiple errors, bad string */
-    }
-
-    return i_corr; /* return the bit to be corrected */
-  }
-
-  /* case c) from ICD */
-  if ((bit_set > 0 && !c_sum) || (0 == bit_set && c_sum)) {
-    return -1; /* multiple errors, bad string */
-  }
-
-  /* should not be here */
-  log_error("GLO error correction: unexpected case");
-  return -1;
-}
-
 /** Seek GLO timemark.
  * Tries to find either normal or inverted timemark sequence.
  * Switch to data decoding state once timemark is found.
@@ -268,10 +98,10 @@ s8 error_detection_glo(const nav_msg_glo_t *n) {
  */
 bool timemark_glo_decoded(nav_msg_glo_t *n, bool symbol) {
   /* put incoming symbol at the tail of the buffer */
-  n->string_bits[0] <<= 1; /* use one word of buffer for that purpose */
-  n->string_bits[0] |= symbol;
+  n->string.word[0] <<= 1; /* use one word of buffer for that purpose */
+  n->string.word[0] |= symbol;
   /* collected symbols match time mark? if not stay at this state */
-  u32 tm = extract_word_glo(n, 1, GLO_TM_LEN_SYMBOLS);
+  u32 tm = extract_word_glo(&n->string, 1, GLO_TM_LEN_SYMBOLS);
   if ((GLO_TM != tm) && (GLO_TM_INV != tm)) {
     return false;
   }
@@ -280,7 +110,7 @@ bool timemark_glo_decoded(nav_msg_glo_t *n, bool symbol) {
   n->meander_bits_cnt = 0;
   n->manchester = 0;
   n->state = GET_DATA_BIT;
-  n->string_bits[0] = 0;
+  n->string.word[0] = 0;
   relcode_init(&n->relcode);
   s8 prev_bit_polarity = n->bit_polarity;
   n->bit_polarity =
@@ -326,10 +156,10 @@ nav_msg_status_t get_data_bits_glo(nav_msg_glo_t *n, bool symbol) {
   /* shift whole buffer by 1 bit left */
   for (u8 i = NAV_MSG_GLO_STRING_BITS_LEN - 1; i > 0; i--) {
     u32 tmp =
-        (n->string_bits[i] << 1) | ((n->string_bits[i - 1] & (1u << 31)) >> 31);
-    n->string_bits[i] = tmp;
+        (n->string.word[i] << 1) | ((n->string.word[i - 1] & (1u << 31)) >> 31);
+    n->string.word[i] = tmp;
   }
-  n->string_bits[0] <<= 1;
+  n->string.word[0] <<= 1;
 
   /* set type of meander depending on inversion */
   u8 meander = (BIT_POLARITY_NORMAL == n->bit_polarity) ? 1 : 2;
@@ -338,7 +168,7 @@ nav_msg_status_t get_data_bits_glo(nav_msg_glo_t *n, bool symbol) {
   /* relative code removal */
   u8 relcode = relcode_decode(&n->relcode, bit);
   /* store bit to buffer */
-  n->string_bits[0] |= relcode;
+  n->string.word[0] |= relcode;
   n->current_head_bit_index++;
   n->meander_bits_cnt = 0;
   n->manchester = 0;
@@ -380,282 +210,6 @@ nav_msg_status_t nav_msg_update_glo(nav_msg_glo_t *n, bool symbol) {
       break;
   }
   return ret;
-}
-
-/** Decode position component of the ephemeris data (X/Y/Z)
- * \param n GLO nav message decode state struct
- * \return The decoded position component [m]
- */
-static double decode_position_component(const nav_msg_glo_t *n) {
-  double pos_m = extract_word_glo(n, 9, 26) * C_1_2P11 * 1000.0;
-  u8 sign = extract_word_glo(n, 9 + 26, 1);
-  if (sign) {
-    pos_m *= -1;
-  }
-  return pos_m;
-}
-
-/** Decode velocity component of the ephemeris data (Vx/Vy/Vz)
- * \param n GLO nav message decode state struct
- * \return The decoded velocity component [m/s]
- */
-static double decode_velocity_component(const nav_msg_glo_t *n) {
-  /* extract velocity (Vx or Vy or Vz) */
-  double vel_mps = extract_word_glo(n, 41, 23) * C_1_2P20 * 1000.0;
-  u8 sign = extract_word_glo(n, 41 + 23, 1);
-  if (sign) {
-    vel_mps *= -1;
-  }
-  return vel_mps;
-}
-
-/** Decode acceleration component of the ephemeris data (Ax/Ay/Az)
- * \param n GLO nav message decode state struct
- * \return The decoded acceleration component [m/s^2]
- */
-static double decode_acceleration_component(const nav_msg_glo_t *n) {
-  /* extract acceleration (Ax or Ay or Az) */
-  double acc_mps2 = extract_word_glo(n, 36, 4) * C_1_2P30 * 1000.0;
-  u8 sign = extract_word_glo(n, 36 + 4, 1);
-  if (sign) {
-    acc_mps2 *= -1;
-  }
-  return acc_mps2;
-}
-
-static u32 compute_ephe_fit_interval(const nav_msg_glo_t *n, u32 p1) {
-  assert(n);
-  assert(p1 < ARRAY_SIZE(p1_lookup_min));
-
-  u32 fit_interval_s = MINUTE_SECS * p1_lookup_min[p1];
-  if (fit_interval_s != 0) {
-    return fit_interval_s + FIT_INTERVAL_MARGIN_S;
-  }
-
-  if (0 == n->eph.fit_interval) {
-    /* We have not decoded any fit interval yet,
-       So let's default to the maximum fit interval possible + a margin.
-       The maximum fit interval is defined by the maximum value of P1,
-       which is 60 minutes. Once we have a real value from P1 we will
-       start using the real value. */
-    fit_interval_s = MINUTE_SECS * 60 + FIT_INTERVAL_MARGIN_S;
-  } else {
-    fit_interval_s = n->eph.fit_interval;
-  }
-
-  return fit_interval_s;
-}
-
-static bool extract_string_1_components(nav_msg_glo_t *n) {
-  double pos_m = decode_position_component(n); /* extract x */
-  if ((pos_m < -GLO_POS_MAX_M) || (GLO_POS_MAX_M < pos_m)) {
-    log_debug_mesid(n->mesid, "GLO-NAV-ERR: pos_x =%lf m", pos_m);
-    return false;
-  }
-  n->eph.glo.pos[0] = pos_m;
-
-  double vel_m_s = decode_velocity_component(n); /* extract Vx */
-  if ((vel_m_s < -GLO_VEL_MAX_M_S) || (GLO_VEL_MAX_M_S < vel_m_s)) {
-    log_debug_mesid(n->mesid, "GLO-NAV-ERR: vel_x=%lf m/s", vel_m_s);
-    return false;
-  }
-  n->eph.glo.vel[0] = vel_m_s;
-
-  double acc_m_s2 = decode_acceleration_component(n); /* extract Ax */
-  if ((acc_m_s2 < -GLO_ACC_MAX_M_S2) || (GLO_ACC_MAX_M_S2 < acc_m_s2)) {
-    log_debug_mesid(n->mesid, "GLO-NAV-ERR: acc_x=%lf m/s^2", acc_m_s2);
-    return false;
-  }
-  n->eph.glo.acc[0] = acc_m_s2;
-
-  /* extract tk */
-  n->tk.h = (u8)extract_word_glo(n, 72, 5);
-  if (n->tk.h > GLO_TK_HOURS_MAX) {
-    log_debug_mesid(n->mesid, "GLO-NAV-ERR: tk_h=%" PRIu8 " h", n->tk.h);
-    return false;
-  }
-  n->tk.m = (u8)extract_word_glo(n, 66, 6);
-  if (n->tk.m > GLO_TK_MINS_MAX) {
-    log_debug_mesid(n->mesid, "GLO-NAV-ERR: tk_m=%" PRIu8 " min", n->tk.m);
-    return false;
-  }
-  n->tk.s = extract_word_glo(n, 65, 1) ? MINUTE_SECS / 2 : 0.0;
-
-  /* extract P1 */
-  u32 p1 = extract_word_glo(n, 77, 2);
-  n->eph.fit_interval = compute_ephe_fit_interval(n, p1);
-
-  return true;
-}
-
-static bool extract_string_2_components(nav_msg_glo_t *n) {
-  double pos_m = decode_position_component(n); /* extract y */
-  if ((pos_m < -GLO_POS_MAX_M) || (GLO_POS_MAX_M < pos_m)) {
-    log_debug_mesid(n->mesid, "GLO-NAV-ERR: pos_y =%lf m", pos_m);
-    return false;
-  }
-  n->eph.glo.pos[1] = pos_m;
-
-  double vel_m_s = decode_velocity_component(n); /* extract Vy */
-  if ((vel_m_s < -GLO_VEL_MAX_M_S) || (GLO_VEL_MAX_M_S < vel_m_s)) {
-    log_debug_mesid(n->mesid, "GLO-NAV-ERR: vel_y=%lf m/s", vel_m_s);
-    return false;
-  }
-  n->eph.glo.vel[1] = vel_m_s;
-
-  double acc_m_s2 = decode_acceleration_component(n); /* extract Ay */
-  if ((acc_m_s2 < -GLO_ACC_MAX_M_S2) || (GLO_ACC_MAX_M_S2 < acc_m_s2)) {
-    log_debug_mesid(n->mesid, "GLO-NAV-ERR: acc_y=%lf m/s^2", acc_m_s2);
-    return false;
-  }
-  n->eph.glo.acc[1] = acc_m_s2;
-
-  /* extract MSB of B (if the bit is 0 the SV is OK ) */
-  n->eph.health_bits |= extract_word_glo(n, 80, 1);
-
-  u32 tb_s = extract_word_glo(n, 70, 7) * 15 * MINUTE_SECS;
-  if ((tb_s < GLO_TB_MIN_S) || (GLO_TB_MAX_S < tb_s)) {
-    log_debug_mesid(n->mesid, "GLO-NAV-ERR: tb_s=%" PRIu32 " s", tb_s);
-    return false;
-  }
-  n->toe.h = tb_s / HOUR_SECS;
-  n->toe.m = (tb_s - n->toe.h * HOUR_SECS) / MINUTE_SECS;
-  n->toe.s = tb_s - (n->toe.h * HOUR_SECS) - (n->toe.m * MINUTE_SECS);
-  n->eph.glo.iod = tb_s & 0x7f; /* 7 LSB of Tb as IOD */
-
-  return true;
-}
-
-static bool extract_string_3_components(nav_msg_glo_t *n) {
-  u32 ret;
-  u8 sign;
-
-  double pos_m = decode_position_component(n); /* extract z */
-  if ((pos_m < -GLO_POS_MAX_M) || (GLO_POS_MAX_M < pos_m)) {
-    log_debug_mesid(n->mesid, "GLO-NAV-ERR: pos_z =%lf m", pos_m);
-    return false;
-  }
-  n->eph.glo.pos[2] = pos_m;
-
-  double vel_m_s = decode_velocity_component(n); /* extract Vz */
-  if ((vel_m_s < -GLO_VEL_MAX_M_S) || (GLO_VEL_MAX_M_S < vel_m_s)) {
-    log_debug_mesid(n->mesid, "GLO-NAV-ERR: vel_z=%lf m/s", vel_m_s);
-    return false;
-  }
-  n->eph.glo.vel[2] = vel_m_s;
-
-  double acc_m_s2 = decode_acceleration_component(n); /* extract Az */
-  if ((acc_m_s2 < -GLO_ACC_MAX_M_S2) || (GLO_ACC_MAX_M_S2 < acc_m_s2)) {
-    log_debug_mesid(n->mesid, "GLO-NAV-ERR: acc_z=%lf m/s^2", acc_m_s2);
-    return false;
-  }
-  n->eph.glo.acc[2] = acc_m_s2;
-
-  /* extract gamma */
-  ret = extract_word_glo(n, 69, 10);
-  sign = extract_word_glo(n, 69 + 10, 1);
-  if (sign) {
-    ret *= -1;
-  }
-  double gamma = (s32)ret * C_1_2P40;
-  if ((gamma < -GLO_GAMMA_MAX) || (GLO_GAMMA_MAX < gamma)) {
-    log_debug_mesid(n->mesid, "GLO-NAV-ERR: gamma=%lf", gamma);
-    return false;
-  }
-  n->eph.glo.gamma = gamma;
-  /* extract l, if it is 0 the SV is OK, so OR it with B */
-  n->eph.health_bits |= extract_word_glo(n, 65, 1);
-
-  return true;
-}
-
-static bool extract_string_4_components(nav_msg_glo_t *n) {
-  u32 ret;
-  u8 sign;
-
-  /* extract tau */
-  ret = extract_word_glo(n, 59, 21);
-  sign = extract_word_glo(n, 59 + 21, 1);
-  if (sign) {
-    ret *= -1;
-  }
-  double tau_s = (s32)ret * C_1_2P30;
-  if ((tau_s < -GLO_TAU_MAX_S) || (GLO_TAU_MAX_S < tau_s)) {
-    log_debug_mesid(n->mesid, "GLO-NAV-ERR: tau=%lf s", tau_s);
-    return false;
-  }
-  n->eph.glo.tau = tau_s;
-
-  /* extract d_tau */
-  ret = extract_word_glo(n, 54, 4);
-  sign = extract_word_glo(n, 54 + 4, 1);
-  if (sign) {
-    ret *= -1;
-  }
-  double d_tau_s = (s32)ret * C_1_2P30;
-  if ((d_tau_s < -GLO_D_TAU_MAX_S) || (GLO_D_TAU_MAX_S < d_tau_s)) {
-    log_debug_mesid(n->mesid, "GLO-NAV-ERR: d_tau=%lf s", d_tau_s);
-    return false;
-  }
-  n->eph.glo.d_tau = d_tau_s;
-
-  /* extract E_n age of data */
-  n->age_of_data_days = extract_word_glo(n, 49, 5);
-
-  /* extract n */
-  u16 glo_slot_id = extract_word_glo(n, 11, 5);
-  if (!glo_slot_id_is_valid(glo_slot_id)) {
-    log_debug_mesid(n->mesid, "GLO-NAV-ERR: glo_slot_id=%" PRIu16, glo_slot_id);
-    return false;
-  }
-  n->eph.sid.sat = glo_slot_id;
-
-  /* extract Ft (URA) */
-  n->eph.ura = f_t[extract_word_glo(n, 30, 4)];
-
-  /*extract Nt*/
-  u16 nt_days = (u16)extract_word_glo(n, 16, 11);
-  if (GLO_NT_MAX_DAYS < nt_days) {
-    log_debug_mesid(n->mesid, "GLO-NAV-ERR: nt=%" PRIu16 " days", nt_days);
-    return false;
-  }
-  n->tk.nt = n->toe.nt = nt_days;
-
-  u32 M = extract_word_glo(n, 9, 2);
-  if (SV_GLONASS == M) {
-    /* this breaks the assumption that all visible GLO satellites should be
-       at least of "Glonass M" model*/
-    log_warn_mesid(n->mesid, "Non GLONASS M SV detected");
-  }
-  return true;
-}
-
-static bool extract_string_5_components(nav_msg_glo_t *n) {
-  u8 sign;
-
-  /* extract N4 */
-  u8 n4 = (u8)extract_word_glo(n, 32, 5);
-  /* ICD L1,L2 GLONASS edition 5.1 2008 Table 4.5 Table 4.9 */
-  if (0 == n4) {
-    log_debug_mesid(n->mesid, "GLO-NAV-ERR: n4=0");
-    return false;
-  }
-  n->tk.n4 = n->toe.n4 = n4;
-
-  /* extract tau GPS [s] */
-  double tau_gps_s = extract_word_glo(n, 10, 21) * C_1_2P30;
-  sign = extract_word_glo(n, 31, 1);
-  if (sign) {
-    tau_gps_s *= -1;
-  }
-  if (GLO_TAU_GPS_MAX_S < fabs(tau_gps_s)) {
-    log_debug_mesid(n->mesid, "GLO-NAV-ERR: tau_gps=%lf", tau_gps_s);
-    return false;
-  }
-
-  n->tau_gps_s = (float)tau_gps_s;
-
-  return true;
 }
 
 /** Find out how many strings have been decoded after last string 1.
@@ -903,11 +457,11 @@ static bool is_ephe_valid(const nav_msg_glo_t *n) {
  */
 string_decode_status_t process_string_glo(nav_msg_glo_t *n, u32 time_tag_ms) {
   /* Extract and check dummy bit from GLO string, bit 85 in GLO string */
-  if (extract_word_glo(n, GLO_STR_LEN, 1) != 0) {
+  if (extract_word_glo(&n->string, GLO_STR_LEN, 1) != 0) {
     return GLO_STRING_DECODE_ERROR;
   }
   /* Extract string number */
-  u32 m = extract_word_glo(n, 81, 4);
+  u32 m = extract_word_glo(&n->string, 81, 4);
   /* Decode string specific data, we are interested only in strings 1-5 */
   /* According to ICD L1,L2 GLONASS edition 5.1 2008 Table 4.5 the valid
      range of m is [0..15] */
@@ -927,27 +481,29 @@ string_decode_status_t process_string_glo(nav_msg_glo_t *n, u32 time_tag_ms) {
 
   switch (m) {
     case 1: /* string 1 */
-      if (!extract_string_1_components(n)) {
+      if (!decode_glo_string_1(&n->string, &n->eph, &n->tk)) {
         return GLO_STRING_DECODE_ERROR;
       }
       break;
     case 2: /* string 2 */
-      if (!extract_string_2_components(n)) {
+      if (!decode_glo_string_2(&n->string, &n->eph, &n->toe)) {
         return GLO_STRING_DECODE_ERROR;
       }
       break;
     case 3: /* string 3 */
-      if (!extract_string_3_components(n)) {
+      if (!decode_glo_string_3(&n->string, &n->eph, &n->toe)) {
         return GLO_STRING_DECODE_ERROR;
       }
       break;
     case 4: /* string 4 */
-      if (!extract_string_4_components(n)) {
+      if (!decode_glo_string_4(
+              &n->string, &n->eph, &n->tk, &n->toe, &n->age_of_data_days)) {
         return GLO_STRING_DECODE_ERROR;
       }
       break;
     case 5: /* string 5 */
-      if (!extract_string_5_components(n)) {
+      if (!decode_glo_string_5(
+              &n->string, &n->eph, &n->tk, &n->toe, &n->tau_gps_s)) {
         return GLO_STRING_DECODE_ERROR;
       }
       break;
