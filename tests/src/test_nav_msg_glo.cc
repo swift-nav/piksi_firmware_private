@@ -23,7 +23,7 @@ nav_msg_glo_t n;
  * 0aad8090a54019cb035d3f,0,0b3e2240201e97fc34fc39,0,0cae940cdc3c1e2786da9b,0,
  * 0d68bf54a4c697f115320b,0,0eaf8449b38c1e228932d8,0,0f815b653eee981314802a,0*f3837a1c
  */
-u32 strings_in[6][3] = {
+glo_string_t strings_in[6] = {
     {1, 1, 1}, /* dummy words used in test_nav_msg_update_glo only */
     {0xc3a850b5, 0x96999b05, 0x010743}, /* 01074396999b05c3a850b5 */
     {0xd9c15f66, 0xa5256204, 0x021760}, /* 021760a5256204d9c15f66 */
@@ -91,46 +91,6 @@ void e_out(void) {
   EXPECT_LT(std::abs(n.eph.glo.acc[2] - AZ), LOW_TOL);
   EXPECT_LT(std::abs(n.eph.glo.tau - TAU), LOW_TOL);
   EXPECT_LT(std::abs(n.eph.glo.gamma - GAMMA), LOW_TOL);
-}
-
-TEST(nav_msg_glo_tests, extract_glo_word) {
-  u32 ret = 0;
-  me_gnss_signal_t mesid;
-  mesid.sat = 1;
-  mesid.code = CODE_GLO_L1OF;
-  memset(&n, 0, sizeof(n));
-  nav_msg_init_glo(&n, mesid);
-  n.string_bits[0] = 5;
-  n.string_bits[1] = 5;
-  n.string_bits[2] = 5;
-  ret = extract_word_glo(&n, 1, 32);
-  EXPECT_EQ(ret, 5);
-  ret = extract_word_glo(&n, 33, 3);
-  EXPECT_EQ(ret, 5);
-  ret = extract_word_glo(&n, 65, 3);
-  EXPECT_EQ(ret, 5);
-
-  n.string_bits[0] = 0x12345678;
-  n.string_bits[1] = 0xdeadbeef;
-  n.string_bits[2] = 0x87654321;
-  ret = extract_word_glo(&n, 1, 32);
-  EXPECT_EQ(ret, 0x12345678);
-  ret = extract_word_glo(&n, 33, 32);
-  EXPECT_EQ(ret, 0xdeadbeef);
-  ret = extract_word_glo(&n, 65, 32);
-  EXPECT_EQ(ret, 0x87654321);
-  ret = extract_word_glo(&n, 49, 4);
-  EXPECT_EQ(ret, 0xd);
-
-  n.string_bits[0] = 0xbeef0000;
-  n.string_bits[1] = 0x4321dead;
-  n.string_bits[2] = 0x00008765;
-  ret = extract_word_glo(&n, 17, 32);
-  EXPECT_EQ(ret, 0xdeadbeef);
-  ret = extract_word_glo(&n, 49, 32);
-  EXPECT_EQ(ret, 0x87654321);
-  ret = extract_word_glo(&n, 49, 16);
-  EXPECT_EQ(ret, 0x4321);
 }
 
 TEST(nav_msg_glo_tests, process_string_glo) {
