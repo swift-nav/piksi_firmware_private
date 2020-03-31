@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <swiftnav/logging.h>
+#include <swiftnav/decode_glo.h>
 
 #include <cmath>
 
@@ -131,8 +132,8 @@ void msg_update_test(bool inverted) {
     a.string = strings_in[i];
     /* transmit data bits, 85 bits */
     for (j = GLO_STR_LEN; j > 0; j--) {
-      bool one_bit = extract_word_glo(&a, j, 1); /* get bit to be transmitted */
-      relcode_state ^= one_bit;                  /* apply relative code phase */
+      bool one_bit = extract_word_glo(&a.string, j, 1); /* get bit to be transmitted */
+      relcode_state ^= one_bit;                         /* apply relative code phase */
       manchester = ((relcode_state << 1) | relcode_state) ^
                    meander; /* transform to line code */
       /* now pass it to receiver MSB first, receiver must return -1 */
@@ -143,7 +144,7 @@ void msg_update_test(bool inverted) {
     }
     /* try to decode the string */
     if (GLO_STRING_READY == ret) {
-      EXPECT_EQ(memcmp(a.string, n.string, sizeof(a.string)), 0);
+      EXPECT_EQ(memcmp(&a.string, &n.string, sizeof(a.string)), 0);
 
       time_tag_ms += GLO_STR_LEN_S * SECS_MS;
       if (process_string_glo(&n, time_tag_ms) == 1) {
