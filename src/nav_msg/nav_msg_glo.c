@@ -154,7 +154,7 @@ nav_msg_status_t get_data_bits_glo(nav_msg_glo_t *n, bool symbol) {
 
   /* remove meander and store bit in buffer */
   /* shift whole buffer by 1 bit left */
-  for (u8 i = GLO_NAV_STR_BITS - 1; i > 0; i--) {
+  for (u8 i = GLO_NAV_STR_WORDS - 1; i > 0; i--) {
     u32 tmp =
         (n->string.word[i] << 1) | ((n->string.word[i - 1] & (1u << 31)) >> 31);
     n->string.word[i] = tmp;
