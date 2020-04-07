@@ -18,17 +18,18 @@
 #include "sbp/sbp_utils.h"
 
 void send_observations(const obs_array_t *obs_array, u32 msg_obs_max_size) {
+  assert(obs_array);
   static u8 buff[SBP_FRAMING_MAX_PAYLOAD_SIZE + 1];
   msg_obs_t *msg = (msg_obs_t *)&buff;
 
-  if ((NULL == obs_array) || (0 == obs_array->n)) {
-    gps_time_t t_dummy = GPS_TIME_UNKNOWN;
-    pack_obs_header(&t_dummy, 1, 0, &msg->header);
+  u8 n = obs_array->n;
+
+  if (0 == n) {
+    /* Send empty observations */
+    pack_obs_header(&obs_array->t, 1, 0, &msg->header);
     sbp_send_msg(SBP_MSG_OBS, sizeof(observation_header_t), buff);
     return;
   }
-
-  u8 n = obs_array->n;
 
   /* Upper limit set by SBP framing size, preventing underflow */
   u16 msg_payload_size =
