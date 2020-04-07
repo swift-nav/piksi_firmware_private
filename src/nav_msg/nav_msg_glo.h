@@ -23,8 +23,6 @@
 extern "C" {
 #endif /* __cplusplus */
 
-#define NAV_MSG_GLO_STRING_BITS_LEN 3 /* Buffer 96 nav bits. */
-
 /** GLO time mark is 30 symbols of duration 10 millisec each */
 #define GLO_TM_LEN_SYMBOLS 30 /** Length of GLO time mark in symbols */
 #define GLO_TM_MASK ((1 << GLO_TM_LEN_SYMBOLS) - 1)
@@ -77,14 +75,10 @@ typedef struct {
   u8 state;
 } relcode_t;
 
-/* Callback type to convert GLO time to GPS time using NDB UTC parameters */
-typedef gps_time_t (*glo2gps_with_utc_params_t)(me_gnss_signal_t mesid,
-                                                const glo_time_t *glo_t);
-
 /* The structure is used for GLO receive and decode bitstream */
 typedef struct {
   /** buffer for one GLO string */
-  u32 string_bits[NAV_MSG_GLO_STRING_BITS_LEN];
+  glo_string_t string;
   /* Array to store string receive time in milliseconds, based on systicks */
   u32 string_receive_time_ms[GLO_STRINGS_TO_COLLECT];
 
@@ -116,12 +110,10 @@ typedef struct {
 } nav_msg_glo_t;
 
 void nav_msg_init_glo(nav_msg_glo_t *n, me_gnss_signal_t mesid);
-u32 extract_word_glo(const nav_msg_glo_t *n, u16 bit_index, u8 n_bits);
 bool timemark_glo_decoded(nav_msg_glo_t *n, bool symbol);
 nav_msg_status_t get_data_bits_glo(nav_msg_glo_t *n, bool symbol);
 string_decode_status_t process_string_glo(nav_msg_glo_t *n, u32 time_tag_ms);
 nav_msg_status_t nav_msg_update_glo(nav_msg_glo_t *n, bool symbol);
-s8 error_detection_glo(const nav_msg_glo_t *n);
 
 #ifdef __cplusplus
 } /* extern "C" */

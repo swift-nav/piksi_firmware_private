@@ -14,6 +14,7 @@
 
 #include <assert.h>
 #include <inttypes.h>
+#include <swiftnav/decode_glo.h>
 #include <swiftnav/glo_map.h>
 #include <swiftnav/gnss_time.h>
 #include <swiftnav/signal.h>
@@ -51,7 +52,7 @@ glo_decode_status_t glo_data_decoding(nav_msg_glo_t *n,
   }
 
   /* Check for bit errors in the collected string */
-  s8 bit_errors = error_detection_glo(n);
+  s8 bit_errors = error_detection_glo(&n->string);
   if (bit_errors != 0) {
     log_warn_mesid(mesid, "Parity error");
     return GLO_DECODE_WAIT;

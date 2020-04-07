@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <swiftnav/logging.h>
+#include <swiftnav/decode_glo.h>
 
 #include <cmath>
 
@@ -23,7 +24,7 @@ nav_msg_glo_t n;
  * 0aad8090a54019cb035d3f,0,0b3e2240201e97fc34fc39,0,0cae940cdc3c1e2786da9b,0,
  * 0d68bf54a4c697f115320b,0,0eaf8449b38c1e228932d8,0,0f815b653eee981314802a,0*f3837a1c
  */
-u32 strings_in[6][3] = {
+glo_string_t strings_in[6] = {
     {1, 1, 1}, /* dummy words used in test_nav_msg_update_glo only */
     {0xc3a850b5, 0x96999b05, 0x010743}, /* 01074396999b05c3a850b5 */
     {0xd9c15f66, 0xa5256204, 0x021760}, /* 021760a5256204d9c15f66 */
@@ -93,46 +94,6 @@ void e_out(void) {
   EXPECT_LT(std::abs(n.eph.glo.gamma - GAMMA), LOW_TOL);
 }
 
-TEST(nav_msg_glo_tests, extract_glo_word) {
-  u32 ret = 0;
-  me_gnss_signal_t mesid;
-  mesid.sat = 1;
-  mesid.code = CODE_GLO_L1OF;
-  memset(&n, 0, sizeof(n));
-  nav_msg_init_glo(&n, mesid);
-  n.string_bits[0] = 5;
-  n.string_bits[1] = 5;
-  n.string_bits[2] = 5;
-  ret = extract_word_glo(&n, 1, 32);
-  EXPECT_EQ(ret, 5);
-  ret = extract_word_glo(&n, 33, 3);
-  EXPECT_EQ(ret, 5);
-  ret = extract_word_glo(&n, 65, 3);
-  EXPECT_EQ(ret, 5);
-
-  n.string_bits[0] = 0x12345678;
-  n.string_bits[1] = 0xdeadbeef;
-  n.string_bits[2] = 0x87654321;
-  ret = extract_word_glo(&n, 1, 32);
-  EXPECT_EQ(ret, 0x12345678);
-  ret = extract_word_glo(&n, 33, 32);
-  EXPECT_EQ(ret, 0xdeadbeef);
-  ret = extract_word_glo(&n, 65, 32);
-  EXPECT_EQ(ret, 0x87654321);
-  ret = extract_word_glo(&n, 49, 4);
-  EXPECT_EQ(ret, 0xd);
-
-  n.string_bits[0] = 0xbeef0000;
-  n.string_bits[1] = 0x4321dead;
-  n.string_bits[2] = 0x00008765;
-  ret = extract_word_glo(&n, 17, 32);
-  EXPECT_EQ(ret, 0xdeadbeef);
-  ret = extract_word_glo(&n, 49, 32);
-  EXPECT_EQ(ret, 0x87654321);
-  ret = extract_word_glo(&n, 49, 16);
-  EXPECT_EQ(ret, 0x4321);
-}
-
 TEST(nav_msg_glo_tests, process_string_glo) {
   u32 time_tag_ms = 0;
   me_gnss_signal_t mesid;
@@ -141,7 +102,7 @@ TEST(nav_msg_glo_tests, process_string_glo) {
   memset(&n, 0, sizeof(n));
   nav_msg_init_glo(&n, mesid);
   for (u8 i = 1; i < sizeof(strings_in) / sizeof(strings_in[1]); i++) {
-    memcpy(n.string_bits, strings_in[i], sizeof(n.string_bits));
+    n.string = strings_in[i];
     time_tag_ms += GLO_STR_LEN_S * SECS_MS;
     process_string_glo(&n, time_tag_ms);
   }
@@ -168,11 +129,11 @@ void msg_update_test(bool inverted) {
     nav_msg_init_glo(&a, mesid);
     u8 relcode_state = 0;
     /* write test string to temporary buffer */
-    memcpy(a.string_bits, strings_in[i], sizeof(a.string_bits));
+    a.string = strings_in[i];
     /* transmit data bits, 85 bits */
     for (j = GLO_STR_LEN; j > 0; j--) {
-      bool one_bit = extract_word_glo(&a, j, 1); /* get bit to be transmitted */
-      relcode_state ^= one_bit;                  /* apply relative code phase */
+      bool one_bit = extract_word_glo(&a.string, j, 1); /* get bit to be transmitted */
+      relcode_state ^= one_bit;                         /* apply relative code phase */
       manchester = ((relcode_state << 1) | relcode_state) ^
                    meander; /* transform to line code */
       /* now pass it to receiver MSB first, receiver must return -1 */
@@ -183,7 +144,7 @@ void msg_update_test(bool inverted) {
     }
     /* try to decode the string */
     if (GLO_STRING_READY == ret) {
-      EXPECT_EQ(memcmp(a.string_bits, n.string_bits, sizeof(a.string_bits)), 0);
+      EXPECT_EQ(memcmp(&a.string, &n.string, sizeof(a.string)), 0);
 
       time_tag_ms += GLO_STR_LEN_S * SECS_MS;
       if (process_string_glo(&n, time_tag_ms) == 1) {
@@ -209,53 +170,6 @@ TEST(nav_msg_glo_tests, nav_msg_update_glo) {
   msg_update_test(true);
 }
 
-TEST(nav_msg_glo_tests, error_correction_glo) {
-  const struct {
-    u32 str_in[3]; /**< input string for test  */
-    s8 ret;        /** result of the test */
-  } test_case[] = {
-      /* First, simply test one GLO nav message received from Novatel,
-       * we trust Novatel, so no errors must be */
-      {{0xc90cfb3e, 0x9743a301, 0x010749}, 0}, /* case 0 */
-      {{0xdd39f5fc, 0x24542d0c, 0x021760}, 0},
-      {{0x653bc7e9, 0x1e8ead92, 0x038006}, 0},
-      {{0x60342dfc, 0x41000002, 0x0481c7}, 0},
-      {{0x40000895, 0x00000003, 0x050d10}, 0},
-      {{0x530a7ecf, 0x059c4415, 0x06b082}, 0},
-      {{0xfd94beb6, 0x7a577e97, 0x070f46}, 0},
-      {{0xba02de6f, 0x988e6814, 0x08b101}, 0},
-      {{0x12064831, 0x87767698, 0x09e1a6}, 0},
-      {{0xaf870be5, 0x54ef2617, 0x0ab286}, 0},
-      {{0x0f06ba41, 0x9a3f2698, 0x0b8f7c}, 0},
-      {{0x2f012204, 0xf0c3c81a, 0x0cb309}, 0},
-      {{0x1c858601, 0x10c47e98, 0x0da065}, 0},
-      {{0x5205980b, 0xf49abc1a, 0x0eb40e}, 0},
-      {{0x15454437, 0x2504e698, 0x0f8c09}, 0},
-      /* Second, take 1st string from other GLO nav message and introduce an
-       * error
-       * in data bits */
-      {{0xc90cfb81, 0x9743a301, 0x010748}, 0}, /* case 15, no errors  */
-      {{0xc90cfb81, 0x9743a301, 0x110748}, 85},
-      {{0xc90cfb81, 0x1743a301, 0x010748}, 64},
-      {{0x490cfb81, 0x9743a301, 0x010748}, 32},
-      {{0xc90cfb81, 0x9743a300, 0x010748}, 33},
-      {{0xc90cfb81, 0x9743a301, 0x010749}, 65},
-      {{0xc90cfb81, 0x9743a301, 0x000748}, 81},
-      {{0xc90c3b81, 0x9743a301, 0x010748}, -1},
-      {{0xc90cfb81, 0x974fa301, 0x010748}, -1},
-      {{0xc90cfb81, 0x9743a301, 0x01074b}, -1},
-      {{0xc90cfb81, 0x9743a301, 0x010744}, -1},
-      {{0xc90cfb81, 0x9aaaa301, 0x010748}, -1},
-      {{0xc90cfb81, 0x9743a301, 0x010748}, 0}, /* no errors here */
-  };
-
-  for (u8 i = 0; i < sizeof(test_case) / sizeof(test_case[0]); i++) {
-    memcpy(n.string_bits, test_case[i].str_in, sizeof(n.string_bits));
-    s8 ret = error_detection_glo(&n);
-    EXPECT_EQ(test_case[i].ret, ret);
-  }
-}
-
 TEST(nav_msg_glo_tests, get_tow_glo) {
   u32 time_tag_ms = 0;
   me_gnss_signal_t mesid;
@@ -266,7 +180,7 @@ TEST(nav_msg_glo_tests, get_tow_glo) {
   gps_time_t t = glo2gps(&n.toe, /* utc_params = */ NULL);
   EXPECT_EQ(t.tow, TOW_UNKNOWN);
   for (u8 i = 1; i < sizeof(strings_in) / sizeof(strings_in[1]); i++) {
-    memcpy(n.string_bits, strings_in[i], sizeof(n.string_bits));
+    n.string = strings_in[i];
     time_tag_ms += GLO_STR_LEN_S * SECS_MS;
     process_string_glo(&n, time_tag_ms);
   }
