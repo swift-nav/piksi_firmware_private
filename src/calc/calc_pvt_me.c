@@ -74,7 +74,7 @@ static const double valid_soln_freqs_hz[] = {1.0, 2.0, 4.0, 5.0, 10.0, 20.0};
 #define SOLN_FREQ_SETTING_MAX \
   (valid_soln_freqs_hz[ARRAY_SIZE(valid_soln_freqs_hz) - 1])
 
-double soln_freq_setting = 10.0;
+double soln_freq_setting = 1.0;
 u32 obs_output_divisor = 10;
 
 s16 msg_obs_max_size = SBP_FRAMING_MAX_PAYLOAD_SIZE;
