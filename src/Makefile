@@ -102,6 +102,10 @@ ifeq ($(LIBPAL_BUILDDIR),)
   LIBPAL_BUILDDIR=$(STARLING_BUILDDIR)/third_party/libpal
 endif
 
+ifeq ($(LIBPALPP_BUILDDIR),)
+  LIBPALPP_BUILDDIR=$(STARLING_BUILDDIR)/third_party/libpal_cpp
+endif
+
 ifeq ($(LIBSBP_BUILDDIR),)
   LIBSBP_BUILDDIR=$(STARLING_BUILDDIR)/third_party/libsbp
 endif
@@ -380,9 +384,10 @@ DINCDIR =
 # List the default directory to look for the libraries here
 
 DLIBDIR = $(LIBPAL_BUILDDIR)/src/default \
+          $(LIBPALPP_BUILDDIR)/src/ \
           $(LIBSBP_BUILDDIR)/c/src \
           $(LIBSETTINGS_BUILDDIR)/src \
-          $(STARLING_BUILDDIR)/src/starling \
+          $(STARLING_BUILDDIR)/src/pvt_driver \
 					$(STARLING_BUILDDIR)/src/pvt_engine \
 					$(STARLING_BUILDDIR)/src/pvt_common \
           $(STARLING_BUILDDIR)/src/util \
@@ -391,7 +396,7 @@ DLIBDIR = $(LIBPAL_BUILDDIR)/src/default \
           $(BOARDLIBDIR)
 
 # List all default libraries here
-DLIBS = $(BOARDLIBS) -lpal -lsbp -lstarling -lswiftnav -lpvt-engine -lpvt-common\
+DLIBS = $(BOARDLIBS) -lpal -lpal++ -lsbp -lpvt_driver -lswiftnav -lpvt-engine -lpvt-common\
          -lstarling-util -lm -Wl,--start-group\
          -lstdc++ -lc -Wl,--end-group -lfec -lnosys -lsettings
 
