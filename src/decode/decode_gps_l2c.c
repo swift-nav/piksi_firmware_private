@@ -111,11 +111,11 @@ static void decoder_gps_l2c_process(const decoder_channel_info_t *channel_info,
     shm_gps_set_shi_cnav_alert(channel_info->mesid.sat, !data->cnav_msg.alert);
 
     if (CNAV_MSG_TYPE_10 == data->cnav_msg.msg_id) {
-      log_debug_mesid(channel_info->mesid,
-                      "L1 healthy: %s, L2 healthy: %s, L5 healthy: %s",
-                      data->cnav_msg.data.type_10.l1_health ? "Y" : "N",
-                      data->cnav_msg.data.type_10.l2_health ? "Y" : "N",
-                      data->cnav_msg.data.type_10.l5_health ? "Y" : "N");
+      log_warn_mesid(channel_info->mesid,
+                     "L1 healthy: %s, L2 healthy: %s, L5 healthy: %s",
+                     data->cnav_msg.data.type_10.l1_health ? "Y" : "N",
+                     data->cnav_msg.data.type_10.l2_health ? "Y" : "N",
+                     data->cnav_msg.data.type_10.l5_health ? "Y" : "N");
       cnav_msg_put(&data->cnav_msg);
     }
 
