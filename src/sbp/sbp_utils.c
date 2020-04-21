@@ -16,7 +16,6 @@
 #include <assert.h>
 #include <limits.h>
 #include <math.h>
-#include <pvt_engine/firmware_binding.h>
 #include <stdlib.h>
 #include <string.h>
 #include <swiftnav/constants.h>

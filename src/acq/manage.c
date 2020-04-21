@@ -13,10 +13,10 @@
 #include "manage.h"
 
 #include <assert.h>
+#include <calc/starling_integration.h>
 #include <inttypes.h>
 #include <libsbp/piksi.h>
 #include <math.h>
-#include <starling/starling.h>
 #include <stdlib.h>
 #include <string.h>
 #include <swiftnav/almanac.h>
@@ -366,7 +366,7 @@ static int solution_elevation_mask_notify(void *ctx) {
     log_info("Solution elevation mask set at limit 90 deg");
     ret = SETTINGS_WR_VALUE_REJECTED;
   }
-  starling_set_elevation_mask(solution_elevation_mask);
+  pvt_driver_set_elevation_mask(pvt_driver, solution_elevation_mask);
   return ret;
 }
 

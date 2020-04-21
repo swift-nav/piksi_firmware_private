@@ -13,7 +13,7 @@
 #ifndef SWIFTNAV_CALC_PVT_COMMON_H
 #define SWIFTNAV_CALC_PVT_COMMON_H
 
-#include <starling/starling.h>
+#include <calc/starling_integration.h>
 
 #ifdef __cplusplus
 extern "C" {

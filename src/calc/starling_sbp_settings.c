@@ -13,13 +13,18 @@
 #include "starling_sbp_settings.h"
 
 #include <assert.h>
+#include <calc/starling_integration.h>
 #include <libsettings/settings.h>
-#include <starling/starling.h>
 
 #include "sbp_settings_client.h"
 
 /********************************************************************************/
 #define DFLT_CORRECTION_AGE_MAX_S 30
+
+typedef enum {
+  FILTER_FLOAT,
+  FILTER_FIXED,
+} dgnss_filter_t;
 
 /********************************************************************************/
 static SbpSettingsClient *settings_client = NULL;
@@ -29,7 +34,8 @@ static bool enable_glonass = true;
 static bool enable_galileo = true;
 static bool enable_beidou = true;
 static dgnss_filter_t dgnss_filter_mode = FILTER_FIXED;
-static dgnss_solution_mode_t dgnss_soln_mode = STARLING_SOLN_MODE_LOW_LATENCY;
+static pvt_driver_solution_mode_t dgnss_soln_mode =
+    PVT_DRIVER_SOLN_MODE_LOW_LATENCY;
 static float glonass_downweight_factor = 4.0;
 static u32 corr_age_max = DFLT_CORRECTION_AGE_MAX_S;
 static PROCESS_NOISE_MOTION_TYPE dynamic_motion_model = HIGH_DYNAMICS;
@@ -57,14 +63,15 @@ static int heading_offset_changed(void *ctx) {
 /********************************************************************************/
 static int enable_fix_mode(void *ctx) {
   (void)ctx;
-  starling_set_is_fix_enabled(FILTER_FIXED == dgnss_filter_mode);
+  pvt_driver_set_is_rtk_fixed_enabled(pvt_driver,
+                                      FILTER_FIXED == dgnss_filter_mode);
   return SETTINGS_WR_OK;
 }
 
 /********************************************************************************/
 static int set_dgnss_soln_mode(void *ctx) {
   (void)ctx;
-  starling_set_solution_mode(dgnss_soln_mode);
+  pvt_driver_set_solution_mode(pvt_driver, dgnss_soln_mode);
   return SETTINGS_WR_OK;
 }
 
@@ -75,42 +82,43 @@ static int set_max_age(void *ctx) {
     log_error("Invalid correction age max value %" PRIu32, corr_age_max);
     return SETTINGS_WR_SETTING_REJECTED;
   }
-  starling_set_max_correction_age(corr_age_max);
+  pvt_driver_set_max_correction_age(pvt_driver, corr_age_max);
   return SETTINGS_WR_OK;
 }
 
 /********************************************************************************/
 static int set_is_glonass_enabled(void *ctx) {
   (void)ctx;
-  starling_set_is_glonass_enabled(enable_glonass);
+  pvt_driver_set_is_glonass_enabled(pvt_driver, enable_glonass);
   return SETTINGS_WR_OK;
 }
 
 /********************************************************************************/
 static int set_is_galileo_enabled(void *ctx) {
   (void)ctx;
-  starling_set_is_galileo_enabled(enable_galileo);
+  pvt_driver_set_is_galileo_enabled(pvt_driver, enable_galileo);
   return SETTINGS_WR_OK;
 }
 
 /********************************************************************************/
 static int set_is_beidou_enabled(void *ctx) {
   (void)ctx;
-  starling_set_is_beidou_enabled(enable_beidou);
+  pvt_driver_set_is_beidou_enabled(pvt_driver, enable_beidou);
   return SETTINGS_WR_OK;
 }
 
 /********************************************************************************/
 static int set_dynamic_motion_model(void *ctx) {
   (void)ctx;
-  starling_set_process_noise_motion(dynamic_motion_model);
+  pvt_driver_set_process_noise_motion(pvt_driver, dynamic_motion_model);
   return SETTINGS_WR_OK;
 }
 
 /********************************************************************************/
 static int set_glonass_downweight_factor(void *ctx) {
   (void)ctx;
-  starling_set_glonass_downweight_factor(glonass_downweight_factor);
+  pvt_driver_set_glonass_downweight_factor(pvt_driver,
+                                           glonass_downweight_factor);
   return SETTINGS_WR_OK;
 }
 

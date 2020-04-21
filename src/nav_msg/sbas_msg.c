@@ -12,8 +12,8 @@
 
 #include "nav_msg/sbas_msg.h"
 
+#include <calc/starling_integration.h>
 #include <limits.h>
-#include <starling/starling_input_bridge.h>
 #include <starling/util/sbp/packers.h>
 #include <starling/util/sbp/unpackers.h>
 #include <string.h>
@@ -313,7 +313,7 @@ static void sbas_post_me_msg(const msg_sbas_raw_t *sbas_raw_msg) {
   sbas_raw_data_t sbas_data;
   unpack_sbas_raw_data(sbas_raw_msg, &sbas_data);
   gps_time_match_weeks(&sbas_data.time_of_transmission, &current_time);
-  starling_send_sbas_data(&sbas_data);
+  pvt_driver_send_sbas_data(pvt_driver, &sbas_data);
 }
 
 /**

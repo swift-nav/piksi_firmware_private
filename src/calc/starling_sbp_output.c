@@ -12,11 +12,12 @@
 
 #include "starling_sbp_output.h"
 
+#include "calc/starling_integration.h"
+
 /*********************************************************************
  * External Dependencies -- TODO(kevin) remove these.
  ********************************************************************/
 extern s8 sbp_send_msg(u16 msg, u8 n, u8 *data);
-extern bool send_heading;
 
 /*********************************************************************
  * Solution Message Generation Helpers
@@ -28,7 +29,8 @@ extern bool send_heading;
  *
  */
 void solution_send_pos_messages(const sbp_messages_t *sbp_messages) {
-  dgnss_solution_mode_t dgnss_soln_mode = starling_get_solution_mode();
+  pvt_driver_solution_mode_t dgnss_soln_mode =
+      pvt_driver_get_solution_mode(pvt_driver);
   if (sbp_messages) {
     sbp_send_msg(SBP_MSG_GPS_TIME,
                  sizeof(sbp_messages->gps_time),
@@ -88,13 +90,13 @@ void solution_send_pos_messages(const sbp_messages_t *sbp_messages) {
                  sizeof(sbp_messages->vel_ned_cov),
                  (u8 *)&sbp_messages->vel_ned_cov);
 
-    if (dgnss_soln_mode != STARLING_SOLN_MODE_NO_DGNSS) {
+    if (dgnss_soln_mode != PVT_DRIVER_SOLN_MODE_NO_DGNSS) {
       sbp_send_msg(SBP_MSG_BASELINE_ECEF,
                    sizeof(sbp_messages->baseline_ecef),
                    (u8 *)&sbp_messages->baseline_ecef);
     }
 
-    if (dgnss_soln_mode != STARLING_SOLN_MODE_NO_DGNSS) {
+    if (dgnss_soln_mode != PVT_DRIVER_SOLN_MODE_NO_DGNSS) {
       sbp_send_msg(SBP_MSG_BASELINE_NED,
                    sizeof(sbp_messages->baseline_ned),
                    (u8 *)&sbp_messages->baseline_ned);
@@ -104,13 +106,13 @@ void solution_send_pos_messages(const sbp_messages_t *sbp_messages) {
                  sizeof(sbp_messages->age_corrections),
                  (u8 *)&sbp_messages->age_corrections);
 
-    if (dgnss_soln_mode != STARLING_SOLN_MODE_NO_DGNSS) {
+    if (dgnss_soln_mode != PVT_DRIVER_SOLN_MODE_NO_DGNSS) {
       sbp_send_msg(SBP_MSG_DGNSS_STATUS,
                    sizeof(sbp_messages->dgnss_status),
                    (u8 *)&sbp_messages->dgnss_status);
     }
 
-    if (send_heading && dgnss_soln_mode != STARLING_SOLN_MODE_NO_DGNSS) {
+    if (send_heading && dgnss_soln_mode != PVT_DRIVER_SOLN_MODE_NO_DGNSS) {
       sbp_send_msg(SBP_MSG_BASELINE_HEADING,
                    sizeof(sbp_messages->baseline_heading),
                    (u8 *)&sbp_messages->baseline_heading);
