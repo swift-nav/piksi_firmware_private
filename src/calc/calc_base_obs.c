@@ -13,9 +13,6 @@
 #include "calc_base_obs.h"
 
 #include <math.h>
-#include <starling/observation.h>
-#include <starling/starling.h>
-#include <starling/starling_input_bridge.h>
 #include <stdlib.h>
 #include <string.h>
 #include <swiftnav/constants.h>
@@ -78,7 +75,7 @@ static void base_pos_llh_callback(u16 sender_id,
   llh[2] = llh_degrees[2];
   wgsllh2ecef(llh, base_pos);
 
-  starling_set_known_ref_pos(base_pos);
+  pvt_driver_set_known_ref_pos(pvt_driver, base_pos);
   /* Relay base station position using sender_id = 0. */
   sbp_send_msg_(SBP_MSG_BASE_POS_LLH, len, msg, MSG_FORWARD_SENDER_ID);
 }
@@ -100,7 +97,7 @@ static void base_pos_ecef_callback(u16 sender_id,
   double base_pos[3];
   MEMCPY_S(base_pos, sizeof(base_pos), msg, sizeof(base_pos));
 
-  starling_set_known_ref_pos(base_pos);
+  pvt_driver_set_known_ref_pos(pvt_driver, base_pos);
   /* Relay base station position using sender_id = 0. */
   sbp_send_msg_(SBP_MSG_BASE_POS_ECEF, len, msg, MSG_FORWARD_SENDER_ID);
 }
@@ -122,7 +119,7 @@ static void base_glonass_biases_callback(u16 sender_id,
   glo_biases_t biases;
   sbp_unpack_glonass_biases_content(*(msg_glo_biases_t *)msg, &biases);
 
-  starling_set_known_glonass_biases(biases);
+  pvt_driver_set_known_glonass_biases(pvt_driver, &biases);
   /* Relay base station GLONASS biases using sender_id = 0. */
   sbp_send_msg_(SBP_MSG_GLO_BIASES, len, msg, MSG_FORWARD_SENDER_ID);
 }
@@ -149,11 +146,11 @@ static bool is_final_message_in_obs_sequence(u8 count, u8 total) {
  * on the Starling solution mode.
  */
 static double tor_interval_limit(void) {
-  dgnss_solution_mode_t mode = starling_get_solution_mode();
-  if (mode == STARLING_SOLN_MODE_LOW_LATENCY) {
+  pvt_driver_solution_mode_t mode = pvt_driver_get_solution_mode(pvt_driver);
+  if (mode == PVT_DRIVER_SOLN_MODE_LOW_LATENCY) {
     return TOR_THRESHOLD_SOLN_MODE_LOW_LATENCY;
   }
-  if (mode == STARLING_SOLN_MODE_TIME_MATCHED) {
+  if (mode == PVT_DRIVER_SOLN_MODE_TIME_MATCHED) {
     return TOR_THRESHOLD_SOLN_MODE_TIMEMATCHED;
   }
   return 0.0;
@@ -181,8 +178,8 @@ static void update_obss(obs_array_t *obs_array) {
     log_info("Communication latency exceeds 15 seconds");
   }
 
-  int ret = starling_send_base_obs(obs_array);
-  if (STARLING_SEND_OK != ret) {
+  bool ret = pvt_driver_send_base_obs(pvt_driver, obs_array);
+  if (!ret) {
     log_error("BASE: Unable to send observations.");
   }
 }
@@ -288,7 +285,7 @@ static void generic_obs_callback(u16 relay_msg_type,
   static obs_array_t *obs_array = NULL;
   /* Make sure we have a valid array before operating on it */
   if (NULL == obs_array) {
-    obs_array = starling_alloc_base_obs();
+    obs_array = pvt_driver_alloc_base_obs(pvt_driver);
     if (NULL == obs_array) {
       log_error(
           "Unable to allocate an array to store base obs, dropping one packet");

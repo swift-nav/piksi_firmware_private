@@ -14,8 +14,7 @@
 #define SWIFTNAV_SIMULATOR_H
 
 #include <libsbp/tracking.h>
-#include <pvt_engine/firmware_binding.h>
-#include <starling/starling.h>
+#include <pvt_driver/observations.h>
 #include <stdbool.h>
 #include <swiftnav/common.h>
 #include <swiftnav/single_epoch_solver.h>

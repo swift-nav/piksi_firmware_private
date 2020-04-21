@@ -15,12 +15,12 @@
 #include <libsbp/imu.h>
 #include <libsbp/mag.h>
 #include <math.h>
-#include <starling/starling_input_bridge.h>
 #include <swiftnav/gnss_time.h>
 #include <swiftnav/logging.h>
 
 #include "board/nap/nap_common.h"
 #include "board/v3/peripherals/bmi160.h"
+#include "calc/starling_integration.h"
 #include "ch.h"
 #include "hal.h"
 #include "hal/is_duro.h"
@@ -305,7 +305,7 @@ static void imu_thread(void *arg) {
       imu_data.gyr_xyz[0] = imu_raw.gyr_x;
       imu_data.gyr_xyz[1] = imu_raw.gyr_y;
       imu_data.gyr_xyz[2] = imu_raw.gyr_z;
-      starling_send_imu_data(&imu_data);
+      pvt_driver_send_imu_data(pvt_driver, &imu_data);
     }
     if (new_mag && raw_mag_output) {
       /* Read out the magnetometer data and fill out the SBP message. */
