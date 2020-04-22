@@ -224,13 +224,11 @@ CSRC := $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l2c.c \
         $(SWIFTNAV_ROOT)/libsettings/src/settings.c \
         $(SWIFTNAV_ROOT)/mesta/stubs/stubs.c \
         $(SWIFTNAV_ROOT)/mesta/stubs/starling_platform_stubs.c \
+        $(SWIFTNAV_ROOT)/mesta/stubs/pvt_driver_stubs.c \
         $(SWIFTNAV_ROOT)/mesta/main.c \
 
 
-CXXSRC := $(STARLING_ROOT)/src/starling/starling_input_bridge.cc \
-          $(STARLING_ROOT)/src/starling/util/mutex.cc \
-          $(STARLING_ROOT)/src/starling/observation.cc \
-          $(STARLING_ROOT)/src/pvt_engine/observation_utils.cc
+CXXSRC := $(STARLING_ROOT)/src/pvt_engine/obss.cc
 
 CXXFLAGS := -std=c++14
 
