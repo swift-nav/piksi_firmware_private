@@ -89,6 +89,27 @@ u16 sm_constellation_to_start_index(constellation_t gnss) {
   }
 }
 
+/**
+ * Helper function. Return SBAS mask depending on user position
+ * \return mask for SBAS SV.
+ */
+static u32 sbas_limit_mask(void) {
+  /* read LGF */
+  last_good_fix_t lgf;
+  if (NDB_ERR_NONE != ndb_lgf_read(&lgf)) {
+    /* cannot read LGF for some reason, so set mask for all possible SBAS SV*/
+    return sbas_select_prn_mask(SBAS_WAAS) | sbas_select_prn_mask(SBAS_EGNOS) |
+           sbas_select_prn_mask(SBAS_GAGAN) | sbas_select_prn_mask(SBAS_MSAS);
+  }
+  static sbas_system_t sbas_provider = SBAS_NONE;
+  sbas_system_t new_provider = sbas_select_provider(&lgf);
+  if ((sbas_provider != new_provider) && (SBAS_NONE != sbas_provider)) {
+    tracker_set_sbas_provider_change_flag();
+  }
+  sbas_provider = new_provider;
+  return sbas_select_prn_mask(sbas_provider);
+}
+
 /** Global search job data */
 acq_jobs_context_t acq_all_jobs_state_data;
 
@@ -161,8 +182,13 @@ void sm_restore_jobs(acq_jobs_context_t *jobs_data,
 
   u64 now_ms = timing_getms();
 
-  /* count the number of signals currently tracked */
+  /* count the number of GPS L1CA signals tracked */
   const u16 num_gps_l1 = code_track_count(CODE_GPS_L1CA);
+  /* count the number of SBAS satellites tracked */
+  const u16 num_sbas = code_track_count(CODE_SBAS_L1CA);
+
+  u32 sbas_mask = sbas_limit_mask();
+  u32 sbas_start_idx = sm_constellation_to_start_index(CONSTELLATION_SBAS);
 
   for (u16 i = 0; i < REACQ_NUM_SAT; i++) {
     acq_job_t *job = &jobs_data->jobs[i];
@@ -175,6 +201,30 @@ void sm_restore_jobs(acq_jobs_context_t *jobs_data,
       job->state = ACQ_STATE_IDLE;
       continue;
     }
+
+    if (CONSTELLATION_SBAS == con) {
+      assert(sbas_start_idx <= i);
+      u32 sbas_idx = i - sbas_start_idx;
+      /* don't set job for those SBAS SV which are not in our SBAS range,
+       * or if we already more than the limit */
+      if ((num_sbas >= NAP_NUM_SBAS_L1_CHANNELS) ||
+          (0 == ((sbas_mask >> sbas_idx) & 1))) {
+        job->state = ACQ_STATE_IDLE;
+        continue;
+      }
+    }
+
+#if defined CODE_GLO_L1OF_SUPPORT && CODE_GLO_L1OF_SUPPORT > 0
+    /* count the number of GLO satellites tracked */
+    const u16 num_glo = code_track_count(CODE_GLO_L1OF);
+
+    if (CONSTELLATION_GLO == con) {
+      if (num_glo >= NAP_NUM_GLO_G1_CHANNELS) {
+        job->state = ACQ_STATE_IDLE;
+        continue;
+      }
+    }
+#endif
 
     /* if this mesid is in track, no need for its job */
     if (mesid_is_tracked(mesid)) {
