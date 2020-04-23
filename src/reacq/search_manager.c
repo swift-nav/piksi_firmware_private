@@ -214,18 +214,6 @@ void sm_restore_jobs(acq_jobs_context_t *jobs_data,
       }
     }
 
-#if defined CODE_GLO_L1OF_SUPPORT && CODE_GLO_L1OF_SUPPORT > 0
-    /* count the number of GLO satellites tracked */
-    const u16 num_glo = code_track_count(CODE_GLO_L1OF);
-
-    if (CONSTELLATION_GLO == con) {
-      if (num_glo >= NAP_NUM_GLO_G1_CHANNELS) {
-        job->state = ACQ_STATE_IDLE;
-        continue;
-      }
-    }
-#endif
-
     /* if this mesid is in track, no need for its job */
     if (mesid_is_tracked(mesid)) {
       job->state = ACQ_STATE_IDLE;
