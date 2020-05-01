@@ -102,8 +102,8 @@ ifeq ($(LIBPAL_BUILDDIR),)
   LIBPAL_BUILDDIR=$(STARLING_BUILDDIR)/third_party/libpal
 endif
 
-ifeq ($(LIBPALPP_BUILDDIR),)
-  LIBPALPP_BUILDDIR=$(STARLING_BUILDDIR)/third_party/libpal_cpp
+ifeq ($(LIBPALCPP_BUILDDIR),)
+  LIBPALCPP_BUILDDIR=$(STARLING_BUILDDIR)/third_party/libpal_cpp
 endif
 
 ifeq ($(LIBSBP_BUILDDIR),)
@@ -384,7 +384,7 @@ DINCDIR =
 # List the default directory to look for the libraries here
 
 DLIBDIR = $(LIBPAL_BUILDDIR)/src/default \
-          $(LIBPALPP_BUILDDIR)/src/ \
+          $(LIBPALCPP_BUILDDIR)/src/ \
           $(LIBSBP_BUILDDIR)/c/src \
           $(LIBSETTINGS_BUILDDIR)/src \
           $(STARLING_BUILDDIR)/src/pvt_driver \
