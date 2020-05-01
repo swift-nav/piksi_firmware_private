@@ -43,8 +43,9 @@ static enum pal_error chibios_mem_alloc(void **ptr, size_t size) {
 }
 
 static enum pal_error chibios_mem_free(void *mem) {
-  NOT_IMPLEMENTED();
-  (void)mem;
+  if (NULL != mem) {
+    NOT_IMPLEMENTED();
+  }
   return PAL_SUCCESS;
 }
 
