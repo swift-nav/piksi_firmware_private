@@ -28,6 +28,7 @@
 
 extern pvt_driver_t pvt_driver;
 
+void starling_calc_pvt_init(void);
 void starling_calc_pvt_setup(void);
 
 /* Hold information about the system time and type of most recent solutions. */

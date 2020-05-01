@@ -798,6 +798,15 @@ pvt_driver_t pvt_driver = NULL;
 /*******************************************************************************
  * Starling Integration API
  ******************************************************************************/
+void starling_calc_pvt_init() {
+  assert(NULL == pvt_driver);
+  pvt_driver = pvt_driver_new();
+  assert(pvt_driver);
+  enum pal_error init_result =
+      pvt_driver_init(pvt_driver, PVT_DRIVER_CONFIG_PIKSI_MULTI);
+  assert(init_result == PAL_SUCCESS);
+}
+
 void starling_calc_pvt_setup() {
   /* Setup the Starling SBP link. */
   starling_sbp_link_setup();
@@ -805,13 +814,6 @@ void starling_calc_pvt_setup() {
 
   /* Let Starling register all of its settings over SBP. */
   starling_register_sbp_settings(sbp_link);
-
-  assert(NULL == pvt_driver);
-  pvt_driver = pvt_driver_new();
-  assert(pvt_driver);
-  enum pal_error init_result =
-      pvt_driver_init(pvt_driver, PVT_DRIVER_CONFIG_PIKSI_MULTI);
-  assert(init_result == PAL_SUCCESS);
 
   /* Connect the missing external dependencies for the Starling engine. */
   pvt_driver_external_functions_t extfns = {

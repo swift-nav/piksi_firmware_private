@@ -39,7 +39,10 @@ static bool is_firmware_starling_enabled(void) {
   return true;
 }
 
-void firmware_starling_preinit(void) { pal_init(); }
+void firmware_starling_preinit(void) {
+  pal_init();
+  starling_calc_pvt_init();
+}
 
 void firmware_starling_setup(void) {
   starling_calc_pvt_setup();
