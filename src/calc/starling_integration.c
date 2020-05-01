@@ -520,9 +520,9 @@ bool starling_integration_simulation_enabled(void *ctx) {
   return simulation_enabled();
 }
 
-bool starling_shm_navigation_suitable(gnss_signal_t sid, void *ctx) {
+bool starling_shm_navigation_unusable(gnss_signal_t sid, void *ctx) {
   (void)ctx;
-  return shm_navigation_suitable(sid);
+  return shm_navigation_unusable(sid);
 }
 
 /*******************************************************************************
@@ -821,7 +821,7 @@ void starling_calc_pvt_setup() {
       .cache_read_iono_corr = cache_read_iono_corr,
       .track_sid_db_elevation_degrees_get =
           starling_track_sid_db_elevation_degrees_get,
-      .shm_navigation_unusable = starling_shm_navigation_suitable,
+      .shm_navigation_unusable = starling_shm_navigation_unusable,
       .simulation_enabled = starling_integration_simulation_enabled,
       .simulation_run = starling_integration_simulation_run,
       .disable_raim = is_raim_disabled,
