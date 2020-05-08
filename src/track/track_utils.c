@@ -12,6 +12,7 @@
 
 #include "track_utils.h"
 
+#include <inttypes.h>
 #include <string.h>
 #include <swiftnav/nav_meas.h>
 

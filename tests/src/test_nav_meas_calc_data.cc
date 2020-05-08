@@ -11,7 +11,6 @@
  */
 
 #include <math.h>
-#include <starling/observation.h>
 #include <stdio.h>
 #include <swiftnav/ch_meas.h>
 #include <swiftnav/constants.h>

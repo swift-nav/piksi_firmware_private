@@ -20,12 +20,15 @@
  * starling_threads.h.
  */
 
-#include <starling/starling.h>
+#include <pvt_driver/pvt_driver_c.h>
 #include <stdbool.h>
 
 #include "hal/piksi_systime.h"
 #include "starling_sbp_settings.h"
 
+extern pvt_driver_t pvt_driver;
+
+void starling_calc_pvt_init(void);
 void starling_calc_pvt_setup(void);
 
 /* Hold information about the system time and type of most recent solutions. */

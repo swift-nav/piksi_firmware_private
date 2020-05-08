@@ -15,9 +15,8 @@
 #include <assert.h>
 #include <ch.h>
 #include <libpal/pal.h>
-#include <starling/starling.h>
-#include <starling/starling_external_dependencies.h>
-#include <starling/starling_input_bridge.h>
+#include <pvt_engine/firmware_binding.h>
+#include <pvt_engine/obss.h>
 #include <string.h>
 #include <swiftnav/coord_system.h>
 #include <swiftnav/linear_algebra.h>
@@ -77,29 +76,43 @@ void piksi_solution_info_get(piksi_solution_info_t *info) {
  * Output Callback Helpers
  ******************************************************************************/
 
-static bool is_raim_disabled(void) { return disable_raim; }
-
-static cache_ret_t cache_read_ephemeris(const gnss_signal_t sid,
-                                        ephemeris_t *eph) {
-  ndb_op_code_t ret = ndb_ephemeris_read(sid, eph);
-  if (NDB_ERR_NONE == ret) {
-    return CACHE_OK;
-  }
-  if (NDB_ERR_UNCONFIRMED_DATA == ret) {
-    return CACHE_OK_UNCONFIRMED_DATA;
-  }
-  return CACHE_ERROR;
+static bool is_raim_disabled(void *ctx) {
+  (void)ctx;
+  return disable_raim;
 }
 
-static cache_ret_t cache_read_iono_corr(ionosphere_t *iono) {
-  ndb_op_code_t ret = ndb_iono_corr_read(iono);
+static bool starling_track_sid_db_elevation_degrees_get(gnss_signal_t sid,
+                                                        double *elev,
+                                                        void *ctx) {
+  (void)ctx;
+  return track_sid_db_elevation_degrees_get(sid, elev);
+}
+
+static pvt_driver_cache_ret_t cache_read_ephemeris(const gnss_signal_t sid,
+                                                   ephemeris_t *eph,
+                                                   void *ctx) {
+  (void)ctx;
+  ndb_op_code_t ret = ndb_ephemeris_read(sid, eph);
   if (NDB_ERR_NONE == ret) {
-    return CACHE_OK;
+    return PVT_DRIVER_CACHE_OK;
   }
   if (NDB_ERR_UNCONFIRMED_DATA == ret) {
-    return CACHE_OK_UNCONFIRMED_DATA;
+    return PVT_DRIVER_CACHE_OK_UNCONFIRMED_DATA;
   }
-  return CACHE_ERROR;
+  return PVT_DRIVER_CACHE_ERROR;
+}
+
+static pvt_driver_cache_ret_t cache_read_iono_corr(ionosphere_t *iono,
+                                                   void *ctx) {
+  (void)ctx;
+  ndb_op_code_t ret = ndb_iono_corr_read(iono);
+  if (NDB_ERR_NONE == ret) {
+    return PVT_DRIVER_CACHE_OK;
+  }
+  if (NDB_ERR_UNCONFIRMED_DATA == ret) {
+    return PVT_DRIVER_CACHE_OK_UNCONFIRMED_DATA;
+  }
+  return PVT_DRIVER_CACHE_ERROR;
 }
 
 static double calc_heading(const double b_ned[3]) {
@@ -176,7 +189,7 @@ void starling_integration_sbp_messages_init(sbp_messages_t *sbp_messages,
 
 static void send_low_latency_messages(const gps_time_t *time_of_solution,
                                       const sbp_messages_t *sbp_messages) {
-  dgnss_solution_mode_t mode = starling_get_solution_mode();
+  pvt_driver_solution_mode_t mode = pvt_driver_get_solution_mode(pvt_driver);
 
   /* This is ridiculously confusing, allow me to explain:
    *
@@ -196,7 +209,7 @@ static void send_low_latency_messages(const gps_time_t *time_of_solution,
   chMtxUnlock(&last_sbp_lock);
   const double elapsed_time_sec =
       gpsdifftime(time_of_solution, &last_dgnss_time);
-  if (STARLING_SOLN_MODE_TIME_MATCHED == mode &&
+  if (PVT_DRIVER_SOLN_MODE_TIME_MATCHED == mode &&
       elapsed_time_sec < LOW_LATENCY_RESUME_AFTER_SEC) {
     return;
   }
@@ -367,10 +380,10 @@ static void solution_make_baseline_sbp(const pvt_engine_result_t *result,
                         result->propagation_time,
                         result->flags.position_mode);
 
-  dgnss_solution_mode_t mode = starling_get_solution_mode();
+  pvt_driver_solution_mode_t mode = pvt_driver_get_solution_mode(pvt_driver);
 
   if (result->flags.position_mode == POSITION_MODE_FIXED &&
-      mode == STARLING_SOLN_MODE_TIME_MATCHED) {
+      mode == PVT_DRIVER_SOLN_MODE_TIME_MATCHED) {
     double heading = calc_heading(b_ned);
     sbp_make_heading(&sbp_messages->baseline_heading,
                      &result->time,
@@ -485,7 +498,8 @@ static void starling_integration_solution_simulation(
   }
 }
 
-void starling_integration_simulation_run(void) {
+void starling_integration_simulation_run(void *ctx) {
+  (void)ctx;
   gps_time_t epoch_time = get_current_time();
   epoch_time = gps_time_round_to_epoch(&epoch_time, soln_freq_setting);
   sbp_messages_t sbp_messages;
@@ -501,8 +515,14 @@ void starling_integration_simulation_run(void) {
   send_low_latency_messages(&epoch_time, &sbp_messages);
 }
 
-bool starling_integration_simulation_enabled(void) {
+bool starling_integration_simulation_enabled(void *ctx) {
+  (void)ctx;
   return simulation_enabled();
+}
+
+bool starling_shm_navigation_unusable(gnss_signal_t sid, void *ctx) {
+  (void)ctx;
+  return shm_navigation_unusable(sid);
 }
 
 /*******************************************************************************
@@ -519,7 +539,7 @@ static void reset_filters_callback(u16 sender_id,
   switch (msg[0]) {
     case 0:
       log_info("Filter reset requested");
-      starling_reset_time_matched_filter();
+      pvt_driver_reset_time_matched_filter(pvt_driver);
       break;
     default:
       break;
@@ -540,15 +560,18 @@ static void reset_filters_callback(u16 sender_id,
  * NOTE: The pointers are only valid within the enclosing scope.
  *       Any copies of the data must be deep copies.
  */
-void handle_solution_time_matched(const StarlingFilterSolution *solution,
+void handle_solution_time_matched(const pvt_driver_filter_solution_t *solution,
                                   const obs_core_t *obs_base,
                                   const pvt_engine_result_t *rover_soln,
-                                  const double *rover_spp_ecef) {
+                                  const double *rover_spp_ecef,
+                                  void *ctx) {
+  (void)ctx;
   assert(obs_base);
   assert(rover_soln);
   assert(rover_spp_ecef);
 
-  if (STARLING_SOLN_MODE_TIME_MATCHED != starling_get_solution_mode()) {
+  if (PVT_DRIVER_SOLN_MODE_TIME_MATCHED !=
+      pvt_driver_get_solution_mode(pvt_driver)) {
     return;
   }
 
@@ -612,9 +635,11 @@ void handle_solution_time_matched(const StarlingFilterSolution *solution,
  *       Any copies of the data must be deep copies.
  */
 static void handle_solution_low_latency(
-    const StarlingFilterSolution *spp_solution,
-    const StarlingFilterSolution *rtk_solution,
-    const gps_time_t *solution_epoch_time) {
+    const pvt_driver_filter_solution_t *spp_solution,
+    const pvt_driver_filter_solution_t *rtk_solution,
+    const gps_time_t *solution_epoch_time,
+    void *ctx) {
+  (void)ctx;
   assert(solution_epoch_time);
 
   /* Check if observations do not have valid time. We may have locally a
@@ -656,7 +681,9 @@ static void handle_solution_low_latency(
 /*******************************************************************************
  * Starling Initialization
  ******************************************************************************/
-static void profile_low_latency_thread(enum ProfileDirective directive) {
+static void profile_low_latency_thread(pvt_driver_profile_directive_t directive,
+                                       void *ctx) {
+  (void)ctx;
   static float avg_run_time_s = 0.1f;
   static float diff_run_time_s = 0.1f;
   static float avg_diff_run_time_s = 0.0f;
@@ -664,10 +691,10 @@ static void profile_low_latency_thread(enum ProfileDirective directive) {
   const float smooth_factor = 0.01f;
   static u64 nap_snapshot_begin = 0;
   switch (directive) {
-    case PROFILE_BEGIN:
+    case PVT_DRIVER_PROFILE_BEGIN:
       nap_snapshot_begin = nap_timing_count();
       break;
-    case PROFILE_END: {
+    case PVT_DRIVER_PROFILE_END: {
       u64 nap_snapshot_diff = (u64)(nap_timing_count() - nap_snapshot_begin);
       float time_snapshot_diff = (float)(RX_DT_NOMINAL * nap_snapshot_diff);
       avg_run_time_s = avg_run_time_s * (1 - smooth_factor) +
@@ -690,7 +717,8 @@ static void profile_low_latency_thread(enum ProfileDirective directive) {
 }
 
 /*******************************************************************************/
-static void update_piksi_solution_info(const StarlingFilterSolution *soln) {
+static void update_piksi_solution_info(
+    const pvt_driver_filter_solution_t *soln) {
   /* Ignore non-existant or invalid solutions. */
   if (NULL == soln || !soln->result.valid) {
     return;
@@ -723,46 +751,62 @@ static void update_piksi_solution_info(const StarlingFilterSolution *soln) {
 
 /*******************************************************************************/
 static void update_solution_info_low_latency(
-    const StarlingFilterSolution *spp_solution,
-    const StarlingFilterSolution *rtk_solution,
-    const gps_time_t *solution_epoch_time) {
+    const pvt_driver_filter_solution_t *spp_solution,
+    const pvt_driver_filter_solution_t *rtk_solution,
+    const gps_time_t *solution_epoch_time,
+    void *ctx) {
   (void)solution_epoch_time;
+  (void)ctx;
   update_piksi_solution_info(spp_solution);
   update_piksi_solution_info(rtk_solution);
 }
 
 /*******************************************************************************/
 static void update_solution_info_time_matched(
-    const StarlingFilterSolution *solution,
+    const pvt_driver_filter_solution_t *solution,
     const obs_core_t *obs_base,
     const pvt_engine_result_t *rover_soln,
-    const double *rover_spp_ecef) {
+    const double *rover_spp_ecef,
+    void *ctx) {
   (void)obs_base;
   (void)rover_soln;
   (void)rover_spp_ecef;
+  (void)ctx;
   update_piksi_solution_info(solution);
 }
 
 /*******************************************************************************/
 static void setup_solution_handlers(void) {
   /* This solution handler manages all of the SBP message transmission. */
-  static SolutionHandler handler_sbp = {
+  static pvt_driver_solution_callback_t handler_sbp = {
       .handle_low_latency = handle_solution_low_latency,
       .handle_time_matched = handle_solution_time_matched,
+      .ctx = NULL,
   };
-  starling_add_solution_handler(&handler_sbp);
+  pvt_driver_add_solution_handler(pvt_driver, handler_sbp);
 
   /* This one keeps stats on the solutions which are used by the LEDs. */
-  static SolutionHandler handler_info = {
+  static pvt_driver_solution_callback_t handler_info = {
       .handle_low_latency = update_solution_info_low_latency,
       .handle_time_matched = update_solution_info_time_matched,
+      .ctx = NULL,
   };
-  starling_add_solution_handler(&handler_info);
+  pvt_driver_add_solution_handler(pvt_driver, handler_info);
 }
 
+pvt_driver_t pvt_driver = NULL;
 /*******************************************************************************
  * Starling Integration API
  ******************************************************************************/
+void starling_calc_pvt_init() {
+  assert(NULL == pvt_driver);
+  pvt_driver = pvt_driver_new();
+  assert(pvt_driver);
+  enum pal_error init_result =
+      pvt_driver_init(pvt_driver, PVT_DRIVER_CONFIG_PIKSI_MULTI);
+  assert(init_result == PAL_SUCCESS);
+}
+
 void starling_calc_pvt_setup() {
   /* Setup the Starling SBP link. */
   starling_sbp_link_setup();
@@ -772,18 +816,18 @@ void starling_calc_pvt_setup() {
   starling_register_sbp_settings(sbp_link);
 
   /* Connect the missing external dependencies for the Starling engine. */
-  external_functions_t extfns = {
+  pvt_driver_external_functions_t extfns = {
       .cache_read_ephemeris = cache_read_ephemeris,
       .cache_read_iono_corr = cache_read_iono_corr,
-      .track_sid_db_elevation_degrees_get = track_sid_db_elevation_degrees_get,
-      .shm_navigation_unusable = shm_navigation_unusable,
-      .starling_integration_simulation_enabled =
-          starling_integration_simulation_enabled,
-      .starling_integration_simulation_run =
-          starling_integration_simulation_run,
+      .track_sid_db_elevation_degrees_get =
+          starling_track_sid_db_elevation_degrees_get,
+      .shm_navigation_unusable = starling_shm_navigation_unusable,
+      .simulation_enabled = starling_integration_simulation_enabled,
+      .simulation_run = starling_integration_simulation_run,
       .disable_raim = is_raim_disabled,
+      .ctx = NULL,
   };
-  starling_set_external_functions_implementation(&extfns);
+  pvt_driver_set_external_functions(pvt_driver, extfns);
 
   setup_solution_handlers();
 
@@ -796,11 +840,12 @@ void starling_calc_pvt_setup() {
   sbp_register_cbk(
       SBP_MSG_RESET_FILTERS, &reset_filters_callback, &reset_filters_node);
 
-  StarlingDebugFunctionTable debug_functions = {
+  pvt_driver_debug_functions_t debug_functions = {
       .profile_low_latency_thread = profile_low_latency_thread,
+      .ctx = NULL,
   };
+  pvt_driver_set_debug_functions(pvt_driver, debug_functions);
 
-  bool started =
-      starling_run(STARLINNG_PVT_CONFIG_PIKSI_MULTI, &debug_functions);
+  bool started = pvt_driver_start_engine(pvt_driver);
   assert(started);
 }

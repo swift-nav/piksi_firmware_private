@@ -50,10 +50,12 @@ LIBSETTINGS_BUILDDIR=$(SWIFTNAV_ROOT)/libsettings/$(LIB_BUILDFOLDER)
 STARLING_BUILDDIR=$(STARLING_ROOT)/$(LIB_BUILDFOLDER)
 LIBSBP_BUILDDIR=$(STARLING_BUILDDIR)/third_party/libsbp
 LIBPAL_BUILDDIR=$(STARLING_BUILDDIR)/third_party/libpal
+LIBPALCPP_BUILDDIR=$(STARLING_BUILDDIR)/third_party/libpal_cpp
 LIBSWIFTNAV_BUILDDIR=$(STARLING_BUILDDIR)/third_party/libswiftnav
 OPENAMP_BUILDDIR=$(SWIFTNAV_ROOT)/open-amp/$(LIB_BUILDFOLDER)
 
 MAKEFLAGS += LIBPAL_BUILDDIR=$(LIBPAL_BUILDDIR)
+MAKEFLAGS += LIBPALCPP_BUILDDIR=$(LIBPALCPP_BUILDDIR)
 MAKEFLAGS += LIBSBP_BUILDDIR=$(LIBSBP_BUILDDIR)
 MAKEFLAGS += LIBSETTINGS_BUILDDIR=$(LIBSETTINGS_BUILDDIR)
 MAKEFLAGS += STARLING_BUILDDIR=$(STARLING_BUILDDIR)
@@ -63,8 +65,8 @@ MAKEFLAGS += OPENAMP_BUILDDIR=$(OPENAMP_BUILDDIR)
 FW_DEPS=compiler-version \
         $(LIBSETTINGS_BUILDDIR)/src/libsettings.a \
         $(STARLING_BUILDDIR)/src/pvt_engine/libpvt-engine.a \
-	$(STARLING_BUILDDIR)/src/pvt_common/libpvt-common.a \
-        $(STARLING_BUILDDIR)/src/starling/libstarling.a \
+        $(STARLING_BUILDDIR)/src/pvt_common/libpvt-common.a \
+        $(STARLING_BUILDDIR)/src/pvt_driver/libpvt_driver.a \
         $(STARLING_BUILDDIR)/src/util/libstarling-util.a
 
 ifeq ($(PIKSI_HW),v3)
@@ -128,12 +130,12 @@ $(STARLING_BUILDDIR)/src/pvt_engine/libpvt-engine.a: .FORCE \
 # Make starling dependent of swiftnav because otherwise both
 # might build in parallel, and both trying to build swiftnav-common in parallel
 # which leads to occasional failures.
-$(STARLING_BUILDDIR)/src/starling/libstarling.a: .FORCE \
+$(STARLING_BUILDDIR)/src/pvt_driver/libpvt_driver.a: .FORCE \
                                              $(STARLING_BUILDDIR)/Makefile \
                                              $(STARLING_BUILDDIR)/src/pvt_engine/libpvt-engine.a \
-					     $(STARLING_BUILDDIR)/src/pvt_common/libpvt-common.a
+                                             $(STARLING_BUILDDIR)/src/pvt_common/libpvt-common.a
 	@printf "BUILD   libstarling for target $(PIKSI_TARGET)\n"; \
-	$(MAKE) starling -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
+	$(MAKE) pvt_driver -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
 
 $(STARLING_BUILDDIR)/src/util/libstarling-util.a: .FORCE \
                                              $(STARLING_BUILDDIR)/Makefile
@@ -163,6 +165,8 @@ clean:
 	$(MAKE) -C src $(MAKEFLAGS) clean
 	@printf "CLEAN   libpal\n"; \
 	$(RM) -rf $(LIBPAL_BUILDDIR)
+	@printf "CLEAN   libpal++\n"; \
+	$(RM) -rf $(LIBPALCPP_BUILDDIR)
 	@printf "CLEAN   libsbp\n"; \
 	$(RM) -rf $(LIBSBP_BUILDDIR)
 	@printf "CLEAN   libsettings\n"; \

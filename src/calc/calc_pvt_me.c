@@ -16,9 +16,7 @@
 #include <inttypes.h>
 #include <libsbp/sbp.h>
 #include <pvt_engine/firmware_binding.h>
-#include <starling/observation.h>
-#include <starling/starling.h>
-#include <starling/starling_input_bridge.h>
+#include <pvt_engine/obss.h>
 #include <stdio.h>
 #include <string.h>
 #include <swiftnav/constants.h>
@@ -90,9 +88,9 @@ static void me_post_observations(obs_array_t *obs_array) {
 
   /* Transferring ownership of obs_array here */
   obs_array->sender = sbp_sender_id_get();
-  int ret = starling_send_rover_obs(obs_array);
+  bool ret = pvt_driver_send_rover_obs(pvt_driver, obs_array);
   obs_array = NULL;
-  if (STARLING_SEND_OK != ret) {
+  if (!ret) {
     log_error("ME: Unable to send observations.");
   }
 }
@@ -131,7 +129,7 @@ static void me_send_all(obs_array_t *obs_array) {
 /** Allocates an empty `obs_array` and transfers its ownership to
  * `me_send_all()` */
 static void me_send_emptyobs(gps_time_t output_time) {
-  obs_array_t *obs_array = starling_alloc_rover_obs();
+  obs_array_t *obs_array = pvt_driver_alloc_rover_obs(pvt_driver);
   if (NULL == obs_array) {
     log_error("me_send_emptyobs(): Failed to allocate an obs_array!");
     return;
@@ -768,7 +766,7 @@ static void me_calc_pvt_thread(void *arg) {
 
     /* Initialize the observation array and create navigation measurements from
      * the channel measurements */
-    obs_array_t *obs_array = starling_alloc_rover_obs();
+    obs_array_t *obs_array = pvt_driver_alloc_rover_obs(pvt_driver);
     if (NULL == obs_array) {
       log_error(
           "Unable to allocate memory for obs_array, dropping observation data");
@@ -783,7 +781,7 @@ static void me_calc_pvt_thread(void *arg) {
       log_error("calc_navigation_measurements() returned error %d", nm_ret);
       me_send_emptyobs(output_time);
       /* free the obs array manually since it was not sent */
-      starling_free_rover_obs(obs_array);
+      pvt_driver_free_rover_obs(pvt_driver, obs_array);
       obs_array = NULL;
       sid_set_init(&raim_sids);
       continue;
@@ -839,7 +837,7 @@ static void me_calc_pvt_thread(void *arg) {
       /* Send only the observations that have gone through RAIM in the last PVT
        * update. */
 
-      obs_array_t *send_obs_array = starling_alloc_rover_obs();
+      obs_array_t *send_obs_array = pvt_driver_alloc_rover_obs(pvt_driver);
       if (NULL == send_obs_array) {
         log_error(
             "Unable to allocate memory for raimed obs, dropping "
@@ -854,7 +852,7 @@ static void me_calc_pvt_thread(void *arg) {
         send_obs_array = NULL;
       }
       /* We must manually free here since we didn't send `obs_array` itself */
-      starling_free_rover_obs(obs_array);
+      pvt_driver_free_rover_obs(pvt_driver, obs_array);
       obs_array = NULL;
     }
   }
@@ -903,7 +901,7 @@ static int soln_freq_setting_notify(void *ctx) {
   }
 
   soln_freq_setting = validate_soln_freq(soln_freq_setting);
-  starling_set_solution_frequency(soln_freq_setting);
+  pvt_driver_set_solution_frequency(pvt_driver, soln_freq_setting);
   return SETTINGS_WR_OK;
 }
 

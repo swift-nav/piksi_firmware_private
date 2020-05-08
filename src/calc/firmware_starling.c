@@ -15,8 +15,6 @@
 #include <calc/starling_integration.h>
 #include <ch.h>
 #include <sbp/sbp_fileio.h>
-#include <starling/starling.h>
-#include <starling/starling_input_bridge.h>
 #include <stdbool.h>
 #include <utils/settings/settings_client.h>
 #include <utils/system_monitor/system_monitor.h>
@@ -43,16 +41,15 @@ static bool is_firmware_starling_enabled(void) {
 
 void firmware_starling_preinit(void) {
   pal_init();
-  starling_initialize_api();
+  starling_calc_pvt_init();
 }
 
 void firmware_starling_setup(void) {
-  starling_input_bridge_init();
   starling_calc_pvt_setup();
 
   if (!is_firmware_starling_enabled()) {
     /* Inform the bridge that it need not waste time buffering inputs. */
-    starling_input_bridge_set_mode(STARLING_BRIDGE_MODE_BYPASS);
+    pvt_driver_set_input_bridge_mode(pvt_driver, PVT_DRIVER_BRIDGE_MODE_BYPASS);
     watchdog_thread_ignore(WD_NOTIFY_STARLING);
     log_debug("Firmware Starling off.");
   } else {
