@@ -99,7 +99,7 @@ static enum pal_error stub_mq_free(pal_mq_t mq) {
 
 static enum pal_error stub_mq_push(pal_mq_t mq,
                                    void *msg,
-                                   enum pal_mq_blocking_mode mode,
+                                   enum pal_blocking_mode mode,
                                    uint64_t timeout_us) {
   (void)mq;
   (void)msg;
@@ -110,7 +110,7 @@ static enum pal_error stub_mq_push(pal_mq_t mq,
 
 static enum pal_error stub_mq_pop(pal_mq_t mq,
                                   void **msg,
-                                  enum pal_mq_blocking_mode mode,
+                                  enum pal_blocking_mode mode,
                                   uint64_t timeout_us) {
   (void)mq;
   (void)msg;

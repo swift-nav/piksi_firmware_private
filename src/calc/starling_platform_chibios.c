@@ -256,10 +256,10 @@ static enum pal_error chibios_mq_free(pal_mq_t mq) {
 
 static enum pal_error chibios_mq_push(pal_mq_t mq,
                                       void *msg,
-                                      enum pal_mq_blocking_mode mode,
+                                      enum pal_blocking_mode mode,
                                       uint64_t timeout_us) {
   struct mailbox_info_s *mb = (struct mailbox_info_s *)mq;
-  if (mode == PAL_MQ_NONBLOCKING) {
+  if (mode == PAL_NONBLOCKING) {
     timeout_us = 0;
   } else {
     timeout_us = MAILBOX_BLOCKING_TIMEOUT_US;
@@ -274,10 +274,10 @@ static enum pal_error chibios_mq_push(pal_mq_t mq,
 
 static enum pal_error chibios_mq_pop(pal_mq_t mq,
                                      void **msg,
-                                     enum pal_mq_blocking_mode mode,
+                                     enum pal_blocking_mode mode,
                                      uint64_t timeout_us) {
   struct mailbox_info_s *mb = (struct mailbox_info_s *)mq;
-  if (mode == PAL_MQ_NONBLOCKING) {
+  if (mode == PAL_NONBLOCKING) {
     timeout_us = 0;
   } else {
     timeout_us = MAILBOX_BLOCKING_TIMEOUT_US;
