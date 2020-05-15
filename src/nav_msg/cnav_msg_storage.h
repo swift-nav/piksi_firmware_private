@@ -23,7 +23,7 @@ extern "C" {
 
 void cnav_msg_put(const cnav_msg_t *msg);
 bool cnav_msg_get(gnss_signal_t sid, cnav_msg_type_t type, cnav_msg_t *msg);
-void cnav_msg_clear(gnss_signal_t sid);
+void cnav_msg_clear(gnss_signal_t sid, bool skip_health_info);
 
 #ifdef __cplusplus
 }
