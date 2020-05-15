@@ -118,16 +118,22 @@ bool cnav_msg_get(gnss_signal_t sid, cnav_msg_type_t type, cnav_msg_t *msg) {
  * \param sid Signal ID to clear
  *
  */
-void cnav_msg_clear(gnss_signal_t sid) {
+void cnav_msg_clear(gnss_signal_t sid, bool skip_health_info) {
   if (!sid_valid(sid) || !IS_GPS(sid)) {
     log_debug_sid(sid, "cnav_msg_clear: invalid sid");
     return;
   }
 
   u16 sat_idx = sid_to_code_index(sid);
+
   chMtxLock(&cnav_msg_mutex);
-  memset(&cnav_msg_storage[sat_idx],
-         0,
-         sizeof(cnav_msg_storage_t) * CNAV_MSG_TYPE_NUM);
+
+  for (int i = 0; i < CNAV_MSG_TYPE_NUM; ++i) {
+    if (skip_health_info && (CNAV_MSG_TYPE_IDX_10 == i)) {
+      continue;
+    }
+    memset(&cnav_msg_storage[sat_idx][i], 0, sizeof(cnav_msg_storage_t));
+  }
+
   chMtxUnlock(&cnav_msg_mutex);
 }
