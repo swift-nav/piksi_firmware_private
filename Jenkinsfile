@@ -60,7 +60,7 @@ pipeline {
                             context.archivePatterns(patterns: [
                                 "pr_description.yaml",
                                 "requirements.yaml"])
-                            if !context.isTagPush() || context.pipe.params.FORCE_ARTIFACTS_PUSH {
+                            if (!context.isTagPush() || context.pipe.params.FORCE_ARTIFACTS_PUSH) {
                                 context.archivePatterns(patterns: [
                                     "build_v3_prod/piksi_firmware_v3_prod*.elf",
                                     "build_v3_prod/piksi_firmware_v3_prod.map",
