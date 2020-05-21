@@ -27,6 +27,7 @@ pipeline {
 
     parameters {
         choice(name: "LOG_LEVEL", choices: ['info', 'debug', 'warning', 'error'])
+        booleanParam(name: "FORCE_ARTIFACTS_PUSH", defaultValue: false)
     }
 
     stages {
@@ -59,12 +60,14 @@ pipeline {
                             context.archivePatterns(patterns: [
                                 "pr_description.yaml",
                                 "requirements.yaml"])
-                            context.archivePatterns(patterns: [
-                                "build_v3_prod/piksi_firmware_v3_prod*.elf",
-                                "build_v3_prod/piksi_firmware_v3_prod.map",
-                                "build_v3_base/piksi_firmware_v3_base*.elf",
-                                "build_v3_base/piksi_firmware_v3_base.map"],
-                                addPath: "v3")
+                            if !context.isTagPush() || context.pipe.params.FORCE_ARTIFACTS_PUSH {
+                                context.archivePatterns(patterns: [
+                                    "build_v3_prod/piksi_firmware_v3_prod*.elf",
+                                    "build_v3_prod/piksi_firmware_v3_prod.map",
+                                    "build_v3_base/piksi_firmware_v3_base*.elf",
+                                    "build_v3_base/piksi_firmware_v3_base.map"],
+                                    addPath: "v3")
+                            }
                             if (context.isPrPush()) {
                                 hitl.triggerForPr() // this generates metrics.yaml
                                 context.archivePatterns(
