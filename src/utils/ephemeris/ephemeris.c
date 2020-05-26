@@ -14,6 +14,7 @@
 #include "ephemeris.h"
 
 #include <assert.h>
+#include <calc/starling_integration.h>
 #include <ch.h>
 #include <inttypes.h>
 #include <string.h>
@@ -525,9 +526,7 @@ static void ephemeris_msg_callback(u16 sender_id,
     return;
   }
 
-  /* storing of received ephemeris into NDB disabled for now, pending testing
-  ndb_ephemeris_store(&e, NDB_DS_SBP, sender_id);
-  */
+  pvt_driver_send_ephemerides(pvt_driver, &e, 1);
 }
 
 void ephemeris_setup(void) { sbp_ephe_reg_cbks(ephemeris_msg_callback); }
