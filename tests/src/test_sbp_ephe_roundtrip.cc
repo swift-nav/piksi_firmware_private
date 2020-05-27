@@ -54,8 +54,6 @@ TEST(test_ephemeris_sbp, sbp_roundtrip) {
     double sat_vel[3];
     double sbp_sat_pos[3];
     double sbp_sat_vel[3];
-    u8 iode;
-    u16 iodc;
 
     ephemeris_t e_sbp;
 
@@ -64,8 +62,8 @@ TEST(test_ephemeris_sbp, sbp_roundtrip) {
     pack_ephemeris(&e_in, &sbp_msg);
     unpack_ephemeris(&sbp_msg, &e_sbp);
 
-    calc_sat_state(&e_in, &t, sat_pos, sat_vel, _, _, _, &iodc, &iode);
-    calc_sat_state(&e_sbp, &t, sbp_sat_pos, sbp_sat_vel, _, _, _, &iodc, &iode);
+    calc_sat_state(&e_in, &t, sat_pos, sat_vel, _, _, _);
+    calc_sat_state(&e_sbp, &t, sbp_sat_pos, sbp_sat_vel, _, _, _);
 
     // Compare the original ephemeris to the one converted to SBP and back
     const double POS_THRESHOLD = 1e-8;   // m

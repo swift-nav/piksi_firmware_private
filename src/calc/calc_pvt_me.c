@@ -381,10 +381,9 @@ static void starling_obs_to_nav_meas(const gps_time_t *tor,
   memset(nm->sat_pos, 0, sizeof(nm->sat_pos));
   memset(nm->sat_vel, 0, sizeof(nm->sat_vel));
   memset(nm->sat_acc, 0, sizeof(nm->sat_acc));
-  nm->IODE = 0;
+  nm->eph_key = NAV_MEAS_INVALID_EPH_KEY;
   nm->sat_clock_err = 0;
   nm->sat_clock_err_rate = 0;
-  nm->IODC = 0;
   nm->cn0 = obs->cn0;
   nm->lock_time = obs->lock_time;
   nm->elevation = 0;
@@ -451,15 +450,15 @@ static s8 me_compute_pvt(const obs_array_t *obs_array,
                                p_nav_meas[i]->sat_vel,
                                p_nav_meas[i]->sat_acc,
                                &(p_nav_meas[i]->sat_clock_err),
-                               &(p_nav_meas[i]->sat_clock_err_rate),
-                               &(p_nav_meas[i]->IODC),
-                               &(p_nav_meas[i]->IODE));
+                               &(p_nav_meas[i]->sat_clock_err_rate));
 
     if (sc_ret != 0) {
       log_error_sid(
           e_meas[i].sid, "calc_sat_state() returned error %d", sc_ret);
       return PVT_INSUFFICENT_MEAS; /* TODO define "other error?" */
     }
+
+    p_nav_meas[i]->eph_key = pvt_engine_make_ephemeris_key(&e_meas[i]);
   }
 
   /* correct measurements for satellite clock and clock rate errors */
