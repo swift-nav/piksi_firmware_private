@@ -140,10 +140,9 @@ TEST(iono_tropo_usage_test, iono_tropo_test) {
       {-10,            /* sat_acc[0] */
        30,             /* sat_acc[1] */
        20},            /* sat_acc[2] */
-      0,               /* IODE */
+      0,               /* eph_key */
       0.0,             /* sat_clock_err */
       0.0,             /* sat_clock_err_rate */
-      0,               /* IODC */
       35,              /* cn0 */
       36,              /* lock_time */
       0.0,             /* elevation */

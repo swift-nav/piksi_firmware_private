@@ -316,3 +316,8 @@ void tp_drop_channel(tracker_t *tracker, ch_drop_reason_t reason) {
 }
 
 void clock_steer(s32 clk_drift_ppb) { (void)clk_drift_ppb; }
+
+u32 pvt_engine_make_ephemeris_key(const ephemeris_t *eph) {
+  (void)eph;
+  return 0;
+}
