@@ -117,8 +117,11 @@ static int set_dynamic_motion_model(void *ctx) {
 /********************************************************************************/
 static int set_glonass_downweight_factor(void *ctx) {
   (void)ctx;
-  pvt_driver_set_glonass_downweight_factor(pvt_driver,
-                                           glonass_downweight_factor);
+
+  pvt_driver_set_downweight_factor(
+      pvt_driver, CODE_GLO_L1OF, glonass_downweight_factor);
+  pvt_driver_set_downweight_factor(
+      pvt_driver, CODE_GLO_L2OF, glonass_downweight_factor);
   return SETTINGS_WR_OK;
 }
 
