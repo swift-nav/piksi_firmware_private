@@ -51,9 +51,8 @@ void pvt_driver_set_elevation_mask(pvt_driver_t ctx, float elevation_mask) {
   (void)elevation_mask;
 }
 
-bool pvt_driver_set_solution_frequency(pvt_driver_t ctx,
-                                       double requested_frequency_hz) {
+bool pvt_driver_set_max_sats(pvt_driver_t ctx, s32 max_sats) {
   (void)ctx;
-  (void)requested_frequency_hz;
+  (void)max_sats;
   return true;
 }
