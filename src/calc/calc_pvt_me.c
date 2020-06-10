@@ -886,6 +886,26 @@ static double validate_soln_freq(double requested_freq_hz) {
   return SOLN_FREQ_SETTING_MIN;
 }
 
+bool get_max_sats_from_soln_freq(double soln_freq_hz, s32 *max_sats) {
+  static int NUM_OBSERVATIONS = 6;
+  static double soln_freq_arr[] = {20.0, 10.0, 5.0, 4.0, 2.0, 1.0};
+  static int max_sats_arr[] = {5, 15, 22, 22, 22, 22};
+
+  for (int i = 0; i < NUM_OBSERVATIONS; i++) {
+    if (fabs(soln_freq_hz - soln_freq_arr[i]) < FLOAT_EQUALITY_EPS) {
+      *max_sats = max_sats_arr[i];
+      return true;
+    }
+  }
+
+  log_warn(
+      "Input solution frequency %.2f Hz outside acceptable range [%.2f, %.2f]",
+      soln_freq_hz,
+      1.0 - FLOAT_EQUALITY_EPS,
+      20.0 + FLOAT_EQUALITY_EPS);
+  return false;
+}
+
 /* Update the solution frequency used by the ME and by Starling. */
 static int soln_freq_setting_notify(void *ctx) {
   (void)ctx;
@@ -901,7 +921,9 @@ static int soln_freq_setting_notify(void *ctx) {
   }
 
   soln_freq_setting = validate_soln_freq(soln_freq_setting);
-  pvt_driver_set_solution_frequency(pvt_driver, soln_freq_setting);
+  s32 max_sats;
+  assert(get_max_sats_from_soln_freq(soln_freq_setting, &max_sats));
+  pvt_driver_set_max_sats(pvt_driver, max_sats);
   return SETTINGS_WR_OK;
 }
 
