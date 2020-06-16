@@ -299,18 +299,31 @@ static void imu_thread(void *arg) {
       /* Send data to Starling engine. */
       imu_data_t imu_data;
       imu_data.t = sample_time;
-      imu_data.acc_xyz[0] = imu_raw.acc_x;
-      imu_data.acc_xyz[1] = imu_raw.acc_y;
       imu_data.acc_xyz[2] = imu_raw.acc_z;
-      imu_data.gyr_xyz[0] = imu_raw.gyr_x;
-      imu_data.gyr_xyz[1] = imu_raw.gyr_y;
       imu_data.gyr_xyz[2] = imu_raw.gyr_z;
+      /* If we're a duro, adjust the IMU samples from the sensor frame to the device frame */
+      if(device_is_duro()) {
+        imu_data.acc_xyz[0] = imu_raw.acc_y;
+        imu_data.acc_xyz[1] = -imu_raw.acc_x;
+        imu_data.gyr_xyz[0] = imu_raw.gyr_y;
+        imu_data.gyr_xyz[1] = -imu_raw.gyr_x;
+      } else {
+        imu_data.acc_xyz[0] = imu_raw.acc_x;
+        imu_data.acc_xyz[1] = imu_raw.acc_y;
+        imu_data.gyr_xyz[0] = imu_raw.gyr_x;
+        imu_data.gyr_xyz[1] = imu_raw.gyr_y;
+      }
       pvt_driver_send_imu_data(pvt_driver, &imu_data);
     }
     if (new_mag && raw_mag_output) {
       /* Read out the magnetometer data and fill out the SBP message. */
-      mag_raw.mag_x = mag[1];
-      mag_raw.mag_y = -mag[0];
+      if(device_is_duro()) {
+        mag_raw.mag_x = -mag[0];
+        mag_raw.mag_y = -mag[1];
+      } else  {
+        mag_raw.mag_x = mag[1];
+        mag_raw.mag_y = -mag[0];
+      }
       mag_raw.mag_z = mag[2];
       mag_raw.tow = tow;
       mag_raw.tow_f = tow_f;
