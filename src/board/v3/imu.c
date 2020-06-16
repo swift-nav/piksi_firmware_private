@@ -301,8 +301,9 @@ static void imu_thread(void *arg) {
       imu_data.t = sample_time;
       imu_data.acc_xyz[2] = imu_raw.acc_z;
       imu_data.gyr_xyz[2] = imu_raw.gyr_z;
-      /* If we're a duro, adjust the IMU samples from the sensor frame to the device frame */
-      if(device_is_duro()) {
+      /* If we're a duro, adjust the IMU samples from the sensor frame to the
+       * device frame */
+      if (device_is_duro()) {
         imu_data.acc_xyz[0] = imu_raw.acc_y;
         imu_data.acc_xyz[1] = -imu_raw.acc_x;
         imu_data.gyr_xyz[0] = imu_raw.gyr_y;
@@ -317,10 +318,10 @@ static void imu_thread(void *arg) {
     }
     if (new_mag && raw_mag_output) {
       /* Read out the magnetometer data and fill out the SBP message. */
-      if(device_is_duro()) {
+      if (device_is_duro()) {
         mag_raw.mag_x = -mag[0];
         mag_raw.mag_y = -mag[1];
-      } else  {
+      } else {
         mag_raw.mag_x = mag[1];
         mag_raw.mag_y = -mag[0];
       }
