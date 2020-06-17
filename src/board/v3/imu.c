@@ -287,7 +287,7 @@ static void imu_thread(void *arg) {
       /* Read out the IMU data and fill out the SBP message. */
       /* If we're a duro, adjust the IMU samples from the sensor frame to the
        * device frame */
-      if (is_duro){
+      if (is_duro) {
         imu_raw.acc_x = acc[0];
         imu_raw.acc_y = -acc[1];
         imu_raw.acc_z = -acc[2];
