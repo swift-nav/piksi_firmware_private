@@ -430,3 +430,9 @@ void pal_impl_init(void) {
  * Deinitialize ChibiOS PAL Implementation
  */
 void pal_impl_deinit(void) { NOT_IMPLEMENTED(); }
+
+/**
+ * Complete Initialization ChibiOS PAL Implementation
+ */
+void pal_impl_init_complete(void) {  // Nothing to do
+}
