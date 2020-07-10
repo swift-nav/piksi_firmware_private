@@ -205,3 +205,6 @@ void pal_impl_init(void) {
 
 void pal_impl_deinit(void) {  // Nothing to do
 }
+
+void pal_impl_init_complete(void) {  // Nothing to do
+}
