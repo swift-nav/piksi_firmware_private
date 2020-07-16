@@ -1,0 +1,1 @@
+set(BUILD_CONFIG_NO_COMPILED_OTL true)
