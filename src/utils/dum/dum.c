@@ -91,7 +91,7 @@ static s8 calc_sat_doppler_wndw(const ephemeris_t *e,
     assert(!"Bad input");
   }
 
-  if (0 > calc_sat_doppler(e, t, lgf->pos_ecef, vel, &doppler_hz)) {
+  if (0 > calc_sat_doppler(e, t, lgf->pos_ecef, vel, MEO, &doppler_hz)) {
     return -1;
   }
   doppler_hz = -doppler_hz;

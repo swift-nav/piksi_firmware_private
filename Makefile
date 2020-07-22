@@ -18,6 +18,7 @@ endif
 ifneq (,$(findstring W32,$(shell uname)))
   CMAKEFLAGS += -G "MSYS Makefiles"
 endif
+CMAKEFLAGS += -DTHIRD_PARTY_INCLUDES_AS_SYSTEM=false
 
 ifeq ($(PIKSI_HW),)
   PIKSI_HW=v3
@@ -148,7 +149,7 @@ $(STARLING_BUILDDIR)/Makefile:
     cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
           -DCMAKE_TOOLCHAIN_FILE=../../piksi-toolchain.cmake \
           -DMAX_CHANNELS=79 \
-		  -DNO_COMPILED_OTL=TRUE \
+          -DSTARLING_CONFIG_FILE=../../starling_build_config.cmake \
           $(CMAKEFLAGS) ../
 
 $(OPENAMP_BUILDDIR)/lib/libopen-amp.a:

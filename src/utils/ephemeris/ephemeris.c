@@ -103,9 +103,9 @@ bool xcorr_calc_eph_positions(const ephemeris_t *e,
   double _[3];
   u8 iode;
   u16 iodc;
-  calc_sat_state_n(e, &t0, pos->early.xyz, _, _, _, _, &iodc, &iode);
-  calc_sat_state_n(e, &t1, pos->prompt.xyz, _, _, _, _, &iodc, &iode);
-  calc_sat_state_n(e, &t2, pos->late.xyz, _, _, _, _, &iodc, &iode);
+  calc_sat_state_n(e, &t0, MEO, pos->early.xyz, _, _, _, _, &iodc, &iode);
+  calc_sat_state_n(e, &t1, MEO, pos->prompt.xyz, _, _, _, _, &iodc, &iode);
+  calc_sat_state_n(e, &t2, MEO, pos->late.xyz, _, _, _, _, &iodc, &iode);
   pos->time_s = time_s;
   pos->interval_s = interval_s;
   return true;
@@ -339,7 +339,7 @@ s8 update_azel_from_ephemeris(const ephemeris_t *e,
     return -1;
   }
   double az, el;
-  if (0 != calc_sat_az_el(e, t, pos_ecef, &az, &el, false)) {
+  if (0 != calc_sat_az_el(e, t, pos_ecef, MEO, &az, &el, false)) {
     return -1;
   }
   track_sid_db_azel_degrees_set(e->sid, az * R2D, el * R2D, nap_timing_count());
