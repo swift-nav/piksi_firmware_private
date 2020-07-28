@@ -51,6 +51,7 @@
  * \{ */
 
 static u32 base_obs_msg_counter = 0;
+static u16 base_sender_id = 0;
 
 /** SBP callback for when the base station sends us a message containing its
  * known location in LLH coordinates.
@@ -75,6 +76,13 @@ static void base_pos_llh_callback(u16 sender_id,
   llh[2] = llh_degrees[2];
   wgsllh2ecef(llh, base_pos);
 
+  if (base_sender_id != 0 && base_sender_id != sender_id) {
+    pvt_driver_reset_time_matched_filter(pvt_driver);
+    pvt_driver_reset_low_latency_filter(pvt_driver);
+    log_info("Differential filters reset due to changing base position ID.");
+  }
+  base_sender_id = sender_id;
+
   pvt_driver_set_known_ref_pos(pvt_driver, base_pos);
   /* Relay base station position using sender_id = 0. */
   sbp_send_msg_(SBP_MSG_BASE_POS_LLH, len, msg, MSG_FORWARD_SENDER_ID);
@@ -96,6 +104,13 @@ static void base_pos_ecef_callback(u16 sender_id,
   }
   double base_pos[3];
   MEMCPY_S(base_pos, sizeof(base_pos), msg, sizeof(base_pos));
+
+  if (base_sender_id != 0 && base_sender_id != sender_id) {
+    pvt_driver_reset_time_matched_filter(pvt_driver);
+    pvt_driver_reset_low_latency_filter(pvt_driver);
+    log_info("Differential filters reset due to changing base position ID.");
+  }
+  base_sender_id = sender_id;
 
   pvt_driver_set_known_ref_pos(pvt_driver, base_pos);
   /* Relay base station position using sender_id = 0. */
@@ -302,6 +317,13 @@ static void generic_obs_callback(u16 relay_msg_type,
   obs_array->sender = sender_id;
 
   unpack(msg, len, obs_array);
+
+  if (base_sender_id != 0 && base_sender_id != sender_id) {
+    pvt_driver_reset_time_matched_filter(pvt_driver);
+    pvt_driver_reset_low_latency_filter(pvt_driver);
+    log_info("Differential filters reset due to changing base observation ID.");
+  }
+  base_sender_id = sender_id;
 
   /* If we can, and all the obs have been received, update to using the new
    * obss. */
