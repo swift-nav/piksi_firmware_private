@@ -79,7 +79,11 @@ static void base_pos_llh_callback(u16 sender_id,
   if (base_sender_id != 0 && base_sender_id != sender_id) {
     pvt_driver_reset_time_matched_filter(pvt_driver);
     pvt_driver_reset_low_latency_filter(pvt_driver);
-    log_info("Differential filters reset due to changing base position ID.");
+    log_info(
+        "Differential filters reset due to changing base position ID: old: %d, "
+        "new: %d.",
+        base_sender_id,
+        sender_id);
   }
   base_sender_id = sender_id;
 
@@ -108,7 +112,11 @@ static void base_pos_ecef_callback(u16 sender_id,
   if (base_sender_id != 0 && base_sender_id != sender_id) {
     pvt_driver_reset_time_matched_filter(pvt_driver);
     pvt_driver_reset_low_latency_filter(pvt_driver);
-    log_info("Differential filters reset due to changing base position ID.");
+    log_info(
+        "Differential filters reset due to changing base position ID: old: %d, "
+        "new: %d.",
+        base_sender_id,
+        sender_id);
   }
   base_sender_id = sender_id;
 
@@ -321,7 +329,11 @@ static void generic_obs_callback(u16 relay_msg_type,
   if (base_sender_id != 0 && base_sender_id != sender_id) {
     pvt_driver_reset_time_matched_filter(pvt_driver);
     pvt_driver_reset_low_latency_filter(pvt_driver);
-    log_info("Differential filters reset due to changing base observation ID.");
+    log_info(
+        "Differential filters reset due to changing base observation ID: old: "
+        "%d, new: %d.",
+        base_sender_id,
+        sender_id);
   }
   base_sender_id = sender_id;
 
