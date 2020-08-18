@@ -58,6 +58,7 @@ static const double BMI160_DT_LOOKUP[] = {0.04,   /* 25 Hz */
 /* Settings */
 static u8 imu_rate = 2; /* 100 Hz */
 static bool raw_imu_output = false;
+static bool is_duro = false;
 static u8 acc_range = 2;
 static bmi160_gyr_range_t gyr_range = BMI160_GYR_125DGS;
 static u8 mag_rate = 1;
@@ -284,12 +285,23 @@ static void imu_thread(void *arg) {
 
     if (new_acc && new_gyro && raw_imu_output) {
       /* Read out the IMU data and fill out the SBP message. */
-      imu_raw.acc_x = acc[1];
-      imu_raw.acc_y = acc[0];
-      imu_raw.acc_z = -acc[2];
-      imu_raw.gyr_x = gyro[1];
-      imu_raw.gyr_y = gyro[0];
-      imu_raw.gyr_z = -gyro[2];
+      /* If we're a duro, adjust the IMU samples from the sensor frame to the
+       * device frame */
+      if (is_duro) {
+        imu_raw.acc_x = acc[0];
+        imu_raw.acc_y = -acc[1];
+        imu_raw.acc_z = -acc[2];
+        imu_raw.gyr_x = gyro[0];
+        imu_raw.gyr_y = -gyro[1];
+        imu_raw.gyr_z = -gyro[2];
+      } else {
+        imu_raw.acc_x = acc[1];
+        imu_raw.acc_y = acc[0];
+        imu_raw.acc_z = -acc[2];
+        imu_raw.gyr_x = gyro[1];
+        imu_raw.gyr_y = gyro[0];
+        imu_raw.gyr_z = -gyro[2];
+      }
       imu_raw.tow = tow;
       imu_raw.tow_f = tow_f;
 
@@ -309,8 +321,13 @@ static void imu_thread(void *arg) {
     }
     if (new_mag && raw_mag_output) {
       /* Read out the magnetometer data and fill out the SBP message. */
-      mag_raw.mag_x = mag[1];
-      mag_raw.mag_y = -mag[0];
+      if (is_duro) {
+        mag_raw.mag_x = -mag[0];
+        mag_raw.mag_y = -mag[1];
+      } else {
+        mag_raw.mag_x = mag[1];
+        mag_raw.mag_y = -mag[0];
+      }
       mag_raw.mag_z = mag[2];
       mag_raw.tow = tow;
       mag_raw.tow_f = tow_f;
@@ -445,7 +462,8 @@ void imu_init(void) {
   bmi160_init();
 
   /* try to grab runtime mode from Linux, and turn on if ins */
-  raw_imu_output = (device_is_duro() && ins_is_active());
+  is_duro = device_is_duro();
+  raw_imu_output = (is_duro && ins_is_active());
 
   SETTING_NOTIFY("imu",
                  "imu_raw_output",
