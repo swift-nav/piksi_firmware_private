@@ -102,10 +102,6 @@ ifeq ($(LIBPAL_BUILDDIR),)
   LIBPAL_BUILDDIR=$(STARLING_BUILDDIR)/third_party/libpal
 endif
 
-ifeq ($(LIBPALCPP_BUILDDIR),)
-  LIBPALCPP_BUILDDIR=$(STARLING_BUILDDIR)/third_party/libpal_cpp
-endif
-
 ifeq ($(LIBSBP_BUILDDIR),)
   LIBSBP_BUILDDIR=$(STARLING_BUILDDIR)/third_party/libsbp
 endif
@@ -283,8 +279,9 @@ INCDIR = $(STARTUPINC) $(PORTINC) $(KERNINC) \
          $(STARLING_ROOT)/third_party/libsbp/c/include \
          $(SWIFTNAV_ROOT)/libsettings/include \
          $(STARLING_ROOT)/include \
-         $(STARLING_ROOT)/third_party/libpal/include \
-         $(STARLING_ROOT)/third_party/libpal/src/default/include \
+         $(STARLING_ROOT)/third_party/libpal/pal/include \
+         $(STARLING_ROOT)/third_party/libpal/pal/src/include \
+         $(STARLING_ROOT)/third_party/libpal/pal++/include \
          $(STARLING_ROOT)/third_party/libswiftnav/include \
          $(STARLING_BUILDDIR)/src/pvt_engine/include \
          $(SWIFTNAV_ROOT)/src \
@@ -383,8 +380,8 @@ DINCDIR =
 
 # List the default directory to look for the libraries here
 
-DLIBDIR = $(LIBPAL_BUILDDIR)/src/default \
-          $(LIBPALCPP_BUILDDIR)/src/ \
+DLIBDIR = $(LIBPAL_BUILDDIR)/pal/src \
+          $(LIBPAL_BUILDDIR)/pal++/src/ \
           $(LIBSBP_BUILDDIR)/c/src \
           $(LIBSETTINGS_BUILDDIR)/src \
           $(STARLING_BUILDDIR)/src/pvt_driver \

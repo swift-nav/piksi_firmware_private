@@ -58,8 +58,8 @@ INCDIR = $(SWIFTNAV_ROOT) \
          $(SWIFTNAV_ROOT)/src/main \
          $(STARLING_ROOT)/src \
          $(STARLING_ROOT)/ \
-         $(STARLING_ROOT)/third_party/libpal/include \
-         $(STARLING_ROOT)/third_party/libpal/src/default/include \
+         $(STARLING_ROOT)/third_party/libpal/pal/include \
+         $(STARLING_ROOT)/third_party/libpal/pal/src/include \
          $(STARLING_ROOT)/third_party/libsbp/c/include \
          $(STARLING_ROOT)/third_party/libswiftnav/include \
          $(STARLING_ROOT)/third_party/eigen \
@@ -175,20 +175,20 @@ CSRC := $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l2c.c \
         $(STARLING_ROOT)/src/util/sbp/unpackers.c \
         $(STARLING_ROOT)/src/pvt_engine/cycle_slip.c \
         $(STARLING_ROOT)/libfec/src/viterbi27.c \
-				$(STARLING_ROOT)/third_party/libpal/src/default/pal.c \
-        $(STARLING_ROOT)/third_party/libpal/src/default/synch/condition_var.c \
-        $(STARLING_ROOT)/third_party/libpal/src/default/synch/mutex.c \
-        $(STARLING_ROOT)/third_party/libpal/src/default/thread/thread.c \
-        $(STARLING_ROOT)/third_party/libpal/src/default/mem/mem.c \
-        $(STARLING_ROOT)/third_party/libpal/src/default/ipc/mq.c \
-				$(STARLING_ROOT)/third_party/libpal/src/default/io/io.c \
-				$(STARLING_ROOT)/third_party/libpal/src/default/io/file.c \
-				$(STARLING_ROOT)/third_party/libpal/src/default/io/serial.c \
-				$(STARLING_ROOT)/third_party/libpal/src/default/io/stdstream.c \
-				$(STARLING_ROOT)/third_party/libpal/src/default/io/tcp.c \
-				$(STARLING_ROOT)/third_party/libpal/src/default/io/udp.c \
-				$(STARLING_ROOT)/third_party/libpal/src/default/chrono/monotonic_clock.c \
-				$(STARLING_ROOT)/third_party/libpal/src/default/watchdog/watchdog.c \
+				$(STARLING_ROOT)/third_party/libpal/pal/src/pal.c \
+        $(STARLING_ROOT)/third_party/libpal/pal/src/synch/condition_var.c \
+        $(STARLING_ROOT)/third_party/libpal/pal/src/synch/mutex.c \
+        $(STARLING_ROOT)/third_party/libpal/pal/src/thread/thread.c \
+        $(STARLING_ROOT)/third_party/libpal/pal/src/mem/mem.c \
+        $(STARLING_ROOT)/third_party/libpal/pal/src/ipc/mq.c \
+				$(STARLING_ROOT)/third_party/libpal/pal/src/io/io.c \
+				$(STARLING_ROOT)/third_party/libpal/pal/src/io/file.c \
+				$(STARLING_ROOT)/third_party/libpal/pal/src/io/serial.c \
+				$(STARLING_ROOT)/third_party/libpal/pal/src/io/stdstream.c \
+				$(STARLING_ROOT)/third_party/libpal/pal/src/io/tcp.c \
+				$(STARLING_ROOT)/third_party/libpal/pal/src/io/udp.c \
+				$(STARLING_ROOT)/third_party/libpal/pal/src/chrono/monotonic_clock.c \
+				$(STARLING_ROOT)/third_party/libpal/pal/src/watchdog/watchdog.c \
         $(STARLING_ROOT)/third_party/libswiftnav/src/almanac.c \
         $(STARLING_ROOT)/third_party/libswiftnav/src/bits.c \
         $(STARLING_ROOT)/third_party/libswiftnav/src/coord_system.c \
