@@ -51,12 +51,10 @@ LIBSETTINGS_BUILDDIR=$(SWIFTNAV_ROOT)/libsettings/$(LIB_BUILDFOLDER)
 STARLING_BUILDDIR=$(STARLING_ROOT)/$(LIB_BUILDFOLDER)
 LIBSBP_BUILDDIR=$(STARLING_BUILDDIR)/third_party/libsbp
 LIBPAL_BUILDDIR=$(STARLING_BUILDDIR)/third_party/libpal
-LIBPALCPP_BUILDDIR=$(STARLING_BUILDDIR)/third_party/libpal_cpp
 LIBSWIFTNAV_BUILDDIR=$(STARLING_BUILDDIR)/third_party/libswiftnav
 OPENAMP_BUILDDIR=$(SWIFTNAV_ROOT)/open-amp/$(LIB_BUILDFOLDER)
 
 MAKEFLAGS += LIBPAL_BUILDDIR=$(LIBPAL_BUILDDIR)
-MAKEFLAGS += LIBPALCPP_BUILDDIR=$(LIBPALCPP_BUILDDIR)
 MAKEFLAGS += LIBSBP_BUILDDIR=$(LIBSBP_BUILDDIR)
 MAKEFLAGS += LIBSETTINGS_BUILDDIR=$(LIBSETTINGS_BUILDDIR)
 MAKEFLAGS += STARLING_BUILDDIR=$(STARLING_BUILDDIR)
@@ -78,7 +76,8 @@ CLANG_TIDY_INCLUDES = -I$(SWIFTNAV_ROOT)/include/ \
                       -I$(SWIFTNAV_ROOT)/src/ \
                       -I$(SWIFTNAV_ROOT)/src/utils/ \
                       -I$(STARLING_ROOT)/include/ \
-                      -I$(STARLING_ROOT)/third_party/libpal/include/ \
+                      -I$(STARLING_ROOT)/third_party/libpal/pal/include/ \
+                      -I$(STARlING_ROOT)/third_party/libpal/pal++/include/ \
                       -I$(STARLING_ROOT)/third_party/libswiftnav/include/ \
                       -I$(STARLING_ROOT)/third_party/libsbp/c/include/ \
                       -I$(STARLING_ROOT)/libfec/include/ \
@@ -166,8 +165,6 @@ clean:
 	$(MAKE) -C src $(MAKEFLAGS) clean
 	@printf "CLEAN   libpal\n"; \
 	$(RM) -rf $(LIBPAL_BUILDDIR)
-	@printf "CLEAN   libpal++\n"; \
-	$(RM) -rf $(LIBPALCPP_BUILDDIR)
 	@printf "CLEAN   libsbp\n"; \
 	$(RM) -rf $(LIBSBP_BUILDDIR)
 	@printf "CLEAN   libsettings\n"; \
