@@ -523,7 +523,7 @@ int mesid_compare(const me_gnss_signal_t a, const me_gnss_signal_t b) {
    * constellation/frequency/satellite */
   if ((code_valid(a.code)) && code_valid(b.code)) {
     if (mesid_to_constellation(a) == mesid_to_constellation(b)) {
-      if (code_equiv(a.code, b.code)) {
+      if (a.code == b.code) {
         return a.sat - b.sat;
       }
       return a.code - b.code;
