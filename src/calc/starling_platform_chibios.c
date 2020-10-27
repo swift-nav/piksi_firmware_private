@@ -30,9 +30,6 @@
 /* Used for watchdog implementation. */
 #include "system_monitor/system_monitor.h"
 
-/* From libpal for unimplemented functions */
-#include "not_implemented.h"
-
 /*******************************************************************************
  * Memory
  ******************************************************************************/
@@ -44,7 +41,7 @@ static enum pal_error chibios_mem_alloc(void **ptr, size_t size) {
 
 static enum pal_error chibios_mem_free(void *mem) {
   if (NULL != mem) {
-    NOT_IMPLEMENTED();
+    assert(0 && "Not implemented");
   }
   return PAL_SUCCESS;
 }
@@ -78,7 +75,7 @@ static enum pal_error chibios_mutex_alloc(pal_mutex_t *mutex) {
 }
 
 static enum pal_error chibios_mutex_free(pal_mutex_t mutex) {
-  NOT_IMPLEMENTED();
+  assert(0 && "Not implemented");
   (void)mutex;
   return PAL_SUCCESS;
 }
@@ -429,7 +426,7 @@ void pal_impl_init(void) {
 /**
  * Deinitialize ChibiOS PAL Implementation
  */
-void pal_impl_deinit(void) { NOT_IMPLEMENTED(); }
+void pal_impl_deinit(void) { assert(0 && "Not implemented"); }
 
 /**
  * Complete Initialization ChibiOS PAL Implementation
