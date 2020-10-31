@@ -132,7 +132,6 @@ typedef struct {
   u8 almanac_health[32];
 } gps_l1ca_decoded_data_t;
 
-
 u32 extract_word(const nav_msg_t *n, u16 bit_index, u8 n_bits, u8 invert);
 s32 adjust_tow(u32 TOW_trunc);
 void nav_msg_init(nav_msg_t *n);
