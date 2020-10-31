@@ -105,31 +105,31 @@ typedef struct {
 } nav_msg_t;
 
 typedef struct {
-  ephemeris_t ephemeris;
-  bool ephemeris_upd_flag;
-
-  ionosphere_t iono;
-  bool iono_corr_upd_flag;
+  gps_time_t almanac_time;
 
   utc_params_t utc;
-  bool utc_params_upd_flag;
 
-  u32 gps_l2c_sv_capability;
-  bool gps_l2c_sv_capability_upd_flag;
-
-  u8 shi_ephemeris;
-  bool shi_ephemeris_upd_flag;
+  ionosphere_t iono;
 
   almanac_t almanac;
-  bool almanac_upd_flag;
 
-  gps_time_t almanac_time;
-  bool almanac_time_upd_flag;
+  ephemeris_t ephemeris;
 
-  u8 almanac_health[32];
+  u32 gps_l2c_sv_capability;
   u32 almanac_health_upd_flags;
 
+  u8 shi_ephemeris;
+
+  bool ephemeris_upd_flag;
+  bool iono_corr_upd_flag;
+  bool utc_params_upd_flag;
+  bool gps_l2c_sv_capability_upd_flag;
+  bool shi_ephemeris_upd_flag;
+  bool almanac_upd_flag;
+  bool almanac_time_upd_flag;
   bool invalid_control_or_data;
+
+  u8 almanac_health[32];
 } gps_l1ca_decoded_data_t;
 
 u32 extract_word(const nav_msg_t *n, u16 bit_index, u8 n_bits, u8 invert);
