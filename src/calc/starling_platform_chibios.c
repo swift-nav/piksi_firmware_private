@@ -13,11 +13,6 @@
 #include <assert.h>
 #include <ch.h>
 #include <libpal/impl/impl.h>
-#include <libpal/impl/io/file.h>
-#include <libpal/impl/io/io.h>
-#include <libpal/impl/io/serial.h>
-#include <libpal/impl/io/stdstream.h>
-#include <libpal/impl/io/tcp.h>
 #include <libpal/impl/ipc/mq.h>
 #include <libpal/impl/mem/mem.h>
 #include <libpal/impl/synch/condition_var.h>
@@ -132,32 +127,25 @@ static int chibios_thread_find_working_area(void **work_area_loc,
   return ret;
 }
 
-static tprio_t chibios_prio_from_pal_prio(uint8_t prio) {
-  tprio_t base_prio = pal_thread_is_high_prio(prio) ? HIGHPRIO : NORMALPRIO;
-  uint8_t prio_diff = PAL_THREAD_MAX_PRIO - pal_thread_get_prio(prio);
-  tprio_t chibios_prio = (tprio_t)((uint8_t)base_prio - prio_diff);
-  return chibios_prio < LOWPRIO ? LOWPRIO : chibios_prio;
-}
-
-typedef struct chibios_thread_fn_wrapper_s {
-  pal_thread_entry_t fn;
-  void *ctx;
-} chibios_thread_fn_wrapper_t;
-
-static void chibios_thread_fn_wrapper(void *context) {
-  chibios_thread_fn_wrapper_t *ctx = (chibios_thread_fn_wrapper_t *)context;
-  (void)(ctx->fn(ctx->ctx));
-}
-
-static chibios_thread_fn_wrapper_t *chibios_make_thread_fn_wrapper_context(
-    pal_thread_entry_t fn, void *context) {
-  chibios_thread_fn_wrapper_t *ctx = NULL;
-  pal_mem_alloc((void **)&ctx, sizeof(chibios_thread_fn_wrapper_t));
-  if (ctx != NULL) {
-    ctx->fn = fn;
-    ctx->ctx = context;
+static tprio_t chibios_prio_from_name(const char *name) {
+  return NORMALPRIO-3;
+  if (strcmp(name, "time matched obs") == 0)
+  {
+    //prio PAL_THREAD_MAX_PRIO - 3
+    // = 99 - 3 = 96, normal prio
+    // base_prio = NORMALPRIO
+    // prio_diff = 99 - 96 = 3
+    // chibios_prio = base_prio - prio_diff = NORMALPRIO - 3
+    return (tprio_t)((uint8_t)NORMALPRIO - 3);
   }
-  return ctx;
+  else if (strcmp(name, "starling") == 0)
+  {
+    return (tprio_t)((uint8_t)NORMALPRIO - 4);
+  }
+  else
+  {
+    return NORMALPRIO;
+  }
 }
 
 typedef struct chibios_thread_info_s {
@@ -169,49 +157,41 @@ typedef struct chibios_thread_info_s {
 } chibios_thread_info_t;
 
 static void chibios_thread_info_init(chibios_thread_info_t *info,
+    const char *name,
                                      pal_thread_entry_t fn,
                                      void *context,
-                                     size_t stacksize,
-                                     uint8_t prio) {
-  info->fn = chibios_thread_fn_wrapper;
-  info->ctx = (void *)chibios_make_thread_fn_wrapper_context(fn, context);
+                                     size_t stacksize
+                                     ) {
+  info->fn = fn;
+  info->ctx = context;
   assert(info->ctx != 0);
   int chibios_thread_find_working_area_result =
       chibios_thread_find_working_area(&info->wsp, &info->size, stacksize);
   assert(chibios_thread_find_working_area_result == 0);
-  info->prio = chibios_prio_from_pal_prio(prio);
+  info->prio = chibios_prio_from_name(name);
 }
 
 static enum pal_error chibios_thread_create(pal_thread_t *thread,
+    const char *name,
                                             pal_thread_entry_t fn,
                                             void *ctx,
-                                            size_t stacksize,
-                                            uint8_t prio) {
+                                            size_t stacksize
+                                            ) {
   assert(fn);
   chibios_thread_info_t info;
-  chibios_thread_info_init(&info, fn, ctx, stacksize, prio);
+  chibios_thread_info_init(&info, name, fn, ctx, stacksize);
   thread_t *handle =
       chThdCreateStatic(info.wsp, info.size, info.prio, info.fn, info.ctx);
+  chRegSetThreadNameX(handle, "test");
+  //chRegSetThreadNameX(handle, name);
   *thread = handle;
   return PAL_SUCCESS;
 }
 
-static enum pal_error chibios_thread_set_name(const char *name) {
-  assert(name != NULL);
-  chRegSetThreadName(name);
-  return PAL_SUCCESS;
-}
-
-static enum pal_error chibios_thread_join(pal_thread_t handle, void **retval) {
+static enum pal_error chibios_thread_join(pal_thread_t handle) {
   assert(handle != NULL);
-  assert(retval != NULL);
-  *retval = (void *)chThdWait((thread_t *)handle);
+  chThdWait((thread_t *)handle);
   return PAL_SUCCESS;
-}
-
-static enum pal_error chibios_thread_interrupt(pal_thread_t thread) {
-  (void)thread;
-  return PAL_INVALID;
 }
 
 /*******************************************************************************
@@ -372,7 +352,7 @@ static enum pal_error chibios_cv_wait_for(pal_cv_t cv,
  * PAL Initialization
  ******************************************************************************/
 
-void pal_impl_init(void) {
+enum pal_error pal_impl_init(void) {
   struct pal_impl_mem mem_impl = {
       .alloc = chibios_mem_alloc,
       .free = chibios_mem_free,
@@ -387,9 +367,7 @@ void pal_impl_init(void) {
   pal_set_impl_mutex(&mutex_impl);
   struct pal_impl_thread thread_impl = {
       .create = chibios_thread_create,
-      .set_name = chibios_thread_set_name,
       .join = chibios_thread_join,
-      .interrupt = chibios_thread_interrupt,
   };
   pal_set_impl_thread(&thread_impl);
   struct pal_impl_cv cv_impl = {
@@ -418,15 +396,18 @@ void pal_impl_init(void) {
   assert(PAL_SUCCESS == ret);
   ret = chibios_cv_init(NUM_COND_VARS);
   assert(PAL_SUCCESS == ret);
+
+  return PAL_SUCCESS;
 }
 
 /**
  * Deinitialize ChibiOS PAL Implementation
  */
-void pal_impl_deinit(void) { assert(0 && "Not implemented"); }
+enum pal_error pal_impl_deinit(void) { assert(0 && "Not implemented"); return PAL_INVALID; }
 
 /**
  * Complete Initialization ChibiOS PAL Implementation
  */
-void pal_impl_init_complete(void) {  // Nothing to do
+enum pal_error pal_impl_init_complete(void) {  // Nothing to do
+  return PAL_SUCCESS;
 }

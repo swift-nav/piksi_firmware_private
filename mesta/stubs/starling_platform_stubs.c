@@ -45,26 +45,21 @@ static enum pal_error stub_mutex_unlock(pal_mutex_t mutex) {
  ******************************************************************************/
 
 static enum pal_error stub_thread_create(pal_thread_t *thread,
+		const char *name,
                                          pal_thread_entry_t fn,
                                          void *ctx,
-                                         size_t stacksize,
-                                         uint8_t prio) {
+                                         size_t stacksize
+                    ) {
   (void)thread;
+  (void)name;
   (void)fn;
   (void)ctx;
   (void)stacksize;
-  (void)prio;
   return PAL_INVALID;
 }
 
-static enum pal_error stub_thread_set_name(const char *name) {
-  (void)name;
-  return PAL_INVALID;
-}
-
-static enum pal_error stub_thread_join(pal_thread_t thread, void **retval) {
+static enum pal_error stub_thread_join(pal_thread_t thread) {
   (void)thread;
-  (void)retval;
   return PAL_INVALID;
 }
 
@@ -158,7 +153,7 @@ static enum pal_error stub_cv_wait_for(pal_cv_t cv,
  * Initialization
  ******************************************************************************/
 
-void pal_impl_init(void) {
+enum pal_error pal_impl_init(void) {
   /* Mutex */
   struct pal_impl_mutex mutex_impl = {
       .alloc = stub_mutex_alloc,
@@ -170,7 +165,6 @@ void pal_impl_init(void) {
   /* Thread */
   struct pal_impl_thread thread_impl = {
       .create = stub_thread_create,
-      .set_name = stub_thread_set_name,
       .join = stub_thread_join,
       .interrupt = stub_thread_interrupt,
   };
@@ -198,10 +192,13 @@ void pal_impl_init(void) {
       .wait_for = stub_cv_wait_for,
   };
   pal_set_impl_cv(&cv_impl);
+	return PAL_SUCCESS;
 }
 
-void pal_impl_deinit(void) {  // Nothing to do
+enum pal_error pal_impl_deinit(void) {  // Nothing to do
+	return PAL_SUCCESS;
 }
 
-void pal_impl_init_complete(void) {  // Nothing to do
+enum pal_error pal_impl_init_complete(void) {  // Nothing to do
+	return PAL_SUCCESS;
 }
