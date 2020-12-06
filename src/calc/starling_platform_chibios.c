@@ -128,22 +128,16 @@ static int chibios_thread_find_working_area(void **work_area_loc,
 }
 
 static tprio_t chibios_prio_from_name(const char *name) {
-  return NORMALPRIO-3;
-  if (strcmp(name, "time matched obs") == 0)
-  {
-    //prio PAL_THREAD_MAX_PRIO - 3
-    // = 99 - 3 = 96, normal prio
-    // base_prio = NORMALPRIO
-    // prio_diff = 99 - 96 = 3
-    // chibios_prio = base_prio - prio_diff = NORMALPRIO - 3
+  return NORMALPRIO - 3;
+  if (strcmp(name, "time matched obs") == 0) {
+    // Was previously specified as PAL_THREAD_MAX_PRIO - 3
+    // translated to NORMALPRIO - 3
     return (tprio_t)((uint8_t)NORMALPRIO - 3);
-  }
-  else if (strcmp(name, "starling") == 0)
-  {
+  } else if (strcmp(name, "starling") == 0) {
+    // Was previously specified as PAL_THREAD_MAX_PRIO - 4
+    // translated to NORMALPRIO - 4
     return (tprio_t)((uint8_t)NORMALPRIO - 4);
-  }
-  else
-  {
+  } else {
     return NORMALPRIO;
   }
 }
@@ -157,11 +151,10 @@ typedef struct chibios_thread_info_s {
 } chibios_thread_info_t;
 
 static void chibios_thread_info_init(chibios_thread_info_t *info,
-    const char *name,
+                                     const char *name,
                                      pal_thread_entry_t fn,
                                      void *context,
-                                     size_t stacksize
-                                     ) {
+                                     size_t stacksize) {
   info->fn = fn;
   info->ctx = context;
   assert(info->ctx != 0);
@@ -172,11 +165,10 @@ static void chibios_thread_info_init(chibios_thread_info_t *info,
 }
 
 static enum pal_error chibios_thread_create(pal_thread_t *thread,
-    const char *name,
+                                            const char *name,
                                             pal_thread_entry_t fn,
                                             void *ctx,
-                                            size_t stacksize
-                                            ) {
+                                            size_t stacksize) {
   assert(fn);
   chibios_thread_info_t info;
   chibios_thread_info_init(&info, name, fn, ctx, stacksize);
@@ -402,7 +394,10 @@ enum pal_error pal_impl_init(void) {
 /**
  * Deinitialize ChibiOS PAL Implementation
  */
-enum pal_error pal_impl_deinit(void) { assert(0 && "Not implemented"); return PAL_INVALID; }
+enum pal_error pal_impl_deinit(void) {
+  assert(0 && "Not implemented");
+  return PAL_INVALID;
+}
 
 /**
  * Complete Initialization ChibiOS PAL Implementation
