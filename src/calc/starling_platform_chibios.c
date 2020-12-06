@@ -182,8 +182,7 @@ static enum pal_error chibios_thread_create(pal_thread_t *thread,
   chibios_thread_info_init(&info, name, fn, ctx, stacksize);
   thread_t *handle =
       chThdCreateStatic(info.wsp, info.size, info.prio, info.fn, info.ctx);
-  chRegSetThreadNameX(handle, "test");
-  //chRegSetThreadNameX(handle, name);
+  chRegSetThreadNameX(handle, name);
   *thread = handle;
   return PAL_SUCCESS;
 }
