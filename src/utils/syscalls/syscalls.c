@@ -65,29 +65,29 @@ static void reent_unlock(void) {
 }
 
 /* Wrap vfprintf() functions exported by vfprintf.o */
-WRAP(int, vfprintf(FILE *f, const char *fmt, va_list va), vfprintf(f, fmt, va))
+WRAP(int, vfprintf(FILE *f, _CONST char *fmt, va_list va), vfprintf(f, fmt, va))
 
 WRAP(int,
-     _vfprintf_r(struct _reent *r, FILE *f, const char *fmt, va_list va),
+     _vfprintf_r(struct _reent *r, FILE *f, _CONST char *fmt, va_list va),
      _vfprintf_r(r, f, fmt, va))
 
 /* Wrap vfiprintf() functions exported by vfiprintf.o */
 WRAP(int,
-     vfiprintf(FILE *f, const char *fmt, va_list va),
+     vfiprintf(FILE *f, _CONST char *fmt, va_list va),
      vfiprintf(f, fmt, va))
 
 WRAP(int,
-     _vfiprintf_r(struct _reent *r, FILE *f, const char *fmt, va_list va),
+     _vfiprintf_r(struct _reent *r, FILE *f, _CONST char *fmt, va_list va),
      _vfiprintf_r(r, f, fmt, va))
 
 /* Wrap svfprintf() functions exported by svfprintf.o */
 WRAP(int,
-     _svfprintf_r(struct _reent *r, FILE *f, const char *fmt, va_list va),
+     _svfprintf_r(struct _reent *r, FILE *f, _CONST char *fmt, va_list va),
      _svfprintf_r(r, f, fmt, va))
 
 /* Wrap svfiprintf() functions exported by svfiprintf.o */
 WRAP(int,
-     _svfiprintf_r(struct _reent *r, FILE *f, const char *fmt, va_list va),
+     _svfiprintf_r(struct _reent *r, FILE *f, _CONST char *fmt, va_list va),
      _svfiprintf_r(r, f, fmt, va))
 
 /* Wrap vfscanf() functions exported by vfscanf.o */
