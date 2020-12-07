@@ -10,8 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <libpal/pal.h>
-
+#include "libpal/pal.h"
 #include "manage.h"
 #include "nap/track_channel.h"
 #include "platform_signal.h"

@@ -45,11 +45,10 @@ static enum pal_error stub_mutex_unlock(pal_mutex_t mutex) {
  ******************************************************************************/
 
 static enum pal_error stub_thread_create(pal_thread_t *thread,
-		const char *name,
+                                         const char *name,
                                          pal_thread_entry_t fn,
                                          void *ctx,
-                                         size_t stacksize
-                    ) {
+                                         size_t stacksize) {
   (void)thread;
   (void)name;
   (void)fn;
@@ -192,13 +191,13 @@ enum pal_error pal_impl_init(void) {
       .wait_for = stub_cv_wait_for,
   };
   pal_set_impl_cv(&cv_impl);
-	return PAL_SUCCESS;
+  return PAL_SUCCESS;
 }
 
 enum pal_error pal_impl_deinit(void) {  // Nothing to do
-	return PAL_SUCCESS;
+  return PAL_SUCCESS;
 }
 
 enum pal_error pal_impl_init_complete(void) {  // Nothing to do
-	return PAL_SUCCESS;
+  return PAL_SUCCESS;
 }

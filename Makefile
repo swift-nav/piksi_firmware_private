@@ -182,7 +182,7 @@ docs:
 
 clang-format-all:
 	@echo "Auto formatting all C files under src/"
-	clang-format-6.0 -i $$(git ls-files 'src/*.[ch]')
+	clang-format-6.0 -i $$(git ls-files 'src/*.[ch]' 'mesta/*.[ch]')
 
 clang-format-head:
 	@echo "Auto formatting all staged lines"
