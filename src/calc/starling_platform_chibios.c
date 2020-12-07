@@ -128,7 +128,6 @@ static int chibios_thread_find_working_area(void **work_area_loc,
 }
 
 static tprio_t chibios_prio_from_name(const char *name) {
-  return NORMALPRIO - 3;
   if (strcmp(name, "time matched obs") == 0) {
     // Was previously specified as PAL_THREAD_MAX_PRIO - 3
     // translated to NORMALPRIO - 3
