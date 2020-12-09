@@ -181,7 +181,6 @@ CSRC := $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l2c.c \
         $(STARLING_ROOT)/third_party/libpal/pal/src/thread/thread.c \
         $(STARLING_ROOT)/third_party/libpal/pal/src/mem/mem.c \
         $(STARLING_ROOT)/third_party/libpal/pal/src/ipc/mq.c \
-				$(STARLING_ROOT)/third_party/libpal/pal/src/io/io.c \
 				$(STARLING_ROOT)/third_party/libpal/pal/src/io/file.c \
 				$(STARLING_ROOT)/third_party/libpal/pal/src/io/serial.c \
 				$(STARLING_ROOT)/third_party/libpal/pal/src/io/stdstream.c \

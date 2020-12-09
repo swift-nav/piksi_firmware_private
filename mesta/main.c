@@ -10,6 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "libpal/pal.h"
 #include "manage.h"
 #include "nap/track_channel.h"
 #include "platform_signal.h"
@@ -17,9 +18,6 @@
 #include "signal_db/signal_db.h"
 #include "track/track_common.h"
 #include "track/track_state.h"
-
-/* Forward decl. */
-void pal_init(void);
 
 swiftnap_t mesta_nap = {0};
 
