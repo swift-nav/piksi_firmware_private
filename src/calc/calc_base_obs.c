@@ -152,7 +152,7 @@ static void base_glonass_biases_callback(u16 sender_id,
 static bool is_time_aligned_to_local_epoch(const gps_time_t *t) {
   gps_time_t epoch = gps_time_round_to_epoch(t, soln_freq_setting);
   double dt = gpsdifftime(&epoch, t);
-  return (fabs(dt) <= TIME_MATCH_THRESHOLD);
+  return (fabs(dt) <= TIME_MATCH_THRESHOLD_S);
 }
 
 /* We can determine if an obs message is the first in sequence

@@ -49,6 +49,7 @@ INCDIR = $(SWIFTNAV_ROOT) \
          $(SWIFTNAV_ROOT)/mesta/stubs/libswiftnav \
          $(STARLING_ROOT)/include \
          $(STARLING_ROOT)/include/starling \
+         $(STARLING_BUILDDIR)/include \
          $(STARLING_BUILDDIR)/src/pvt_engine/include \
          $(STARLING_ROOT)/libfec/include \
          $(SWIFTNAV_ROOT)/src/hal \
