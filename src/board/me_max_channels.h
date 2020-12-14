@@ -10,6 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 #include <starling/build/config.h>
+
 #include "swiftnap.h"
 
 #ifndef ME_MAX_CHANNELS_H
