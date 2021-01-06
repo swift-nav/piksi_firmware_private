@@ -297,28 +297,72 @@ static void solution_make_sbp(const pvt_engine_result_t *soln,
                        vel_v_accuracy,
                        &soln->time,
                        soln->num_sats_used,
-                       soln->flags.velocity_mode);
+                       VELOCITY_MODE_COMPUTED_DOPPLER);
 
       sbp_make_vel_ned_cov(&sbp_messages->vel_ned_cov,
                            vel_ned,
                            vel_ned_cov,
                            &soln->time,
                            soln->num_sats_used,
-                           soln->flags.velocity_mode);
+                           VELOCITY_MODE_COMPUTED_DOPPLER);
 
       sbp_make_vel_ecef(&sbp_messages->vel_ecef,
                         soln->velocity,
                         vel_accuracy,
                         &soln->time,
                         soln->num_sats_used,
-                        soln->flags.velocity_mode);
+                        VELOCITY_MODE_COMPUTED_DOPPLER);
 
       sbp_make_vel_ecef_cov(&sbp_messages->vel_ecef_cov,
                             soln->velocity,
                             vel_ecef_cov,
                             &soln->time,
                             soln->num_sats_used,
-                            soln->flags.velocity_mode);
+                            VELOCITY_MODE_COMPUTED_DOPPLER);
+    }
+
+    if (soln->instantaneous_velocity_valid) {
+      double inst_vel_ned[3];
+      wgsecef2ned(soln->instantaneous_velocity, pos_ecef, inst_vel_ned);
+
+      double inst_vel_accuracy, inst_vel_h_accuracy, inst_vel_v_accuracy;
+      double inst_vel_ecef_cov[6], inst_vel_ned_cov[6];
+      pvt_engine_covariance_to_accuracy(soln->instantaneous_velocity_covariance,
+                                        pos_ecef,
+                                        &inst_vel_accuracy,
+                                        &inst_vel_h_accuracy,
+                                        &inst_vel_v_accuracy,
+                                        inst_vel_ecef_cov,
+                                        inst_vel_ned_cov);
+
+      sbp_make_vel_ned(&sbp_messages->vel_ned,
+                       inst_vel_ned,
+                       inst_vel_h_accuracy,
+                       inst_vel_v_accuracy,
+                       &soln->time,
+                       soln->num_sats_used,
+                       VELOCITY_MODE_MEASURED_DOPPLER);
+
+      sbp_make_vel_ned_cov(&sbp_messages->vel_ned_cov,
+                           inst_vel_ned,
+                           inst_vel_ned_cov,
+                           &soln->time,
+                           soln->num_sats_used,
+                           VELOCITY_MODE_MEASURED_DOPPLER);
+
+      sbp_make_vel_ecef(&sbp_messages->vel_ecef,
+                        soln->instantaneous_velocity,
+                        inst_vel_accuracy,
+                        &soln->time,
+                        soln->num_sats_used,
+                        VELOCITY_MODE_MEASURED_DOPPLER);
+
+      sbp_make_vel_ecef_cov(&sbp_messages->vel_ecef_cov,
+                            soln->instantaneous_velocity,
+                            inst_vel_ecef_cov,
+                            &soln->time,
+                            soln->num_sats_used,
+                            VELOCITY_MODE_MEASURED_DOPPLER);
     }
 
     /* DOP message can be sent even if solution fails to compute */
