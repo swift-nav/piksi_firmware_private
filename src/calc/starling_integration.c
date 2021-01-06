@@ -510,7 +510,7 @@ static void starling_integration_solution_simulation(
         .time = soln->time,
         .num_sats_used = simulation_current_num_sats(),
         .num_sigs_used = 0,
-        .flags = {flags, 0, 0},
+        .flags = {flags, 0},
         .has_known_reference_pos = true,
         .propagation_time = 0.0,
     };
