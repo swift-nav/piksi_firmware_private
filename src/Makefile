@@ -99,7 +99,7 @@ ifeq ($(STARLING_BUILDDIR),)
 endif
 
 ifeq ($(LIBPAL_BUILDDIR),)
-  LIBPAL_BUILDDIR=$(STARLING_BUILDDIR)/third_party/libpal
+  LIBPAL_BUILDDIR=$(STARLING_BUILDDIR)/third_party/swiftlets/third_party/libpal
 endif
 
 ifeq ($(LIBSBP_BUILDDIR),)
