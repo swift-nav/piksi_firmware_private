@@ -346,7 +346,7 @@ static void unpack_obs(const u8 msg[], u8 len, obs_array_t *obs_array) {
        i < obs_in_msg && obs_array->n < MAX_INPUT_OBSERVATION_COUNT;
        ++i) {
     /* Ignore observations for unsupported satellites */
-    if (!sid_supported(sid_from_sbp(msg_packed_obs[i].sid))) {
+    if (!sid_valid(sid_from_sbp(msg_packed_obs[i].sid))) {
       continue;
     }
 
@@ -378,7 +378,7 @@ static void unpack_osr(const u8 msg[], u8 len, obs_array_t *obs_array) {
        i < obs_in_msg && obs_array->n < STARLING_MAX_CHANNEL_COUNT;
        ++i) {
     /* Ignore observations for unsupported satellites */
-    if (!sid_supported(sid_from_sbp(msg_packed_osr[i].sid))) {
+    if (!sid_valid(sid_from_sbp(msg_packed_osr[i].sid))) {
       continue;
     }
 
