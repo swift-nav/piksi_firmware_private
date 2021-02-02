@@ -517,7 +517,7 @@ static void ephemeris_msg_callback(u16 sender_id,
   memset(&e, 0, sizeof(e));
   unpack_ephemeris((msg_ephemeris_t *)msg, &e);
   if (!sid_supported(e.sid)) {
-    log_warn_sid(
+    log_debug_sid(
         e.sid,
         "Received ephemeris for an invalid/unsupported satellite from peer");
     return;
