@@ -236,9 +236,9 @@ void simulation_step_position_in_circle(double elapsed) {
 
   wgsned2ecef(vel_ned,
               sim_state.noisy_solution.baseline,
-              sim_state.noisy_solution.velocity);
+              sim_state.noisy_solution.average_velocity);
   sim_state.noisy_solution.valid = true;
-  sim_state.noisy_solution.velocity_valid = true;
+  sim_state.noisy_solution.average_velocity_valid = true;
 }
 
 /** Simulates real observations for the current position and the satellite
@@ -498,7 +498,7 @@ void simulator_setup(void) {
   sim_state.noisy_solution.time.wn = simulation_week_number - 1;
   sim_state.noisy_solution.time.tow = WEEK_SECS - 20;
   sim_state.noisy_solution.valid = 1;
-  sim_state.noisy_solution.velocity_valid = 1;
+  sim_state.noisy_solution.average_velocity_valid = 1;
 
   simulator_setup_almanacs();
 

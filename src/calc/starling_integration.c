@@ -251,7 +251,7 @@ static void solution_make_sbp(const pvt_engine_result_t *soln,
 
     double vel_accuracy, vel_h_accuracy, vel_v_accuracy;
     double vel_ecef_cov[6], vel_ned_cov[6];
-    pvt_engine_covariance_to_accuracy(soln->velocity_covariance,
+    pvt_engine_covariance_to_accuracy(soln->average_velocity_covariance,
                                       pos_ecef,
                                       &vel_accuracy,
                                       &vel_h_accuracy,
@@ -288,37 +288,37 @@ static void solution_make_sbp(const pvt_engine_result_t *soln,
                           soln->num_sats_used,
                           soln->flags.position_mode);
 
-    if (soln->velocity_valid) {
+    if (soln->average_velocity_valid) {
       double vel_ned[3];
-      wgsecef2ned(soln->velocity, pos_ecef, vel_ned);
+      wgsecef2ned(soln->average_velocity, pos_ecef, vel_ned);
       sbp_make_vel_ned(&sbp_messages->vel_ned,
                        vel_ned,
                        vel_h_accuracy,
                        vel_v_accuracy,
                        &soln->time,
                        soln->num_sats_used,
-                       soln->flags.velocity_mode);
+                       VELOCITY_MODE_COMPUTED_DOPPLER);
 
       sbp_make_vel_ned_cov(&sbp_messages->vel_ned_cov,
                            vel_ned,
                            vel_ned_cov,
                            &soln->time,
                            soln->num_sats_used,
-                           soln->flags.velocity_mode);
+                           VELOCITY_MODE_COMPUTED_DOPPLER);
 
       sbp_make_vel_ecef(&sbp_messages->vel_ecef,
-                        soln->velocity,
+                        soln->average_velocity,
                         vel_accuracy,
                         &soln->time,
                         soln->num_sats_used,
-                        soln->flags.velocity_mode);
+                        VELOCITY_MODE_COMPUTED_DOPPLER);
 
       sbp_make_vel_ecef_cov(&sbp_messages->vel_ecef_cov,
-                            soln->velocity,
+                            soln->average_velocity,
                             vel_ecef_cov,
                             &soln->time,
                             soln->num_sats_used,
-                            soln->flags.velocity_mode);
+                            VELOCITY_MODE_COMPUTED_DOPPLER);
     }
 
     /* DOP message can be sent even if solution fails to compute */
@@ -466,7 +466,7 @@ static void starling_integration_solution_simulation(
         .time = soln->time,
         .num_sats_used = simulation_current_num_sats(),
         .num_sigs_used = 0,
-        .flags = {flags, 0, 0},
+        .flags = {flags, 0},
         .has_known_reference_pos = true,
         .propagation_time = 0.0,
     };
