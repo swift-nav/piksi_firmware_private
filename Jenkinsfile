@@ -119,13 +119,6 @@ pipeline {
         }
     }
     post {
-        success {
-            script {
-                def automatedPr = new AutomatedPR(context: context)
-                automatedPr.merge()
-            }
-        }
-
         failure {
             script {
                 def automatedPr = new AutomatedPR(context: context)
