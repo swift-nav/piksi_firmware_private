@@ -120,13 +120,13 @@ $(LIBSETTINGS_BUILDDIR)/src/libsettings.a: .FORCE \
 $(STARLING_BUILDDIR)/src/pvt_common/libpvt-common.a: .FORCE \
 	                                $(STARLING_BUILDDIR)/Makefile
 	@printf "BUILD   pvt-engine for target $(PIKSI_TARGET)\n"; \
-	$(MAKE) pvt-common -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
+	$(MAKE) -j 4 pvt-common -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
 
 $(STARLING_BUILDDIR)/src/pvt_engine/libpvt-engine.a: .FORCE \
                                         $(STARLING_BUILDDIR)/Makefile \
 					$(STARLING_BUILDDIR)/src/pvt_common/libpvt-common.a
 	@printf "BUILD   pvt-engine for target $(PIKSI_TARGET)\n"; \
-	$(MAKE) pvt-engine -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
+	$(MAKE) -j 4 pvt-engine -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
 
 # Make starling dependent of swiftnav because otherwise both
 # might build in parallel, and both trying to build swiftnav-common in parallel
@@ -136,12 +136,12 @@ $(STARLING_BUILDDIR)/src/pvt_driver/libpvt_driver.a: .FORCE \
                                              $(STARLING_BUILDDIR)/src/pvt_engine/libpvt-engine.a \
                                              $(STARLING_BUILDDIR)/src/pvt_common/libpvt-common.a
 	@printf "BUILD   libstarling for target $(PIKSI_TARGET)\n"; \
-	$(MAKE) pvt_driver -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
+	$(MAKE) -j 4 pvt_driver -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
 
 $(STARLING_BUILDDIR)/src/util/libstarling-util.a: .FORCE \
                                              $(STARLING_BUILDDIR)/Makefile
 	@printf "BUILD   libstarling-util for target $(PIKSI_TARGET)\n"; \
-	$(MAKE) starling-util -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
+	$(MAKE) -j 4 starling-util -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
 
 $(STARLING_BUILDDIR)/Makefile:
 	@printf "Run cmake for target $(STARLING_BUILDDIR)\n"; \
