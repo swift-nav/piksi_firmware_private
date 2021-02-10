@@ -47,18 +47,16 @@ INCDIR = $(SWIFTNAV_ROOT) \
          $(SWIFTNAV_ROOT)/src/calc \
          $(SWIFTNAV_ROOT)/mesta/stubs \
          $(SWIFTNAV_ROOT)/mesta/stubs/libswiftnav \
-         $(STARLING_ROOT)/include \
-         $(STARLING_ROOT)/include/starling \
+         $(STARLING_ROOT)/pvt_engine/include/ \
+         $(STARLING_ROOT)/pvt_driver/include/ \
+         $(STARLING_ROOT)/starling-util/include/ \
          $(STARLING_BUILDDIR)/include \
-         $(STARLING_BUILDDIR)/src/pvt_engine/include \
          $(STARLING_ROOT)/libfec/include \
          $(SWIFTNAV_ROOT)/src/hal \
          $(SWIFTNAV_ROOT)/src/board/v3/prod \
          $(SWIFTNAV_ROOT)/src/board/v3 \
          $(SWIFTNAV_ROOT)/src/board \
          $(SWIFTNAV_ROOT)/src/main \
-         $(STARLING_ROOT)/src \
-         $(STARLING_ROOT)/ \
          $(STARLING_ROOT)/third_party/libpal/pal/include \
          $(STARLING_ROOT)/third_party/libpal/pal/src/include \
          $(STARLING_ROOT)/third_party/libsbp/c/include \
@@ -171,24 +169,24 @@ CSRC := $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l2c.c \
         $(SWIFTNAV_ROOT)/src/board/v3/platform_signal.c \
         $(SWIFTNAV_ROOT)/src/board/v3/ndb_fs_access.c \
         $(SWIFTNAV_ROOT)/src/lib/fixed_fft_r2.c \
-        $(STARLING_ROOT)/src/util/sbp/misc.c \
-        $(STARLING_ROOT)/src/util/sbp/packers.c \
-        $(STARLING_ROOT)/src/util/sbp/unpackers.c \
-        $(STARLING_ROOT)/src/pvt_engine/cycle_slip.c \
+        $(STARLING_ROOT)/starling-util/src/sbp/misc.c \
+        $(STARLING_ROOT)/starling-util/src/sbp/packers.c \
+        $(STARLING_ROOT)/starling-util/src/sbp/unpackers.c \
+        $(STARLING_ROOT)/pvt_engine/src/cycle_slip.c \
         $(STARLING_ROOT)/libfec/src/viterbi27.c \
-				$(STARLING_ROOT)/third_party/libpal/pal/src/pal.c \
+		$(STARLING_ROOT)/third_party/libpal/pal/src/pal.c \
         $(STARLING_ROOT)/third_party/libpal/pal/src/synch/condition_var.c \
         $(STARLING_ROOT)/third_party/libpal/pal/src/synch/mutex.c \
         $(STARLING_ROOT)/third_party/libpal/pal/src/thread/thread.c \
         $(STARLING_ROOT)/third_party/libpal/pal/src/mem/mem.c \
         $(STARLING_ROOT)/third_party/libpal/pal/src/ipc/mq.c \
-				$(STARLING_ROOT)/third_party/libpal/pal/src/io/file.c \
-				$(STARLING_ROOT)/third_party/libpal/pal/src/io/serial.c \
-				$(STARLING_ROOT)/third_party/libpal/pal/src/io/stdstream.c \
-				$(STARLING_ROOT)/third_party/libpal/pal/src/io/tcp.c \
-				$(STARLING_ROOT)/third_party/libpal/pal/src/io/udp.c \
-				$(STARLING_ROOT)/third_party/libpal/pal/src/chrono/monotonic_clock.c \
-				$(STARLING_ROOT)/third_party/libpal/pal/src/watchdog/watchdog.c \
+		$(STARLING_ROOT)/third_party/libpal/pal/src/io/file.c \
+		$(STARLING_ROOT)/third_party/libpal/pal/src/io/serial.c \
+		$(STARLING_ROOT)/third_party/libpal/pal/src/io/stdstream.c \
+		$(STARLING_ROOT)/third_party/libpal/pal/src/io/tcp.c \
+		$(STARLING_ROOT)/third_party/libpal/pal/src/io/udp.c \
+		$(STARLING_ROOT)/third_party/libpal/pal/src/chrono/monotonic_clock.c \
+		$(STARLING_ROOT)/third_party/libpal/pal/src/watchdog/watchdog.c \
         $(STARLING_ROOT)/third_party/libswiftnav/src/almanac.c \
         $(STARLING_ROOT)/third_party/libswiftnav/src/bits.c \
         $(STARLING_ROOT)/third_party/libswiftnav/src/coord_system.c \
@@ -228,7 +226,7 @@ CSRC := $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l2c.c \
         $(SWIFTNAV_ROOT)/mesta/main.c \
 
 
-CXXSRC := $(STARLING_ROOT)/src/pvt_engine/obss.cc
+CXXSRC := $(STARLING_ROOT)/pvt_engine/src/obss.cc
 
 CXXFLAGS := -std=c++14
 
