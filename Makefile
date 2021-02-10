@@ -77,6 +77,8 @@ CLANG_TIDY_INCLUDES = -I$(SWIFTNAV_ROOT)/include/ \
                       -I$(SWIFTNAV_ROOT)/src/utils/ \
                       -I$(STARLING_ROOT)/pvt_driver/include/ \
                       -I$(STARLING_ROOT)/pvt_engine/include/ \
+                      -I$(STARLING_ROOT)/starling-util/include/ \
+                      -I$(STARLING_BUILDDIR)/include \
                       -I$(STARLING_ROOT)/third_party/libpal/pal/include/ \
                       -I$(STARlING_ROOT)/third_party/libpal/pal++/include/ \
                       -I$(STARLING_ROOT)/third_party/libswiftnav/include/ \
