@@ -66,7 +66,7 @@ FW_DEPS=compiler-version \
         $(STARLING_BUILDDIR)/pvt_engine/libpvt-engine.a \
         $(STARLING_BUILDDIR)/pvt_common/libpvt-common.a \
         $(STARLING_BUILDDIR)/pvt_driver/libpvt_driver.a \
-        $(STARLING_BUILDDIR)/starling-util/libstarling-util.a
+        $(STARLING_BUILDDIR)/starling_util/libstarling-util.a
 
 ifeq ($(PIKSI_HW),v3)
   FW_DEPS += $(OPENAMP_BUILDDIR)/lib/libopen-amp.a
@@ -77,7 +77,7 @@ CLANG_TIDY_INCLUDES = -I$(SWIFTNAV_ROOT)/include/ \
                       -I$(SWIFTNAV_ROOT)/src/utils/ \
                       -I$(STARLING_ROOT)/pvt_driver/include/ \
                       -I$(STARLING_ROOT)/pvt_engine/include/ \
-                      -I$(STARLING_ROOT)/starling-util/include/ \
+                      -I$(STARLING_ROOT)/starling_util/include/ \
                       -I$(STARLING_BUILDDIR)/include \
                       -I$(STARLING_ROOT)/third_party/libpal/pal/include/ \
                       -I$(STARlING_ROOT)/third_party/libpal/pal++/include/ \
@@ -139,7 +139,7 @@ $(STARLING_BUILDDIR)/pvt_driver/libpvt_driver.a: .FORCE \
 	@printf "BUILD   libstarling for target $(PIKSI_TARGET)\n"; \
 	$(MAKE) pvt_driver -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
 
-$(STARLING_BUILDDIR)/starling-util/libstarling-util.a: .FORCE \
+$(STARLING_BUILDDIR)/starling_util/libstarling-util.a: .FORCE \
                                              $(STARLING_BUILDDIR)/Makefile
 	@printf "BUILD   libstarling-util for target $(PIKSI_TARGET)\n"; \
 	$(MAKE) starling-util -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
