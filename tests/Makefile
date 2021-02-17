@@ -76,9 +76,10 @@ INCLUDE_DIRS += -I$(STUBS_DIR)
 INCLUDE_DIRS += -I$(USER_SRC_DIR)
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/board/v3/
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/board/v3/prod/
-INCLUDE_DIRS += -I$(STARLING_ROOT)/include
+INCLUDE_DIRS += -I$(STARLING_ROOT)/pvt_engine/include/
+INCLUDE_DIRS += -I$(STARLING_ROOT)/pvt_driver/include/
+INCLUDE_DIRS += -I$(STARLING_ROOT)/starling_util/include/
 INCLUDE_DIRS += -I$(STARLING_BUILDDIR)/include/
-INCLUDE_DIRS += -I$(STARLING_BUILDDIR)/src/pvt_engine/include/
 INCLUDE_DIRS += -I$(STARLING_ROOT)/third_party/libpal/include
 INCLUDE_DIRS += -I$(STARLING_ROOT)/third_party/libswiftnav/include
 INCLUDE_DIRS += -I$(STARLING_ROOT)/third_party/libsbp/c/include
@@ -218,8 +219,9 @@ $(OBJDIR)/%.o: %.cc lsnp
 OBJS += $(OBJDIR)/gtest_main.a
 
 LIBS = -lstarling-util -lswiftnav -lpthread -lfec
-LIB_PATH = -L$(STARLING_SEARCHPATH)/src/starling
-LIB_PATH += -L$(STARLING_SEARCHPATH)/src/util
+LIB_PATH = -L$(STARLING_SEARCHPATH)/pvt_engine
+LIB_PATH += -L$(STARLING_SEARCHPATH)/pvt_driver
+LIB_PATH += -L$(STARLING_SEARCHPATH)/starling_util
 LIB_PATH += -L$(LIBSWIFTNAV_SEARCHPATH)
 LIB_PATH += -L$(STARLING_FEC_SEARCHPATH)
 LIB_RPATH = -Wl,-rpath,$(STARLING_SEARCHPATH)/src

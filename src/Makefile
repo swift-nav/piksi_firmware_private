@@ -284,7 +284,9 @@ INCDIR = $(STARTUPINC) $(PORTINC) $(KERNINC) \
          $(STARLING_ROOT)/third_party/libpal/pal++/include \
          $(STARLING_ROOT)/third_party/libswiftnav/include \
          $(STARLING_BUILDDIR)/include \
-         $(STARLING_BUILDDIR)/src/pvt_engine/include \
+         $(STARLING_ROOT)/pvt_engine/include \
+         $(STARLING_ROOT)/pvt_driver/include \
+         $(STARLING_ROOT)/starling_util/include \
          $(SWIFTNAV_ROOT)/src \
          $(SWIFTNAV_ROOT)/src/board \
          $(STARLING_ROOT)/libfec/include \
@@ -385,9 +387,10 @@ DLIBDIR = $(LIBPAL_BUILDDIR)/pal/src \
           $(LIBPAL_BUILDDIR)/pal++/src/ \
           $(LIBSBP_BUILDDIR)/c/src \
           $(LIBSETTINGS_BUILDDIR)/src \
-          $(STARLING_BUILDDIR)/src/pvt_driver \
-					$(STARLING_BUILDDIR)/src/pvt_engine \
-					$(STARLING_BUILDDIR)/src/pvt_common \
+          $(STARLING_BUILDDIR)/pvt_driver \
+          $(STARLING_BUILDDIR)/pvt_engine \
+          $(STARLING_BUILDDIR)/pvt_common \
+          $(STARLING_BUILDDIR)/starling_util \
           $(STARLING_BUILDDIR)/src/util \
           $(STARLING_BUILDDIR)/libfec \
           $(LIBSWIFTNAV_BUILDDIR) \

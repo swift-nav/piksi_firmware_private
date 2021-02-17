@@ -21,9 +21,9 @@
 #include <libsbp/observation.h>
 #include <libsbp/orientation.h>
 #include <libsbp/system.h>
-#include <starling/util/sbp/misc.h>
-#include <starling/util/sbp/packers.h>
-#include <starling/util/sbp/unpackers.h>
+#include <starling_util/sbp/misc.h>
+#include <starling_util/sbp/packers.h>
+#include <starling_util/sbp/unpackers.h>
 #include <swiftnav/almanac.h>
 #include <swiftnav/ephemeris.h>
 #include <swiftnav/gnss_time.h>
