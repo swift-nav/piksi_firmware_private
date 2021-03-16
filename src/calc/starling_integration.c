@@ -798,12 +798,18 @@ pvt_driver_t pvt_driver = NULL;
 /*******************************************************************************
  * Starling Integration API
  ******************************************************************************/
+
+pvt_driver_insights_config_t DISABLED_PVT_INSIGHTS_CONFIG = {
+    .enable_insights_output = false,
+};
+
 void starling_calc_pvt_init() {
   assert(NULL == pvt_driver);
   pvt_driver = pvt_driver_new();
   assert(pvt_driver);
-  enum pal_error init_result =
-      pvt_driver_init(pvt_driver, PVT_DRIVER_CONFIG_PIKSI_MULTI);
+
+  enum pal_error init_result = pvt_driver_init(
+      pvt_driver, PVT_DRIVER_CONFIG_PIKSI_MULTI, DISABLED_PVT_INSIGHTS_CONFIG);
   assert(init_result == PAL_SUCCESS);
 }
 
