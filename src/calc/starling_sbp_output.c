@@ -35,6 +35,9 @@ void solution_send_pos_messages(const sbp_messages_t *sbp_messages) {
     sbp_send_msg(SBP_MSG_GPS_TIME,
                  sizeof(sbp_messages->gps_time),
                  (u8 *)&sbp_messages->gps_time);
+    sbp_send_msg(SBP_MSG_GPS_TIME_GNSS,
+                 sizeof(sbp_messages->gps_time),
+                 (u8 *)&sbp_messages->gps_time);
     sbp_send_msg(SBP_MSG_UTC_TIME,
                  sizeof(sbp_messages->utc_time),
                  (u8 *)&sbp_messages->utc_time);
