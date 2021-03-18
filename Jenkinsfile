@@ -2,7 +2,7 @@
 
 // Use 'ci-jenkins@someref' to pull shared lib from a different branch/tag than the default.
 // Default is the master branch
-@Library("ci-jenkins") import com.swiftnav.ci.*
+@Library("ci-jenkins@silverjam/hitl-add-papertrail-for-captures") import com.swiftnav.ci.*
 
 def context = new Context(context: this)
 context.setRepo("piksi_firmware_private")
