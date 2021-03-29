@@ -112,22 +112,22 @@ $(LIBSETTINGS_BUILDDIR)/src/libsettings.a: .FORCE \
                                            $(STARLING_BUILDDIR)/pvt_common/libpvt-common.a
 	@printf "BUILD   libsettings for target $(PIKSI_TARGET)\n"; \
 	mkdir -p $(LIBSETTINGS_BUILDDIR); cd $(LIBSETTINGS_BUILDDIR); \
-	cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+	cmake -DSWIFT_ENABLE_CCACHE=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo \
 	      -DCMAKE_TOOLCHAIN_FILE=../../piksi-toolchain.cmake \
 	      -DLIBSBP_SEARCH_PATH=$(STARLING_ROOT)/third_party/libsbp/c \
 	      $(CMAKEFLAGS) ../
-	$(MAKE) -C $(LIBSETTINGS_BUILDDIR) $(MAKEFLAGS) settings
+	$(MAKE) -j 120 -C $(LIBSETTINGS_BUILDDIR) $(MAKEFLAGS) settings
 
 $(STARLING_BUILDDIR)/pvt_common/libpvt-common.a: .FORCE \
 	                                $(STARLING_BUILDDIR)/Makefile
 	@printf "BUILD   pvt-engine for target $(PIKSI_TARGET)\n"; \
-	$(MAKE) pvt-common -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
+	$(MAKE) -j 120 pvt-common -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
 
 $(STARLING_BUILDDIR)/pvt_engine/libpvt-engine.a: .FORCE \
                                         $(STARLING_BUILDDIR)/Makefile \
 					$(STARLING_BUILDDIR)/pvt_common/libpvt-common.a
 	@printf "BUILD   pvt-engine for target $(PIKSI_TARGET)\n"; \
-	$(MAKE) pvt-engine -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
+	$(MAKE) -j 120 pvt-engine -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
 
 # Make starling dependent of swiftnav because otherwise both
 # might build in parallel, and both trying to build swiftnav-common in parallel
@@ -137,12 +137,12 @@ $(STARLING_BUILDDIR)/pvt_driver/libpvt_driver.a: .FORCE \
                                              $(STARLING_BUILDDIR)/pvt_engine/libpvt-engine.a \
                                              $(STARLING_BUILDDIR)/pvt_common/libpvt-common.a
 	@printf "BUILD   libstarling for target $(PIKSI_TARGET)\n"; \
-	$(MAKE) pvt_driver -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
+	$(MAKE) -j 120 pvt_driver -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
 
 $(STARLING_BUILDDIR)/starling_util/libstarling-util.a: .FORCE \
                                              $(STARLING_BUILDDIR)/Makefile
 	@printf "BUILD   libstarling-util for target $(PIKSI_TARGET)\n"; \
-	$(MAKE) starling-util -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
+	$(MAKE) -j 120 starling-util -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
 
 $(STARLING_BUILDDIR)/Makefile:
 	@printf "Run cmake for target $(STARLING_BUILDDIR)\n"; \

@@ -17,7 +17,7 @@ const almanac_t
     simulation_almanacs[33] =
         {
             {
-                .kepler =
+                .u.kepler =
                     {
                         .ecc = 0.002888,
                         .inc = 0.960802,
@@ -37,7 +37,7 @@ const almanac_t
                 .valid = 1,
             },
             {
-                .kepler =
+                .u.kepler =
                     {
                         .ecc = 0.013428,
                         .inc = 0.939314,
@@ -57,7 +57,7 @@ const almanac_t
                 .valid = 1,
             },
             {
-                .kepler =
+                .u.kepler =
                     {
                         .ecc = 0.016847,
                         .inc = 0.937600,
@@ -77,7 +77,7 @@ const almanac_t
                 .valid = 1,
             },
             {
-                .kepler =
+                .u.kepler =
                     {
                         .ecc = 0.016847,
                         .inc = 0.937600,
@@ -97,7 +97,7 @@ const almanac_t
                 .valid = 1,
             },
             {
-                .kepler =
+                .u.kepler =
                     {
                         .ecc = 0.010565,
                         .inc = 0.938349,
@@ -117,7 +117,7 @@ const almanac_t
                 .valid = 1,
             },
             {
-                .kepler =
+                .u.kepler =
                     {
                         .ecc = 0.003571,
                         .inc = 0.947841,
@@ -137,7 +137,7 @@ const almanac_t
                 .valid = 1,
             },
             {
-                .kepler =
+                .u.kepler =
                     {
                         .ecc = 0.007160,
                         .inc = 0.973727,
@@ -157,7 +157,7 @@ const almanac_t
                 .valid = 1,
             },
             {
-                .kepler =
+                .u.kepler =
                     {
                         .ecc = 0.007160,
                         .inc = 0.973727,
@@ -177,7 +177,7 @@ const almanac_t
                 .valid = 1,
             },
             {
-                .kepler =
+                .u.kepler =
                     {
                         .ecc = 0.013593,
                         .inc = 0.996982,
@@ -197,7 +197,7 @@ const almanac_t
                 .valid = 1,
             },
             {
-                .kepler =
+                .u.kepler =
                     {
                         .ecc = 0.017078,
                         .inc = 0.982259,
@@ -217,7 +217,7 @@ const almanac_t
                 .valid = 1,
             },
             {
-                .kepler =
+                .u.kepler =
                     {
                         .ecc = 0.013494,
                         .inc = 0.942640,
@@ -237,7 +237,7 @@ const almanac_t
                 .valid = 1,
             },
             {
-                .kepler =
+                .u.kepler =
                     {
                         .ecc = 0.014848,
                         .inc = 0.890131,
@@ -257,7 +257,7 @@ const almanac_t
                 .valid = 1,
             },
             {
-                .kepler =
+                .u.kepler =
                     {
                         .ecc = 0.005056,
                         .inc = 0.987389,
@@ -277,7 +277,7 @@ const almanac_t
                 .valid = 1,
             },
             {
-                .kepler =
+                .u.kepler =
                     {
                         .ecc = 0.005360,
                         .inc = 0.977837,
@@ -297,7 +297,7 @@ const almanac_t
                 .valid = 1,
             },
             {
-                .kepler =
+                .u.kepler =
                     {
                         .ecc = 0.007339,
                         .inc = 0.970431,
@@ -317,7 +317,7 @@ const almanac_t
                 .valid = 1,
             },
             {
-                .kepler =
+                .u.kepler =
                     {
                         .ecc = 0.006239,
                         .inc = 0.937067,
@@ -337,7 +337,7 @@ const almanac_t
                 .valid = 1,
             },
             {
-                .kepler =
+                .u.kepler =
                     {
                         .ecc = 0.007709,
                         .inc = 0.988000,
@@ -357,7 +357,7 @@ const almanac_t
                 .valid = 1,
             },
             {
-                .kepler =
+                .u.kepler =
                     {
                         .ecc = 0.009278,
                         .inc = 0.967908,
@@ -377,7 +377,7 @@ const almanac_t
                 .valid = 1,
             },
             {
-                .kepler =
+                .u.kepler =
                     {
                         .ecc = 0.015035,
                         .inc = 0.926407,
@@ -397,7 +397,7 @@ const almanac_t
                 .valid = 1,
             },
             {
-                .kepler =
+                .u.kepler =
                     {
                         .ecc = 0.010157,
                         .inc = 0.965026,
@@ -417,7 +417,7 @@ const almanac_t
                 .valid = 1,
             },
             {
-                .kepler =
+                .u.kepler =
                     {
                         .ecc = 0.005853,
                         .inc = 0.927390,
@@ -437,7 +437,7 @@ const almanac_t
                 .valid = 1,
             },
             {
-                .kepler =
+                .u.kepler =
                     {
                         .ecc = 0.021363,
                         .inc = 0.932255,
@@ -457,7 +457,7 @@ const almanac_t
                 .valid = 1,
             },
             {
-                .kepler =
+                .u.kepler =
                     {
                         .ecc = 0.007021,
                         .inc = 0.924178,
@@ -477,7 +477,7 @@ const almanac_t
                 .valid = 1,
             },
             {
-                .kepler =
+                .u.kepler =
                     {
                         .ecc = 0.009099,
                         .inc = 0.952095,
@@ -497,7 +497,7 @@ const almanac_t
                 .valid = 1,
             },
             {
-                .kepler =
+                .u.kepler =
                     {
                         .ecc = 0.002036,
                         .inc = 0.957081,
@@ -517,7 +517,7 @@ const almanac_t
                 .valid = 1,
             },
             {
-                .kepler =
+                .u.kepler =
                     {
                         .ecc = 0.003447,
                         .inc = 0.976124,
@@ -537,7 +537,7 @@ const almanac_t
                 .valid = 1,
             },
             {
-                .kepler =
+                .u.kepler =
                     {
                         .ecc = 0.021486,
                         .inc = 0.975243,
@@ -557,7 +557,7 @@ const almanac_t
                 .valid = 1,
             },
             {
-                .kepler =
+                .u.kepler =
                     {
                         .ecc = 0.001075,
                         .inc = 0.962641,
@@ -577,7 +577,7 @@ const almanac_t
                 .valid = 1,
             },
             {
-                .kepler =
+                .u.kepler =
                     {
                         .ecc = 0.019157,
                         .inc = 0.986508,
@@ -597,7 +597,7 @@ const almanac_t
                 .valid = 1,
             },
             {
-                .kepler =
+                .u.kepler =
                     {
                         .ecc = 0.001677,
                         .inc = 0.968627,
@@ -617,7 +617,7 @@ const almanac_t
                 .valid = 1,
             },
             {
-                .kepler =
+                .u.kepler =
                     {
                         .ecc = 0.000489,
                         .inc = 0.959286,
@@ -637,7 +637,7 @@ const almanac_t
                 .valid = 1,
             },
             {
-                .kepler =
+                .u.kepler =
                     {
                         .ecc = 0.008084,
                         .inc = 0.978676,
@@ -657,7 +657,7 @@ const almanac_t
                 .valid = 1,
             },
             {
-                .kepler =
+                .u.kepler =
                     {
                         .ecc = 0.011426,
                         .inc = 0.948308,
