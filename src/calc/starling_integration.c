@@ -224,7 +224,7 @@ static void solution_make_sbp(const pvt_engine_result_t *soln,
                               const dops_t *dops,
                               sbp_messages_t *sbp_messages,
                               u8 time_qual) {
-  if (soln && soln->valid) {
+  if (soln && soln->valid && soln->position_ecef_valid) {
     sbp_make_gps_time(&sbp_messages->gps_time, &soln->time, time_qual);
 
     utc_params_t utc_params;
@@ -234,14 +234,13 @@ static void solution_make_sbp(const pvt_engine_result_t *soln,
                       details.utc_params,
                       details.flags);
 
-    /* In SPP, `baseline` is actually absolute position in ECEF. */
     double pos_ecef[3], pos_llh[3];
-    memcpy(pos_ecef, soln->baseline, 3 * sizeof(double));
+    memcpy(pos_ecef, soln->position_ecef, 3 * sizeof(double));
     wgsecef2llh(pos_ecef, pos_llh);
 
     double accuracy, h_accuracy, v_accuracy;
     double pos_ecef_cov[6], pos_ned_cov[6];
-    pvt_engine_covariance_to_accuracy(soln->baseline_covariance,
+    pvt_engine_covariance_to_accuracy(soln->position_ecef_covariance,
                                       pos_ecef,
                                       &accuracy,
                                       &h_accuracy,
@@ -670,7 +669,7 @@ static void handle_solution_low_latency(
         &spp_solution->result, &spp_solution->dops, &sbp_messages, time_qual);
     if (rtk_solution) {
       solution_make_baseline_sbp(&rtk_solution->result,
-                                 spp_solution->result.baseline,
+                                 spp_solution->result.position_ecef,
                                  &rtk_solution->dops,
                                  &sbp_messages);
     }
