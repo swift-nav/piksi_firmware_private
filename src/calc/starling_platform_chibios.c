@@ -129,13 +129,13 @@ static int chibios_thread_find_working_area(void **work_area_loc,
 
 static tprio_t chibios_prio_from_name(const char *name) {
   if (strcmp(name, "time matched obs") == 0) {
-    // Was previously specified as PAL_THREAD_MAX_PRIO - 3
+    // Was previously specified as PAL_THREAD_MAX_PRIO - 3 without high priority
     // translated to NORMALPRIO - 3
     return (tprio_t)((uint8_t)NORMALPRIO - 3);
   } else if (strcmp(name, "starling") == 0) {
-    // Was previously specified as PAL_THREAD_MAX_PRIO - 4
-    // translated to NORMALPRIO - 4
-    return (tprio_t)((uint8_t)NORMALPRIO - 4);
+    // Was previously specified as PAL_THREAD_MAX_PRIO - 4 with high priority
+    // translated to HIGHPRIO - 4
+    return (tprio_t)((uint8_t)HIGHPRIO - 4);
   } else {
     return NORMALPRIO;
   }
