@@ -20,6 +20,9 @@ extern "C" {
 #endif
 
 void send_observations(const obs_array_t *obs_array, u32 msg_obs_max_size);
+bool get_max_sats(double soln_freq_hz,
+                  pvt_driver_solution_mode_t soln_mode,
+                  s32 *max_sats);
 
 #ifdef __cplusplus
 }

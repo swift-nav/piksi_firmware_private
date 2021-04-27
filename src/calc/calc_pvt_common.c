@@ -74,3 +74,30 @@ void send_observations(const obs_array_t *obs_array, u32 msg_obs_max_size) {
         buff);
   }
 }
+
+bool get_max_sats(double soln_freq_hz,
+                  pvt_driver_solution_mode_t soln_mode,
+                  s32 *max_sats) {
+  static int NUM_OBSERVATIONS = 6;
+  static double soln_freq_arr[] = {20.0, 10.0, 5.0, 4.0, 2.0, 1.0};
+  static int max_sats_arr[] = {5, 15, 22, 22, 22, 22};
+  static int max_sats_time_matched_arr[] = {5, 6, 13, 17, 22, 22};
+
+  for (int i = 0; i < NUM_OBSERVATIONS; i++) {
+    if (fabs(soln_freq_hz - soln_freq_arr[i]) < FLOAT_EQUALITY_EPS) {
+      if (soln_mode == PVT_DRIVER_SOLN_MODE_TIME_MATCHED) {
+        *max_sats = max_sats_time_matched_arr[i];
+      } else {
+        *max_sats = max_sats_arr[i];
+      }
+      return true;
+    }
+  }
+
+  log_warn(
+      "Input solution frequency %.2f Hz outside acceptable range [%.2f, %.2f]",
+      soln_freq_hz,
+      1.0 - FLOAT_EQUALITY_EPS,
+      20.0 + FLOAT_EQUALITY_EPS);
+  return false;
+}
