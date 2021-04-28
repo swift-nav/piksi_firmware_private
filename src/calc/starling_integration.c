@@ -846,6 +846,8 @@ void starling_calc_pvt_setup() {
   };
   pvt_driver_set_debug_functions(pvt_driver, debug_functions);
 
+  pvt_driver_set_use_sbas(pvt_driver, true);
+
   bool started = pvt_driver_start_engine(pvt_driver);
   assert(started);
 }
