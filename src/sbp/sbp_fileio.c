@@ -25,7 +25,7 @@
 #include "sbp.h"
 #include "sbp_utils.h"
 
-#define SBP_FILEIO_TIMEOUT MS2ST(5000)
+#define SBP_FILEIO_TIMEOUT MS2ST(10000)
 #define SBP_FILEIO_TRIES 5
 
 #define SBP_FILEIO_WRITE_FILENAME_LEN_MAX 128u
