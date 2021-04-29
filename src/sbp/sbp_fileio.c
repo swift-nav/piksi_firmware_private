@@ -108,6 +108,8 @@ static int sbp_fileio_send(sbp_fileio_closure_t *closure,
     if (chBSemWaitTimeout(&closure->sem, SBP_FILEIO_TIMEOUT) == MSG_OK) {
       return 0;
     }
+    log_warn("Waiting for closure->seq %" PRIu32 " timed out, trying again",
+             closure->seq);
   } while (--tries > 0);
 
   return -1;
