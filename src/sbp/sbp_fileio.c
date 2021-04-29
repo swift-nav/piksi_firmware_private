@@ -139,9 +139,11 @@ ssize_t sbp_fileio_write(const char *filename,
   sbp_register_cbk_with_closure(
       SBP_MSG_FILEIO_WRITE_RESP, sbp_fileio_callback, &node, &closure);
 
+  log_warn("Starting a write on %s with size=%d.", filename, size);
   ssize_t total = 0;
   while (total < (ssize_t)size) {
     msg->sequence = closure.seq = write_seq_next();
+    log_warn("Writing seq=%" PRIu32 ".", msg->sequence);
     msg->offset = offset + total;
     size_t chunksize = MIN(data_size, size - total);
 
@@ -180,10 +182,11 @@ ssize_t sbp_fileio_read(const char *filename,
   sbp_msg_callbacks_node_t node = {0};
   sbp_register_cbk_with_closure(
       SBP_MSG_FILEIO_READ_RESP, sbp_fileio_callback, &node, &closure);
-
+  log_warn("Starting a read on %s with size=%d.", filename, size);
   ssize_t total = 0;
   while (total < (ssize_t)size) {
     msg->sequence = closure.seq = read_seq_next();
+    log_warn("Reading seq=%" PRIu32 ".", msg->sequence);
     msg->offset = offset + total;
     size_t chunksize = msg->chunk_size =
         MIN(SBP_FRAMING_MAX_PAYLOAD_SIZE, size - total);
