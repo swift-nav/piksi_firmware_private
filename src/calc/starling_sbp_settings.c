@@ -16,6 +16,8 @@
 #include <calc/starling_integration.h>
 #include <libsettings/settings.h>
 
+#include "calc_pvt_common.h"
+#include "calc_pvt_me.h"
 #include "sbp_settings_client.h"
 
 /********************************************************************************/
@@ -71,7 +73,15 @@ static int enable_fix_mode(void *ctx) {
 /********************************************************************************/
 static int set_dgnss_soln_mode(void *ctx) {
   (void)ctx;
+  s32 max_sats;
+  bool ret;
+
   pvt_driver_set_solution_mode(pvt_driver, dgnss_soln_mode);
+
+  ret = get_max_sats(soln_freq_setting, dgnss_soln_mode, &max_sats);
+  assert(ret);
+  pvt_driver_set_max_sats(pvt_driver, max_sats);
+
   return SETTINGS_WR_OK;
 }
 
