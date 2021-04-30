@@ -30,23 +30,6 @@
 
 #define SBP_FILEIO_WRITE_FILENAME_LEN_MAX 128u
 
-#define BREAK_ON_FAIL(res)                                                   \
-  do {                                                                       \
-    if (0 != (res)) {                                                        \
-      log_error("%s: fn %s  offset %" PRIu32 "  buf %" PRIuPTR               \
-                "  size %" PRIu32 "  chunksize %" PRIu32 "  total %" PRIu32, \
-                __FUNCTION__,                                                \
-                filename,                                                    \
-                offset,                                                      \
-                (uintptr_t)buf,                                              \
-                (u32)size,                                                   \
-                (u32)chunksize,                                              \
-                (u32)total);                                                 \
-      total = -1;                                                            \
-      break;                                                                 \
-    }                                                                        \
-  } while (0)
-
 static u32 write_seq_next(void) {
   static u32 seq = 0;
   return seq++;
@@ -148,7 +131,17 @@ ssize_t sbp_fileio_write(const char *filename,
     int res = sbp_fileio_send(
         &closure, SBP_MSG_FILEIO_WRITE_REQ, data_offset + chunksize, (u8 *)msg);
 
-    BREAK_ON_FAIL(res);
+    if (0 != res) {
+      log_error("SBP fileio write error: offset %" PRIu32 "  buf %" PRIuPTR
+                "  size %" PRIu32 "  chunksize %" PRIu32 "  total %" PRIu32,
+                offset,
+                (uintptr_t)buf,
+                (u32)size,
+                (u32)chunksize,
+                (u32)total);
+      total = -1;
+      break;
+    }
 
     total += chunksize;
   }
@@ -191,7 +184,17 @@ ssize_t sbp_fileio_read(const char *filename,
                               filename_offset + filename_len,
                               (u8 *)msg);
 
-    BREAK_ON_FAIL(res);
+    if (0 != res) {
+      log_error("SBP fileio read error: offset %" PRIu32 "  buf %" PRIuPTR
+                "  size %" PRIu32 "  chunksize %" PRIu32 "  total %" PRIu32,
+                offset,
+                (uintptr_t)buf,
+                (u32)size,
+                (u32)chunksize,
+                (u32)total);
+      total = -1;
+      break;
+    }
 
     const msg_fileio_read_resp_t *resp = (msg_fileio_read_resp_t *)closure.msg;
     const size_t contents_len =

@@ -56,3 +56,7 @@ bool pvt_driver_set_max_sats(pvt_driver_t ctx, s32 max_sats) {
   (void)max_sats;
   return true;
 }
+
+pvt_driver_solution_mode_t pvt_driver_get_solution_mode(pvt_driver_t ctx) {
+  return PVT_DRIVER_SOLN_MODE_LOW_LATENCY;
+}
