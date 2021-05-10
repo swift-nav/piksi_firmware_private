@@ -33,25 +33,24 @@ fprintf(1, 'E%02d\n', strfind(mask, '1'));
 */
 
 /* clang-format off */
-/* as of June 2018 */
+/* as of May 2021 */
 static const gnss_capb_t gnss_capb_defaults = {
   .gps_active = (u64)0x0ffffffff,
-  .gps_l2c = (u64)0x0f7814bfd,
-  .gps_l5 = (u64)0x0a78003ad,
+  .gps_l2c = (u64)0x0f7c36bfd,
+  .gps_l5 = (u64)0x0a7c223ad,
 
-  .glo_active = (u32)0x02ffffff,
-  .glo_l2of = (u32)0x02fff7df,
-  .glo_l3 = (u32)0x00080100,
+  .glo_active = (u32)0x00ffffff,
+  .glo_l2of = (u32)0x00fffddf,
+  .glo_l3 = (u32)0x00984d18,
 
-  .sbas_active = (u64)0x7ffff,
-  .sbas_l5 = (u64)0x5b8c8,
+  .sbas_active = (u64)0x19b7ffff,
+  .sbas_l5 = (u64)0x1985bd8c,
 
   /* Note: BDS GEO SVs are marked as inactive,
   in order to prevent their acquisition.
   Configuration compliant with to
-  http://www.csno-tarc.cn/system/basicinfo
-  retrieved on May 2nd*/
-  .bds_active = (u64)0x1fbffcbfe0,
+  http://www.csno-tarc.cn/system/basicinfo */
+  .bds_active = (u64)0x3fffbffcbfe0,
   .bds_d2nav = (u64)0x000000001f,
   .bds_b2 = (u64)0x000000bfff,
   .bds_b2a = (u64)0x1fbffc0000,
