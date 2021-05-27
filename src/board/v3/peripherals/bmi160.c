@@ -177,7 +177,7 @@ void bmi160_init(void) {
     log_error("Mag: BMM150 ID didn't match expected value (%u)", mag_id);
   }
   read_mag_trim(&bmm150_trim_param);
-  bmi160_mag_set_enabled(false);
+  bmi160_mag_set_enabled(true);
 
   /* Configure IMU_INT1, interrupt on data ready */
   bmi160_write_reg(BMI160_REG_INT_OUT_CTRL, 0b00001011);
@@ -221,6 +221,9 @@ void bmi160_mag_set_enabled(bool enabled) {
   /* Set sensor mode to Normal or Suspended depending on the enabled value. */
   u8 mode = enabled ? 1 : 0;
   /* 0b (PMU) 0001 (mag) 10 (mode) 0? */
+  bmi160_write_reg(BMI160_REG_CMD, 0b00011000 | mode);
+  bmi160_wait_cmd_complete();
+  chThdSleepMilliseconds(1);
   bmi160_write_reg(BMI160_REG_CMD, 0b00011000 | mode);
   bmi160_wait_cmd_complete();
 }
