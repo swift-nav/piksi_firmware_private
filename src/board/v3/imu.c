@@ -18,6 +18,7 @@
 #include <swiftnav/gnss_time.h>
 #include <swiftnav/logging.h>
 
+#include "board/v3/board.h"
 #include "board/nap/nap_common.h"
 #include "board/v3/peripherals/bmi160.h"
 #include "calc/starling_integration.h"
@@ -32,6 +33,8 @@
 #define IMU_THREAD_STACK (2 * 1024)
 #define IMU_AUX_THREAD_PRIO (LOWPRIO + 10)
 #define IMU_AUX_THREAD_STACK (2 * 1024)
+
+static void imu_hard_reset(void);
 
 /** Working area for the IMU data processing thread. */
 static THD_WORKING_AREA(wa_imu_thread, IMU_THREAD_STACK);
@@ -161,6 +164,7 @@ static void imu_thread(void *arg) {
     if (ret == MSG_TIMEOUT) {
       if (!rate_change_in_progress) {
         log_info("IMU IRQ not received before timeout.");
+        imu_hard_reset();
       }
       rate_change_in_progress = false;
       continue;
@@ -430,7 +434,32 @@ static int gyr_range_changed(void *ctx) {
   return SETTINGS_WR_OK;
 }
 
+static void imu_hard_reset(void) {
+  palClearLine(IMU_EN_GPIO_LINE);
+  chThdSleepMilliseconds(1);
+  palSetLine(IMU_EN_GPIO_LINE);
+
+  bmi160_init();
+
+  /* On start up through imu_init these are called through registering settings
+   * against the settings API. This is intended to be called after the settings
+   * have been registered, so manually call those functions so that the IMU is
+   * correctly setup again according to the user configuration. */
+  raw_imu_output_changed(NULL);
+  imu_rate_changed(NULL);
+  acc_range_changed(NULL);
+  gyr_range_changed(NULL);
+  raw_mag_output_changed(NULL);
+  mag_rate_changed(NULL);
+
+  /* Give the IMU a chance to start producing samples before it's waited on
+   * again */
+  chThdSleepMilliseconds(1);
+}
+
 void imu_init(void) {
+  palSetLineMode(IMU_EN_GPIO_LINE, PAL_MODE_OUTPUT);
+  palSetLine(IMU_EN_GPIO_LINE);
   bmi160_init();
 
   /* try to grab runtime mode from Linux, and turn on if ins */
