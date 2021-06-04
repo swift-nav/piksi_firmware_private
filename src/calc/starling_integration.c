@@ -807,8 +807,20 @@ void starling_calc_pvt_init() {
   pvt_driver = pvt_driver_new();
   assert(pvt_driver);
 
-  enum pal_error init_result = pvt_driver_init(
-      pvt_driver, PVT_DRIVER_CONFIG_PIKSI_MULTI, DISABLED_PVT_INSIGHTS_CONFIG);
+  pvt_driver_config_me_t pvt_me_config = {
+      .me_type = PVT_DRIVER_ME_TYPE_PIKSI_MULTI,
+      .num_frequency_bands_enabled = 2,
+      .frequency_bands_enabled[0] = PVT_DRIVER_FREQ_BAND_L1,
+      .frequency_bands_enabled[1] = PVT_DRIVER_FREQ_BAND_L2,
+  };
+
+  pvt_driver_config_t pvt_config = {0};
+  pvt_config.me_config = pvt_me_config;
+  pvt_config.sbas_enabled = true;
+  pvt_config.sbas_enabled_is_parsed = true;
+
+  enum pal_error init_result =
+      pvt_driver_init(pvt_driver, pvt_config, DISABLED_PVT_INSIGHTS_CONFIG);
   assert(init_result == PAL_SUCCESS);
 }
 
@@ -850,8 +862,6 @@ void starling_calc_pvt_setup() {
       .ctx = NULL,
   };
   pvt_driver_set_debug_functions(pvt_driver, debug_functions);
-
-  pvt_driver_set_use_sbas(pvt_driver, true);
 
   bool started = pvt_driver_start_engine(pvt_driver);
   assert(started);
