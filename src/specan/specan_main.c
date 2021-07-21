@@ -8,7 +8,7 @@
 
 #include <assert.h>
 #include <ch.h>
-#include <libsbp/piksi.h>
+#include <libsbp/legacy/piksi.h>
 #include <math.h>
 #include <stdint.h>
 #include <stdlib.h>

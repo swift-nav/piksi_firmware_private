@@ -13,7 +13,7 @@
 #ifndef SWIFTNAV_TRACK_H
 #define SWIFTNAV_TRACK_H
 
-#include <libsbp/tracking.h>
+#include <libsbp/legacy/tracking.h>
 #include <swiftnav/common.h>
 #include <swiftnav/signal.h>
 

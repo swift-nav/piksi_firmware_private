@@ -14,7 +14,7 @@
 
 #include <assert.h>
 #include <ch.h>
-#include <libsbp/settings.h>
+#include <libsbp/legacy/settings.h>
 #include <stdlib.h>
 #include <string.h>
 #include <swiftnav/logging.h>

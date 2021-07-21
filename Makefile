@@ -66,7 +66,7 @@ FW_DEPS=compiler-version \
         $(STARLING_BUILDDIR)/pvt_engine/libpvt-engine.a \
         $(STARLING_BUILDDIR)/pvt_common/libpvt-common.a \
         $(STARLING_BUILDDIR)/pvt_driver/libpvt_driver.a \
-        $(STARLING_BUILDDIR)/starling_util/libstarling-util.a
+        $(STARLING_BUILDDIR)/legacy_starling_util/liblegacy-starling-util.a
 
 ifeq ($(PIKSI_HW),v3)
   FW_DEPS += $(OPENAMP_BUILDDIR)/lib/libopen-amp.a
@@ -77,7 +77,7 @@ CLANG_TIDY_INCLUDES = -I$(SWIFTNAV_ROOT)/include/ \
                       -I$(SWIFTNAV_ROOT)/src/utils/ \
                       -I$(STARLING_ROOT)/pvt_driver/include/ \
                       -I$(STARLING_ROOT)/pvt_engine/include/ \
-                      -I$(STARLING_ROOT)/starling_util/include/ \
+                      -I$(STARLING_ROOT)/legacy_starling_util/include/ \
                       -I$(STARLING_BUILDDIR)/include \
                       -I$(STARLING_ROOT)/third_party/libpal/pal/include/ \
                       -I$(STARlING_ROOT)/third_party/libpal/pal++/include/ \
@@ -116,18 +116,18 @@ $(LIBSETTINGS_BUILDDIR)/src/libsettings.a: .FORCE \
 	      -DCMAKE_TOOLCHAIN_FILE=../../piksi-toolchain.cmake \
 	      -DLIBSBP_SEARCH_PATH=$(STARLING_ROOT)/third_party/libsbp/c \
 	      $(CMAKEFLAGS) ../
-	$(MAKE) -C $(LIBSETTINGS_BUILDDIR) $(MAKEFLAGS) settings
+	$(MAKE) -j 8 -C $(LIBSETTINGS_BUILDDIR) $(MAKEFLAGS) settings
 
 $(STARLING_BUILDDIR)/pvt_common/libpvt-common.a: .FORCE \
 	                                $(STARLING_BUILDDIR)/Makefile
 	@printf "BUILD   pvt-engine for target $(PIKSI_TARGET)\n"; \
-	$(MAKE) pvt-common -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
+	$(MAKE) pvt-common -j 8 -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
 
 $(STARLING_BUILDDIR)/pvt_engine/libpvt-engine.a: .FORCE \
                                         $(STARLING_BUILDDIR)/Makefile \
 					$(STARLING_BUILDDIR)/pvt_common/libpvt-common.a
 	@printf "BUILD   pvt-engine for target $(PIKSI_TARGET)\n"; \
-	$(MAKE) pvt-engine -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
+	$(MAKE) pvt-engine -j 8 -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
 
 # Make starling dependent of swiftnav because otherwise both
 # might build in parallel, and both trying to build swiftnav-common in parallel
@@ -137,12 +137,12 @@ $(STARLING_BUILDDIR)/pvt_driver/libpvt_driver.a: .FORCE \
                                              $(STARLING_BUILDDIR)/pvt_engine/libpvt-engine.a \
                                              $(STARLING_BUILDDIR)/pvt_common/libpvt-common.a
 	@printf "BUILD   libstarling for target $(PIKSI_TARGET)\n"; \
-	$(MAKE) pvt_driver -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
+	$(MAKE) pvt_driver -j 8 -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
 
-$(STARLING_BUILDDIR)/starling_util/libstarling-util.a: .FORCE \
+$(STARLING_BUILDDIR)/legacy_starling_util/liblegacy-starling-util.a: .FORCE \
                                              $(STARLING_BUILDDIR)/Makefile
-	@printf "BUILD   libstarling-util for target $(PIKSI_TARGET)\n"; \
-	$(MAKE) starling-util -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
+	@printf "BUILD   liblegacy-starling-util for target $(PIKSI_TARGET)\n"; \
+	$(MAKE) legacy-starling-util -j 8 -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
 
 $(STARLING_BUILDDIR)/Makefile:
 	@printf "Run cmake for target $(STARLING_BUILDDIR)\n"; \
@@ -152,6 +152,7 @@ $(STARLING_BUILDDIR)/Makefile:
           -DMAX_CHANNELS=79 \
           -DSTARLING_CONFIG_FILE=../../starling_build_config.cmake \
           -DBUILD_SWIFTLET_INTEGRATIONS=False \
+          -Dswiftnav_C_EXTENSIONS=ON \
           $(CMAKEFLAGS) ../
 
 $(OPENAMP_BUILDDIR)/lib/libopen-amp.a:

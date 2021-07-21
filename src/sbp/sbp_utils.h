@@ -15,15 +15,15 @@
 #define SWIFTNAV_SBP_UTILS_H
 
 #include <libsbp/common.h>
-#include <libsbp/gnss.h>
-#include <libsbp/navigation.h>
-#include <libsbp/ndb.h>
-#include <libsbp/observation.h>
-#include <libsbp/orientation.h>
-#include <libsbp/system.h>
-#include <starling_util/sbp/misc.h>
-#include <starling_util/sbp/packers.h>
-#include <starling_util/sbp/unpackers.h>
+#include <libsbp/legacy/gnss.h>
+#include <libsbp/legacy/navigation.h>
+#include <libsbp/legacy/ndb.h>
+#include <libsbp/legacy/observation.h>
+#include <libsbp/legacy/orientation.h>
+#include <libsbp/legacy/system.h>
+#include <legacy_starling_util/sbp/misc.h>
+#include <legacy_starling_util/sbp/packers.h>
+#include <legacy_starling_util/sbp/unpackers.h>
 #include <swiftnav/almanac.h>
 #include <swiftnav/ephemeris.h>
 #include <swiftnav/gnss_time.h>

@@ -13,9 +13,9 @@
 #ifndef STARLING_SBP_OUTPUT_H_
 #define STARLING_SBP_OUTPUT_H_
 
-#include <libsbp/navigation.h>
-#include <libsbp/orientation.h>
-#include <libsbp/system.h>
+#include <libsbp/legacy/navigation.h>
+#include <libsbp/legacy/orientation.h>
+#include <libsbp/legacy/system.h>
 
 /* Provide an SBP duplex implementation and Starling will proceed to transmit
  * solutions over it. At the moment, only a single output connection is

@@ -14,8 +14,8 @@
 
 #include <calc/starling_integration.h>
 #include <limits.h>
-#include <starling_util/sbp/packers.h>
-#include <starling_util/sbp/unpackers.h>
+#include <legacy_starling_util/sbp/packers.h>
+#include <legacy_starling_util/sbp/unpackers.h>
 #include <string.h>
 
 #include "nav_msg/nav_msg.h" /* For BIT_POLARITY_... constants */

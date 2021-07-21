@@ -287,7 +287,7 @@ INCDIR = $(STARTUPINC) $(PORTINC) $(KERNINC) \
          $(STARLING_ROOT)/pvt_engine/include \
          $(STARLING_ROOT)/pvt_driver/include \
          $(STARLING_ROOT)/ground_truth/include \
-         $(STARLING_ROOT)/starling_util/include \
+         $(STARLING_ROOT)/legacy_starling_util/include \
          $(SWIFTNAV_ROOT)/src \
          $(SWIFTNAV_ROOT)/src/board \
          $(STARLING_ROOT)/libfec/include \
@@ -334,8 +334,7 @@ CWARN = -Wall -Wextra -Werror -std=gnu99 -Wimplicit \
 	-Wimplicit-function-declaration -Wredundant-decls \
 	-Wformat-security -Wpointer-arith \
 	-Wlogical-op -Wjump-misses-init \
-	-Wno-implicit-fallthrough \
-	-Wfloat-conversion
+	-Wfloat-conversion -Wno-error=deprecated-declarations
 	# TODO Leith: enable these once I figure out how to skip them on ChibiOS stuff
 	# -Wmissing-prototypes -Wcast-align
 
@@ -358,7 +357,8 @@ CPPWARN = -Wall -Wextra -Werror -Weffc++ -std=gnu++11 \
   -Wunused-function  -Wunused-label  -Wunused-parameter \
   -Wunused-value  -Wunused-variable  -Wvariadic-macros \
   -Wvolatile-register-var  -Wwrite-strings \
-  -Wlogical-op -Wold-style-cast -Wuseless-cast
+  -Wlogical-op -Wold-style-cast -Wuseless-cast \
+  -Wno-error=deprecated-declarations
 
 #
 # Compiler settings
@@ -392,7 +392,7 @@ DLIBDIR = $(LIBPAL_BUILDDIR)/pal/src \
           $(STARLING_BUILDDIR)/ground_truth \
           $(STARLING_BUILDDIR)/pvt_engine \
           $(STARLING_BUILDDIR)/pvt_common \
-          $(STARLING_BUILDDIR)/starling_util \
+          $(STARLING_BUILDDIR)/legacy_starling_util \
           $(STARLING_BUILDDIR)/src/util \
           $(STARLING_BUILDDIR)/libfec \
           $(LIBSWIFTNAV_BUILDDIR) \
@@ -400,7 +400,7 @@ DLIBDIR = $(LIBPAL_BUILDDIR)/pal/src \
 
 # List all default libraries here
 DLIBS = $(BOARDLIBS) -lpal -lpal++ -lsbp -lpvt_driver -lground-truth -lswiftnav -lpvt-engine -lpvt-common\
-         -lstarling-util -lm -Wl,--start-group\
+         -llegacy-starling-util -lm -Wl,--start-group\
          -lstdc++ -lc -Wl,--end-group -lfec -lnosys -lsettings
 
 #

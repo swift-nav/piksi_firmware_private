@@ -12,8 +12,8 @@
 
 #include "ext_events.h"
 
-#include <libsbp/ext_events.h>
-#include <libsbp/navigation.h>
+#include <libsbp/legacy/ext_events.h>
+#include <libsbp/legacy/navigation.h>
 #include <swiftnav/logging.h>
 
 #include "board/nap/nap_common.h"

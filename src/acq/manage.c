@@ -15,7 +15,7 @@
 #include <assert.h>
 #include <calc/starling_integration.h>
 #include <inttypes.h>
-#include <libsbp/piksi.h>
+#include <libsbp/legacy/piksi.h>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>

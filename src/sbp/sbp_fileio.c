@@ -16,7 +16,7 @@
 #include <assert.h>
 #include <ch.h>
 #include <inttypes.h>
-#include <libsbp/file_io.h>
+#include <libsbp/legacy/file_io.h>
 #include <stdio.h>
 #include <string.h>
 #include <swiftnav/logging.h>

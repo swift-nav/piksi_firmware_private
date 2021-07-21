@@ -14,9 +14,9 @@
 #define ME_CALC_PVT_H
 
 #include <ch.h>
-#include <libsbp/navigation.h>
-#include <libsbp/observation.h>
-#include <libsbp/system.h>
+#include <libsbp/legacy/navigation.h>
+#include <libsbp/legacy/observation.h>
+#include <libsbp/legacy/system.h>
 #include <swiftnav/common.h>
 #include <swiftnav/gnss_time.h>
 #include <swiftnav/nav_meas.h>

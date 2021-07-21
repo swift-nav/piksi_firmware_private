@@ -14,7 +14,7 @@
 
 #include <hal.h>
 #include <inttypes.h>
-#include <libsbp/system.h>
+#include <libsbp/legacy/system.h>
 #include <libsbp/version.h>
 #include <string.h>
 #include <swiftnav/constants.h>

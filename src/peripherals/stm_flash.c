@@ -13,7 +13,7 @@
 #include "stm_flash.h"
 
 #include <hal.h>
-#include <libsbp/flash.h>
+#include <libsbp/legacy/flash.h>
 
 #include "../error.h"
 #include "../flash.h"

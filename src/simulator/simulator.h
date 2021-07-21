@@ -13,7 +13,7 @@
 #ifndef SWIFTNAV_SIMULATOR_H
 #define SWIFTNAV_SIMULATOR_H
 
-#include <libsbp/tracking.h>
+#include <libsbp/legacy/tracking.h>
 #include <pvt_driver/observations.h>
 #include <stdbool.h>
 #include <swiftnav/common.h>

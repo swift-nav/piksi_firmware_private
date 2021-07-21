@@ -11,7 +11,7 @@
  */
 
 #include <hal.h>
-#include <libsbp/system.h>
+#include <libsbp/legacy/system.h>
 #include <stdlib.h>
 #include <string.h>
 #include <swiftnav/gnss_time.h>

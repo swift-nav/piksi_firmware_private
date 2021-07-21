@@ -13,7 +13,7 @@
 #ifndef SRC_NDB_GNSS_CAPB_H_
 #define SRC_NDB_GNSS_CAPB_H_
 
-#include <libsbp/observation.h>
+#include <libsbp/legacy/observation.h>
 #include <ndb/ndb_common.h>
 
 void ndb_gnss_capb_init(void);

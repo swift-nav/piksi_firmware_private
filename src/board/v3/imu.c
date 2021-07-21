@@ -12,8 +12,8 @@
 
 #include "imu.h"
 
-#include <libsbp/imu.h>
-#include <libsbp/mag.h>
+#include <libsbp/legacy/imu.h>
+#include <libsbp/legacy/mag.h>
 #include <math.h>
 #include <swiftnav/gnss_time.h>
 #include <swiftnav/logging.h>

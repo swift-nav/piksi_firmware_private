@@ -20,7 +20,7 @@
 #include <swiftnav/logging.h>
 #include <swiftnav/memcpy_s.h>
 
-#include "libsbp/piksi.h"
+#include "libsbp/legacy/piksi.h"
 #include "ndb.h"
 #include "ndb_fs_access.h"
 #include "signal_db/signal_db.h"

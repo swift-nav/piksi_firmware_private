@@ -12,7 +12,7 @@
 #include "gnss_capabilities.h"
 
 #include <assert.h>
-#include <libsbp/observation.h>
+#include <libsbp/legacy/observation.h>
 #include <stdio.h>
 #include <swiftnav/common.h>
 
