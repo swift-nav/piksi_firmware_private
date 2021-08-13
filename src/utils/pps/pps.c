@@ -51,24 +51,29 @@ static float pps_propagation_timeout = 5.0;
  *
  * \return true if PPS should be sent, false otherwise.
  */
-static bool output_pps(gps_time_t *in_time) {
+static bool output_pps(gps_time_t *in_time, time_quality_t quality) {
   switch (pps_propagation_mode) {
     case PPS_PROP_MODE_NONE:
       /* if time update within 1 time solve solution interval
        * it means we have had a soln or have had one very recently,
        * therefore we return true */
-      if (time_updated_within(in_time, ME_PVT_INTERVAL_S + 0.005)) {
+      if (quality > TIME_UNKNOWN &&
+          time_updated_within(in_time, ME_PVT_INTERVAL_S + 0.005)) {
         return true;
       }
       break;
     case PPS_PROP_MODE_TIMEOUT:
       /* it we are within timeout duration, return true*/
-      if (time_updated_within(in_time, pps_propagation_timeout)) {
+      if (quality > TIME_UNKNOWN &&
+          time_updated_within(in_time, pps_propagation_timeout)) {
         return true;
       }
       break;
     case PPS_PROP_MODE_UNLIMITED:
       /* if set to unlimited, return true */
+      return quality > TIME_UNKNOWN;
+      break;
+    case PPS_PROP_MODE_ALWAYS:
       return true;
       break;
     /* TODO: implement accuracy threshold */
@@ -84,9 +89,9 @@ static void pps_thread(void *arg) {
   chRegSetThreadName("PPS");
 
   while (true) {
-    if (get_time_quality() > TIME_UNKNOWN && !nap_pps_armed()) {
+    if (!nap_pps_armed()) {
       gps_time_t t = get_current_time();
-      if (output_pps(&t)) {
+      if (output_pps(&t, get_time_quality())) {
         t.tow = (t.tow - fmod(t.tow, pps_period)) + pps_period +
                 ((double)pps_offset_ns / 1.0e9) + PPS_FW_OFFSET_S;
 
@@ -171,7 +176,7 @@ static int pps_frequency_changed(void *ctx) {
 void pps_setup(void) {
   pps_config(pps_width_us, pps_polarity);
   static const char *pps_propagation_mode_enum[] = {
-      "None", "Time Limited", "Unlimited", NULL};
+      "None", "Time Limited", "Unlimited", "Always", NULL};
 
   settings_type_t pps_propagation_setting;
   settings_api_register_enum(pps_propagation_mode_enum,
