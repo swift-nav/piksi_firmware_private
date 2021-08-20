@@ -50,6 +50,7 @@ INCDIR = $(SWIFTNAV_ROOT) \
          $(STARLING_ROOT)/pvt_engine/include/ \
          $(STARLING_ROOT)/pvt_driver/include/ \
          $(STARLING_ROOT)/starling_util/include/ \
+         $(STARLING_ROOT)/legacy_starling_util/include/ \
          $(STARLING_BUILDDIR)/include \
          $(STARLING_ROOT)/libfec/include \
          $(SWIFTNAV_ROOT)/src/hal \
@@ -169,9 +170,9 @@ CSRC := $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l2c.c \
         $(SWIFTNAV_ROOT)/src/board/v3/platform_signal.c \
         $(SWIFTNAV_ROOT)/src/board/v3/ndb_fs_access.c \
         $(SWIFTNAV_ROOT)/src/lib/fixed_fft_r2.c \
-        $(STARLING_ROOT)/starling_util/src/sbp/misc.c \
-        $(STARLING_ROOT)/starling_util/src/sbp/packers.c \
-        $(STARLING_ROOT)/starling_util/src/sbp/unpackers.c \
+        $(STARLING_ROOT)/legacy_starling_util/src/sbp/misc.c \
+        $(STARLING_ROOT)/legacy_starling_util/src/sbp/packers.c \
+        $(STARLING_ROOT)/legacy_starling_util/src/sbp/unpackers.c \
         $(STARLING_ROOT)/pvt_engine/src/cycle_slip.c \
         $(STARLING_ROOT)/libfec/src/viterbi27.c \
 		$(STARLING_ROOT)/third_party/libpal/pal/src/pal.c \

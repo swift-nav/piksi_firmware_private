@@ -235,16 +235,16 @@ TEST(nav_msg_bds_tests, ephemeris_decoding) {
   ephemeris_t tmp_eph;
   memcpy(&tmp_eph, &ref_eph, sizeof(ref_eph));
   /* Set TGD2 into copy of ref_eph. */
-  tmp_eph.kepler.tgd.bds_s[0] = 5.6E-09;
-  tmp_eph.kepler.tgd.bds_s[1] = 3.0E-09;
+  tmp_eph.data.kepler.tgd.bds_s[0] = 5.6E-09;
+  tmp_eph.data.kepler.tgd.bds_s[1] = 3.0E-09;
   /* Adjust ref_eph times to GPS time. */
   add_secs(&tmp_eph.toe, BDS_SECOND_TO_GPS_SECOND);
-  add_secs(&tmp_eph.kepler.toc, BDS_SECOND_TO_GPS_SECOND);
+  add_secs(&tmp_eph.data.kepler.toc, BDS_SECOND_TO_GPS_SECOND);
 
   /* Introduce few helper variables to make following lines shorter. */
   ephemeris_t decoded_eph = dd_d1nav.ephemeris;
-  ephemeris_kepler_t decoded_k = dd_d1nav.ephemeris.kepler;
-  ephemeris_kepler_t tmp_k = tmp_eph.kepler;
+  ephemeris_kepler_t decoded_k = dd_d1nav.ephemeris.data.kepler;
+  ephemeris_kepler_t tmp_k = tmp_eph.data.kepler;
 
   /* Check that decoded ephemeris matches with reference ephemeris. */
   /* Note that ephemeris_equal() function would fail due to float precision.
