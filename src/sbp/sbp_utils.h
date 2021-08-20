@@ -14,6 +14,9 @@
 #ifndef SWIFTNAV_SBP_UTILS_H
 #define SWIFTNAV_SBP_UTILS_H
 
+#include <legacy_starling_util/sbp/misc.h>
+#include <legacy_starling_util/sbp/packers.h>
+#include <legacy_starling_util/sbp/unpackers.h>
 #include <libsbp/common.h>
 #include <libsbp/gnss.h>
 #include <libsbp/navigation.h>
@@ -21,9 +24,6 @@
 #include <libsbp/observation.h>
 #include <libsbp/orientation.h>
 #include <libsbp/system.h>
-#include <starling_util/sbp/misc.h>
-#include <starling_util/sbp/packers.h>
-#include <starling_util/sbp/unpackers.h>
 #include <swiftnav/almanac.h>
 #include <swiftnav/ephemeris.h>
 #include <swiftnav/gnss_time.h>

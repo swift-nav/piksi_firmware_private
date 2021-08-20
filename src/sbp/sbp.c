@@ -125,7 +125,7 @@ void sbp_register_cbk_with_closure(u16 msg_type,
                                    sbp_msg_callbacks_node_t *node,
                                    void *context) {
   chMtxLock(&sbp_cb_mutex);
-  sbp_register_callback(&sbp_state, msg_type, cb, context, node);
+  sbp_payload_callback_register(&sbp_state, msg_type, cb, context, node);
   chMtxUnlock(&sbp_cb_mutex);
 }
 
@@ -172,7 +172,7 @@ s8 sbp_send_msg_(u16 msg_type, u8 len, u8 buff[], u16 sender_id) {
 
   /* Write message into buffer */
   sbp_buffer_reset();
-  s8 ret = sbp_send_message(
+  s8 ret = sbp_payload_send(
       &sbp_state, msg_type, sender_id, len, buff, &sbp_buffer_write);
 
   io_support_write(SD_SBP, sbp_buffer, sbp_buffer_length);
