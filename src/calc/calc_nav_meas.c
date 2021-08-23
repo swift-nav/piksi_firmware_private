@@ -13,7 +13,7 @@
 #include "calc_nav_meas.h"
 
 #include <assert.h>
-#include <pvt_driver/observations.h>
+#include <pvt_common/observations.h>
 #include <pvt_engine/cycle_slip.h>
 #include <string.h>
 #include <swiftnav/coord_system.h>
