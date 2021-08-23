@@ -75,6 +75,7 @@ endif
 CLANG_TIDY_INCLUDES = -I$(SWIFTNAV_ROOT)/include/ \
                       -I$(SWIFTNAV_ROOT)/src/ \
                       -I$(SWIFTNAV_ROOT)/src/utils/ \
+                      -I$(STARLING_ROOT)/pvt_common/include/ \
                       -I$(STARLING_ROOT)/pvt_driver/include/ \
                       -I$(STARLING_ROOT)/pvt_engine/include/ \
                       -I$(STARLING_ROOT)/starling_util/include/ \
