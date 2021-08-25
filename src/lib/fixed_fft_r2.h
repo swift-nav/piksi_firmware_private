@@ -28,7 +28,7 @@ typedef struct _sc32 {
     u32 *tmpBRX;                                                       \
     u16 *BR;                                                           \
     u8 uFftMem[(SIZE) * (sizeof(sc16_t) + sizeof(u32) + sizeof(u16))]; \
-  }(NAME);
+  } NAME
 
 #ifdef __cplusplus
 extern "C" {

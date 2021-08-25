@@ -67,31 +67,31 @@ void e_out(void) {
   log_debug("\tFit interval: %u\n", n.eph.fit_interval);
   log_debug("\tValid: %u\n", n.eph.valid);
   log_debug("\tHealth bits: 0x%02x\n", n.eph.health_bits);
-  log_debug("\tgamma: %25.18f\n", n.eph.glo.gamma);
-  log_debug("\ttau: %25.18f\n", n.eph.glo.tau);
+  log_debug("\tgamma: %25.18f\n", n.eph.data.glo.gamma);
+  log_debug("\ttau: %25.18f\n", n.eph.data.glo.tau);
   log_debug("\tX, Y, Z: %25.18f, %25.18f, %25.18f\n",
-            n.eph.glo.pos[0],
-            n.eph.glo.pos[1],
-            n.eph.glo.pos[2]);
+            n.eph.data.glo.pos[0],
+            n.eph.data.glo.pos[1],
+            n.eph.data.glo.pos[2]);
   log_debug("\tVX, VY, VZ: %25.18f, %25.18f, %25.18f\n",
-            n.eph.glo.vel[0],
-            n.eph.glo.vel[1],
-            n.eph.glo.vel[2]);
+            n.eph.data.glo.vel[0],
+            n.eph.data.glo.vel[1],
+            n.eph.data.glo.vel[2]);
   log_debug("\tAX, AY, AZ: %25.18f, %25.18f, %25.18f\n",
-            n.eph.glo.acc[0],
-            n.eph.glo.acc[1],
-            n.eph.glo.acc[2]);
-  EXPECT_LT(std::abs(n.eph.glo.pos[0] - X), LOW_TOL);
-  EXPECT_LT(std::abs(n.eph.glo.pos[1] - Y), LOW_TOL);
-  EXPECT_LT(std::abs(n.eph.glo.pos[2] - Z), LOW_TOL);
-  EXPECT_LT(std::abs(n.eph.glo.vel[0] - VX), LOW_TOL);
-  EXPECT_LT(std::abs(n.eph.glo.vel[1] - VY), LOW_TOL);
-  EXPECT_LT(std::abs(n.eph.glo.vel[2] - VZ), LOW_TOL);
-  EXPECT_LT(std::abs(n.eph.glo.acc[0] - AX), LOW_TOL);
-  EXPECT_LT(std::abs(n.eph.glo.acc[1] - AY), LOW_TOL);
-  EXPECT_LT(std::abs(n.eph.glo.acc[2] - AZ), LOW_TOL);
-  EXPECT_LT(std::abs(n.eph.glo.tau - TAU), LOW_TOL);
-  EXPECT_LT(std::abs(n.eph.glo.gamma - GAMMA), LOW_TOL);
+            n.eph.data.glo.acc[0],
+            n.eph.data.glo.acc[1],
+            n.eph.data.glo.acc[2]);
+  EXPECT_LT(std::abs(n.eph.data.glo.pos[0] - X), LOW_TOL);
+  EXPECT_LT(std::abs(n.eph.data.glo.pos[1] - Y), LOW_TOL);
+  EXPECT_LT(std::abs(n.eph.data.glo.pos[2] - Z), LOW_TOL);
+  EXPECT_LT(std::abs(n.eph.data.glo.vel[0] - VX), LOW_TOL);
+  EXPECT_LT(std::abs(n.eph.data.glo.vel[1] - VY), LOW_TOL);
+  EXPECT_LT(std::abs(n.eph.data.glo.vel[2] - VZ), LOW_TOL);
+  EXPECT_LT(std::abs(n.eph.data.glo.acc[0] - AX), LOW_TOL);
+  EXPECT_LT(std::abs(n.eph.data.glo.acc[1] - AY), LOW_TOL);
+  EXPECT_LT(std::abs(n.eph.data.glo.acc[2] - AZ), LOW_TOL);
+  EXPECT_LT(std::abs(n.eph.data.glo.tau - TAU), LOW_TOL);
+  EXPECT_LT(std::abs(n.eph.data.glo.gamma - GAMMA), LOW_TOL);
 }
 
 TEST(nav_msg_glo_tests, process_string_glo) {

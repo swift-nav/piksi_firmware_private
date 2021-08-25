@@ -114,7 +114,7 @@ void bds_nav_msg_clear_decoded(nav_msg_bds_t *n) {
 
 static void bds_eph_store(const nav_msg_bds_t *n, bds_d1_decoded_data_t *data) {
   ephemeris_t *e = &(data->ephemeris);
-  ephemeris_kepler_t *k = &(data->ephemeris.kepler);
+  ephemeris_kepler_t *k = &(data->ephemeris.data.kepler);
   ionosphere_t *iono = &(data->iono);
 
   add_secs(&e->toe, BDS_SECOND_TO_GPS_SECOND);
@@ -548,7 +548,7 @@ static bool pack_buffer(nav_msg_bds_t *n) {
 static void process_d1_fraid1(const nav_msg_bds_t *n,
                               bds_d1_decoded_data_t *data) {
   ephemeris_t *e = &(data->ephemeris);
-  ephemeris_kepler_t *k = &(data->ephemeris.kepler);
+  ephemeris_kepler_t *k = &(data->ephemeris.data.kepler);
   ionosphere_t *i = &(data->iono);
 
   u8 sath1 = (((n->page_words[1]) >> 17) & 0x1);
@@ -614,7 +614,7 @@ static void process_d1_fraid1(const nav_msg_bds_t *n,
 
 static void process_d1_fraid2(const nav_msg_bds_t *n,
                               bds_d1_decoded_data_t *data) {
-  ephemeris_kepler_t *k = &(data->ephemeris.kepler);
+  ephemeris_kepler_t *k = &(data->ephemeris.data.kepler);
 
   u32 deltan = (((n->page_words[11]) >> 8) & 0x3ff) << 6;
   deltan |= (((n->page_words[12]) >> 24) & 0x3f);
@@ -651,7 +651,7 @@ static void process_d1_fraid2(const nav_msg_bds_t *n,
 static void process_d1_fraid3(const nav_msg_bds_t *n,
                               bds_d1_decoded_data_t *data) {
   ephemeris_t *e = &(data->ephemeris);
-  ephemeris_kepler_t *k = &(data->ephemeris.kepler);
+  ephemeris_kepler_t *k = &(data->ephemeris.data.kepler);
   double new_toe;
 
   u32 toe_lsb = (((n->page_words[21]) >> 8) & 0x3ff) << 5;
