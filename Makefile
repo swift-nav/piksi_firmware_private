@@ -66,7 +66,6 @@ FW_DEPS=compiler-version \
         $(STARLING_BUILDDIR)/pvt_engine/libpvt-engine.a \
         $(STARLING_BUILDDIR)/pvt_common/libpvt-common.a \
         $(STARLING_BUILDDIR)/pvt_driver/libpvt_driver.a \
-        $(STARLING_BUILDDIR)/starling_util/libstarling-util.a \
         $(STARLING_BUILDDIR)/legacy_starling_util/liblegacy_starling_util.a
 
 ifeq ($(PIKSI_HW),v3)
@@ -140,11 +139,6 @@ $(STARLING_BUILDDIR)/pvt_driver/libpvt_driver.a: .FORCE \
                                              $(STARLING_BUILDDIR)/pvt_common/libpvt-common.a
 	@printf "BUILD   libstarling for target $(PIKSI_TARGET)\n"; \
 	$(MAKE) pvt_driver -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
-
-$(STARLING_BUILDDIR)/starling_util/libstarling-util.a: .FORCE \
-                                             $(STARLING_BUILDDIR)/Makefile
-	@printf "BUILD   libstarling-util for target $(PIKSI_TARGET)\n"; \
-	$(MAKE) starling-util -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
 
 $(STARLING_BUILDDIR)/legacy_starling_util/liblegacy_starling_util.a: .FORCE \
                                              $(STARLING_BUILDDIR)/Makefile

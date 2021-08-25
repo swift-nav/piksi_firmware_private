@@ -402,7 +402,7 @@ DLIBDIR = $(LIBPAL_BUILDDIR)/pal/src \
 
 # List all default libraries here
 DLIBS = $(BOARDLIBS) -lpal -lpal++ -lsbp -lpvt_driver -lground-truth -lswiftnav -lpvt-engine -lpvt-common\
-         -lstarling-util -llegacy-starling-util -lm -Wl,--start-group\
+         -llegacy-starling-util -lm -Wl,--start-group\
          -lstdc++ -lc -Wl,--end-group -lfec -lnosys -lsettings
 
 #
