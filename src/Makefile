@@ -285,6 +285,7 @@ INCDIR = $(STARTUPINC) $(PORTINC) $(KERNINC) \
          $(STARLING_ROOT)/third_party/libswiftnav/include \
          $(STARLING_BUILDDIR)/include \
          $(STARLING_ROOT)/pvt_engine/include \
+         $(STARLING_ROOT)/pvt_common/include \
          $(STARLING_ROOT)/pvt_driver/include \
          $(STARLING_ROOT)/ground_truth/include \
          $(STARLING_ROOT)/legacy_starling_util/include \
@@ -388,6 +389,7 @@ DLIBDIR = $(LIBPAL_BUILDDIR)/pal/src \
           $(LIBPAL_BUILDDIR)/pal++/src/ \
           $(LIBSBP_BUILDDIR)/c/src \
           $(LIBSETTINGS_BUILDDIR)/src \
+          $(STARLING_BUILDDIR)/pvt_common \
           $(STARLING_BUILDDIR)/pvt_driver \
           $(STARLING_BUILDDIR)/ground_truth \
           $(STARLING_BUILDDIR)/pvt_engine \
@@ -399,7 +401,7 @@ DLIBDIR = $(LIBPAL_BUILDDIR)/pal/src \
           $(BOARDLIBDIR)
 
 # List all default libraries here
-DLIBS = $(BOARDLIBS) -lpal -lpal++ -lsbp -lpvt_driver -lground-truth -lswiftnav -lpvt-engine -lpvt-common\
+DLIBS = $(BOARDLIBS) -lpal -lpal++ -lsbp -lpvt_driver -lpvt-common -lground-truth -lswiftnav -lpvt-engine -lpvt-common\
          -llegacy-starling-util -lm -Wl,--start-group\
          -lstdc++ -lc -Wl,--end-group -lfec -lnosys -lsettings
 
