@@ -41,6 +41,9 @@ void solution_send_pos_messages(const sbp_messages_t *sbp_messages) {
     sbp_send_msg(SBP_MSG_UTC_TIME,
                  sizeof(sbp_messages->utc_time),
                  (u8 *)&sbp_messages->utc_time);
+    sbp_send_msg(SBP_MSG_UTC_TIME_GNSS,
+                 sizeof(sbp_messages->utc_time),
+                 (u8 *)&sbp_messages->utc_time);
     sbp_send_msg(SBP_MSG_POS_LLH,
                  sizeof(sbp_messages->pos_llh),
                  (u8 *)&sbp_messages->pos_llh);
