@@ -243,6 +243,9 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/utils/run_stats/run_stats.o \
         $(SWIFTNAV_ROOT)/src/utils/nav_bit_fifo/nav_bit_fifo.o \
         $(SWIFTNAV_ROOT)/src/utils/nav_data_sync/nav_data_sync.o \
+        $(SWIFTNAV_ROOT)/src/legacy_starling_util/src/sbp/misc.o \
+        $(SWIFTNAV_ROOT)/src/legacy_starling_util/src/sbp/packers.o \
+        $(SWIFTNAV_ROOT)/src/legacy_starling_util/src/sbp/unpackers.o \
         $(BOARDDIR)/ndb_fs_access.o \
         $(SWIFTNAV_ROOT)/src/main/main.o
 
@@ -300,7 +303,8 @@ INCDIR = $(STARTUPINC) $(PORTINC) $(KERNINC) \
          $(SWIFTNAV_ROOT)/src/calc \
          $(SWIFTNAV_ROOT)/src/cfg \
          $(SWIFTNAV_ROOT)/src/main \
-         $(SWIFTNAV_ROOT)/src/acq
+         $(SWIFTNAV_ROOT)/src/acq \
+         $(SWIFTNAV_ROOT)/src/legacy_starling_util/include
 
 #
 # Project, sources and paths
