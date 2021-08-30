@@ -231,8 +231,5 @@ LIB_RPATH = -Wl,-rpath,$(STARLING_SEARCHPATH)/src
 LIB_RPATH += -Wl,-rpath,$(LIBSWIFTNAV_SEARCHPATH)
 LIB_RPATH += -Wl,-rpath,$(STARLING_FEC_SEARCHPATH)
 
-print_srcs:
-	echo $(C_SRCS) 
-
-run_tests : print_srcs lsnp $(OBJDIR) $(OBJS)
+run_tests : lsnp $(OBJDIR) $(OBJS)
 	$(CXX) $(CXXFLAGS) $(OBJS) $(LIB_PATH) $(LIBS) -o $@ $(LIB_RPATH)
