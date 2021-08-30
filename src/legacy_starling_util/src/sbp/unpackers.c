@@ -465,7 +465,7 @@ int sbp_unpack_imu_aux_accl_sf(const u8 *msg, double *accl_sf) {
   switch (imu_type) {
     case IMU_TYPE_ASM330: {
       lut = ASM330_ACCL_SF_MPSPS_LUT;
-      // TODO: Possible handle IMU types inside sensor fusion
+      // TODO(who?): Possible handle IMU types inside sensor fusion
       break;
     }
     case IMU_TYPE_BMI160: {
@@ -482,9 +482,8 @@ int sbp_unpack_imu_aux_accl_sf(const u8 *msg, double *accl_sf) {
   if (accl_range < 4) {
     *accl_sf = lut[accl_range];
     return IMU_AUX_EXIT_SUCCESS;
-  } else {
-    return IMU_AUX_ERROR_INVALID_RANGE;
   }
+  return IMU_AUX_ERROR_INVALID_RANGE;
 }
 
 int sbp_unpack_imu_aux_gyro_sf(const u8 *msg, double *gyro_sf) {
@@ -494,7 +493,7 @@ int sbp_unpack_imu_aux_gyro_sf(const u8 *msg, double *gyro_sf) {
     case IMU_TYPE_ASM330: {
       lut = ASM330_GYRO_SF_DEGPS_LUT;
       // deliberately fall through. Should we warn?
-      // TODO: Possible handle IMU types inside sensor fusion
+      // TODO(who?): Possible handle IMU types inside sensor fusion
       break;
     }
     case IMU_TYPE_BMI160: {
@@ -511,9 +510,8 @@ int sbp_unpack_imu_aux_gyro_sf(const u8 *msg, double *gyro_sf) {
   if (gyro_range < 5) {
     *gyro_sf = lut[gyro_range];
     return IMU_AUX_EXIT_SUCCESS;
-  } else {
-    return IMU_AUX_ERROR_INVALID_RANGE;
   }
+  return IMU_AUX_ERROR_INVALID_RANGE;
 }
 
 int sbp_unpack_imu_aux_temp(const u8 *msg, double *imu_temp) {

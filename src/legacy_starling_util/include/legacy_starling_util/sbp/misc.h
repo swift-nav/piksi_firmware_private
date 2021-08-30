@@ -75,9 +75,9 @@ u32 round_tow_ms(double tow);
  */
 void round_time_nano(const gps_time_t *t_in, sbp_gps_time_t *t_out);
 
-sbp_gnss_signal_t sid_to_sbp(const gnss_signal_t from);
+sbp_gnss_signal_t sid_to_sbp(gnss_signal_t from);
 
-gnss_signal_t sid_from_sbp(const sbp_gnss_signal_t from);
+gnss_signal_t sid_from_sbp(sbp_gnss_signal_t from);
 
 #ifdef __cplusplus
 }

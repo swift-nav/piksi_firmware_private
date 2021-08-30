@@ -162,13 +162,13 @@ void sbp_make_pl(msg_protection_level_t *pl_msg,
 
 void sbp_make_heading(msg_baseline_heading_t *baseline_heading,
                       const gps_time_t *t,
-                      const double heading,
-                      u8 n_sats_used,
+                      double heading,
+                      u8 n_sats,
                       u8 flags);
 void sbp_make_age_corrections(msg_age_corrections_t *age_corrections,
                               const gps_time_t *t,
                               double propagation_time);
-void sbp_make_ins_status(msg_ins_status_t *msg_ins_status, const u32 flags);
+void sbp_make_ins_status(msg_ins_status_t *msg_ins_status, u32 flags);
 void sbp_make_dgnss_status(msg_dgnss_status_t *dgnss_status,
                            u8 num_sats,
                            double obs_latency,
@@ -209,7 +209,7 @@ msg_info_t pack_ephemeris(const ephemeris_t *e, msg_ephemeris_t *msg);
 
 msg_info_t pack_almanac(const almanac_t *a, msg_almanac_t *msg);
 
-void sbp_pack_sbas_raw_data(const gnss_signal_t sid,
+void sbp_pack_sbas_raw_data(gnss_signal_t sid,
                             u32 tow_ms,
                             u8 msg,
                             const u8 *decoded,
