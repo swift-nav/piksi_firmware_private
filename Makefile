@@ -88,6 +88,7 @@ CLANG_TIDY_INCLUDES = -I$(SWIFTNAV_ROOT)/include/ \
                       -I$(SWIFTNAV_ROOT)/src/board/v3/ \
                       -I$(SWIFTNAV_ROOT)/src/board/v3/prod/ \
                       -I$(SWIFTNAV_ROOT)/src/board/v3/base/ \
+                      -I$(SWIFTNAV_ROOT)/src/legacy_starling_util/include/ \
                       -isystem$(SWIFTNAV_ROOT)/mesta/stubs/
 
 .PHONY: all tests firmware docs .FORCE
