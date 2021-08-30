@@ -65,8 +65,7 @@ FW_DEPS=compiler-version \
         $(LIBSETTINGS_BUILDDIR)/src/libsettings.a \
         $(STARLING_BUILDDIR)/pvt_engine/libpvt-engine.a \
         $(STARLING_BUILDDIR)/pvt_common/libpvt-common.a \
-        $(STARLING_BUILDDIR)/pvt_driver/libpvt_driver.a \
-        $(STARLING_BUILDDIR)/legacy_starling_util/liblegacy_starling_util.a
+        $(STARLING_BUILDDIR)/pvt_driver/libpvt_driver.a
 
 ifeq ($(PIKSI_HW),v3)
   FW_DEPS += $(OPENAMP_BUILDDIR)/lib/libopen-amp.a
@@ -78,7 +77,6 @@ CLANG_TIDY_INCLUDES = -I$(SWIFTNAV_ROOT)/include/ \
                       -I$(STARLING_ROOT)/pvt_common/include/ \
                       -I$(STARLING_ROOT)/pvt_driver/include/ \
                       -I$(STARLING_ROOT)/pvt_engine/include/ \
-                      -I$(STARLING_ROOT)/legacy_starling_util/include/ \
                       -I$(STARLING_BUILDDIR)/include \
                       -I$(STARLING_ROOT)/third_party/libpal/pal/include/ \
                       -I$(STARlING_ROOT)/third_party/libpal/pal++/include/ \
@@ -90,6 +88,7 @@ CLANG_TIDY_INCLUDES = -I$(SWIFTNAV_ROOT)/include/ \
                       -I$(SWIFTNAV_ROOT)/src/board/v3/ \
                       -I$(SWIFTNAV_ROOT)/src/board/v3/prod/ \
                       -I$(SWIFTNAV_ROOT)/src/board/v3/base/ \
+                      -I$(SWIFTNAV_ROOT)/src/legacy_starling_util/include/ \
                       -isystem$(SWIFTNAV_ROOT)/mesta/stubs/
 
 .PHONY: all tests firmware docs .FORCE
@@ -139,11 +138,6 @@ $(STARLING_BUILDDIR)/pvt_driver/libpvt_driver.a: .FORCE \
                                              $(STARLING_BUILDDIR)/pvt_common/libpvt-common.a
 	@printf "BUILD   libstarling for target $(PIKSI_TARGET)\n"; \
 	$(MAKE) pvt_driver -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
-
-$(STARLING_BUILDDIR)/legacy_starling_util/liblegacy_starling_util.a: .FORCE \
-                                             $(STARLING_BUILDDIR)/Makefile
-	@printf "BUILD   legacy-starling-util for target $(PIKSI_TARGET)\n"; \
-	$(MAKE) legacy-starling-util -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
 
 $(STARLING_BUILDDIR)/Makefile:
 	@printf "Run cmake for target $(STARLING_BUILDDIR)\n"; \
