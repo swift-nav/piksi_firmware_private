@@ -82,8 +82,10 @@ static bool sbp_gps_time_valid(const sbp_gps_time_t *t) {
   return (t->wn != 0 || t->tow != 0 || t->ns_residual != 0);
 }
 
-void unpack_obs_header(const observation_header_t *msg, gps_time_t *t,
-                       u8 *total, u8 *count) {
+void unpack_obs_header(const observation_header_t *msg,
+                       gps_time_t *t,
+                       u8 *total,
+                       u8 *count) {
   if (sbp_gps_time_valid(&msg->t)) {
     t->wn = msg->t.wn;
     t->tow =
@@ -116,9 +118,14 @@ nav_meas_flags_t nm_flags_from_sbp(u8 from) {
   return to;
 }
 
-void unpack_obs_content(const packed_obs_content_t *msg, double *P, double *L,
-                        double *D, double *cn0, double *lock_time,
-                        nav_meas_flags_t *flags, gnss_signal_t *sid) {
+void unpack_obs_content(const packed_obs_content_t *msg,
+                        double *P,
+                        double *L,
+                        double *D,
+                        double *cn0,
+                        double *lock_time,
+                        nav_meas_flags_t *flags,
+                        gnss_signal_t *sid) {
   *P = ((double)msg->P) / MSG_OBS_P_MULTIPLIER;
   *L = (((double)msg->L.i) + (((double)msg->L.f) / MSG_OBS_LF_MULTIPLIER));
   *D = (((double)msg->D.i) + (((double)msg->D.f) / MSG_OBS_DF_MULTIPLIER));
@@ -137,8 +144,14 @@ void unpack_obs_content_into_starling_obs(const packed_obs_content_t *msg,
   double cn0;
   double lock_time;
 
-  unpack_obs_content(msg, &dst->pseudorange, &dst->carrier_phase, &D, &cn0,
-                     &lock_time, &dst->flags, &dst->sid);
+  unpack_obs_content(msg,
+                     &dst->pseudorange,
+                     &dst->carrier_phase,
+                     &D,
+                     &cn0,
+                     &lock_time,
+                     &dst->flags,
+                     &dst->sid);
 
   dst->doppler = (float)D;
   dst->cn0 = (float)cn0;
@@ -155,8 +168,10 @@ void unpack_osr_content(const packed_osr_content_t *msg, starling_obs_t *dst) {
   dst->osr_flags = msg->flags;
   dst->sid = sid_from_sbp(msg->sid);
   dst->iono_std = (float)((double)msg->iono_std / MSG_OSR_IONO_STD_MULTIPLIER);
-  dst->tropo_std = (float)((double)msg->tropo_std / MSG_OSR_TROPO_STD_MULTIPLIER);
-  dst->range_std = (float)((double)msg->range_std / MSG_OSR_RANGE_STD_MULTIPLIER);
+  dst->tropo_std =
+      (float)((double)msg->tropo_std / MSG_OSR_TROPO_STD_MULTIPLIER);
+  dst->range_std =
+      (float)((double)msg->range_std / MSG_OSR_RANGE_STD_MULTIPLIER);
 
   dst->flags = 0;
   if ((msg->flags & INVALID_CODE_CORRECTIONS) != INVALID_CODE_CORRECTIONS) {
@@ -408,7 +423,9 @@ void sbp_unpack_glonass_biases_content(const msg_glo_biases_t msg,
       ((double)msg.l2p_bias / MSG_GLO_BIASES_MULTIPLIER);
 }
 
-void sbp_unpack_imu_raw(const u8 *msg, double accl_sf, double gyro_sf,
+void sbp_unpack_imu_raw(const u8 *msg,
+                        double accl_sf,
+                        double gyro_sf,
                         imu_data_t *starling_imu_data,
                         imu_time_quality_t *time_quality) {
   /* Note, this function really decodes the message in a way that works for any

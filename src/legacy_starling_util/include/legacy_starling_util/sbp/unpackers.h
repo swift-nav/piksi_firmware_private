@@ -58,15 +58,22 @@ typedef struct {
 
 nav_meas_flags_t nm_flags_from_sbp(u8 from);
 
-void unpack_obs_header(const observation_header_t *msg, gps_time_t *t,
-                       u8 *total, u8 *count);
+void unpack_obs_header(const observation_header_t *msg,
+                       gps_time_t *t,
+                       u8 *total,
+                       u8 *count);
 /**
  * Convert an SBP observation into the format accepted
  * by the Starling engine.
  */
-void unpack_obs_content(const packed_obs_content_t *msg, double *P, double *L,
-                        double *D, double *cn0, double *lock_time,
-                        nav_meas_flags_t *flags, gnss_signal_t *sid);
+void unpack_obs_content(const packed_obs_content_t *msg,
+                        double *P,
+                        double *L,
+                        double *D,
+                        double *cn0,
+                        double *lock_time,
+                        nav_meas_flags_t *flags,
+                        gnss_signal_t *sid);
 void unpack_obs_content_into_starling_obs(const packed_obs_content_t *msg,
                                           starling_obs_t *dst);
 void unpack_osr_content(const packed_osr_content_t *msg, starling_obs_t *dst);
@@ -78,7 +85,9 @@ void unpack_sbas_raw_data(const msg_sbas_raw_t *m, sbas_raw_data_t *d);
 void sbp_unpack_glonass_biases_content(msg_glo_biases_t msg,
                                        glo_biases_t *glonass_biases);
 
-void sbp_unpack_imu_raw(const u8 *msg, double accl_sf, double gyro_sf,
+void sbp_unpack_imu_raw(const u8 *msg,
+                        double accl_sf,
+                        double gyro_sf,
                         imu_data_t *starling_imu_data,
                         imu_time_quality_t *time_quality);
 

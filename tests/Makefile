@@ -79,7 +79,6 @@ INCLUDE_DIRS += -I$(USER_SRC_DIR)/board/v3/prod/
 INCLUDE_DIRS += -I$(STARLING_ROOT)/pvt_engine/include/
 INCLUDE_DIRS += -I$(STARLING_ROOT)/pvt_common/include/
 INCLUDE_DIRS += -I$(STARLING_ROOT)/pvt_driver/include/
-INCLUDE_DIRS += -I$(STARLING_ROOT)/legacy_starling_util/include/
 INCLUDE_DIRS += -I$(STARLING_BUILDDIR)/include/
 INCLUDE_DIRS += -I$(STARLING_ROOT)/third_party/libpal/include
 INCLUDE_DIRS += -I$(STARLING_ROOT)/third_party/libswiftnav/include
@@ -94,6 +93,7 @@ INCLUDE_DIRS += -I$(USER_SRC_DIR)/soft_macq
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/track
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/main
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/sbp
+INCLUDE_DIRS += -I$(USER_SRC_DIR)/legacy_starling_util/include
 
 # All Google Test headers.  Usually you shouldn't change this
 # definition.
@@ -115,7 +115,7 @@ lsnp :
 	      -DCMAKE_CXX_COMPILER=$(CXX_COMPILER) \
 	      -DENABLE_AUTOFORMAT=OFF \
 	      ../
-	$(MAKE) -C $(STARLING_BUILDDIR) pvt_driver pvt-common starling-util legacy-starling-util --no-print-directory
+	$(MAKE) -C $(STARLING_BUILDDIR) pvt_driver pvt-common starling-util --no-print-directory
 
 clean :
 	@printf "CLEAN   Starling\n"; \
@@ -169,6 +169,7 @@ vpath %.c $(USER_SRC_DIR) \
           $(USER_SRC_DIR)/utils/shm \
           $(USER_SRC_DIR)/utils/nav_bit_fifo \
           $(USER_SRC_DIR)/utils/signal_db \
+	  $(USER_SRC_DIR)/legacy_starling_util/src/sbp \
           $(STUBS_DIR)
 
 vpath %.cc $(TEST_SRC_DIR)
@@ -178,6 +179,7 @@ C_SRCS = fixed_fft_r2.c \
          sbas_select.c \
          $(notdir $(shell find $(USER_SRC_DIR)/cn0_est -name '*.c')) \
          $(notdir $(shell find $(USER_SRC_DIR)/utils/filters -name '*.c')) \
+	 $(notdir $(shell find $(USER_SRC_DIR)/legacy_starling_util/src/sbp -name '*.c')) \
          prns.c \
          gal_prns.c \
          bds_prns.c \
@@ -219,16 +221,18 @@ $(OBJDIR)/%.o: %.cc lsnp
 
 OBJS += $(OBJDIR)/gtest_main.a
 
-LIBS = -lpvt-common -llegacy-starling-util -lswiftnav -lpthread -lfec
+LIBS = -lpvt-common -lswiftnav -lpthread -lfec
 LIB_PATH = -L$(STARLING_SEARCHPATH)/pvt_engine
 LIB_PATH += -L$(STARLING_SEARCHPATH)/pvt_common
 LIB_PATH += -L$(STARLING_SEARCHPATH)/pvt_driver
-LIB_PATH += -L$(STARLING_SEARCHPATH)/legacy_starling_util
 LIB_PATH += -L$(LIBSWIFTNAV_SEARCHPATH)
 LIB_PATH += -L$(STARLING_FEC_SEARCHPATH)
 LIB_RPATH = -Wl,-rpath,$(STARLING_SEARCHPATH)/src
 LIB_RPATH += -Wl,-rpath,$(LIBSWIFTNAV_SEARCHPATH)
 LIB_RPATH += -Wl,-rpath,$(STARLING_FEC_SEARCHPATH)
 
-run_tests : lsnp $(OBJDIR) $(OBJS)
+print_srcs:
+	echo $(C_SRCS) 
+
+run_tests : print_srcs lsnp $(OBJDIR) $(OBJS)
 	$(CXX) $(CXXFLAGS) $(OBJS) $(LIB_PATH) $(LIBS) -o $@ $(LIB_RPATH)
