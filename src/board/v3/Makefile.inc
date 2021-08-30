@@ -12,7 +12,13 @@ USE_OPT += -mfpu=neon -mfloat-abi=hard
 # Stack size to be allocated to the ARM System/User stack. This
 # stack is the stack used by the main() thread.
 ifeq ($(USE_SYSTEM_STACKSIZE),)
-  USE_SYSTEM_STACKSIZE = 0x10000
+# TODO: The original value here was 0x10000 but had to be increased to fix
+# master to unblock some project work. The original error was caused by some
+# undefined increase in stack usage caused by some change in 
+# https://github.com/swift-nav/starling/pull/5603/ . The impact of this change
+# needs to be understood, fixed, and then this value can be reduced back to 
+# something more sensible.
+  USE_SYSTEM_STACKSIZE = 0x100000
 endif
 
 # Stack size to the allocated to the ARM IRQ stack. This
