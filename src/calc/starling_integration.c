@@ -818,6 +818,43 @@ void starling_calc_pvt_init() {
   pvt_config.me_config = pvt_me_config;
   pvt_config.sbas_enabled = true;
   pvt_config.sbas_enabled_is_parsed = true;
+  pvt_config.num_supported_codes_per_obs_type = 3;
+  pvt_config.supported_codes_per_obs_type[0].obs_type =
+      PVT_DRIVER_OBS_PSEUDORANGE;
+  pvt_config.supported_codes_per_obs_type[0].num_supported_codes = 9;
+  pvt_config.supported_codes_per_obs_type[0].supported_codes[0] = CODE_GPS_L1CA;
+  pvt_config.supported_codes_per_obs_type[0].supported_codes[1] = CODE_GPS_L2CM;
+  pvt_config.supported_codes_per_obs_type[0].supported_codes[2] = CODE_GPS_L2P;
+  pvt_config.supported_codes_per_obs_type[0].supported_codes[3] = CODE_GLO_L1OF;
+  pvt_config.supported_codes_per_obs_type[0].supported_codes[4] = CODE_GLO_L2OF;
+  pvt_config.supported_codes_per_obs_type[0].supported_codes[5] = CODE_BDS2_B1;
+  pvt_config.supported_codes_per_obs_type[0].supported_codes[6] = CODE_BDS2_B2;
+  pvt_config.supported_codes_per_obs_type[0].supported_codes[7] = CODE_GAL_E1B;
+  pvt_config.supported_codes_per_obs_type[0].supported_codes[8] = CODE_GAL_E7I;
+  pvt_config.supported_codes_per_obs_type[1].obs_type =
+      PVT_DRIVER_OBS_CARRIER_PHASE;
+  pvt_config.supported_codes_per_obs_type[1].num_supported_codes = 9;
+  pvt_config.supported_codes_per_obs_type[1].supported_codes[0] = CODE_GPS_L1CA;
+  pvt_config.supported_codes_per_obs_type[1].supported_codes[1] = CODE_GPS_L2CM;
+  pvt_config.supported_codes_per_obs_type[1].supported_codes[2] = CODE_GPS_L2P;
+  pvt_config.supported_codes_per_obs_type[1].supported_codes[3] = CODE_GLO_L1OF;
+  pvt_config.supported_codes_per_obs_type[1].supported_codes[4] = CODE_GLO_L2OF;
+  pvt_config.supported_codes_per_obs_type[1].supported_codes[5] = CODE_BDS2_B1;
+  pvt_config.supported_codes_per_obs_type[1].supported_codes[6] = CODE_BDS2_B2;
+  pvt_config.supported_codes_per_obs_type[1].supported_codes[7] = CODE_GAL_E1B;
+  pvt_config.supported_codes_per_obs_type[1].supported_codes[8] = CODE_GAL_E7I;
+  pvt_config.supported_codes_per_obs_type[2].obs_type =
+      PVT_DRIVER_OBS_COMPUTED_DOPPLER;
+  pvt_config.supported_codes_per_obs_type[2].num_supported_codes = 9;
+  pvt_config.supported_codes_per_obs_type[2].supported_codes[0] = CODE_GPS_L1CA;
+  pvt_config.supported_codes_per_obs_type[2].supported_codes[1] = CODE_GPS_L2CM;
+  pvt_config.supported_codes_per_obs_type[2].supported_codes[2] = CODE_GPS_L2P;
+  pvt_config.supported_codes_per_obs_type[2].supported_codes[3] = CODE_GLO_L1OF;
+  pvt_config.supported_codes_per_obs_type[2].supported_codes[4] = CODE_GLO_L2OF;
+  pvt_config.supported_codes_per_obs_type[2].supported_codes[5] = CODE_BDS2_B1;
+  pvt_config.supported_codes_per_obs_type[2].supported_codes[6] = CODE_BDS2_B2;
+  pvt_config.supported_codes_per_obs_type[2].supported_codes[7] = CODE_GAL_E1B;
+  pvt_config.supported_codes_per_obs_type[2].supported_codes[8] = CODE_GAL_E7I;
 
   enum pal_error init_result =
       pvt_driver_init(pvt_driver, pvt_config, DISABLED_PVT_INSIGHTS_CONFIG);
