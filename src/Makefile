@@ -243,6 +243,9 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/utils/run_stats/run_stats.o \
         $(SWIFTNAV_ROOT)/src/utils/nav_bit_fifo/nav_bit_fifo.o \
         $(SWIFTNAV_ROOT)/src/utils/nav_data_sync/nav_data_sync.o \
+        $(SWIFTNAV_ROOT)/src/legacy_starling_util/src/sbp/misc.o \
+        $(SWIFTNAV_ROOT)/src/legacy_starling_util/src/sbp/packers.o \
+        $(SWIFTNAV_ROOT)/src/legacy_starling_util/src/sbp/unpackers.o \
         $(BOARDDIR)/ndb_fs_access.o \
         $(SWIFTNAV_ROOT)/src/main/main.o
 
@@ -288,7 +291,6 @@ INCDIR = $(STARTUPINC) $(PORTINC) $(KERNINC) \
          $(STARLING_ROOT)/pvt_common/include \
          $(STARLING_ROOT)/pvt_driver/include \
          $(STARLING_ROOT)/ground_truth/include \
-         $(STARLING_ROOT)/starling_util/include \
          $(SWIFTNAV_ROOT)/src \
          $(SWIFTNAV_ROOT)/src/board \
          $(STARLING_ROOT)/libfec/include \
@@ -300,7 +302,8 @@ INCDIR = $(STARTUPINC) $(PORTINC) $(KERNINC) \
          $(SWIFTNAV_ROOT)/src/calc \
          $(SWIFTNAV_ROOT)/src/cfg \
          $(SWIFTNAV_ROOT)/src/main \
-         $(SWIFTNAV_ROOT)/src/acq
+         $(SWIFTNAV_ROOT)/src/acq \
+         $(SWIFTNAV_ROOT)/src/legacy_starling_util/include
 
 #
 # Project, sources and paths
@@ -394,7 +397,6 @@ DLIBDIR = $(LIBPAL_BUILDDIR)/pal/src \
           $(STARLING_BUILDDIR)/ground_truth \
           $(STARLING_BUILDDIR)/pvt_engine \
           $(STARLING_BUILDDIR)/pvt_common \
-          $(STARLING_BUILDDIR)/starling_util \
           $(STARLING_BUILDDIR)/src/util \
           $(STARLING_BUILDDIR)/libfec \
           $(LIBSWIFTNAV_BUILDDIR) \
@@ -402,7 +404,7 @@ DLIBDIR = $(LIBPAL_BUILDDIR)/pal/src \
 
 # List all default libraries here
 DLIBS = $(BOARDLIBS) -lpal -lpal++ -lsbp -lpvt_driver -lpvt-common -lground-truth -lswiftnav -lpvt-engine -lpvt-common\
-         -lstarling-util -lm -Wl,--start-group\
+         -lm -Wl,--start-group\
          -lstdc++ -lc -Wl,--end-group -lfec -lnosys -lsettings
 
 #

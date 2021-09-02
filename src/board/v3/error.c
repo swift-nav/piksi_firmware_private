@@ -79,7 +79,7 @@ void _screaming_death(const char *fmt, ...) {
     for (u32 d = 0; d < APPROX_ONE_SEC; d++) {
       __asm__("nop");
     }
-    sbp_send_message(
+    sbp_payload_send(
         &sbp_state, SBP_MSG_LOG, 0, len, (u8 *)err_msg, &fallback_write_rpmsg);
   }
 }

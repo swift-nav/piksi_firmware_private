@@ -468,7 +468,7 @@ nav_data_sync_t construct_gal_data_sync(const nav_msg_gal_inav_t *n,
 
 static void parse_inav_bgd(const u8 content[GAL_INAV_CONTENT_BYTE],
                            gal_inav_decoded_t *dd) {
-  ephemeris_kepler_t *kep = &(dd->ephemeris.kepler);
+  ephemeris_kepler_t *kep = &(dd->ephemeris.data.kepler);
   u32 e1e5a = getbitu(content, 47, 10);
   u32 e1e5b = getbitu(content, 57, 10);
   kep->tgd.gal_s[0] = BITS_SIGN_EXTEND_32(10, e1e5a) * (float)C_1_2P32;
@@ -528,7 +528,7 @@ static void parse_inav_eph(const nav_msg_gal_inav_t *nav_msg,
                            gal_inav_decoded_t *dd,
                            const gps_time_t *t_dec) {
   ephemeris_t *eph = &(dd->ephemeris);
-  ephemeris_kepler_t *kep = &(dd->ephemeris.kepler);
+  ephemeris_kepler_t *kep = &(dd->ephemeris.data.kepler);
   kep->iode = getbitu(nav_msg->raw_eph[0], 6, 10);
   kep->iodc = kep->iode;
   eph->fit_interval = GAL_FIT_INTERVAL_SECONDS;

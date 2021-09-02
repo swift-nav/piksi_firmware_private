@@ -241,11 +241,11 @@ int settings_api_register_enum(const char *const enum_names[],
 
 void sbp_state_init(sbp_state_t *s) { (void)s; }
 
-s8 sbp_register_callback(sbp_state_t *s,
-                         u16 msg_type,
-                         sbp_msg_callback_t cb,
-                         void *context,
-                         sbp_msg_callbacks_node_t *node) {
+s8 sbp_payload_callback_register(sbp_state_t *s,
+                                 u16 msg_type,
+                                 sbp_msg_callback_t cb,
+                                 void *context,
+                                 sbp_msg_callbacks_node_t *node) {
   (void)s;
   (void)msg_type;
   (void)cb;
@@ -260,7 +260,7 @@ s8 sbp_remove_callback(sbp_state_t *s, sbp_msg_callbacks_node_t *node) {
   return 0;
 }
 
-s8 sbp_send_message(sbp_state_t *s,
+s8 sbp_payload_send(sbp_state_t *s,
                     u16 msg_type,
                     u16 sender_id,
                     u8 len,

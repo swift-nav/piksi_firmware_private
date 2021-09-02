@@ -45,6 +45,7 @@ INCDIR = $(SWIFTNAV_ROOT) \
          $(SWIFTNAV_ROOT)/src/decode \
          $(SWIFTNAV_ROOT)/src/sbp \
          $(SWIFTNAV_ROOT)/src/calc \
+         $(SWIFTNAV_ROOT)/src/legacy_starling_util/include/ \
          $(SWIFTNAV_ROOT)/mesta/stubs \
          $(SWIFTNAV_ROOT)/mesta/stubs/libswiftnav \
          $(STARLING_ROOT)/pvt_engine/include/ \
@@ -170,9 +171,9 @@ CSRC := $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l2c.c \
         $(SWIFTNAV_ROOT)/src/board/v3/platform_signal.c \
         $(SWIFTNAV_ROOT)/src/board/v3/ndb_fs_access.c \
         $(SWIFTNAV_ROOT)/src/lib/fixed_fft_r2.c \
-        $(STARLING_ROOT)/starling_util/src/sbp/misc.c \
-        $(STARLING_ROOT)/starling_util/src/sbp/packers.c \
-        $(STARLING_ROOT)/starling_util/src/sbp/unpackers.c \
+        $(SWIFTNAV_ROOT)/src/legacy_starling_util/src/sbp/misc.c \
+        $(SWIFTNAV_ROOT)/src/legacy_starling_util/src/sbp/packers.c \
+        $(SWIFTNAV_ROOT)/src/legacy_starling_util/src/sbp/unpackers.c \
         $(STARLING_ROOT)/pvt_engine/src/cycle_slip.c \
         $(STARLING_ROOT)/libfec/src/viterbi27.c \
 		$(STARLING_ROOT)/third_party/libpal/pal/src/pal.c \

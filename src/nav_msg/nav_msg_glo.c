@@ -83,7 +83,7 @@ void nav_msg_init_glo(nav_msg_glo_t *n, me_gnss_signal_t mesid) {
   n->state = SYNC_TM;
   n->bit_polarity = BIT_POLARITY_UNKNOWN;
   n->eph.toe = GPS_TIME_UNKNOWN;
-  n->eph.glo.fcn = mesid.sat;
+  n->eph.data.glo.fcn = mesid.sat;
   n->gps_time = GPS_TIME_UNKNOWN;
   n->mesid = mesid;
 }
@@ -424,9 +424,9 @@ static bool is_eph_decode_done(const nav_msg_glo_t *n) {
 static bool is_ephe_valid(const nav_msg_glo_t *n) {
   double pos_min_m = GLO_ORBIT_RADIUS_M - GLO_ORBIT_RADIUS_MARGIN_M;
   double pos_max_m = GLO_ORBIT_RADIUS_M + GLO_ORBIT_RADIUS_MARGIN_M;
-  double pos_m = sqrt((n->eph.glo.pos[0] * n->eph.glo.pos[0]) +
-                      (n->eph.glo.pos[1] * n->eph.glo.pos[1]) +
-                      (n->eph.glo.pos[2] * n->eph.glo.pos[2]));
+  double pos_m = sqrt((n->eph.data.glo.pos[0] * n->eph.data.glo.pos[0]) +
+                      (n->eph.data.glo.pos[1] * n->eph.data.glo.pos[1]) +
+                      (n->eph.data.glo.pos[2] * n->eph.data.glo.pos[2]));
   if ((pos_m < pos_min_m) || (pos_max_m < pos_m)) {
     log_info_mesid(n->mesid, "GLO-NAV-ERR: position mag = %lf m", pos_m);
     return false;
@@ -434,9 +434,9 @@ static bool is_ephe_valid(const nav_msg_glo_t *n) {
 
   double vel_min_m_s = GLO_VEL_MAG_M_S - GLO_VEL_MAG_MARGIN_M_S;
   double vel_max_m_s = GLO_VEL_MAG_M_S + GLO_VEL_MAG_MARGIN_M_S;
-  double vel_m_s = sqrt((n->eph.glo.vel[0] * n->eph.glo.vel[0]) +
-                        (n->eph.glo.vel[1] * n->eph.glo.vel[1]) +
-                        (n->eph.glo.vel[2] * n->eph.glo.vel[2]));
+  double vel_m_s = sqrt((n->eph.data.glo.vel[0] * n->eph.data.glo.vel[0]) +
+                        (n->eph.data.glo.vel[1] * n->eph.data.glo.vel[1]) +
+                        (n->eph.data.glo.vel[2] * n->eph.data.glo.vel[2]));
   if ((vel_m_s < vel_min_m_s) || (vel_max_m_s < vel_m_s)) {
     log_info_mesid(n->mesid, "GLO-NAV-ERR: velocity mag = %lf m/s", vel_m_s);
     return false;
