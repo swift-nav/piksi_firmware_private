@@ -65,7 +65,8 @@ FW_DEPS=compiler-version \
         $(LIBSETTINGS_BUILDDIR)/src/libsettings.a \
         $(STARLING_BUILDDIR)/pvt_engine/libpvt-engine.a \
         $(STARLING_BUILDDIR)/pvt_common/libpvt-common.a \
-        $(STARLING_BUILDDIR)/pvt_driver/libpvt_driver.a
+        $(STARLING_BUILDDIR)/pvt_driver/libpvt_driver.a \
+        $(STARLING_BUILDDIR)/libfec/libfec.a
 
 ifeq ($(PIKSI_HW),v3)
   FW_DEPS += $(OPENAMP_BUILDDIR)/lib/libopen-amp.a
@@ -117,6 +118,11 @@ $(LIBSETTINGS_BUILDDIR)/src/libsettings.a: .FORCE \
 	      -DLIBSBP_SEARCH_PATH=$(STARLING_ROOT)/third_party/libsbp/c \
 	      $(CMAKEFLAGS) ../
 	$(MAKE) -C $(LIBSETTINGS_BUILDDIR) $(MAKEFLAGS) settings
+
+$(STARLING_BUILDDIR)/libfec/libfec.a: .FORCE \
+	                                $(STARLING_BUILDDIR)/Makefile
+	@printf "BUILD   libfec for target $(PIKSI_TARGET)\n"; \
+	$(MAKE) fec -C $(STARLING_BUILDDIR) $(MAKEFLAGS)
 
 $(STARLING_BUILDDIR)/pvt_common/libpvt-common.a: .FORCE \
 	                                $(STARLING_BUILDDIR)/Makefile
