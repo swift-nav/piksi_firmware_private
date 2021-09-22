@@ -9,12 +9,12 @@
   artifacts:
     -
       bucket: swiftnav-artifacts
-      prefix: piksi_buildroot_private/starling-v1.5.0-develop-2021092204/v3/prod
+      prefix: piksi_buildroot_private/starling-v1.5.0-develop-2021092222/v3/prod
       files:
         - uImage.piksiv3_prod
     -
       bucket: swiftnav-artifacts
-      prefix: piksi_fpga/starling-v1.5.0-develop-2021092204
+      prefix: piksi_fpga/starling-v1.5.0-develop-2021092222
       files:
         - piksi_prod_fpga.bit
 -
@@ -27,11 +27,11 @@
   artifacts:
     -
       bucket: swiftnav-artifacts
-      prefix: piksi_buildroot_private/starling-v1.5.0-develop-2021092204/v3/prod
+      prefix: piksi_buildroot_private/starling-v1.5.0-develop-2021092222/v3/prod
       files:
         - uImage.piksiv3_prod
     -
       bucket: swiftnav-artifacts
-      prefix: piksi_fpga/starling-v1.5.0-develop-2021092204
+      prefix: piksi_fpga/starling-v1.5.0-develop-2021092222
       files:
         - piksi_base_fpga.bit
