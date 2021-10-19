@@ -228,6 +228,25 @@ static void generic_obs_callback(u16 relay_msg_type,
                                  unpack_all_f unpack) {
   (void)context;
 
+  static unsigned total_packets = 0;
+  static unsigned cutoff = 200;
+  total_packets++;
+  if (((cutoff - total_packets) % 25) == 0) {
+    log_warn("Received %u of %u base obs", total_packets, cutoff);
+  }
+  static bool drop_all_except_2 = false;
+  if (cutoff == total_packets) {
+    log_error("Received %u base obs packet, from now on all but the second message in each epoch will be dropped", total_packets);
+    drop_all_except_2 = true;
+  }
+
+  if (drop_all_except_2) {
+    if ((((observation_header_t*)msg)->n_obs & 0xf) != 2) {
+      log_warn("Dropping base obs %x", ((observation_header_t*)msg)->n_obs);
+      return;
+    }
+  }
+
   /* An SBP sender ID of zero means that the messages are relayed observations
    * from the console, not from the base station. We don't want to use them and
    * we don't want to create an infinite loop by forwarding them again so just
