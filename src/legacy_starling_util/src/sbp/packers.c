@@ -986,7 +986,7 @@ static void pack_ephemeris_gal(const ephemeris_t *e, msg_ephemeris_t *m) {
   msg->toc.wn = k->toc.wn;
   msg->iode = k->iode;
   msg->iodc = k->iodc;
-  msg->source = e.source;
+  msg->source = e->source;
 }
 
 static void pack_ephemeris_sbas(const ephemeris_t *e, msg_ephemeris_t *m) {
