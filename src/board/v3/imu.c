@@ -294,7 +294,7 @@ static void imu_thread(void *arg) {
       imu_raw.tow_f = tow_f;
 
       /* Send out IMU_RAW SBP message. */
-      sbp_send_msg(SBP_MSG_IMU_RAW, sizeof(imu_raw), (u8 *)&imu_raw);
+      sbp_send_imu_msg(SBP_MSG_IMU_RAW, sizeof(imu_raw), (u8 *)&imu_raw);
     }
     if (new_mag && raw_mag_output) {
       /* Read out the magnetometer data and fill out the SBP message. */
@@ -305,7 +305,7 @@ static void imu_thread(void *arg) {
       mag_raw.tow_f = tow_f;
 
       /* Send out MAG_RAW SBP message. */
-      sbp_send_msg(SBP_MSG_MAG_RAW, sizeof(mag_raw), (u8 *)&mag_raw);
+      sbp_send_imu_msg(SBP_MSG_MAG_RAW, sizeof(mag_raw), (u8 *)&mag_raw);
     }
     rate_change_in_progress = false;
   }

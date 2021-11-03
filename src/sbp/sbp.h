@@ -39,6 +39,8 @@ void sbp_register_cbk_with_closure(u16 msg_type,
 void sbp_remove_cbk(sbp_msg_callbacks_node_t *node);
 s8 sbp_send_msg(u16 msg_type, u8 len, u8 buff[]);
 s8 sbp_send_msg_(u16 msg_type, u8 len, u8 buff[], u16 sender_id);
+s8 sbp_send_imu_msg(u16 msg_type, u8 len, u8 buff[]);
+s8 sbp_send_imu_msg_(u16 msg_type, u8 len, u8 buff[], u16 sender_id);
 void sbp_process_messages(void);
 
 #endif
