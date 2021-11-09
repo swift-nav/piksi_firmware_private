@@ -136,7 +136,7 @@ void settings_api_setup(void) {
       api.register_cb = reg_cb_wrap,
       api.unregister_cb = unreg_cb_wrap,
       api.log = NULL,
-      api.log_preformat = false,
+      api.log_preformatted = NULL,
   };
 
   settings = settings_create(sbp_sender_id_get(), &api);
