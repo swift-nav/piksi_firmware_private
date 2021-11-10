@@ -97,7 +97,6 @@ void rpmsg_setup(void) {
   remoteproc_env_irq_callback_set(remoteproc_env_irq_callback);
   remoteproc_env_irq_callback_set(remoteproc_imu_env_irq_callback);
 
-
   int status = remoteproc_resource_init(&rsc_table_info,
                                         rpmsg_channel_created,
                                         rpmsg_channel_destroyed,
@@ -293,28 +292,28 @@ static THD_FUNCTION(rpmsg_imu_thread, arg) {
 
     remoteproc_env_irq_process();
 
-      endpoint_data_t *d = &endpoint_data[RPMSG_ENDPOINT_C];
+    endpoint_data_t *d = &endpoint_data[RPMSG_ENDPOINT_C];
 
-      if (d->rpmsg_endpoint == NULL) {
-        continue;
+    if (d->rpmsg_endpoint == NULL) {
+      continue;
+    }
+
+    fifo_t *fifo = &d->tx_fifo;
+    while (1) {
+      u8 buffer[RPMSG_BUFFER_SIZE_MAX];
+      u32 buffer_length =
+          fifo_peek(fifo, buffer, MIN(rpmsg_buffer_size, sizeof(buffer)));
+
+      if (buffer_length == 0) {
+        break;
       }
 
-      fifo_t *fifo = &d->tx_fifo;
-      while (1) {
-        u8 buffer[RPMSG_BUFFER_SIZE_MAX];
-        u32 buffer_length =
-            fifo_peek(fifo, buffer, MIN(rpmsg_buffer_size, sizeof(buffer)));
-
-        if (buffer_length == 0) {
-          break;
-        }
-
-        if (rpmsg_trysendto(
-                d->rpmsg_endpoint->rp_chnl, buffer, buffer_length, d->addr) !=
-            0) {
-          break;
-        }
-        fifo_remove(fifo, buffer_length);
+      if (rpmsg_trysendto(
+              d->rpmsg_endpoint->rp_chnl, buffer, buffer_length, d->addr) !=
+          0) {
+        break;
       }
+      fifo_remove(fifo, buffer_length);
+    }
   }
 }
