@@ -145,7 +145,7 @@ static settings_api_t settings_api_for_client(SbpSettingsClient *client) {
       .register_cb = impl_register_cb,
       .unregister_cb = impl_unregister_cb,
       .log = NULL,
-      .log_preformat = false,
+      .log_preformatted = NULL,
   };
   return impl;
 }
