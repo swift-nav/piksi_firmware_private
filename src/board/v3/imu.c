@@ -101,7 +101,7 @@ static void imu_aux_send(void) {
   imu_aux.imu_conf = (gyr_range << 4) | acc_range;
 
   /* Send out IMU_AUX SBP message. */
-  sbp_send_msg(SBP_MSG_IMU_AUX, sizeof(imu_aux), (u8 *)&imu_aux);
+  sbp_send_imu_msg(SBP_MSG_IMU_AUX, sizeof(imu_aux), (u8 *)&imu_aux);
 }
 
 /** IMU auxiliary data processing thread. */

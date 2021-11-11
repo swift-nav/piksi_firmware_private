@@ -63,7 +63,6 @@ static struct rsc_table_info rsc_table_info = {
 static BSEMAPHORE_DECL(rpmsg_thd_bsem, false);
 
 static void remoteproc_env_irq_callback(void);
-static void remoteproc_imu_env_irq_callback(void);
 
 static void rpmsg_channel_created(struct rpmsg_channel *rpmsg_channel);
 static void rpmsg_channel_destroyed(struct rpmsg_channel *rpmsg_channel);
@@ -95,7 +94,6 @@ void rpmsg_setup(void) {
   }
 
   remoteproc_env_irq_callback_set(remoteproc_env_irq_callback);
-  remoteproc_env_irq_callback_set(remoteproc_imu_env_irq_callback);
 
   int status = remoteproc_resource_init(&rsc_table_info,
                                         rpmsg_channel_created,
@@ -172,12 +170,6 @@ bool rpmsg_halt_manual_send(rpmsg_endpoint_t rpmsg_endpoint,
 static void remoteproc_env_irq_callback(void) {
   chSysLockFromISR();
   chBSemSignalI(&rpmsg_thd_bsem);
-  chSysUnlockFromISR();
-}
-
-static void remoteproc_imu_env_irq_callback(void) {
-  chSysLockFromISR();
-  chBSemSignalI(&rpmsg_imu_thd_bsem);
   chSysUnlockFromISR();
 }
 
