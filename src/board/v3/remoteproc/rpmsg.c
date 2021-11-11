@@ -282,8 +282,6 @@ static THD_FUNCTION(rpmsg_imu_thread, arg) {
   while (1) {
     chBSemWaitTimeout(&rpmsg_imu_thd_bsem, MS2ST(RPMSG_IMU_THD_PERIOD_ms));
 
-    remoteproc_env_irq_process();
-
     endpoint_data_t *d = &endpoint_data[RPMSG_ENDPOINT_C];
 
     if (d->rpmsg_endpoint == NULL) {
@@ -305,6 +303,7 @@ static THD_FUNCTION(rpmsg_imu_thread, arg) {
           0) {
         break;
       }
+      remoteproc_env_irq_process();
       fifo_remove(fifo, buffer_length);
     }
   }
