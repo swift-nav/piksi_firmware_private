@@ -226,6 +226,13 @@ u32 io_support_write(void *sd, const u8 data[], u32 len) {
   return 0;
 }
 
+u32 imu_io_support_write(void *sd, const u8 data[], u32 len) {
+  (void)sd;
+  (void)data;
+  (void)len;
+  return 0;
+}
+
 int settings_api_register(struct setting *setting, settings_type_t type) {
   (void)setting;
   (void)type;
