@@ -303,7 +303,6 @@ static THD_FUNCTION(rpmsg_imu_thread, arg) {
           0) {
         break;
       }
-      remoteproc_env_irq_process();
       fifo_remove(fifo, buffer_length);
     }
   }
