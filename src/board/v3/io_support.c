@@ -40,6 +40,6 @@ u32 io_support_write(void *sd, const u8 data[], u32 len) {
   return rpmsg_tx_fifo_write(SD_TO_RPMSG_EPT(sd), data, len);
 }
 
-u32 imu_io_support_write(void *sd, const u8 data[], u32 len) {
+u32 io_support_imu_write(void *sd, const u8 data[], u32 len) {
   return rpmsg_imu_tx_fifo_write(SD_TO_RPMSG_EPT(sd), data, len);
 }

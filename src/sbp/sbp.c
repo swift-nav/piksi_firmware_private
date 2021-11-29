@@ -218,7 +218,7 @@ s8 sbp_send_imu_msg_(u16 msg_type, u8 len, u8 buff[], u16 sender_id) {
   s8 ret = sbp_payload_send(
       &sbp_state, msg_type, sender_id, len, buff, &sbp_imu_buffer_write);
 
-  imu_io_support_write(SD_IMU, sbp_imu_buffer, sbp_imu_buffer_length);
+  io_support_imu_write(SD_IMU, sbp_imu_buffer, sbp_imu_buffer_length);
 
   chMtxUnlock(&send_imu_mutex);
   return ret;

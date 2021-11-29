@@ -34,7 +34,7 @@
 #define RPMSG_THD_PANIC_PRIO (HIGHPRIO - 1)
 #define RPMSG_THD_STACK_SIZE 4096
 #define RPMSG_THD_PERIOD_ms 10
-#define RPMSG_IMU_THD_PERIOD_ms 5
+#define RPMSG_IMU_THD_PERIOD_ms 15
 
 static const u32 endpoint_addr_config[RPMSG_ENDPOINT__COUNT] = {
     [RPMSG_ENDPOINT_A] = 100,
@@ -241,6 +241,9 @@ static THD_FUNCTION(rpmsg_thread, arg) {
 
     remoteproc_env_irq_process();
 
+    // RPMSG_ENDPOINT_C is being handled by the imu thread exclusively for IMU
+    // messages. This thread will only handle RPMSG_ENDPOINT_A and
+    // RPMSG_ENDPOINT_B
     for (u32 i = 0; i < RPMSG_ENDPOINT_C; i++) {
       endpoint_data_t *d = &endpoint_data[i];
 
