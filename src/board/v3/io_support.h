@@ -21,7 +21,7 @@
 #define SD_SBP RPMSG_EPT_TO_SD(RPMSG_ENDPOINT_A)
 #define SD_NMEA RPMSG_EPT_TO_SD(RPMSG_ENDPOINT_B)
 
-#define SD_SPARE RPMSG_EPT_TO_SD(RPMSG_ENDPOINT_C)
+#define SD_IMU RPMSG_EPT_TO_SD(RPMSG_ENDPOINT_C)
 
 void io_support_init(void);
 void io_support_set_parameters(void *sd, u32 baud);
@@ -30,5 +30,6 @@ u32 io_support_n_read(void *sd);
 u32 io_support_tx_n_free(void *sd);
 u32 io_support_read_timeout(void *sd, u8 data[], u32 len, u32 timeout);
 u32 io_support_write(void *sd, const u8 data[], u32 len);
+u32 io_support_imu_write(void *sd, const u8 data[], u32 len);
 
 #endif /* SWIFTNAV_IO_SUPPORT_H */

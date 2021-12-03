@@ -68,6 +68,9 @@ sbp_state_t sbp_state;
 static u8 sbp_buffer[264];
 static u32 sbp_buffer_length;
 
+static u8 sbp_imu_buffer[264];
+static u32 sbp_imu_buffer_length;
+
 static MUTEX_DECL(sbp_cb_mutex);
 
 static THD_WORKING_AREA(wa_sbp_thread, SBP_THREAD_STACK);
@@ -178,6 +181,46 @@ s8 sbp_send_msg_(u16 msg_type, u8 len, u8 buff[], u16 sender_id) {
   io_support_write(SD_SBP, sbp_buffer, sbp_buffer_length);
 
   chMtxUnlock(&send_mutex);
+  return ret;
+}
+
+static void sbp_imu_buffer_reset(void) { sbp_imu_buffer_length = 0; }
+
+static s32 sbp_imu_buffer_write(u8 *buff, u32 n, void *context) {
+  (void)context;
+  u32 len = MIN(sizeof(sbp_imu_buffer) - sbp_imu_buffer_length, n);
+  MEMCPY_S(&sbp_imu_buffer[sbp_imu_buffer_length],
+           sizeof(sbp_imu_buffer) - sbp_imu_buffer_length,
+           buff,
+           len);
+  sbp_imu_buffer_length += len;
+  return len;
+}
+
+/** Send an SBP message
+ *
+ * \param msg_type Message ID
+ * \param len      Length of message data
+ * \param buff     Pointer to message data array
+ *
+ * \return         Error code
+ */
+s8 sbp_send_imu_msg(u16 msg_type, u8 len, u8 buff[]) {
+  return sbp_send_imu_msg_(msg_type, len, buff, my_sender_id);
+}
+
+s8 sbp_send_imu_msg_(u16 msg_type, u8 len, u8 buff[], u16 sender_id) {
+  static MUTEX_DECL(send_imu_mutex);
+  chMtxLock(&send_imu_mutex);
+
+  /* Write message into buffer */
+  sbp_imu_buffer_reset();
+  s8 ret = sbp_payload_send(
+      &sbp_state, msg_type, sender_id, len, buff, &sbp_imu_buffer_write);
+
+  io_support_imu_write(SD_IMU, sbp_imu_buffer, sbp_imu_buffer_length);
+
+  chMtxUnlock(&send_imu_mutex);
   return ret;
 }
 

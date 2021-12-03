@@ -30,9 +30,11 @@
 #define RPMSG_BUFFER_SIZE_MAX 512
 
 #define RPMSG_THD_PRIO (HIGHPRIO - 21)
+#define RPMSG_IMU_THD_PRIO (HIGHPRIO - 2)
 #define RPMSG_THD_PANIC_PRIO (HIGHPRIO - 1)
 #define RPMSG_THD_STACK_SIZE 4096
 #define RPMSG_THD_PERIOD_ms 10
+#define RPMSG_IMU_THD_PERIOD_ms 15
 
 static const u32 endpoint_addr_config[RPMSG_ENDPOINT__COUNT] = {
     [RPMSG_ENDPOINT_A] = 100,
@@ -78,6 +80,10 @@ static void rpmsg_endpoint_rx(struct rpmsg_channel *rpmsg_channel,
 static THD_WORKING_AREA(wa_rpmsg_thread, RPMSG_THD_STACK_SIZE);
 static THD_FUNCTION(rpmsg_thread, arg);
 
+static BSEMAPHORE_DECL(rpmsg_imu_thd_bsem, false);
+static THD_WORKING_AREA(wa_rpmsg_imu_thread, RPMSG_THD_STACK_SIZE);
+static THD_FUNCTION(rpmsg_imu_thread, arg);
+
 void rpmsg_setup(void) {
   for (u32 i = 0; i < RPMSG_ENDPOINT__COUNT; i++) {
     endpoint_data_t *d = &endpoint_data[i];
@@ -102,6 +108,12 @@ void rpmsg_setup(void) {
                     rpmsg_thread,
                     NULL);
 
+  chThdCreateStatic(wa_rpmsg_imu_thread,
+                    sizeof(wa_rpmsg_imu_thread),
+                    RPMSG_IMU_THD_PRIO,
+                    rpmsg_imu_thread,
+                    NULL);
+
   remoteproc_env_irq_kick();
 }
 
@@ -124,6 +136,14 @@ u32 rpmsg_tx_fifo_write(rpmsg_endpoint_t rpmsg_endpoint,
                         u32 length) {
   u32 n = fifo_write(&endpoint_data[rpmsg_endpoint].tx_fifo, buffer, length);
   chBSemSignal(&rpmsg_thd_bsem);
+  return n;
+}
+
+u32 rpmsg_imu_tx_fifo_write(rpmsg_endpoint_t rpmsg_endpoint,
+                            const u8 *buffer,
+                            u32 length) {
+  u32 n = fifo_write(&endpoint_data[rpmsg_endpoint].tx_fifo, buffer, length);
+  chBSemSignal(&rpmsg_imu_thd_bsem);
   return n;
 }
 
@@ -221,7 +241,10 @@ static THD_FUNCTION(rpmsg_thread, arg) {
 
     remoteproc_env_irq_process();
 
-    for (u32 i = 0; i < RPMSG_ENDPOINT__COUNT; i++) {
+    // RPMSG_ENDPOINT_C is being handled by the imu thread exclusively for IMU
+    // messages. This thread will only handle RPMSG_ENDPOINT_A and
+    // RPMSG_ENDPOINT_B
+    for (u32 i = 0; i < RPMSG_ENDPOINT_C; i++) {
       endpoint_data_t *d = &endpoint_data[i];
 
       if (d->rpmsg_endpoint == NULL) {
@@ -251,6 +274,39 @@ static THD_FUNCTION(rpmsg_thread, arg) {
     if (fw_panic && chThdGetSelfX()->p_realprio < RPMSG_THD_PANIC_PRIO) {
       chThdSetPriority(RPMSG_THD_PANIC_PRIO);
       chMtxUnlock(&rpmsg_panic_mtx);
+    }
+  }
+}
+
+static THD_FUNCTION(rpmsg_imu_thread, arg) {
+  (void)arg;
+  chRegSetThreadName("rpmsg_imu");
+
+  while (1) {
+    chBSemWaitTimeout(&rpmsg_imu_thd_bsem, MS2ST(RPMSG_IMU_THD_PERIOD_ms));
+
+    endpoint_data_t *d = &endpoint_data[RPMSG_ENDPOINT_C];
+
+    if (d->rpmsg_endpoint == NULL) {
+      continue;
+    }
+
+    fifo_t *fifo = &d->tx_fifo;
+    while (1) {
+      u8 buffer[RPMSG_BUFFER_SIZE_MAX];
+      u32 buffer_length =
+          fifo_peek(fifo, buffer, MIN(rpmsg_buffer_size, sizeof(buffer)));
+
+      if (buffer_length == 0) {
+        break;
+      }
+
+      if (rpmsg_trysendto(
+              d->rpmsg_endpoint->rp_chnl, buffer, buffer_length, d->addr) !=
+          0) {
+        break;
+      }
+      fifo_remove(fifo, buffer_length);
     }
   }
 }

@@ -32,6 +32,9 @@ u32 rpmsg_rx_fifo_read(rpmsg_endpoint_t rpmsg_endpoint, u8 *buffer, u32 length);
 u32 rpmsg_tx_fifo_write(rpmsg_endpoint_t rpmsg_endpoint,
                         const u8 *buffer,
                         u32 length);
+u32 rpmsg_imu_tx_fifo_write(rpmsg_endpoint_t rpmsg_endpoint,
+                            const u8 *buffer,
+                            u32 length);
 bool rpmsg_halt_manual_send(rpmsg_endpoint_t rpmsg_endpoint,
                             u8 *buffer,
                             u32 buffer_length);
