@@ -53,12 +53,20 @@ extern void ext_setup(void);
    https://stackoverflow.com/questions/34308720/where-is-dso-handle-defined */
 void *__dso_handle = NULL;
 
+void _init(void) {}
+
 int main(void) {
   halInit();
 
   /* Kernel initialization, the main() function becomes a thread with
    * priority NORMALPRIO and the RTOS is active. */
   chSysInit();
+
+  /* Call C++ static constructors.  This can only be done after chSysInit, since
+   * these ultimately call ChibiOS heap and mutex functions. */
+  void __libc_init_array(void);
+  __libc_init_array();
+
   pre_init();
   io_support_init();
 
