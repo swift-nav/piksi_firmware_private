@@ -240,7 +240,7 @@ static void imu_thread(void *arg) {
     double time_from_start_ms = fmod((time_from_start * SECS_MS), WEEK_MS);
     // Set time status to time of system startup
     tow = (u32)time_from_start_ms | TIME_STATUS_SYSTEM_STARTUP;
-    // Set fractional part accord to specification.
+    // Set fractional part according to specification.
     tow_f = (u8)lrint((time_from_start_ms - (u32)time_from_start_ms) * 256);
 
     // Log local time wrap around no need to re-send gnss time offset
@@ -257,8 +257,6 @@ static void imu_thread(void *arg) {
       /* We know the GPS time to high accuracy, this allows us to convert a
        * timing count value into a GPS time. */
       sample_time = napcount2gpstime(tc);
-
-      // Format the time of week as a fixed point value for the SBP message.
       double gnss_tow_ms = sample_time.tow * SECS_MS;
 
       /* Warn if imu dt error exceeds threshhold according to our ME */
