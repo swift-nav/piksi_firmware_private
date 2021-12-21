@@ -136,7 +136,7 @@ static void imu_thread(void *arg) {
   u32 sensor_time;
   u32 p_sensor_time = 0;
   double gnss_p_tow_ms = 0;
-  u32 local_p_tow_ms = 0;
+  double local_p_tow_ms = 0;
   msg_imu_raw_t imu_raw;
   msg_mag_raw_t mag_raw;
 
@@ -235,20 +235,22 @@ static void imu_thread(void *arg) {
      * captured in the ISR. */
     u64 tc = nap_sample_time_to_count(nap_tc);
     double time_from_start = tc * (1 - get_clock_drift()) * RX_DT_NOMINAL;
-    // Convert local time to ms and wrap local timestamp around 1 week or 604800000 milliseconds
+    // Convert local time to ms and wrap local timestamp around 1 week or
+    // 604800000 milliseconds
     double time_from_start_ms = fmod((time_from_start * SECS_MS), WEEK_MS);
-    u32 local_tow_ms = (u32)time_from_start_ms;
     // Set time status to time of system startup
-    tow = local_tow_ms | TIME_STATUS_SYSTEM_STARTUP;
+    tow = (u32)time_from_start_ms | TIME_STATUS_SYSTEM_STARTUP;
     // Set fractional part accord to specification.
     tow_f = (u8)lrint((time_from_start_ms - (u32)time_from_start_ms) * 256);
 
     // Log local time wrap around no need to re-send gnss time offset
-    if(tow < local_p_tow_ms){
-      log_warn("Local time wrap around, current tow: %lu previous tow: %lu" ,(tow) ,local_p_tow_ms);
+    if (time_from_start_ms < local_p_tow_ms) {
+      log_warn("Local time wrap around, current: %fms, previous: %fms",
+               time_from_start_ms,
+               local_p_tow_ms);
     }
 
-    local_p_tow_ms = tow;
+    local_p_tow_ms = time_from_start_ms;
 
     /* Calculate the GPS time of the observation, if possible. */
     if (get_time_quality() >= TIME_PROPAGATED) {
@@ -295,10 +297,11 @@ static void imu_thread(void *arg) {
         }
 
         // calculate and send gnss time offset message.
-        if (send_gnss_time_offset){
+        if (send_gnss_time_offset) {
           // convert local and gnss from milliseconds to microseconds.
           u64 local_tow_us = (u64)(time_from_start_ms * MS_US);
-          u64 gnss_tow_us = (u64)(sample_time.tow * SECS_US) + ((u64)sample_time.wn * WEEK_MS * MS_US);
+          u64 gnss_tow_us = (u64)(sample_time.tow * SECS_US) +
+                            ((u64)sample_time.wn * WEEK_MS * MS_US);
           u64 gnss_time_offset = gnss_tow_us - local_tow_us;
 
           // Pack and send offset message.
@@ -310,7 +313,10 @@ static void imu_thread(void *arg) {
           msg.weeks = gnss_time_offset;
           msg.flags = 0;
           sbp_send_msg(SBP_MSG_GNSS_TIME_OFFSET, sizeof(msg), (u8 *)&msg);
-          log_warn("GNSS OFFSET us:%i ms:%li wn:%i", msg.microseconds, msg.milliseconds, msg.weeks );
+          log_warn("GNSS OFFSET us:%i ms:%li wn:%i",
+                   msg.microseconds,
+                   msg.milliseconds,
+                   msg.weeks);
           send_gnss_time_offset = false;
         }
       }
