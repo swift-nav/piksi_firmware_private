@@ -631,3 +631,22 @@ TEST(nav_msg_tests, nav_parity) {
   parity = nav_parity(&bit_error_how);
   EXPECT_NE(0, parity);
 }
+
+TEST(nav_msg_tests, decode_utc_params) {
+  const u32 incoming_words[8] = {
+      0x1E033FF5, 0x3FC08E4F, 0x3CBF8401, 0x3FFFFF86,
+      0x0000003F, 0x00C923EA, 0x04A241E6, 0x0480007C,
+  };
+
+  gps_nav_decoded_utc_params_t decoded_utc;
+  EXPECT_TRUE(decode_lnav_utc_params(incoming_words, &decoded_utc));
+  EXPECT_DOUBLE_EQ(3 * GPS_LNAV_UTC_SF_A0, decoded_utc.a0);
+  EXPECT_DOUBLE_EQ(-2 * GPS_LNAV_UTC_SF_A1, decoded_utc.a1);
+  EXPECT_DOUBLE_EQ(0., decoded_utc.a2);
+  EXPECT_EQ(18, decoded_utc.dt_ls);
+  EXPECT_DOUBLE_EQ(36 * GPS_LNAV_UTC_SF_TOT, decoded_utc.t_ot);
+  EXPECT_EQ(143, decoded_utc.wn_ot);
+  EXPECT_EQ(137, decoded_utc.wn_lsf);
+  EXPECT_EQ(7, decoded_utc.dn);
+  EXPECT_EQ(18, decoded_utc.dt_lsf);
+}

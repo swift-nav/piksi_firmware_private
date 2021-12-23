@@ -93,21 +93,22 @@ typedef struct {
   s16 isc_l2c; /**< seconds, scale factor 2^-35 */
 } cnav_msg_type_30_t;
 
+#define PIKSI_GPS_WEEK_REFERENCE 2188
+
 /**
- * GPS CNAV message type 33 data.
- *
+ * GPS LNAV/CNAV decoded parameters for UTC
  */
 typedef struct {
-  s16 a0;     /**< seconds, scale factor 2^-35 */
-  s16 a1;     /**< s/s, scale factor 2^-51 */
-  s8 a2;      /**< s/s^2, scale factor 2^-68 */
-  s8 dt_ls;   /**< current or past leap second count */
-  u16 tot;    /**< Time data reference time of week, scale factor 2^4 */
-  u16 wn_ot;  /**< Time data reference week number */
-  u16 wn_lsf; /**< Leap second reference week number */
-  u8 dn;      /**< Leap second reference day number */
-  s8 dt_lsf;  /**< current or future leap second count */
-} cnav_msg_type_33_t;
+  double a0;   /**< bias coefficient, seconds */
+  double a1;   /**< bias drift coefficient, s/s */
+  double a2;   /**< bias drift rate coefficient, s/s^2 */
+  s8 dt_ls;    /**< current or past leap second count */
+  double t_ot; /**< Time data reference time of week */
+  u16 wn_ot;   /**< Time data reference week number */
+  u16 wn_lsf;  /**< Leap second reference week number */
+  u8 dn;       /**< Leap second reference day number */
+  s8 dt_lsf;   /**< current or future leap second count */
+} gps_nav_decoded_utc_params_t;
 
 /**
  * GPS CNAV message type 10 data.
@@ -133,7 +134,7 @@ typedef struct {
   union {
     cnav_msg_type_30_t type_30;
     cnav_msg_type_10_t type_10;
-    cnav_msg_type_33_t type_33;
+    gps_nav_decoded_utc_params_t type_33;
   } data;
 } cnav_msg_t;
 
@@ -184,8 +185,10 @@ bool cnav_msg_decoder_add_symbol(cnav_msg_decoder_t *dec,
                                  unsigned char symbol,
                                  cnav_msg_t *msg,
                                  u32 *pdelay);
-bool cnav_33_to_utc(const cnav_msg_type_33_t *msg, utc_params_t *u);
-
+bool convert_to_utc_params(const gps_nav_decoded_utc_params_t *msg,
+                           utc_params_t *u);
+void decode_cnav_msg_type_33(cnav_msg_t *msg,
+                             const cnav_v27_part_t *part);
 #ifdef __cplusplus
 } /* extern "C" */
 #endif /* __cplusplus */

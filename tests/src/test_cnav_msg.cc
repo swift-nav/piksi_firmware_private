@@ -511,3 +511,74 @@ TEST(cnav_tests, cnav_crc) {
 
   EXPECT_EQ(crc0, crc1);
 }
+
+TEST(cnav_tests, decode_utc_params) {
+ const unsigned char incoming_chars[38] = {
+      0b10001011, 0b00010010, 0b00010001, 0b00110001,
+      0b00000000, 0b00000100, 0b11101001, 0b01110001,
+      0b10100101, 0b11001100, 0b01110001, 0b01110011,
+      0b00000000, 0b00001101, 0b11100000, 0b00000001,
+      0b11111111, 0b11100001, 0b11111111, 0b10110000,
+      0b01000010, 0b01000111, 0b00100000, 0b00001000,
+      0b10001111, 0b00111100, 0b01001011, 0b10001001,
+      0b00000000, 0b00000000, 0b00000000, 0b00000000,
+      0b00000000, 0b00000000, 0b00001110, 0b01111011,
+      0b00000101, 0b00110000
+  };
+  cnav_v27_part_t incoming_msg;
+  memcpy(incoming_msg.decoded, incoming_chars, sizeof(incoming_chars));
+
+  cnav_msg_t msg;
+  memset(&msg, 0, sizeof(msg));
+  decode_cnav_msg_type_33(&msg, &incoming_msg);
+
+  const gps_nav_decoded_utc_params_t decoded_utc = msg.data.type_33;
+  EXPECT_DOUBLE_EQ(-16 * GPS_CNAV_UTC_SF_A0, decoded_utc.a0);
+  EXPECT_DOUBLE_EQ(-5 * GPS_CNAV_UTC_SF_A1, decoded_utc.a1);
+  EXPECT_DOUBLE_EQ(2 * GPS_CNAV_UTC_SF_A2, decoded_utc.a2);
+  EXPECT_EQ(18, decoded_utc.dt_ls);
+  EXPECT_DOUBLE_EQ(14592 * GPS_CNAV_UTC_SF_TOT, decoded_utc.t_ot);
+  EXPECT_EQ(2191, decoded_utc.wn_ot);
+  EXPECT_EQ(1929, decoded_utc.wn_lsf);
+  EXPECT_EQ(7, decoded_utc.dn);
+  EXPECT_EQ(18, decoded_utc.dt_lsf);
+}
+
+TEST(cnav_tests, convert_utc_params) {
+  gps_nav_decoded_utc_params_t decoded_utc;
+  memset(&decoded_utc, 0, sizeof(decoded_utc));
+
+  decoded_utc.a0 = GPS_CNAV_UTC_SF_A0;
+  decoded_utc.a1 = GPS_CNAV_UTC_SF_A1;
+  decoded_utc.dt_ls = 18;
+  decoded_utc.t_ot = 164000;
+  decoded_utc.wn_ot = 140;
+  decoded_utc.wn_lsf = 137;
+  decoded_utc.dn = 7;
+  decoded_utc.dt_lsf = 18;
+
+  utc_params_t utc;
+  convert_to_utc_params(&decoded_utc, &utc);
+
+  EXPECT_DOUBLE_EQ(decoded_utc.a0,utc.a0);
+  EXPECT_DOUBLE_EQ(decoded_utc.a1,utc.a1);
+  EXPECT_DOUBLE_EQ(decoded_utc.a2,utc.a2);
+  gps_time_t expected_tot;
+  expected_tot = {.tow = decoded_utc.t_ot, .wn = PIKSI_GPS_WEEK_REFERENCE};
+  EXPECT_EQ(expected_tot,utc.tot);
+  gps_time_t expected_leap_second_event;
+  expected_leap_second_event = {.tow = static_cast<double>(
+                                    decoded_utc.dn * DAY_SECS +
+                                    decoded_utc.dt_ls),
+                                .wn = static_cast<s16>(
+                                    gps_adjust_week_cycle256(
+                                        decoded_utc.wn_lsf,
+                                        PIKSI_GPS_WEEK_REFERENCE)
+                                    )
+  };
+  normalize_gps_time(&expected_leap_second_event);
+  EXPECT_NEAR(expected_leap_second_event.tow,utc.t_lse.tow,1e-6);
+  EXPECT_EQ(expected_leap_second_event.wn, utc.t_lse.wn);
+  EXPECT_EQ(decoded_utc.dt_ls,utc.dt_ls);
+  EXPECT_EQ(decoded_utc.dt_lsf,utc.dt_lsf);
+}
