@@ -893,8 +893,7 @@ bool decode_lnav_utc_params(const u32 words[8],
   if (GPS_LNAV_ALM_DATA_ID_BLOCK_II == data_id &&
       GPS_LNAV_ALM_SVID_UTC == sv_id) {
     /* Word 6 bits 1-24 */
-    u->a1 = BITS_SIGN_EXTEND_32(24,
-                                (words[6 - 3] >>(30 - 24) & 0xFFFFFF)) *
+    u->a1 = BITS_SIGN_EXTEND_32(24, (words[6 - 3] >> (30 - 24) & 0xFFFFFF)) *
             GPS_LNAV_UTC_SF_A1;
     /* Word 7 bits 1-24 and word 8 bits 1-8 */
     u->a0 = (s32)(((words[7 - 3] >> (30 - 24) & 0xFFFFFF) << 8) |

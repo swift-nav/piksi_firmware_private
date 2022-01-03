@@ -246,18 +246,17 @@ static void decode_cnav_msg_type_30(cnav_msg_t *msg,
       INVALID_GROUP_DELAY_VALUE != msg->data.type_30.isc_l2c;
 }
 
-void decode_cnav_msg_type_33(cnav_msg_t *msg,
-                             const cnav_v27_part_t *part) {
+void decode_cnav_msg_type_33(cnav_msg_t *msg, const cnav_v27_part_t *part) {
   /* ref: ICD Figure 30-6 */
-  msg->data.type_33.a0 = (s16)getbits(part->decoded, 127, 16) *
-                         GPS_CNAV_UTC_SF_A0;
-  msg->data.type_33.a1 = (s16)getbits(part->decoded, 143, 13) *
-                         GPS_CNAV_UTC_SF_A1;
-  msg->data.type_33.a2 = (s8)getbits(part->decoded, 156, 7) *
-                         GPS_CNAV_UTC_SF_A2;
+  msg->data.type_33.a0 =
+      (s16)getbits(part->decoded, 127, 16) * GPS_CNAV_UTC_SF_A0;
+  msg->data.type_33.a1 =
+      (s16)getbits(part->decoded, 143, 13) * GPS_CNAV_UTC_SF_A1;
+  msg->data.type_33.a2 =
+      (s8)getbits(part->decoded, 156, 7) * GPS_CNAV_UTC_SF_A2;
   msg->data.type_33.dt_ls = (s8)getbits(part->decoded, 163, 8);
-  msg->data.type_33.t_ot = (u16)getbitu(part->decoded, 171, 16) *
-                           GPS_CNAV_UTC_SF_TOT;
+  msg->data.type_33.t_ot =
+      (u16)getbitu(part->decoded, 171, 16) * GPS_CNAV_UTC_SF_TOT;
   msg->data.type_33.wn_ot = (u16)getbitu(part->decoded, 187, 13);
   msg->data.type_33.wn_lsf = (u16)getbitu(part->decoded, 200, 13);
   msg->data.type_33.dn = (u8)getbitu(part->decoded, 213, 4);

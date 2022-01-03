@@ -187,8 +187,7 @@ bool cnav_msg_decoder_add_symbol(cnav_msg_decoder_t *dec,
                                  u32 *pdelay);
 bool convert_to_utc_params(const gps_nav_decoded_utc_params_t *msg,
                            utc_params_t *u);
-void decode_cnav_msg_type_33(cnav_msg_t *msg,
-                             const cnav_v27_part_t *part);
+void decode_cnav_msg_type_33(cnav_msg_t *msg, const cnav_v27_part_t *part);
 #ifdef __cplusplus
 } /* extern "C" */
 #endif /* __cplusplus */
