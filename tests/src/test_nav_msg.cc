@@ -645,8 +645,8 @@ TEST(nav_msg_tests, decode_utc_params) {
   EXPECT_DOUBLE_EQ(0., decoded_utc.a2);
   EXPECT_EQ(18, decoded_utc.dt_ls);
   EXPECT_DOUBLE_EQ(36 * GPS_LNAV_UTC_SF_TOT, decoded_utc.t_ot);
-  EXPECT_EQ(143, decoded_utc.wn_ot);
-  EXPECT_EQ(137, decoded_utc.wn_lsf);
+  EXPECT_EQ(gps_adjust_week_cycle256(143, PIKSI_GPS_WEEK_REFERENCE), decoded_utc.wn_ot);
+  EXPECT_EQ(gps_adjust_week_cycle256(137, PIKSI_GPS_WEEK_REFERENCE), decoded_utc.wn_lsf);
   EXPECT_EQ(7, decoded_utc.dn);
   EXPECT_EQ(18, decoded_utc.dt_lsf);
 }

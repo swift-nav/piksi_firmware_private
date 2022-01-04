@@ -257,28 +257,28 @@ void decode_cnav_msg_type_33(cnav_msg_t *msg, const cnav_v27_part_t *part) {
   msg->data.type_33.dt_ls = (s8)getbits(part->decoded, 163, 8);
   msg->data.type_33.t_ot =
       (u16)getbitu(part->decoded, 171, 16) * GPS_CNAV_UTC_SF_TOT;
-  msg->data.type_33.wn_ot = (u16)getbitu(part->decoded, 187, 13);
-  msg->data.type_33.wn_lsf = (u16)getbitu(part->decoded, 200, 13);
+  msg->data.type_33.wn_ot = gps_adjust_week_cycle256(
+      (u16)getbitu(part->decoded, 187, 13), PIKSI_GPS_WEEK_REFERENCE);
+  msg->data.type_33.wn_lsf = gps_adjust_week_cycle256(
+      (u16)getbitu(part->decoded, 200, 13), PIKSI_GPS_WEEK_REFERENCE);
   msg->data.type_33.dn = (u8)getbitu(part->decoded, 213, 4);
   msg->data.type_33.dt_lsf = (s8)getbits(part->decoded, 217, 8);
 }
 
 /**
- * This function fills out the full time of week from current gps week cycle as
- * well as relating the leap second event to the exact GPS time at the start of
- * the leap second event.
+ * This function relates the leap second event to the exact GPS time at the
+ * start of the leap second event.
  */
 bool convert_to_utc_params(const gps_nav_decoded_utc_params_t *msg,
                            utc_params_t *u) {
   memset(u, 0, sizeof(*u));
-
   u->a2 = msg->a2;
   u->a1 = msg->a1;
   u->a0 = msg->a0;
   u->tot.tow = msg->t_ot;
-  u->tot.wn = gps_adjust_week_cycle256(msg->wn_ot, PIKSI_GPS_WEEK_REFERENCE);
+  u->tot.wn = msg->wn_ot;
   u->dt_ls = msg->dt_ls;
-  u->t_lse.wn = gps_adjust_week_cycle256(msg->wn_lsf, PIKSI_GPS_WEEK_REFERENCE);
+  u->t_lse.wn = msg->wn_lsf;
   if ((msg->dn < GPS_LNAV_UTC_MIN_DN) || (msg->dn > GPS_LNAV_UTC_MAX_DN)) {
     log_warn("Invalid day number in LNAV/CNAV UTC message: %d", msg->dn);
     return false;

@@ -71,6 +71,10 @@ extern "C" {
 /** Group delay value scale factor 2^-35*/
 #define GROUP_DELAY_SCALE C_1_2P35
 
+/** GPS week reference number solely used within the piksi firmware. Relates a
+ * received truncated week number into an unambiguous week. */
+#define PIKSI_GPS_WEEK_REFERENCE 2188
+
 typedef enum {
   CNAV_MSG_TYPE_0 = 0,
   CNAV_MSG_TYPE_10 = 10,
@@ -92,8 +96,6 @@ typedef struct {
   bool isc_l2c_valid;
   s16 isc_l2c; /**< seconds, scale factor 2^-35 */
 } cnav_msg_type_30_t;
-
-#define PIKSI_GPS_WEEK_REFERENCE 2188
 
 /**
  * GPS LNAV/CNAV decoded parameters for UTC

@@ -538,8 +538,8 @@ TEST(cnav_tests, decode_utc_params) {
   EXPECT_DOUBLE_EQ(2 * GPS_CNAV_UTC_SF_A2, decoded_utc.a2);
   EXPECT_EQ(18, decoded_utc.dt_ls);
   EXPECT_DOUBLE_EQ(14592 * GPS_CNAV_UTC_SF_TOT, decoded_utc.t_ot);
-  EXPECT_EQ(2191, decoded_utc.wn_ot);
-  EXPECT_EQ(1929, decoded_utc.wn_lsf);
+  EXPECT_EQ(gps_adjust_week_cycle256(2191, PIKSI_GPS_WEEK_REFERENCE), decoded_utc.wn_ot);
+  EXPECT_EQ(gps_adjust_week_cycle256(1929, PIKSI_GPS_WEEK_REFERENCE), decoded_utc.wn_lsf);
   EXPECT_EQ(7, decoded_utc.dn);
   EXPECT_EQ(18, decoded_utc.dt_lsf);
 }
@@ -552,8 +552,8 @@ TEST(cnav_tests, convert_utc_params) {
   decoded_utc.a1 = GPS_CNAV_UTC_SF_A1;
   decoded_utc.dt_ls = 18;
   decoded_utc.t_ot = 164000;
-  decoded_utc.wn_ot = 140;
-  decoded_utc.wn_lsf = 137;
+  decoded_utc.wn_ot = PIKSI_GPS_WEEK_REFERENCE;
+  decoded_utc.wn_lsf = 2441;
   decoded_utc.dn = 7;
   decoded_utc.dt_lsf = 18;
 
@@ -564,18 +564,14 @@ TEST(cnav_tests, convert_utc_params) {
   EXPECT_DOUBLE_EQ(decoded_utc.a1,utc.a1);
   EXPECT_DOUBLE_EQ(decoded_utc.a2,utc.a2);
   gps_time_t expected_tot;
-  expected_tot = {.tow = decoded_utc.t_ot, .wn = PIKSI_GPS_WEEK_REFERENCE};
+  expected_tot = {.tow = decoded_utc.t_ot,
+                  .wn = static_cast<s16>(decoded_utc.wn_ot)};
   EXPECT_EQ(expected_tot,utc.tot);
   gps_time_t expected_leap_second_event;
   expected_leap_second_event = {.tow = static_cast<double>(
                                     decoded_utc.dn * DAY_SECS +
                                     decoded_utc.dt_ls),
-                                .wn = static_cast<s16>(
-                                    gps_adjust_week_cycle256(
-                                        decoded_utc.wn_lsf,
-                                        PIKSI_GPS_WEEK_REFERENCE)
-                                    )
-  };
+                                .wn = static_cast<s16>(decoded_utc.wn_lsf)};
   normalize_gps_time(&expected_leap_second_event);
   EXPECT_NEAR(expected_leap_second_event.tow,utc.t_lse.tow,1e-6);
   EXPECT_EQ(expected_leap_second_event.wn, utc.t_lse.wn);

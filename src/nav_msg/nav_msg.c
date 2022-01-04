@@ -902,11 +902,13 @@ bool decode_lnav_utc_params(const u32 words[8],
     /* Word 8 bits 9-16 */
     u->t_ot = (u8)(words[8 - 3] >> (30 - 16) & 0xFF) * GPS_LNAV_UTC_SF_TOT;
     /* Word 8 bits 17-24 */
-    u->wn_ot = (u8)(words[8 - 3] >> (30 - 24) & 0xFF);
+    u->wn_ot = gps_adjust_week_cycle256((u8)(words[8 - 3] >> (30 - 24) & 0xFF),
+                                        PIKSI_GPS_WEEK_REFERENCE);
     /* Word 9 bits 1-8 */
     u->dt_ls = (s8)(words[9 - 3] >> (30 - 8) & 0xFF);
     /* Word 9 bits 9-16 */
-    u->wn_lsf = (u8)(words[9 - 3] >> (30 - 16) & 0xFF);
+    u->wn_lsf = gps_adjust_week_cycle256((u8)(words[9 - 3] >> (30 - 16) & 0xFF),
+                                         PIKSI_GPS_WEEK_REFERENCE);
     /* Word 9 bits 17-24 */
     u->dn = (u8)(words[9 - 3] >> (30 - 24) & 0xFF);
     /* Word 10 bits 1-8 */
