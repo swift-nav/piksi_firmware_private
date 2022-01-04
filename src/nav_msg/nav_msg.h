@@ -20,6 +20,7 @@
 #include <swiftnav/ionosphere.h>
 
 #include "me_constants.h"
+#include "nav_msg/cnav_msg.h"
 #include "signal_db/signal_db.h"
 
 #ifdef __cplusplus
@@ -107,7 +108,7 @@ typedef struct {
 typedef struct {
   gps_time_t almanac_time;
 
-  utc_params_t utc;
+  gps_nav_decoded_utc_params_t utc;
 
   ionosphere_t iono;
 
@@ -142,6 +143,8 @@ bool subframe_ready(const nav_msg_t *n);
 s8 process_subframe(nav_msg_t *n,
                     me_gnss_signal_t mesid,
                     gps_l1ca_decoded_data_t *data);
+bool decode_lnav_utc_params(const u32 words[8],
+                            gps_nav_decoded_utc_params_t *u);
 
 #ifdef __cplusplus
 } /* extern "C" */

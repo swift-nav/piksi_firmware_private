@@ -864,6 +864,62 @@ static s8 decode_subframe23(const nav_msg_t *n,
 }
 
 /**
+ * Decodes UTC parameters from GPS LNAV message subframe 4 page 18.
+ *
+ * The method decodes UTC data from GPS LNAV subframe 4, words 6-10.
+ *
+ * References:
+ * -# IS-GPS-200H, Section 20.3.3.5.1.6
+ *
+ * \param[in]  words    Subframe 4 page 18.
+ * \param[out] u        Destination object.
+ *
+ * \retval true  UTC parameters have been decoded.
+ * \retval false Decoding error.
+ */
+bool decode_lnav_utc_params(const u32 words[8],
+                            gps_nav_decoded_utc_params_t *u) {
+  bool retval = false;
+
+  assert(NULL != words);
+  assert(NULL != u);
+
+  memset(u, 0, sizeof(*u));
+
+  /* Word 3 bits 1-2: data ID */
+  u8 data_id = words[3 - 3] >> (30 - 2) & 0x3;
+  /* Word 3 bits 3-8: SV ID */
+  u8 sv_id = words[3 - 3] >> (30 - 8) & 0x3F;
+  if (GPS_LNAV_ALM_DATA_ID_BLOCK_II == data_id &&
+      GPS_LNAV_ALM_SVID_UTC == sv_id) {
+    /* Word 6 bits 1-24 */
+    u->a1 = BITS_SIGN_EXTEND_32(24, (words[6 - 3] >> (30 - 24) & 0xFFFFFF)) *
+            GPS_LNAV_UTC_SF_A1;
+    /* Word 7 bits 1-24 and word 8 bits 1-8 */
+    u->a0 = (s32)(((words[7 - 3] >> (30 - 24) & 0xFFFFFF) << 8) |
+                  (words[8 - 3] >> (30 - 8) & 0xFF)) *
+            GPS_LNAV_UTC_SF_A0;
+    /* Word 8 bits 9-16 */
+    u->t_ot = (u8)(words[8 - 3] >> (30 - 16) & 0xFF) * GPS_LNAV_UTC_SF_TOT;
+    /* Word 8 bits 17-24 */
+    u->wn_ot = gps_adjust_week_cycle256((u8)(words[8 - 3] >> (30 - 24) & 0xFF),
+                                        PIKSI_GPS_WEEK_REFERENCE);
+    /* Word 9 bits 1-8 */
+    u->dt_ls = (s8)(words[9 - 3] >> (30 - 8) & 0xFF);
+    /* Word 9 bits 9-16 */
+    u->wn_lsf = gps_adjust_week_cycle256((u8)(words[9 - 3] >> (30 - 16) & 0xFF),
+                                         PIKSI_GPS_WEEK_REFERENCE);
+    /* Word 9 bits 17-24 */
+    u->dn = (u8)(words[9 - 3] >> (30 - 24) & 0xFF);
+    /* Word 10 bits 1-8 */
+    u->dt_lsf = (s8)(words[10 - 3] >> (30 - 8) & 0xFF);
+    retval = true;
+  }
+
+  return retval;
+}
+
+/**
  * Decodes data after subframe 4 arrival.
  *
  * The method decodes almanacs for PRNs 1 to 32, almanac week reference,
@@ -930,7 +986,7 @@ static s8 decode_subframe45(u8 age,
       /* decode ionospheric correction data */
       data->iono_corr_upd_flag = decode_iono_parameters(words, &data->iono);
       /* decode UTC correction parameters and leap second info */
-      data->utc_params_upd_flag = decode_utc_parameters(words, &data->utc);
+      data->utc_params_upd_flag = decode_lnav_utc_params(words, &data->utc);
       res = 1;
     }
 
