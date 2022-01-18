@@ -934,8 +934,8 @@ static s8 decode_subframe45(u8 age,
       /* decode ionospheric correction data */
       data->iono_corr_upd_flag = decode_iono_parameters(words, &data->iono);
       /* decode UTC correction parameters and leap second info */
-      data->utc_params_upd_flag =
-          decode_utc_parameters(words, PIKSI_GPS_WEEK_REFERENCE, &data->utc);
+      data->utc_params_upd_flag = decode_utc_parameters_with_wn_ref(
+          words, &data->utc, PIKSI_GPS_WEEK_REFERENCE);
       res = 1;
     }
 
@@ -943,10 +943,12 @@ static s8 decode_subframe45(u8 age,
       almanac_ref_week_t ref_week;
 
       /* Almanac reference week */
-      if (almanac_decode_week(words, PIKSI_GPS_WEEK_REFERENCE, &ref_week)) {
+      if (almanac_decode_week_with_wn_ref(
+              words, &ref_week, PIKSI_GPS_WEEK_REFERENCE)) {
         data->almanac_time.tow = ref_week.toa;
         data->almanac_time.wn = ref_week.wna;
         data->almanac_time_upd_flag = true;
+        log_error("Almanac reference week decoded: %u", data->almanac_time.wn);
         res = 1;
       }
     }
