@@ -489,10 +489,11 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
   }
 
   if (dd.utc_params_upd_flag) {
-    utc_params_t utc;
-    if (convert_to_utc_params(&dd.utc, &utc)) {
-      ndb_utc_params_store(
-          &l1ca_sid, &utc, NDB_DS_RECEIVER, NDB_EVENT_SENDER_ID_VOID);
+    /* store new utc parameters */
+    if (ndb_utc_params_store(
+            &l1ca_sid, &dd.utc, NDB_DS_RECEIVER, NDB_EVENT_SENDER_ID_VOID) ==
+        NDB_ERR_NONE) {
+      /*TODO: sbp_send_utc_params(&dd.utc); */
     }
   }
 
