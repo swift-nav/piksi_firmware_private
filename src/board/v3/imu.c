@@ -36,6 +36,7 @@
 
 #define TIME_STATUS_SYSTEM_STARTUP (0x40000000)
 #define MS_US (1000)
+#define GNSS_OFFSET_SEND_INTERVAL_MS (1000)
 
 /** Working area for the IMU data processing thread. */
 static THD_WORKING_AREA(wa_imu_thread, IMU_THREAD_STACK);
@@ -73,9 +74,6 @@ static bool raw_mag_output = false;
  */
 
 static bool rate_change_in_progress = false;
-
-// Flag set to send gnss time offset;
-static bool send_gnss_time_offset = true;
 
 /** Interrupt service routine for the IMU_INT1 interrupt.
  * Records the time and then flags the IMU data processing thread to wake up. */
@@ -137,6 +135,7 @@ static void imu_thread(void *arg) {
   u32 p_sensor_time = 0;
   double gnss_p_tow_ms = 0;
   double local_p_tow_ms = 0;
+  double gnss_offset_sent_p_ms = 0;
   msg_imu_raw_t imu_raw;
   msg_mag_raw_t mag_raw;
 
@@ -243,8 +242,9 @@ static void imu_thread(void *arg) {
     // Set fractional part according to specification.
     tow_f = (u8)lrint((time_from_start_ms - (u32)time_from_start_ms) * 256);
 
-    // Log local time wrap around no need to re-send gnss time offset
+    // Log local time wrap around and adjust gnss_offset_sent_p_ms;
     if (time_from_start_ms < local_p_tow_ms) {
+      gnss_offset_sent_p_ms = gnss_offset_sent_p_ms - WEEK_MS;
       log_warn("Local time wrap around, current: %fms, previous: %fms",
                time_from_start_ms,
                local_p_tow_ms);
@@ -295,7 +295,9 @@ static void imu_thread(void *arg) {
         }
 
         // calculate and send gnss time offset message.
-        if (send_gnss_time_offset) {
+        if ((time_from_start_ms - gnss_offset_sent_p_ms) >
+            GNSS_OFFSET_SEND_INTERVAL_MS) {
+          gnss_offset_sent_p_ms = time_from_start_ms;
           // convert local and gnss from milliseconds to microseconds.
           u64 local_tow_us = (u64)(time_from_start_ms * MS_US);
           u64 gnss_tow_us = (u64)(sample_time.tow * SECS_US) +
@@ -311,11 +313,6 @@ static void imu_thread(void *arg) {
           msg.weeks = gnss_time_offset;
           msg.flags = 0;
           sbp_send_msg(SBP_MSG_GNSS_TIME_OFFSET, sizeof(msg), (u8 *)&msg);
-          log_warn("GNSS OFFSET us:%i ms:%li wn:%i",
-                   msg.microseconds,
-                   msg.milliseconds,
-                   msg.weeks);
-          send_gnss_time_offset = false;
         }
       }
     }
