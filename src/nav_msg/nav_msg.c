@@ -58,10 +58,6 @@
 #define SUBFRAME_BUFFER_OFFSET \
   (NAV_MSG_SUBFRAME_BITS_LEN - SUBFRAME_PREAMBLE_OFFSET)
 
-/** GPS week reference number solely used within the piksi firmware. Relates a
- * received truncated week number into an unambiguous week. */
-#define PIKSI_GPS_WEEK_REFERENCE 2188
-
 /**
  * Subframe data check status
  */
