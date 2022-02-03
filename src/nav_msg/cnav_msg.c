@@ -267,9 +267,9 @@ bool cnav_33_to_utc(const cnav_msg_type_33_t *msg, utc_params_t *u) {
   u->a1 = msg->a1 * GPS_CNAV_UTC_SF_A1;
   u->a0 = msg->a0 * GPS_CNAV_UTC_SF_A0;
   u->tot.tow = msg->tot * GPS_CNAV_UTC_SF_TOT;
-  u->tot.wn = gps_adjust_week_cycle256(msg->wn_ot, GPS_WEEK_REFERENCE);
+  u->tot.wn = gps_adjust_week_cycle256(msg->wn_ot, PIKSI_GPS_WEEK_REFERENCE);
   u->dt_ls = msg->dt_ls;
-  u->t_lse.wn = gps_adjust_week_cycle256(msg->wn_lsf, GPS_WEEK_REFERENCE);
+  u->t_lse.wn = gps_adjust_week_cycle256(msg->wn_lsf, PIKSI_GPS_WEEK_REFERENCE);
   if ((msg->dn < GPS_LNAV_UTC_MIN_DN) || (msg->dn > GPS_LNAV_UTC_MAX_DN)) {
     log_warn("Invalid day number in CNAV UTC message: %d", msg->dn);
     return false;
