@@ -20,7 +20,6 @@
 #include <swiftnav/ionosphere.h>
 
 #include "me_constants.h"
-#include "nav_msg/cnav_msg.h"
 #include "signal_db/signal_db.h"
 
 #ifdef __cplusplus
@@ -49,6 +48,10 @@ extern "C" {
  *  Truncated tow ignores 2 LSBs => multiplier of 4
  *  => Total multiplier of 1.5 * 4 = 6. */
 #define GPS_TOW_MULTIPLIER (6)
+
+/** GPS week reference number solely used within the piksi firmware. Relates a
+ * received truncated week number into an unambiguous week. */
+#define PIKSI_GPS_WEEK_REFERENCE 2188
 
 /** Number of bits that needs to be decoded for polarity seek.
  *  Guarantees 2 last bits of previous Word 10 + TLM + HOW. */
@@ -108,7 +111,7 @@ typedef struct {
 typedef struct {
   gps_time_t almanac_time;
 
-  gps_nav_decoded_utc_params_t utc;
+  utc_params_t utc;
 
   ionosphere_t iono;
 
@@ -143,8 +146,6 @@ bool subframe_ready(const nav_msg_t *n);
 s8 process_subframe(nav_msg_t *n,
                     me_gnss_signal_t mesid,
                     gps_l1ca_decoded_data_t *data);
-bool decode_lnav_utc_params(const u32 words[8],
-                            gps_nav_decoded_utc_params_t *u);
 
 #ifdef __cplusplus
 } /* extern "C" */

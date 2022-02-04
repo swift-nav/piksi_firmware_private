@@ -246,41 +246,32 @@ static void decode_cnav_msg_type_30(cnav_msg_t *msg,
       INVALID_GROUP_DELAY_VALUE != msg->data.type_30.isc_l2c;
 }
 
-void decode_cnav_msg_type_33(cnav_msg_t *msg, const cnav_v27_part_t *part) {
+static void decode_cnav_msg_type_33(cnav_msg_t *msg,
+                                    const cnav_v27_part_t *part) {
   /* ref: ICD Figure 30-6 */
-  msg->data.type_33.a0 =
-      (s16)getbits(part->decoded, 127, 16) * GPS_CNAV_UTC_SF_A0;
-  msg->data.type_33.a1 =
-      (s16)getbits(part->decoded, 143, 13) * GPS_CNAV_UTC_SF_A1;
-  msg->data.type_33.a2 =
-      (s8)getbits(part->decoded, 156, 7) * GPS_CNAV_UTC_SF_A2;
+  msg->data.type_33.a0 = (s16)getbits(part->decoded, 127, 16);
+  msg->data.type_33.a1 = (s16)getbits(part->decoded, 143, 13);
+  msg->data.type_33.a2 = (s8)getbits(part->decoded, 156, 7);
   msg->data.type_33.dt_ls = (s8)getbits(part->decoded, 163, 8);
-  msg->data.type_33.t_ot =
-      (u16)getbitu(part->decoded, 171, 16) * GPS_CNAV_UTC_SF_TOT;
-  msg->data.type_33.wn_ot = gps_adjust_week_cycle256(
-      (u16)getbitu(part->decoded, 187, 13), PIKSI_GPS_WEEK_REFERENCE);
-  msg->data.type_33.wn_lsf = gps_adjust_week_cycle256(
-      (u16)getbitu(part->decoded, 200, 13), PIKSI_GPS_WEEK_REFERENCE);
+  msg->data.type_33.tot = (u16)getbitu(part->decoded, 171, 16);
+  msg->data.type_33.wn_ot = (u16)getbitu(part->decoded, 187, 13);
+  msg->data.type_33.wn_lsf = (u16)getbitu(part->decoded, 200, 13);
   msg->data.type_33.dn = (u8)getbitu(part->decoded, 213, 4);
   msg->data.type_33.dt_lsf = (s8)getbits(part->decoded, 217, 8);
 }
 
-/**
- * This function relates the leap second event to the exact GPS time at the
- * start of the leap second event.
- */
-bool convert_to_utc_params(const gps_nav_decoded_utc_params_t *msg,
-                           utc_params_t *u) {
+bool cnav_33_to_utc(const cnav_msg_type_33_t *msg, utc_params_t *u) {
   memset(u, 0, sizeof(*u));
-  u->a2 = msg->a2;
-  u->a1 = msg->a1;
-  u->a0 = msg->a0;
-  u->tot.tow = msg->t_ot;
-  u->tot.wn = msg->wn_ot;
+
+  u->a2 = msg->a2 * GPS_CNAV_UTC_SF_A2;
+  u->a1 = msg->a1 * GPS_CNAV_UTC_SF_A1;
+  u->a0 = msg->a0 * GPS_CNAV_UTC_SF_A0;
+  u->tot.tow = msg->tot * GPS_CNAV_UTC_SF_TOT;
+  u->tot.wn = gps_adjust_week_cycle256(msg->wn_ot, PIKSI_GPS_WEEK_REFERENCE);
   u->dt_ls = msg->dt_ls;
-  u->t_lse.wn = msg->wn_lsf;
+  u->t_lse.wn = gps_adjust_week_cycle256(msg->wn_lsf, PIKSI_GPS_WEEK_REFERENCE);
   if ((msg->dn < GPS_LNAV_UTC_MIN_DN) || (msg->dn > GPS_LNAV_UTC_MAX_DN)) {
-    log_warn("Invalid day number in LNAV/CNAV UTC message: %d", msg->dn);
+    log_warn("Invalid day number in CNAV UTC message: %d", msg->dn);
     return false;
   }
   u->t_lse.tow = msg->dn * DAY_SECS;
@@ -293,6 +284,7 @@ bool convert_to_utc_params(const gps_nav_decoded_utc_params_t *msg,
   double dt = gpsdifftime(&u->t_lse, &u->tot);
   u->t_lse.tow += u->dt_ls + u->a0 + u->a1 * dt + u->a2 * dt * dt;
   normalize_gps_time(&u->t_lse);
+
   return true;
 }
 
