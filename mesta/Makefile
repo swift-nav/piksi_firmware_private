@@ -188,6 +188,7 @@ CSRC := $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l2c.c \
 		$(STARLING_ROOT)/third_party/libpal/pal/src/io/tcp.c \
 		$(STARLING_ROOT)/third_party/libpal/pal/src/io/udp.c \
 		$(STARLING_ROOT)/third_party/libpal/pal/src/chrono/monotonic_clock.c \
+		$(STARLING_ROOT)/third_party/libpal/pal/src/chrono/unix_clock.c \
 		$(STARLING_ROOT)/third_party/libpal/pal/src/watchdog/watchdog.c \
 		$(STARLING_ROOT)/third_party/libpal/pal/src/identifier/identifier.c \
         $(STARLING_ROOT)/third_party/libswiftnav/src/almanac.c \
