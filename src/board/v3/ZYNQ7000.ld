@@ -68,7 +68,7 @@ SECTIONS {
     .cached_text_align : {. = ALIGN(16);} > flash
     PROVIDE(__cached_text_flash = .);
 
-    .cached_text : ALIGN(16) SUBALIGN(16)
+    .cached_text :
     {
         . = ALIGN(4);
         PROVIDE(__cached_text_start = .);
@@ -76,6 +76,17 @@ SECTIONS {
         *(EXCLUDE_FILE(*crt0.o *crt1.o *cpu_init.o) .text.*)
         *(.rodata)
         *(.rodata.*)
+        . = ALIGN(4);
+
+        PROVIDE_HIDDEN (__preinit_array_start = .);
+        KEEP (*(.preinit_array*))
+        PROVIDE_HIDDEN (__preinit_array_end = .);
+
+        PROVIDE_HIDDEN (__init_array_start = .);
+        KEEP (*(SORT(.init_array.*)))
+        KEEP (*(.init_array*))
+        PROVIDE_HIDDEN (__init_array_end = .);
+
         . = ALIGN(4);
         PROVIDE(__cached_text_end = .);
     } > ram0 AT > flash

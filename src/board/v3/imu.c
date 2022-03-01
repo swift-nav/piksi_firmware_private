@@ -14,6 +14,7 @@
 
 #include <libsbp/imu.h>
 #include <libsbp/mag.h>
+#include <libsbp/system.h>
 #include <math.h>
 #include <swiftnav/gnss_time.h>
 #include <swiftnav/logging.h>
@@ -32,6 +33,10 @@
 #define IMU_THREAD_STACK (2 * 1024)
 #define IMU_AUX_THREAD_PRIO (LOWPRIO + 10)
 #define IMU_AUX_THREAD_STACK (2 * 1024)
+
+#define TIME_STATUS_SYSTEM_STARTUP (0x40000000)
+#define MS_US (1000)
+#define GNSS_OFFSET_SEND_INTERVAL_MS (1000)
 
 /** Working area for the IMU data processing thread. */
 static THD_WORKING_AREA(wa_imu_thread, IMU_THREAD_STACK);
@@ -128,7 +133,9 @@ static void imu_thread(void *arg) {
   s16 mag[3];
   u32 sensor_time;
   u32 p_sensor_time = 0;
-  double p_tow_ms = 0;
+  double gnss_p_tow_ms = 0;
+  double local_p_tow_ms = 0;
+  double gnss_offset_sent_p_ms = 0;
   msg_imu_raw_t imu_raw;
   msg_mag_raw_t mag_raw;
 
@@ -226,26 +233,38 @@ static void imu_thread(void *arg) {
     /* Recover the full 64 bit timing count from the 32 LSBs
      * captured in the ISR. */
     u64 tc = nap_sample_time_to_count(nap_tc);
+    double time_from_start = tc * (1 - get_clock_drift()) * RX_DT_NOMINAL;
+    // Convert local time to ms and wrap local timestamp around 1 week or
+    // 604800000 milliseconds
+    double time_from_start_ms = fmod((time_from_start * SECS_MS), WEEK_MS);
+    // Set time status to time of system startup
+    tow = (u32)time_from_start_ms | TIME_STATUS_SYSTEM_STARTUP;
+    // Set fractional part according to specification.
+    tow_f = (u8)lrint((time_from_start_ms - (u32)time_from_start_ms) * 256);
+
+    // Log local time wrap around and adjust gnss_offset_sent_p_ms;
+    if (time_from_start_ms < local_p_tow_ms) {
+      gnss_offset_sent_p_ms = gnss_offset_sent_p_ms - WEEK_MS;
+      log_warn("Local time wrap around, current: %fms, previous: %fms",
+               time_from_start_ms,
+               local_p_tow_ms);
+    }
+
+    local_p_tow_ms = time_from_start_ms;
 
     /* Calculate the GPS time of the observation, if possible. */
     if (get_time_quality() >= TIME_PROPAGATED) {
       /* We know the GPS time to high accuracy, this allows us to convert a
        * timing count value into a GPS time. */
       sample_time = napcount2gpstime(tc);
-
-      /* Format the time of week as a fixed point value for the SBP message.
-       */
-      double tow_ms = sample_time.tow * SECS_MS;
-      tow = (u32)tow_ms;
-      tow_f = (u8)lrint((tow_ms - tow) * 255);
+      double gnss_tow_ms = sample_time.tow * SECS_MS;
 
       /* Warn if imu dt error exceeds threshhold according to our ME */
-
       if (raw_imu_output) {
-        dt = (tow_ms - p_tow_ms) / 1000.0;
+        dt = (gnss_tow_ms - gnss_p_tow_ms) / 1000.0;
         dt_err_pcent = fabs(dt - expected_dt) / expected_dt * 100.0;
 
-        if (!rate_change_in_progress && p_tow_ms != 0 &&
+        if (!rate_change_in_progress && gnss_p_tow_ms != 0 &&
             dt_err_pcent > BMI160_DT_ERR_THRESH_PERCENT) {
           log_warn("Measured IMU sampling period of %.0f ms (expected %.0f ms)",
                    dt * 1000.0,
@@ -254,10 +273,9 @@ static void imu_thread(void *arg) {
                    bmi160_read_error(),
                    bmi160_read_status());
         }
-
-        p_tow_ms = tow_ms;
+        gnss_p_tow_ms = gnss_tow_ms;
         if (rate_change_in_progress) {
-          p_tow_ms = 0;
+          gnss_p_tow_ms = 0;
         }
 
         /* Warn if sensor read delay after ISR exceeds threshhold */
@@ -275,11 +293,28 @@ static void imu_thread(void *arg) {
                    bmi160_read_error(),
                    bmi160_read_status());
         }
+
+        // calculate and send gnss time offset message.
+        if ((time_from_start_ms - gnss_offset_sent_p_ms) >
+            GNSS_OFFSET_SEND_INTERVAL_MS) {
+          gnss_offset_sent_p_ms = time_from_start_ms;
+          // convert local and gnss from milliseconds to microseconds.
+          u64 local_tow_us = (u64)(time_from_start_ms * MS_US);
+          u64 gnss_tow_us = (u64)(sample_time.tow * SECS_US) +
+                            ((u64)sample_time.wn * WEEK_MS * MS_US);
+          u64 gnss_time_offset = gnss_tow_us - local_tow_us;
+
+          // Pack and send offset message.
+          msg_gnss_time_offset_t msg;
+          msg.microseconds = gnss_time_offset % MS_US;
+          gnss_time_offset /= MS_US;
+          msg.milliseconds = gnss_time_offset % WEEK_MS;
+          gnss_time_offset /= WEEK_MS;
+          msg.weeks = gnss_time_offset;
+          msg.flags = 0;
+          sbp_send_msg(SBP_MSG_GNSS_TIME_OFFSET, sizeof(msg), (u8 *)&msg);
+        }
       }
-    } else {
-      /* Time is unknown, make it as invalid in the SBP message. */
-      tow = (1 << 31);
-      tow_f = 0;
     }
 
     if (new_acc && new_gyro && raw_imu_output) {
