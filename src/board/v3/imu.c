@@ -483,7 +483,7 @@ void imu_init(void) {
       {"25", "50", "100", "200", /* "400",*/ NULL};
   settings_type_t imu_rate_setting;
   settings_api_register_enum(imu_rate_enum, &imu_rate_setting);
-  SETTING_NOTIFY(
+  SETTING_WATCH(
       "imu", "imu_rate", imu_rate, imu_rate_setting, imu_rate_changed);
 
   static const char *const acc_range_enum[] = {"2g", "4g", "8g", "16g", NULL};
