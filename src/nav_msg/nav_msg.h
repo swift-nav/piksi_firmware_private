@@ -49,6 +49,10 @@ extern "C" {
  *  => Total multiplier of 1.5 * 4 = 6. */
 #define GPS_TOW_MULTIPLIER (6)
 
+/** GPS week reference number solely used within the piksi firmware. Relates a
+ * received truncated week number into an unambiguous week. */
+#define PIKSI_GPS_WEEK_REFERENCE 2188
+
 /** Number of bits that needs to be decoded for polarity seek.
  *  Guarantees 2 last bits of previous Word 10 + TLM + HOW. */
 #define BITS_DECODED_FOR_POLARITY (62)
