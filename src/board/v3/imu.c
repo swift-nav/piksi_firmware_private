@@ -68,6 +68,12 @@ static bmi160_gyr_range_t gyr_range = BMI160_GYR_125DGS;
 static u8 mag_rate = 1;
 static bool raw_mag_output = false;
 
+/* Now that the imu rate is linked to the ins freq rate, need to
+ * monitor the ins rate here as well. Ideally INS fusion engine
+ * should not be linked with the imu.
+ */
+static double ins_solution_frequency = 0.;
+
 /* rate_change_in_progress indicates that imu rate has recently been changed.
  * Set by settings callback. Unset the first time imu_thread is awoken after
  * change. Used to suppress warnings when IMU has just been reconfigured.
@@ -346,12 +352,39 @@ static void imu_thread(void *arg) {
   }
 }
 
-static int imu_rate_changed(void *ctx) {
+static bool check_valid_imu_rate(void *ctx) {
   (void)ctx;
+  double imu_rates[] = {25, 50, 100, 250};
+
+  if (imu_rate >= 4) {
+    log_error("Unexpected imu rate in settings: %u", imu_rate);
+    return false;
+  }
+
+  if (ins_solution_frequency > 0 &&
+      imu_rates[imu_rate] < 2 * ins_solution_frequency) {
+    log_error("IMU rate [%.2f] needs to be twice the ins rate [%.2f]",
+              imu_rates[imu_rate],
+              ins_solution_frequency);
+    /* sbp_log(LOG_ERROR, "IMU rate [%.2f] needs to be twice the ins rate
+     * [%.2f]", */
+    /*     imu_rates[imu_rate], ins_solution_frequency); */
+    return false;
+  }
+
+  return true;
+}
+
+static int imu_rate_changed(void *ctx) {
   /* Convert between the setting value, which is an integer corresponding to
    * the index of the selected setting in the list of strings, and the relevant
    * enum values */
   rate_change_in_progress = true;
+
+  if (!check_valid_imu_rate(ctx)) {
+    return SETTINGS_WR_VALUE_REJECTED;
+  }
+
   switch (imu_rate) {
     case 0: /* 25Hz */
       bmi160_set_imu_rate(BMI160_RATE_25HZ);
@@ -369,6 +402,14 @@ static int imu_rate_changed(void *ctx) {
       log_error("Unexpected imu rate setting: %u", imu_rate);
       return SETTINGS_WR_VALUE_REJECTED;
   }
+
+  return SETTINGS_WR_OK;
+}
+
+static int ins_rate_changed(void *ctx) {
+  (void)ctx;
+
+  log_info("Ins freq changed to %.2f", ins_solution_frequency);
 
   return SETTINGS_WR_OK;
 }
@@ -483,8 +524,14 @@ void imu_init(void) {
       {"25", "50", "100", "200", /* "400",*/ NULL};
   settings_type_t imu_rate_setting;
   settings_api_register_enum(imu_rate_enum, &imu_rate_setting);
-  SETTING_WATCH(
+  SETTING_NOTIFY(
       "imu", "imu_rate", imu_rate, imu_rate_setting, imu_rate_changed);
+
+  SETTING_WATCH("ins",
+                "fused_soln_freq",
+                ins_solution_frequency,
+                SETTINGS_TYPE_FLOAT,
+                ins_rate_changed);
 
   static const char *const acc_range_enum[] = {"2g", "4g", "8g", "16g", NULL};
   settings_type_t acc_range_setting;
