@@ -506,7 +506,11 @@ void starling_integration_simulation_run(void *ctx) {
 
   if (epoch_time.wn == 0) {
     /* patch the epoch time when system time is still unknown */
-    epoch_time.wn = simulation_week_number;
+    if (epoch_time.tow < 20.0) {
+      epoch_time.wn = simulation_week_number - 1;
+    } else {
+      epoch_time.wn = simulation_week_number;
+    }
   }
 
   starling_integration_sbp_messages_init(
