@@ -35,6 +35,7 @@
 #include "sbp/sbp_utils.h"
 #include "shm/shm.h"
 #include "simulator/simulator.h"
+#include "simulator/simulator_data.h"
 #include "timing/timing.h"
 #include "track/track_sid_db.h"
 
@@ -505,7 +506,7 @@ void starling_integration_simulation_run(void *ctx) {
 
   if (epoch_time.wn == 0) {
     /* patch the epoch time when system time is still unknown */
-    epoch_time.wn = 1;
+    epoch_time.wn = simulation_week_number;
   }
 
   starling_integration_sbp_messages_init(
