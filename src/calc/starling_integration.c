@@ -444,7 +444,6 @@ static void solution_make_baseline_sbp(const pvt_engine_result_t *result,
  ******************************************************************************/
 static void starling_integration_solution_simulation(
     sbp_messages_t *sbp_messages) {
-
   /* TODO: The simulator's handling of time is a bit crazy. This is a hack
    * for now but the simulator should be refactored so that it can give the
    * exact correct solution time output without this nonsense. */
