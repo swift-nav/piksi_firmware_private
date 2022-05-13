@@ -238,6 +238,9 @@ void simulation_step_position_in_circle(double elapsed) {
               sim_state.noisy_solution.baseline,
               sim_state.noisy_solution.average_velocity);
   sim_state.noisy_solution.valid = true;
+  memccpy(sim_state.noisy_solution.position_ecef,
+          sim_state.noisy_solution.baseline,
+          3 * sizeof(double));
   sim_state.noisy_solution.position_ecef_valid = true;
   sim_state.noisy_solution.average_velocity_valid = true;
 }
