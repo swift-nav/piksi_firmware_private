@@ -35,6 +35,7 @@
 #include "sbp/sbp_utils.h"
 #include "shm/shm.h"
 #include "simulator/simulator.h"
+#include "simulator/simulator_data.h"
 #include "timing/timing.h"
 #include "track/track_sid_db.h"
 
@@ -443,8 +444,6 @@ static void solution_make_baseline_sbp(const pvt_engine_result_t *result,
  ******************************************************************************/
 static void starling_integration_solution_simulation(
     sbp_messages_t *sbp_messages) {
-  simulation_step();
-
   /* TODO: The simulator's handling of time is a bit crazy. This is a hack
    * for now but the simulator should be refactored so that it can give the
    * exact correct solution time output without this nonsense. */
@@ -499,19 +498,14 @@ static void starling_integration_solution_simulation(
 
 void starling_integration_simulation_run(void *ctx) {
   (void)ctx;
-  gps_time_t epoch_time = get_current_time();
-  epoch_time = gps_time_round_to_epoch(&epoch_time, soln_freq_setting);
   sbp_messages_t sbp_messages;
 
-  if (epoch_time.wn == 0) {
-    /* patch the epoch time when system time is still unknown */
-    epoch_time.wn = 1;
-  }
-
+  simulation_step();
+  pvt_engine_result_t *soln = simulation_current_pvt_engine_result_t();
   starling_integration_sbp_messages_init(
-      &sbp_messages, &epoch_time, TIME_FINEST);
+      &sbp_messages, &soln->time, TIME_FINEST);
   starling_integration_solution_simulation(&sbp_messages);
-  send_low_latency_messages(&epoch_time, &sbp_messages);
+  send_low_latency_messages(&soln->time, &sbp_messages);
 }
 
 bool starling_integration_simulation_enabled(void *ctx) {
