@@ -68,7 +68,7 @@ pipeline {
                                     "build_v3_base/piksi_firmware_v3_base.map"],
                                     addPath: "v3")
                             }
-                            if (context.isPrPush()) {
+                            if (false) { // Disable until hitl issue is fixed
                                 hitl.triggerForPr() // this generates metrics.yaml
                                 context.archivePatterns(
                                     patterns: [
