@@ -350,9 +350,9 @@ void nap_track_init(u8 channel,
       num_codes = QZS_L2C_SYMBOL_LENGTH_MS / QZS_L2CM_PRN_PERIOD_MS;
     } else if (CODE_BDS2_B2 == mesid.code) {
       if (bds_d2nav(mesid)) {
-        num_codes = BDS2_B11_D2NAV_SYMBOL_LENGTH_MS / BDS2_B11_SYMB_LENGTH_MS;
+        num_codes = BDS2_B11_D2NAV_SYMBOL_LENGTH_MS / BDS2_B1I_SYMB_LENGTH_MS;
       } else {
-        num_codes = BDS2_B11_D1NAV_SYMBOL_LENGTH_MS / BDS2_B11_SYMB_LENGTH_MS;
+        num_codes = BDS2_B11_D1NAV_SYMBOL_LENGTH_MS / BDS2_B1I_SYMB_LENGTH_MS;
       }
     } else if (is_gal(mesid.code)) {
       /* default num_codes = 1 */

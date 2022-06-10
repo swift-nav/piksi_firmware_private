@@ -46,7 +46,7 @@
 #define SBAS_L5_CARR_TO_CODE (SBAS_L5_HZ / SBAS_L5_CHIPPING_RATE)
 
 /** Beidou2 B11 carrier to code ratio */
-#define BDS2_B11_CARR_TO_CODE (BDS2_B11_HZ / BDS2_B11_CHIPPING_RATE)
+#define BDS2_B11_CARR_TO_CODE (BDS2_B1I_HZ / BDS2_B1I_CHIPPING_RATE)
 
 /** Beidou2 B2 carrier to code ratio */
 #define BDS2_B2_CARR_TO_CODE (BDS2_B2_HZ / BDS2_B2_CHIPPING_RATE)
