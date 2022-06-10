@@ -243,7 +243,7 @@ static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
       break;
 
     case CODE_BDS2_B1:
-      nco_step = CirclesToUint32(BDS2_B11_HZ / (double)FAU_RAW_FS);
+      nco_step = CirclesToUint32(BDS2_B1I_HZ / (double)FAU_RAW_FS);
 
       for (k = 0, carr_nco = 0; k < FAU_SAMPLE_GRABBER_LENGTH; k++) {
         /** B1-B0 are Channel 1 */
@@ -356,17 +356,17 @@ static bool SoftMacqMdbzp(const me_gnss_signal_t mesid,
       break;
 
     case CODE_BDS2_B1:
-      fau_conf.iNumCodeSlices = FAU_MDBZP_MS_SLICES * BDS2_B11_SYMB_LENGTH_MS;
-      fau_conf.iCodeTimeMs = BDS2_B11_SYMB_LENGTH_MS;
+      fau_conf.iNumCodeSlices = FAU_MDBZP_MS_SLICES * BDS2_B1I_SYMB_LENGTH_MS;
+      fau_conf.iCodeTimeMs = BDS2_B1I_SYMB_LENGTH_MS;
       fau_conf.iCohCodes = FAU_BDSB11_COHE;
       fau_conf.iNcohAcc = FAU_BDSB11_NONC;
       fau_conf.uSecCodeLen = 0;
 
       code_resample(local_code,
-                    BDS2_B11_CHIPS_NUM,
-                    BDS2_B11_CHIPPING_RATE,
+                    BDS2_B1I_CHIPS_NUM,
+                    BDS2_B1I_CHIPPING_RATE,
                     code_upsamp,
-                    FAU_SPMS * BDS2_B11_PRN_PERIOD_MS,
+                    FAU_SPMS * BDS2_B1I_PRN_PERIOD_MS,
                     FAU_RAW_FS / FAU_DECFACT,
                     BPSK);
       break;

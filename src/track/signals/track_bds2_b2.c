@@ -112,7 +112,7 @@ void bds_b11_to_b2_handover(u32 sample_count,
     return; /* B2 signal from the SV is already in track */
   }
 
-  if (!handover_valid(code_phase, BDS2_B11_CHIPS_NUM)) {
+  if (!handover_valid(code_phase, BDS2_B1I_CHIPS_NUM)) {
     log_warn_mesid(
         mesid_B2, "Unexpected B1 to B2 hand-over code phase: %f", code_phase);
     return;
@@ -122,7 +122,7 @@ void bds_b11_to_b2_handover(u32 sample_count,
       .mesid = mesid_B2,
       .sample_count = sample_count,
       /* recalculate doppler freq for B2 from B1 */
-      .doppler_hz = (float)(doppler_hz * BDS2_B2_HZ / BDS2_B11_HZ),
+      .doppler_hz = (float)(doppler_hz * BDS2_B2_HZ / BDS2_B1I_HZ),
       .code_phase = code_phase,
       /* chips to correlate during first 1 ms of tracking */
       .chips_to_correlate = (u32)lrint(code_to_chip_rate(mesid_B2.code) * 1e-3),
