@@ -141,7 +141,7 @@ static void check_frontend_errors(void) {
  * the recommended maximum was 50 degrees Celsius.
  * The selected smaller value is an extra safety measure.
  */
-#define FE_CALIBRATION_THRESHOLD_C 1.f
+#define FE_CALIBRATION_THRESHOLD_C 30.f
 
 /**
  * Performs calibration of NT1065 PLLs and LPF as a function of RF temperature
