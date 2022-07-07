@@ -16,14 +16,13 @@
 #include <hal.h>
 #include <math.h>
 #include <swiftnav/logging.h>
-#include "timing/timing.h"
 
 #include "nt1065.h"
 #include "system_monitor/system_monitor.h"
+#include "timing/timing.h"
 
 u64 pll_check_timer = 0;
-u64 pll_time_out_ms = 70;
-
+u64 pll_time_out_ms = 10;
 
 #define SPI_READ_MASK (1 << 7)
 #define NUM_CHANNELS 4
@@ -233,10 +232,10 @@ bool nt1065_check_plls() {
   chMtxTryLock(&check_pll);
   u64 now_ms = timing_getms();
 
-  if((now_ms - pll_check_timer) <  pll_time_out_ms){
-      chMtxUnlock(&check_pll);
-      return true;
-    }
+  if ((now_ms - pll_check_timer) < pll_time_out_ms) {
+    chMtxUnlock(&check_pll);
+    return true;
+  }
   log_warn("nt1065: CHECKING PPL");
   pll_check_timer = timing_getms();
   frontend_open_spi();
