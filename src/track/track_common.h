@@ -19,6 +19,7 @@
 
 #include "me_constants.h"
 #include "track/tracker.h"
+#include "frontend.h"
 
 /** Tracker modes supported by the measurement engine */
 enum tracker_mode {
