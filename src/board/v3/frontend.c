@@ -22,7 +22,7 @@
 #include "timing/timing.h"
 
 u64 pll_check_timer = 0;
-u64 pll_time_out_ms = 70;
+u64 pll_time_out_ms = 100;
 
 #define SPI_READ_MASK (1 << 7)
 #define NUM_CHANNELS 4
