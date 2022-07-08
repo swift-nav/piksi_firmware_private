@@ -236,7 +236,7 @@ bool nt1065_check_plls() {
     chMtxUnlock(&check_pll);
     return true;
   }
-  log_warn("nt1065: CHECKING PPL");
+  log_warn("nt1065: Checking PLL register A and B");
   pll_check_timer = timing_getms();
   frontend_open_spi();
   u8 pll_a_status = spi_read(44) & 7;
@@ -268,6 +268,7 @@ bool nt1065_check_plls() {
   }
 
   chMtxUnlock(&check_pll);
+  log_warn("nt1065: PLL register A and B are OK");
   return true;
 }
 
