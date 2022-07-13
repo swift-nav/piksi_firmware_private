@@ -24,7 +24,7 @@
 
 static bool rf_clk_ext = false;
 static bool clock_steering_active = false;
-static uint16_t dac_value = 2100;
+static uint16_t dac_value = 1900;
 static piksi_systime_t next_clocksteering_deadline = PIKSI_SYSTIME_INIT;
 
 static void antenna_configure(bool use_ext_clk) {
