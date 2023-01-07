@@ -507,7 +507,8 @@ static int min_modelled_baseline_len_km_notify(void *ctx) {
     ret = SETTINGS_WR_VALUE_REJECTED;
   }
 
-  pvt_driver_set_set_min_modelled_baseline_len_km(pvt_driver, min_modelled_baseline_len_km);
+  pvt_driver_set_set_min_modelled_baseline_len_km(pvt_driver,
+                                                  min_modelled_baseline_len_km);
   return ret;
 }
 
