@@ -53,6 +53,9 @@
 static u32 base_obs_msg_counter = 0;
 static u16 base_sender_id = 0;
 
+/* Minimum modelled RTK baseline length */
+static float min_modelled_baseline_len_km = 0;
+
 /** SBP callback for when the base station sends us a message containing its
  * known location in LLH coordinates.
  */
@@ -494,6 +497,21 @@ static void ics_msg_callback(u16 sender_id,
   sbp_send_msg_(SBP_MSG_GROUP_DELAY, len, msg, MSG_FORWARD_SENDER_ID);
 }
 
+static int min_modelled_baseline_len_km_notify(void *ctx) {
+  (void)ctx;
+
+  int ret = SETTINGS_WR_OK;
+  if (min_modelled_baseline_len_km < 0.0f) {
+    min_modelled_baseline_len_km = 0.0f;
+    log_info("Min-modelled-baseline-len-km below 0 km");
+    ret = SETTINGS_WR_VALUE_REJECTED;
+  }
+
+  pvt_driver_set_min_modelled_baseline_len_km(pvt_driver,
+                                              min_modelled_baseline_len_km);
+  return ret;
+}
+
 /** Setup the base station observation handling subsystem. */
 void base_obs_setup() {
   /* Register callbacks on base station messages. */
@@ -527,6 +545,12 @@ void base_obs_setup() {
 
   static sbp_msg_callbacks_node_t ics_node;
   sbp_register_cbk(SBP_MSG_GROUP_DELAY, &ics_msg_callback, &ics_node);
+
+  SETTING_NOTIFY("solution",
+                 "min_modelled_baseline_len_km",
+                 min_modelled_baseline_len_km,
+                 SETTINGS_TYPE_FLOAT,
+                 min_modelled_baseline_len_km_notify);
 }
 
 /* \} */
