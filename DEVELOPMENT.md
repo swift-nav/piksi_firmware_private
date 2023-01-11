@@ -1,6 +1,7 @@
 # Piksi Firmware development
 
 PFWP uses clang-format for auto-formatting all source files. The configuration is stored as `.clang-format` at the repository's root. We currently use clang-format 6.0
+Note: The later version of clang-format (v11.0 and above) might not work
 
 ## Installing clang-format
 
