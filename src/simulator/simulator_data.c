@@ -13,7 +13,7 @@ u32 simulation_fake_carrier_bias[33];
 
 u8 simulation_num_almanacs = 33;
 
-const almanac_t
+almanac_t
     simulation_almanacs[33] =
         {
             {

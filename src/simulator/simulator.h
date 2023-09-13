@@ -44,6 +44,7 @@ typedef enum {
 
 /* User-configurable GPS Simulator Settings
  * WARNING: THIS STRUCT IS PACKED! CAREFUL MEMORY ALIGNMENT!
+ * Should be aligned 4 BYTES.
  */
 typedef struct __attribute__((packed)) {
   double base_ecef[3]; /**< centerpoint that defines simulation absolute
@@ -56,9 +57,16 @@ typedef struct __attribute__((packed)) {
   float
       cn0_sigma; /**< variance in signal-to-noise ratio of tracking channels */
   float pseudorange_sigma; /**< variance in each sat's simulated pseudorange */
-  float phase_sigma; /**< variance in each sat's simulated carrier phase */
-  u8 num_sats;       /**< number of simulated satellites to report */
-  u8 mode_mask;      /** < Current mode of the simulator */
+  float phase_sigma;   /**< variance in each sat's simulated carrier phase */
+  u8 num_sats;         /**< number of simulated satellites to report */
+  u8 mode_mask;        /** < Current mode of the simulator */
+  char start_date[11]; /**< start date of Simulation Mode */
+  char unused_1[3];
+  char start_time[9]; /**< start time of simulation Mode */
+  char unused_2[3];
+  float base_lat; /**< Base point in latitude */
+  float base_lon; /**< Base point in longitude */
+  float base_alt; /**< Base Point in altitude */
 } simulation_settings_t;
 
 /** Math Helpers */
