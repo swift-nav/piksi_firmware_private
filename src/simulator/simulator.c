@@ -53,6 +53,7 @@ static void LLHtoECEF(const float lat,
 
 static void computeECEF(const float lat, const float lon, const float alt);
 static void computeGPSTOW(const char start_date[11], const char start_time[9]);
+static void setup_noisy_solution_time(gps_time_t* t);
 
 simulation_settings_t sim_settings = {
     .base_ecef = {-2706098.845, -4261216.475, 3885597.912},
@@ -562,11 +563,17 @@ static int str2time(const char* start_date,
 
 static void computeGPSTOW(const char start_date[11], const char start_time[9]) {
   gps_time_t t0 = {0.0, 0};
-  if (0 == str2time(start_date, start_time, &t0)) {
-    sim_state.noisy_solution.time = t0;
-    for (u8 i = 0; i < simulation_num_almanacs; i++) {
-      simulation_almanacs[i].toa = t0;
-    }
+  if (-1 == str2time(start_date, start_time, &t0)) {
+    t0.wn = simulation_week_number - 1;
+    t0.tow = WEEK_SECS - 20;
+  }
+  setup_noisy_solution_time(&t0);
+}
+
+static void setup_noisy_solution_time(gps_time_t* t) {
+  sim_state.noisy_solution.time = *t;
+  for (u8 i = 0; i < simulation_num_almanacs; i++) {
+    simulation_almanacs[i].toa = *t;
   }
 }
 
