@@ -583,7 +583,7 @@ static void LLHtoECEF(const float lat,
                       double base_ecef[3]) {
   double lat_rad = D2R * lat;
   double lon_rad = D2R * lon;
-  double d = WGS84_E * sin(lat);
+  double d = WGS84_E * sin(lat_rad);
   double N = WGS84_A / sqrt(1. - d * d);
 
   base_ecef[0] = (N + alt) * cos(lat_rad) * cos(lon_rad);
