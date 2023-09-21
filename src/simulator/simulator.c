@@ -531,7 +531,7 @@ static int notify_base_lon(void* context) {
 
 static int notify_base_alt(void* context) {
   simulation_settings_t* config = (simulation_settings_t*)context;
-  if (config->base_alt < -1000.0f || config->base_alt > 1000.0f) {
+  if (config->base_alt < -1000.0f || config->base_alt > 10000.0f) {
     return SETTINGS_WR_VALUE_REJECTED;
   }
   computeECEF(config->base_lat, config->base_lon, config->base_alt);
