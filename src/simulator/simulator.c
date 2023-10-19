@@ -38,6 +38,23 @@
 
 u8 sim_enabled;
 
+double base_ecef_computed[3] = {0.0, 0.0, 0.0};
+
+/** Time and string functions */
+static int str2time(const char* start_date,
+                    const char* star_time,
+                    gps_time_t* t);
+
+/** Position Helper*/
+static void LLHtoECEF(const float lat,
+                      const float lon,
+                      const float alt,
+                      double base_ecef[3]);
+
+static void computeECEF(const float lat, const float lon, const float alt);
+static void computeGPSTOW(const char start_date[11], const char start_time[9]);
+static void setup_noisy_solution_time(gps_time_t* t);
+
 simulation_settings_t sim_settings = {
     .base_ecef = {-2706098.845, -4261216.475, 3885597.912},
     .speed = 4.0,
@@ -49,12 +66,17 @@ simulation_settings_t sim_settings = {
     .phase_sigma = 3e-2f,
     .num_sats = 9,
     .mode_mask = SIMULATION_MODE_PVT | SIMULATION_MODE_TRACKING |
-                 SIMULATION_MODE_FLOAT | SIMULATION_MODE_RTK};
+                 SIMULATION_MODE_FLOAT | SIMULATION_MODE_RTK,
+    .start_date = "2023-01-01",
+    .start_time = "00:00:00",
+    .base_lat = 0.0f,
+    .base_lon = 0.0f,
+    .base_alt = 0.0f};
 
 /* Internal Simulation State Definition */
 struct {
-  piksi_systime_t last_update; /**< The last simulation update happened at
-                                    this CPU tick count. */
+  piksi_systime_t last_update; /**< The last simulation update
+                                  happened at this CPU tick count. */
   float angle;                 /**< Current simulation angle in radians */
   double pos[3];               /**< Current simulated position with no
                                     noise, in ECEF coordinates. */
@@ -70,7 +92,6 @@ struct {
   obs_array_t base_obs_array;
   dops_t dops;
   pvt_engine_result_t noisy_solution;
-
 } sim_state = {
 
     .last_update = PIKSI_SYSTIME_INIT,
@@ -213,10 +234,10 @@ void simulation_step_position_in_circle(double elapsed) {
 
   /* Fill out position simulation's gnss_solution pos_ECEF, pos_LLH structures
    */
-  wgsned2ecef_d(pos_ned, sim_settings.base_ecef, sim_state.pos);
+  wgsned2ecef_d(pos_ned, base_ecef_computed, sim_state.pos);
 
   /* Calculate an accurate baseline for simulating RTK */
-  vector_subtract(3, sim_state.pos, sim_settings.base_ecef, sim_state.baseline);
+  vector_subtract(3, sim_state.pos, base_ecef_computed, sim_state.baseline);
 
   /* Add gaussian noise to PVT position */
   double* pos_ecef = sim_state.noisy_solution.baseline;
@@ -295,10 +316,8 @@ void simulation_step_tracking_and_observations(double elapsed) {
       double points_to_sat[3];
       double base_points_to_sat[3];
       vector_subtract(3, simulation_sats_pos[i], sim_state.pos, points_to_sat);
-      vector_subtract(3,
-                      simulation_sats_pos[i],
-                      sim_settings.base_ecef,
-                      base_points_to_sat);
+      vector_subtract(
+          3, simulation_sats_pos[i], base_ecef_computed, base_points_to_sat);
 
       double distance_to_sat = vector_norm(3, points_to_sat);
       /* reuse points_to_sat to store a unit vector for dot product */
@@ -419,7 +438,7 @@ inline dops_t* simulation_current_dops_solution(void) {
 /** Get current simulated baseline reference point in ECEF coordinates.
  * The structure returned by this changes when settings are updated.
  */
-inline double* simulation_ref_ecef(void) { return sim_settings.base_ecef; }
+inline double* simulation_ref_ecef(void) { return base_ecef_computed; }
 
 /** Get current simulated baseline vector in ECEF coordinates.
  * The structure returned by this changes every time simulation_step is called.
@@ -492,6 +511,96 @@ void simulator_setup_almanacs(void) {
   }
 }
 
+static int notify_base_lat(void* context) {
+  simulation_settings_t* config = (simulation_settings_t*)context;
+  if (config->base_lat < -90.0f || config->base_lat > 90.0f) {
+    return SETTINGS_WR_VALUE_REJECTED;
+  }
+  computeECEF(config->base_lat, config->base_lon, config->base_alt);
+  return SETTINGS_REG_OK;
+}
+
+static int notify_base_lon(void* context) {
+  simulation_settings_t* config = (simulation_settings_t*)context;
+  if (config->base_lon < -180.0f || config->base_lon > 180.0f) {
+    return SETTINGS_WR_VALUE_REJECTED;
+  }
+  computeECEF(config->base_lat, config->base_lon, config->base_alt);
+  return SETTINGS_REG_OK;
+}
+
+static int notify_base_alt(void* context) {
+  simulation_settings_t* config = (simulation_settings_t*)context;
+  if (config->base_alt < -1000.0f || config->base_alt > 10000.0f) {
+    return SETTINGS_WR_VALUE_REJECTED;
+  }
+  computeECEF(config->base_lat, config->base_lon, config->base_alt);
+  return SETTINGS_REG_OK;
+}
+
+static int notify_start_date(void* context) {
+  simulation_settings_t* config = (simulation_settings_t*)context;
+  computeGPSTOW(config->start_date, config->start_time);
+  return SETTINGS_REG_OK;
+}
+
+static int notify_start_time(void* context) {
+  simulation_settings_t* config = (simulation_settings_t*)context;
+  computeGPSTOW(config->start_date, config->start_time);
+  return SETTINGS_REG_OK;
+}
+
+static int str2time(const char* start_date,
+                    const char* star_time,
+                    gps_time_t* t) {
+  int ep[6];
+  if (sscanf(start_date, "%d-%d-%d", ep, ep + 1, ep + 2) < 3) return -1;
+  if (sscanf(star_time, "%d:%d:%d", ep + 3, ep + 4, ep + 5) < 3) return -1;
+  if (ep[0] < 100) ep[0] += ep[0] < 80 ? 2000 : 1900;
+  *t = date2gps(ep[0], ep[1], ep[2], ep[3], ep[4], ep[5]);
+  return 0;
+}
+
+static void computeGPSTOW(const char start_date[11], const char start_time[9]) {
+  gps_time_t t0 = {0.0, 0};
+  if (-1 == str2time(start_date, start_time, &t0)) {
+    t0.wn = simulation_week_number - 1;
+    t0.tow = WEEK_SECS - 20;
+  }
+  setup_noisy_solution_time(&t0);
+}
+
+static void setup_noisy_solution_time(gps_time_t* t) {
+  sim_state.noisy_solution.time = *t;
+  for (u8 i = 0; i < simulation_num_almanacs; i++) {
+    simulation_almanacs[i].toa = *t;
+  }
+}
+
+static void LLHtoECEF(const float lat,
+                      const float lon,
+                      const float alt,
+                      double base_ecef[3]) {
+  double lat_rad = D2R * lat;
+  double lon_rad = D2R * lon;
+  double d = WGS84_E * sin(lat_rad);
+  double N = WGS84_A / sqrt(1. - d * d);
+
+  base_ecef[0] = (N + alt) * cos(lat_rad) * cos(lon_rad);
+  base_ecef[1] = (N + alt) * cos(lat_rad) * sin(lon_rad);
+  base_ecef[2] = ((1 - WGS84_E * WGS84_E) * N + alt) * sin(lat_rad);
+}
+
+static void computeECEF(const float lat, const float lon, const float alt) {
+  if (lat == 0.0f && lon == 0.0f && alt == 0.0f) {
+    memcpy(base_ecef_computed,
+           sim_settings.base_ecef,
+           sizeof(sim_settings.base_ecef));
+  } else {
+    LLHtoECEF(lat, lon, alt, base_ecef_computed);
+  }
+}
+
 /** Must be called from main() or equivalent function before simulator runs
  */
 void simulator_setup(void) {
@@ -535,6 +644,34 @@ void simulator_setup(void) {
           SETTINGS_TYPE_FLOAT);
   SETTING("simulator", "num_sats", sim_settings.num_sats, SETTINGS_TYPE_INT);
   SETTING("simulator", "mode_mask", sim_settings.mode_mask, SETTINGS_TYPE_INT);
+  SETTING_NOTIFY_CTX("simulator",
+                     "start_date",
+                     sim_settings.start_date,
+                     SETTINGS_TYPE_STRING,
+                     notify_start_date,
+                     &sim_settings);
+  SETTING_NOTIFY_CTX("simulator",
+                     "start_time",
+                     sim_settings.start_time,
+                     SETTINGS_TYPE_STRING,
+                     notify_start_time,
+                     &sim_settings);
+  SETTING_NOTIFY_CTX("simulator",
+                     "base_lat_deg",
+                     sim_settings.base_lat,
+                     SETTINGS_TYPE_FLOAT,
+                     notify_base_lat,
+                     &sim_settings);
+  SETTING_NOTIFY_CTX("simulator",
+                     "base_lon_deg",
+                     sim_settings.base_lon,
+                     SETTINGS_TYPE_FLOAT,
+                     notify_base_lon,
+                     &sim_settings);
+  SETTING_NOTIFY_CTX("simulator",
+                     "base_alt_m",
+                     sim_settings.base_alt,
+                     SETTINGS_TYPE_FLOAT,
+                     notify_base_alt,
+                     &sim_settings);
 }
-
-/** \} */
