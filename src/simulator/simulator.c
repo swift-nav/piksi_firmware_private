@@ -260,6 +260,7 @@ void simulation_step_position_in_circle(double elapsed) {
               sim_state.noisy_solution.velocity);
   sim_state.noisy_solution.valid = true;
   sim_state.noisy_solution.velocity_valid = true;
+  sim_state.noisy_solution.flags.velocity_mode = VELOCITY_MODE_COMPUTED_DOPPLER;
 }
 
 /** Simulates real observations for the current position and the satellite
