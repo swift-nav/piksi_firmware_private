@@ -1,11 +1,6 @@
 SWIFTNAV_ROOT := $(shell pwd)
 
-ifeq ($(STARLING_ROOT),)
-  STARLING_ROOT = $(SWIFTNAV_ROOT)/third_party/starling
-endif
-
 MAKEFLAGS += SWIFTNAV_ROOT=$(SWIFTNAV_ROOT)
-MAKEFLAGS += STARLING_ROOT=$(STARLING_ROOT)
 PFWP_COMPILER := arm-none-eabi-
 
 # Be silent per default, but 'make V=1' will show all compiler calls.
@@ -53,7 +48,11 @@ MAKEFLAGS += LIBSETTINGS_BUILDDIR=$(LIBSETTINGS_BUILDDIR)
 MAKEFLAGS += OPENAMP_BUILDDIR=$(OPENAMP_BUILDDIR)
 
 FW_DEPS=compiler-version \
-        $(LIBSETTINGS_BUILDDIR)/src/libsettings.a
+        $(LIBSETTINGS_BUILDDIR)/src/libsettings.a \
+        $(SWIFTNAV_ROOT)/static_library/starling/libpvt-engine.a \
+        $(SWIFTNAV_ROOT)/static_library/starling/libpvt-common.a \
+        $(SWIFTNAV_ROOT)/static_library/starling/libstarling.a \
+        $(SWIFTNAV_ROOT)/static_library/starling/libstarling-util.a
 
 ifeq ($(PIKSI_HW),v3)
   FW_DEPS += $(OPENAMP_BUILDDIR)/lib/libopen-amp.a
