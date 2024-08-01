@@ -98,7 +98,7 @@ $(LIBSETTINGS_BUILDDIR)/src/libsettings.a:
 	mkdir -p $(LIBSETTINGS_BUILDDIR); cd $(LIBSETTINGS_BUILDDIR); \
 	cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
 	      -DCMAKE_TOOLCHAIN_FILE=../../piksi-toolchain.cmake \
-	      -DLIBSBP_SEARCH_PATH=$(SWIFTNAV_ROOT)/third_party/libsbp/c \
+	      -DLIBSBP_SEARCH_PATH=$(SWIFTNAV_ROOT)/static_install/libsbp/ \
 	      $(CMAKEFLAGS) ../
 	$(MAKE) -C $(LIBSETTINGS_BUILDDIR) $(MAKEFLAGS) settings
 
