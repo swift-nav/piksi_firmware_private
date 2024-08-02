@@ -48,11 +48,7 @@ MAKEFLAGS += LIBSETTINGS_BUILDDIR=$(LIBSETTINGS_BUILDDIR)
 MAKEFLAGS += OPENAMP_BUILDDIR=$(OPENAMP_BUILDDIR)
 
 FW_DEPS=compiler-version \
-        $(LIBSETTINGS_BUILDDIR)/src/libsettings.a \
-        $(SWIFTNAV_ROOT)/static_library/starling/libpvt-engine.a \
-        $(SWIFTNAV_ROOT)/static_library/starling/libpvt-common.a \
-        $(SWIFTNAV_ROOT)/static_library/starling/libstarling.a \
-        $(SWIFTNAV_ROOT)/static_library/starling/libstarling-util.a
+        $(LIBSETTINGS_BUILDDIR)/src/libsettings.a
 
 ifeq ($(PIKSI_HW),v3)
   FW_DEPS += $(OPENAMP_BUILDDIR)/lib/libopen-amp.a
