@@ -46,12 +46,9 @@ static int str2time(const char* start_date,
                     gps_time_t* t);
 
 /** Position Helper*/
-static void LLHtoECEF(const float lat,
-                      const float lon,
-                      const float alt,
-                      double base_ecef[3]);
+static void LLHtoECEF(float lat, float lon, float alt, double base_ecef[3]);
 
-static void computeECEF(const float lat, const float lon, const float alt);
+static void computeECEF(float lat, float lon, float alt);
 static void computeGPSTOW(const char start_date[11], const char start_time[9]);
 static void setup_noisy_solution_time(gps_time_t* t);
 
@@ -414,7 +411,7 @@ void populate_obs(starling_obs_t* obs,
  */
 inline bool simulation_enabled(void) { return (sim_enabled > 0); }
 
-/** Returns true fi the simulation is enabled for the given mode_mask
+/** Returns true if the simulation is enabled for the given mode_mask
  *
  * \param mode_mask The mode for which the simulation might be enabled.
  */
@@ -555,8 +552,15 @@ static int str2time(const char* start_date,
                     const char* star_time,
                     gps_time_t* t) {
   int ep[6];
-  if (sscanf(start_date, "%d-%d-%d", ep, ep + 1, ep + 2) < 3) return -1;
-  if (sscanf(star_time, "%d:%d:%d", ep + 3, ep + 4, ep + 5) < 3) return -1;
+  // NOLINTBEGIN
+  if (sscanf(start_date, "%d-%d-%d", ep, ep + 1, ep + 2) < 3) {
+    return -1;
+  }
+  if (sscanf(star_time, "%d:%d:%d", ep + 3, ep + 4, ep + 5) < 3) {
+    return -1;
+  }
+  // NOLINTEND
+
   if (ep[0] < 100) ep[0] += ep[0] < 80 ? 2000 : 1900;
   *t = date2gps(ep[0], ep[1], ep[2], ep[3], ep[4], ep[5]);
   return 0;
@@ -578,10 +582,7 @@ static void setup_noisy_solution_time(gps_time_t* t) {
   }
 }
 
-static void LLHtoECEF(const float lat,
-                      const float lon,
-                      const float alt,
-                      double base_ecef[3]) {
+static void LLHtoECEF(float lat, float lon, float alt, double base_ecef[3]) {
   double lat_rad = D2R * lat;
   double lon_rad = D2R * lon;
   double d = WGS84_E * sin(lat_rad);
@@ -592,7 +593,7 @@ static void LLHtoECEF(const float lat,
   base_ecef[2] = ((1 - WGS84_E * WGS84_E) * N + alt) * sin(lat_rad);
 }
 
-static void computeECEF(const float lat, const float lon, const float alt) {
+static void computeECEF(float lat, float lon, float alt) {
   if (lat == 0.0f && lon == 0.0f && alt == 0.0f) {
     memcpy(base_ecef_computed,
            sim_settings.base_ecef,
