@@ -34,18 +34,17 @@ INCDIR = $(SWIFTNAV_ROOT) \
          $(SWIFTNAV_ROOT)/src/calc \
          $(SWIFTNAV_ROOT)/mesta/stubs \
          $(SWIFTNAV_ROOT)/mesta/stubs/libswiftnav \
-         $(SWIFTNAV_ROOT)/install/include \
-         $(SWIFTNAV_ROOT)/install/include/starling \
-         $(SWIFTNAV_ROOT)/install/libfec/include \
+         $(SWIFTNAV_ROOT)/static_library/starling/include \
+         $(SWIFTNAV_ROOT)/static_library/libfec/include \
          $(SWIFTNAV_ROOT)/src/hal \
          $(SWIFTNAV_ROOT)/src/board/v3/prod \
          $(SWIFTNAV_ROOT)/src/board/v3 \
          $(SWIFTNAV_ROOT)/src/board \
          $(SWIFTNAV_ROOT)/src/main \
-         $(SWIFTNAV_ROOT)/third_party/libpal/include \
-         $(SWIFTNAV_ROOT)/third_party/libpal/src/default/include \
-         $(SWIFTNAV_ROOT)/third_party/libsbp/c/include \
-         $(SWIFTNAV_ROOT)/third_party/libswiftnav/include \
+         $(SWIFTNAV_ROOT)/static_library/libpal/include \
+         $(SWIFTNAV_ROOT)/static_library/libpal/src/default/include \
+         $(SWIFTNAV_ROOT)/static_library/libsbp/include \
+         $(SWIFTNAV_ROOT)/static_library/libswiftnav/include \
          $(SWIFTNAV_ROOT)/libsettings/include \
          $(SWIFTNAV_ROOT)/libsbp \
          $(SWIFTNAV_ROOT)/libsbp/c/include/libsbp
@@ -152,6 +151,47 @@ CSRC := $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l2c.c \
         $(SWIFTNAV_ROOT)/src/board/v3/platform_signal.c \
         $(SWIFTNAV_ROOT)/src/board/v3/ndb_fs_access.c \
         $(SWIFTNAV_ROOT)/src/lib/fixed_fft_r2.c \
+        $(SWIFTNAV_ROOT)/static_library/starling/src/util/sbp/misc.c \
+        $(SWIFTNAV_ROOT)/static_library/starling/src/util/sbp/packers.c \
+        $(SWIFTNAV_ROOT)/static_library/starling/src/util/sbp/unpackers.c \
+        $(SWIFTNAV_ROOT)/static_library/starling/src/pvt_engine/observation.c \
+        $(SWIFTNAV_ROOT)/static_library/starling/src/pvt_engine/cycle_slip.c \
+        $(SWIFTNAV_ROOT)/static_library/libfec/src/viterbi27.c \
+				$(SWIFTNAV_ROOT)/static_library/libpal/src/default/pal.c \
+        $(SWIFTNAV_ROOT)/static_library/libpal/src/default/synch/condition_var.c \
+        $(SWIFTNAV_ROOT)/static_library/libpal/src/default/synch/mutex.c \
+        $(SWIFTNAV_ROOT)/static_library/libpal/src/default/thread/thread.c \
+        $(SWIFTNAV_ROOT)/static_library/libpal/src/default/mem/mem.c \
+        $(SWIFTNAV_ROOT)/static_library/libpal/src/default/ipc/mq.c \
+				$(SWIFTNAV_ROOT)/static_library/libpal/src/default/io/io.c \
+				$(SWIFTNAV_ROOT)/static_library/libpal/src/default/io/file.c \
+				$(SWIFTNAV_ROOT)/static_library/libpal/src/default/io/serial.c \
+				$(SWIFTNAV_ROOT)/static_library/libpal/src/default/io/stdstream.c \
+				$(SWIFTNAV_ROOT)/static_library/libpal/src/default/io/tcp.c \
+				$(SWIFTNAV_ROOT)/static_library/libpal/src/default/chrono/monotonic_clock.c \
+				$(SWIFTNAV_ROOT)/static_library/libpal/src/default/watchdog/watchdog.c \
+        $(SWIFTNAV_ROOT)/static_library/libswiftnav/src/almanac.c \
+        $(SWIFTNAV_ROOT)/static_library/libswiftnav/src/bits.c \
+        $(SWIFTNAV_ROOT)/static_library/libswiftnav/src/coord_system.c \
+        $(SWIFTNAV_ROOT)/static_library/libswiftnav/src/correct_iono_tropo.c \
+        $(SWIFTNAV_ROOT)/static_library/libswiftnav/src/edc.c \
+        $(SWIFTNAV_ROOT)/static_library/libswiftnav/src/ephemeris.c \
+        $(SWIFTNAV_ROOT)/static_library/libswiftnav/src/fifo_byte.c \
+        $(SWIFTNAV_ROOT)/static_library/libswiftnav/src/glo_map.c \
+        $(SWIFTNAV_ROOT)/static_library/libswiftnav/src/glonass_phase_biases.c \
+        $(SWIFTNAV_ROOT)/static_library/libswiftnav/src/gnss_time.c \
+        $(SWIFTNAV_ROOT)/static_library/libswiftnav/src/ionosphere.c \
+        $(SWIFTNAV_ROOT)/static_library/libswiftnav/src/linear_algebra.c \
+        $(SWIFTNAV_ROOT)/static_library/libswiftnav/src/logging.c \
+        $(SWIFTNAV_ROOT)/static_library/libswiftnav/src/logging_common.c \
+        $(SWIFTNAV_ROOT)/static_library/libswiftnav/src/memcpy_s.c \
+        $(SWIFTNAV_ROOT)/static_library/libswiftnav/src/nav_meas.c \
+        $(SWIFTNAV_ROOT)/static_library/libswiftnav/src/set.c \
+        $(SWIFTNAV_ROOT)/static_library/libswiftnav/src/shm.c \
+        $(SWIFTNAV_ROOT)/static_library/libswiftnav/src/sid_set.c \
+        $(SWIFTNAV_ROOT)/static_library/libswiftnav/src/signal.c \
+        $(SWIFTNAV_ROOT)/static_library/libswiftnav/src/single_epoch_solver.c \
+        $(SWIFTNAV_ROOT)/static_library/libswiftnav/src/troposphere.c \
         $(SWIFTNAV_ROOT)/libsettings/src/request_state.c \
         $(SWIFTNAV_ROOT)/libsettings/src/setting_data.c \
         $(SWIFTNAV_ROOT)/libsettings/src/setting_type.c \
@@ -166,6 +206,9 @@ CSRC := $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l2c.c \
         $(SWIFTNAV_ROOT)/mesta/stubs/starling_platform_stubs.c \
         $(SWIFTNAV_ROOT)/mesta/main.c \
 
+
+CXXSRC := $(SWIFTNAV_ROOT)/static_library/starling/src/starling/starling_input_bridge.cc \
+          $(SWIFTNAV_ROOT)/static_library/starling/src/starling/util/mutex.cc
 
 CXXFLAGS := -std=c++11
 
