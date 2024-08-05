@@ -552,16 +552,16 @@ static int str2time(const char* start_date,
                     const char* star_time,
                     gps_time_t* t) {
   int ep[6];
-  // NOLINTBEGIN
-  if (sscanf(start_date, "%d-%d-%d", ep, ep + 1, ep + 2) < 3) {
+  if (sscanf(start_date, "%d-%d-%d", ep, ep + 1, ep + 2) < 3) {  // NOLINT
     return -1;
   }
-  if (sscanf(star_time, "%d:%d:%d", ep + 3, ep + 4, ep + 5) < 3) {
+  if (sscanf(star_time, "%d:%d:%d", ep + 3, ep + 4, ep + 5) < 3) {  // NOLINT
     return -1;
   }
-  // NOLINTEND
 
-  if (ep[0] < 100) ep[0] += ep[0] < 80 ? 2000 : 1900;
+  if (ep[0] < 100) {
+    ep[0] += ep[0] < 80 ? 2000 : 1900;
+  }
   *t = date2gps(ep[0], ep[1], ep[2], ep[3], ep[4], ep[5]);
   return 0;
 }
