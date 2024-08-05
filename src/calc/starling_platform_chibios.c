@@ -31,7 +31,7 @@
 #include "system_monitor/system_monitor.h"
 
 /* From libpal for unimplemented functions */
-#include "libpal/not_implemented.h"
+#include "not_implemented.h"
 
 /*******************************************************************************
  * Memory
