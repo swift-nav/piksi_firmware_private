@@ -276,15 +276,16 @@ ASMSRC = $(STARTUPASM) $(PORTASM) $(OSALASM) $(BOARDASM)
 INCDIR = $(STARTUPINC) $(PORTINC) $(KERNINC) \
          $(HALINC) $(OSALINC) $(PLATFORMINC) $(BOARDINC) \
          $(CHIBIOS)/os/various \
-         $(STARLING_ROOT)/third_party/libsbp/c/include \
+         $(SWIFTNAV_ROOT)/static_library/libsbp/include \
          $(SWIFTNAV_ROOT)/libsettings/include \
-         $(STARLING_ROOT)/include \
-         $(STARLING_ROOT)/third_party/libpal/include \
-         $(STARLING_ROOT)/third_party/libpal/src/default/include \
-         $(STARLING_ROOT)/third_party/libswiftnav/include \
+         $(SWIFTNAV_ROOT)/static_library/libpal/include \
+         $(SWIFTNAV_ROOT)/static_library/libpal/src/default/include \
+         $(SWIFTNAV_ROOT)/static_library/libswiftnav/include \
+         $(SWIFTNAV_ROOT)/static_library/starling/include \
+         $(SWIFTNAV_ROOT)/static_library/libfec/include/ \
          $(SWIFTNAV_ROOT)/src \
          $(SWIFTNAV_ROOT)/src/board \
-         $(STARLING_ROOT)/libfec/include \
+         $(SWIFTNAV_ROOT)/libfec/include \
          $(SWIFTNAV_ROOT)/src/utils \
          $(SWIFTNAV_ROOT)/src/simulator \
          $(SWIFTNAV_ROOT)/src/sbp \
@@ -378,15 +379,12 @@ DINCDIR =
 
 # List the default directory to look for the libraries here
 
-DLIBDIR = $(LIBPAL_BUILDDIR)/src/default \
-          $(LIBSBP_BUILDDIR)/c/src \
-          $(LIBSETTINGS_BUILDDIR)/src \
-          $(STARLING_BUILDDIR)/src/starling \
-					$(STARLING_BUILDDIR)/src/pvt_engine \
-					$(STARLING_BUILDDIR)/src/pvt_common \
-          $(STARLING_BUILDDIR)/src/util \
-          $(STARLING_BUILDDIR)/libfec \
-          $(LIBSWIFTNAV_BUILDDIR) \
+DLIBDIR = $(LIBSETTINGS_BUILDDIR)/src \
+          $(SWIFTNAV_ROOT)/static_library/libpal \
+          $(SWIFTNAV_ROOT)/static_library/libsbp \
+          $(SWIFTNAV_ROOT)/static_library/libfec \
+          $(SWIFTNAV_ROOT)/static_library/starling \
+          $(SWIFTNAV_ROOT)/static_library/libswiftnav \
           $(BOARDLIBDIR)
 
 # List all default libraries here

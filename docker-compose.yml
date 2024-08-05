@@ -2,7 +2,10 @@ version: '3.1'
 
 services:
   piksi_firmware:
-    build: .
+    build:
+      context: .
+      args:
+        - UID=1000
     image: piksi_firmware
     volumes:
       - ${PWD}:/mnt/workspace:delegated
