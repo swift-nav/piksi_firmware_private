@@ -48,23 +48,21 @@ INCDIR = $(SWIFTNAV_ROOT) \
          $(SWIFTNAV_ROOT)/src/legacy_starling_util/include/ \
          $(SWIFTNAV_ROOT)/mesta/stubs \
          $(SWIFTNAV_ROOT)/mesta/stubs/libswiftnav \
-         $(STARLING_ROOT)/pvt_engine/include/ \
-         $(STARLING_ROOT)/pvt_common/include/ \
-         $(STARLING_ROOT)/pvt_driver/include/ \
-         $(STARLING_ROOT)/starling_util/include/ \
-         $(STARLING_BUILDDIR)/include \
-         $(STARLING_ROOT)/libfec/include \
+         $(SWIFTNAV_ROOT)/static_library/starling/pvt_engine/include/ \
+         $(SWIFTNAV_ROOT)/static_library/starling/pvt_common/include/ \
+         $(SWIFTNAV_ROOT)/static_library/starling/pvt_driver/include/ \
+         $(SWIFTNAV_ROOT)/static_library/starling/starling_util/include/ \
+         $(SWIFTNAV_ROOT)/static_library/starling/include \
+         $(SWIFTNAV_ROOT)/static_library/libfec/include \
          $(SWIFTNAV_ROOT)/src/hal \
          $(SWIFTNAV_ROOT)/src/board/v3/prod \
          $(SWIFTNAV_ROOT)/src/board/v3 \
          $(SWIFTNAV_ROOT)/src/board \
          $(SWIFTNAV_ROOT)/src/main \
-         $(STARLING_ROOT)/third_party/libpal/pal/include \
-         $(STARLING_ROOT)/third_party/libpal/pal/src/include \
-         $(STARLING_ROOT)/third_party/libsbp/c/include \
-         $(STARLING_ROOT)/third_party/libswiftnav/include \
-         $(STARLING_ROOT)/third_party/eigen \
-         $(STARLING_ROOT)/third_party/Optional \
+         $(SWIFTNAV_ROOT)/static_library/libpal/pal/include \
+         $(SWIFTNAV_ROOT)/static_library/libpal/pal/src/include \
+         $(SWIFTNAV_ROOT)/static_library/libsbp/include \
+         $(SWIFTNAV_ROOT)/static_library/libswiftnav/include \
          $(SWIFTNAV_ROOT)/libsettings/include \
          $(SWIFTNAV_ROOT)/libsbp \
          $(SWIFTNAV_ROOT)/libsbp/c/include/libsbp
@@ -174,45 +172,45 @@ CSRC := $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l2c.c \
         $(SWIFTNAV_ROOT)/src/legacy_starling_util/src/sbp/misc.c \
         $(SWIFTNAV_ROOT)/src/legacy_starling_util/src/sbp/packers.c \
         $(SWIFTNAV_ROOT)/src/legacy_starling_util/src/sbp/unpackers.c \
-        $(STARLING_ROOT)/pvt_engine/src/cycle_slip.c \
-        $(STARLING_ROOT)/libfec/src/viterbi27.c \
-		$(STARLING_ROOT)/third_party/libpal/pal/src/pal.c \
-        $(STARLING_ROOT)/third_party/libpal/pal/src/synch/condition_var.c \
-        $(STARLING_ROOT)/third_party/libpal/pal/src/synch/mutex.c \
-        $(STARLING_ROOT)/third_party/libpal/pal/src/thread/thread.c \
-        $(STARLING_ROOT)/third_party/libpal/pal/src/mem/mem.c \
-        $(STARLING_ROOT)/third_party/libpal/pal/src/ipc/mq.c \
-		$(STARLING_ROOT)/third_party/libpal/pal/src/io/file.c \
-		$(STARLING_ROOT)/third_party/libpal/pal/src/io/serial.c \
-		$(STARLING_ROOT)/third_party/libpal/pal/src/io/stdstream.c \
-		$(STARLING_ROOT)/third_party/libpal/pal/src/io/tcp.c \
-		$(STARLING_ROOT)/third_party/libpal/pal/src/io/udp.c \
-		$(STARLING_ROOT)/third_party/libpal/pal/src/chrono/monotonic_clock.c \
-		$(STARLING_ROOT)/third_party/libpal/pal/src/watchdog/watchdog.c \
-		$(STARLING_ROOT)/third_party/libpal/pal/src/identifier/identifier.c \
-        $(STARLING_ROOT)/third_party/libswiftnav/src/almanac.c \
-        $(STARLING_ROOT)/third_party/libswiftnav/src/bits.c \
-        $(STARLING_ROOT)/third_party/libswiftnav/src/coord_system.c \
-        $(STARLING_ROOT)/third_party/libswiftnav/src/correct_iono_tropo.c \
-        $(STARLING_ROOT)/third_party/libswiftnav/src/decode_glo.c \
-        $(STARLING_ROOT)/third_party/libswiftnav/src/edc.c \
-        $(STARLING_ROOT)/third_party/libswiftnav/src/ephemeris.c \
-        $(STARLING_ROOT)/third_party/libswiftnav/src/fifo_byte.c \
-        $(STARLING_ROOT)/third_party/libswiftnav/src/glo_map.c \
-        $(STARLING_ROOT)/third_party/libswiftnav/src/glonass_phase_biases.c \
-        $(STARLING_ROOT)/third_party/libswiftnav/src/gnss_time.c \
-        $(STARLING_ROOT)/third_party/libswiftnav/src/ionosphere.c \
-        $(STARLING_ROOT)/third_party/libswiftnav/src/linear_algebra.c \
-        $(STARLING_ROOT)/third_party/libswiftnav/src/logging.c \
-        $(STARLING_ROOT)/third_party/libswiftnav/src/logging_common.c \
-        $(STARLING_ROOT)/third_party/libswiftnav/src/memcpy_s.c \
-        $(STARLING_ROOT)/third_party/libswiftnav/src/nav_meas.c \
-        $(STARLING_ROOT)/third_party/libswiftnav/src/set.c \
-        $(STARLING_ROOT)/third_party/libswiftnav/src/shm.c \
-        $(STARLING_ROOT)/third_party/libswiftnav/src/sid_set.c \
-        $(STARLING_ROOT)/third_party/libswiftnav/src/signal.c \
-        $(STARLING_ROOT)/third_party/libswiftnav/src/single_epoch_solver.c \
-        $(STARLING_ROOT)/third_party/libswiftnav/src/troposphere.c \
+        $(SWIFTNAV_ROOT)/static_library_test/starling/pvt_engine/src/cycle_slip.c \
+        $(SWIFTNAV_ROOT)/static_library_test/libfec/src/viterbi27.c \
+        $(SWIFTNAV_ROOT)/static_library_test/libpal/pal/src/pal.c \
+        $(SWIFTNAV_ROOT)/static_library_test/libpal/pal/src/synch/condition_var.c \
+        $(SWIFTNAV_ROOT)/static_library_test/libpal/pal/src/synch/mutex.c \
+        $(SWIFTNAV_ROOT)/static_library_test/libpal/pal/src/thread/thread.c \
+        $(SWIFTNAV_ROOT)/static_library_test/libpal/pal/src/mem/mem.c \
+        $(SWIFTNAV_ROOT)/static_library_test/libpal/pal/src/ipc/mq.c \
+        $(SWIFTNAV_ROOT)/static_library_test/libpal/pal/src/io/file.c \
+        $(SWIFTNAV_ROOT)/static_library_test/libpal/pal/src/io/serial.c \
+        $(SWIFTNAV_ROOT)/static_library_test/libpal/pal/src/io/stdstream.c \
+        $(SWIFTNAV_ROOT)/static_library_test/libpal/pal/src/io/tcp.c \
+        $(SWIFTNAV_ROOT)/static_library_test/libpal/pal/src/io/udp.c \
+        $(SWIFTNAV_ROOT)/static_library_test/libpal/pal/src/chrono/monotonic_clock.c \
+        $(SWIFTNAV_ROOT)/static_library_test/libpal/pal/src/watchdog/watchdog.c \
+        $(SWIFTNAV_ROOT)/static_library_test/libpal/pal/src/identifier/identifier.c \
+        $(SWIFTNAV_ROOT)/static_library_test/libswiftnav/src/almanac.c \
+        $(SWIFTNAV_ROOT)/static_library_test/libswiftnav/src/bits.c \
+        $(SWIFTNAV_ROOT)/static_library_test/libswiftnav/src/coord_system.c \
+        $(SWIFTNAV_ROOT)/static_library_test/libswiftnav/src/correct_iono_tropo.c \
+        $(SWIFTNAV_ROOT)/static_library_test/libswiftnav/src/decode_glo.c \
+        $(SWIFTNAV_ROOT)/static_library_test/libswiftnav/src/edc.c \
+        $(SWIFTNAV_ROOT)/static_library_test/libswiftnav/src/ephemeris.c \
+        $(SWIFTNAV_ROOT)/static_library_test/libswiftnav/src/fifo_byte.c \
+        $(SWIFTNAV_ROOT)/static_library_test/libswiftnav/src/glo_map.c \
+        $(SWIFTNAV_ROOT)/static_library_test/libswiftnav/src/glonass_phase_biases.c \
+        $(SWIFTNAV_ROOT)/static_library_test/libswiftnav/src/gnss_time.c \
+        $(SWIFTNAV_ROOT)/static_library_test/libswiftnav/src/ionosphere.c \
+        $(SWIFTNAV_ROOT)/static_library_test/libswiftnav/src/linear_algebra.c \
+        $(SWIFTNAV_ROOT)/static_library_test/libswiftnav/src/logging.c \
+        $(SWIFTNAV_ROOT)/static_library_test/libswiftnav/src/logging_common.c \
+        $(SWIFTNAV_ROOT)/static_library_test/libswiftnav/src/memcpy_s.c \
+        $(SWIFTNAV_ROOT)/static_library_test/libswiftnav/src/nav_meas.c \
+        $(SWIFTNAV_ROOT)/static_library_test/libswiftnav/src/set.c \
+        $(SWIFTNAV_ROOT)/static_library_test/libswiftnav/src/shm.c \
+        $(SWIFTNAV_ROOT)/static_library_test/libswiftnav/src/sid_set.c \
+        $(SWIFTNAV_ROOT)/static_library_test/libswiftnav/src/signal.c \
+        $(SWIFTNAV_ROOT)/static_library_test/libswiftnav/src/single_epoch_solver.c \
+        $(SWIFTNAV_ROOT)/static_library_test/libswiftnav/src/troposphere.c \
         $(SWIFTNAV_ROOT)/libsettings/src/request_state.c \
         $(SWIFTNAV_ROOT)/libsettings/src/setting_data.c \
         $(SWIFTNAV_ROOT)/libsettings/src/setting_type.c \
@@ -229,7 +227,7 @@ CSRC := $(SWIFTNAV_ROOT)/src/track/signals/track_gps_l2c.c \
         $(SWIFTNAV_ROOT)/mesta/main.c \
 
 
-CXXSRC := $(STARLING_ROOT)/pvt_engine/src/obss.cc
+CXXSRC := $(SWIFTNAV_ROOT)/static_library_test/starling/pvt_engine/src/obss.cc
 
 CXXFLAGS := -std=c++14
 

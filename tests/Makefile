@@ -76,14 +76,14 @@ INCLUDE_DIRS += -I$(STUBS_DIR)
 INCLUDE_DIRS += -I$(USER_SRC_DIR)
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/board/v3/
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/board/v3/prod/
-INCLUDE_DIRS += -I$(STARLING_ROOT)/pvt_engine/include/
-INCLUDE_DIRS += -I$(STARLING_ROOT)/pvt_common/include/
-INCLUDE_DIRS += -I$(STARLING_ROOT)/pvt_driver/include/
-INCLUDE_DIRS += -I$(STARLING_BUILDDIR)/include/
-INCLUDE_DIRS += -I$(STARLING_ROOT)/third_party/libpal/include
-INCLUDE_DIRS += -I$(STARLING_ROOT)/third_party/libswiftnav/include
-INCLUDE_DIRS += -I$(STARLING_ROOT)/third_party/libsbp/c/include
-INCLUDE_DIRS += -I$(STARLING_ROOT)/libfec/include
+INCLUDE_DIRS += -I$(SWIFTNAV_ROOT)/static_library/starling/pvt_engine/include/
+INCLUDE_DIRS += -I$(SWIFTNAV_ROOT)/static_library/starling/pvt_common/include/
+INCLUDE_DIRS += -I$(SWIFTNAV_ROOT)/static_library/starling/pvt_driver/include/
+INCLUDE_DIRS += -I$(SWIFTNAV_ROOT)/static_library/starling/include/
+INCLUDE_DIRS += -I$(SWIFTNAV_ROOT)/static_library/libpal/pal/include/
+INCLUDE_DIRS += -I$(SWIFTNAV_ROOT)/static_library/libswiftnav/include/
+INCLUDE_DIRS += -I$(SWIFTNAV_ROOT)/static_library/libsbp/include/
+INCLUDE_DIRS += -I$(SWIFTNAV_ROOT)/static_library/libfec/include/
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/utils
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/hal
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/calc
@@ -102,14 +102,15 @@ GTEST_HEADERS = $(GTEST_DIR)/include/gtest/*.h \
 
 # House-keeping build targets.
 
-.PHONY: lsnp
+.PHONY:
 
-all : lsnp run_tests
+all : run_tests
 
 lsnp :
 	@printf "BUILD Starling\n"; \
 	mkdir -p $(STARLING_BUILDDIR); cd $(STARLING_BUILDDIR); \
 	cmake -DMAX_CHANNELS=81 \
+        -DCMAKE_BUILD_TYPE=Release \
 	      -DPIKSI_MULTI_UNIT_TEST=ON \
 	      -DCMAKE_C_COMPILER=$(C_COMPILER) \
 	      -DCMAKE_CXX_COMPILER=$(CXX_COMPILER) \
@@ -212,24 +213,24 @@ OBJS = $(patsubst %.c,$(OBJDIR)/%.o,$(C_SRCS))
 OBJS += $(patsubst %.cc,$(OBJDIR)/%.o,$(CXX_SRCS))
 
 # Rule for C files
-$(OBJDIR)/%.o: %.c lsnp
+$(OBJDIR)/%.o: %.c
 	$(CC) $(CFLAGS) $(INCLUDE_DIRS) -c $< -o $@
 
 # Rule for C++ files
-$(OBJDIR)/%.o: %.cc lsnp
+$(OBJDIR)/%.o: %.cc
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $< -o $@
 
 OBJS += $(OBJDIR)/gtest_main.a
 
 LIBS = -lpvt-common -lswiftnav -lpthread -lfec
-LIB_PATH = -L$(STARLING_SEARCHPATH)/pvt_engine
-LIB_PATH += -L$(STARLING_SEARCHPATH)/pvt_common
-LIB_PATH += -L$(STARLING_SEARCHPATH)/pvt_driver
-LIB_PATH += -L$(LIBSWIFTNAV_SEARCHPATH)
-LIB_PATH += -L$(STARLING_FEC_SEARCHPATH)
-LIB_RPATH = -Wl,-rpath,$(STARLING_SEARCHPATH)/src
-LIB_RPATH += -Wl,-rpath,$(LIBSWIFTNAV_SEARCHPATH)
-LIB_RPATH += -Wl,-rpath,$(STARLING_FEC_SEARCHPATH)
+LIB_PATH = -L$(SWIFTNAV_ROOT)/static_library_test/starling/pvt_engine
+LIB_PATH += -L$(SWIFTNAV_ROOT)/static_library_test/starling/pvt_common
+LIB_PATH += -L$(SWIFTNAV_ROOT)/static_library_test/starling/pvt_driver
+LIB_PATH += -L$(SWIFTNAV_ROOT)/static_library_test/libswiftnav
+LIB_PATH += -L$(SWIFTNAV_ROOT)/static_library_test/libfec
+LIB_RPATH = -Wl,-rpath,-L$(SWIFTNAV_ROOT)/static_library_test/starling/src
+LIB_RPATH += -Wl,-rpath,$(SWIFTNAV_ROOT)/static_library_test/libswiftnav
+LIB_RPATH += -Wl,-rpath,$(SWIFTNAV_ROOT)/static_library_test/libfec
 
-run_tests : lsnp $(OBJDIR) $(OBJS)
+run_tests : $(OBJDIR) $(OBJS)
 	$(CXX) $(CXXFLAGS) $(OBJS) $(LIB_PATH) $(LIBS) -o $@ $(LIB_RPATH)
