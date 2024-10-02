@@ -39,6 +39,8 @@
 #define NAP_IRQS_EXT_EVENT_MASK \
   (NAP_IRQS_EXT_EVENT0_Msk | NAP_IRQS_EXT_EVENT1_Msk | NAP_IRQS_EXT_EVENT2_Msk)
 
+#define NAP_MAX_INTERRUPT_ERRS 10
+
 static void nap_isr(void *context);
 
 static BSEMAPHORE_DECL(nap_irq_sem, TRUE);
@@ -169,6 +171,8 @@ static void handle_nap_irq(void) {
 }
 
 void handle_nap_track_irq(void) {
+  static u8 nap_interrupt_count = 0;
+
   u32 irq0 = NAP->TRK_IRQS[0];
   trackers_update(irq0, 0);
   NAP->TRK_IRQS[0] = irq0;
@@ -195,6 +199,14 @@ void handle_nap_track_irq(void) {
     trackers_missed(err[0], 0);
     trackers_missed(err[1], 32);
     trackers_missed(err[2], 64);
+
+    if (nap_interrupt_count >= NAP_MAX_INTERRUPT_ERRS) {
+      log_warn("NAP interrupt threshold met : %u", nap_interrupt_count);
+      nap_interrupt_count = 0;
+      assert(false);
+    }
+  } else {
+    nap_interrupt_count = 0;
   }
 
   DO_EVERY(4096, watchdog_notify(WD_NOTIFY_NAP_ISR));
@@ -230,6 +242,8 @@ void __attribute__((noreturn)) nap_track_irq_thread(void *arg) {
                stale_trackers_cleanup(););
 
     /* Sleep until 250 microseconds is full. */
+    // nmallick: increase the delay to recreate issue
+    // try 1000
     piksi_systime_sleep_until_windowed_us(&sys_time, 250);
   }
 }
