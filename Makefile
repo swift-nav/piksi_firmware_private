@@ -105,7 +105,7 @@ $(LIBSETTINGS_BUILDDIR)/src/libsettings.a: .FORCE \
                                            $(STARLING_BUILDDIR)/src/pvt_common/libpvt-common.a
 	@printf "BUILD   libsettings for target $(PIKSI_TARGET)\n"; \
 	mkdir -p $(LIBSETTINGS_BUILDDIR); cd $(LIBSETTINGS_BUILDDIR); \
-	cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+	cmake -DCMAKE_BUILD_TYPE=Release \
 	      -DCMAKE_TOOLCHAIN_FILE=../../piksi-toolchain.cmake \
 	      -DLIBSBP_SEARCH_PATH=$(STARLING_ROOT)/third_party/libsbp/c \
 	      $(CMAKEFLAGS) ../
@@ -140,7 +140,7 @@ $(STARLING_BUILDDIR)/src/util/libstarling-util.a: .FORCE \
 $(STARLING_BUILDDIR)/Makefile:
 	@printf "Run cmake for target $(STARLING_BUILDDIR)\n"; \
     mkdir -p $(STARLING_BUILDDIR); cd $(STARLING_BUILDDIR); \
-    cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+    cmake -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_TOOLCHAIN_FILE=../../piksi-toolchain.cmake \
           -DMAX_CHANNELS=79 \
 		  -DNO_COMPILED_OTL=TRUE \
@@ -149,7 +149,7 @@ $(STARLING_BUILDDIR)/Makefile:
 $(OPENAMP_BUILDDIR)/lib/libopen-amp.a:
 	@printf "BUILD   open-amp for target $(PIKSI_TARGET)\n"; \
 	mkdir -p $(OPENAMP_BUILDDIR) ; cd $(OPENAMP_BUILDDIR); \
-	cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+	cmake -DCMAKE_BUILD_TYPE=Release \
 	      -DCMAKE_TOOLCHAIN_FILE=../../piksi-toolchain.cmake \
 	      -DMACHINE=custom \
 	      $(CMAKEFLAGS) ../
