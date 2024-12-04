@@ -19,6 +19,10 @@
 
 #include "nt1065.h"
 #include "system_monitor/system_monitor.h"
+#include "timing/timing.h"
+
+u64 pll_check_timer = 0;
+u64 pll_time_out_ms = 100;
 
 #define SPI_READ_MASK (1 << 7)
 #define NUM_CHANNELS 4
@@ -26,6 +30,7 @@ static const SPIConfig spi_config = FRONTEND_SPI_CONFIG;
 
 static void configure_v1(void);
 static void configure_v2(void);
+static mutex_t check_pll;
 
 static void frontend_open_spi(void) {
   spiAcquireBus(&FRONTEND_SPI);
@@ -64,6 +69,7 @@ static void frontend_isr(void* context) {
 
 void frontend_configure(void) {
   bool is_aok = true;
+  chMtxObjectInit(&check_pll);
   /* If the NT1065 doesn't become healthy within a timeout, retry config */
   do {
     frontend_open_spi();
@@ -223,6 +229,15 @@ void nt1065_get_agc(s8 rf_gain_array[], s8 if_gain_array[]) {
 }
 
 bool nt1065_check_plls() {
+  chMtxTryLock(&check_pll);
+  u64 now_ms = timing_getms();
+
+  if ((now_ms - pll_check_timer) < pll_time_out_ms) {
+    chMtxUnlock(&check_pll);
+    return true;
+  }
+  log_warn("nt1065: Checking PLL register A and B");
+  pll_check_timer = timing_getms();
   frontend_open_spi();
   u8 pll_a_status = spi_read(44) & 7;
   u8 pll_b_status = spi_read(48) & 7;
@@ -247,9 +262,13 @@ bool nt1065_check_plls() {
     if (pll_b_status & 4) {
       log_error("nt1065: PLL B VCO voltage below min bound");
     }
+
+    chMtxUnlock(&check_pll);
     return false;
   }
 
+  chMtxUnlock(&check_pll);
+  log_warn("nt1065: PLL register A and B are OK");
   return true;
 }
 

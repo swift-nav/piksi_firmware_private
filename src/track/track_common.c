@@ -31,6 +31,7 @@
 #include "track_sid_db.h"
 #include "track_utils.h"
 
+bool nt1065_check_plls(void);
 /**
  * Computes number of chips in the integration interval
  *
@@ -626,7 +627,8 @@ static void update_ld_phase(tracker_t *tracker, u32 cycle_flags) {
     tracker->flags |= TRACKER_FLAG_HAS_PLOCK;
     tracker->flags |= TRACKER_FLAG_HAD_PLOCK;
   } else if (last_outp && (TP_TM_INITIAL != tracker->tracking_mode)) {
-    log_info_mesid(tracker->mesid, "PLL stress");
+    log_warn_mesid(tracker->mesid, "PLL stress");
+    nt1065_check_plls();
   }
 }
 

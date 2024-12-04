@@ -316,3 +316,7 @@ void tp_drop_channel(tracker_t *tracker, ch_drop_reason_t reason) {
 }
 
 void clock_steer(s32 clk_drift_ppb) { (void)clk_drift_ppb; }
+
+bool nt1065_check_plls(){
+  return true;
+}
