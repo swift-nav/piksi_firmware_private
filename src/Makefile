@@ -279,21 +279,20 @@ ASMSRC = $(STARTUPASM) $(PORTASM) $(OSALASM) $(BOARDASM)
 INCDIR = $(STARTUPINC) $(PORTINC) $(KERNINC) \
          $(HALINC) $(OSALINC) $(PLATFORMINC) $(BOARDINC) \
          $(CHIBIOS)/os/various \
-         $(STARLING_ROOT)/third_party/libsbp/c/include \
+         $(SWIFTNAV_ROOT)/static_library/libsbp/include \
          $(SWIFTNAV_ROOT)/libsettings/include \
-         $(STARLING_ROOT)/include \
-         $(STARLING_ROOT)/third_party/libpal/pal/include \
-         $(STARLING_ROOT)/third_party/libpal/pal/src/include \
-         $(STARLING_ROOT)/third_party/libpal/pal++/include \
-         $(STARLING_ROOT)/third_party/libswiftnav/include \
-         $(STARLING_BUILDDIR)/include \
-         $(STARLING_ROOT)/pvt_engine/include \
-         $(STARLING_ROOT)/pvt_common/include \
-         $(STARLING_ROOT)/pvt_driver/include \
-         $(STARLING_ROOT)/ground_truth/include \
+         $(SWIFTNAV_ROOT)/static_library/libpal/pal/include \
+         $(SWIFTNAV_ROOT)/static_library/libpal/pal/src/include \
+         $(SWIFTNAV_ROOT)/static_library/libpal/pal++/include \
+         $(SWIFTNAV_ROOT)/static_library/libswiftnav/include \
+         $(SWIFTNAV_ROOT)/static_library/starling/include \
+         $(SWIFTNAV_ROOT)/static_library/starling/pvt_engine/include \
+         $(SWIFTNAV_ROOT)/static_library/starling/pvt_common/include \
+         $(SWIFTNAV_ROOT)/static_library/starling/pvt_driver/include \
+         $(SWIFTNAV_ROOT)/static_library/starling/ground_truth/include \
          $(SWIFTNAV_ROOT)/src \
          $(SWIFTNAV_ROOT)/src/board \
-         $(STARLING_ROOT)/libfec/include \
+         $(SWIFTNAV_ROOT)/static_library/libfec/include/ \
          $(SWIFTNAV_ROOT)/src/utils \
          $(SWIFTNAV_ROOT)/src/simulator \
          $(SWIFTNAV_ROOT)/src/sbp \
@@ -388,18 +387,17 @@ DINCDIR =
 
 # List the default directory to look for the libraries here
 
-DLIBDIR = $(LIBPAL_BUILDDIR)/pal/src \
-          $(LIBPAL_BUILDDIR)/pal++/src/ \
-          $(LIBSBP_BUILDDIR)/c/src \
+DLIBDIR = $(SWIFTNAV_ROOT)/static_library/libpal/pal \
+          $(SWIFTNAV_ROOT)/static_library/libpal/pal++ \
+          $(SWIFTNAV_ROOT)/static_library/libsbp \
           $(LIBSETTINGS_BUILDDIR)/src \
-          $(STARLING_BUILDDIR)/pvt_common \
-          $(STARLING_BUILDDIR)/pvt_driver \
-          $(STARLING_BUILDDIR)/ground_truth \
-          $(STARLING_BUILDDIR)/pvt_engine \
-          $(STARLING_BUILDDIR)/pvt_common \
-          $(STARLING_BUILDDIR)/src/util \
-          $(STARLING_BUILDDIR)/libfec \
-          $(LIBSWIFTNAV_BUILDDIR) \
+          $(SWIFTNAV_ROOT)/static_library/starling/pvt_common \
+          $(SWIFTNAV_ROOT)/static_library/starling/pvt_driver \
+          $(SWIFTNAV_ROOT)/static_library/starling/ground_truth \
+          $(SWIFTNAV_ROOT)/static_library/starling/pvt_engine \
+          $(SWIFTNAV_ROOT)/static_library/starling/src/util \
+          $(SWIFTNAV_ROOT)/static_library/libfec \
+          $(SWIFTNAV_ROOT)/static_library/libswiftnav \
           $(BOARDLIBDIR)
 
 # List all default libraries here
