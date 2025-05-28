@@ -1,3 +1,4 @@
+third_party/starling/third_party/libpal/
 static_library/libpal/pal/src/include/pal_private.h
 static_library/libpal/pal/include/libpal/identifier/identifier.h
 static_library/libpal/pal/include/libpal/watchdog/watchdog.h
@@ -33,7 +34,11 @@ static_library/libpal/pal/include/libpal/io/udp.h
 static_library/libpal/pal/include/libpal/io/file.h
 static_library/libpal/pal/include/libpal/io/tcp.h
 static_library/libpal/pal/include/libpal/mem/mem.h
+
+third_party/starling/build_v3/third_party/
 static_library/libpal/pal/libpal.a
+
+third_party/starling/third_party/libpal/
 static_library/libpal/pal++/include/libpal++/validation.h
 static_library/libpal/pal++/include/libpal++/tcp_server.h
 static_library/libpal/pal++/include/libpal++/tuple.h
@@ -62,7 +67,11 @@ static_library/libpal/pal++/include/libpal++/udp_socket.h
 static_library/libpal/pal++/include/libpal++/condition_variable.h
 static_library/libpal/pal++/include/libpal++/memory_pool.h
 static_library/libpal/pal++/include/libpal++/span.h
+
+third_party/starling/build_v3/third_party/
 static_library/libpal/pal++/libpal++.a
+
+third_party/starling/third_party/libswiftnav/
 static_library/libswiftnav/include/swiftnav/edc.h
 static_library/libswiftnav/include/swiftnav/correct_iono_tropo.h
 static_library/libswiftnav/include/swiftnav/nav_meas.h
@@ -100,10 +109,18 @@ static_library/libswiftnav/include/swiftnav/float_equality.h
 static_library/libswiftnav/include/swiftnav/decode_glo.h
 static_library/libswiftnav/include/swiftnav/memcpy_s.h
 static_library/libswiftnav/include/swiftnav/bytestream.h
+
+third_party/starling/build_v3/third_party/libswiftnav/
 static_library/libswiftnav/libswiftnav.a
+
+third_party/starling/libfec/
 static_library/libfec/src/viterbi27.c
 static_library/libfec/include/libfec/fec.h
+
+third_party/starling/build_v3/
 static_library/libfec/libfec.a
+
+third_party/starling/
 static_library/starling/pvt_engine/include/pvt_engine/apriori_model_elevation.h
 static_library/starling/pvt_engine/include/pvt_engine/process_model_ionosphere.h
 static_library/starling/pvt_engine/include/pvt_engine/gaussian.h
@@ -293,7 +310,6 @@ static_library/starling/pvt_engine/include/pvt_engine/apriori_model_satellite_an
 static_library/starling/pvt_engine/include/pvt_engine/outlier_info.h
 static_library/starling/pvt_engine/include/pvt_engine/satellite_pva.h
 static_library/starling/pvt_engine/include/pvt_engine/mean_and_variance.h
-static_library/starling/pvt_engine/libpvt-engine.a
 static_library/starling/src/pvt-version/version.c
 static_library/starling/include/starling/build/config.h
 static_library/starling/pvt_driver/include/pvt_driver/external_functions.h
@@ -302,8 +318,6 @@ static_library/starling/pvt_driver/include/pvt_driver/pvt_driver.h
 static_library/starling/pvt_driver/include/pvt_driver/debug.h
 static_library/starling/pvt_driver/include/pvt_driver/types.h
 static_library/starling/pvt_driver/include/pvt_driver/pvt_driver_c.h
-static_library/starling/pvt_driver/libpvt_driver.a
-static_library/starling/ground_truth/libground-truth.a
 static_library/starling/ground_truth/include/ground_truth/truth_trajectory.h
 static_library/starling/ground_truth/include/ground_truth/truth_static.h
 static_library/starling/ground_truth/include/ground_truth/truth_epoch.h
@@ -328,7 +342,14 @@ static_library/starling/pvt_common/include/pvt_common/containers/static_vector.h
 static_library/starling/pvt_common/include/pvt_common/containers/optional_tuple.h
 static_library/starling/pvt_common/include/pvt_common/coord_system.h
 static_library/starling/pvt_common/include/pvt_common/observation_utils.h
+
+third_party/starling/build_v3/
+static_library/starling/pvt_engine/libpvt-engine.a
+static_library/starling/pvt_driver/libpvt_driver.a
+static_library/starling/ground_truth/libground-truth.a
 static_library/starling/pvt_common/libpvt-common.a
+
+third_party/starling/third_party/libsbp/
 static_library/libsbp/include/libsbp/gnss_macros.h
 static_library/libsbp/include/libsbp/edc.h
 static_library/libsbp/include/libsbp/tracking.h
@@ -696,4 +717,6 @@ static_library/libsbp/include/libsbp/mag_macros.h
 static_library/libsbp/include/libsbp/common.h
 static_library/libsbp/include/libsbp/ndb_macros.h
 static_library/libsbp/include/libsbp/ext_events.h
+
+third_party/starling/build_v3/
 static_library/libsbp/libsbp.a
