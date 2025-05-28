@@ -37,3 +37,6 @@ for INPUT_FILE in "${INPUT_FILES[@]}"; do
         fi
     done < "$INPUT_FILE"
 done
+
+# Tar the two folders after all is done
+tar -cvf static_library.tar static_library_test static_library
