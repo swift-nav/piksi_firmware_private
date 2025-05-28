@@ -40,7 +40,11 @@ namespace pvt_engine {
 const u16 cSbasMaxIgpsNum = 2040;  // max number of ionospheric grid points
 const u8 cIgpIodiMax = 3;
 const double cSbasMaxElectronDensityHeightM = 350e3;
-const u16 cSbasIonosphericCorrectionsTimeOutS = 600;
+
+// We can use longer time-out for SBAS ionosphere model, because latent SBAS
+// ionosphere model is still better option for SPP than Klobuchar without
+// updated parameters.
+const u16 cSbasIonosphericCorrectionsTimeOutS = 3600;
 const u8 cSbasIgpPerBand = 201;
 const u8 cSbasIgpBandNum = 11;
 
